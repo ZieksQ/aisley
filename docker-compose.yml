@@ -1,17 +1,22 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.3-alpine3.23
     container_name: school-ecommerce-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: school_ecommerce
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
     ports:
-      - "5432:5432"
+      - "5436:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
+    netoworks:
+      - aisley-ecommerce-netowork
 
 volumes:
   postgres-data:
 
+networks:
+  aisley-ecommerce-network:
+    driver: bridge

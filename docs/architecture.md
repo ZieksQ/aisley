@@ -1,73 +1,56 @@
-# System Architecture
+# Architecture
 
-## System Overview
-The application consists of three major components:
+## Purpose
+Defines **HOW** the system is structured: components, tech stack, data layer, and how pieces connect.
 
+## Repo layout
 ```
-React Frontend 
-↓
-Laravel Backend (REST API) 
-↓
-Supabase (PostgreSQL)
-```
-
-The frontend is responsible for the user interface.
-The API handles authentication, validation, and business logic.
-Supabase (PostgreSQL) stores persistent application data.
-
-## Project Structure
-- for the main components store it in `/src`
-```bash
-.github/
 src/
-|- webapp/
-|- api/
-|- ...
-docs/
-README.md
-docker-compose.yml
-package.json
-pnpm-lock.yaml
-pnpm-workspace.yaml
+  api/       # Laravel API — backend for all roles
+  webapp/    # Customer-facing storefront (Next.js)
+  seller/    # Seller dashboard (React)
+  admin/     # Admin dashboard (React)
 ```
+Courier has no folder in `src/` — it's served by `api/` and consumed by an external mobile app (not part of this repo).
 
-## Package Manager
-- pnpm
-- use pnpm workspace then the four main project `webapp`, `seller`, `admin`, and `api`
-- use concurrently for development to run this project in one command
+## Tech stack
 
-## Frontend Structure
-The frontend consist of 3 different react projects;
-`webapp`, `seller`, and `admin`.
-
-- **webapp** - this is the main domain, used by buyer and guests (unauthenticated users)
-to browse, add to cart, order products.
-- **seller** - domain for sellers. register as a seller, create a store, list new products,
-manage orders, analytics, and inventory.
-- **admin** - domain for application admin. analytics, manage sellers application, manage tax,
-customer service.
-
-
-### Stack per frontend
-**webapp** - SSR + CSR
-- Next js (default configuration)
-- React + TypeScript
-- Tailwind
-- React Icons
-
-**seller** & **admin**
-- React + TypeScript
-- Tailwind
-- React Icons
-
-## Backend Structure
+### api/
 - Laravel
-- use `laravel` command when creating laravel project.
-- use `php` and `composer` commands when needed.
-- uses Laravel API.
-- Eloquent API.
-- Laravel Sanctum for token-based authentication.
+- Sanctum — authentication (token-based; supports SPA and mobile consumers)
+- Eloquent — ORM
 
-## Database Structure
-- Supabase
-- Can switch between Supabase and local PostgreSQL for development by changing database in `.env`.
+### webapp/ (customer)
+- Next.js + TypeScript
+- Rendering: SSR + CSR (hybrid, per-page as needed)
+- Tailwind CSS
+- react-icons
+
+### seller/ and admin/
+- React + TypeScript
+- Tailwind CSS
+- react-icons
+- React Router
+
+## Database
+- Supabase (Postgres) — primary environment
+- Local development: can switch to local Postgres via `.env`
+- **Known migration issue:** Postgres errors on native enum column types in migrations. Workaround: define the column as `string` in the migration/DB schema, but keep it strongly typed as an enum in the API layer (PHP enum class + Eloquent cast). All future enum-like fields should follow this same pattern for consistency.
+
+## Auth model
+- Sanctum issues tokens for all API consumers: `webapp/`, `seller/`, `admin/`, and the external courier mobile app.
+- Role-based access control (RBAC): every API endpoint checks the caller's role before executing role-specific logic.
+- Seller and Courier roles have an additional "approval" gate — an approved-by-admin status required before their tokens can access role-specific endpoints.
+
+## Multi-tenancy model
+- Each Seller owns one Store.
+- Store-scoped data (products, orders for that store) must be filtered by store ownership at the query level in `api/`, not just hidden in the frontend.
+
+## How components talk to api/
+- `webapp/`, `seller/`, and `admin/` all call the same Laravel API (`api/`) over HTTP, authenticated via Sanctum.
+- The courier mobile app (external) calls dedicated courier endpoints on the same API.
+
+## TBD
+- API versioning strategy
+- Hosting/deployment targets per component
+- File/image storage (product images, store assets)
