@@ -1,0 +1,16 @@
+{
+  "name": "school-ecommerce",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "concurrently -n API,WEBAPP,SELLER,ADMIN -c green,cyan,magenta,yellow \"pnpm dev:api\" \"pnpm dev:webapp\" \"pnpm dev:seller\" \"pnpm dev:admin\"",
+    "dev:api": "cd src/api && php artisan serve --host=0.0.0.0 --port=8000",
+    "dev:webapp": "pnpm --dir src/webapp dev",
+    "dev:seller": "pnpm --dir src/seller dev",
+    "dev:admin": "pnpm --dir src/admin dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
+

@@ -1,0 +1,15 @@
+node_modules
+vendor
+.next
+dist
+build
+coverage
+.turbo
+.pnpm-store
+.DS_Store
+.env
+.env.*
+!/src/**/.env.example
+!/src/api/.env.example
+*.log
+
