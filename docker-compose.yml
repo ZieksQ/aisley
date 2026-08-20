@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:18.3-alpine3.23
-    container_name: school-ecommerce-postgres
+    container_name: aisley-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USERNAME}
@@ -11,12 +11,12 @@ services:
       - "5436:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
-    netoworks:
-      - aisley-ecommerce-netowork
+    networks:
+      - aisley-network
 
 volumes:
   postgres-data:
 
 networks:
-  aisley-ecommerce-network:
+  aisley-network:
     driver: bridge
