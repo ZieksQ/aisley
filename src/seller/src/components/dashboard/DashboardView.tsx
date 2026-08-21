@@ -39,10 +39,10 @@ export const DashboardView: React.FC = () => {
   // Average rating
   const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : '5.0';
 
-  // Category sales share
+  // Category sales share with high-contrast colors across light and dark modes
   const categoryData = [
     { label: 'Haute Couture Silk', percentage: 48, color: '#E723A2', amount: 38500 },
-    { label: 'Artisanal Leather', percentage: 26, color: '#0F172A', amount: 21000 },
+    { label: 'Artisanal Leather', percentage: 26, color: '#F59E0B', amount: 21000 },
     { label: 'Botanical Fragrance', percentage: 16, color: '#0284C7', amount: 13000 },
     { label: 'Fine Jewelry', percentage: 10, color: '#10B981', amount: 8200 },
   ];
@@ -107,9 +107,9 @@ export const DashboardView: React.FC = () => {
           value={formatPHP(financialSummary.grossSales)}
           change="+18.4%"
           isPositive={true}
-          icon={<FaPesoSign className="size-5" />}
-          iconBgColor="bg-[#FDF2F9] dark:bg-pink-950/40"
-          iconTextColor="text-[#E723A2] dark:text-pink-400"
+          icon={<FaPesoSign className="size-4" />}
+          iconBgColor="bg-[#FDF2F9] dark:bg-pink-950/70 border border-pink-200 dark:border-pink-800/80"
+          iconTextColor="text-[#E723A2] dark:text-pink-300"
           action={{
             label: 'View reports',
             onClick: () => setCurrentView('reports'),
@@ -121,9 +121,9 @@ export const DashboardView: React.FC = () => {
           value={formatPHP(financialSummary.netProfit)}
           change="+14.2%"
           isPositive={true}
-          icon={<FaCircleCheck className="size-5" />}
-          iconBgColor="bg-emerald-50 dark:bg-emerald-950/40"
-          iconTextColor="text-[#10B981] dark:text-emerald-400"
+          icon={<FaCircleCheck className="size-4" />}
+          iconBgColor="bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80"
+          iconTextColor="text-[#10B981] dark:text-emerald-300"
           action={{
             label: 'COGS breakdown',
             onClick: () => setCurrentView('reports'),
@@ -134,9 +134,9 @@ export const DashboardView: React.FC = () => {
           title="Active Orders Volume"
           value={`${financialSummary.orderCount} Orders`}
           subtitle={`${toPackOrders.length} requiring pack/handover`}
-          icon={<FaBoxesStacked className="size-5" />}
-          iconBgColor="bg-sky-50 dark:bg-sky-950/40"
-          iconTextColor="text-[#0284C7] dark:text-sky-400"
+          icon={<FaBoxesStacked className="size-4" />}
+          iconBgColor="bg-sky-50 dark:bg-sky-950/70 border border-sky-200 dark:border-sky-800/80"
+          iconTextColor="text-[#0284C7] dark:text-sky-300"
           action={{
             label: 'Open ERP',
             onClick: () => setCurrentView('orders'),
@@ -147,9 +147,9 @@ export const DashboardView: React.FC = () => {
           title="Seller Merchant Rating"
           value={`${avgRating} / 5.0`}
           subtitle={`${reviews.length} verified client reviews`}
-          icon={<FaStar className="size-5" />}
-          iconBgColor="bg-amber-50 dark:bg-amber-950/40"
-          iconTextColor="text-amber-600 dark:text-amber-400"
+          icon={<FaStar className="size-4" />}
+          iconBgColor="bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80"
+          iconTextColor="text-amber-600 dark:text-amber-300"
           action={{
             label: 'Read feedback',
             onClick: () => setCurrentView('reviews'),
@@ -253,7 +253,7 @@ export const DashboardView: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[600px]">
             <thead className="bg-[#F8FAFC] dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Order ID</th>

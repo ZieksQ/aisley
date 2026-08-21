@@ -25,7 +25,7 @@ export const CustomerReviewsTab: React.FC = () => {
       {/* Review Summary Scoreboard */}
       <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="grid size-16 place-items-center rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-700">
+          <div className="size-16 rounded-2xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 shrink-0">
             <span className="text-3xl font-black font-mono-num">{avgRating}</span>
           </div>
           <div>
@@ -40,7 +40,7 @@ export const CustomerReviewsTab: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80 text-xs font-bold flex items-center gap-1.5">
             <FaShieldHalved /> 100% Verified Purchases
           </span>
         </div>
@@ -55,7 +55,7 @@ export const CustomerReviewsTab: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-slate-900 dark:text-white">{rev.customerName}</span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800/80 px-2.5 py-0.5 rounded-full">
                     <FaShieldHalved /> Verified Buyer
                   </span>
                 </div>
@@ -95,9 +95,9 @@ export const CustomerReviewsTab: React.FC = () => {
 
             {/* Seller Inline Reply */}
             {rev.sellerReply ? (
-              <div className="ml-4 pl-4 border-l-2 border-[#E723A2] space-y-1 bg-[#FDF2F9] dark:bg-pink-950/30 p-3 rounded-r-xl border border-l-0 border-[#F9CFEA] dark:border-pink-900/50">
+              <div className="ml-2 sm:ml-4 pl-3 sm:pl-4 border-l-2 border-[#E723A2] space-y-1 bg-[#FDF2F9] dark:bg-pink-950/40 p-3 rounded-r-xl border border-l-0 border-[#F9CFEA] dark:border-pink-900/60">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#E723A2] dark:text-pink-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-[#E723A2] dark:text-pink-300 uppercase tracking-wider">
                     Seller Response
                   </span>
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num">

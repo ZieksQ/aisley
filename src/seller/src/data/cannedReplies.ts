@@ -4,7 +4,7 @@ export const INITIAL_CANNED_REPLIES: CannedReply[] = [
   {
     id: 'can-1',
     title: 'Ready to Pack',
-    text: 'Hi there! Yes, this piece is currently in stock at our atelier and ready to pack today.',
+    text: 'Hi there! Yes, this piece is currently in stock at our boutique and ready to pack today.',
     category: 'Inventory',
   },
   {
@@ -21,8 +21,8 @@ export const INITIAL_CANNED_REPLIES: CannedReply[] = [
   },
   {
     id: 'can-4',
-    title: 'VIP Atelier Voucher Offer',
-    text: 'As a valued collector of Aisley, here is a special 15% VIP discount code for your next atelier purchase: ATELIER15.',
+    title: 'VIP Aisley Voucher Offer',
+    text: 'As a valued collector of Aisley, here is a special 15% VIP discount code for your next purchase: AISLEY15.',
     category: 'Voucher',
   },
   {

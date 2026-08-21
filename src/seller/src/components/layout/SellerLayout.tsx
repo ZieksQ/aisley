@@ -70,14 +70,16 @@ export const SellerLayout: React.FC<{ children: React.ReactNode }> = ({ children
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className={isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}>{item.icon}</span>
-                      <span>{item.label}</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`shrink-0 flex items-center justify-center ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'}`}>
+                        {item.icon}
+                      </span>
+                      <span className="truncate">{item.label}</span>
                     </div>
 
                     {item.badge && (
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono-num font-extrabold ${
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono-num font-extrabold shrink-0 ${
                           isActive
                             ? 'bg-white text-[#E723A2]'
                             : item.badgeColor || 'bg-amber-500 text-white'
@@ -107,16 +109,16 @@ export const SellerLayout: React.FC<{ children: React.ReactNode }> = ({ children
         {mobileSidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex">
             <div
-              className="fixed inset-0 bg-slate-950/70"
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
               onClick={() => setMobileSidebarOpen(false)}
             />
-            <div className="relative w-64 bg-white dark:bg-[#0B0F19] p-4 flex flex-col justify-between z-10 border-r border-slate-300 dark:border-slate-800">
+            <div className="relative w-64 bg-white dark:bg-[#0B0F19] p-4 flex flex-col justify-between z-10 border-r border-slate-300 dark:border-slate-800 shadow-2xl">
               <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
                   <AisleyLogo size="sm" theme={theme} />
                   <button
                     onClick={() => setMobileSidebarOpen(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center"
                   >
                     <FaXmark className="size-5" />
                   </button>
@@ -139,7 +141,7 @@ export const SellerLayout: React.FC<{ children: React.ReactNode }> = ({ children
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span>{item.icon}</span>
+                          <span className="flex items-center justify-center">{item.icon}</span>
                           <span>{item.label}</span>
                         </div>
                       </button>
@@ -176,10 +178,10 @@ export const SellerLayout: React.FC<{ children: React.ReactNode }> = ({ children
           title="Open Client Concierge Chat"
           aria-label="Client Concierge Chat"
         >
-          <div className="relative">
+          <div className="relative flex items-center justify-center">
             <FaComments className="size-5" />
             {unreadChatCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-white text-[#E723A2] text-[9px] font-black grid place-items-center shadow-xs">
+              <span className="absolute -top-2 -right-2 size-4 rounded-full bg-white text-[#E723A2] text-[9px] font-black flex items-center justify-center shadow-xs">
                 {unreadChatCount}
               </span>
             )}

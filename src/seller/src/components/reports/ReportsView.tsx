@@ -61,7 +61,7 @@ export const ReportsView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => exportFinancialRecordsToCSV(financialRecords)}
             className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -104,7 +104,7 @@ export const ReportsView: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           <input
             type="date"
             value={fromDate}
@@ -133,17 +133,17 @@ export const ReportsView: React.FC = () => {
           title="Gross Revenue"
           value={formatPHP(financialSummary.grossSales)}
           subtitle={`${financialSummary.orderCount} active customer purchases`}
-          icon={<FaPesoSign className="size-5" />}
-          iconBgColor="bg-[#FDF2F9] dark:bg-pink-950/40"
-          iconTextColor="text-[#E723A2] dark:text-pink-400"
+          icon={<FaPesoSign className="size-4" />}
+          iconBgColor="bg-[#FDF2F9] dark:bg-pink-950/70 border border-pink-200 dark:border-pink-800/80"
+          iconTextColor="text-[#E723A2] dark:text-pink-300"
         />
 
         <MetricCard
           title="Cost of Goods (COGS)"
           value={formatPHP(financialSummary.costOfGoods)}
           subtitle="Direct product material & labor cost"
-          icon={<FaBoxesStacked className="size-5" />}
-          iconBgColor="bg-slate-100 dark:bg-slate-800"
+          icon={<FaBoxesStacked className="size-4" />}
+          iconBgColor="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
           iconTextColor="text-slate-700 dark:text-slate-300"
         />
 
@@ -151,24 +151,24 @@ export const ReportsView: React.FC = () => {
           title="Platform Fees & Subsidy"
           value={formatPHP(financialSummary.platformFees + financialSummary.shippingSubsidies)}
           subtitle="3.5% Aisley fee + shipping subsidies"
-          icon={<FaPercent className="size-5" />}
-          iconBgColor="bg-rose-50 dark:bg-rose-950/40"
-          iconTextColor="text-rose-600 dark:text-rose-400"
+          icon={<FaPercent className="size-4" />}
+          iconBgColor="bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800/80"
+          iconTextColor="text-rose-600 dark:text-rose-300"
         />
 
         <MetricCard
           title="Net Disbursed Profit"
           value={formatPHP(financialSummary.netProfit)}
           badgeText={`${netMarginPercent}% Net Margin`}
-          icon={<FaCircleCheck className="size-5" />}
-          iconBgColor="bg-emerald-50 dark:bg-emerald-950/40"
-          iconTextColor="text-[#10B981] dark:text-emerald-400"
+          icon={<FaCircleCheck className="size-4" />}
+          iconBgColor="bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80"
+          iconTextColor="text-[#10B981] dark:text-emerald-300"
         />
       </div>
 
       {/* Profit Waterfall Calculation Card */}
       <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div>
             <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
               Aisley Net Profit Waterfall Calculation
@@ -177,58 +177,58 @@ export const ReportsView: React.FC = () => {
               Clear itemization showing exactly how your payout is derived from gross receipts.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 text-xs font-bold font-mono-num">
+          <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80 text-xs font-bold font-mono-num">
             Escrow Protected Payout
           </span>
         </div>
 
         {/* Step-by-Step Waterfall Formula Blocks */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-stretch text-xs">
           {/* Gross Sales */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800 flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Gross Revenue</span>
-            <p className="text-lg font-black font-mono-num text-slate-900 dark:text-white mt-1">
+            <p className="text-lg font-black font-mono-num text-slate-900 dark:text-white my-1">
               {formatPHP(financialSummary.grossSales)}
             </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Total retail customer receipts</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Total retail customer receipts</p>
           </div>
 
           {/* Minus COGS */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/60">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">2. Less: COGS</span>
-            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-400 mt-1">
+          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/70 flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">2. Less: COGS</span>
+            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-300 my-1">
               -{formatPHP(financialSummary.costOfGoods)}
             </p>
-            <p className="text-[10px] text-rose-600 dark:text-rose-300 mt-0.5">Raw materials & artisan labor</p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-400">Raw materials & artisan labor</p>
           </div>
 
           {/* Minus Platform Fee */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/60">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">3. Less: Platform Fee (3.5%)</span>
-            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-400 mt-1">
+          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/70 flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">3. Less: Platform Fee (3.5%)</span>
+            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-300 my-1">
               -{formatPHP(financialSummary.platformFees)}
             </p>
-            <p className="text-[10px] text-rose-600 dark:text-rose-300 mt-0.5">Sanctum & payment gateway</p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-400">Sanctum & payment gateway</p>
           </div>
 
           {/* Minus Shipping Subsidy */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/60">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">4. Less: Shipping Subsidy</span>
-            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-400 mt-1">
+          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/70 flex flex-col justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">4. Less: Shipping Subsidy</span>
+            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-300 my-1">
               -{formatPHP(financialSummary.shippingSubsidies)}
             </p>
-            <p className="text-[10px] text-rose-600 dark:text-rose-300 mt-0.5">Seller promo shipping absorbs</p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-400">Seller promo shipping absorbs</p>
           </div>
 
           {/* Final Net Profit */}
-          <div className="p-4 rounded-2xl bg-[#0F172A] dark:bg-[#070A10] text-white border border-slate-700 dark:border-slate-800">
+          <div className="p-4 rounded-2xl bg-[#0F172A] dark:bg-[#070A10] text-white border border-slate-700 dark:border-slate-800 flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981] flex items-center gap-1">
               <FaCircleCheck /> 5. Net Seller Profit
             </span>
-            <p className="text-xl font-black font-mono-num text-white mt-1">
+            <p className="text-xl font-black font-mono-num text-white my-1">
               {formatPHP(financialSummary.netProfit)}
             </p>
-            <p className="text-[10px] text-slate-400 mt-0.5">{netMarginPercent}% net margin retained</p>
+            <p className="text-[10px] text-slate-400">{netMarginPercent}% net margin retained</p>
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@ export const ReportsView: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-[#F8FAFC] dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Transaction ID & Date</th>

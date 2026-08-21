@@ -165,7 +165,7 @@ export const InventoryView: React.FC = () => {
       {/* Product Catalog Table */}
       <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[640px]">
             <thead className="bg-[#F8FAFC] dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Product Details</th>
@@ -249,14 +249,14 @@ export const InventoryView: React.FC = () => {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => updateProduct(product.id, { stock: Math.max(0, product.stock - 1) })}
-                                className="size-5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 grid place-items-center font-bold cursor-pointer"
+                                className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer"
                                 title="Decrease stock by 1"
                               >
                                 -
                               </button>
                               <button
                                 onClick={() => updateProduct(product.id, { stock: product.stock + 5 })}
-                                className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-[10px] font-bold cursor-pointer"
+                                className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-[10px] font-bold cursor-pointer"
                                 title="Add 5 units"
                               >
                                 +5
@@ -271,7 +271,7 @@ export const InventoryView: React.FC = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEdit(product)}
-                            className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                            className="size-8 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition cursor-pointer"
                             title="Edit Product"
                           >
                             <FaPenToSquare className="size-3.5" />
@@ -279,7 +279,7 @@ export const InventoryView: React.FC = () => {
 
                           <button
                             onClick={() => toggleArchiveProduct(product.id)}
-                            className={`p-2 rounded-lg border transition cursor-pointer ${
+                            className={`size-8 rounded-lg border flex items-center justify-center transition cursor-pointer ${
                               product.status === 'archived'
                                 ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700'
                                 : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -295,7 +295,7 @@ export const InventoryView: React.FC = () => {
                                 deleteProduct(product.id);
                               }
                             }}
-                            className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                            className="size-8 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center transition cursor-pointer"
                             title="Delete Product"
                           >
                             <FaTrash className="size-3.5" />

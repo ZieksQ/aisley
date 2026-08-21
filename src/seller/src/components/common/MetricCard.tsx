@@ -24,56 +24,71 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   change,
   isPositive = true,
   icon,
-  iconBgColor = 'bg-[#FDF2F9] dark:bg-pink-950/40',
-  iconTextColor = 'text-[#E723A2] dark:text-pink-400',
+  iconBgColor = 'bg-[#FDF2F9] dark:bg-pink-950/70 border border-pink-200 dark:border-pink-800/80',
+  iconTextColor = 'text-[#E723A2] dark:text-pink-300',
   badgeText,
   action,
 }) => {
   return (
-    <div className="relative rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-5 shadow-sm transition-all hover:border-slate-400 dark:hover:border-slate-700">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{title}</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white font-mono-num">{value}</span>
-            {badgeText && (
-              <span className="rounded-full bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                {badgeText}
+    <div className="relative rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-5 shadow-sm transition-all hover:border-slate-400 dark:hover:border-slate-700 flex flex-col justify-between">
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+              {title}
+            </p>
+            <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+              <span className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-mono-num tracking-tight">
+                {value}
               </span>
-            )}
+              {badgeText && (
+                <span className="rounded-full bg-amber-50 dark:bg-amber-950/70 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 shrink-0">
+                  {badgeText}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className={`grid size-11 place-items-center rounded-xl ${iconBgColor} ${iconTextColor} shrink-0`}>
-          {icon}
+          <div
+            className={`size-11 rounded-2xl flex items-center justify-center text-lg ${iconBgColor} ${iconTextColor} shrink-0`}
+          >
+            {icon}
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-3 text-xs">
-        {change ? (
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`inline-flex items-center gap-0.5 font-bold ${
-                isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-              }`}
-            >
-              {isPositive ? <FaArrowTrendUp /> : <FaArrowTrendDown />}
-              {change}
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800/90 pt-3 text-xs">
+        <div className="min-w-0 flex-1">
+          {change ? (
+            <div className="flex items-center gap-1.5 truncate">
+              <span
+                className={`inline-flex items-center gap-0.5 font-bold shrink-0 ${
+                  isPositive
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {isPositive ? <FaArrowTrendUp /> : <FaArrowTrendDown />}
+                {change}
+              </span>
+              <span className="text-slate-400 dark:text-slate-500 truncate">vs last 7 days</span>
+            </div>
+          ) : subtitle ? (
+            <span className="text-slate-500 dark:text-slate-400 font-medium truncate block">
+              {subtitle}
             </span>
-            <span className="text-slate-400 dark:text-slate-500">vs last 7 days</span>
-          </div>
-        ) : subtitle ? (
-          <span className="text-slate-500 dark:text-slate-400 font-medium">{subtitle}</span>
-        ) : (
-          <span className="text-slate-400 dark:text-slate-500">Live operational sync</span>
-        )}
+          ) : (
+            <span className="text-slate-400 dark:text-slate-500 truncate block">Live operational sync</span>
+          )}
+        </div>
 
         {action && (
           <button
             onClick={action.onClick}
-            className="font-bold text-[#E723A2] hover:text-[#D61590] hover:underline cursor-pointer"
+            className="font-bold text-[#E723A2] dark:text-pink-400 hover:text-[#D61590] dark:hover:text-pink-300 hover:underline cursor-pointer whitespace-nowrap shrink-0 text-[11px] sm:text-xs flex items-center gap-1"
           >
-            {action.label} &rarr;
+            <span>{action.label}</span>
+            <span>&rarr;</span>
           </button>
         )}
       </div>

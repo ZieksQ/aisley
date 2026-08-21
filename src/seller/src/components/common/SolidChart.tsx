@@ -38,10 +38,10 @@ export const SolidBarChart: React.FC<SolidBarChartProps> = ({
       <div className="relative pt-6" style={{ height: `${height}px` }}>
         {/* Horizontal grid guide lines */}
         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
-          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
-          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
-          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
-          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-700 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-700 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-700 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-700 w-full" />
         </div>
 
         {/* Bars Container */}
@@ -98,12 +98,12 @@ export const CategoryShareBar: React.FC<CategoryShareProps> = ({ title, items })
         <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Sales Share</span>
       </div>
 
-      {/* Multi-segment Solid Bar */}
-      <div className="h-4 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+      {/* Multi-segment Solid Bar with crisp track border and distinct colors */}
+      <div className="h-4.5 w-full rounded-full overflow-hidden flex bg-slate-200 dark:bg-slate-700/80 border border-slate-300 dark:border-slate-600 shadow-inner p-0.5">
         {items.map((cat, idx) => (
           <div
             key={idx}
-            className="h-full transition-all"
+            className="h-full first:rounded-l-full last:rounded-r-full transition-all border-r border-white/30 dark:border-slate-900/40 last:border-r-0"
             style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }}
             title={`${cat.label}: ${cat.percentage}%`}
           />
@@ -111,14 +111,14 @@ export const CategoryShareBar: React.FC<CategoryShareProps> = ({ title, items })
       </div>
 
       {/* Legend list */}
-      <div className="grid grid-cols-2 gap-2.5 pt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
         {items.map((cat, idx) => (
-          <div key={idx} className="flex items-center justify-between text-xs">
+          <div key={idx} className="flex items-center justify-between text-xs bg-slate-50/80 dark:bg-slate-800/40 px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/50">
             <div className="flex items-center gap-2 truncate">
-              <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-              <span className="text-slate-600 dark:text-slate-300 font-medium truncate">{cat.label}</span>
+              <span className="size-3 rounded-full shrink-0 border border-black/10 dark:border-white/20" style={{ backgroundColor: cat.color }} />
+              <span className="text-slate-700 dark:text-slate-300 font-medium truncate">{cat.label}</span>
             </div>
-            <span className="font-bold text-slate-900 dark:text-white font-mono-num ml-2">{cat.percentage}%</span>
+            <span className="font-bold text-slate-900 dark:text-white font-mono-num ml-2 shrink-0">{cat.percentage}%</span>
           </div>
         ))}
       </div>

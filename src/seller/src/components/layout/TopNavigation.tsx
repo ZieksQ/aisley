@@ -29,30 +29,31 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-300 dark:border-slate-800 bg-white/95 dark:bg-[#0B0F19]/95 backdrop-blur-xs px-4 sm:px-6 transition-colors">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="grid size-9 place-items-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden cursor-pointer"
+            className="size-9 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden flex items-center justify-center cursor-pointer shrink-0"
+            aria-label="Open Navigation Menu"
           >
             <FaBars className="size-4" />
           </button>
         )}
 
         {/* Store Title & Operational Status */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <img
             src={storeSettings.logoUrl}
             alt={storeSettings.storeName}
-            className="size-8 rounded-lg object-cover border border-slate-300 dark:border-slate-700 hidden sm:block"
+            className="size-8 rounded-lg object-cover border border-slate-300 dark:border-slate-700 hidden sm:block shrink-0"
           />
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-black text-slate-900 dark:text-white truncate">
                 {storeSettings.storeName}
               </h2>
               {storeSettings.vacationMode && (
-                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-[10px] font-bold">
+                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-[10px] font-bold shrink-0">
                   <FaUmbrellaBeach className="size-2.5" /> Vacation Mode
                 </span>
               )}
@@ -65,7 +66,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         {/* Prototype Switcher Button */}
         <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-300 dark:border-slate-700 text-xs">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
@@ -96,7 +97,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
         {/* Dark Mode Toggle Button (Beside Profile) */}
         <button
           onClick={toggleTheme}
-          className="grid size-9 place-items-center rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer shadow-xs"
+          className="size-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center transition cursor-pointer shadow-xs"
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           aria-label="Toggle Theme"
         >
@@ -143,7 +144,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
                 }}
                 className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer"
               >
-                <FaGear className="size-3 text-slate-400" /> Store & Payout Settings
+                <FaGear className="size-3.5 text-slate-400" /> Store & Payout Settings
               </button>
 
               <button
@@ -155,11 +156,11 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
               >
                 {theme === 'dark' ? (
                   <>
-                    <FaSun className="size-3 text-amber-400" /> Switch to Light Mode
+                    <FaSun className="size-3.5 text-amber-400" /> Switch to Light Mode
                   </>
                 ) : (
                   <>
-                    <FaMoon className="size-3 text-slate-500" /> Switch to Dark Mode
+                    <FaMoon className="size-3.5 text-slate-500" /> Switch to Dark Mode
                   </>
                 )}
               </button>
@@ -171,7 +172,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
                 }}
                 className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
               >
-                <FaRightFromBracket className="size-3" /> Sign Out of Aisley
+                <FaRightFromBracket className="size-3.5" /> Sign Out of Aisley
               </button>
             </div>
           )}
