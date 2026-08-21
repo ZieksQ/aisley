@@ -58,7 +58,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
               )}
             </div>
             <p className="text-[10px] text-slate-400 font-mono-num truncate hidden sm:block">
-              {seller?.businessCategory} • Makati Atelier
+              {seller?.businessCategory} • Makati Store
             </p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
       {/* Right Actions */}
       <div className="flex items-center gap-3">
         {/* Prototype Switcher Button */}
-        <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+        <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-300 text-xs">
           <span className="text-[10px] font-bold text-slate-500 px-2 flex items-center gap-1">
             <FaBolt className="text-amber-500" /> Mode:
           </span>
@@ -119,7 +119,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
                 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
               }
               alt={seller?.firstName}
-              className="size-8 rounded-xl object-cover border border-slate-200"
+              className="size-8 rounded-xl object-cover border border-slate-300"
             />
             <div className="text-left hidden lg:block pr-1">
               <p className="text-xs font-bold text-slate-900 leading-tight">
@@ -132,8 +132,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl bg-white border border-slate-200 shadow-2xl p-2 space-y-1">
-              <div className="p-2 border-b border-slate-100">
+            <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl bg-white border border-slate-300 shadow-2xl p-2 space-y-1">
+              <div className="p-2 border-b border-slate-200">
                 <p className="text-xs font-bold text-slate-900">
                   {seller?.firstName} {seller?.lastName}
                 </p>
@@ -157,7 +157,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ onToggleSidebar })
                 }}
                 className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
               >
-                <FaRightFromBracket className="size-3" /> Sign Out of Atelier
+                <FaRightFromBracket className="size-3" /> Sign Out of Aisley
               </button>
             </div>
           )}

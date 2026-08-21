@@ -78,7 +78,7 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Date Range Picker Bar */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5 mr-1">
             <FaCalendarDays className="text-[#E723A2]" /> Date Filter:
@@ -112,7 +112,7 @@ export const ReportsView: React.FC = () => {
               setFromDate(e.target.value);
               setDatePreset('custom');
             }}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 font-medium"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
           />
           <span className="text-slate-400">to</span>
           <input
@@ -122,7 +122,7 @@ export const ReportsView: React.FC = () => {
               setToDate(e.target.value);
               setDatePreset('custom');
             }}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 font-medium"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
           />
         </div>
       </div>
@@ -130,7 +130,7 @@ export const ReportsView: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Gross Atelier Sales"
+          title="Gross Revenue"
           value={formatPHP(financialSummary.grossSales)}
           subtitle={`${financialSummary.orderCount} active customer purchases`}
           icon={<FaPesoSign className="size-5" />}
@@ -141,7 +141,7 @@ export const ReportsView: React.FC = () => {
         <MetricCard
           title="Cost of Goods (COGS)"
           value={formatPHP(financialSummary.costOfGoods)}
-          subtitle="Direct atelier material & labor cost"
+          subtitle="Direct product material & labor cost"
           icon={<FaBoxesStacked className="size-5" />}
           iconBgColor="bg-slate-100"
           iconTextColor="text-slate-700"
@@ -168,7 +168,7 @@ export const ReportsView: React.FC = () => {
 
       {/* Profit Waterfall Calculation Card */}
       <div className="rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <div>
             <h2 className="text-base font-black text-slate-900 tracking-tight">
               Aisley Net Profit Waterfall Calculation
@@ -177,7 +177,7 @@ export const ReportsView: React.FC = () => {
               Clear itemization showing exactly how your payout is derived from gross receipts.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono-num">
+          <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs font-bold font-mono-num">
             Escrow Protected Payout
           </span>
         </div>
@@ -185,8 +185,8 @@ export const ReportsView: React.FC = () => {
         {/* Step-by-Step Waterfall Formula Blocks */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-xs">
           {/* Gross Sales */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">1. Gross Revenue</span>
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-300">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Gross Revenue</span>
             <p className="text-lg font-black font-mono-num text-slate-900 mt-1">
               {formatPHP(financialSummary.grossSales)}
             </p>
@@ -194,7 +194,7 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* Minus COGS */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200">
+          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-300">
             <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">2. Less: COGS</span>
             <p className="text-lg font-black font-mono-num text-rose-700 mt-1">
               -{formatPHP(financialSummary.costOfGoods)}
@@ -203,7 +203,7 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* Minus Platform Fee */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200">
+          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-300">
             <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">3. Less: Platform Fee (3.5%)</span>
             <p className="text-lg font-black font-mono-num text-rose-700 mt-1">
               -{formatPHP(financialSummary.platformFees)}
@@ -212,16 +212,16 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* Minus Shipping Subsidy */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200">
+          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-300">
             <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">4. Less: Shipping Subsidy</span>
             <p className="text-lg font-black font-mono-num text-rose-700 mt-1">
               -{formatPHP(financialSummary.shippingSubsidies)}
             </p>
-            <p className="text-[10px] text-rose-600 mt-0.5">Atelier promo shipping absorbs</p>
+            <p className="text-[10px] text-rose-600 mt-0.5">Seller promo shipping absorbs</p>
           </div>
 
           {/* Final Net Profit */}
-          <div className="p-4 rounded-2xl bg-[#0F172A] text-white border border-[#1E293B]">
+          <div className="p-4 rounded-2xl bg-[#0F172A] text-white border border-slate-700">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981] flex items-center gap-1">
               <FaCircleCheck /> 5. Net Seller Profit
             </span>
@@ -234,8 +234,8 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Financial Ledger Records Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+      <div className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 p-5">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Order Payout Settlement Ledger</h3>
             <p className="text-xs text-slate-500">Live reconciliation of orders disbursed to merchant bank account.</p>
@@ -247,7 +247,7 @@ export const ReportsView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-500 uppercase font-bold text-[11px] tracking-wider">
+            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px] tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Record & Order ID</th>
                 <th className="py-3.5 px-4">Date</th>
@@ -258,7 +258,7 @@ export const ReportsView: React.FC = () => {
                 <th className="py-3.5 px-4 text-right">Settlement Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700 font-mono-num">
+            <tbody className="divide-y divide-slate-200 font-medium text-slate-700 font-mono-num">
               {financialRecords.map((rec) => (
                 <tr key={rec.id} className="hover:bg-slate-50/80 transition">
                   <td className="py-3.5 px-4">

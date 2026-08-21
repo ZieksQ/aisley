@@ -52,7 +52,7 @@ export const ShippingWaybill: React.FC<ShippingWaybillProps> = ({ order, onClose
           <div className="flex items-start justify-between border-b-2 border-black pb-3">
             <div>
               <h1 className="text-2xl font-black tracking-wider uppercase font-sans">AISLEY</h1>
-              <p className="text-[10px] font-bold tracking-widest uppercase">Atelier Logistics Network</p>
+              <p className="text-[10px] font-bold tracking-widest uppercase">Logistics Network</p>
             </div>
 
             <div className="text-right">
@@ -89,7 +89,7 @@ export const ShippingWaybill: React.FC<ShippingWaybillProps> = ({ order, onClose
           <div className="grid grid-cols-2 border-b-2 border-black text-[11px]">
             {/* Sender */}
             <div className="p-3 border-r-2 border-black space-y-1">
-              <p className="font-bold text-[9px] uppercase tracking-wider text-slate-500">SENDER (ORIGIN ATELIER)</p>
+              <p className="font-bold text-[9px] uppercase tracking-wider text-slate-500">SENDER (ORIGIN MERCHANT)</p>
               <p className="font-black text-xs">{storeSettings.storeName}</p>
               <p className="text-[10px]">Attn: {seller?.firstName} {seller?.lastName}</p>
               <p className="text-[10px] leading-tight">
@@ -144,7 +144,7 @@ export const ShippingWaybill: React.FC<ShippingWaybillProps> = ({ order, onClose
 
           {/* Itemized SKU Table for Fulfillment Handover */}
           <div className="p-3 border-b-2 border-black">
-            <p className="text-[9px] font-bold uppercase text-slate-500 mb-1">DECLARED ATELIER CONTENT(S)</p>
+            <p className="text-[9px] font-bold uppercase text-slate-500 mb-1">DECLARED PACKAGE CONTENT(S)</p>
             <table className="w-full text-left text-[10px]">
               <thead>
                 <tr className="border-b border-black font-bold">

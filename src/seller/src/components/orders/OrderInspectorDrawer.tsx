@@ -137,12 +137,12 @@ export const OrderInspectorDrawer: React.FC<OrderInspectorDrawerProps> = ({
         )}
 
         {/* Itemized Purchases Table */}
-        <div className="rounded-2xl border border-slate-200 p-4 space-y-3 bg-white">
+        <div className="rounded-2xl border border-slate-300 p-4 space-y-3 bg-white shadow-sm">
           <h3 className="font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
             <FaBoxOpen className="text-[#E723A2]" /> Itemized Customer Order
           </h3>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-200">
             {order.items.map((item) => (
               <div key={item.id} className="py-3 flex items-center gap-3">
                 <img
@@ -167,7 +167,7 @@ export const OrderInspectorDrawer: React.FC<OrderInspectorDrawerProps> = ({
           </div>
 
           {order.customerNotes && (
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[11px]">
               <strong className="block mb-0.5">Customer Delivery Instructions:</strong>
               &ldquo;{order.customerNotes}&rdquo;
             </div>
@@ -176,7 +176,7 @@ export const OrderInspectorDrawer: React.FC<OrderInspectorDrawerProps> = ({
 
         {/* Buyer & Shipping Address Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-1.5">
+          <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-300 space-y-1.5">
             <h4 className="font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
               <FaUser className="text-[#E723A2]" /> Buyer Contact
             </h4>
@@ -189,7 +189,7 @@ export const OrderInspectorDrawer: React.FC<OrderInspectorDrawerProps> = ({
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-200 space-y-1.5">
+          <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-slate-300 space-y-1.5">
             <h4 className="font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
               <FaLocationDot className="text-[#0284C7]" /> Delivery Address
             </h4>
@@ -205,18 +205,18 @@ export const OrderInspectorDrawer: React.FC<OrderInspectorDrawerProps> = ({
 
         {/* ERP Financial Net Payout Breakdown */}
         <div className="rounded-2xl border-2 border-slate-900 bg-white p-5 space-y-3 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <h4 className="font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
               <FaReceipt className="text-[#E723A2]" /> ERP Net Settlement Statement
             </h4>
-            <span className="font-mono-num font-bold text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="font-mono-num font-bold text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300">
               Payment: {order.paymentMethod} ({order.paymentStatus.toUpperCase()})
             </span>
           </div>
 
           <div className="space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-600">
-              <span>Gross Atelier Subtotal</span>
+              <span>Gross Subtotal</span>
               <span className="font-bold font-mono-num text-slate-900">{formatPHP(order.subtotal)}</span>
             </div>
 
@@ -236,7 +236,7 @@ export const OrderInspectorDrawer: React.FC<OrderInspectorDrawerProps> = ({
 
             {order.shippingSubsidy > 0 && (
               <div className="flex justify-between text-slate-500">
-                <span>Atelier Shipping Subsidy</span>
+                <span>Shipping Subsidy</span>
                 <span className="font-bold font-mono-num text-rose-600">-{formatPHP(order.shippingSubsidy)}</span>
               </div>
             )}

@@ -45,7 +45,7 @@ export const AisleyLogo: React.FC<AisleyLogoProps> = ({
         {/* Main Boutique Shopping Bag Body */}
         <rect x="10" y="30" width="80" height="80" rx="14" fill="#E723A2" />
 
-        {/* 3-Box Central Atelier Window Display */}
+        {/* 3-Box Central Window Display */}
         {/* Left Large Showcase Box */}
         <rect x="18" y="38" width="30" height="50" rx="6" fill="#0B0F19" />
         {/* Silhouette of Gown / Dress inside left box */}
@@ -87,7 +87,7 @@ export const AisleyLogo: React.FC<AisleyLogoProps> = ({
 
       {showWordmark && (
         <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <span
               className={`font-black tracking-wider uppercase font-sans ${
                 theme === 'dark' ? 'text-white' : 'text-slate-950'
@@ -95,12 +95,9 @@ export const AisleyLogo: React.FC<AisleyLogoProps> = ({
             >
               AISLEY
             </span>
-            <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-widest uppercase bg-[#E723A2] text-white rounded-md">
-              ATELIER
-            </span>
           </div>
           <span className="text-[11px] font-semibold tracking-widest uppercase text-[#64748B]">
-            Seller Console
+            Seller Portal
           </span>
         </div>
       )}

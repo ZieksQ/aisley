@@ -26,7 +26,7 @@ export const SolidBarChart: React.FC<SolidBarChartProps> = ({
   const maxValue = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900">{title}</h3>
@@ -92,7 +92,7 @@ interface CategoryShareProps {
 
 export const CategoryShareBar: React.FC<CategoryShareProps> = ({ title, items }) => {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+    <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-900">{title}</h3>
         <span className="text-xs text-slate-400 font-medium">Sales Share</span>

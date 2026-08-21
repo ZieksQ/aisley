@@ -34,7 +34,7 @@ export const FinancialStatementModal: React.FC<FinancialStatementModalProps> = (
         <div className="no-print flex items-center justify-between border-b border-slate-200 bg-slate-900 px-6 py-4 text-white">
           <div className="flex items-center gap-2">
             <FaFileLines className="text-[#E723A2]" />
-            <span className="text-sm font-bold">Atelier Financial Statement Generator</span>
+            <span className="text-sm font-bold">Financial Statement Generator</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export const FinancialStatementModal: React.FC<FinancialStatementModalProps> = (
             <div>
               <h1 className="text-2xl font-black tracking-wider uppercase font-sans">AISLEY</h1>
               <p className="text-[10px] font-bold tracking-widest uppercase text-slate-600">
-                Atelier Settlement & Merchant Statement
+                Settlement & Merchant Statement
               </p>
             </div>
 

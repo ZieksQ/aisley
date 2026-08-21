@@ -7,7 +7,9 @@ import { ApprovalStatusView } from './components/auth/ApprovalStatusView';
 import { SellerLayout } from './components/layout/SellerLayout';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { InventoryView } from './components/inventory/InventoryView';
+import { VouchersTab } from './components/inventory/VouchersTab';
 import { OrdersView } from './components/orders/OrdersView';
+import { CustomerReviewsTab } from './components/orders/CustomerReviewsTab';
 import { ReportsView } from './components/reports/ReportsView';
 import { ChatView } from './components/chat/ChatView';
 import { SettingsView } from './components/settings/SettingsView';
@@ -46,11 +48,11 @@ const AppContent: React.FC = () => {
     <SellerLayout>
       {currentView === 'dashboard' && <DashboardView />}
       {currentView === 'inventory' && <InventoryView />}
-      {currentView === 'vouchers' && <InventoryView />}
+      {currentView === 'vouchers' && <VouchersTab />}
       {currentView === 'orders' && <OrdersView />}
       {currentView === 'reports' && <ReportsView />}
       {currentView === 'chat' && <ChatView />}
-      {currentView === 'reviews' && <OrdersView />}
+      {currentView === 'reviews' && <CustomerReviewsTab />}
       {currentView === 'settings' && <SettingsView />}
     </SellerLayout>
   );

@@ -66,7 +66,7 @@ export const VouchersTab: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight">
-            Atelier Vouchers & Promotional Engine
+            Vouchers & Promotional Engine
           </h2>
           <p className="text-xs text-slate-500">
             Drive boutique sales volume with targeted percentage and cash rebate incentives.
@@ -86,7 +86,7 @@ export const VouchersTab: React.FC = () => {
         {vouchers.map((v) => (
           <div
             key={v.id}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm relative overflow-hidden flex flex-col justify-between"
+            className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm relative overflow-hidden flex flex-col justify-between"
           >
             {/* Top Row */}
             <div className="flex items-start justify-between">
@@ -150,7 +150,7 @@ export const VouchersTab: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Create New Atelier Discount Code"
+        title="Create New Aisley Discount Code"
         subtitle="Specify redemption conditions, spend thresholds, and promotional timeline."
         maxWidth="lg"
       >
@@ -165,7 +165,7 @@ export const VouchersTab: React.FC = () => {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="e.g. AISLEYLUXE20"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-mono-num font-black tracking-wider focus:ring-2 focus:ring-[#E723A2] focus:outline-none uppercase"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-mono-num font-black tracking-wider focus:ring-2 focus:ring-[#E723A2] focus:outline-none uppercase"
             />
           </div>
 
@@ -177,7 +177,7 @@ export const VouchersTab: React.FC = () => {
               <select
                 value={discountType}
                 onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               >
                 <option value="percentage">Percentage Discount (%)</option>
                 <option value="fixed">Fixed Cash Discount (₱)</option>
@@ -195,7 +195,7 @@ export const VouchersTab: React.FC = () => {
                 value={discountValue}
                 onChange={(e) => setDiscountValue(Number(e.target.value))}
                 placeholder={discountType === 'percentage' ? '15' : '1000'}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               />
             </div>
           </div>
@@ -210,7 +210,7 @@ export const VouchersTab: React.FC = () => {
                 min={0}
                 value={minSpend}
                 onChange={(e) => setMinSpend(Number(e.target.value))}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               />
             </div>
 
@@ -224,7 +224,7 @@ export const VouchersTab: React.FC = () => {
                 value={maxDiscount}
                 onChange={(e) => setMaxDiscount(Number(e.target.value))}
                 disabled={discountType === 'fixed'}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none disabled:bg-slate-100"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none disabled:bg-slate-100"
               />
             </div>
           </div>
@@ -239,7 +239,7 @@ export const VouchersTab: React.FC = () => {
                 min={1}
                 value={usageLimit}
                 onChange={(e) => setUsageLimit(Number(e.target.value))}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               />
             </div>
 
@@ -252,7 +252,7 @@ export const VouchersTab: React.FC = () => {
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               />
             </div>
 
@@ -265,7 +265,7 @@ export const VouchersTab: React.FC = () => {
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               />
             </div>
           </div>

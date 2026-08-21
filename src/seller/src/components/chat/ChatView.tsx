@@ -82,14 +82,14 @@ export const ChatView: React.FC = () => {
         subtitle: `Min spend ${formatPHP(v.minSpend)}`,
       },
     };
-    sendMessage(activeThread.id, `I've attached an atelier discount voucher for you!`, attachment);
+    sendMessage(activeThread.id, `I've attached an Aisley discount voucher for you!`, attachment);
     setShowVoucherPicker(false);
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] min-h-[560px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+    <div className="h-[calc(100vh-140px)] min-h-[560px] rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
       {/* Left Column: Conversation Thread List (4 cols) */}
-      <div className="lg:col-span-4 border-r border-slate-200 flex flex-col bg-[#F8FAFC]">
+      <div className="lg:col-span-4 border-r border-slate-300 flex flex-col bg-[#F8FAFC]">
         {/* Thread Search */}
         <div className="p-4 border-b border-slate-200 bg-white">
           <h2 className="text-base font-black text-slate-900 tracking-tight mb-2">
@@ -104,13 +104,13 @@ export const ChatView: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversation threads..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
             />
           </div>
         </div>
 
         {/* Thread Items */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-200">
           {filteredThreads.map((thread) => {
             const isActive = thread.id === activeThread?.id;
 
@@ -214,9 +214,9 @@ export const ChatView: React.FC = () => {
                 {/* Canned Replies Popover */}
                 {showCannedDropdown && (
                   <div className="absolute right-0 top-10 z-30 w-80 rounded-2xl bg-white border border-slate-200 shadow-2xl p-3 space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Quick Atelier Replies
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                        Quick Canned Replies
                       </span>
                       <button
                         onClick={() => setShowCannedDropdown(false)}

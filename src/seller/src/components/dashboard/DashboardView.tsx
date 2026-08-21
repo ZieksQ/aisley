@@ -71,16 +71,16 @@ export const DashboardView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#0B0F19] p-6 text-white border border-[#1E293B] relative overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#0B0F19] p-6 text-white border border-slate-700 relative overflow-hidden shadow-md">
         <div className="relative z-10 space-y-1">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-slate-800 text-[11px] font-bold text-[#E723A2] uppercase tracking-wider">
-            <FaStore /> Atelier Verified Merchant
+            <FaStore /> Aisley Verified Merchant
           </div>
           <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white">
             Welcome back, {seller?.firstName || 'Claire'}
           </h1>
           <p className="text-xs text-slate-400">
-            {seller?.businessName || 'Maison Dela Tour Atelier'} • Metro Manila Regional Hub
+            {seller?.businessName || 'Maison Dela Tour'} • Metro Manila Regional Hub
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export const DashboardView: React.FC = () => {
           </button>
           <button
             onClick={() => setCurrentView('orders')}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition border border-slate-700 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition border border-slate-600 flex items-center gap-2 cursor-pointer"
           >
             <FaTruckFast /> Fulfillment Queue
           </button>
@@ -144,7 +144,7 @@ export const DashboardView: React.FC = () => {
         />
 
         <MetricCard
-          title="Atelier Merchant Rating"
+          title="Seller Merchant Rating"
           value={`${avgRating} / 5.0`}
           subtitle={`${reviews.length} verified client reviews`}
           icon={<FaStar className="size-5" />}
@@ -161,10 +161,10 @@ export const DashboardView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           onClick={() => setCurrentView('orders')}
-          className="p-4 rounded-2xl bg-white border border-amber-200 shadow-xs hover:border-amber-400 transition cursor-pointer flex items-center justify-between"
+          className="p-4 rounded-2xl bg-white border border-amber-300 shadow-sm hover:border-amber-500 transition cursor-pointer flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-amber-50 text-amber-600 grid place-items-center shrink-0">
+            <div className="size-10 rounded-xl bg-amber-50 text-amber-600 grid place-items-center shrink-0 border border-amber-200">
               <FaBoxOpen className="size-5" />
             </div>
             <div>
@@ -179,10 +179,10 @@ export const DashboardView: React.FC = () => {
 
         <div
           onClick={() => setCurrentView('inventory')}
-          className="p-4 rounded-2xl bg-white border border-rose-200 shadow-xs hover:border-rose-400 transition cursor-pointer flex items-center justify-between"
+          className="p-4 rounded-2xl bg-white border border-rose-300 shadow-sm hover:border-rose-500 transition cursor-pointer flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-rose-50 text-rose-600 grid place-items-center shrink-0">
+            <div className="size-10 rounded-xl bg-rose-50 text-rose-600 grid place-items-center shrink-0 border border-rose-200">
               <FaTriangleExclamation className="size-5" />
             </div>
             <div>
@@ -197,10 +197,10 @@ export const DashboardView: React.FC = () => {
 
         <div
           onClick={() => setCurrentView('chat')}
-          className="p-4 rounded-2xl bg-white border border-sky-200 shadow-xs hover:border-sky-400 transition cursor-pointer flex items-center justify-between"
+          className="p-4 rounded-2xl bg-white border border-sky-300 shadow-sm hover:border-sky-500 transition cursor-pointer flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-sky-50 text-[#0284C7] grid place-items-center shrink-0">
+            <div className="size-10 rounded-xl bg-sky-50 text-[#0284C7] grid place-items-center shrink-0 border border-sky-200">
               <FaComments className="size-5" />
             </div>
             <div>
@@ -230,17 +230,17 @@ export const DashboardView: React.FC = () => {
 
         <div className="lg:col-span-4">
           <CategoryShareBar
-            title="Revenue Distribution by Atelier Category"
+            title="Revenue Distribution by Category"
             items={categoryData}
           />
         </div>
       </div>
 
       {/* Recent Incoming Orders Table */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+      <div className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 p-5">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Recent Atelier Orders</h3>
+            <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
             <p className="text-xs text-slate-500">Fulfill pending orders to maintain priority carrier rating.</p>
           </div>
 
@@ -254,7 +254,7 @@ export const DashboardView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F8FAFC] border-b border-slate-100 text-slate-500 uppercase font-bold text-[11px] tracking-wider">
+            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Order ID</th>
                 <th className="py-3 px-4">Buyer Details</th>
@@ -264,7 +264,7 @@ export const DashboardView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Quick Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-slate-200 font-medium text-slate-700">
               {recentOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/80 transition">
                   <td className="py-3 px-4">

@@ -5,7 +5,6 @@ import { Badge } from '../common/Badge';
 import { OrderInspectorDrawer } from './OrderInspectorDrawer';
 import { CourierHandoverModal } from './CourierHandoverModal';
 import { ShippingWaybill } from './ShippingWaybill';
-import { CustomerReviewsTab } from './CustomerReviewsTab';
 import { formatPHP, formatDate } from '../../utils/formatters';
 import { exportOrdersToCSV } from '../../utils/exportCsv';
 import {
@@ -15,8 +14,6 @@ import {
   FaTruckFast,
   FaBoxOpen,
   FaEye,
-  FaStar,
-  FaBoxesStacked,
   FaCheck,
 } from 'react-icons/fa6';
 
@@ -26,10 +23,8 @@ export const OrdersView: React.FC = () => {
     updateOrderStatus,
     activeWaybillOrder,
     setActiveWaybillOrder,
-    reviews,
   } = useSeller();
 
-  const [activeTab, setActiveTab] = useState<'queue' | 'reviews'>('queue');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
@@ -77,7 +72,7 @@ export const OrdersView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Header & View Toggle */}
+      {/* Top Header & Export Action */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -88,44 +83,16 @@ export const OrdersView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Toggle between Order Queue & Reviews */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setActiveTab('queue')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                activeTab === 'queue' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <FaBoxesStacked /> Orders Queue ({orders.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('reviews')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                activeTab === 'reviews' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <FaStar className="text-amber-500" /> Buyer Feedback ({reviews.length})
-            </button>
-          </div>
-
-          {activeTab === 'queue' && (
-            <button
-              onClick={() => exportOrdersToCSV(filteredOrders)}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <FaFileCsv /> Export CSV
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => exportOrdersToCSV(filteredOrders)}
+          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 cursor-pointer shadow-xs"
+        >
+          <FaFileCsv /> Export CSV Ledger
+        </button>
       </div>
 
-      {activeTab === 'reviews' ? (
-        <CustomerReviewsTab />
-      ) : (
-        <>
-          {/* Status Pipeline Filter Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {/* Status Pipeline Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             {[
               { id: 'all', label: 'All Orders', count: statusCounts.all },
               { id: 'new', label: 'New Orders', count: statusCounts.new },
@@ -157,7 +124,7 @@ export const OrdersView: React.FC = () => {
           </div>
 
           {/* Search & Filter Bar */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
             <div className="relative flex-1 min-w-[260px]">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <FaMagnifyingGlass className="size-3.5" />
@@ -167,7 +134,7 @@ export const OrdersView: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by Order ID, buyer name, item or tracking code..."
-                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 bg-white text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
               />
             </div>
 
@@ -177,10 +144,10 @@ export const OrdersView: React.FC = () => {
           </div>
 
           {/* Orders Table */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-500 uppercase font-bold text-[11px] tracking-wider">
+                <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px] tracking-wider">
                   <tr>
                     <th className="py-3.5 px-4">Order ID & Date</th>
                     <th className="py-3.5 px-4">Client & Destination</th>
@@ -190,7 +157,7 @@ export const OrdersView: React.FC = () => {
                     <th className="py-3.5 px-4 text-right">Fulfillment Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-200 font-medium text-slate-700">
                   {filteredOrders.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-slate-400">
@@ -334,8 +301,6 @@ export const OrdersView: React.FC = () => {
               </table>
             </div>
           </div>
-        </>
-      )}
 
       {/* Order Inspector Drawer */}
       <OrderInspectorDrawer

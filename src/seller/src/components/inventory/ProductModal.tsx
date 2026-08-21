@@ -72,7 +72,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setLowStockThreshold(5);
       setImageUrl('https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&auto=format&fit=crop&q=80');
       setSizes(['XS', 'S', 'M', 'L']);
-      setColors(['Atelier Magenta', 'Obsidian Noir']);
+      setColors(['Aisley Magenta', 'Obsidian Noir']);
     }
   }, [product, isOpen, storeSettings.categories]);
 
@@ -147,8 +147,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={product ? 'Edit Atelier Listing' : 'Create New Boutique Product'}
-      subtitle="Publish artisanal creations to Aisley buyers with custom variant chips and COGS calculation."
+      title={product ? 'Edit Product Listing' : 'Create New Boutique Product'}
+      subtitle="Publish boutique creations to Aisley buyers with custom variant chips and COGS calculation."
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5 text-xs">
@@ -164,7 +164,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Sculpted Mulberry Silk Slip Gown"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
             />
           </div>
 
@@ -178,7 +178,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               value={sku}
               onChange={(e) => setSku(e.target.value.toUpperCase())}
               placeholder="MDT-GWN-001"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none uppercase"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none uppercase"
             />
           </div>
         </div>
@@ -187,7 +187,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="font-bold uppercase tracking-wider text-slate-700">
-              Atelier Category <span className="text-[#E723A2]">*</span>
+              Product Category <span className="text-[#E723A2]">*</span>
             </label>
             {!isAddingCategory && (
               <button
@@ -204,7 +204,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
             >
               {storeSettings.categories.map((cat) => (
                 <option key={cat} value={cat}>

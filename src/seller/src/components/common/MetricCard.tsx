@@ -30,14 +30,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   action,
 }) => {
   return (
-    <div className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300">
+    <div className="relative rounded-2xl border border-slate-300 bg-white p-5 shadow-sm transition-all hover:border-slate-400">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl lg:text-3xl font-black text-slate-900 font-mono-num">{value}</span>
             {badgeText && (
-              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 border border-amber-300">
                 {badgeText}
               </span>
             )}
@@ -49,7 +49,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+      <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
         {change ? (
           <div className="flex items-center gap-1.5">
             <span

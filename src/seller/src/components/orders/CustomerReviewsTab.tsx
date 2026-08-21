@@ -23,9 +23,9 @@ export const CustomerReviewsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Review Summary Scoreboard */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-wrap items-center justify-between gap-6">
+      <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-sm flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="grid size-16 place-items-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
+          <div className="grid size-16 place-items-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-300">
             <span className="text-3xl font-black font-mono-num">{avgRating}</span>
           </div>
           <div>
@@ -34,13 +34,13 @@ export const CustomerReviewsTab: React.FC = () => {
                 <FaStar key={s} />
               ))}
             </div>
-            <h3 className="text-base font-bold text-slate-900 mt-0.5">Atelier Merchant Reputation</h3>
+            <h3 className="text-base font-bold text-slate-900 mt-0.5">Merchant Reputation & Trust</h3>
             <p className="text-xs text-slate-500">Based on {reviews.length} authenticated customer feedback ratings</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs font-bold flex items-center gap-1.5">
             <FaShieldHalved /> 100% Verified Purchases
           </span>
         </div>
@@ -49,13 +49,13 @@ export const CustomerReviewsTab: React.FC = () => {
       {/* Reviews List */}
       <div className="space-y-4">
         {reviews.map((rev) => (
-          <div key={rev.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <div key={rev.id} className="rounded-2xl border border-slate-300 bg-white p-6 shadow-sm space-y-4">
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-slate-900">{rev.customerName}</span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full">
                     <FaShieldHalved /> Verified Buyer
                   </span>
                 </div>
@@ -75,7 +75,7 @@ export const CustomerReviewsTab: React.FC = () => {
             </div>
 
             {/* Comment */}
-            <p className="text-xs leading-relaxed text-slate-700 italic bg-[#F8FAFC] p-3.5 rounded-xl border border-slate-100">
+            <p className="text-xs leading-relaxed text-slate-700 italic bg-[#F8FAFC] p-3.5 rounded-xl border border-slate-200">
               &ldquo;{rev.comment}&rdquo;
             </p>
 
@@ -87,7 +87,7 @@ export const CustomerReviewsTab: React.FC = () => {
                     key={i}
                     src={photo}
                     alt="Customer photo review"
-                    className="size-16 rounded-xl object-cover border border-slate-200"
+                    className="size-16 rounded-xl object-cover border border-slate-300"
                   />
                 ))}
               </div>
@@ -98,7 +98,7 @@ export const CustomerReviewsTab: React.FC = () => {
               <div className="ml-4 pl-4 border-l-2 border-[#E723A2] space-y-1 bg-[#FDF2F9] p-3 rounded-r-xl border border-l-0 border-[#F9CFEA]">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#E723A2] uppercase tracking-wider">
-                    Atelier Seller Response
+                    Seller Response
                   </span>
                   <span className="text-[10px] text-slate-400 font-mono-num">
                     {formatDate(rev.sellerReply.repliedAt)}
@@ -114,7 +114,7 @@ export const CustomerReviewsTab: React.FC = () => {
                   rows={3}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Write a warm, professional reply from your atelier..."
+                  placeholder="Write a warm, professional reply to the buyer..."
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
                 />
                 <div className="flex justify-end gap-2">
@@ -124,16 +124,16 @@ export const CustomerReviewsTab: React.FC = () => {
                       setReplyingId(null);
                       setReplyText('');
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSendReply(rev.id)}
-                    className="px-4 py-1.5 rounded-lg bg-[#E723A2] hover:bg-[#D61590] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    className="px-4 py-1.5 rounded-lg bg-[#E723A2] hover:bg-[#D61590] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
-                    <FaCheck /> Post Atelier Reply
+                    <FaCheck /> Post Reply
                   </button>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export const CustomerReviewsTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setReplyingId(rev.id)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E723A2] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E723A2] hover:underline cursor-pointer"
                 >
                   <FaReply /> Reply to Client Feedback
                 </button>

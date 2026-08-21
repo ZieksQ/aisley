@@ -54,10 +54,10 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Card */}
       <div
-        className={`relative w-full ${maxWidthClass} rounded-2xl bg-white border border-slate-200 shadow-2xl z-10 my-8 overflow-hidden`}
+        className={`relative w-full ${maxWidthClass} rounded-2xl bg-white border border-slate-300 shadow-2xl z-10 my-8 overflow-hidden`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5 bg-white">
+        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 bg-white">
           <div>
             <h3 className="text-lg font-bold text-slate-900">{title}</h3>
             {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
