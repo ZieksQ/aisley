@@ -26,22 +26,22 @@ export const SolidBarChart: React.FC<SolidBarChartProps> = ({
   const maxValue = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-          {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
+          {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
         </div>
-        <span className="text-[11px] font-bold text-slate-400 font-mono-num">Solid Metrics</span>
+        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 font-mono-num">Solid Metrics</span>
       </div>
 
       <div className="relative pt-6" style={{ height: `${height}px` }}>
         {/* Horizontal grid guide lines */}
         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
-          <div className="border-b border-dashed border-slate-200 w-full" />
-          <div className="border-b border-dashed border-slate-200 w-full" />
-          <div className="border-b border-dashed border-slate-200 w-full" />
-          <div className="border-b border-slate-200 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
+          <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full" />
         </div>
 
         {/* Bars Container */}
@@ -59,7 +59,7 @@ export const SolidBarChart: React.FC<SolidBarChartProps> = ({
               >
                 {/* Tooltip on hover */}
                 {isHovered && (
-                  <div className="absolute -top-10 z-20 px-2.5 py-1 rounded-lg bg-[#0F172A] text-white text-[11px] font-bold font-mono-num shadow-lg whitespace-nowrap border border-slate-700">
+                  <div className="absolute -top-10 z-20 px-2.5 py-1 rounded-lg bg-[#0F172A] dark:bg-slate-800 text-white text-[11px] font-bold font-mono-num shadow-lg whitespace-nowrap border border-slate-700">
                     {valuePrefix === '₱' ? formatPHP(item.value) : `${item.value} units`}
                   </div>
                 )}
@@ -73,7 +73,7 @@ export const SolidBarChart: React.FC<SolidBarChartProps> = ({
                 />
 
                 {/* X-axis Label */}
-                <span className="text-[10px] font-bold text-slate-500 mt-2 font-mono-num truncate w-full text-center">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-2 font-mono-num truncate w-full text-center">
                   {item.label}
                 </span>
               </div>
@@ -92,14 +92,14 @@ interface CategoryShareProps {
 
 export const CategoryShareBar: React.FC<CategoryShareProps> = ({ title, items }) => {
   return (
-    <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm space-y-4">
+    <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-5 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-        <span className="text-xs text-slate-400 font-medium">Sales Share</span>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
+        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Sales Share</span>
       </div>
 
       {/* Multi-segment Solid Bar */}
-      <div className="h-4 w-full rounded-full overflow-hidden flex bg-slate-100 border border-slate-200">
+      <div className="h-4 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
         {items.map((cat, idx) => (
           <div
             key={idx}
@@ -116,9 +116,9 @@ export const CategoryShareBar: React.FC<CategoryShareProps> = ({ title, items })
           <div key={idx} className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 truncate">
               <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-              <span className="text-slate-600 font-medium truncate">{cat.label}</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium truncate">{cat.label}</span>
             </div>
-            <span className="font-bold text-slate-900 font-mono-num ml-2">{cat.percentage}%</span>
+            <span className="font-bold text-slate-900 dark:text-white font-mono-num ml-2">{cat.percentage}%</span>
           </div>
         ))}
       </div>

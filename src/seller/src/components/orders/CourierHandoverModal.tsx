@@ -44,7 +44,7 @@ export const CourierHandoverModal: React.FC<CourierHandoverModalProps> = ({
   }[] = [
     {
       name: 'Aisley Express',
-      tag: 'Priority White-Glove Atelier Fleet',
+      tag: 'Priority White-Glove Fleet',
       sla: 'Next-Day Delivery (Metro Manila / Cebu)',
       badge: 'Recommended',
     },
@@ -94,7 +94,7 @@ export const CourierHandoverModal: React.FC<CourierHandoverModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Courier Partner Selection Cards */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
             Select Logistics Provider Partner
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -104,24 +104,24 @@ export const CourierHandoverModal: React.FC<CourierHandoverModalProps> = ({
                 onClick={() => setCourierName(c.name)}
                 className={`p-3.5 rounded-2xl border-2 cursor-pointer transition ${
                   courierName === c.name
-                    ? 'border-[#E723A2] bg-[#FDF2F9]'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    ? 'border-[#E723A2] bg-[#FDF2F9] dark:bg-pink-950/40 text-slate-900 dark:text-white'
+                    : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-slate-900">{c.name}</span>
+                  <span className="font-bold text-xs text-slate-900 dark:text-white">{c.name}</span>
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       courierName === c.name
                         ? 'bg-[#E723A2] text-white'
-                        : 'bg-slate-100 text-slate-600'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                     }`}
                   >
                     {c.badge}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">{c.tag}</p>
-                <p className="text-[10px] font-bold text-slate-700 font-mono-num mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{c.tag}</p>
+                <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 font-mono-num mt-1">
                   SLA: {c.sla}
                 </p>
               </div>
@@ -132,7 +132,7 @@ export const CourierHandoverModal: React.FC<CourierHandoverModalProps> = ({
         {/* Date & Time Slot */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center gap-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
               <FaCalendarDay className="text-[#E723A2]" /> Scheduled Pickup Date
             </label>
             <input
@@ -140,18 +140,18 @@ export const CourierHandoverModal: React.FC<CourierHandoverModalProps> = ({
               required
               value={pickupDate}
               onChange={(e) => setPickupDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center gap-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
               <FaClock className="text-[#0284C7]" /> Time Slot Window
             </label>
             <select
               value={timeSlot}
               onChange={(e) => setTimeSlot(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
             >
               <option value="09:00 - 12:00 PHT (Morning Slot)">09:00 - 12:00 PHT (Morning Slot)</option>
               <option value="13:00 - 16:00 PHT (Afternoon Slot)">13:00 - 16:00 PHT (Afternoon Slot)</option>
@@ -162,24 +162,24 @@ export const CourierHandoverModal: React.FC<CourierHandoverModalProps> = ({
 
         {/* Handling Notes */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center gap-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
             <FaNoteSticky className="text-amber-500" /> Dispatch Instructions / Landmark
           </label>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Atelier concierge desk, 4th floor. Request signed manifest."
-            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+            placeholder="e.g. Concierge desk, 4th floor. Request signed manifest."
+            className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
           />
         </div>
 
         {/* Buttons */}
-        <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+        <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             Cancel
           </button>

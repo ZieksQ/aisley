@@ -82,6 +82,11 @@ interface SellerContextType {
   // Navigation state
   currentView: 'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings';
   setCurrentView: (view: 'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings') => void;
+
+  // Theme (Dark / Light mode)
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 const SellerContext = createContext<SellerContextType | undefined>(undefined);
@@ -95,6 +100,7 @@ const STORAGE_KEYS = {
   CHATS: 'aisley_seller_chats',
   SETTINGS: 'aisley_seller_settings',
   MILESTONES: 'aisley_seller_milestones',
+  THEME: 'aisley_seller_theme',
 };
 
 export const SellerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -151,6 +157,29 @@ export const SellerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // View navigation
   const [currentView, setCurrentView] = useState<'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings'>('dashboard');
+
+  // Theme (Light / Dark Mode)
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+    return (saved === 'dark' || saved === 'light') ? saved : 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+  };
 
   // Persistence
   useEffect(() => {
@@ -476,6 +505,9 @@ export const SellerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         addStoreCategory,
         currentView,
         setCurrentView,
+        theme,
+        toggleTheme,
+        setTheme,
       }}
     >
       {children}

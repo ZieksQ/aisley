@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --brand-pink: #E723A2;
@@ -17,6 +19,7 @@
     --slate-500: #64748B;
     --slate-200: #E2E8F0;
     --canvas-bg: #F8FAFC;
+    color-scheme: light;
   }
 
   body {
@@ -29,6 +32,15 @@
   }
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  color: #F8FAFC;
+  background-color: #0B0F19;
+}
+
 /* Blueprint Grid Background */
 .blueprint-grid {
   background-color: #F8FAFC;
@@ -38,7 +50,7 @@
   background-size: 32px 32px;
 }
 
-.blueprint-grid-dark {
+html.dark .blueprint-grid {
   background-color: #0B0F19;
   background-image: 
     linear-gradient(to right, #1E293B 1px, transparent 1px),
@@ -46,20 +58,12 @@
   background-size: 32px 32px;
 }
 
-/* Ticker Animation */
-@keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-ticker {
-  display: flex;
-  width: 200%;
-  animation: ticker 30s linear infinite;
-}
-
-.animate-ticker:hover {
-  animation-play-state: paused;
+.blueprint-grid-dark {
+  background-color: #0B0F19;
+  background-image: 
+    linear-gradient(to right, #1E293B 1px, transparent 1px),
+    linear-gradient(to bottom, #1E293B 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 /* Print Formatting for Shipping Waybill & Financial Statement */

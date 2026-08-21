@@ -51,24 +51,24 @@ export const Drawer: React.FC<DrawerProps> = ({
 
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
         <div
-          className={`w-screen ${widthClass} transform bg-white shadow-2xl transition-transform border-l border-slate-300 flex flex-col`}
+          className={`w-screen ${widthClass} transform bg-white dark:bg-[#0F172A] shadow-2xl transition-transform border-l border-slate-300 dark:border-slate-800 flex flex-col`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-5 bg-white dark:bg-[#0F172A]">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-              {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
+              {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
             </div>
             <button
               onClick={onClose}
-              className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              className="grid size-8 place-items-center rounded-lg text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
             >
               <FaXmark className="size-4" />
             </button>
           </div>
 
           {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
+          <div className="flex-1 overflow-y-auto px-6 py-6 text-slate-800 dark:text-slate-200">{children}</div>
         </div>
       </div>
     </div>

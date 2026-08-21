@@ -54,24 +54,24 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Card */}
       <div
-        className={`relative w-full ${maxWidthClass} rounded-2xl bg-white border border-slate-300 shadow-2xl z-10 my-8 overflow-hidden`}
+        className={`relative w-full ${maxWidthClass} rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-300 dark:border-slate-800 shadow-2xl z-10 my-8 overflow-hidden`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 bg-white">
+        <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-5 bg-white dark:bg-[#0F172A]">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-            {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+            {subtitle && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            className="grid size-8 place-items-center rounded-lg text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
           >
             <FaXmark className="size-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-5 max-h-[80vh] overflow-y-auto">{children}</div>
+        <div className="px-6 py-5 max-h-[80vh] overflow-y-auto text-slate-800 dark:text-slate-200">{children}</div>
       </div>
     </div>
   );

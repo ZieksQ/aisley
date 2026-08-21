@@ -53,10 +53,10 @@ export const ReportsView: React.FC = () => {
       {/* Header & Export Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             Financial Intelligence & Profit Analytics
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Real-time merchant settlement calculations, COGS itemization, and platform fee deductions.
           </p>
         </div>
@@ -78,9 +78,9 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Date Range Picker Bar */}
-      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5 mr-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mr-1">
             <FaCalendarDays className="text-[#E723A2]" /> Date Filter:
           </span>
 
@@ -95,8 +95,8 @@ export const ReportsView: React.FC = () => {
               onClick={() => handlePresetChange(p.id as any)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 datePreset === p.id
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-slate-900 dark:bg-[#E723A2] text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {p.label}
@@ -112,9 +112,9 @@ export const ReportsView: React.FC = () => {
               setFromDate(e.target.value);
               setDatePreset('custom');
             }}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
           />
-          <span className="text-slate-400">to</span>
+          <span className="text-slate-400 dark:text-slate-500">to</span>
           <input
             type="date"
             value={toDate}
@@ -122,7 +122,7 @@ export const ReportsView: React.FC = () => {
               setToDate(e.target.value);
               setDatePreset('custom');
             }}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
           />
         </div>
       </div>
@@ -134,8 +134,8 @@ export const ReportsView: React.FC = () => {
           value={formatPHP(financialSummary.grossSales)}
           subtitle={`${financialSummary.orderCount} active customer purchases`}
           icon={<FaPesoSign className="size-5" />}
-          iconBgColor="bg-[#FDF2F9]"
-          iconTextColor="text-[#E723A2]"
+          iconBgColor="bg-[#FDF2F9] dark:bg-pink-950/40"
+          iconTextColor="text-[#E723A2] dark:text-pink-400"
         />
 
         <MetricCard
@@ -143,8 +143,8 @@ export const ReportsView: React.FC = () => {
           value={formatPHP(financialSummary.costOfGoods)}
           subtitle="Direct product material & labor cost"
           icon={<FaBoxesStacked className="size-5" />}
-          iconBgColor="bg-slate-100"
-          iconTextColor="text-slate-700"
+          iconBgColor="bg-slate-100 dark:bg-slate-800"
+          iconTextColor="text-slate-700 dark:text-slate-300"
         />
 
         <MetricCard
@@ -152,8 +152,8 @@ export const ReportsView: React.FC = () => {
           value={formatPHP(financialSummary.platformFees + financialSummary.shippingSubsidies)}
           subtitle="3.5% Aisley fee + shipping subsidies"
           icon={<FaPercent className="size-5" />}
-          iconBgColor="bg-rose-50"
-          iconTextColor="text-rose-600"
+          iconBgColor="bg-rose-50 dark:bg-rose-950/40"
+          iconTextColor="text-rose-600 dark:text-rose-400"
         />
 
         <MetricCard
@@ -161,23 +161,23 @@ export const ReportsView: React.FC = () => {
           value={formatPHP(financialSummary.netProfit)}
           badgeText={`${netMarginPercent}% Net Margin`}
           icon={<FaCircleCheck className="size-5" />}
-          iconBgColor="bg-emerald-50"
-          iconTextColor="text-[#10B981]"
+          iconBgColor="bg-emerald-50 dark:bg-emerald-950/40"
+          iconTextColor="text-[#10B981] dark:text-emerald-400"
         />
       </div>
 
       {/* Profit Waterfall Calculation Card */}
-      <div className="rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-700 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div>
-            <h2 className="text-base font-black text-slate-900 tracking-tight">
+            <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
               Aisley Net Profit Waterfall Calculation
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Clear itemization showing exactly how your payout is derived from gross receipts.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs font-bold font-mono-num">
+          <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 text-xs font-bold font-mono-num">
             Escrow Protected Payout
           </span>
         </div>
@@ -185,43 +185,43 @@ export const ReportsView: React.FC = () => {
         {/* Step-by-Step Waterfall Formula Blocks */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-xs">
           {/* Gross Sales */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-300">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Gross Revenue</span>
-            <p className="text-lg font-black font-mono-num text-slate-900 mt-1">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Gross Revenue</span>
+            <p className="text-lg font-black font-mono-num text-slate-900 dark:text-white mt-1">
               {formatPHP(financialSummary.grossSales)}
             </p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Total retail customer receipts</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Total retail customer receipts</p>
           </div>
 
           {/* Minus COGS */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-300">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">2. Less: COGS</span>
-            <p className="text-lg font-black font-mono-num text-rose-700 mt-1">
+          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/60">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">2. Less: COGS</span>
+            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-400 mt-1">
               -{formatPHP(financialSummary.costOfGoods)}
             </p>
-            <p className="text-[10px] text-rose-600 mt-0.5">Raw materials & artisan labor</p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-300 mt-0.5">Raw materials & artisan labor</p>
           </div>
 
           {/* Minus Platform Fee */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-300">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">3. Less: Platform Fee (3.5%)</span>
-            <p className="text-lg font-black font-mono-num text-rose-700 mt-1">
+          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/60">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">3. Less: Platform Fee (3.5%)</span>
+            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-400 mt-1">
               -{formatPHP(financialSummary.platformFees)}
             </p>
-            <p className="text-[10px] text-rose-600 mt-0.5">Sanctum & payment gateway</p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-300 mt-0.5">Sanctum & payment gateway</p>
           </div>
 
           {/* Minus Shipping Subsidy */}
-          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-300">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">4. Less: Shipping Subsidy</span>
-            <p className="text-lg font-black font-mono-num text-rose-700 mt-1">
+          <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800/60">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">4. Less: Shipping Subsidy</span>
+            <p className="text-lg font-black font-mono-num text-rose-700 dark:text-rose-400 mt-1">
               -{formatPHP(financialSummary.shippingSubsidies)}
             </p>
-            <p className="text-[10px] text-rose-600 mt-0.5">Seller promo shipping absorbs</p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-300 mt-0.5">Seller promo shipping absorbs</p>
           </div>
 
           {/* Final Net Profit */}
-          <div className="p-4 rounded-2xl bg-[#0F172A] text-white border border-slate-700">
+          <div className="p-4 rounded-2xl bg-[#0F172A] dark:bg-[#070A10] text-white border border-slate-700 dark:border-slate-800">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981] flex items-center gap-1">
               <FaCircleCheck /> 5. Net Seller Profit
             </span>
@@ -234,51 +234,53 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Financial Ledger Records Table */}
-      <div className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-200 p-5">
+      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-5">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Order Payout Settlement Ledger</h3>
-            <p className="text-xs text-slate-500">Live reconciliation of orders disbursed to merchant bank account.</p>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Order Payout Settlement Ledger</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Live reconciliation of orders disbursed to merchant bank account.</p>
           </div>
-          <span className="text-xs font-mono-num text-slate-400">
+          <span className="text-xs font-mono-num text-slate-400 dark:text-slate-500">
             {financialRecords.length} Transactions
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px] tracking-wider">
+            <thead className="bg-[#F8FAFC] dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider">
               <tr>
-                <th className="py-3.5 px-4">Record & Order ID</th>
-                <th className="py-3.5 px-4">Date</th>
+                <th className="py-3.5 px-4">Transaction ID & Date</th>
+                <th className="py-3.5 px-4">Order Ref</th>
                 <th className="py-3.5 px-4">Gross Revenue</th>
-                <th className="py-3.5 px-4">COGS</th>
-                <th className="py-3.5 px-4">Aisley 3.5% Fee</th>
-                <th className="py-3.5 px-4">Net Merchant Payout</th>
-                <th className="py-3.5 px-4 text-right">Settlement Status</th>
+                <th className="py-3.5 px-4">COGS & Fees</th>
+                <th className="py-3.5 px-4">Net Payout</th>
+                <th className="py-3.5 px-4">Settlement Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 font-medium text-slate-700 font-mono-num">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
               {financialRecords.map((rec) => (
-                <tr key={rec.id} className="hover:bg-slate-50/80 transition">
+                <tr key={rec.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
                   <td className="py-3.5 px-4">
-                    <span className="font-bold text-slate-900">{rec.orderId}</span>
-                    <p className="text-[10px] text-slate-400">{rec.id}</p>
+                    <span className="font-bold text-slate-900 dark:text-white font-mono-num">{rec.id}</span>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono-num">{formatDate(rec.date)}</p>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-600 font-sans">{formatDate(rec.date)}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{formatPHP(rec.grossSales)}</td>
-                  <td className="py-3.5 px-4 text-slate-600">{formatPHP(rec.cogs)}</td>
-                  <td className="py-3.5 px-4 text-rose-600">-{formatPHP(rec.platformFee)}</td>
-                  <td className="py-3.5 px-4 font-black text-emerald-700 text-sm">
+                  <td className="py-3.5 px-4 font-mono-num font-bold text-slate-800 dark:text-slate-200">
+                    {rec.orderId}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num font-bold text-slate-900 dark:text-white">
+                    {formatPHP(rec.grossSales)}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num text-rose-700 dark:text-rose-400">
+                    -{formatPHP(rec.cogs + rec.platformFee + rec.shippingSubsidy)}
+                  </td>
+                  <td className="py-3.5 px-4 font-mono-num font-black text-emerald-700 dark:text-emerald-400 text-sm">
                     {formatPHP(rec.netPayout)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-sans">
+                  <td className="py-3.5 px-4">
                     {rec.status === 'settled' ? (
-                      <Badge variant="success" dot size="sm">Settled (Disbursed)</Badge>
-                    ) : rec.status === 'processing' ? (
-                      <Badge variant="warning" dot size="sm">Processing</Badge>
+                      <Badge variant="success" dot>Disbursed to Bank</Badge>
                     ) : (
-                      <Badge variant="info" size="sm">Pending Delivery</Badge>
+                      <Badge variant="warning" dot>Pending Clearing</Badge>
                     )}
                   </td>
                 </tr>
@@ -288,7 +290,7 @@ export const ReportsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Printable Statement Modal */}
+      {/* Financial Statement Modal */}
       <FinancialStatementModal
         isOpen={isStatementOpen}
         onClose={() => setIsStatementOpen(false)}

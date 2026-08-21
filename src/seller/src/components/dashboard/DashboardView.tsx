@@ -71,7 +71,7 @@ export const DashboardView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#0B0F19] p-6 text-white border border-slate-700 relative overflow-hidden shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#0B0F19] dark:bg-[#070A10] p-6 text-white border border-slate-700 dark:border-slate-800 relative overflow-hidden shadow-md">
         <div className="relative z-10 space-y-1">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-slate-800 text-[11px] font-bold text-[#E723A2] uppercase tracking-wider">
             <FaStore /> Aisley Verified Merchant
@@ -108,8 +108,8 @@ export const DashboardView: React.FC = () => {
           change="+18.4%"
           isPositive={true}
           icon={<FaPesoSign className="size-5" />}
-          iconBgColor="bg-[#FDF2F9]"
-          iconTextColor="text-[#E723A2]"
+          iconBgColor="bg-[#FDF2F9] dark:bg-pink-950/40"
+          iconTextColor="text-[#E723A2] dark:text-pink-400"
           action={{
             label: 'View reports',
             onClick: () => setCurrentView('reports'),
@@ -122,8 +122,8 @@ export const DashboardView: React.FC = () => {
           change="+14.2%"
           isPositive={true}
           icon={<FaCircleCheck className="size-5" />}
-          iconBgColor="bg-emerald-50"
-          iconTextColor="text-[#10B981]"
+          iconBgColor="bg-emerald-50 dark:bg-emerald-950/40"
+          iconTextColor="text-[#10B981] dark:text-emerald-400"
           action={{
             label: 'COGS breakdown',
             onClick: () => setCurrentView('reports'),
@@ -135,8 +135,8 @@ export const DashboardView: React.FC = () => {
           value={`${financialSummary.orderCount} Orders`}
           subtitle={`${toPackOrders.length} requiring pack/handover`}
           icon={<FaBoxesStacked className="size-5" />}
-          iconBgColor="bg-sky-50"
-          iconTextColor="text-[#0284C7]"
+          iconBgColor="bg-sky-50 dark:bg-sky-950/40"
+          iconTextColor="text-[#0284C7] dark:text-sky-400"
           action={{
             label: 'Open ERP',
             onClick: () => setCurrentView('orders'),
@@ -148,8 +148,8 @@ export const DashboardView: React.FC = () => {
           value={`${avgRating} / 5.0`}
           subtitle={`${reviews.length} verified client reviews`}
           icon={<FaStar className="size-5" />}
-          iconBgColor="bg-amber-50"
-          iconTextColor="text-amber-600"
+          iconBgColor="bg-amber-50 dark:bg-amber-950/40"
+          iconTextColor="text-amber-600 dark:text-amber-400"
           action={{
             label: 'Read feedback',
             onClick: () => setCurrentView('reviews'),
@@ -161,56 +161,56 @@ export const DashboardView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           onClick={() => setCurrentView('orders')}
-          className="p-4 rounded-2xl bg-white border border-amber-300 shadow-sm hover:border-amber-500 transition cursor-pointer flex items-center justify-between"
+          className="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-amber-300 dark:border-amber-700/80 shadow-sm hover:border-amber-500 dark:hover:border-amber-500 transition cursor-pointer flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-amber-50 text-amber-600 grid place-items-center shrink-0 border border-amber-200">
+            <div className="size-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 grid place-items-center shrink-0 border border-amber-200 dark:border-amber-700">
               <FaBoxOpen className="size-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-900">
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
                 {toPackOrders.length} Orders Awaiting Packing
               </p>
-              <p className="text-[11px] text-slate-500">Generate A6 Waybills & Pack</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Generate A6 Waybills & Pack</p>
             </div>
           </div>
-          <FaArrowRight className="size-3.5 text-amber-600" />
+          <FaArrowRight className="size-3.5 text-amber-600 dark:text-amber-400" />
         </div>
 
         <div
           onClick={() => setCurrentView('inventory')}
-          className="p-4 rounded-2xl bg-white border border-rose-300 shadow-sm hover:border-rose-500 transition cursor-pointer flex items-center justify-between"
+          className="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-rose-300 dark:border-rose-700/80 shadow-sm hover:border-rose-500 dark:hover:border-rose-500 transition cursor-pointer flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-rose-50 text-rose-600 grid place-items-center shrink-0 border border-rose-200">
+            <div className="size-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 grid place-items-center shrink-0 border border-rose-200 dark:border-rose-700">
               <FaTriangleExclamation className="size-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-900">
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
                 {lowStockProducts.length} Items with Low Inventory
               </p>
-              <p className="text-[11px] text-slate-500">Restock to prevent out-of-stock</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Restock to prevent out-of-stock</p>
             </div>
           </div>
-          <FaArrowRight className="size-3.5 text-rose-600" />
+          <FaArrowRight className="size-3.5 text-rose-600 dark:text-rose-400" />
         </div>
 
         <div
           onClick={() => setCurrentView('chat')}
-          className="p-4 rounded-2xl bg-white border border-sky-300 shadow-sm hover:border-sky-500 transition cursor-pointer flex items-center justify-between"
+          className="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-sky-300 dark:border-sky-700/80 shadow-sm hover:border-sky-500 dark:hover:border-sky-500 transition cursor-pointer flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-sky-50 text-[#0284C7] grid place-items-center shrink-0 border border-sky-200">
+            <div className="size-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284C7] dark:text-sky-400 grid place-items-center shrink-0 border border-sky-200 dark:border-sky-700">
               <FaComments className="size-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-900">
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
                 {unreadMessagesCount > 0 ? `${unreadMessagesCount} Unread Client Inquiries` : 'Client Concierge Live'}
               </p>
-              <p className="text-[11px] text-slate-500">Instant canned replies ready</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Instant canned replies ready</p>
             </div>
           </div>
-          <FaArrowRight className="size-3.5 text-[#0284C7]" />
+          <FaArrowRight className="size-3.5 text-[#0284C7] dark:text-sky-400" />
         </div>
       </div>
 
@@ -237,11 +237,11 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Recent Incoming Orders Table */}
-      <div className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-200 p-5">
+      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 p-5">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
-            <p className="text-xs text-slate-500">Fulfill pending orders to maintain priority carrier rating.</p>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Orders</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Fulfill pending orders to maintain priority carrier rating.</p>
           </div>
 
           <button
@@ -254,7 +254,7 @@ export const DashboardView: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px] tracking-wider">
+            <thead className="bg-[#F8FAFC] dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 uppercase font-bold text-[11px] tracking-wider">
               <tr>
                 <th className="py-3 px-4">Order ID</th>
                 <th className="py-3 px-4">Buyer Details</th>
@@ -264,24 +264,24 @@ export const DashboardView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Quick Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 font-medium text-slate-700">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
               {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/80 transition">
+                <tr key={order.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
                   <td className="py-3 px-4">
-                    <span className="font-bold text-slate-900 font-mono-num">{order.id}</span>
-                    <p className="text-[11px] text-slate-400 font-mono-num">{formatDate(order.createdAt)}</p>
+                    <span className="font-bold text-slate-900 dark:text-white font-mono-num">{order.id}</span>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono-num">{formatDate(order.createdAt)}</p>
                   </td>
                   <td className="py-3 px-4">
-                    <p className="font-bold text-slate-900">{order.customer.name}</p>
-                    <p className="text-[11px] text-slate-500">{order.shippingAddress.city}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{order.customer.name}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{order.shippingAddress.city}</p>
                   </td>
                   <td className="py-3 px-4">
-                    <p className="font-bold text-slate-800">{order.items[0]?.productTitle}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{order.items[0]?.productTitle}</p>
                     {order.items.length > 1 && (
-                      <p className="text-[11px] text-slate-500">+{order.items.length - 1} more piece(s)</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">+{order.items.length - 1} more piece(s)</p>
                     )}
                   </td>
-                  <td className="py-3 px-4 font-bold text-emerald-700 font-mono-num">
+                  <td className="py-3 px-4 font-bold text-emerald-700 dark:text-emerald-400 font-mono-num">
                     {formatPHP(order.netSellerPayout)}
                   </td>
                   <td className="py-3 px-4">{getStatusBadge(order.status)}</td>
@@ -313,10 +313,10 @@ export const DashboardView: React.FC = () => {
                       </button>
                     )}
                     {order.status === 'in_transit' && (
-                      <span className="text-[11px] text-sky-600 font-semibold">In Transit</span>
+                      <span className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold">In Transit</span>
                     )}
                     {order.status === 'delivered' && (
-                      <span className="text-[11px] text-emerald-600 font-semibold">Completed</span>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Completed</span>
                     )}
                   </td>
                 </tr>

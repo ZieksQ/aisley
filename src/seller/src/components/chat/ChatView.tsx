@@ -87,16 +87,16 @@ export const ChatView: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] min-h-[560px] rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+    <div className="h-[calc(100vh-140px)] min-h-[560px] rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
       {/* Left Column: Conversation Thread List (4 cols) */}
-      <div className="lg:col-span-4 border-r border-slate-300 flex flex-col bg-[#F8FAFC]">
+      <div className="lg:col-span-4 border-r border-slate-300 dark:border-slate-800 flex flex-col bg-[#F8FAFC] dark:bg-slate-900/60">
         {/* Thread Search */}
-        <div className="p-4 border-b border-slate-200 bg-white">
-          <h2 className="text-base font-black text-slate-900 tracking-tight mb-2">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
+          <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight mb-2">
             Client Concierge Chat
           </h2>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
               <FaMagnifyingGlass className="size-3" />
             </div>
             <input
@@ -104,13 +104,13 @@ export const ChatView: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversation threads..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:bg-white dark:focus:bg-slate-800 focus:outline-none"
             />
           </div>
         </div>
 
         {/* Thread Items */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-200">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
           {filteredThreads.map((thread) => {
             const isActive = thread.id === activeThread?.id;
 
@@ -119,7 +119,9 @@ export const ChatView: React.FC = () => {
                 key={thread.id}
                 onClick={() => setActiveChatId(thread.id)}
                 className={`p-3.5 flex items-start gap-3 cursor-pointer transition ${
-                  isActive ? 'bg-white border-l-4 border-[#E723A2]' : 'hover:bg-slate-100/60'
+                  isActive
+                    ? 'bg-white dark:bg-slate-800 border-l-4 border-[#E723A2]'
+                    : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/40'
                 }`}
               >
                 <div className="relative shrink-0">
@@ -129,33 +131,33 @@ export const ChatView: React.FC = () => {
                       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
                     }
                     alt={thread.participant.name}
-                    className="size-10 rounded-xl object-cover border border-slate-200"
+                    className="size-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                   />
                   {thread.participant.role === 'admin' ? (
                     <span className="absolute -bottom-1 -right-1 size-3.5 bg-slate-900 text-white text-[8px] font-bold rounded-full grid place-items-center">
                       A
                     </span>
                   ) : (
-                    <span className="absolute -bottom-1 -right-1 size-3 bg-emerald-500 rounded-full border-2 border-white" />
+                    <span className="absolute -bottom-1 -right-1 size-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="font-bold text-xs text-slate-900 truncate">
+                    <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
                       {thread.participant.name}
                     </p>
-                    <span className="text-[10px] text-slate-400 font-mono-num shrink-0">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num shrink-0">
                       {thread.lastMessageTime}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
                     {thread.lastMessage}
                   </p>
 
                   {thread.participant.activeOrderId && (
-                    <span className="inline-block mt-1 text-[10px] font-mono-num font-bold text-[#E723A2] bg-[#FDF2F9] px-1.5 py-0.2 rounded border border-[#F9CFEA]">
+                    <span className="inline-block mt-1 text-[10px] font-mono-num font-bold text-[#E723A2] bg-[#FDF2F9] dark:bg-pink-950/40 px-1.5 py-0.2 rounded border border-[#F9CFEA] dark:border-pink-900/60">
                       Order #{thread.participant.activeOrderId}
                     </span>
                   )}
@@ -172,12 +174,12 @@ export const ChatView: React.FC = () => {
         </div>
       </div>
 
-      {/* Center Column: Active Chat Window (5 cols or 8 cols if context collapsed) */}
-      <div className="lg:col-span-5 flex flex-col bg-white border-r border-slate-200 h-full">
+      {/* Center Column: Active Chat Window */}
+      <div className="lg:col-span-5 flex flex-col bg-white dark:bg-[#0B0F19] border-r border-slate-200 dark:border-slate-800 h-full">
         {activeThread ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#0F172A] shrink-0">
               <div className="flex items-center gap-3">
                 <img
                   src={
@@ -185,18 +187,18 @@ export const ChatView: React.FC = () => {
                     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
                   }
                   alt={activeThread.participant.name}
-                  className="size-9 rounded-xl object-cover border border-slate-200"
+                  className="size-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                 />
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-sm text-slate-900">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                       {activeThread.participant.name}
                     </h3>
-                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700">
                       Verified Buyer
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
                     {activeThread.participant.email || 'Direct Buyer Inquiry'}
                   </p>
                 </div>
@@ -206,21 +208,21 @@ export const ChatView: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowCannedDropdown(!showCannedDropdown)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <FaBolt className="text-amber-500" /> Canned Replies
                 </button>
 
                 {/* Canned Replies Popover */}
                 {showCannedDropdown && (
-                  <div className="absolute right-0 top-10 z-30 w-80 rounded-2xl bg-white border border-slate-200 shadow-2xl p-3 space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                  <div className="absolute right-0 top-10 z-30 w-80 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 shadow-2xl p-3 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                         Quick Canned Replies
                       </span>
                       <button
                         onClick={() => setShowCannedDropdown(false)}
-                        className="text-slate-400 hover:text-slate-700"
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                       >
                         <FaXmark className="size-3" />
                       </button>
@@ -231,17 +233,17 @@ export const ChatView: React.FC = () => {
                         <button
                           key={can.id}
                           onClick={() => handleSelectCanned(can.text)}
-                          className="w-full text-left p-2.5 rounded-xl hover:bg-[#FDF2F9] border border-transparent hover:border-[#F9CFEA] transition group"
+                          className="w-full text-left p-2.5 rounded-xl hover:bg-[#FDF2F9] dark:hover:bg-slate-800 border border-transparent hover:border-[#F9CFEA] dark:hover:border-pink-900/60 transition group cursor-pointer"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-900 group-hover:text-[#E723A2]">
+                            <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#E723A2]">
                               {can.title}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium">
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                               {can.category}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5">
                             {can.text}
                           </p>
                         </button>
@@ -253,7 +255,7 @@ export const ChatView: React.FC = () => {
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#F8FAFC]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#F8FAFC] dark:bg-[#0B0F19]">
               {activeThread.messages.map((msg) => {
                 const isMe = msg.senderRole === 'seller';
 
@@ -263,7 +265,7 @@ export const ChatView: React.FC = () => {
                     className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
                     <div className="flex items-center gap-1 mb-1">
-                      <span className="text-[10px] font-bold text-slate-400 font-mono-num">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 font-mono-num">
                         {msg.senderName} • {msg.timestamp}
                       </span>
                     </div>
@@ -273,7 +275,7 @@ export const ChatView: React.FC = () => {
                       className={`max-w-[85%] p-3.5 rounded-2xl text-xs font-medium space-y-2.5 ${
                         isMe
                           ? 'bg-[#E723A2] text-white rounded-br-xs shadow-xs'
-                          : 'bg-white text-slate-900 border border-slate-200 rounded-bl-xs shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-xs shadow-xs'
                       }`}
                     >
                       <p className="leading-relaxed">{msg.text}</p>
@@ -282,7 +284,7 @@ export const ChatView: React.FC = () => {
                       {msg.attachment?.type === 'product' && (
                         <div
                           className={`p-2.5 rounded-xl flex items-center gap-2.5 ${
-                            isMe ? 'bg-black/20 text-white' : 'bg-slate-50 border border-slate-200'
+                            isMe ? 'bg-black/20 text-white' : 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white'
                           }`}
                         >
                           {msg.attachment.data.imageUrl && (
@@ -310,7 +312,7 @@ export const ChatView: React.FC = () => {
                           className={`p-2.5 rounded-xl border flex items-center justify-between ${
                             isMe
                               ? 'bg-black/20 border-white/20 text-white'
-                              : 'bg-amber-50 border-amber-200 text-amber-900'
+                              : 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -335,10 +337,10 @@ export const ChatView: React.FC = () => {
 
             {/* Attachment Drawers / Popups */}
             {showProductPicker && (
-              <div className="p-3 bg-white border-t border-slate-200 space-y-2">
+              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Attach Product from Catalog</span>
-                  <button onClick={() => setShowProductPicker(false)}>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Attach Product from Catalog</span>
+                  <button onClick={() => setShowProductPicker(false)} className="cursor-pointer">
                     <FaXmark className="size-3 text-slate-400" />
                   </button>
                 </div>
@@ -347,11 +349,11 @@ export const ChatView: React.FC = () => {
                     <div
                       key={p.id}
                       onClick={() => handleAttachProduct(p)}
-                      className="p-2 rounded-xl border border-slate-200 hover:border-[#E723A2] cursor-pointer shrink-0 w-44 bg-[#F8FAFC]"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-[#E723A2] cursor-pointer shrink-0 w-44 bg-[#F8FAFC] dark:bg-slate-800"
                     >
                       <img src={p.imageUrl} alt={p.title} className="w-full h-16 rounded-lg object-cover mb-1" />
-                      <p className="font-bold text-xs truncate text-slate-900">{p.title}</p>
-                      <p className="text-[11px] font-mono-num font-bold text-emerald-700">
+                      <p className="font-bold text-xs truncate text-slate-900 dark:text-white">{p.title}</p>
+                      <p className="text-[11px] font-mono-num font-bold text-emerald-700 dark:text-emerald-400">
                         {formatPHP(p.basePrice)}
                       </p>
                     </div>
@@ -361,10 +363,10 @@ export const ChatView: React.FC = () => {
             )}
 
             {showVoucherPicker && (
-              <div className="p-3 bg-white border-t border-slate-200 space-y-2">
+              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Attach Promo Code</span>
-                  <button onClick={() => setShowVoucherPicker(false)}>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Attach Promo Code</span>
+                  <button onClick={() => setShowVoucherPicker(false)} className="cursor-pointer">
                     <FaXmark className="size-3 text-slate-400" />
                   </button>
                 </div>
@@ -373,10 +375,10 @@ export const ChatView: React.FC = () => {
                     <div
                       key={v.id}
                       onClick={() => handleAttachVoucher(v)}
-                      className="p-2.5 rounded-xl border border-slate-200 hover:border-[#E723A2] cursor-pointer shrink-0 bg-[#FDF2F9] text-slate-900"
+                      className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-[#E723A2] cursor-pointer shrink-0 bg-[#FDF2F9] dark:bg-slate-800 text-slate-900 dark:text-white"
                     >
                       <span className="font-black font-mono-num text-xs uppercase">{v.code}</span>
-                      <p className="text-[10px] text-slate-600">
+                      <p className="text-[10px] text-slate-600 dark:text-slate-300">
                         {v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}
                       </p>
                     </div>
@@ -388,7 +390,7 @@ export const ChatView: React.FC = () => {
             {/* Input Bar */}
             <form
               onSubmit={handleSend}
-              className="p-3 border-t border-slate-200 bg-white flex flex-col gap-2 shrink-0"
+              className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] flex flex-col gap-2 shrink-0"
             >
               <div className="flex items-center gap-2">
                 <button
@@ -397,7 +399,7 @@ export const ChatView: React.FC = () => {
                     setShowProductPicker(!showProductPicker);
                     setShowVoucherPicker(false);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <FaBoxOpen className="text-[#E723A2]" /> Product
                 </button>
@@ -408,7 +410,7 @@ export const ChatView: React.FC = () => {
                     setShowVoucherPicker(!showVoucherPicker);
                     setShowProductPicker(false);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <FaTicket className="text-[#0284C7]" /> Voucher
                 </button>
@@ -420,7 +422,7 @@ export const ChatView: React.FC = () => {
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   placeholder="Type a message to buyer (Press Enter to send)..."
-                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:bg-white dark:focus:bg-slate-900 focus:outline-none"
                 />
                 <button
                   type="submit"
@@ -433,39 +435,39 @@ export const ChatView: React.FC = () => {
             </form>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
+          <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
             Select a conversation thread to start messaging
           </div>
         )}
       </div>
 
       {/* Right Column: Buyer & Active Order Context Panel (3 cols) */}
-      <div className="lg:col-span-3 bg-[#F8FAFC] p-5 overflow-y-auto space-y-5 text-xs hidden lg:block">
-        <h3 className="font-bold uppercase tracking-wider text-slate-500">
+      <div className="lg:col-span-3 bg-[#F8FAFC] dark:bg-slate-900/60 p-5 overflow-y-auto space-y-5 text-xs hidden lg:block border-l border-slate-300 dark:border-slate-800">
+        <h3 className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Client Information Context
         </h3>
 
         {activeThread ? (
           <div className="space-y-4">
-            <div className="text-center p-4 rounded-2xl bg-white border border-slate-200">
+            <div className="text-center p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <img
                 src={
                   activeThread.participant.avatarUrl ||
                   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
                 }
                 alt={activeThread.participant.name}
-                className="size-16 rounded-2xl object-cover mx-auto border border-slate-200 mb-2"
+                className="size-16 rounded-2xl object-cover mx-auto border border-slate-200 dark:border-slate-700 mb-2"
               />
-              <h4 className="font-bold text-sm text-slate-900">{activeThread.participant.name}</h4>
-              <p className="text-slate-500 text-[11px]">{activeThread.participant.email}</p>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white">{activeThread.participant.name}</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-[11px]">{activeThread.participant.email}</p>
             </div>
 
             {/* Active Order Card */}
             {activeOrder ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="font-bold text-slate-900">Active Order #{activeOrder.id}</span>
-                  <span className="font-bold font-mono-num text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
+                  <span className="font-bold text-slate-900 dark:text-white">Active Order #{activeOrder.id}</span>
+                  <span className="font-bold font-mono-num text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                     {activeOrder.status.toUpperCase()}
                   </span>
                 </div>
@@ -475,8 +477,8 @@ export const ChatView: React.FC = () => {
                     <div key={item.id} className="flex items-center gap-2">
                       <img src={item.imageUrl} alt={item.productTitle} className="size-8 rounded-lg object-cover" />
                       <div className="truncate flex-1">
-                        <p className="font-bold text-slate-800 truncate text-[11px]">{item.productTitle}</p>
-                        <p className="text-[10px] text-slate-400 font-mono-num">
+                        <p className="font-bold text-slate-800 dark:text-slate-200 truncate text-[11px]">{item.productTitle}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num">
                           {formatPHP(item.unitPrice)} x {item.quantity}
                         </p>
                       </div>
@@ -484,21 +486,21 @@ export const ChatView: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="border-t border-slate-100 pt-2 text-[11px] space-y-1">
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-2 text-[11px] space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Destination:</span>
-                    <span className="font-bold text-slate-800">{activeOrder.shippingAddress.city}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Destination:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{activeOrder.shippingAddress.city}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Net Disbursed:</span>
-                    <span className="font-bold font-mono-num text-emerald-700">
+                    <span className="text-slate-500 dark:text-slate-400">Net Disbursed:</span>
+                    <span className="font-bold font-mono-num text-emerald-700 dark:text-emerald-400">
                       {formatPHP(activeOrder.netSellerPayout)}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center text-slate-400">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center text-slate-400 dark:text-slate-500">
                 <p className="font-medium text-xs">No active pending order for this conversation.</p>
               </div>
             )}
