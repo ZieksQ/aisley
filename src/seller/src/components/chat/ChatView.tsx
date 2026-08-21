@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSeller } from '../../context/SellerContext';
 import type { ChatAttachment } from '../../types/chat';
 import { formatPHP } from '../../utils/formatters';
@@ -9,6 +9,7 @@ import {
   FaBoxOpen,
   FaXmark,
   FaTicket,
+  FaShieldHalved,
 } from 'react-icons/fa6';
 
 export const ChatView: React.FC = () => {
@@ -29,6 +30,8 @@ export const ChatView: React.FC = () => {
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [showVoucherPicker, setShowVoucherPicker] = useState(false);
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const activeThread = chatThreads.find((t) => t.id === activeChatId) || chatThreads[0];
 
   const filteredThreads = chatThreads.filter((t) =>
@@ -40,6 +43,11 @@ export const ChatView: React.FC = () => {
     ? orders.find((o) => o.id === activeThread.participant.activeOrderId)
     : null;
 
+  // Auto-scroll to bottom of messages when new message is sent or thread changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeThread?.messages.length, activeChatId]);
+
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!messageInput.trim() || !activeThread) return;
@@ -47,6 +55,8 @@ export const ChatView: React.FC = () => {
     sendMessage(activeThread.id, messageInput.trim());
     setMessageInput('');
     setShowCannedDropdown(false);
+    setShowProductPicker(false);
+    setShowVoucherPicker(false);
   };
 
   const handleSelectCanned = (text: string) => {
@@ -87,11 +97,11 @@ export const ChatView: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] min-h-[560px] rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+    <div className="h-[calc(100vh-140px)] min-h-[560px] max-h-[calc(100vh-140px)] rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
       {/* Left Column: Conversation Thread List (4 cols) */}
-      <div className="lg:col-span-4 border-r border-slate-300 dark:border-slate-800 flex flex-col bg-[#F8FAFC] dark:bg-slate-900/60">
+      <div className="lg:col-span-4 border-r border-slate-300 dark:border-slate-800 flex flex-col bg-[#F8FAFC] dark:bg-slate-900/60 h-full min-h-0 overflow-hidden">
         {/* Thread Search */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] shrink-0">
           <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight mb-2">
             Client Concierge Chat
           </h2>
@@ -110,7 +120,7 @@ export const ChatView: React.FC = () => {
         </div>
 
         {/* Thread Items */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 min-h-0">
           {filteredThreads.map((thread) => {
             const isActive = thread.id === activeThread?.id;
 
@@ -134,7 +144,7 @@ export const ChatView: React.FC = () => {
                     className="size-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                   />
                   {thread.participant.role === 'admin' ? (
-                    <span className="absolute -bottom-1 -right-1 size-3.5 bg-slate-900 text-white text-[8px] font-bold rounded-full grid place-items-center">
+                    <span className="absolute -bottom-1 -right-1 size-3.5 bg-slate-900 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
                       A
                     </span>
                   ) : (
@@ -157,14 +167,14 @@ export const ChatView: React.FC = () => {
                   </p>
 
                   {thread.participant.activeOrderId && (
-                    <span className="inline-block mt-1 text-[10px] font-mono-num font-bold text-[#E723A2] bg-[#FDF2F9] dark:bg-pink-950/40 px-1.5 py-0.2 rounded border border-[#F9CFEA] dark:border-pink-900/60">
+                    <span className="inline-block mt-1 text-[10px] font-mono-num font-bold text-[#E723A2] bg-[#FDF2F9] dark:bg-pink-950/40 px-1.5 py-0.5 rounded border border-[#F9CFEA] dark:border-pink-900/60">
                       Order #{thread.participant.activeOrderId}
                     </span>
                   )}
                 </div>
 
                 {thread.unreadCount > 0 && (
-                  <span className="size-5 rounded-full bg-[#E723A2] text-white font-bold text-[10px] grid place-items-center shrink-0">
+                  <span className="size-5 rounded-full bg-[#E723A2] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                     {thread.unreadCount}
                   </span>
                 )}
@@ -175,11 +185,11 @@ export const ChatView: React.FC = () => {
       </div>
 
       {/* Center Column: Active Chat Window */}
-      <div className="lg:col-span-5 flex flex-col bg-white dark:bg-[#0B0F19] border-r border-slate-200 dark:border-slate-800 h-full">
+      <div className="lg:col-span-5 flex flex-col bg-white dark:bg-[#0B0F19] border-r border-slate-200 dark:border-slate-800 h-full min-h-0 overflow-hidden relative">
         {activeThread ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#0F172A] shrink-0">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#0F172A] shrink-0 z-10">
               <div className="flex items-center gap-3">
                 <img
                   src={
@@ -194,7 +204,7 @@ export const ChatView: React.FC = () => {
                     <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                       {activeThread.participant.name}
                     </h3>
-                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700">
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700">
                       Verified Buyer
                     </span>
                   </div>
@@ -255,7 +265,7 @@ export const ChatView: React.FC = () => {
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#F8FAFC] dark:bg-[#0B0F19]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#F8FAFC] dark:bg-[#0B0F19] min-h-0 overscroll-contain">
               {activeThread.messages.map((msg) => {
                 const isMe = msg.senderRole === 'seller';
 
@@ -278,7 +288,7 @@ export const ChatView: React.FC = () => {
                           : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-xs shadow-xs'
                       }`}
                     >
-                      <p className="leading-relaxed">{msg.text}</p>
+                      <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                       {/* Product Card Attachment */}
                       {msg.attachment?.type === 'product' && (
@@ -333,11 +343,12 @@ export const ChatView: React.FC = () => {
                   </div>
                 );
               })}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Attachment Drawers / Popups */}
             {showProductPicker && (
-              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0 max-h-48 overflow-y-auto">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Attach Product from Catalog</span>
                   <button onClick={() => setShowProductPicker(false)} className="cursor-pointer">
@@ -363,7 +374,7 @@ export const ChatView: React.FC = () => {
             )}
 
             {showVoucherPicker && (
-              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2 shrink-0 max-h-48 overflow-y-auto">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Attach Promo Code</span>
                   <button onClick={() => setShowVoucherPicker(false)} className="cursor-pointer">
@@ -387,10 +398,10 @@ export const ChatView: React.FC = () => {
               </div>
             )}
 
-            {/* Input Bar */}
+            {/* Input Bar (Fixed & Docked to bottom, Never Disappears) */}
             <form
               onSubmit={handleSend}
-              className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] flex flex-col gap-2 shrink-0"
+              className="p-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] flex flex-col gap-2 shrink-0 sticky bottom-0 z-10"
             >
               <div className="flex items-center gap-2">
                 <button
@@ -399,7 +410,11 @@ export const ChatView: React.FC = () => {
                     setShowProductPicker(!showProductPicker);
                     setShowVoucherPicker(false);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition ${
+                    showProductPicker
+                      ? 'border-[#E723A2] bg-[#FDF2F9] dark:bg-pink-950/50 text-[#E723A2] dark:text-pink-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
                 >
                   <FaBoxOpen className="text-[#E723A2]" /> Product
                 </button>
@@ -410,7 +425,11 @@ export const ChatView: React.FC = () => {
                     setShowVoucherPicker(!showVoucherPicker);
                     setShowProductPicker(false);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition ${
+                    showVoucherPicker
+                      ? 'border-[#0284C7] bg-sky-50 dark:bg-sky-950/50 text-[#0284C7] dark:text-sky-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
                 >
                   <FaTicket className="text-[#0284C7]" /> Voucher
                 </button>
@@ -442,7 +461,7 @@ export const ChatView: React.FC = () => {
       </div>
 
       {/* Right Column: Buyer & Active Order Context Panel (3 cols) */}
-      <div className="lg:col-span-3 bg-[#F8FAFC] dark:bg-slate-900/60 p-5 overflow-y-auto space-y-5 text-xs hidden lg:block border-l border-slate-300 dark:border-slate-800">
+      <div className="lg:col-span-3 bg-[#F8FAFC] dark:bg-slate-900/60 p-5 overflow-y-auto h-full min-h-0 space-y-5 text-xs hidden lg:block border-l border-slate-300 dark:border-slate-800">
         <h3 className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Client Information Context
         </h3>
@@ -458,54 +477,46 @@ export const ChatView: React.FC = () => {
                 alt={activeThread.participant.name}
                 className="size-16 rounded-2xl object-cover mx-auto border border-slate-200 dark:border-slate-700 mb-2"
               />
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white">{activeThread.participant.name}</h4>
-              <p className="text-slate-500 dark:text-slate-400 text-[11px]">{activeThread.participant.email}</p>
+              <p className="font-bold text-sm text-slate-900 dark:text-white">
+                {activeThread.participant.name}
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                {activeThread.participant.email || 'customer@aisley.ph'}
+              </p>
+              <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700 text-[10px] font-bold">
+                <FaShieldHalved /> Authenticated Buyer
+              </span>
             </div>
 
-            {/* Active Order Card */}
-            {activeOrder ? (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-3">
+            {/* Active Order in Inquiry */}
+            {activeOrder && (
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2.5">
                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
-                  <span className="font-bold text-slate-900 dark:text-white">Active Order #{activeOrder.id}</span>
-                  <span className="font-bold font-mono-num text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                    {activeOrder.status.toUpperCase()}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Linked Order
+                  </span>
+                  <span className="font-mono-num font-bold text-slate-900 dark:text-white text-xs">
+                    {activeOrder.id}
                   </span>
                 </div>
 
-                <div className="space-y-2">
-                  {activeOrder.items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2">
-                      <img src={item.imageUrl} alt={item.productTitle} className="size-8 rounded-lg object-cover" />
-                      <div className="truncate flex-1">
-                        <p className="font-bold text-slate-800 dark:text-slate-200 truncate text-[11px]">{item.productTitle}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num">
-                          {formatPHP(item.unitPrice)} x {item.quantity}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-slate-100 dark:border-slate-700 pt-2 text-[11px] space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Destination:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{activeOrder.shippingAddress.city}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Net Disbursed:</span>
-                    <span className="font-bold font-mono-num text-emerald-700 dark:text-emerald-400">
-                      {formatPHP(activeOrder.netSellerPayout)}
+                <div className="space-y-1 text-xs">
+                  <p className="font-bold text-slate-800 dark:text-slate-200">{activeOrder.items[0]?.productTitle}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px]">
+                    Qty: {activeOrder.items[0]?.quantity} • {formatPHP(activeOrder.totalAmount)}
+                  </p>
+                  <div className="pt-1">
+                    <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 text-[10px] font-bold uppercase">
+                      {activeOrder.status.replace('_', ' ')}
                     </span>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center text-slate-400 dark:text-slate-500">
-                <p className="font-medium text-xs">No active pending order for this conversation.</p>
-              </div>
             )}
           </div>
-        ) : null}
+        ) : (
+          <p className="text-slate-400 text-center">No active client data</p>
+        )}
       </div>
     </div>
   );
