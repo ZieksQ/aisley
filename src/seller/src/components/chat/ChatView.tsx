@@ -1,0 +1,510 @@
+import React, { useState } from 'react';
+import { useSeller } from '../../context/SellerContext';
+import type { ChatAttachment } from '../../types/chat';
+import { formatPHP } from '../../utils/formatters';
+import {
+  FaMagnifyingGlass,
+  FaPaperPlane,
+  FaBolt,
+  FaBoxOpen,
+  FaXmark,
+  FaTicket,
+} from 'react-icons/fa6';
+
+export const ChatView: React.FC = () => {
+  const {
+    chatThreads,
+    activeChatId,
+    setActiveChatId,
+    sendMessage,
+    cannedReplies,
+    products,
+    vouchers,
+    orders,
+  } = useSeller();
+
+  const [messageInput, setMessageInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showCannedDropdown, setShowCannedDropdown] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [showVoucherPicker, setShowVoucherPicker] = useState(false);
+
+  const activeThread = chatThreads.find((t) => t.id === activeChatId) || chatThreads[0];
+
+  const filteredThreads = chatThreads.filter((t) =>
+    t.participant.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Active buyer order context
+  const activeOrder = activeThread?.participant.activeOrderId
+    ? orders.find((o) => o.id === activeThread.participant.activeOrderId)
+    : null;
+
+  const handleSend = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!messageInput.trim() || !activeThread) return;
+
+    sendMessage(activeThread.id, messageInput.trim());
+    setMessageInput('');
+    setShowCannedDropdown(false);
+  };
+
+  const handleSelectCanned = (text: string) => {
+    setMessageInput(text);
+    setShowCannedDropdown(false);
+  };
+
+  const handleAttachProduct = (prod: any) => {
+    if (!activeThread) return;
+    const attachment: ChatAttachment = {
+      type: 'product',
+      data: {
+        id: prod.id,
+        title: prod.title,
+        price: prod.basePrice,
+        subtitle: `SKU: ${prod.sku} • In Stock (${prod.stock})`,
+        imageUrl: prod.imageUrl,
+      },
+    };
+    sendMessage(activeThread.id, `Here is the product card for ${prod.title}:`, attachment);
+    setShowProductPicker(false);
+  };
+
+  const handleAttachVoucher = (v: any) => {
+    if (!activeThread) return;
+    const attachment: ChatAttachment = {
+      type: 'voucher',
+      data: {
+        id: v.id,
+        title: `${v.code} - ${v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}`,
+        code: v.code,
+        discount: v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`,
+        subtitle: `Min spend ${formatPHP(v.minSpend)}`,
+      },
+    };
+    sendMessage(activeThread.id, `I've attached an atelier discount voucher for you!`, attachment);
+    setShowVoucherPicker(false);
+  };
+
+  return (
+    <div className="h-[calc(100vh-140px)] min-h-[560px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+      {/* Left Column: Conversation Thread List (4 cols) */}
+      <div className="lg:col-span-4 border-r border-slate-200 flex flex-col bg-[#F8FAFC]">
+        {/* Thread Search */}
+        <div className="p-4 border-b border-slate-200 bg-white">
+          <h2 className="text-base font-black text-slate-900 tracking-tight mb-2">
+            Client Concierge Chat
+          </h2>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <FaMagnifyingGlass className="size-3" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversation threads..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Thread Items */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {filteredThreads.map((thread) => {
+            const isActive = thread.id === activeThread?.id;
+
+            return (
+              <div
+                key={thread.id}
+                onClick={() => setActiveChatId(thread.id)}
+                className={`p-3.5 flex items-start gap-3 cursor-pointer transition ${
+                  isActive ? 'bg-white border-l-4 border-[#E723A2]' : 'hover:bg-slate-100/60'
+                }`}
+              >
+                <div className="relative shrink-0">
+                  <img
+                    src={
+                      thread.participant.avatarUrl ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+                    }
+                    alt={thread.participant.name}
+                    className="size-10 rounded-xl object-cover border border-slate-200"
+                  />
+                  {thread.participant.role === 'admin' ? (
+                    <span className="absolute -bottom-1 -right-1 size-3.5 bg-slate-900 text-white text-[8px] font-bold rounded-full grid place-items-center">
+                      A
+                    </span>
+                  ) : (
+                    <span className="absolute -bottom-1 -right-1 size-3 bg-emerald-500 rounded-full border-2 border-white" />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-xs text-slate-900 truncate">
+                      {thread.participant.name}
+                    </p>
+                    <span className="text-[10px] text-slate-400 font-mono-num shrink-0">
+                      {thread.lastMessageTime}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
+                    {thread.lastMessage}
+                  </p>
+
+                  {thread.participant.activeOrderId && (
+                    <span className="inline-block mt-1 text-[10px] font-mono-num font-bold text-[#E723A2] bg-[#FDF2F9] px-1.5 py-0.2 rounded border border-[#F9CFEA]">
+                      Order #{thread.participant.activeOrderId}
+                    </span>
+                  )}
+                </div>
+
+                {thread.unreadCount > 0 && (
+                  <span className="size-5 rounded-full bg-[#E723A2] text-white font-bold text-[10px] grid place-items-center shrink-0">
+                    {thread.unreadCount}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Center Column: Active Chat Window (5 cols or 8 cols if context collapsed) */}
+      <div className="lg:col-span-5 flex flex-col bg-white border-r border-slate-200 h-full">
+        {activeThread ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <img
+                  src={
+                    activeThread.participant.avatarUrl ||
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+                  }
+                  alt={activeThread.participant.name}
+                  className="size-9 rounded-xl object-cover border border-slate-200"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-bold text-sm text-slate-900">
+                      {activeThread.participant.name}
+                    </h3>
+                    <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Verified Buyer
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    {activeThread.participant.email || 'Direct Buyer Inquiry'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Canned replies trigger button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowCannedDropdown(!showCannedDropdown)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FaBolt className="text-amber-500" /> Canned Replies
+                </button>
+
+                {/* Canned Replies Popover */}
+                {showCannedDropdown && (
+                  <div className="absolute right-0 top-10 z-30 w-80 rounded-2xl bg-white border border-slate-200 shadow-2xl p-3 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Quick Atelier Replies
+                      </span>
+                      <button
+                        onClick={() => setShowCannedDropdown(false)}
+                        className="text-slate-400 hover:text-slate-700"
+                      >
+                        <FaXmark className="size-3" />
+                      </button>
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-1.5">
+                      {cannedReplies.map((can) => (
+                        <button
+                          key={can.id}
+                          onClick={() => handleSelectCanned(can.text)}
+                          className="w-full text-left p-2.5 rounded-xl hover:bg-[#FDF2F9] border border-transparent hover:border-[#F9CFEA] transition group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900 group-hover:text-[#E723A2]">
+                              {can.title}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {can.category}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                            {can.text}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Messages Scroll Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-[#F8FAFC]">
+              {activeThread.messages.map((msg) => {
+                const isMe = msg.senderRole === 'seller';
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  >
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="text-[10px] font-bold text-slate-400 font-mono-num">
+                        {msg.senderName} • {msg.timestamp}
+                      </span>
+                    </div>
+
+                    {/* Bubble */}
+                    <div
+                      className={`max-w-[85%] p-3.5 rounded-2xl text-xs font-medium space-y-2.5 ${
+                        isMe
+                          ? 'bg-[#E723A2] text-white rounded-br-xs shadow-xs'
+                          : 'bg-white text-slate-900 border border-slate-200 rounded-bl-xs shadow-xs'
+                      }`}
+                    >
+                      <p className="leading-relaxed">{msg.text}</p>
+
+                      {/* Product Card Attachment */}
+                      {msg.attachment?.type === 'product' && (
+                        <div
+                          className={`p-2.5 rounded-xl flex items-center gap-2.5 ${
+                            isMe ? 'bg-black/20 text-white' : 'bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          {msg.attachment.data.imageUrl && (
+                            <img
+                              src={msg.attachment.data.imageUrl}
+                              alt={msg.attachment.data.title}
+                              className="size-12 rounded-lg object-cover shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold truncate text-xs">{msg.attachment.data.title}</p>
+                            <p className="text-[10px] opacity-80">{msg.attachment.data.subtitle}</p>
+                            {msg.attachment.data.price && (
+                              <p className="font-black font-mono-num text-xs mt-0.5">
+                                {formatPHP(msg.attachment.data.price)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Voucher Card Attachment */}
+                      {msg.attachment?.type === 'voucher' && (
+                        <div
+                          className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                            isMe
+                              ? 'bg-black/20 border-white/20 text-white'
+                              : 'bg-amber-50 border-amber-200 text-amber-900'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <FaTicket className="size-4" />
+                            <div>
+                              <p className="font-black font-mono-num tracking-wider text-xs">
+                                {msg.attachment.data.code}
+                              </p>
+                              <p className="text-[10px] opacity-80">{msg.attachment.data.subtitle}</p>
+                            </div>
+                          </div>
+                          <span className="font-bold text-xs font-mono-num">
+                            {msg.attachment.data.discount}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Attachment Drawers / Popups */}
+            {showProductPicker && (
+              <div className="p-3 bg-white border-t border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">Attach Product from Catalog</span>
+                  <button onClick={() => setShowProductPicker(false)}>
+                    <FaXmark className="size-3 text-slate-400" />
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {products.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => handleAttachProduct(p)}
+                      className="p-2 rounded-xl border border-slate-200 hover:border-[#E723A2] cursor-pointer shrink-0 w-44 bg-[#F8FAFC]"
+                    >
+                      <img src={p.imageUrl} alt={p.title} className="w-full h-16 rounded-lg object-cover mb-1" />
+                      <p className="font-bold text-xs truncate text-slate-900">{p.title}</p>
+                      <p className="text-[11px] font-mono-num font-bold text-emerald-700">
+                        {formatPHP(p.basePrice)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {showVoucherPicker && (
+              <div className="p-3 bg-white border-t border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">Attach Promo Code</span>
+                  <button onClick={() => setShowVoucherPicker(false)}>
+                    <FaXmark className="size-3 text-slate-400" />
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {vouchers.map((v) => (
+                    <div
+                      key={v.id}
+                      onClick={() => handleAttachVoucher(v)}
+                      className="p-2.5 rounded-xl border border-slate-200 hover:border-[#E723A2] cursor-pointer shrink-0 bg-[#FDF2F9] text-slate-900"
+                    >
+                      <span className="font-black font-mono-num text-xs uppercase">{v.code}</span>
+                      <p className="text-[10px] text-slate-600">
+                        {v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input Bar */}
+            <form
+              onSubmit={handleSend}
+              className="p-3 border-t border-slate-200 bg-white flex flex-col gap-2 shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProductPicker(!showProductPicker);
+                    setShowVoucherPicker(false);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold flex items-center gap-1"
+                >
+                  <FaBoxOpen className="text-[#E723A2]" /> Product
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowVoucherPicker(!showVoucherPicker);
+                    setShowProductPicker(false);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-bold flex items-center gap-1"
+                >
+                  <FaTicket className="text-[#0284C7]" /> Voucher
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  placeholder="Type a message to buyer (Press Enter to send)..."
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-medium focus:ring-2 focus:ring-[#E723A2] focus:bg-white focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!messageInput.trim()}
+                  className="px-4 py-2.5 rounded-xl bg-[#E723A2] hover:bg-[#D61590] text-white text-xs font-bold uppercase tracking-wider transition shadow-sm flex items-center gap-1.5 disabled:opacity-40 cursor-pointer shrink-0"
+                >
+                  <FaPaperPlane /> Send
+                </button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
+            Select a conversation thread to start messaging
+          </div>
+        )}
+      </div>
+
+      {/* Right Column: Buyer & Active Order Context Panel (3 cols) */}
+      <div className="lg:col-span-3 bg-[#F8FAFC] p-5 overflow-y-auto space-y-5 text-xs hidden lg:block">
+        <h3 className="font-bold uppercase tracking-wider text-slate-500">
+          Client Information Context
+        </h3>
+
+        {activeThread ? (
+          <div className="space-y-4">
+            <div className="text-center p-4 rounded-2xl bg-white border border-slate-200">
+              <img
+                src={
+                  activeThread.participant.avatarUrl ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+                }
+                alt={activeThread.participant.name}
+                className="size-16 rounded-2xl object-cover mx-auto border border-slate-200 mb-2"
+              />
+              <h4 className="font-bold text-sm text-slate-900">{activeThread.participant.name}</h4>
+              <p className="text-slate-500 text-[11px]">{activeThread.participant.email}</p>
+            </div>
+
+            {/* Active Order Card */}
+            {activeOrder ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="font-bold text-slate-900">Active Order #{activeOrder.id}</span>
+                  <span className="font-bold font-mono-num text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    {activeOrder.status.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {activeOrder.items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <img src={item.imageUrl} alt={item.productTitle} className="size-8 rounded-lg object-cover" />
+                      <div className="truncate flex-1">
+                        <p className="font-bold text-slate-800 truncate text-[11px]">{item.productTitle}</p>
+                        <p className="text-[10px] text-slate-400 font-mono-num">
+                          {formatPHP(item.unitPrice)} x {item.quantity}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-100 pt-2 text-[11px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Destination:</span>
+                    <span className="font-bold text-slate-800">{activeOrder.shippingAddress.city}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Net Disbursed:</span>
+                    <span className="font-bold font-mono-num text-emerald-700">
+                      {formatPHP(activeOrder.netSellerPayout)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center text-slate-400">
+                <p className="font-medium text-xs">No active pending order for this conversation.</p>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
