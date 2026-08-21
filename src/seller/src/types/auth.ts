@@ -25,7 +25,10 @@ export interface SellerProfile {
   kyc?: {
     idType: string;
     idFileName: string;
+    idFilePreviewUrl?: string;
+    businessPermitType?: string;
     businessPermitFileName: string;
+    businessPermitFilePreviewUrl?: string;
     submittedAt: string;
   };
   status: ApprovalStatus;

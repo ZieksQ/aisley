@@ -24,6 +24,11 @@ import {
   FaSliders,
   FaEye,
   FaEyeSlash,
+  FaIdCard,
+  FaFileCircleCheck,
+  FaUpload,
+  FaFilePdf,
+  FaShieldHalved,
 } from 'react-icons/fa6';
 
 type SettingsTab =
@@ -31,6 +36,7 @@ type SettingsTab =
   | 'appearance'
   | 'security'
   | 'payout'
+  | 'verification'
   | 'operations'
   | 'notifications';
 
@@ -275,6 +281,12 @@ export const SettingsView: React.FC = () => {
       label: 'Payout & Banking',
       description: 'Disbursement accounts & schedule',
       icon: <FaBuildingColumns className="size-4" />,
+    },
+    {
+      id: 'verification',
+      label: 'Identity & Business Verification',
+      description: 'Government ID & Mayor’s Permit',
+      icon: <FaFileCircleCheck className="size-4" />,
     },
     {
       id: 'operations',
@@ -785,7 +797,116 @@ export const SettingsView: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 5: OPERATIONS & LOGISTICS */}
+          {/* TAB 5: IDENTITY & BUSINESS VERIFICATION */}
+          {activeTab === 'verification' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaFileCircleCheck className="text-[#E723A2]" /> Identity & Business Operation Verification
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Official government identity and municipal business permit records inspected by Aisley admin.
+                  </p>
+                </div>
+                <Badge variant="success" dot>Fully Verified</Badge>
+              </div>
+
+              {/* Verified Trust Banner */}
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/80 text-xs text-emerald-950 dark:text-emerald-300 flex items-start gap-3">
+                <FaShieldHalved className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Aisley Verified Boutique Merchant</p>
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-400/90 mt-0.5 leading-relaxed">
+                    Your government-issued representative ID and Mayor's / Municipal Business Permit have been certified. Your boutique operates in full compliance with Aisley quality and legitimate seller standards.
+                  </p>
+                </div>
+              </div>
+
+              {/* Document Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Card 1: Valid Government ID */}
+                <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-800 bg-[#F8FAFC] dark:bg-slate-900/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-9 rounded-xl bg-pink-100 dark:bg-pink-950/70 text-[#E723A2] dark:text-pink-300 flex items-center justify-center font-bold shrink-0">
+                        <FaIdCard className="size-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white">1. Valid Government ID</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono-num">
+                          {storeSettings.verificationDocuments?.idType || 'Philippine Passport (DFA)'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="success" size="sm">Verified</Badge>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FaFilePdf className="size-5 text-[#E723A2] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                          {storeSettings.verificationDocuments?.idFileName || 'Passport_Claire_DelaTour.pdf'}
+                        </p>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Authenticated ID on File</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => alert('Uploaded updated government ID will be submitted to admin for instant re-verification.')}
+                    className="w-full py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer text-center text-[11px] flex items-center justify-center gap-1.5"
+                  >
+                    <FaUpload className="size-3 text-[#E723A2]" /> Upload Updated ID
+                  </button>
+                </div>
+
+                {/* Card 2: Mayor's / Municipal Business Permit */}
+                <div className="p-4 rounded-2xl border border-slate-300 dark:border-slate-800 bg-[#F8FAFC] dark:bg-slate-900/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-9 rounded-xl bg-sky-100 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 flex items-center justify-center font-bold shrink-0">
+                        <FaBuildingColumns className="size-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white">2. Business Permit</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono-num">
+                          {storeSettings.verificationDocuments?.businessPermitType || "Mayor's / Municipal Permit"}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="success" size="sm">Verified</Badge>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FaFilePdf className="size-5 text-[#0284C7] shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                          {storeSettings.verificationDocuments?.businessPermitFileName || 'Mayors_Business_Permit_Makati_2026.pdf'}
+                        </p>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                          Permit Ref: {storeSettings.verificationDocuments?.businessPermitNumber || 'MBP-MKT-2026-08819'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => alert('Annual permit renewal file will be submitted for admin validation.')}
+                    className="w-full py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer text-center text-[11px] flex items-center justify-center gap-1.5"
+                  >
+                    <FaUpload className="size-3 text-[#0284C7]" /> Upload Annual Permit Renewal
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: OPERATIONS & LOGISTICS */}
           {activeTab === 'operations' && (
             <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">

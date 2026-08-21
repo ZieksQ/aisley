@@ -6,14 +6,16 @@ export interface PayoutBankInfo {
   isVerified: boolean;
 }
 
-export interface TaxAndKycInfo {
-  registeredEntityName: string;
-  tinNumber: string;
-  bir2303Status: 'verified' | 'pending_review' | 'unsubmitted';
-  bir2303FileName?: string;
-  dtiSecRegistrationNumber: string;
-  dtiSecFileName?: string;
-  govIdFileName?: string;
+export interface VerificationDocumentsInfo {
+  idType: string;
+  idFileName: string;
+  idFilePreviewUrl?: string;
+  idStatus: 'verified' | 'pending_review' | 'unsubmitted';
+  businessPermitType: string;
+  businessPermitNumber: string;
+  businessPermitFileName: string;
+  businessPermitFilePreviewUrl?: string;
+  businessPermitStatus: 'verified' | 'pending_review' | 'unsubmitted';
 }
 
 export interface StoreSettings {
@@ -29,5 +31,5 @@ export interface StoreSettings {
   vacationNotice?: string;
   categories: string[];
   payoutBank: PayoutBankInfo;
-  taxInfo: TaxAndKycInfo;
+  verificationDocuments?: VerificationDocumentsInfo;
 }

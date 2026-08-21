@@ -7,6 +7,8 @@ import {
   FaBolt,
   FaArrowRightFromBracket,
   FaBuilding,
+  FaIdCard,
+  FaFilePdf,
 } from 'react-icons/fa6';
 
 export const ApprovalStatusView: React.FC = () => {
@@ -158,7 +160,7 @@ export const ApprovalStatusView: React.FC = () => {
         </div>
 
         {/* Submitted Entity Details Review */}
-        <div className="rounded-2xl bg-[#F8FAFC] border border-slate-300 p-5 space-y-3">
+        <div className="rounded-2xl bg-[#F8FAFC] border border-slate-300 p-5 space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
             <FaBuilding className="text-[#E723A2]" /> Submitted Brand Information
           </h4>
@@ -190,6 +192,44 @@ export const ApprovalStatusView: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {/* Submitted Verification Documents */}
+          {seller.kyc && (
+            <div className="pt-3 border-t border-slate-200 space-y-2">
+              <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                Submitted Verification Documents
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-pink-50 text-[#E723A2] flex items-center justify-center shrink-0">
+                    <FaIdCard className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 text-xs truncate">
+                      {seller.kyc.idType}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate font-mono-num">
+                      {seller.kyc.idFileName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-sky-50 text-[#0284C7] flex items-center justify-center shrink-0">
+                    <FaFilePdf className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 text-xs truncate">
+                      {seller.kyc.businessPermitType || "Mayor's Business Permit"}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate font-mono-num">
+                      {seller.kyc.businessPermitFileName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

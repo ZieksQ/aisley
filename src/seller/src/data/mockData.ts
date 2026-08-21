@@ -122,14 +122,15 @@ export const INITIAL_STORE_SETTINGS: StoreSettings = {
     autoDisbursementSchedule: 'daily',
     isVerified: true,
   },
-  taxInfo: {
-    registeredEntityName: 'MAISON DELA TOUR APPAREL CORP.',
-    tinNumber: '442-891-002-000',
-    bir2303Status: 'verified',
-    bir2303FileName: 'BIR_Form_2303_Certificate_MDT.pdf',
-    dtiSecRegistrationNumber: 'SEC-CS2023091823',
-    dtiSecFileName: 'SEC_Articles_of_Incorporation_2023.pdf',
-    govIdFileName: 'Passport_Claire_DelaTour.pdf',
+  verificationDocuments: {
+    idType: 'Philippine Passport',
+    idFileName: 'Passport_Claire_DelaTour.pdf',
+    idFilePreviewUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=300&auto=format&fit=crop&q=80',
+    idStatus: 'verified',
+    businessPermitType: "Mayor's / Municipal Business Permit",
+    businessPermitNumber: 'MBP-MKT-2026-08819',
+    businessPermitFileName: 'Mayors_Business_Permit_Makati_2026.pdf',
+    businessPermitStatus: 'verified',
   },
 };
 
