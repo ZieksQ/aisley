@@ -63,7 +63,7 @@ export const AuthSplitLayout: React.FC<AuthSplitLayoutProps> = ({
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-6 flex-wrap">
             <span className="flex items-center gap-1.5 text-slate-300">
-              <FaShieldHalved className="text-[#10B981]" /> DTI & BIR Regulated Marketplace
+              <FaShieldHalved className="text-[#10B981]" /> Verified Boutique Marketplace
             </span>
             <span className="flex items-center gap-1.5 text-slate-300">
               <FaTruckFast className="text-[#0284C7]" /> Integrated Logistics Network (PH-Wide)

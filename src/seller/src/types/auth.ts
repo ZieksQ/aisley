@@ -22,7 +22,7 @@ export interface SellerProfile {
     houseNumber: string;
     postalCode: string;
   };
-  kyc: {
+  kyc?: {
     idType: string;
     idFileName: string;
     businessPermitFileName: string;

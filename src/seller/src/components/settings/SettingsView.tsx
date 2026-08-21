@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSeller } from '../../context/SellerContext';
 import { Badge } from '../common/Badge';
+import { UnsavedChangesModal } from './UnsavedChangesModal';
+import { VacationConfirmModal } from './VacationConfirmModal';
 import {
   FaStore,
   FaSun,
@@ -8,7 +10,6 @@ import {
   FaCircleHalfStroke,
   FaLock,
   FaBuildingColumns,
-  FaFileShield,
   FaUmbrellaBeach,
   FaBell,
   FaFloppyDisk,
@@ -21,7 +22,8 @@ import {
   FaPhone,
   FaClock,
   FaSliders,
-  FaFilePdf,
+  FaEye,
+  FaEyeSlash,
 } from 'react-icons/fa6';
 
 type SettingsTab =
@@ -29,14 +31,24 @@ type SettingsTab =
   | 'appearance'
   | 'security'
   | 'payout'
-  | 'compliance'
   | 'operations'
   | 'notifications';
 
 export const SettingsView: React.FC = () => {
-  const { storeSettings, updateStoreSettings, theme, setTheme } = useSeller();
+  const {
+    storeSettings,
+    updateStoreSettings,
+    theme,
+    setTheme,
+    setIsSettingsDirty,
+    pendingViewChange,
+    confirmPendingNavigation,
+    cancelPendingNavigation,
+    setSaveSettingsHandler,
+  } = useSeller();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('information');
+  const [pendingInternalTab, setPendingInternalTab] = useState<SettingsTab | null>(null);
 
   // Store Information State
   const [storeName, setStoreName] = useState(storeSettings.storeName);
@@ -52,6 +64,7 @@ export const SettingsView: React.FC = () => {
   const [vacationNotice, setVacationNotice] = useState(storeSettings.vacationNotice || '');
   const [defaultCourier, setDefaultCourier] = useState('Aisley Express');
   const [dailyCutoffTime, setDailyCutoffTime] = useState('16:00');
+  const [isVacationModalOpen, setIsVacationModalOpen] = useState(false);
 
   // Payout Bank State
   const [payoutProvider, setPayoutProvider] = useState<
@@ -68,6 +81,7 @@ export const SettingsView: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [showIpAddress, setShowIpAddress] = useState(false);
 
   // Notification Preferences State
   const [notifyNewOrder, setNotifyNewOrder] = useState(true);
@@ -78,9 +92,83 @@ export const SettingsView: React.FC = () => {
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateStoreSettings({
+  // Calculate if form is dirty
+  const isDirty = useMemo(() => {
+    return (
+      storeName !== storeSettings.storeName ||
+      tagline !== storeSettings.tagline ||
+      bio !== storeSettings.bio ||
+      logoUrl !== storeSettings.logoUrl ||
+      bannerUrl !== storeSettings.bannerUrl ||
+      contactEmail !== storeSettings.contactEmail ||
+      contactPhone !== storeSettings.contactPhone ||
+      vacationMode !== storeSettings.vacationMode ||
+      vacationNotice !== (storeSettings.vacationNotice || '') ||
+      payoutProvider !== storeSettings.payoutBank.provider ||
+      accountName !== storeSettings.payoutBank.accountName ||
+      accountNumber !== storeSettings.payoutBank.accountNumber ||
+      autoSchedule !== storeSettings.payoutBank.autoDisbursementSchedule ||
+      currentPassword.length > 0 ||
+      newPassword.length > 0 ||
+      confirmPassword.length > 0
+    );
+  }, [
+    storeName,
+    tagline,
+    bio,
+    logoUrl,
+    bannerUrl,
+    contactEmail,
+    contactPhone,
+    vacationMode,
+    vacationNotice,
+    payoutProvider,
+    accountName,
+    accountNumber,
+    autoSchedule,
+    currentPassword,
+    newPassword,
+    confirmPassword,
+    storeSettings,
+  ]);
+
+  // Sync dirty state to global context
+  useEffect(() => {
+    setIsSettingsDirty(isDirty);
+    return () => setIsSettingsDirty(false);
+  }, [isDirty, setIsSettingsDirty]);
+
+  const handleSave = useCallback(
+    (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      updateStoreSettings({
+        storeName,
+        tagline,
+        bio,
+        logoUrl,
+        bannerUrl,
+        contactEmail,
+        contactPhone,
+        vacationMode,
+        vacationNotice,
+        payoutBank: {
+          provider: payoutProvider,
+          accountName,
+          accountNumber,
+          autoDisbursementSchedule: autoSchedule,
+          isVerified: true,
+        },
+      });
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setIsSettingsDirty(false);
+
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3500);
+    },
+    [
       storeName,
       tagline,
       bio,
@@ -90,17 +178,72 @@ export const SettingsView: React.FC = () => {
       contactPhone,
       vacationMode,
       vacationNotice,
-      payoutBank: {
-        provider: payoutProvider,
-        accountName,
-        accountNumber,
-        autoDisbursementSchedule: autoSchedule,
-        isVerified: true,
-      },
-    });
+      payoutProvider,
+      accountName,
+      accountNumber,
+      autoSchedule,
+      updateStoreSettings,
+      setIsSettingsDirty,
+    ]
+  );
 
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3500);
+  // Register save handler for context navigation guard
+  useEffect(() => {
+    setSaveSettingsHandler(() => handleSave);
+    return () => setSaveSettingsHandler(null);
+  }, [handleSave, setSaveSettingsHandler]);
+
+  // Handle switching sub-tabs inside settings
+  const handleTabClick = (tabId: SettingsTab) => {
+    if (tabId === activeTab) return;
+    if (isDirty) {
+      setPendingInternalTab(tabId);
+    } else {
+      setActiveTab(tabId);
+    }
+  };
+
+  const resetFormToSaved = () => {
+    setStoreName(storeSettings.storeName);
+    setTagline(storeSettings.tagline);
+    setBio(storeSettings.bio);
+    setLogoUrl(storeSettings.logoUrl);
+    setBannerUrl(storeSettings.bannerUrl);
+    setContactEmail(storeSettings.contactEmail);
+    setContactPhone(storeSettings.contactPhone);
+    setVacationMode(storeSettings.vacationMode);
+    setVacationNotice(storeSettings.vacationNotice || '');
+    setPayoutProvider(storeSettings.payoutBank.provider);
+    setAccountName(storeSettings.payoutBank.accountName);
+    setAccountNumber(storeSettings.payoutBank.accountNumber);
+    setAutoSchedule(storeSettings.payoutBank.autoDisbursementSchedule);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setIsSettingsDirty(false);
+  };
+
+  const handleInternalSaveAndProceed = () => {
+    handleSave();
+    if (pendingInternalTab) {
+      setActiveTab(pendingInternalTab);
+      setPendingInternalTab(null);
+    }
+  };
+
+  const handleInternalDiscardAndProceed = () => {
+    resetFormToSaved();
+    if (pendingInternalTab) {
+      setActiveTab(pendingInternalTab);
+      setPendingInternalTab(null);
+    }
+  };
+
+  const handleConfirmVacationToggle = () => {
+    const newVacationState = !vacationMode;
+    setVacationMode(newVacationState);
+    updateStoreSettings({ vacationMode: newVacationState });
+    setIsVacationModalOpen(false);
   };
 
   const navCategories: {
@@ -134,12 +277,6 @@ export const SettingsView: React.FC = () => {
       icon: <FaBuildingColumns className="size-4" />,
     },
     {
-      id: 'compliance',
-      label: 'KYC & Legal / BIR 2303',
-      description: 'Verified tax entity credentials',
-      icon: <FaFileShield className="size-4" />,
-    },
-    {
       id: 'operations',
       label: 'Operations & Logistics',
       description: 'Vacation mode & carrier cutoffs',
@@ -158,16 +295,23 @@ export const SettingsView: React.FC = () => {
       {/* Top Header & Global Save Action */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Store Profile & Configuration
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Store Profile & Configuration
+            </h1>
+            {isDirty && (
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 text-[10px] font-bold">
+                Unsaved Edits
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Configure boutique brand presentation, banking settlement channels, security, and operations.
           </p>
         </div>
 
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           type="button"
           className="px-6 py-2.5 rounded-xl bg-[#E723A2] hover:bg-[#D61590] text-white text-xs font-bold uppercase tracking-wider transition shadow-sm flex items-center gap-2 cursor-pointer"
         >
@@ -194,10 +338,13 @@ export const SettingsView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Sub-Sidebar (4 cols on lg) */}
         <div className="lg:col-span-4 rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-3 shadow-sm space-y-1">
-          <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 mb-1">
+          <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 mb-1 flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Settings Navigation
             </span>
+            {isDirty && (
+              <span className="size-2 rounded-full bg-amber-500" title="Unsaved changes pending" />
+            )}
           </div>
 
           <div className="flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible no-scrollbar pb-1 lg:pb-0">
@@ -207,7 +354,7 @@ export const SettingsView: React.FC = () => {
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveTab(cat.id)}
+                  onClick={() => handleTabClick(cat.id)}
                   className={`w-full text-left p-3 rounded-xl transition cursor-pointer flex items-center gap-3 shrink-0 lg:shrink ${
                     isActive
                       ? 'bg-[#E723A2] text-white shadow-sm'
@@ -520,18 +667,33 @@ export const SettingsView: React.FC = () => {
                 </button>
               </div>
 
-              {/* Active Sessions */}
+              {/* Active Sessions with Hidden IP Toggle */}
               <div className="space-y-3 pt-2">
                 <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Active Verified Sessions
                 </h3>
                 <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 text-xs">
-                  <div className="p-3.5 flex items-center justify-between">
+                  <div className="p-3.5 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <FaMobileScreen className="text-[#E723A2] size-4" />
+                      <FaMobileScreen className="text-[#E723A2] size-4 shrink-0" />
                       <div>
                         <p className="font-bold text-slate-900 dark:text-white">Google Chrome (Linux OS / BGC Makati)</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num">Current Session • IP: 120.29.88.19</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num">
+                            Current Session • IP:{' '}
+                            <span className="font-bold text-slate-700 dark:text-slate-300">
+                              {showIpAddress ? '120.29.88.19' : '••••••••••••'}
+                            </span>
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setShowIpAddress(!showIpAddress)}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer flex items-center justify-center"
+                            title={showIpAddress ? 'Hide IP Address' : 'Reveal IP Address'}
+                          >
+                            {showIpAddress ? <FaEyeSlash className="size-3" /> : <FaEye className="size-3" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <Badge variant="success" size="sm">Active Now</Badge>
@@ -623,52 +785,7 @@ export const SettingsView: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 5: KYC & LEGAL / TAX BIR 2303 */}
-          {activeTab === 'compliance' && (
-            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                    <FaFileShield className="text-[#E723A2]" /> KYC Documents & Tax Compliance (BIR / DTI / SEC)
-                  </h2>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Official registration records certified with Philippine government regulatory agencies.
-                  </p>
-                </div>
-                <Badge variant="success" dot>DTI & BIR Cleared</Badge>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800 space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Registered Tax Entity
-                  </span>
-                  <p className="font-bold text-slate-900 dark:text-white">{storeSettings.taxInfo.registeredEntityName}</p>
-                  <p className="text-slate-600 dark:text-slate-400 font-mono-num text-[11px]">
-                    BIR TIN: <strong>{storeSettings.taxInfo.tinNumber}</strong>
-                  </p>
-                  <p className="text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
-                    <FaCheck /> Certificate of Registration (BIR 2303) Verified
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800 space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Corporate Registration (SEC / DTI)
-                  </span>
-                  <p className="font-bold text-slate-900 dark:text-white">{storeSettings.taxInfo.dtiSecRegistrationNumber}</p>
-                  <p className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1.5">
-                    <FaFilePdf className="text-[#E723A2]" /> {storeSettings.taxInfo.dtiSecFileName}
-                  </p>
-                  <p className="text-slate-400 dark:text-slate-500 text-[10px]">
-                    Government ID: {storeSettings.taxInfo.govIdFileName}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: OPERATIONS & LOGISTICS */}
+          {/* TAB 5: OPERATIONS & LOGISTICS */}
           {activeTab === 'operations' && (
             <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -685,7 +802,7 @@ export const SettingsView: React.FC = () => {
                 </Badge>
               </div>
 
-              {/* Vacation Mode Toggle */}
+              {/* Vacation Mode Toggle with Confirmation Modal Prompt */}
               <div
                 className={`p-5 rounded-2xl border transition space-y-3 ${
                   vacationMode
@@ -708,7 +825,7 @@ export const SettingsView: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => setVacationMode(!vacationMode)}
+                    onClick={() => setIsVacationModalOpen(true)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0 ${
                       vacationMode
                         ? 'bg-amber-600 text-white shadow-xs'
@@ -768,7 +885,7 @@ export const SettingsView: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 7: NOTIFICATIONS & PREFERENCES */}
+          {/* TAB 6: NOTIFICATIONS & PREFERENCES */}
           {activeTab === 'notifications' && (
             <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -853,6 +970,32 @@ export const SettingsView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Unsaved Changes Modal for Internal Tab Switching */}
+      <UnsavedChangesModal
+        isOpen={Boolean(pendingInternalTab)}
+        targetDestination={pendingInternalTab ? `${pendingInternalTab} tab` : 'another section'}
+        onSaveAndProceed={handleInternalSaveAndProceed}
+        onDiscardAndProceed={handleInternalDiscardAndProceed}
+        onCancel={() => setPendingInternalTab(null)}
+      />
+
+      {/* Unsaved Changes Modal for Global Navigation (to Dashboard, Orders, etc.) */}
+      <UnsavedChangesModal
+        isOpen={Boolean(pendingViewChange)}
+        targetDestination={pendingViewChange ? `${pendingViewChange} view` : 'another page'}
+        onSaveAndProceed={() => confirmPendingNavigation(true)}
+        onDiscardAndProceed={() => confirmPendingNavigation(false)}
+        onCancel={cancelPendingNavigation}
+      />
+
+      {/* Vacation Confirmation Modal */}
+      <VacationConfirmModal
+        isOpen={isVacationModalOpen}
+        isCurrentlyOnVacation={vacationMode}
+        onConfirm={handleConfirmVacationToggle}
+        onCancel={() => setIsVacationModalOpen(false)}
+      />
     </div>
   );
 };

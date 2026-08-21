@@ -79,9 +79,17 @@ interface SellerContextType {
   updateStoreSettings: (updates: Partial<StoreSettings>) => void;
   addStoreCategory: (categoryName: string) => void;
 
-  // Navigation state
+  // Navigation & Unsaved Changes Guard
   currentView: 'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings';
   setCurrentView: (view: 'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings') => void;
+  isSettingsDirty: boolean;
+  setIsSettingsDirty: (dirty: boolean) => void;
+  pendingViewChange: ('dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings') | null;
+  setPendingViewChange: (view: ('dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings') | null) => void;
+  saveSettingsHandler: (() => void) | null;
+  setSaveSettingsHandler: (handler: (() => void) | null) => void;
+  confirmPendingNavigation: (shouldSave: boolean) => void;
+  cancelPendingNavigation: () => void;
 
   // Theme (Dark / Light mode)
   theme: 'light' | 'dark';
@@ -155,8 +163,34 @@ export const SellerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return saved ? JSON.parse(saved) : INITIAL_STORE_SETTINGS;
   });
 
-  // View navigation
-  const [currentView, setCurrentView] = useState<'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings'>('dashboard');
+  // View navigation & Dirty check guard
+  const [currentView, setCurrentViewState] = useState<'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings'>('dashboard');
+  const [isSettingsDirty, setIsSettingsDirty] = useState<boolean>(false);
+  const [pendingViewChange, setPendingViewChange] = useState<('dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings') | null>(null);
+  const [saveSettingsHandler, setSaveSettingsHandler] = useState<(() => void) | null>(null);
+
+  const setCurrentView = (view: 'dashboard' | 'orders' | 'inventory' | 'vouchers' | 'reports' | 'chat' | 'reviews' | 'settings') => {
+    if (isSettingsDirty && currentView === 'settings' && view !== 'settings') {
+      setPendingViewChange(view);
+    } else {
+      setCurrentViewState(view);
+    }
+  };
+
+  const confirmPendingNavigation = (shouldSave: boolean) => {
+    if (shouldSave && saveSettingsHandler) {
+      saveSettingsHandler();
+    }
+    setIsSettingsDirty(false);
+    if (pendingViewChange) {
+      setCurrentViewState(pendingViewChange);
+      setPendingViewChange(null);
+    }
+  };
+
+  const cancelPendingNavigation = () => {
+    setPendingViewChange(null);
+  };
 
   // Theme (Light / Dark Mode)
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
@@ -505,6 +539,14 @@ export const SellerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         addStoreCategory,
         currentView,
         setCurrentView,
+        isSettingsDirty,
+        setIsSettingsDirty,
+        pendingViewChange,
+        setPendingViewChange,
+        saveSettingsHandler,
+        setSaveSettingsHandler,
+        confirmPendingNavigation,
+        cancelPendingNavigation,
         theme,
         toggleTheme,
         setTheme,

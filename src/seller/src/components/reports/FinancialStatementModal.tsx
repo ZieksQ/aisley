@@ -67,7 +67,7 @@ export const FinancialStatementModal: React.FC<FinancialStatementModalProps> = (
             <div className="text-right space-y-0.5">
               <p className="text-xs font-black uppercase">{storeSettings.storeName}</p>
               <p className="text-[10px] text-slate-500 font-mono-num">
-                TIN: {storeSettings.taxInfo.tinNumber} • Entity: {storeSettings.taxInfo.registeredEntityName}
+                Store ID: {storeSettings.storeSlug.toUpperCase()} • Contact: {storeSettings.contactEmail}
               </p>
               <p className="text-[10px] text-slate-500">
                 Statement Period: {formatDate(dateRange.from)} – {formatDate(dateRange.to)}

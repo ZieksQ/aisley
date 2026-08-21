@@ -83,8 +83,8 @@ export const INITIAL_APPROVAL_MILESTONES: ApprovalMilestone[] = [
   },
   {
     id: 'm3',
-    title: 'KYC Documents & DTI / SEC Permit Inspection',
-    description: 'Aisley compliance team reviewing submitted corporate registry and BIR TIN authenticity.',
+    title: 'Boutique Profile & Product Catalog Verification',
+    description: 'Aisley operations team reviewing submitted boutique catalog items and brand standards.',
     status: 'in_progress',
     timestamp: 'Under Review • Estimated clearance in 2–4 hours',
   },
@@ -855,7 +855,7 @@ export const INITIAL_CHAT_THREADS: ChatThread[] = [
       role: 'admin',
       avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     },
-    lastMessage: 'Your annual DTI / BIR 2303 compliance inspection is verified for Q3 2026.',
+    lastMessage: 'Your boutique storefront profile and catalog items are verified.',
     lastMessageTime: 'Yesterday',
     unreadCount: 0,
     messages: [
@@ -864,7 +864,7 @@ export const INITIAL_CHAT_THREADS: ChatThread[] = [
         senderId: 'admin-001',
         senderName: 'Aisley Platform Compliance',
         senderRole: 'admin',
-        text: 'Your annual DTI / BIR 2303 compliance inspection is verified for Q3 2026. Priority hub dispatch is active.',
+        text: 'Your boutique storefront profile and catalog items are verified. Priority hub dispatch is active.',
         timestamp: 'Yesterday • 16:00 PHT',
         isRead: true,
       },
