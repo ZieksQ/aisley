@@ -1,23 +1,44 @@
 import React, { useState } from 'react';
 import { useSeller } from '../../context/SellerContext';
+import { Badge } from '../common/Badge';
 import {
   FaStore,
-  FaBuildingColumns,
-  FaFileShield,
-  FaUmbrellaBeach,
-  FaFloppyDisk,
-  FaCheck,
-  FaCircleCheck,
-  FaShieldHalved,
   FaSun,
   FaMoon,
   FaCircleHalfStroke,
+  FaLock,
+  FaBuildingColumns,
+  FaFileShield,
+  FaUmbrellaBeach,
+  FaBell,
+  FaFloppyDisk,
+  FaCheck,
+  FaCircleCheck,
+  FaTruckFast,
+  FaMobileScreen,
+  FaKey,
+  FaEnvelope,
+  FaPhone,
+  FaClock,
+  FaSliders,
+  FaFilePdf,
 } from 'react-icons/fa6';
+
+type SettingsTab =
+  | 'information'
+  | 'appearance'
+  | 'security'
+  | 'payout'
+  | 'compliance'
+  | 'operations'
+  | 'notifications';
 
 export const SettingsView: React.FC = () => {
   const { storeSettings, updateStoreSettings, theme, setTheme } = useSeller();
 
-  // Local form state
+  const [activeTab, setActiveTab] = useState<SettingsTab>('information');
+
+  // Store Information State
   const [storeName, setStoreName] = useState(storeSettings.storeName);
   const [tagline, setTagline] = useState(storeSettings.tagline);
   const [bio, setBio] = useState(storeSettings.bio);
@@ -25,14 +46,35 @@ export const SettingsView: React.FC = () => {
   const [bannerUrl, setBannerUrl] = useState(storeSettings.bannerUrl);
   const [contactEmail, setContactEmail] = useState(storeSettings.contactEmail);
   const [contactPhone, setContactPhone] = useState(storeSettings.contactPhone);
+
+  // Operations & Vacation State
   const [vacationMode, setVacationMode] = useState(storeSettings.vacationMode);
   const [vacationNotice, setVacationNotice] = useState(storeSettings.vacationNotice || '');
+  const [defaultCourier, setDefaultCourier] = useState('Aisley Express');
+  const [dailyCutoffTime, setDailyCutoffTime] = useState('16:00');
 
-  // Payout Bank
-  const [payoutProvider, setPayoutProvider] = useState(storeSettings.payoutBank.provider);
+  // Payout Bank State
+  const [payoutProvider, setPayoutProvider] = useState<
+    'GCash' | 'Maya' | 'BDO Unibank' | 'BPI' | 'UnionBank of the Philippines' | 'Metrobank'
+  >(storeSettings.payoutBank.provider);
   const [accountName, setAccountName] = useState(storeSettings.payoutBank.accountName);
   const [accountNumber, setAccountNumber] = useState(storeSettings.payoutBank.accountNumber);
-  const [autoSchedule, setAutoSchedule] = useState(storeSettings.payoutBank.autoDisbursementSchedule);
+  const [autoSchedule, setAutoSchedule] = useState<'daily' | 'weekly' | 'biweekly'>(
+    storeSettings.payoutBank.autoDisbursementSchedule
+  );
+
+  // Security State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+
+  // Notification Preferences State
+  const [notifyNewOrder, setNotifyNewOrder] = useState(true);
+  const [notifyChatInquiry, setNotifyChatInquiry] = useState(true);
+  const [notifyCourierHandover, setNotifyCourierHandover] = useState(true);
+  const [notifyLowStock, setNotifyLowStock] = useState(true);
+  const [notifyWeeklyStatement, setNotifyWeeklyStatement] = useState(true);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -58,407 +100,759 @@ export const SettingsView: React.FC = () => {
     });
 
     setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setTimeout(() => setSavedSuccess(false), 3500);
   };
 
+  const navCategories: {
+    id: SettingsTab;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      id: 'information',
+      label: 'Store Information',
+      description: 'Brand identity, bio & contacts',
+      icon: <FaStore className="size-4" />,
+    },
+    {
+      id: 'appearance',
+      label: 'Appearance & Theme',
+      description: 'Light and Obsidian Dark mode',
+      icon: <FaCircleHalfStroke className="size-4" />,
+    },
+    {
+      id: 'security',
+      label: 'Security & Access',
+      description: 'Password, 2FA & active sessions',
+      icon: <FaLock className="size-4" />,
+    },
+    {
+      id: 'payout',
+      label: 'Payout & Banking',
+      description: 'Disbursement accounts & schedule',
+      icon: <FaBuildingColumns className="size-4" />,
+    },
+    {
+      id: 'compliance',
+      label: 'KYC & Legal / BIR 2303',
+      description: 'Verified tax entity credentials',
+      icon: <FaFileShield className="size-4" />,
+    },
+    {
+      id: 'operations',
+      label: 'Operations & Logistics',
+      description: 'Vacation mode & carrier cutoffs',
+      icon: <FaSliders className="size-4" />,
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      description: 'SMS, email & chat alerts',
+      icon: <FaBell className="size-4" />,
+    },
+  ];
+
   return (
-    <form onSubmit={handleSave} className="space-y-6 text-xs max-w-5xl">
-      {/* Top Header & Save Button */}
+    <div className="space-y-6">
+      {/* Top Header & Global Save Action */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Store Profile & Financial Settings
+            Store Profile & Configuration
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Manage your boutique brand presentation, automated payouts, theme mode, and verified tax credentials.
+            Configure boutique brand presentation, banking settlement channels, security, and operations.
           </p>
         </div>
 
         <button
-          type="submit"
+          onClick={handleSave}
+          type="button"
           className="px-6 py-2.5 rounded-xl bg-[#E723A2] hover:bg-[#D61590] text-white text-xs font-bold uppercase tracking-wider transition shadow-sm flex items-center gap-2 cursor-pointer"
         >
           {savedSuccess ? (
             <>
-              <FaCheck className="text-white" /> Settings Saved!
+              <FaCheck className="text-white size-3.5" /> Settings Saved!
             </>
           ) : (
             <>
-              <FaFloppyDisk /> Save All Settings
+              <FaFloppyDisk className="size-3.5" /> Save Changes
             </>
           )}
         </button>
       </div>
 
       {savedSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-300 flex items-center gap-2 font-bold">
+        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800/80 text-emerald-900 dark:text-emerald-300 flex items-center gap-2.5 font-bold text-xs shadow-xs transition-all">
           <FaCircleCheck className="text-emerald-600 dark:text-emerald-400 size-4 shrink-0" />
-          <span>Store configuration and payout settings updated successfully.</span>
+          <span>All store profile parameters and financial preferences updated successfully.</span>
         </div>
       )}
 
-      {/* Appearance & Interface Theme Card */}
-      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-4">
-        <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <FaCircleHalfStroke className="text-[#E723A2]" /> Appearance & Interface Theme
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Light Theme Card */}
-          <div
-            onClick={() => setTheme('light')}
-            className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3.5 ${
-              theme === 'light'
-                ? 'border-[#E723A2] bg-[#FDF2F9] text-slate-900'
-                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-          >
-            <div className="size-10 rounded-xl bg-white border border-slate-300 grid place-items-center text-amber-500 shrink-0 shadow-xs">
-              <FaSun className="size-5" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs">Light Mode</span>
-                {theme === 'light' && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#E723A2] text-white text-[10px] font-bold">
-                    Active
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                Clean boutique white canvas with blueprint architectural grid.
-              </p>
-            </div>
+      {/* Main Settings Split: Left Sub-Sidebar + Right Content Canvas */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Sub-Sidebar (4 cols on lg) */}
+        <div className="lg:col-span-4 rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-3 shadow-sm space-y-1">
+          <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Settings Navigation
+            </span>
           </div>
 
-          {/* Dark Theme Card */}
-          <div
-            onClick={() => setTheme('dark')}
-            className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3.5 ${
-              theme === 'dark'
-                ? 'border-[#E723A2] bg-[#FDF2F9] dark:bg-slate-800 text-slate-900 dark:text-white'
-                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-          >
-            <div className="size-10 rounded-xl bg-slate-900 border border-slate-700 grid place-items-center text-amber-400 shrink-0 shadow-xs">
-              <FaMoon className="size-5" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs">Dark Mode</span>
-                {theme === 'dark' && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#E723A2] text-white text-[10px] font-bold">
-                    Active
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                Obsidian luxury dark palette optimized for evening operations.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+          <div className="flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible no-scrollbar pb-1 lg:pb-0">
+            {navCategories.map((cat) => {
+              const isActive = activeTab === cat.id;
 
-      {/* Vacation Mode Toggle Card */}
-      <div
-        className={`rounded-2xl border p-5 transition ${
-          vacationMode
-            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700'
-            : 'bg-white dark:bg-[#0F172A] border-slate-300 dark:border-slate-800 shadow-sm'
-        }`}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div
-              className={`size-10 rounded-xl grid place-items-center shrink-0 ${
-                vacationMode ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-              }`}
-            >
-              <FaUmbrellaBeach className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Vacation Mode</h3>
-                <span
-                  className={`px-2 py-0.2 rounded-full text-[10px] font-bold uppercase ${
-                    vacationMode
-                      ? 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-mono-num'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id)}
+                  className={`w-full text-left p-3 rounded-xl transition cursor-pointer flex items-center gap-3 shrink-0 lg:shrink ${
+                    isActive
+                      ? 'bg-[#E723A2] text-white shadow-sm'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70'
                   }`}
                 >
-                  {vacationMode ? 'Active (Paused)' : 'Normal Operations'}
-                </span>
+                  <div
+                    className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-[#E723A2] dark:text-pink-400'
+                    }`}
+                  >
+                    {cat.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold truncate leading-tight">{cat.label}</p>
+                    <p
+                      className={`text-[10px] truncate ${
+                        isActive ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'
+                      }`}
+                    >
+                      {cat.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Settings Content Canvas (8 cols on lg) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* TAB 1: STORE INFORMATION */}
+          {activeTab === 'information' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaStore className="text-[#E723A2]" /> Store Profile & Brand Identity
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    How your store appears to customers across the Aisley marketplace storefront.
+                  </p>
+                </div>
+                <Badge variant="primary">Public Profile</Badge>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                When active, your listings remain visible for browsing, but new checkout orders are paused with your custom notice.
-              </p>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Boutique Store Name <span className="text-[#E723A2]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Store Tagline & Pitch
+                  </label>
+                  <input
+                    type="text"
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    placeholder="e.g. Refined Haute Couture, Raw Silk Tailoring & Fine Artisanal Adornments"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                    Brand Biography & Craftsmanship Heritage
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Describe your design philosophy, materials sourced, and bespoke heritage..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Store Logo Image URL
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={logoUrl}
+                        alt="Logo Preview"
+                        className="size-12 rounded-xl object-cover border border-slate-300 dark:border-slate-700 shrink-0"
+                      />
+                      <input
+                        type="url"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono-num text-xs focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Store Banner Hero URL
+                    </label>
+                    <input
+                      type="url"
+                      value={bannerUrl}
+                      onChange={(e) => setBannerUrl(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono-num text-xs focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                      <FaEnvelope className="text-[#E723A2]" /> Customer Service Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                      <FaPhone className="text-[#0284C7]" /> Support Phone / Landline
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium font-mono-num focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          <label className="relative inline-flex items-center cursor-pointer shrink-0">
-            <input
-              type="checkbox"
-              checked={vacationMode}
-              onChange={(e) => setVacationMode(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-          </label>
-        </div>
+          {/* TAB 2: APPEARANCE & THEME */}
+          {activeTab === 'appearance' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaCircleHalfStroke className="text-[#E723A2]" /> Appearance & Interface Theme
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Customize your console visual experience across all seller screens.
+                  </p>
+                </div>
+                <Badge variant={theme === 'dark' ? 'neutral' : 'warning'}>
+                  Current: {theme === 'dark' ? 'Obsidian Noir' : 'Light Canvas'}
+                </Badge>
+              </div>
 
-        {vacationMode && (
-          <div className="mt-4 pt-4 border-t border-amber-300 dark:border-amber-700">
-            <label className="block font-bold text-amber-950 dark:text-amber-200 mb-1">
-              Buyer Vacation Banner Notice:
-            </label>
-            <input
-              type="text"
-              value={vacationNotice}
-              onChange={(e) => setVacationNotice(e.target.value)}
-              placeholder="e.g. Our boutique is paused for seasonal maintenance. Deliveries resume Monday."
-              className="w-full px-3.5 py-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-900 dark:text-white"
-            />
-          </div>
-        )}
-      </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Light Mode Card */}
+                <div
+                  onClick={() => setTheme('light')}
+                  className={`p-5 rounded-2xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                    theme === 'light'
+                      ? 'border-[#E723A2] bg-[#FDF2F9] text-slate-900 shadow-sm'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="size-10 rounded-xl bg-white border border-slate-300 flex items-center justify-center text-amber-500 shadow-xs">
+                      <FaSun className="size-5" />
+                    </div>
+                    {theme === 'light' && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E723A2] text-white text-[10px] font-bold">
+                        Active Theme
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="font-black text-sm">Light Canvas Mode</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Clean boutique white canvas with blueprint architectural grid and high-contrast borders.
+                    </p>
+                  </div>
+                </div>
 
-      {/* Store Profile Information */}
-      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-4">
-        <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <FaStore className="text-[#E723A2]" /> Store Brand Profile
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Store / Brand Name
-            </label>
-            <input
-              type="text"
-              required
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Brand Tagline
-            </label>
-            <input
-              type="text"
-              value={tagline}
-              onChange={(e) => setTagline(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-            Biography & Brand Heritage
-          </label>
-          <textarea
-            rows={3}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none leading-relaxed"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Customer Support Email
-            </label>
-            <input
-              type="email"
-              required
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Store Contact Number
-            </label>
-            <input
-              type="text"
-              required
-              value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Visual Brand Assets (Logo & Banner) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 space-y-2">
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Brand Logo URL
-            </label>
-            <div className="flex items-center gap-3">
-              <img
-                src={logoUrl}
-                alt="Logo preview"
-                className="size-14 rounded-xl object-cover border border-slate-300 dark:border-slate-700 shrink-0"
-              />
-              <input
-                type="url"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white"
-              />
+                {/* Dark Mode Card */}
+                <div
+                  onClick={() => setTheme('dark')}
+                  className={`p-5 rounded-2xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                    theme === 'dark'
+                      ? 'border-[#E723A2] bg-[#FDF2F9] dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="size-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-amber-400 shadow-xs">
+                      <FaMoon className="size-5" />
+                    </div>
+                    {theme === 'dark' && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E723A2] text-white text-[10px] font-bold">
+                        Active Theme
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="font-black text-sm">Obsidian Noir Dark Mode</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Deep luxury obsidian dark palette optimized for reduced eye strain and evening store fulfillment.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 space-y-2">
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Store Banner URL
-            </label>
-            <div className="flex items-center gap-3">
-              <img
-                src={bannerUrl}
-                alt="Banner preview"
-                className="w-20 h-14 rounded-xl object-cover border border-slate-300 dark:border-slate-700 shrink-0"
-              />
-              <input
-                type="url"
-                value={bannerUrl}
-                onChange={(e) => setBannerUrl(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white"
-              />
+          {/* TAB 3: SECURITY & AUTHENTICATION */}
+          {activeTab === 'security' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaLock className="text-[#E723A2]" /> Security, Passwords & Access Control
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Maintain secure access to your merchant finances, tokens, and staff authorization.
+                  </p>
+                </div>
+                <Badge variant="success" dot>Sanctum RBAC Guarded</Badge>
+              </div>
+
+              {/* Password update fields */}
+              <div className="space-y-4 text-xs">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Update Account Password
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">Current Password</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 dark:text-slate-400 mb-1 font-medium">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2FA Toggle */}
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 flex items-center justify-center border border-sky-200 dark:border-sky-800/80 shrink-0">
+                    <FaKey className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      Two-Factor Authentication (2FA) for GCash / Bank Payouts
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Requires one-time OTP verification to modify disbursement accounts or change payout thresholds.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                    twoFactorEnabled
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  {twoFactorEnabled ? '2FA Enabled' : 'Disabled'}
+                </button>
+              </div>
+
+              {/* Active Sessions */}
+              <div className="space-y-3 pt-2">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Active Verified Sessions
+                </h3>
+                <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 text-xs">
+                  <div className="p-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <FaMobileScreen className="text-[#E723A2] size-4" />
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white">Google Chrome (Linux OS / BGC Makati)</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono-num">Current Session • IP: 120.29.88.19</p>
+                      </div>
+                    </div>
+                    <Badge variant="success" size="sm">Active Now</Badge>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Payout Banking & Auto-Disbursement */}
-      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-          <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-            <FaBuildingColumns className="text-[#10B981]" /> Automated Payout & Settlement Channel
-          </h2>
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 text-xs font-bold flex items-center gap-1">
-            <FaShieldHalved /> Bank KYC Verified
-          </span>
-        </div>
+          {/* TAB 4: PAYOUT & BANKING */}
+          {activeTab === 'payout' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaBuildingColumns className="text-[#E723A2]" /> Automated Merchant Disbursement Channel
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Net settlement payouts are automatically transferred according to your disbursement schedule.
+                  </p>
+                </div>
+                <Badge variant="success" dot>Bank Verified</Badge>
+              </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Disbursement Provider
-            </label>
-            <select
-              value={payoutProvider}
-              onChange={(e) => setPayoutProvider(e.target.value as any)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            >
-              <option value="GCash">GCash (Instant Philippine Wallet)</option>
-              <option value="Maya">Maya (Enterprise Payout)</option>
-              <option value="BDO Unibank">BDO Unibank (Banco de Oro)</option>
-              <option value="BPI">Bank of the Philippine Islands (BPI)</option>
-              <option value="UnionBank of the Philippines">UnionBank of the Philippines</option>
-              <option value="Metrobank">Metrobank</option>
-            </select>
-          </div>
+              <div className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Banking / E-Wallet Provider
+                    </label>
+                    <select
+                      value={payoutProvider}
+                      onChange={(e) => setPayoutProvider(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    >
+                      <option value="GCash">GCash Business (0917-xxx-xxxx)</option>
+                      <option value="Maya">Maya Business</option>
+                      <option value="BDO Unibank">BDO Unibank (Checking / Savings)</option>
+                      <option value="BPI">BPI (Commercial)</option>
+                      <option value="UnionBank of the Philippines">UnionBank MSME Hub</option>
+                      <option value="Metrobank">Metrobank Corporate</option>
+                    </select>
+                  </div>
 
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Account Registered Name
-            </label>
-            <input
-              type="text"
-              required
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            />
-          </div>
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Disbursement Schedule Cycle
+                    </label>
+                    <select
+                      value={autoSchedule}
+                      onChange={(e) => setAutoSchedule(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    >
+                      <option value="daily">Daily Auto-Disbursement (17:00 PHT)</option>
+                      <option value="weekly">Weekly (Every Monday Morning)</option>
+                      <option value="biweekly">Bi-Weekly (15th & 30th Cut-off)</option>
+                    </select>
+                  </div>
+                </div>
 
-          <div>
-            <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Account / Phone Number
-            </label>
-            <input
-              type="text"
-              required
-              value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono-num font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
-            />
-          </div>
-        </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Registered Account Holder Name <span className="text-[#E723A2]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
 
-        <div>
-          <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-            Auto-Disbursement Frequency
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { id: 'daily', title: 'Daily Settlement', desc: 'Disbursed every 18:00 PHT' },
-              { id: 'weekly', title: 'Weekly Batch', desc: 'Every Monday morning' },
-              { id: 'biweekly', title: 'Bi-Weekly', desc: '15th & 30th of month' },
-            ].map((s) => (
+                  <div>
+                    <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Account / Mobile Number <span className="text-[#E723A2]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: KYC & LEGAL / TAX BIR 2303 */}
+          {activeTab === 'compliance' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaFileShield className="text-[#E723A2]" /> KYC Documents & Tax Compliance (BIR / DTI / SEC)
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Official registration records certified with Philippine government regulatory agencies.
+                  </p>
+                </div>
+                <Badge variant="success" dot>DTI & BIR Cleared</Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Registered Tax Entity
+                  </span>
+                  <p className="font-bold text-slate-900 dark:text-white">{storeSettings.taxInfo.registeredEntityName}</p>
+                  <p className="text-slate-600 dark:text-slate-400 font-mono-num text-[11px]">
+                    BIR TIN: <strong>{storeSettings.taxInfo.tinNumber}</strong>
+                  </p>
+                  <p className="text-emerald-700 dark:text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                    <FaCheck /> Certificate of Registration (BIR 2303) Verified
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800 space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Corporate Registration (SEC / DTI)
+                  </span>
+                  <p className="font-bold text-slate-900 dark:text-white">{storeSettings.taxInfo.dtiSecRegistrationNumber}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1.5">
+                    <FaFilePdf className="text-[#E723A2]" /> {storeSettings.taxInfo.dtiSecFileName}
+                  </p>
+                  <p className="text-slate-400 dark:text-slate-500 text-[10px]">
+                    Government ID: {storeSettings.taxInfo.govIdFileName}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: OPERATIONS & LOGISTICS */}
+          {activeTab === 'operations' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaSliders className="text-[#E723A2]" /> Operations, Cut-offs & Vacation Mode
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Configure daily courier cutoff windows and temporary store pause states.
+                  </p>
+                </div>
+                <Badge variant={vacationMode ? 'warning' : 'success'}>
+                  {vacationMode ? 'Store On Break' : 'Store Open'}
+                </Badge>
+              </div>
+
+              {/* Vacation Mode Toggle */}
               <div
-                key={s.id}
-                onClick={() => setAutoSchedule(s.id as any)}
-                className={`p-3.5 rounded-xl border transition cursor-pointer ${
-                  autoSchedule === s.id
-                    ? 'border-[#E723A2] bg-[#FDF2F9] dark:bg-slate-800 text-slate-900 dark:text-white'
-                    : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                className={`p-5 rounded-2xl border transition space-y-3 ${
+                  vacationMode
+                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700'
+                    : 'bg-[#F8FAFC] dark:bg-slate-900/60 border-slate-300 dark:border-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs">{s.title}</span>
-                  {autoSchedule === s.id && (
-                    <span className="size-2 rounded-full bg-[#E723A2]" />
-                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                      <FaUmbrellaBeach className="size-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xs text-slate-900 dark:text-white">Vacation Mode & Storefront Pause</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Pauses incoming orders while you attend fashion runway shows or material sourcing trips.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setVacationMode(!vacationMode)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0 ${
+                      vacationMode
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {vacationMode ? 'Vacation Active' : 'Enable Vacation'}
+                  </button>
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{s.desc}</p>
+
+                {vacationMode && (
+                  <div className="pt-2">
+                    <label className="block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                      Customer Notice Message
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={vacationNotice}
+                      onChange={(e) => setVacationNotice(e.target.value)}
+                      placeholder="e.g. Our boutique is currently paused for seasonal collection fabrication. Incoming orders resume Monday."
+                      className="w-full px-3.5 py-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+
+              {/* Logistics Preferences */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-2">
+                <div>
+                  <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                    <FaTruckFast className="text-[#E723A2]" /> Preferred Primary Logistics Fleet
+                  </label>
+                  <select
+                    value={defaultCourier}
+                    onChange={(e) => setDefaultCourier(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                  >
+                    <option value="Aisley Express">Aisley Express (White Glove Fleet)</option>
+                    <option value="J&T Express">J&T Express (Island Nationwide)</option>
+                    <option value="Flash Express">Flash Express (Urban Hubs)</option>
+                    <option value="Lalamove">Lalamove (Same-Day Direct)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                    <FaClock className="text-[#0284C7]" /> Daily Order Cut-off Window (PHT)
+                  </label>
+                  <input
+                    type="time"
+                    value={dailyCutoffTime}
+                    onChange={(e) => setDailyCutoffTime(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono-num font-bold focus:ring-2 focus:ring-[#E723A2] focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: NOTIFICATIONS & PREFERENCES */}
+          {activeTab === 'notifications' && (
+            <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <FaBell className="text-[#E723A2]" /> Notification & Sound Alert Preferences
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Control how and when you receive critical alerts regarding orders and client inquiries.
+                  </p>
+                </div>
+                <Badge variant="primary">Real-time Push</Badge>
+              </div>
+
+              <div className="space-y-3 text-xs divide-y divide-slate-200 dark:divide-slate-800">
+                <div className="pt-2 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">New Customer Order Alerts</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px]">Instant audio chime & email when an order is placed</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyNewOrder}
+                    onChange={(e) => setNotifyNewOrder(e.target.checked)}
+                    className="size-5 accent-[#E723A2] cursor-pointer"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Client Concierge Chat Messages</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px]">Push alert for incoming buyer inquiry messages</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyChatInquiry}
+                    onChange={(e) => setNotifyChatInquiry(e.target.checked)}
+                    className="size-5 accent-[#E723A2] cursor-pointer"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Courier Pickup & Handover Reminders</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px]">SMS alert 1 hour prior to scheduled courier arrival</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyCourierHandover}
+                    onChange={(e) => setNotifyCourierHandover(e.target.checked)}
+                    className="size-5 accent-[#E723A2] cursor-pointer"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Low Inventory Threshold Warning</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px]">Notify when SKU stock falls below designated threshold</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyLowStock}
+                    onChange={(e) => setNotifyLowStock(e.target.checked)}
+                    className="size-5 accent-[#E723A2] cursor-pointer"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Weekly Payout Statement Digest</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px]">Certified PDF settlement summary sent to registered email</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyWeeklyStatement}
+                    onChange={(e) => setNotifyWeeklyStatement(e.target.checked)}
+                    className="size-5 accent-[#E723A2] cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Tax Info & Legal Registry Archive */}
-      <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-6 shadow-sm space-y-4">
-        <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <FaFileShield className="text-[#0284C7]" /> Government Registry & Tax Compliance Archive
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div className="p-3.5 rounded-xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 space-y-1">
-            <span className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-[10px]">
-              BIR Tax Identification Number (TIN)
-            </span>
-            <p className="font-black font-mono-num text-sm text-slate-900 dark:text-white">
-              {storeSettings.taxInfo.tinNumber}
-            </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Entity: {storeSettings.taxInfo.registeredEntityName}
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-[#F8FAFC] dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 space-y-1">
-            <span className="font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-[10px]">
-              DTI / SEC Registration Number
-            </span>
-            <p className="font-black font-mono-num text-sm text-slate-900 dark:text-white">
-              {storeSettings.taxInfo.dtiSecRegistrationNumber}
-            </p>
-            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <FaCircleCheck /> Verified Enterprise Merchant
-            </p>
-          </div>
-        </div>
-      </div>
-    </form>
+    </div>
   );
 };

@@ -32,31 +32,33 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div className="relative rounded-2xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-5 shadow-sm transition-all hover:border-slate-400 dark:hover:border-slate-700 flex flex-col justify-between">
       <div>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
-              {title}
-            </p>
-            <div className="mt-2 flex items-baseline gap-2 flex-wrap">
-              <span className="text-xl sm:text-2xl xl:text-3xl font-black text-slate-900 dark:text-white font-mono-num tracking-tight">
-                {value}
-              </span>
-              {badgeText && (
-                <span className="rounded-full bg-amber-50 dark:bg-amber-950/70 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 shrink-0">
-                  {badgeText}
-                </span>
-              )}
-            </div>
-          </div>
+        {/* Top Header Row: Header Label & Icon as direct horizontal siblings */}
+        <div className="flex items-center justify-between gap-2.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
+            {title}
+          </p>
 
           <div
-            className={`size-11 rounded-2xl flex items-center justify-center text-lg ${iconBgColor} ${iconTextColor} shrink-0`}
+            className={`size-8.5 rounded-xl flex items-center justify-center text-sm ${iconBgColor} ${iconTextColor} shrink-0`}
           >
             {icon}
           </div>
         </div>
+
+        {/* Value Section taking full width below header */}
+        <div className="mt-3 flex items-baseline gap-2 flex-wrap">
+          <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono-num tracking-tight">
+            {value}
+          </span>
+          {badgeText && (
+            <span className="rounded-full bg-amber-50 dark:bg-amber-950/70 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 shrink-0">
+              {badgeText}
+            </span>
+          )}
+        </div>
       </div>
 
+      {/* Footer Meta Row */}
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800/90 pt-3 text-xs">
         <div className="min-w-0 flex-1">
           {change ? (
