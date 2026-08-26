@@ -1,56 +1,75 @@
-# Architecture
+# System Architecture
 
-## Purpose
-Defines **HOW** the system is structured: components, tech stack, data layer, and how pieces connect.
+## System Overview
 
-## Repo layout
+A multi-domain e-commerce platform utilizing a monorepo architecture. It features a single centralized backend API serving multiple specialized frontend applications.
+
+* **Authentication:** Laravel Sanctum
+* **Architecture Pattern:** Monorepo (pnpm workspace)
+* **Package Manager:** pnpm
+
+## Technology Stack
+
+| Layer | Technologies |
+| --- | --- |
+| **API (Backend)** | Laravel, Eloquent, PHP |
+| **Storefront Webapp** | Next.js, React, TypeScript, Tailwind CSS, React-Icons |
+| **Dashboards (Admin/Seller/Logistics)** | React, TypeScript, Tailwind CSS, React-Icons, React Router |
+| **Database** | PostgreSQL 18.3 |
+| **Blob Storage** | Azure Blob Storage |
+
+## Monorepo Structure
+
+The workspace is managed via `pnpm-workspace`. Applications and shared resources are logically separated into specialized directories.
+
+```text
+/
+├── packages/          # Shared reusable React components across all frontends
+└── src/
+    ├── webapp/        # Customer-facing storefront (Next.js)
+    ├── seller/        # Seller dashboard (React SPA)
+    ├── admin/         # Admin dashboard (React SPA)
+    ├── logistics/     # Logistics dashboard (React SPA)
+    └── api/           # Core Backend (Laravel)
+
 ```
-src/
-  api/       # Laravel API — backend for all roles
-  webapp/    # Customer-facing storefront (Next.js)
-  seller/    # Seller dashboard (React)
-  admin/     # Admin dashboard (React)
-```
-Courier has no folder in `src/` — it's served by `api/` and consumed by an external mobile app (not part of this repo).
 
-## Tech stack
+## Backend Architecture (Laravel)
 
-### api/
-- Laravel
-- Sanctum — authentication (token-based; supports SPA and mobile consumers)
-- Eloquent — ORM
+### API Routing
 
-### webapp/ (customer)
-- Next.js + TypeScript
-- Rendering: SSR + CSR (hybrid, per-page as needed)
-- Tailwind CSS
-- react-icons
+* **Versioning Strategy:** All endpoints must be prefixed with `/api/v1/`.
 
-### seller/ and admin/
-- React + TypeScript
-- Tailwind CSS
-- react-icons
-- React Router
+### Strict Namespacing Rules
 
-## Database
-- Supabase (Postgres) — primary environment
-- Local development: can switch to local Postgres via `.env`
-- **Known migration issue:** Postgres errors on native enum column types in migrations. Workaround: define the column as `string` in the migration/DB schema, but keep it strongly typed as an enum in the API layer (PHP enum class + Eloquent cast). All future enum-like fields should follow this same pattern for consistency.
+All role-specific classes MUST be scoped to their respective domains. **Do NOT cross-import role-specific classes** (e.g., never use `App\Enums\Admin\*` inside Customer logic).
 
-## Auth model
-- Sanctum issues tokens for all API consumers: `webapp/`, `seller/`, `admin/`, and the external courier mobile app.
-- Role-based access control (RBAC): every API endpoint checks the caller's role before executing role-specific logic.
-- Seller and Courier roles have an additional "approval" gate — an approved-by-admin status required before their tokens can access role-specific endpoints.
+* **Controllers:** `App\Http\Controllers\{Role}\{Name}Controller`
+* **Requests:** `App\Http\Requests\{Role}\{Name}Request`
+* **Resources:** `App\Http\Resources\{Role}\{Name}Resource`
+* **Enums (Role-specific):** `App\Enums\{Role}\{Name}`
+* **Enums (Shared/Global):** `App\Enums\{Name}`
 
-## Multi-tenancy model
-- Each Seller owns one Store.
-- Store-scoped data (products, orders for that store) must be filtered by store ownership at the query level in `api/`, not just hidden in the frontend.
+## Database Architecture
 
-## How components talk to api/
-- `webapp/`, `seller/`, and `admin/` all call the same Laravel API (`api/`) over HTTP, authenticated via Sanctum.
-- The courier mobile app (external) calls dedicated courier endpoints on the same API.
+**Engine:** PostgreSQL 18.3 (Dockerized via `alpine3.23`)
 
-## TBD
-- API versioning strategy
-- Hosting/deployment targets per component
-- File/image storage (product images, store assets)
+**Migration Convention (Enums):**
+Due to native enum column type errors in PostgreSQL migrations, database columns must be defined as `string` in the migration files. The application will handle strict typing by casting to Enums at the API/Eloquent layer.
+
+## Infrastructure & Environments
+
+### Local Development
+
+* **Database:** Hosted inside a local Docker container (`docker-compose.yml`).
+* **Dependencies:** Runs on the local machine's native PHP, Composer, and Node environments.
+
+### Production Strategy
+
+* **Frontend Hosting (Vercel):** All frontend applications (`webapp`, `seller`, `admin`, `logistics`) are deployed to Vercel.
+* **Backend Hosting (Azure VM):** The API is hosted on an Azure Virtual Machine using `docker-compose.prod.yml`.
+* **Container Stack:** PHP, Nginx, PostgreSQL, Certbot.
+
+* **Domain Routing:**
+* Storefront (`webapp`) uses the root domain.
+* All dashboards and the API are routed via dedicated subdomains.
