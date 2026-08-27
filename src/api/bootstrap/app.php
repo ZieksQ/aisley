@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\Admin\EnsureActiveAdmin;
+use App\Http\Middleware\Customer\EnsureActiveCustomer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin.active' => EnsureActiveAdmin::class,
+            'customer.active' => EnsureActiveCustomer::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

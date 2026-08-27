@@ -29,6 +29,7 @@ Database: Postgres (containerized)
 10. **Stay in scope.** Only touch files relevant to the current task. Don't refactor, rename, reformat, or "clean up" unrelated code/files without being explicitly asked — this includes files outside `src/` and other docs. If a task seems to need out-of-scope changes, flag it and ask before doing it.
 11. **Read the relevant docs file** before writing code, per the table below.
 12. Run all commands from within this directory. Do not run commands that modify files, directories, packages, services, or system settings outside this directory, including commands requiring sudo, unless explicitly instructed to do so.
+13. **Database Migrations**: Never modify existing or previously executed migration files. Always create a new migration file to apply schema changes, table updates, or data alterations.
 
 ## Where to look
 

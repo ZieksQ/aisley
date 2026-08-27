@@ -84,7 +84,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 
 | PHP enum | Values | Used by |
 | --- | --- | --- |
-| `UserRole` | `customer`, `seller`, `admin`, `courier` | `users.role`, `registration_applications.application_type` |
+| `UserRole` | `customer`, `seller`, `admin`, `courier` | `users.role`, `registration_applications.application_type`, `password_reset_tokens.role` |
 | `UserStatus` | `pending`, `active`, `rejected`, `suspended`, `deactivated` | `users.status` |
 | `UserSex` | `male`, `female`, `non_binary`, `prefer_not_to_say` | Role-profile `sex` columns |
 | `ApplicationStatus` | `pending`, `approved`, `rejected` | `registration_applications.status` |
@@ -211,11 +211,12 @@ Laravel's database-session table uses a string session ID rather than a UUID mod
 
 | Column | PostgreSQL type | Nullable | Notes |
 | --- | --- | --- | --- |
-| `email` | VARCHAR | No | Primary key |
+| `email` | VARCHAR | No | Login email within the reset's role/domain |
+| `role` | VARCHAR(32) | No | Role/domain discriminator; part of the composite primary key |
 | `token` | VARCHAR | No | Hashed reset token |
 | `created_at` | TIMESTAMP | Yes | Creation time |
 
-Because email can be reused across roles, the future password-reset flow must include role/application context. The stock table remains keyed by email for Laravel compatibility; it does not by itself disambiguate two users with the same email in different roles.
+The composite primary key is (`email`, `role`). This keeps password recovery isolated by application domain when the same normalized email belongs to more than one role.
 
 ## 6. Registration, documents, and addresses
 
