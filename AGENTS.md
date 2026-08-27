@@ -15,6 +15,9 @@ Structure under `src/`:
 
 Database: Postgres (containerized)
 
+## Git commit & branch rules
+**Feature Branching & Commits**: When implementing a new feature, always create and switch to a new branch derived from the current active branch before making changes. Once the task is completed, automatically commit the changes using a descriptive conventional commit message formatted as feat: concise summary of changes, branch names formatted as ex. `feature/short-commit-title.
+
 ## Rules for every prompt
 
 1. **Read `PROGRESS.md` first.** Check what's already built before starting new work, so you don't duplicate or contradict existing implementation.
