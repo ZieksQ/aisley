@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@aisley/ui"],
   turbopack: {
     root: "../../",
-  }
+  },
 };
 
 export default nextConfig;

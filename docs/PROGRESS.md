@@ -27,3 +27,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-27
 
 - Added versioned Customer authentication API endpoints for pending-approval registration, role- and status-gated web/mobile sign-in, current-user session restoration, session/device-token logout, and rate-limited password recovery. Added role-scoped reset-token storage, Customer middleware/resources/notifications, storefront Sanctum/CORS configuration, and feature coverage for role isolation, approval states, credential issuance, and reset-token security; all 24 API tests and 191 assertions pass.
+
+## 2026-08-27
+
+- Added responsive, API-integrated Customer authentication pages for registration, approval/rejection states, session sign-in, and password recovery/reset. Added reusable form primitives through the new `@aisley/ui` workspace package, React Icons, route-specific SEO metadata, canonical URLs, robots rules, and a sitemap; storefront lint, strict TypeScript checks, and the Next.js production build pass.
