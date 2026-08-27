@@ -9,7 +9,9 @@ Structure under `src/`:
 - `seller/` — Seller dashboard. React + TypeScript, Tailwind, react-icons, React Router.
 - `admin/` — Admin dashboard. React + TypeScript, Tailwind, react-icons, React Router.
 
-Database: Supabase (Postgres), swappable for local Postgres via `.env` during development.
+- `root/shared` - sharable reusable codes.
+
+Database: Postgres (containerized)
 
 ## Rules for every prompt
 1. **Read `PROGRESS.md` first.** Check what's already built before starting new work, so you don't duplicate or contradict existing implementation.
@@ -30,4 +32,5 @@ Database: Supabase (Postgres), swappable for local Postgres via `.env` during de
 | What a feature/role is supposed to do, scope, acceptance criteria | `docs/requirements.md` |
 | Folder structure, tech stack, DB, auth, environment setup, how components connect | `docs/architecture.md` |
 | Step-by-step user flows, state transitions, approval logic, order lifecycle | `docs/workflows.md` |
-| What's already built, to avoid re-doing or conflicting work | `PROGRESS.md` |
+| What's already built, to avoid re-doing or conflicting work | `docs/PROGRESS.md` |
+| domain design, context about users role | `docs/domains/*` |
