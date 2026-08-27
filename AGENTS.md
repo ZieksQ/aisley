@@ -28,6 +28,7 @@ Database: Postgres (containerized)
 9. **Update `PROGRESS.md`** with a short, dated summary after finishing a feature or meaningful change. This is mandatory. `PROGRESS.md` is a single running log for the **whole app**, not a per-prompt file — always **append** a new dated entry, never rewrite or delete existing entries. Skim existing entries first so you don't log a duplicate of something already recorded.
 10. **Stay in scope.** Only touch files relevant to the current task. Don't refactor, rename, reformat, or "clean up" unrelated code/files without being explicitly asked — this includes files outside `src/` and other docs. If a task seems to need out-of-scope changes, flag it and ask before doing it.
 11. **Read the relevant docs file** before writing code, per the table below.
+12. Run all commands from within this directory. Do not run commands that modify files, directories, packages, services, or system settings outside this directory, including commands requiring sudo, unless explicitly instructed to do so.
 
 ## Where to look
 
