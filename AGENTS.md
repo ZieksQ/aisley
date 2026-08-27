@@ -1,9 +1,11 @@
 # AGENTS.md
 
 ## Overview
+
 This repo is a multi-tenant e-commerce platform (in the spirit of Shopee/Amazon) with four user roles: **Customer**, **Seller**, **Admin**, and **Courier** (rider, mobile-only).
 
 Structure under `src/`:
+
 - `api/` — Laravel API (Sanctum auth, Eloquent ORM). Backend for all four roles, including dedicated endpoints consumed by the courier mobile app (external, not part of this repo).
 - `webapp/` — Customer-facing storefront. Next.js + TypeScript (SSR + CSR), Tailwind, react-icons.
 - `seller/` — Seller dashboard. React + TypeScript, Tailwind, react-icons, React Router.
@@ -14,6 +16,7 @@ Structure under `src/`:
 Database: Postgres (containerized)
 
 ## Rules for every prompt
+
 1. **Read `PROGRESS.md` first.** Check what's already built before starting new work, so you don't duplicate or contradict existing implementation.
 2. **Stick to the declared tech stack** per component (see `docs/architecture.md`). Don't introduce new frameworks/libraries without explicit approval.
 3. **Postgres enum workaround:** Postgres migrations error on native enum column types. Store the column as a `string` in migrations/DB, but keep it typed as an enum in the API layer (e.g. PHP enum + Eloquent cast). Apply this consistently to any new enum-like field.
@@ -27,10 +30,12 @@ Database: Postgres (containerized)
 11. **Read the relevant docs file** before writing code, per the table below.
 
 ## Where to look
-| If the task involves... | Read |
-|---|---|
-| What a feature/role is supposed to do, scope, acceptance criteria | `docs/requirements.md` |
+
+| If the task involves...                                                           | Read                   |
+| --------------------------------------------------------------------------------- | ---------------------- |
+| What a feature/role is supposed to do, scope, acceptance criteria                 | `docs/requirements.md` |
 | Folder structure, tech stack, DB, auth, environment setup, how components connect | `docs/architecture.md` |
-| Step-by-step user flows, state transitions, approval logic, order lifecycle | `docs/workflows.md` |
-| What's already built, to avoid re-doing or conflicting work | `docs/PROGRESS.md` |
-| domain design, context about users role | `docs/domains/*` |
+| Step-by-step user flows, state transitions, approval logic, order lifecycle       | `docs/workflows.md`    |
+| What's already built, to avoid re-doing or conflicting work                       | `docs/PROGRESS.md`     |
+| domain design, context about users role                                           | `docs/domains/*`       |
+| frontend desgin rules and color scheme                                            | `docs/design.md`       |
