@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation schema
 >
-> **Last synchronized:** 2026-08-27
+> **Last synchronized:** 2026-08-28
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -65,6 +65,7 @@ erDiagram
     USERS ||--o{ ADMIN_PERMISSIONS : receives
     USERS o|--o{ ADMIN_PERMISSIONS : grants
     PERMISSIONS ||--o{ ADMIN_PERMISSIONS : defines
+    USERS o|--o{ AUDIT_LOGS : performs
 
     USERS ||--o| SHOPS : owns_as_seller
     SHOP_CATEGORIES o|--o{ SHOPS : classifies
@@ -95,6 +96,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
 | `ShopStatus` | `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
+| `AdminAuditAction` | `registration.approved`, `registration.rejected` | `audit_logs.action` |
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values.
 
@@ -339,6 +341,32 @@ Unique constraint: (`admin_id`, `permission_id`).
 
 The UUID custom pivot ensures `belongsToMany()->attach()` generates the required `id`. The API must verify that both `admin_id` and `granted_by` belong to active Admin users.
 
+### 7.3 `audit_logs`
+
+**Model:** `AuditLog`
+
+This append-only table records security-relevant Admin decisions. The audited resource uses a polymorphic type/UUID pair so future Admin workflows can share the same ledger without adding nullable foreign keys for every resource type.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Primary key generated as UUIDv7 |
+| `actor_id` | UUID | Yes | FK → `users.id`; `ON DELETE SET NULL` |
+| `action` | VARCHAR(128) | No | Cast to `AdminAuditAction` |
+| `auditable_type` | VARCHAR | No | Audited Eloquent model class |
+| `auditable_id` | UUID | No | Audited resource identifier; no database FK because the relation is polymorphic |
+| `old_values` | JSON | Yes | Relevant state immediately before the action |
+| `new_values` | JSON | Yes | Relevant state immediately after the action |
+| `ip_address` | VARCHAR(45) | Yes | Request IP when available |
+| `user_agent` | TEXT | Yes | Request user-agent when available |
+| `created_at` | TIMESTAMP | No | Action timestamp; no `updated_at` column |
+
+Indexes:
+
+- (`action`, `created_at`).
+- (`auditable_type`, `auditable_id`).
+
+The Eloquent model rejects update and delete operations. Account-registration decisions insert the audit row in the same transaction as the application and user-status transition.
+
 ## 8. Courier foundation
 
 ### 8.1 `vehicles`
@@ -467,6 +495,7 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Address → User | `CASCADE` | Address belongs to user |
 | Admin permission → admin/permission | `CASCADE` | Grant is invalid without either side |
 | Admin permission → grantor User | `SET NULL` | Preserve the grant after grantor removal |
+| Audit log → actor User | `SET NULL` | Preserve the historical event if the Admin account is removed |
 | Vehicle → Courier profile | `CASCADE` | Vehicle registration belongs to Courier profile |
 | Shop → Seller User | `RESTRICT` | Prevent a hard delete from orphaning the tenant |
 | Shop → shop category | `SET NULL` | Preserve shop if classification is removed |
@@ -489,6 +518,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 10. Category ancestry must not contain cycles.
 11. Enum transitions and values must be validated before persistence because the database columns are strings without native enum or `CHECK` constraints.
 12. Hard deletion should not replace account suspension/deactivation workflows.
+13. Audit logs are append-only; normal application paths may create them but must not update or delete them.
 
 ## 13. Migration order
 
@@ -511,6 +541,8 @@ Migrations currently run in this dependency order:
 15. `2026_08_27_000111_create_shop_categories_table.php`.
 16. `2026_08_27_000112_create_shops_table.php`.
 17. `2026_08_27_000113_create_categories_table.php`.
+18. `2026_08_27_000114_scope_password_reset_tokens_by_role.php`.
+19. `2026_08_28_000115_create_audit_logs_table.php`.
 
 ## 14. Deferred schema
 
@@ -526,7 +558,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Reviews | Verified-purchase ratings, review media, and Seller responses |
 | Support and compliance | Complaints/disputes, evidence, resolutions, warnings, and moderation actions |
 | Messaging and notifications | Conversations, participants, messages, read state, and persisted notifications |
-| Admin content and auditing | Announcements, policies, settings, policy consent, and immutable audit logs |
+| Admin content | Announcements, policies, settings, and policy consent |
 | Reporting | Derived Seller/Admin aggregates; avoid report tables until query performance requires them |
 
 Before adding these tables:

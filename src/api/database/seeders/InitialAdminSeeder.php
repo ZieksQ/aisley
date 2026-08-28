@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -36,5 +37,11 @@ class InitialAdminSeeder extends Seeder
             'first_name' => config('admin.initial.first_name', 'Platform'),
             'last_name' => config('admin.initial.last_name', 'Administrator'),
         ]);
+
+        $admin->permissions()->syncWithoutDetaching(
+            Permission::query()
+                ->whereIn('slug', ['registrations.view', 'registrations.review'])
+                ->pluck('id'),
+        );
     }
 }
