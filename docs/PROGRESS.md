@@ -59,3 +59,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Added successful active-Admin login events to the System Audit Log, capturing the authenticated Admin account, server timestamp, IP address, user agent, and safe session-authentication context while excluding failed, inactive, Customer, Seller, and Courier attempts. The viewer marks the currently signed-in Admin's events as `You`; all 45 API tests/322 assertions pass on SQLite and PostgreSQL 18.3, and Admin lint/build pass.
+
+## 2026-08-28
+
+- Expanded the root `pnpm dev` launcher to automatically start the Laravel database queue worker and scheduler alongside the API and frontend applications, so queued notifications/audit events are processed and pending audit outbox events are recovered during local development.

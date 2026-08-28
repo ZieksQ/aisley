@@ -11,13 +11,14 @@ Monorepo scaffold for a B2B2C e-commerce platform.
 
 ## Scripts
 
-- `pnpm dev` - run all apps with `concurrently`
+- `pnpm dev` - run all apps plus the Laravel queue worker and scheduler with `concurrently`
 - `pnpm dev:webapp` - run the storefront
 - `pnpm dev:seller` - run the seller dashboard
 - `pnpm dev:admin` - run the admin console
 - `pnpm dev:api` - run the Laravel API
+- `pnpm dev:queue` - process queued notifications and audit events
+- `pnpm dev:schedule` - run scheduled recovery tasks such as pending audit-event dispatch
 
 ## Notes
 
-The repository is scaffolded to match the architecture in `docs/architecture.md`.
-
+The repository is scaffolded to match the architecture in `docs/architecture.md`. PostgreSQL must already be running before starting the development processes.
