@@ -57,3 +57,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Expanded the root `pnpm dev` launcher to automatically start the Laravel database queue worker and scheduler alongside the API and frontend applications, so queued notifications/audit events are processed and pending audit outbox events are recovered during local development.
+
+## 2026-08-28
+
+- Documented the current Admin feature set and Dashboard implementation boundaries in `apue-admin-req.md`, including the ready-but-deferred Pending Registrations KPI and Registration Action Center, currently feasible follow-up work, and domain-dependent features that must not be implemented yet. No application code or Dashboard UI was changed.
