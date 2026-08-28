@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const imageSourceUrls = [
@@ -33,7 +34,8 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ["@aisley/ui"],
   turbopack: {
-    root: "../../",
+    // root: "../../",
+    root: path.resolve(process.cwd(), "../.."),
   },
 };
 
