@@ -2,190 +2,101 @@
 feature: Admin Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 2.0
 status: Draft
 scope: Admin Web Application
+source_coverage: Admin.md, app.md, current AISLEY Admin feature specifications
 ---
 
 # Admin Dashboard Specification
 
 ## 1. Purpose
 
-This document defines the feature requirements for the **AISLEY Admin Dashboard**.
+The Admin Dashboard is the primary authenticated landing page for AISLEY administrators.
+`Admin.md` defines it as:
 
-The Admin Dashboard is the primary authenticated landing page for platform administrators. Its purpose is to give an administrator a concise, platform-wide operational overview, surface important notifications and pending actions, and provide direct entry points into the Admin modules responsible for resolving those items.
+```text
+Core Value:
+Overview of platform, display notification.
 
-This specification is grounded in the current AISLEY project documents:
+Expanded Definition:
+A centralized command interface that aggregates
+platform-wide telemetry,
+key performance indicators,
+and pending actionable items.
 
-- `app.md`
-- `Admin.md`
-- `Buyer.md`
-- `Seller.md`
-- `Logistics.md`
-- `Courier.md`
+It provides the administrator
+with a high-level view of system health
+and alerts them to critical notifications
+that require immediate attention upon login.
 
-The Dashboard must remain an **overview and command interface**. It must not duplicate the full functionality of the registration, user-management, seller-compliance, complaints, reports, logistics, messaging, or other dedicated modules.
+System Context:
+Acts as the primary entry point.
+Requires aggregate queries across multiple database tables
+(users, transactions, reports)
+and a real-time or polling mechanism
+for incoming notifications.
+```
 
-Where the source documents do not define an exact metric, threshold, schema, or business rule, this specification leaves it configurable or marks it as an open decision instead of inventing one.
-
----
-
-# 2. Source-Derived Definition
-
-`Admin.md` defines the Admin Dashboard as:
-
-- an overview of the platform
-- a place to display notifications
-- a centralized command interface
-- an aggregation of platform-wide telemetry
-- a display of key performance indicators
-- a display of pending actionable items
-- the primary Admin entry point
-- a consumer of aggregate data across users, transactions, and reports
-- a consumer of real-time or polling-based notifications
-
-The Dashboard therefore answers:
+The Dashboard should answer:
 
 ```text
 What is happening across AISLEY?
 What currently requires Admin attention?
-How is the platform performing at a high level?
+What are the most important platform-level KPIs?
 Where should the Admin go next?
 ```
 
-It must not attempt to answer every detailed operational question directly.
+It is an overview and navigation surface, not a replacement for the Admin modules it summarizes.
+A separate `flow.md` is not required because the Dashboard is primarily read/aggregation oriented and has no meaningful business state machine of its own.
 
----
+## 2. Primary User
 
-# 3. Relationship to Authentication
-
-The Admin Dashboard is an authenticated Admin-only page.
-
-Expected entry flow:
+The primary user is:
 
 ```text
-Admin signs in
-    ↓
-authenticated Admin session established
-    ↓
-Admin identity and permissions resolved
-    ↓
-/dashboard
-    ↓
-Dashboard data loaded
+ADMIN
+```
+
+The Dashboard is available only to authenticated Admin role-accounts.
+
+## 3. Authentication
+
+The Dashboard depends on Admin Auth.
+Expected access:
+
+```text
+valid Admin session
+→ Admin identity resolved
+→ authorization context resolved
+→ /dashboard
 ```
 
 If no valid Admin session exists:
 
 ```text
 /dashboard
-    ↓
-authentication fails
-    ↓
-redirect to /login
+→ unauthenticated
+→ /login
 ```
 
-The Dashboard must use the Admin authentication and authorization behavior defined by the Admin Auth specification.
+Backend authentication is authoritative.
 
-The backend remains the security boundary.
+## 4. Permission Awareness
 
----
+`app.md` states that AISLEY can add Admins with custom permissions.
+Therefore not every Admin necessarily has access to every underlying feature.
+The Dashboard must respect the current Admin's permissions.
+If an Admin cannot access the underlying feature:
 
-# 4. Dashboard Goals
+- do not expose protected widget data
+- hide or appropriately restrict the widget
+- do not display a misleading zero value
+  Exact permission behavior is an Open Decision.
 
-The Dashboard must:
+## 5. Route
 
-1. provide a platform-wide overview immediately after Admin login
-2. surface items requiring Admin attention
-3. summarize account-registration workload
-4. summarize seller-compliance workload
-5. summarize complaints/disputes workload
-6. summarize high-level platform financial performance
-7. summarize high-level marketplace/order activity
-8. display important Admin notifications
-9. provide fast navigation into the related Admin modules
-10. respect the authenticated Admin's permissions
-11. avoid exposing sensitive PII in overview widgets
-12. avoid duplicating Logistics, Seller, Buyer, or Courier operational dashboards
-13. load aggregate data efficiently
-14. represent empty, loading, partial-failure, and stale-data states clearly
-
----
-
-# 5. Non-Goals
-
-The Dashboard itself does not implement:
-
-- approving or rejecting registrations inline
-- full user CRUD
-- seller/product moderation workflows
-- complaint/dispute adjudication
-- detailed transaction reports
-- financial export generation
-- platform policy editing
-- announcement authoring
-- full chat/messaging
-- Admin account settings
-- audit-log browsing
-- blocklist management
-- push-notification campaign creation
-- rider dispatch
-- parcel sorting
-- waybill scanning
-- seller inventory management
-- courier task management
-
-The Dashboard may summarize or link to these capabilities where the source documents support them.
-
----
-
-# 6. User
-
-## 6.1 Primary User
-
-```text
-Admin
-```
-
-The Admin role manages platform-level workflows including:
-
-- account approvals
-- user accounts
-- seller compliance
-- complaints and disputes
-- reports
-- platform settings
-- messaging/support
-- Admin account settings
-- audit logs
-- blocklist/security management
-- push notification management
-
-## 6.2 Permission-Aware Admins
-
-The AISLEY system flow states:
-
-```text
-initial Admin
-    ↓
-create partners
-    ↓
-add Admins with custom permissions
-```
-
-Therefore, the Dashboard must be compatible with multiple Admin accounts that may not all have identical access.
-
-A Dashboard widget or shortcut whose underlying feature is not available to the authenticated Admin should not expose privileged data or unusable actions.
-
-Exact permission names are outside the current source documents.
-
-Implementation must use the repository's eventual/existing Admin permission model rather than inventing a separate Dashboard-specific authorization system.
-
----
-
-# 7. Route
-
-Primary route:
+Recommended:
 
 ```text
 /dashboard
@@ -193,1491 +104,1310 @@ Primary route:
 
 This is the default authenticated Admin landing page.
 
----
+## 6. Core Dashboard Areas
 
-# 8. Information Architecture
-
-The Dashboard should be composed of the following source-backed areas:
+Recommended structure:
 
 ```text
 Admin Dashboard
-│
-├── Overview / KPI Summary
+├── KPI Summary
 │   ├── Pending Registrations
-│   ├── Open Complaints / Disputes
 │   ├── Seller Compliance Items
-│   └── Platform Commission / Financial Summary
-│
-├── Platform Activity
-│   └── High-level marketplace/order telemetry
-│
+│   ├── Open Complaints / Disputes
+│   └── Platform Commission
+├── Platform / Order Activity
 ├── Action Center
-│   └── Pending Admin work requiring attention
-│
-├── Notifications
-│   └── Important Admin alerts
-│
-└── Financial Snapshot
-    └── Platform commission trend / summary
+└── Admin Notifications Preview
 ```
 
-The precise visual arrangement may vary by screen size.
+Additional widgets should be added only when their metric definition and business value are clear.
 
----
+## 7. Goals
 
-# 9. Dashboard Header
+The Dashboard should:
 
-The Dashboard page header should provide:
+- provide immediate platform overview
+- surface Admin workload
+- show important KPIs
+- display pending actionable items
+- display important Admin notifications
+- summarize high-level marketplace/order activity
+- summarize platform commission correctly
+- link to owning Admin features
+- respect Admin permissions
+- minimize PII exposure
+- load aggregate data efficiently
+- support loading, empty, stale, and error states
+- tolerate partial widget failures
 
-- page title: `Dashboard`
-- concise context such as `Platform overview`
-- authenticated Admin identity through the application shell
-- access to Admin account/profile controls through the application shell
-- notification access if the global shell provides it
+## 8. Non-Goals
 
-The Dashboard header should not become a second navigation system.
+The Dashboard does not itself perform:
 
----
+- account approval/rejection
+- user suspension/restoration
+- Seller compliance sanctions
+- complaint/dispute decisions
+- financial export generation
+- announcement publishing
+- policy editing
+- direct messaging
+- Audit Log browsing
+- blocklist mutation
+- Push/SMS campaign creation
+- Admin profile/security changes
+- Logistics dispatch
+- Courier assignment
+- waybill scanning
+- Seller inventory management
+- Buyer checkout/order management
+  The Dashboard may summarize or link to these capabilities.
 
-# 10. KPI Summary
+## 9. Mutation Boundary
 
-The first dashboard region should provide a small number of high-value summary cards.
-
-The values must be real aggregate data.
-
-Do not display fabricated demo numbers in production.
-
-Recommended source-backed cards are:
-
-1. Pending Registrations
-2. Open Complaints / Disputes
-3. Seller Compliance Items
-4. Platform Commission
-
-These metrics correspond directly to documented Admin responsibilities.
-
----
-
-# 11. KPI — Pending Registrations
-
-## 11.1 Purpose
-
-Show the number of account applications currently waiting for Admin review.
-
-AISLEY's documented auth flow is:
+Recommended MVP rule:
 
 ```text
-Customer / Buyer
-register → Admin approval → email → sign in
+Dashboard
+    preview / summarize / navigate
 
-Seller
-register → Admin approval → email → sign in
-
-Logistics
-register → Admin approval → email → sign in
+Owning Feature
+    perform high-impact mutation
 ```
 
-Courier registration is different:
-
-```text
-Courier
-search Logistics hub
-    ↓
-register for that Logistics
-    ↓
-Logistics Admin approval
-    ↓
-sign in
-```
-
-Therefore, the Admin Dashboard's pending-registration KPI should cover registrations for:
-
-- Buyer / Customer
-- Seller
-- Logistics
-
-It should not treat Courier approvals as normal AISLEY Admin registration approvals unless the system requirements later change.
-
-## 11.2 Metric
-
-Conceptually:
-
-```text
-count(accounts)
-where registration_status = PENDING
-and role in [BUYER, SELLER, LOGISTICS]
-```
-
-Exact table/model names must follow the repository.
-
-## 11.3 Display
-
-Card should show:
-
-- total pending count
-- optionally a small role breakdown if inexpensive and visually useful
-
-Example:
+Examples:
 
 ```text
 Pending Registrations
-24
+→ Account Approval
 
-Buyer       11
-Seller       9
-Logistics    4
+Seller Compliance
+→ Seller Compliance
+
+Open Complaints
+→ Complaints & Disputes
+
+Platform Commission
+→ Reports Overview
 ```
 
-The role breakdown is optional.
+Do not place destructive or high-impact actions directly inside Dashboard cards unless explicitly required later.
 
-## 11.4 Action
+## 10. KPI Summary
 
-Primary card action:
+The strongest source-grounded Admin KPIs are:
 
 ```text
-View registrations
+Pending Registrations
+Seller Compliance Items
+Open Complaints / Disputes
+Platform Commission
 ```
 
-Destination should be the Manage Account Registrations module.
+These correspond directly to defined Admin responsibilities.
 
-No approve/reject mutation should occur directly from the KPI card.
+# Pending Registrations
 
----
+## 11. Registration Ownership
 
-# 12. KPI — Open Complaints / Disputes
-
-## 12.1 Purpose
-
-Show unresolved user reports, complaints, and disputes that require administrative review.
-
-`Admin.md` defines this capability as a centralized resolution center where Admins:
-
-- review user-submitted reports
-- examine supporting evidence
-- make binding resolution decisions
-- maintain an audit trail of actions and messages
-
-## 12.2 Metric
-
-Conceptually:
+Current AISLEY registration ownership:
 
 ```text
-count(complaints_or_disputes)
-where status is unresolved / open
+Buyer / Customer
+    Admin approval
+
+Seller
+    Admin approval
+
+Logistics
+    Admin approval
+
+Courier
+    Logistics approval
 ```
 
-The current source documents do not define the exact dispute status state machine.
+Therefore Admin Dashboard registration workload must include only Admin-owned registrations.
 
-The Dashboard must use whatever open/unresolved states are defined by the complaint/dispute feature.
+## 12. Pending Registration Count
 
-## 12.3 Display
-
-Card should show:
-
-- open/unresolved total
-- optional overdue/priority count only if those concepts are defined by the dispute module
-
-Do not invent SLA or severity thresholds in the Dashboard.
-
-## 12.4 Action
+Recommended:
 
 ```text
-Review complaints
+Buyer PENDING
++
+Seller PENDING
++
+Logistics PENDING
 ```
 
-Destination:
+Courier registration requests must not be included because Logistics owns Courier approval.
+
+## 13. Registration States
+
+Source-backed states:
 
 ```text
-Manage Complaints and Disputes
+PENDING
+APPROVED
+REJECTED
 ```
 
----
+Dashboard count:
 
-# 13. KPI — Seller Compliance Items
+```text
+status = PENDING
+```
 
-## 13.1 Purpose
+for Admin-owned registration roles.
 
-Show seller or product compliance items requiring Admin review.
+## 14. Registration Card
 
-`Admin.md` defines Seller Compliance as:
+Recommended:
 
-- product verification/moderation
-- seller activity auditing
-- policy enforcement
+```text
+Pending Registrations
+<count>
+
+optional breakdown:
+Buyer
+Seller
+Logistics
+
+View Registrations
+```
+
+Do not expose applicant PII or uploaded credentials/documents directly on the KPI card.
+
+## 15. Registration Navigation
+
+The card links to:
+
+```text
+Account Approval
+```
+
+Prefer a pending filter if the route supports it.
+
+# Seller Compliance
+
+## 16. Compliance Scope
+
+`Admin.md` defines Seller Compliance around:
+
+- product verification
+- Seller audits
 - warnings
-- temporary seller suspension
-- permanent removal of non-compliant listings
+- temporary suspension
+- product removal
+- internal reports/flags
+  The Dashboard should summarize current unresolved/actionable compliance workload.
 
-The Dashboard should surface the **queue size**, not perform moderation itself.
+## 17. Compliance Count Definition
 
-## 13.2 Metric
-
-Conceptually:
-
-```text
-count(compliance_items)
-where status requires Admin review
-```
-
-Possible sources may include:
-
-- reported products
-- flagged listings
-- seller compliance cases
-
-The exact data model is not defined by the source documents.
-
-## 13.3 Display
-
-Show:
-
-- total items awaiting review
-
-Optional sub-counts may be shown only when the compliance feature formally defines them.
-
-## 13.4 Action
+The source does not define the exact compliance-case state enum.
+Therefore:
 
 ```text
-Review compliance
+Seller Compliance Items
 ```
 
-Destination:
+must use the authoritative definition from Seller Compliance once implemented.
+Do not invent a Dashboard-specific state model.
+
+## 18. Compliance Card
+
+Recommended:
 
 ```text
-Monitor Seller Compliance
+Seller Compliance
+<count requiring Admin attention>
+View Compliance
 ```
 
----
+Optional breakdowns may be shown only if those states actually exist in the compliance implementation.
 
-# 14. KPI — Platform Commission
+## 19. Compliance Navigation
 
-## 14.1 Purpose
+The card should link to:
 
-Provide a concise financial indicator representing revenue attributable to the AISLEY platform.
+```text
+Seller Compliance
+```
 
-`Admin.md` defines the Reports Overview as calculating platform commission and supporting temporal financial analysis.
+The Dashboard itself should not:
 
-`app.md` defines the current Admin/platform commission model as:
+- issue a warning
+- suspend a Seller
+- remove a product
+
+# Complaints & Disputes
+
+## 20. Complaint Scope
+
+`Admin.md` defines Complaints & Disputes as a centralized resolution feature with:
+
+- evidence
+- ticketing/case handling
+- Admin review
+- binding decisions
+- secure files/media
+- message/action history
+  The Dashboard should summarize unresolved cases requiring Admin attention.
+
+## 21. Complaint Count Definition
+
+Use the owning Complaints & Disputes feature's authoritative non-terminal/actionable case definition.
+The source does not mandate exact status names, so the Dashboard must not create its own complaint lifecycle.
+
+## 22. Complaints Card
+
+Recommended:
+
+```text
+Open Complaints
+<count>
+View Complaints
+```
+
+Optional sub-counts may be shown only when supported by the implemented case model.
+
+## 23. Complaint Navigation
+
+The card links to:
+
+```text
+Complaints & Disputes
+```
+
+No binding decision should be made directly from the Dashboard in MVP.
+
+# Platform Commission / Revenue
+
+## 24. Source Rule
+
+`app.md` defines:
 
 ```text
 Logistics SaaS platform
-= base subscription + ₱10 per order
-```
+    base subscription
+    + ₱10 per order
 
-`app.md` separately states:
-
-```text
 Shipping fee
-= default ₱50
+    default ₱50
+    this is where Logistics gets their commission
 ```
 
-and identifies the shipping fee as where Logistics receives its commission.
+Therefore AISLEY platform revenue is not the full shipping fee and is not the full checkout total.
 
-Therefore, the Dashboard must not automatically treat the entire shipping fee as AISLEY/Admin commission.
+## 25. Platform Revenue Formula
 
-## 14.2 Metric
-
-The KPI should derive from the authoritative transaction/commission ledger or equivalent financial source used by the Reports module.
-
-Conceptually:
+The source-supported formula is:
 
 ```text
-platform_commission =
-    applicable logistics subscription revenue
-    + applicable per-order platform fees
+AISLEY Platform Revenue
+=
+Logistics Base Subscription Revenue
++
+Applicable ₱10 Per-Order Platform Fees
 ```
 
-The currently documented per-order component is:
+## 26. Shipping Fee Exclusion
+
+Critical invariant:
 
 ```text
-₱10 per applicable order
+The default ₱50 shipping fee
+belongs to Logistics
+and must not be counted
+as AISLEY platform revenue.
 ```
 
-The base subscription amount is not defined in the current source documents.
+## 27. Reports Ownership
 
-It must come from the system's configured billing/subscription data and must not be invented in Dashboard code.
+Reports Overview remains authoritative for detailed financial reporting.
+Recommended:
 
-## 14.3 Time Range
+```text
+Dashboard
+    consumes shared platform revenue calculation
 
-The Reports feature explicitly supports:
+Reports Overview
+    provides detailed reporting
+```
 
-- daily
-- weekly
-- monthly
+Do not duplicate financial formulas independently in the Dashboard.
 
-The Dashboard may default to one period, but the displayed period must be clear.
+## 28. Commission Card
 
-Recommended Dashboard behavior:
+Recommended:
 
 ```text
 Platform Commission
-₱X,XXX
-This month
+<amount>
+<period>
 ```
 
-A full date-range reporting interface belongs in Reports Overview.
-
-## 14.4 Action
+Optional sub-values:
 
 ```text
-View reports
+Subscription Revenue
+Per-Order Fees
 ```
 
-Destination:
+The financial period must be visible.
+
+## 29. Financial Period
+
+Examples:
 
 ```text
-Reports Overview
+Today
+This Week
+This Month
 ```
 
----
+The default period is an Open Decision.
 
-# 15. Platform Activity Section
+## 30. Logistics Approval Boundary
 
-## 15.1 Purpose
+AISLEY Logistics flow is:
 
-`Admin.md` describes the Dashboard as an aggregation of platform-wide telemetry.
+```text
+register
+→ Admin approval
+→ email
+→ sign in
+→ subscription
+```
 
-AISLEY's core marketplace lifecycle is:
+Therefore:
+
+```text
+APPROVED Logistics
+≠
+paid subscription revenue
+```
+
+Use actual subscription/revenue data.
+
+## 31. Seller Financial Boundary
+
+Seller reports may include:
+
+```text
+gross sales
+net profits
+platform fees
+```
+
+These are Seller-specific metrics.
+Do not display Seller gross sales as AISLEY platform commission.
+
+## 32. Courier Financial Boundary
+
+Courier earnings and tips are not AISLEY platform revenue.
+
+## 33. Buyer Payment Boundary
+
+The Buyer's total payment is not automatically platform revenue.
+Do not use total checkout value as the Platform Commission KPI.
+
+# Platform / Order Activity
+
+## 34. Order Telemetry
+
+`Admin.md` says the Dashboard aggregates platform telemetry.
+`app.md` defines the order lifecycle conceptually:
 
 ```text
 customer order
-    ↓
-seller approved
-    ↓
-seller packed
-    ↓
-logistics flow
-    ↓
-order delivered
+→ seller approved
+→ seller packed
+→ logistics flow
+→ delivered
 ```
 
-The Logistics lifecycle includes:
+The Dashboard may show high-level order activity using actual order states.
+
+## 35. Possible Order KPIs
+
+Examples that may be useful if supported:
 
 ```text
-courier door-to-door pickup
-    ↓
-Logistics receives order
-    ↓
-waybill
-    ↓
-sorted
-    ↓
-transfer
-    ↓
-dispatch
-    ↓
-Logistics assigns delivery courier
-    ↓
-rider picks up for delivery
-    ↓
-delivered
+orders today
+orders in progress
+orders delivered
 ```
 
-The Admin Dashboard may therefore show a **high-level order pipeline summary** as platform telemetry.
+The exact order KPI set is Open.
 
-It must not turn into the Logistics dispatch console.
+## 36. Existing States Only
 
-## 15.2 Recommended Activity Metrics
+The Dashboard must not invent new order states.
+It should aggregate the order domain's authoritative statuses.
 
-Use broad platform-level counts such as:
+## 37. Order Detail Boundary
 
-- Orders Placed
-- Awaiting Seller Processing
-- In Logistics / In Transit
-- Delivered
+The Dashboard is not:
 
-Exact mapping must follow the actual order state machine.
+- a Seller order-management page
+- a Logistics dispatch console
+- a Courier task board
+- a Buyer order tracker
+  It should remain high-level.
 
-The source documents use several conceptual state labels across features but do not define one canonical complete enum.
+## 38. Platform Health Meaning
 
-Do not create a new status enum purely for the Dashboard.
-
-## 15.3 Presentation
-
-Recommended presentation:
+`Admin.md` mentions high-level system health.
+Current sources do not explicitly define technical infrastructure metrics such as:
 
 ```text
-Platform Activity
-[Placed] → [Seller Processing] → [Logistics / Transit] → [Delivered]
+CPU
+memory
+database latency
+API uptime
+queue health
 ```
 
-or a compact chart/summary.
+Therefore Dashboard "health" should primarily mean business/operational state unless observability requirements are added later.
 
-The purpose is to reveal platform flow, not individual parcel details.
+# Action Center
 
-## 15.4 Drill-Down
+## 39. Action Center Purpose
 
-If a future Admin order-monitoring page exists, the activity section may link to it.
-
-The current `Admin.md` does not define a dedicated Admin Order Management module.
-
-Therefore, the Dashboard must not invent a full Admin order-management workflow.
-
----
-
-# 16. Action Center
-
-## 16.1 Purpose
-
-The Dashboard should group actionable Admin workload into one scannable area.
-
-The Action Center is not a separate business domain.
-
-It is a read-only aggregation of work already owned by documented Admin modules.
-
-## 16.2 Eligible Items
-
-Source-backed categories include:
-
-- pending account registrations
-- unresolved complaints/disputes
-- seller compliance cases
-
-Additional categories may be added when their originating feature formally defines an actionable state.
-
-## 16.3 Item Structure
-
-An action row may contain:
+The Dashboard should surface pending Admin work.
+Primary sources:
 
 ```text
-type
-summary
-created/received time
-status or priority if defined
-link to source module
+Pending Registrations
+Seller Compliance Items
+Open Complaints / Disputes
 ```
 
-Example:
-
-```text
-Registration
-Seller application awaiting review
-Received 12 minutes ago
-View
-```
-
-Do not expose unnecessary applicant/customer PII in the overview.
-
-## 16.4 Ordering
-
-Items requiring attention should be ordered predictably.
-
-Recommended baseline:
-
-```text
-newest actionable items first
-```
-
-If the source module later defines severity or SLA rules, those can take precedence.
-
-The Dashboard itself must not invent urgency classifications.
-
-## 16.5 Mutations
-
-The Action Center should navigate the Admin to the owning module.
-
-For MVP, avoid performing high-impact actions such as:
-
-- approve account
-- reject account
-- suspend seller
-- remove product
-- resolve dispute
-
-directly from the Dashboard.
-
-Those actions require the full context and evidence provided by their dedicated modules.
-
----
-
-# 17. Notifications
-
-## 17.1 Purpose
-
-Notification display is explicitly part of the Admin Dashboard's core value.
-
-The Dashboard must expose important notifications that help the Admin identify changes or required action.
-
-## 17.2 Delivery
-
-`Admin.md` requires:
-
-```text
-real-time or polling mechanism for incoming notifications
-```
-
-Either approach is acceptable.
-
-Implementation should use the project's existing notification architecture when available.
-
-Do not introduce WebSockets solely for this feature if polling is already the project standard and satisfies the required freshness.
-
-## 17.3 Notification Sources
-
-The Dashboard may receive notifications generated by documented Admin-relevant events such as:
-
-- a new registration requiring Admin approval
-- a new complaint/dispute
-- a new seller compliance/report item
-- relevant platform/security events once those modules define them
-
-The Dashboard must not invent notification event types unsupported by their source feature.
-
-## 17.4 Notification Item
+## 40. Action Center Item
 
 Recommended fields:
 
+- category/feature
+- safe summary
+- count or short preview
+- timestamp if useful
+- priority only if source-backed
+- link to owning feature
+
+## 41. Priority
+
+The source says critical notifications requiring immediate attention should be surfaced.
+However, no exact priority-scoring model exists.
+Do not invent arbitrary severity formulas.
+
+## 42. Action Center Source of Truth
+
+Action items should derive from authoritative domain records.
+Do not create a separate editable "Admin task" system unless future requirements explicitly request it.
+
+## 43. KPI vs Action Item
+
+Recommended distinction:
+
 ```text
-id
-type
-title
-summary
-created_at
-read/unread state
-target/link
+KPI
+    total workload count
+
+Action Center
+    selected items requiring attention
 ```
 
-Use existing notification schema if one already exists.
+Avoid confusing duplicate content.
 
-## 17.5 Read State
+# Admin Notifications Preview
 
-If the notification system supports read state, the Dashboard should distinguish unread from read notifications.
+## 44. Notification Ownership
 
-The exact retention, archival, and read-receipt rules are not defined by the source documents.
-
-## 17.6 Empty State
-
-Example:
+Admin Notifications is the authoritative inbound notification feature.
+Recommended:
 
 ```text
-No new notifications.
-```
+Admin Notifications
+    full inbox/history/unread state
 
-Do not fill the panel with fake notification data in production.
-
----
-
-# 18. Financial Snapshot
-
-## 18.1 Purpose
-
-The KPI card gives a single commission figure.
-
-A secondary financial visualization may show the recent trend of platform commission revenue.
-
-This is supported by the Reports feature's temporal reporting requirement.
-
-## 18.2 Supported Periods
-
-Source-backed periods:
-
-- daily
-- weekly
-- monthly
-
-Dashboard scope should remain lightweight.
-
-Recommended MVP:
-
-- one default trend period
-- one concise chart
-- link to Reports for detailed filtering/export
-
-## 18.3 Data Source
-
-Use the same authoritative commission logic as the Reports module.
-
-The Dashboard must not independently reimplement financial business rules if a shared reporting/commission service exists.
-
-This prevents inconsistent totals between:
-
-```text
 Dashboard
-vs.
-Reports Overview
+    bounded preview
 ```
 
----
+## 45. Notification Preview
 
-# 19. User / Account Overview
-
-## 19.1 Purpose
-
-The Admin Dashboard may present a high-level user/account summary because:
-
-- the Admin Dashboard aggregates `users`
-- Admins manage user registrations
-- Admins manage user account status
-
-## 19.2 Recommended Scope
-
-If included, keep this section high-level, such as:
+Recommended:
 
 ```text
-Approved Buyers
-Approved Sellers
-Approved Logistics Accounts
+Notifications
+- recent/high-priority items
+- unread count
+- timestamp
+- safe preview
+- View All
 ```
 
-or a total role distribution.
+## 46. Notification Sources
 
-## 19.3 Exclusion
+Possible sources already defined by Admin Notifications:
 
-Courier accounts are registered under Logistics and approved by Logistics according to `app.md`.
+- pending registration
+- Seller Compliance case/report
+- complaint/dispute
+- user reply to Admin Chat
+- report export completion/failure
+- Courier SOS where Admin is an intended recipient
+  The exact event list belongs to Admin Notifications.
 
-They may be included in a platform population statistic if useful, but they must not be presented as Admin-managed pending registrations.
+## 47. Flood Prevention
 
-## 19.4 PII
+Do not flood Dashboard Notifications with routine role-specific events such as:
 
-The Dashboard should show aggregate counts, not sensitive user-profile data.
+- every Logistics status update
+- Seller low-stock alerts
+- Buyer wishlist alerts
+- Product Q&A alerts
+- every Audit Log entry
+  Only Admin-relevant events should appear.
 
-Detailed profiles belong in Manage User Accounts.
+## 48. Real-Time or Polling
 
----
-
-# 20. Seller / Logistics / Courier Boundary
-
-AISLEY includes dedicated dashboards for Seller, Logistics, and Courier.
-
-The Admin Dashboard must respect those domain boundaries.
-
-## 20.1 Seller Dashboard Owns
-
-Seller-specific operational detail such as:
-
-- store revenue
-- seller order volume
-- shop traffic
-- inventory
-- new-order detail
-- fulfillment work
-
-Admin Dashboard should not reproduce a seller's private merchant analytics.
-
-## 20.2 Logistics Dashboard Owns
-
-Logistics-specific operational detail such as:
-
-- seller-confirmed order queue
-- rider deployment
-- parcel sorting/assignment
-- live courier capacity
-- waybill operations
-
-Admin Dashboard may consume aggregated platform telemetry but must not become a dispatch interface.
-
-## 20.3 Courier Dashboard Owns
-
-Courier-specific detail such as:
-
-- pickup requests
-- assigned delivery work
-- delivery notifications
-- earnings
-- delivery performance
-
-Admin Dashboard should not become a courier operations console.
-
-## 20.4 Admin Dashboard Owns
-
-Platform-level concerns:
+`Admin.md` explicitly allows:
 
 ```text
-approval workload
-compliance workload
-complaints/disputes
-financial commission overview
-high-level platform health/activity
-Admin notifications
+real-time or polling
 ```
 
----
+Either is acceptable.
+Realtime is not required for every KPI.
 
-# 21. Navigation Integration
+## 49. Notification Read State
 
-The Dashboard should provide navigation to the documented Admin feature set.
-
-Expected Admin navigation destinations include:
+Recommended:
 
 ```text
-Dashboard
-Manage Account Registrations
-Manage User Accounts
-Monitor Seller Compliance
-Manage Complaints and Disputes
-Reports Overview
-Manage Platform Settings
-Chat / Messaging
-Account Management
-System Audit Logs
-Global Ban / Blocklist Management
-Push Notification Management
+Dashboard load
+does not automatically mark
+all preview notifications read
 ```
 
-The Dashboard page does not need to implement these modules.
+Read behavior remains owned by Admin Notifications.
 
-Navigation labels and route naming should follow project conventions.
+# Data and API
 
----
+## 50. Dashboard API
 
-# 22. Data Freshness
-
-Different Dashboard data has different freshness needs.
-
-## 22.1 Near-Real-Time
-
-Notifications and actionable queue counts should be refreshed through:
-
-- existing real-time mechanism, or
-- reasonable polling
-
-The source does not define an exact polling interval.
-
-Do not hardcode a business-critical freshness requirement without a source requirement.
-
-## 22.2 Aggregate Analytics
-
-Financial and platform-wide aggregate metrics do not necessarily require second-by-second updates.
-
-They may be loaded on page request and refreshed when the Dashboard refreshes.
-
-If the backend later uses cached aggregates or background jobs, the Dashboard should display the latest available authoritative value.
-
----
-
-# 23. Dashboard Data API
-
-The Dashboard should avoid forcing the frontend to orchestrate a large number of expensive independent aggregate queries.
-
-A purpose-built Dashboard summary endpoint is recommended.
-
-Example:
+Recommended conceptual endpoint:
 
 ```http
 GET /api/admin/dashboard
 ```
 
-This route name is recommended only; existing repository conventions take precedence.
+It may return the main bounded Dashboard aggregates in one response.
+Separate widget endpoints are also acceptable if independent loading is preferred.
 
-Possible response shape:
+## 51. Conceptual Response
 
 ```json
 {
-  "registrations": {
-    "pending_total": 0,
-    "by_role": {
-      "buyer": 0,
-      "seller": 0,
-      "logistics": 0
+  "kpis": {
+    "pending_registrations": 0,
+    "seller_compliance_items": 0,
+    "open_complaints": 0,
+    "platform_commission": {
+      "amount": 0,
+      "period": "..."
     }
   },
-  "complaints": {
-    "open_total": 0
-  },
-  "compliance": {
-    "pending_total": 0
-  },
-  "commission": {
-    "amount": 0,
-    "currency": "PHP",
-    "period": "month"
-  },
-  "orders": {
-    "placed": 0,
-    "seller_processing": 0,
-    "in_logistics": 0,
-    "delivered": 0
-  }
+  "order_activity": {},
+  "action_center": [],
+  "notifications": []
 }
 ```
 
-This is a conceptual DTO, not a mandated database schema.
+Exact shape is implementation-defined.
 
-The API should adapt to the actual domain models.
+## 52. Backend Aggregation
 
-Notifications may be loaded separately if the notification system already has its own API.
-
----
-
-# 24. Backend Aggregation Requirements
-
-The Dashboard backend should:
-
-- aggregate data server-side
-- avoid N+1 queries
-- avoid returning full entity collections when only counts are needed
-- reuse existing domain/reporting services
-- apply Admin authorization
-- apply permission-specific filtering where required
-- avoid returning sensitive PII
-- return deterministic numeric values for KPI cards
-- use appropriate indexes for count/filter queries
-- support caching if aggregate cost becomes significant
-
-`Admin.md` explicitly notes aggregate queries across:
-
-```text
-users
-transactions
-reports
-```
-
-Order/transaction aggregation should follow the actual schema.
-
----
-
-# 25. Permission-Aware Dashboard Data
-
-Backend authorization must control the data itself.
-
-Example behavior:
-
-```text
-Admin can access Registration Management
-    ↓
-pending-registration metric returned
-
-Admin cannot access Registration Management
-    ↓
-registration metric omitted or marked unavailable
-```
-
-The exact response pattern should be consistent across the API.
-
-The frontend must not receive privileged detailed data and merely hide it visually.
-
-The initial Admin may have full access if that is how the eventual permission system defines the bootstrap administrator.
-
----
-
-# 26. Empty States
-
-Every Dashboard region must have a meaningful empty state.
-
-Examples:
-
-### Registrations
-
-```text
-No pending registrations.
-```
-
-### Complaints
-
-```text
-No open complaints or disputes.
-```
-
-### Compliance
-
-```text
-No seller compliance items awaiting review.
-```
-
-### Notifications
-
-```text
-No new notifications.
-```
-
-### Platform Activity
-
-```text
-No activity for this period.
-```
-
-### Financial Snapshot
-
-```text
-No commission data for this period.
-```
-
-Zero is valid data and must not be rendered as a loading failure.
-
----
-
-# 27. Loading States
-
-The Dashboard should not appear blank while data is loading.
-
-Recommended behavior:
-
-- page shell renders
-- Dashboard sections show skeleton/loading state
-- loaded regions become interactive
-- notification state resolves independently if loaded separately
-
-Avoid using fake numbers as loading placeholders.
-
----
-
-# 28. Error States
-
-The Dashboard must handle:
-
-- summary API failure
-- notification API failure
-- expired Admin session
-- permission denial
-- partial data failure
-- temporary backend unavailability
-
-## 28.1 Session Failure
-
-```text
-401 / unauthenticated
-    ↓
-resolve as signed out
-    ↓
-redirect /login
-```
-
-## 28.2 Permission Failure
-
-```text
-403
-    ↓
-do not expose protected data
-    ↓
-hide/disable corresponding feature region
-```
-
-## 28.3 Partial Failure
-
-If notifications fail but KPI summary loads, the Dashboard should still show the successful KPI data.
-
-Do not turn one non-critical widget failure into a completely unusable Dashboard unless the architecture returns all data atomically.
-
----
-
-# 29. Refresh Behavior
-
-The Dashboard should support receiving current information without requiring the Admin to repeatedly navigate away and back.
-
-At minimum:
-
-- data refreshes on Dashboard load
-- actionable/notification data follows the chosen polling or real-time mechanism
-
-A manual refresh action is optional.
-
-The exact refresh interval is an implementation/configuration decision because the source docs do not define one.
-
----
-
-# 30. Responsive Behavior
-
-The Admin Dashboard is part of the web Admin application.
-
-It should remain usable on different web viewport sizes.
-
-Recommended behavior:
-
-## Desktop
-
-- KPI cards in a compact row/grid
-- primary action center and notifications visible without excessive scrolling
-- financial/activity visualization uses available width
-
-## Tablet
-
-- KPI cards wrap into fewer columns
-- sections remain readable
-- no horizontal overflow
-
-## Narrow Viewport
-
-- cards stack
-- tables/action lists adapt to compact rows
-- charts remain readable or simplify gracefully
-
-The Dashboard remains an Admin operations interface rather than a mobile-first Courier interface.
-
----
-
-# 31. Accessibility
-
-The Dashboard should:
-
-- use semantic heading hierarchy
-- expose chart values in accessible text where charts are used
-- not rely on color alone to communicate status
-- provide accessible labels for controls
-- maintain keyboard navigation
-- maintain sufficient contrast
-- expose loading and error states appropriately to assistive technology
-
----
-
-# 32. Notification and Action Semantics
-
-Visual severity should reflect a severity or status defined by the owning domain.
-
-The Dashboard must not infer that every pending item is an emergency.
-
-For example:
-
-```text
-pending registration ≠ critical security alert
-```
-
-If the platform later defines:
-
-- priority
-- severity
-- SLA
-- overdue state
-
-the Dashboard may visualize those fields directly.
-
----
-
-# 33. Time and Currency
-
-## 33.1 Currency
-
-AISLEY's documented fees are denominated in Philippine pesos.
-
-Financial values should therefore use:
-
-```text
-PHP / ₱
-```
-
-unless the platform's financial configuration later supports additional currencies.
-
-## 33.2 Time
-
-Dashboard timestamps should be rendered consistently with the application's configured timezone strategy.
-
-The source documents do not define the canonical persisted timezone.
-
-Do not create Dashboard-specific timezone semantics.
-
----
-
-# 34. Audit Considerations
-
-`Admin.md` defines immutable System Audit Logs for administrative actions.
-
-The Dashboard itself is primarily read-only.
-
-Navigating from the Dashboard does not need to create a business audit record unless the audit specification later requires view tracking.
-
-Any mutation performed in a destination Admin module must follow that module's audit requirements.
-
-If future Dashboard quick actions are introduced, those actions must participate in the same audit mechanism as the full module.
-
----
-
-# 35. Security and Privacy
-
-The Dashboard must:
-
-- require authenticated Admin access
-- respect Admin permissions
-- expose aggregate data only as needed
-- avoid sensitive PII in overview cards
-- avoid exposing internal authentication/session data
-- use backend authorization for every Admin endpoint
-- use existing CSRF/session protections for any state-changing requests
-- safely escape notification/action text
-- treat linked evidence and user data as protected resources
-- avoid embedding secrets or financial formulas only on the client
-
----
-
-# 36. Performance
-
-Because the Dashboard is the primary Admin entry point, it must not execute unbounded scans on each page load.
-
-Recommended implementation principles:
-
-- use indexed status/role/time filters
-- aggregate counts at the database layer
-- reuse commission/reporting services
-- cache expensive aggregate results when justified
-- keep notification payload bounded
-- paginate or limit action-center previews
-- lazy-load heavy charts if needed
-- fetch full records only after navigating to the owning module
-
-Exact latency targets are not defined in the current project docs.
-
----
-
-# 37. MVP Dashboard
-
-For the first complete Dashboard implementation, include:
-
-## Required
-
-- authenticated `/dashboard`
-- Dashboard header/context
-- Pending Registrations KPI
-- Open Complaints / Disputes KPI
-- Seller Compliance KPI
-- Platform Commission KPI
-- high-level Platform Activity / order lifecycle summary
-- Action Center preview
-- Notifications panel
-- navigation/drill-down into owning Admin modules
-- loading states
-- empty states
-- error states
-- permission-aware data exposure
-
-## Optional for MVP
-
-- role breakdown under pending registrations
-- user/account aggregate section
-- commission trend chart
-- auto-refresh indicator
-- manual refresh control
-
-These optional items remain source-compatible but are not necessary to satisfy the core Dashboard definition.
-
----
-
-# 38. Do Not Add to MVP Without Separate Specification
-
-Do not add the following merely to make the Dashboard appear more feature-rich:
-
-- arbitrary conversion rate
-- gross merchandise value if not formally defined
-- fake "system health" percentage
-- invented seller score
-- invented fraud score
-- invented dispute SLA
-- invented delivery SLA
-- active-user analytics without a defined measurement
-- profit calculations that conflict with Reports
-- shipping-fee-as-platform-revenue calculation
-- map-based rider tracking
-- direct rider dispatch
-- inline seller suspension
-- inline registration approval/rejection
-- inline dispute resolution
-- marketing campaign creation
-
-These require their own business definitions or belong to dedicated modules.
-
----
-
-# 39. Suggested Page Structure
-
+The Dashboard should query owning domains/services rather than duplicate business logic.
 Conceptually:
 
 ```text
-/dashboard
-
-┌──────────────────────────────────────────────────────────────┐
-│ Dashboard                              Admin / Notifications  │
-│ Platform overview                                           │
-├──────────────────────────────────────────────────────────────┤
-│ Pending       │ Open          │ Compliance    │ Platform     │
-│ Registrations │ Complaints    │ Items         │ Commission   │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│ Platform Activity                                             │
-│ Order lifecycle / high-level telemetry                        │
-│                                                              │
-├─────────────────────────────────┬────────────────────────────┤
-│ Action Center                   │ Notifications              │
-│                                 │                            │
-│ Registration awaiting review    │ New registration          │
-│ Compliance case                 │ New complaint             │
-│ Complaint / dispute             │ Compliance alert          │
-│                                 │                            │
-├─────────────────────────────────┴────────────────────────────┤
-│ Financial Snapshot / Commission Trend (optional MVP)         │
-└──────────────────────────────────────────────────────────────┘
+AccountApprovalQuery
+SellerComplianceQuery
+ComplaintQuery
+PlatformRevenueService
+OrderActivityQuery
+AdminNotificationService
 ```
 
-This is an information hierarchy, not a pixel-perfect UI mandate.
+Names are illustrative only.
 
----
+## 53. Shared Revenue Logic
 
-# 40. Functional Acceptance Criteria
+Critical architecture rule:
 
-## AC-01 — Authenticated Entry
+```text
+Dashboard platform commission
+and
+Reports Overview platform commission
 
-Given a valid authenticated Admin session, when the Admin opens `/dashboard`, the Dashboard loads as the primary Admin entry page.
+must use the same
+authoritative revenue calculation.
+```
 
-## AC-02 — Guest Protection
+This prevents formula drift.
 
-Given no valid Admin session, when `/dashboard` is requested, protected Dashboard content is not exposed and the user is directed to Admin login.
+## 54. Aggregate Query Efficiency
 
-## AC-03 — Permission Protection
+`Admin.md` explicitly notes aggregate queries across multiple tables.
+Avoid:
 
-Given an authenticated Admin lacks permission for a protected Admin feature, the Dashboard does not expose unauthorized feature data or actionable controls for that feature.
+- loading all records into memory
+- N+1 queries
+- unindexed full scans where avoidable
+- repeated expensive recomputation without need
+  Use indexed counts, aggregates, cache, summary tables, or reporting services where justified.
 
-## AC-04 — Pending Registration Count
+## 55. Caching
 
-Given Buyer, Seller, and Logistics registrations are pending Admin approval, the Dashboard displays an aggregate pending-registration count derived from those Admin-managed registration types.
+Caching may be used for:
 
-## AC-05 — Courier Approval Boundary
+- financial aggregates
+- order counts
+- large platform counts
+  Exact TTL and invalidation behavior are Open Decisions.
 
-Given Courier registrations are pending Logistics approval, they are not counted as normal Admin pending registrations.
+## 56. Freshness
 
-## AC-06 — Registration Drill-Down
+Different widgets may have different freshness:
 
-Given pending registrations exist, when the Admin selects the registration KPI/action, the Admin is taken to the registration-management workflow.
+```text
+notifications
+    near-real-time / polling
 
-## AC-07 — Complaint Count
+pending counts
+    current aggregate or cached
 
-Given unresolved complaints/disputes exist, the Dashboard displays their aggregate unresolved count.
+financial metrics
+    reporting/ledger freshness
+```
 
-## AC-08 — Compliance Count
+Do not imply all Dashboard data is perfectly real-time.
 
-Given seller compliance cases require Admin review, the Dashboard displays the applicable pending compliance count.
+## 57. Last Updated
 
-## AC-09 — Platform Commission
+Optional:
 
-Given authoritative commission transaction data exists, the Dashboard displays platform commission for its stated period using the same business logic as the Reports module.
+```text
+Last updated: <time>
+```
 
-## AC-10 — Shipping Fee Boundary
+Useful when data is cached or periodically refreshed.
 
-Given the default shipping fee is ₱50 and is documented as Logistics commission, the Dashboard does not automatically count the full shipping fee as AISLEY platform commission.
+# Loading and Failure States
 
-## AC-11 — Per-Order Platform Fee
+## 58. Loading State
 
-Given applicable orders are subject to the documented AISLEY Logistics SaaS per-order fee, the commission calculation can include the documented ₱10 per-order platform fee through the authoritative financial/reporting logic.
+Recommended:
 
-## AC-12 — Subscription Amount
+```text
+Dashboard shell
++ widget skeletons/loading states
+```
 
-Given the base Logistics subscription amount is not defined in the source documents, the Dashboard obtains it from authoritative system configuration/billing data and does not hardcode an invented amount.
+Avoid a blank screen if sections can load independently.
 
-## AC-13 — Platform Activity
+## 59. Partial Failure
 
-Given orders exist in multiple stages of the AISLEY order/logistics lifecycle, the Dashboard can summarize them into high-level lifecycle telemetry using the canonical order statuses already defined by the application.
+Recommended behavior:
 
-## AC-14 — No Dispatch Duplication
+```text
+Pending Registrations     14
+Seller Compliance          6
+Open Complaints            3
+Platform Commission        Unable to load
+```
 
-Given Logistics has its own dispatch dashboard, the Admin Dashboard does not expose rider deployment controls or sorting-center operational controls.
+One failed widget should not necessarily break the entire Dashboard.
 
-## AC-15 — Action Center
+## 60. Full Failure
 
-Given actionable Admin-owned items exist, the Dashboard previews them and provides navigation to their owning Admin modules.
+If Dashboard data fails completely:
 
-## AC-16 — High-Impact Actions
+- show clear error
+- offer retry
+- preserve navigation shell when possible
+- do not present stale values as fresh without indication
 
-Given an actionable registration/compliance/dispute item appears on the Dashboard, the MVP Dashboard does not perform the final approval, suspension, deletion, or dispute resolution directly from the overview.
+## 61. Empty State
 
-## AC-17 — Notifications
+Zero is valid:
 
-Given an Admin-relevant notification arrives, the Dashboard receives it through the system's supported polling or real-time notification mechanism.
+```text
+Pending Registrations
+0
+No pending registrations.
+```
 
-## AC-18 — Empty State
+Do not treat zero as an error.
 
-Given a Dashboard metric has no matching records, the Dashboard displays a valid zero/empty state rather than treating the result as an error.
+## 62. Permission-Limited State
 
-## AC-19 — Partial Failure
+Do not show unauthorized data as:
 
-Given one independently loaded Dashboard region fails while another succeeds, the successfully loaded data remains usable where architecture permits.
+```text
+0
+```
 
-## AC-20 — No Fake Production Data
+because zero implies no workload.
+Hide the widget or show an appropriate access-limited state.
 
-Given the Dashboard is running against production/real application data, KPI cards and charts do not display hardcoded fake metrics.
+# Privacy and Security
 
-## AC-21 — PII Minimization
+## 63. PII Minimization
 
-Given Dashboard overview data is requested, the API returns only the aggregate or preview information required for the overview and avoids unnecessary sensitive user profile information.
+Use aggregate counts and safe previews.
+Do not expose unnecessary:
 
-## AC-22 — Reports Consistency
+- Buyer addresses
+- Seller payout data
+- Courier license details
+- phone numbers
+- payment credentials
+- complaint evidence
+  Detailed PII belongs to owning features.
 
-Given a Dashboard commission figure and a Reports Overview figure represent the same period and scope, they derive from the same authoritative financial rules and should reconcile.
+## 64. Complaint Privacy
 
----
+Use safe summaries such as:
 
-# 41. Suggested Backend Tests
+```text
+Complaint #123 requires review
+```
+
+Do not copy full evidence into Dashboard previews.
+
+## 65. Registration Privacy
+
+Do not show full applicant credentials/documents on the Dashboard.
+
+## 66. Compliance Privacy
+
+Do not expose full internal compliance reports or sensitive internal notes on the Dashboard.
+
+## 67. Security Requirements
+
+Dashboard APIs must:
+
+- authenticate Admin
+- enforce permissions
+- minimize PII
+- avoid over-fetching
+- sanitize text previews
+- avoid secrets
+- avoid unauthorized cross-feature data exposure
+
+## 68. XSS Safety
+
+Notification/action text may include user-generated content.
+Render safely and never execute raw untrusted HTML.
+
+## 69. No Mutation from GET
+
+The main Dashboard read request must not:
+
+- approve accounts
+- resolve complaints
+- alter compliance state
+- modify financial records
+- mark unrelated records complete
+  The Dashboard is primarily read-only.
+
+## 70. Audit Logs
+
+Routine Dashboard reads should not create System Audit Log entries by default.
+High-volume page-view logging would flood the immutable Admin action ledger.
+
+# UX
+
+## 71. Navigation
+
+Recommended links:
+
+```text
+Pending Registrations
+→ Account Approval
+
+Seller Compliance
+→ Seller Compliance
+
+Open Complaints
+→ Complaints & Disputes
+
+Platform Commission
+→ Reports Overview
+
+Notifications
+→ Admin Notifications
+```
+
+## 72. Deep-Link Filters
+
+Where supported:
+
+```text
+Account Approval?status=PENDING
+Complaints?status=open
+Notifications?filter=unread
+```
+
+Exact routes depend on implementation.
+
+## 73. Metric Naming
+
+Use stable labels:
+
+```text
+Pending Registrations
+Seller Compliance
+Open Complaints
+Platform Commission
+```
+
+Avoid ambiguous terms like:
+
+```text
+Users
+Issues
+Revenue
+Problems
+```
+
+without clear definitions.
+
+## 74. Financial Period Label
+
+Bad:
+
+```text
+Platform Commission
+₱125,000
+```
+
+Better:
+
+```text
+Platform Commission — This Month
+₱125,000
+```
+
+Always show the period.
+
+## 75. Charts
+
+Charts are not source-required.
+They may be added for:
+
+- order trends
+- platform commission trends
+  only if the metric/time-series definition exists.
+  Do not add decorative charts with unclear data.
+
+## 76. Date Range
+
+A Dashboard-wide date selector is not source-required.
+If added later, every affected metric must define how the selected period applies.
+
+## 77. Accessibility
+
+The Dashboard should:
+
+- use semantic headings
+- expose KPI labels and values
+- make cards/links keyboard accessible
+- not rely on color alone
+- announce loading/error states
+- provide accessible chart labels if charts are added
+
+## 78. Responsive Behavior
+
+On narrower screens:
+
+```text
+KPI cards stack/reflow
+Action Center remains readable
+Notifications remain accessible
+```
+
+Do not require horizontal page scrolling for core Dashboard content.
+
+# Consistency
+
+## 79. Count Consistency
+
+Dashboard counts should match owning features when the same filter/freshness applies.
+Example:
+
+```text
+Dashboard Pending Registrations = 12
+Account Approval PENDING view = 12
+```
+
+Minor differences are acceptable only when caused by clearly defined caching/freshness.
+
+## 80. Registration Refresh
+
+Account Approval changes should eventually invalidate/refetch the Dashboard pending count.
+Possible implementation:
+
+- query invalidation
+- refetch on return
+- polling
+- domain-event refresh
+  Exact mechanism is implementation-specific.
+
+## 81. Complaint Refresh
+
+Complaint changes should eventually update the Dashboard complaint count.
+
+## 82. Compliance Refresh
+
+Compliance changes should eventually update the Dashboard compliance count.
+
+## 83. Financial Refresh
+
+Financial metrics should follow the shared Reports/ledger freshness policy.
+Do not recompute historical revenue from current settings if historical charged amounts are stored.
+
+# MVP
+
+## 84. Required
+
+- authenticated `/dashboard`
+- permission-aware content
+- Pending Registrations KPI
+- Seller Compliance KPI
+- Open Complaints KPI
+- Platform Commission KPI
+- correct AISLEY revenue formula
+- exclusion of ₱50 Logistics shipping fee from platform revenue
+- high-level order/platform activity
+- Action Center
+- Admin Notifications preview
+- links to owning features
+- backend aggregate queries
+- loading states
+- empty states
+- partial-error handling
+- PII minimization
+- safe rendering
+- responsive/accessibility basics
+
+## 85. Recommended
+
+- bounded `GET /api/admin/dashboard`
+- shared platform revenue service with Reports
+- bounded notification preview
+- deep links with filters
+- independent widget errors
+- polling/realtime notification refresh
+- query invalidation after feature mutations
+- optional last-updated indicator
+
+## 86. Not Required
+
+- inline approval/rejection
+- inline Seller suspension
+- inline complaint decisions
+- blocklist actions
+- Push/SMS campaign actions
+- charts
+- Dashboard customization
+- drag-and-drop widgets
+- saved layouts
+- Dashboard exports
+- full notification inbox
+- technical infrastructure monitoring
+
+# Acceptance Criteria
+
+## 87. AC-01 — Authenticated Access
+
+An authenticated Admin can access the Dashboard.
+
+## 88. AC-02 — Guest Denied
+
+An unauthenticated request cannot access Dashboard data.
+
+## 89. AC-03 — Non-Admin Denied
+
+Authenticated non-Admin role-accounts cannot access Admin Dashboard APIs.
+
+## 90. AC-04 — Permission Awareness
+
+The Dashboard does not expose feature data the Admin is not authorized to view.
+
+## 91. AC-05 — Pending Registration Count
+
+Pending Registrations counts only Admin-owned PENDING Buyer/Seller/Logistics registrations.
+
+## 92. AC-06 — Courier Exclusion
+
+Courier registration requests are not counted as Admin Account Approval workload.
+
+## 93. AC-07 — Registration Navigation
+
+Pending Registrations links to Account Approval.
+
+## 94. AC-08 — Compliance Count
+
+Seller Compliance uses the owning feature's authoritative actionable definition.
+
+## 95. AC-09 — Compliance Navigation
+
+The compliance card links to Seller Compliance rather than performing sanctions inline.
+
+## 96. AC-10 — Complaint Count
+
+Open Complaints uses the owning complaint feature's authoritative non-terminal/actionable definition.
+
+## 97. AC-11 — Complaint Navigation
+
+The complaints card links to Complaints & Disputes.
+
+## 98. AC-12 — Revenue Formula
+
+Platform Commission uses Logistics subscription revenue plus applicable ₱10/order fees.
+
+## 99. AC-13 — Shipping Fee Exclusion
+
+The default ₱50 shipping fee is not counted as AISLEY platform revenue.
+
+## 100. AC-14 — Logistics Subscription Boundary
+
+An APPROVED Logistics account is not automatically counted as subscription revenue.
+
+## 101. AC-15 — Seller Financial Boundary
+
+Seller gross sales/net profit are not used as AISLEY platform commission.
+
+## 102. AC-16 — Courier Financial Boundary
+
+Courier earnings/tips are excluded from platform revenue.
+
+## 103. AC-17 — Buyer Payment Boundary
+
+Buyer checkout total is not treated as platform revenue.
+
+## 104. AC-18 — Shared Revenue Logic
+
+Dashboard and Reports Overview use the same authoritative platform-revenue calculation.
+
+## 105. AC-19 — Order Telemetry
+
+Order activity uses existing order states and does not invent new statuses.
+
+## 106. AC-20 — Notifications Preview
+
+Dashboard shows a bounded Admin Notifications preview.
+
+## 107. AC-21 — Notification Ownership
+
+Dashboard does not maintain a second independent notification history model.
+
+## 108. AC-22 — No Auto-Read
+
+Loading Dashboard does not automatically mark all notifications read unless explicitly defined later.
+
+## 109. AC-23 — Action Center
+
+Action items link to authoritative owning features.
+
+## 110. AC-24 — No High-Impact Inline Mutation
+
+MVP Dashboard cards do not directly approve, suspend, resolve, ban, or send campaigns.
+
+## 111. AC-25 — PII Minimization
+
+Dashboard cards/previews do not unnecessarily expose sensitive user/evidence data.
+
+## 112. AC-26 — Partial Failure
+
+A failed widget does not necessarily prevent healthy widgets from rendering.
+
+## 113. AC-27 — Zero State
+
+Zero counts render as valid empty states.
+
+## 114. AC-28 — Loading State
+
+The UI indicates unresolved widget data.
+
+## 115. AC-29 — Safe Rendering
+
+Notification/action previews cannot execute untrusted scripts.
+
+## 116. AC-30 — Bounded Preview
+
+Notifications/action previews do not load unlimited records.
+
+## 117. AC-31 — Backend Aggregate Authority
+
+KPI values come from backend/domain aggregates, not client-side counting of partial datasets.
+
+## 118. AC-32 — Read-Only Dashboard Load
+
+Loading Dashboard does not perform core business mutations.
+
+# Tests
+
+## 119. Backend Tests
 
 Test:
 
-- guest cannot access Dashboard API
-- non-Admin cannot access Dashboard API
-- authorized Admin can access permitted Dashboard data
-- permission-restricted Admin cannot receive unauthorized Dashboard data
-- pending registration count includes Buyer/Seller/Logistics pending applications
-- pending registration count excludes Courier approvals managed by Logistics
-- complaint aggregate counts only the appropriate unresolved states
-- seller-compliance aggregate counts the appropriate review states
-- platform commission uses authoritative commission logic
-- platform commission does not classify Logistics shipping commission as platform revenue
-- Dashboard order counts map from canonical order state
-- aggregate API returns zero rather than null/error when no records exist
-- Dashboard endpoint does not expose password/session/sensitive fields
-- queries do not load entire datasets merely to calculate counts
+- guest denied
+- Buyer denied
+- Seller denied
+- Logistics denied
+- Courier denied
+- Admin can load Dashboard
+- permission-limited Admin does not receive unauthorized data
+- pending count includes Buyer PENDING
+- pending count includes Seller PENDING
+- pending count includes Logistics PENDING
+- pending count excludes Courier
+- approved/rejected registrations excluded
+- compliance count uses owning service/query
+- complaint count uses owning service/query
+- platform revenue includes subscription revenue
+- platform revenue includes applicable ₱10/order fee
+- platform revenue excludes ₱50 shipping fee
+- approved Logistics without subscription is not revenue
+- Seller gross sales excluded
+- Courier earnings/tips excluded
+- Buyer payment total excluded
+- Dashboard and Reports share revenue logic
+- order telemetry uses existing states
+- notification preview is bounded
+- Dashboard load does not auto-read all notifications
+- Dashboard GET does not mutate business state
+- aggregate cards omit sensitive PII
+- partial widget failure is handled according to architecture
 
----
+## 120. Frontend Tests
 
-# 42. Suggested Frontend Tests
+Test:
 
-Where frontend testing infrastructure exists, test:
+- Dashboard loading state
+- KPI cards render
+- zero states render
+- registration link works
+- compliance link works
+- complaint link works
+- Reports link works
+- Notifications link works
+- unauthorized widget is not shown as zero
+- financial period label is visible
+- partial widget error does not break healthy widgets
+- notification preview is bounded
+- unsafe preview HTML does not execute
+- narrow layout remains usable
+- keyboard navigation works
+- cards/links have accessible names
+- status is not communicated by color alone
 
-- authenticated Admin sees Dashboard
-- unauthenticated visitor is redirected to login
-- loading skeleton/state appears before summary resolution
-- zero-state renders correctly
-- KPI values render from API response
-- KPI links navigate to correct Admin modules
-- permission-hidden widgets/actions are not shown
-- notification list displays returned notifications
-- notification empty state renders correctly
-- one widget failure does not incorrectly display fake values
-- financial values use PHP/₱ formatting
-- narrow viewport does not overflow horizontally
+# Open Decisions
 
----
+## 121. Open Decisions
 
-# 43. Open Decisions
+The current source does not define:
 
-The current source documents do not define:
+1. exact Dashboard layout
+2. exact component order
+3. exact permission behavior for hidden/restricted widgets
+4. one Dashboard endpoint vs separate widget endpoints
+5. exact response shape
+6. default financial period
+7. Dashboard date-range selector
+8. exact order activity KPIs
+9. exact Seller Compliance actionable-state definition
+10. exact complaint open/actionable-state definition
+11. Action Center selection rules
+12. Action Center priority model
+13. notification preview size
+14. notification polling interval
+15. WebSocket/SSE provider
+16. aggregate cache strategy
+17. cache TTL
+18. last-updated display
+19. financial refresh interval
+20. chart requirements/types
+21. technical system-health widgets
+22. total/active user KPIs
+23. active Seller count
+24. active Logistics count
+25. order-volume trends
+26. Dashboard customization
+27. saved layouts
+28. widget reordering
+29. deep-link query naming
+30. refresh-on-return behavior
+31. partial API payload vs separate endpoint error handling
+32. exact stale-data behavior
+33. unread-only vs recent notification preview
 
-1. exact Dashboard API route names
-2. exact canonical order status enum
-3. exact complaint/dispute status enum
-4. exact seller-compliance case schema/statuses
-5. exact notification event types
-6. notification polling interval
-7. whether Dashboard notifications use polling, SSE, or WebSockets
-8. exact custom Admin permission model
-9. exact Logistics base subscription amount
-10. exact Dashboard default financial reporting period
-11. whether financial trend chart is required for MVP
-12. whether user-role totals are required for MVP
-13. whether Dashboard metrics are cached
-14. cache lifetime if caching is used
-15. whether there is a dedicated Admin order-monitoring page
-16. whether Admins should receive Courier SOS events directly or only through Logistics
-17. exact definition of "platform health"
-18. exact definition of active/inactive user analytics
-19. notification retention/read-state rules
-20. exact threshold or severity rules for critical notifications
+# Final Definition
 
-These must not be silently invented during Dashboard implementation.
+## 122. Final Definition
 
----
-
-# 44. Source Traceability
-
-## From `Admin.md`
-
-The Dashboard derives:
-
-- platform overview
-- notifications
-- centralized command interface
-- KPIs
-- pending actionable items
-- aggregate queries
-- primary Admin entry point
-- real-time or polling notifications
-- registration management
-- seller compliance
-- complaints/disputes
-- commission reports
-- custom Admin-adjacent modules through navigation
-
-## From `app.md`
-
-The Dashboard derives:
-
-- Admin's role in account approvals
-- Buyer/Seller/Logistics Admin approval flow
-- Courier approval being owned by Logistics
-- initial/additional Admin model
-- order lifecycle
-- integrated Logistics lifecycle
-- Logistics SaaS commission model
-- ₱10 per-order platform fee
-- default ₱50 shipping fee as Logistics commission
-
-## From `Buyer.md`
-
-The Dashboard respects:
-
-- Buyer ordering lifecycle
-- Buyer order tracking
-- Buyer complaints/support context through Admin-owned dispute workflows
-
-Buyer-specific shopping and account features remain outside the Admin Dashboard.
-
-## From `Seller.md`
-
-The Dashboard respects:
-
-- Seller order fulfillment responsibilities
-- Seller's own sales/statistics Dashboard
-- order notifications and preparation
-- seller compliance as a separate Admin concern
-
-Seller-private merchant analytics remain in the Seller application.
-
-## From `Logistics.md`
-
-The Dashboard respects:
-
-- Logistics' seller-confirmed-order queue
-- rider deployment
-- status updates
-- waybill workflow
-- live courier-capacity monitoring
-
-These operational controls remain in the Logistics application.
-
-## From `Courier.md`
-
-The Dashboard respects:
-
-- Courier delivery request flow
-- pickup/delivery lifecycle
-- delivery completion
-- incident reporting
-- SOS/emergency events
-- Courier-specific earnings/performance dashboards
-
-Courier operations remain in the Courier application unless a future Admin requirement explicitly introduces a platform-level escalation view.
-
----
-
-# 45. Final Dashboard Definition
-
-The AISLEY Admin Dashboard is:
+AISLEY Admin Dashboard is:
 
 ```text
-an authenticated,
-permission-aware,
-platform-level command overview
+the primary authenticated Admin landing page
 
-that combines:
-
-    Admin workload
-        ├── pending registrations
-        ├── seller compliance
-        └── complaints/disputes
-
-    platform performance
-        ├── commission summary
-        └── high-level order/activity telemetry
-
-    attention signals
-        ├── notifications
-        └── actionable-item preview
-
-while routing detailed work
-to the dedicated Admin modules
-and preserving Seller,
-Logistics,
-Buyer,
-and Courier domain boundaries.
+providing:
+    platform overview
+    Admin workload KPIs
+    high-level order telemetry
+    platform commission snapshot
+    pending action previews
+    Admin notification preview
+    links to owning Admin features
 ```
 
-The Dashboard should optimize for one outcome:
+Core workload KPIs:
 
 ```text
-An Admin should be able to sign in,
-understand the current state of AISLEY,
-identify what needs attention,
-and reach the correct management workflow quickly.
+Pending Registrations
+Seller Compliance Items
+Open Complaints / Disputes
+```
+
+Core financial rule:
+
+```text
+AISLEY Platform Revenue
+=
+Logistics Base Subscription Revenue
++
+Applicable ₱10 Per-Order Platform Fees
+```
+
+And:
+
+```text
+The default ₱50 shipping fee
+belongs to Logistics
+and is not AISLEY platform revenue.
+```
+
+Central Dashboard boundary:
+
+```text
+Dashboard summarizes and navigates.
+
+Owning Admin features
+perform the authoritative business actions.
 ```
