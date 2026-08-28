@@ -1063,7 +1063,7 @@ The source does not define timezone rules.
 
 # 48. Admin Auth Integration
 
-Admin authentication itself may produce security-relevant events.
+Admin authentication itself produces a security-relevant event after a successful active-Admin login.
 
 The source defines Audit Logs as:
 
@@ -1073,16 +1073,21 @@ every administrative operation
 
 but does not explicitly list login/logout as audit events.
 
-Recommended security events:
+Implemented security event:
 
 ```text
 ADMIN_LOGIN_SUCCEEDED
+```
+
+Possible future security events:
+
+```text
 ADMIN_LOGOUT
 ADMIN_LOGIN_FAILED
 ADMIN_CREDENTIAL_CHANGED
 ```
 
-Whether failed login attempts belong in this Admin Audit Log or a dedicated security log is an open decision.
+Successful Admin logins must identify the authenticated Admin account, including the currently viewing Admin's own login. Customer, Seller, Courier, inactive-Admin, and failed authentication attempts are not recorded as successful Admin login events. Whether failed login attempts or logout events belong in this Admin Audit Log or a dedicated security log remains an open decision.
 
 ---
 
@@ -3663,7 +3668,7 @@ The current AISLEY source documents do not define:
 34. acceptable audit persistence delay
 35. audit pipeline monitoring/alert thresholds
 36. whether failed Admin login is stored in System Audit Logs
-37. whether successful Admin login/logout is stored
+37. whether Admin logout is stored (successful Admin login is stored)
 38. whether routine read-only Admin page views are audited
 39. whether sensitive PII views are audited
 40. whether complaint evidence views/downloads are audited
