@@ -68,3 +68,11 @@ Avoid creating duplicate components when an appropriate shared component already
 - Maintain sufficient contrast and accessible focus/hover states.
 - Keep customer UI and professional dashboards visually distinct while sharing the same design system.
 - Favor simple, polished interfaces over unnecessary visual complexity.
+
+## Next.js SEO, SSR, and CSR
+
+- Prefer SSR, SSG, or ISR for public, indexable content so meaningful page content and metadata are present in the initial HTML.
+- Give each indexable route unique title, description, canonical, Open Graph/Twitter, and relevant structured-data metadata; keep `robots.txt` and the sitemap aligned.
+- Use CSR for interactive or personalized state such as carts, authentication context, filters, and infinite scrolling, while keeping core content crawlable without JavaScript.
+- Keep server/client boundaries intentional: fetch public data on the server where practical, pass minimal props, never expose secrets, and avoid hydration mismatches.
+- Preserve semantic HTML, stable URLs, accessible links/headings, optimized images, and fast loading as part of SEO quality.
