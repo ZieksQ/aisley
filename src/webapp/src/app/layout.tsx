@@ -31,7 +31,7 @@ export const metadata: Metadata = {
       "Discover products from trusted sellers and enjoy a simple, secure shopping experience with Aisley.",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Aisley | Shop from trusted local sellers",
     description:
       "Discover products from trusted sellers and enjoy a simple, secure shopping experience with Aisley.",

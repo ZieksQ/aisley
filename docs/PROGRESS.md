@@ -36,3 +36,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 
 - Added public Customer marketplace homepage APIs for aggregated campaign/category/deal/product content, bounded cursor-based discovery, and product/shop/category search. Added approval-aware storefront visibility, authenticated delivery and recently viewed context, lightweight product-card DTOs, safe campaign destinations, PostgreSQL-backed product/campaign/flash-deal/history schema, cache-aware public metadata, and feature coverage; all 29 API tests and 273 assertions pass.
 - Added idempotent initial Customer and product catalog seeders. The Customer seeder creates an active, approved account from `APPROVED_CUSTOMER_*` environment settings; the catalog seeds active seller/shop/category dependencies and four storefront-visible products with remote Unsplash thumbnails.
+
+## 2026-08-28
+
+- Added the responsive Customer marketplace homepage and product-search results UI. Integrated the public and personalized homepage APIs with ISR-prerendered discovery content, client-refreshed customer context, accessible campaign and flash-deal interactions, reusable product/category modules, bounded cursor infinite scrolling with session restoration, responsive media handling, analytics hooks, and discovery environment limits. Added canonical/Open Graph/Twitter/JSON-LD SEO metadata; storefront lint, strict TypeScript checks, and the Next.js production build pass.
