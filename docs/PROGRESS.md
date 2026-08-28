@@ -75,3 +75,4 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-28
 
 - Repaired the Customer marketplace homepage branch integration with `main`: resolved the environment, default seeder, schema-documentation, and progress-log conflicts; restored versioned Customer endpoint examples; and made `main` part of the branch history. Clean SQLite and PostgreSQL 18.3 migrations/seeding and all 55 API tests/449 assertions pass; Customer, Admin, and Seller lint and production builds pass.
+- Added concise Next.js design principles covering SEO metadata, SSR/SSG/ISR, CSR boundaries, crawlability, hydration safety, and performance.
