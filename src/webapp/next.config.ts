@@ -31,6 +31,7 @@ const remotePatterns = imageSourceUrls.flatMap((value) => {
 const nextConfig: NextConfig = {
   images: {
     remotePatterns,
+    unoptimized: true,
   },
   transpilePackages: ["@aisley/ui"],
   turbopack: {
