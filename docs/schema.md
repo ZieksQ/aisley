@@ -104,8 +104,8 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
-| `AdminAuditAction` | `registration.approved`, `registration.rejected` | New `audit_logs.action` and `audit_outbox.action` values |
-| `AuditSourceFeature` | `account_approval` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
+| `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
+| `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
 
@@ -686,14 +686,14 @@ Migrations currently run in this dependency order:
 17. `2026_08_27_000113_create_categories_table.php`.
 18. `2026_08_27_000114_scope_password_reset_tokens_by_role.php`.
 19. `2026_08_28_000115_add_homepage_media_to_categories_table.php`.
-20. `2026_08_28_000116_create_products_table.php`.
-21. `2026_08_28_000117_create_homepage_campaigns_table.php`.
-22. `2026_08_28_000118_create_flash_deals_tables.php`.
-23. `2026_08_28_000119_create_recently_viewed_products_table.php`.
-24. `2026_08_28_000115_create_audit_logs_table.php`.
-25. `2026_08_28_000116_enrich_audit_logs_for_viewer.php`.
-26. `2026_08_28_000117_create_audit_outbox_table.php`.
-27. `2026_08_28_000118_make_audit_logs_append_only.php`.
+20. `2026_08_28_000115_create_audit_logs_table.php`.
+21. `2026_08_28_000116_create_products_table.php`.
+22. `2026_08_28_000116_enrich_audit_logs_for_viewer.php`.
+23. `2026_08_28_000117_create_audit_outbox_table.php`.
+24. `2026_08_28_000117_create_homepage_campaigns_table.php`.
+25. `2026_08_28_000118_create_flash_deals_tables.php`.
+26. `2026_08_28_000118_make_audit_logs_append_only.php`.
+27. `2026_08_28_000119_create_recently_viewed_products_table.php`.
 28. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
 
 ## 14. Deferred schema
