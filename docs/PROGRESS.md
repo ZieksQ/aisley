@@ -31,3 +31,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-27
 
 - Added responsive, API-integrated Customer authentication pages for registration, approval/rejection states, session sign-in, and password recovery/reset. Added reusable form primitives through the new `@aisley/ui` workspace package, React Icons, route-specific SEO metadata, canonical URLs, robots rules, and a sitemap; storefront lint, strict TypeScript checks, and the Next.js production build pass.
+
+## 2026-08-28
+
+- Added Admin account-registration management for the currently implemented Customer and Seller roles, with a permission-gated paginated/searchable review queue, role-aware details, atomic approval/rejection transitions, reviewer metadata, queued applicant emails, immutable UUID audit records, and conflict protection. Added responsive queue/detail screens and minimal dashboard/sidebar navigation while preserving the dashboard scaffold; Courier applications remain excluded. All 34 API tests and 244 assertions pass on SQLite and PostgreSQL 18.3, and Admin lint and production build pass.
