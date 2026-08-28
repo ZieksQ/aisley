@@ -63,6 +63,7 @@ Due to native enum column type errors in PostgreSQL migrations, database columns
 
 * **Database:** Hosted inside a local Docker container (`docker-compose.yml`).
 * **Dependencies:** Runs on the local machine's native PHP, Composer, and Node environments.
+* **Process launcher:** Root `pnpm dev` starts the Laravel HTTP server, database queue worker, Laravel scheduler, and all three current frontend applications. The queue worker persists asynchronous notifications and audit events; the scheduler redispatches recoverable pending audit outbox events.
 
 ### Production Strategy
 
