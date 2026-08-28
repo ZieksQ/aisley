@@ -47,3 +47,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 
 - Completed the Admin account-approval workflow: authorized Admins can open Customer and Seller registration details, approve or reject pending accounts, optionally provide a rejection reason, and safely handle already-reviewed conflicts. Decisions atomically update the application and user account, record the reviewer and timestamp, create an immutable audit entry, and queue the applicant email.
 - Added the shared local/testing Admin account to `InitialAdminSeeder`: email `admin@test.com`, password `Admin12345`. Running `php artisan db:seed` creates or restores the active account and grants its registration view/review permissions; the known test account is not seeded in production.
+
+## 2026-08-28
+
+- Updated the Admin sidebar to follow the selected theme: light mode now uses a white neutral surface with readable purple/slate active, hover, profile, and navigation states, while dark mode preserves the original dark-purple appearance.

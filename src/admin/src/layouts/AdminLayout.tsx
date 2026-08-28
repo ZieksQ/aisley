@@ -15,8 +15,8 @@ import { ThemeToggle } from '../components/ThemeToggle'
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${
     isActive
-      ? 'bg-white/10 text-white ring-1 ring-white/10'
-      : 'text-purple-100/60 hover:bg-white/[0.07] hover:text-white'
+      ? 'bg-purple-50 text-[#4C1268] ring-1 ring-purple-100 dark:bg-white/10 dark:text-white dark:ring-white/10'
+      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-purple-100/60 dark:hover:bg-white/[0.07] dark:hover:text-white'
   }`
 
 export function AdminLayout() {
@@ -51,7 +51,7 @@ export function AdminLayout() {
 
   return (
     <main className="min-h-screen bg-[#f7f8fb] text-slate-950 dark:bg-[#0b0d13] dark:text-white">
-      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-72 flex-col border-r border-white/10 bg-[#180b20] px-5 py-6 text-white lg:flex`}>
+      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 text-slate-950 shadow-2xl dark:border-white/10 dark:bg-[#180b20] dark:text-white lg:flex lg:shadow-none`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-xl bg-[#E6007A]">
@@ -59,12 +59,12 @@ export function AdminLayout() {
             </div>
             <div>
               <p className="font-semibold">Aisley</p>
-              <p className="text-xs uppercase tracking-[0.16em] text-purple-200/55">Admin Console</p>
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-purple-200/55">Admin Console</p>
             </div>
           </div>
           <button
             aria-label="Close navigation"
-            className="grid size-9 place-items-center rounded-lg text-purple-100/60 hover:bg-white/10 hover:text-white lg:hidden"
+            className="grid size-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-950 dark:text-purple-100/60 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
             onClick={() => setIsMenuOpen(false)}
             type="button"
           >
@@ -73,7 +73,7 @@ export function AdminLayout() {
         </div>
 
         <nav className="mt-10" aria-label="Admin navigation">
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-200/40">Workspace</p>
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-purple-200/40">Workspace</p>
           <div className="mt-3 space-y-1.5">
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
               <FaGaugeHigh aria-hidden="true" />
@@ -88,22 +88,22 @@ export function AdminLayout() {
           </div>
         </nav>
 
-        <div className="mt-6 rounded-xl border border-dashed border-white/15 p-4 text-xs leading-5 text-purple-100/50">
+        <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-4 text-xs leading-5 text-slate-400 dark:border-white/15 dark:text-purple-100/50">
           Additional admin tools will be added as their workflows are implemented.
         </div>
 
-        <div className="mt-auto border-t border-white/10 pt-5">
+        <div className="mt-auto border-t border-slate-200 pt-5 dark:border-white/10">
           <div className="flex items-center gap-3 px-2">
-            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-purple-200/15 text-sm font-semibold uppercase text-purple-100">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-purple-50 text-sm font-semibold uppercase text-[#4C1268] dark:bg-purple-200/15 dark:text-purple-100">
               {initials}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{firstName}</p>
-              <p className="truncate text-xs text-purple-100/45">{admin?.email}</p>
+              <p className="truncate text-xs text-slate-400 dark:text-purple-100/45">{admin?.email}</p>
             </div>
           </div>
           <button
-            className="mt-4 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-purple-100/65 hover:bg-white/10 hover:text-white disabled:opacity-50"
+            className="mt-4 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-950 disabled:opacity-50 dark:text-purple-100/65 dark:hover:bg-white/10 dark:hover:text-white"
             disabled={isSigningOut}
             onClick={handleLogout}
             type="button"
