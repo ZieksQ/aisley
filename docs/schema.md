@@ -97,8 +97,8 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
 | `ShopStatus` | `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
-| `AdminAuditAction` | `registration.approved`, `registration.rejected` | New `audit_logs.action` and `audit_outbox.action` values |
-| `AuditSourceFeature` | `account_approval` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
+| `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
+| `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
 
@@ -385,7 +385,7 @@ The Eloquent model rejects update and delete operations. PostgreSQL and SQLite t
 
 **Model:** `AuditOutbox`
 
-Account-registration decisions write one outbox event inside the same transaction as the application and user-status transition. A queued, idempotent writer copies the sanitized event into `audit_logs` after commit. A scheduled recovery command redispatches due unprocessed rows if queue dispatch or processing is interrupted.
+Account-registration decisions write one outbox event inside the same transaction as the application and user-status transition. Successful active-Admin logins write an Admin-authentication event after the secure session is established; the authenticated Admin is both actor and target. A queued, idempotent writer copies sanitized events into `audit_logs` after commit. A scheduled recovery command redispatches due unprocessed rows if queue dispatch or processing is interrupted.
 
 | Column | PostgreSQL type | Nullable | Notes |
 | --- | --- | --- | --- |
@@ -568,6 +568,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 13. Audit logs are append-only at both the Eloquent and database-trigger layers; normal application paths may create them but must not update or delete them.
 14. Audit payloads must pass through the sanitizer and must not contain credentials, authorization/session material, raw evidence or binary file contents.
 15. An audit outbox row must be committed with its business transition. Only the post-commit writer creates the ledger row, and retries must reuse the outbox UUID to remain idempotent.
+16. Only successful active-Admin logins generate `admin.login_succeeded`; failed, inactive, and non-Admin authentication attempts do not generate that event.
 
 ## 13. Migration order
 
