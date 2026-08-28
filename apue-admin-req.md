@@ -5,13 +5,13 @@
 
 ## Current Decision
 
-The Admin Dashboard must remain a scaffold for now. The items under **Can Be Implemented Now** describe technically ready follow-up work, but they must not be added until explicitly requested.
+The Pending Registrations KPI and Registration Action Center are implemented. The rest of the Admin Dashboard remains a scaffold until its owning marketplace domains are built and their Dashboard work is explicitly requested.
 
 The missing Logistics role and Logistics registration count are intentionally excluded from this document's current scope.
 
 ## Pending Registrations KPI
 
-KPI means **Key Performance Indicator**. On the Dashboard, the Pending Registrations KPI would be a summary card showing how many Admin-owned applications still need review.
+KPI means **Key Performance Indicator**. On the Dashboard, the Pending Registrations KPI is a summary card showing how many Admin-owned applications still need review.
 
 Current count definition:
 
@@ -29,7 +29,7 @@ Customers: 7
 Sellers: 5
 ```
 
-Expected behavior:
+Current behavior:
 
 - Count only registration applications whose status is `pending`.
 - Include only Customer and Seller applications.
@@ -46,7 +46,7 @@ The KPI summarizes workload only. It must not approve or reject an application d
 
 ## Registration Action Center
 
-The Action Center would show a short, bounded list of pending applications that the Admin may want to review next. It answers **which applications need attention**, while the KPI answers **how many applications need attention**.
+The Action Center shows a short, bounded list of pending applications that the Admin may want to review next. It answers **which applications need attention**, while the KPI answers **how many applications need attention**.
 
 Example:
 
@@ -57,7 +57,7 @@ Registration Action Center
 - Seller application submitted 2 days ago — Review
 ```
 
-Expected behavior:
+Current behavior:
 
 - Use the existing registration applications as the source of truth.
 - Show only a small bounded number of pending items.
@@ -81,13 +81,19 @@ Expected behavior:
 - Shared local/testing Admin account seeded as `admin@test.com`.
 - Successful active-Admin login auditing.
 
-### Dashboard Scaffold
+### Dashboard
 
 - Protected `/dashboard` route.
 - Responsive Admin layout and sidebar.
 - Light and dark themes.
 - Authenticated Admin greeting.
-- Permission-aware Account Registrations shortcut.
+- Permission-aware `GET /api/v1/admin/dashboard` aggregate endpoint.
+- Pending Customer and Seller registration total and per-role breakdown.
+- Bounded five-item Registration Action Center ordered oldest first.
+- Safe action previews that omit applicant names, emails, documents, addresses, and contact details.
+- Deep links to the pending queue and authoritative registration detail screens.
+- Loading, zero, error, retry, and generated-at states.
+- Permission-limited responses that omit registration data instead of displaying a misleading zero.
 - Placeholder cards for future operational features.
 
 ### Account Registrations
@@ -122,45 +128,21 @@ Expected behavior:
 
 ## Can Be Implemented Now
 
-The following Dashboard work can use existing data and does not require unfinished marketplace domains:
+The requested registration Dashboard increment is complete. The following additions remain technically possible with existing data, but must not be added without explicit approval:
 
-1. **Permission-aware Dashboard API**
-   - Add a bounded authenticated endpoint such as `GET /api/v1/admin/dashboard`.
-   - Return only sections the current Admin is authorized to see.
-
-2. **Pending Registrations KPI**
-   - Return the total pending Customer and Seller registration count.
-   - Optionally include separate Customer and Seller counts.
-
-3. **Registration Action Center**
-   - Return a small safe preview of pending applications.
-   - Link each item to its registration review screen.
-
-4. **Pending Registration Deep Link**
-   - Link the KPI to `/registrations?status=pending`.
-
-5. **Widget States**
-   - Add loading, empty, error, and retry states.
-   - Preserve the Dashboard navigation shell when a request fails.
-
-6. **Refresh Behavior**
-   - Refetch when returning to the Dashboard.
-   - Refresh after approval or rejection.
-   - Optionally show a generated-at or last-updated timestamp.
-
-7. **Backend Coverage**
-   - Test guest and non-Admin denial.
-   - Test active Admin access.
-   - Test permission-limited responses.
-   - Test Customer and Seller counts.
-   - Test exclusion of approved, rejected, and Courier applications.
-   - Test bounded previews and personal-information minimization.
-
-8. **Frontend Coverage After Test-Tool Approval**
+1. **Frontend Automated Coverage After Test-Tool Approval**
    - Test loading, zero, error, and retry states.
    - Test permission-aware visibility and registration navigation.
    - Test responsive and keyboard-accessible behavior.
    - A frontend testing dependency must not be added without explicit approval.
+
+2. **Approved Account Metrics**
+   - Total or active Customer and Seller account counts can be calculated from existing data.
+   - The exact metric and Dashboard value must be approved first.
+
+3. **Audit Activity Preview**
+   - A bounded recent Admin activity preview can use the existing Audit Log.
+   - This is not part of the current Dashboard specification's core KPI set and must be approved first.
 
 ## Technically Possible but Not Currently Required
 
@@ -207,9 +189,9 @@ Even after Dashboard widgets are implemented, the Dashboard should summarize and
 
 Those actions belong to their authoritative Admin feature screens.
 
-## Recommended First Dashboard Increment
+## Implemented Dashboard Increment
 
-When Dashboard implementation is authorized, the safest first increment is:
+The completed first increment is:
 
 ```text
 Authenticated Dashboard API
