@@ -5,14 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use LogicException;
 
-class AuditLog extends Model
+class AuditOutbox extends Model
 {
     use HasUuids;
 
-    public $timestamps = false;
+    protected $table = 'audit_outbox';
 
     protected $fillable = [
         'id',
@@ -29,22 +27,19 @@ class AuditLog extends Model
         'metadata',
         'request_id',
         'schema_version',
-        'occurred_at',
         'ip_address',
         'user_agent',
-        'created_at',
+        'occurred_at',
+        'attempts',
+        'available_at',
+        'processed_at',
+        'last_error',
     ];
 
     /** @return BelongsTo<User, $this> */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_id');
-    }
-
-    /** @return MorphTo<Model, $this> */
-    public function auditable(): MorphTo
-    {
-        return $this->morphTo();
     }
 
     /** @return array<string, string> */
@@ -57,18 +52,10 @@ class AuditLog extends Model
             'changed_fields' => 'array',
             'metadata' => 'array',
             'schema_version' => 'integer',
+            'attempts' => 'integer',
             'occurred_at' => 'datetime',
-            'created_at' => 'datetime',
+            'available_at' => 'datetime',
+            'processed_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (AuditLog $auditLog): void {
-            $auditLog->occurred_at ??= now();
-            $auditLog->created_at ??= now();
-        });
-        static::updating(fn () => throw new LogicException('Audit logs are immutable.'));
-        static::deleting(fn () => throw new LogicException('Audit logs are immutable.'));
     }
 }
