@@ -13,7 +13,7 @@ Format:
 
 ## Status
 
-Project is currently in the planning/documentation phase. No code has been implemented yet.
+Project is in active implementation across the API, Customer storefront, and Admin dashboard.
 
 ## 2026-08-27
 
@@ -34,6 +34,12 @@ Project is currently in the planning/documentation phase. No code has been imple
 
 ## 2026-08-28
 
+- Added public Customer marketplace homepage APIs for aggregated campaign/category/deal/product content, bounded cursor-based discovery, and product/shop/category search. Added approval-aware storefront visibility, authenticated delivery and recently viewed context, lightweight product-card DTOs, safe campaign destinations, PostgreSQL-backed product/campaign/flash-deal/history schema, cache-aware public metadata, and feature coverage; all 29 API tests and 273 assertions pass.
+- Added idempotent initial Customer and product catalog seeders. The Customer seeder creates an active, approved account from `APPROVED_CUSTOMER_*` environment settings; the catalog seeds active seller/shop/category dependencies and four storefront-visible products with remote Unsplash thumbnails.
+
+## 2026-08-28
+
+- Added the responsive Customer marketplace homepage and product-search results UI. Integrated the public and personalized homepage APIs with ISR-prerendered discovery content, client-refreshed customer context, accessible campaign and flash-deal interactions, reusable product/category modules, bounded cursor infinite scrolling with session restoration, responsive media handling, analytics hooks, and discovery environment limits. Added canonical/Open Graph/Twitter/JSON-LD SEO metadata; storefront lint, strict TypeScript checks, and the Next.js production build pass.
 - Added Admin account-registration management for the currently implemented Customer and Seller roles, with a permission-gated paginated/searchable review queue, role-aware details, atomic approval/rejection transitions, reviewer metadata, queued applicant emails, immutable UUID audit records, and conflict protection. Added responsive queue/detail screens and minimal dashboard/sidebar navigation while preserving the dashboard scaffold; Courier applications remain excluded. All 34 API tests and 244 assertions pass on SQLite and PostgreSQL 18.3, and Admin lint and production build pass.
 - Replaced the environment-dependent initial Admin bootstrap with the shared local/testing seed account `admin@test.com`, restored to its known active credentials whenever the seeder runs, while preventing that test account from being seeded in production. All 35 API tests and 246 assertions pass.
 
@@ -65,3 +71,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Added a permission-aware Admin Dashboard registration aggregate with pending Customer/Seller totals and per-role counts, plus a PII-minimized five-item oldest-first Registration Action Center linking to authoritative review screens. Added responsive loading, zero, error, retry, timestamp, and deep-link states while preserving the remaining Dashboard scaffold. All 48 API tests and 358 assertions pass on SQLite and PostgreSQL 18.3; Admin lint and production build pass.
+
+## 2026-08-28
+
+- Repaired the Customer marketplace homepage branch integration with `main`: resolved the environment, default seeder, schema-documentation, and progress-log conflicts; restored versioned Customer endpoint examples; and made `main` part of the branch history. Clean SQLite and PostgreSQL 18.3 migrations/seeding and all 55 API tests/449 assertions pass; Customer, Admin, and Seller lint and production builds pass.

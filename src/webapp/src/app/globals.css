@@ -2,7 +2,7 @@
 @source "../../../../packages/ui/src";
 
 :root {
-  --background: #ffffff;
+  --background: #f7f5f7;
   --foreground: #231429;
   --primary: #e6007a;
   --secondary: #4c1268;
@@ -21,7 +21,42 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.marketplace-scroll {
+  overscroll-behavior-inline: contain;
+  scrollbar-color: #cfc4d2 transparent;
+  scrollbar-width: thin;
+}
+
+.marketplace-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.marketplace-scroll::-webkit-scrollbar-thumb {
+  background: #cfc4d2;
+  border-radius: 3px;
+}
+
+.marketplace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::selection {
   background: rgba(230, 0, 122, 0.18);
   color: #31123f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

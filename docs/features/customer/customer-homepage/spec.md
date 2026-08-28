@@ -851,7 +851,7 @@ Rules:
 Example request:
 
 ```http
-GET /api/storefront/home/recommendations?cursor={cursor}&limit={PAGE_SIZE}
+GET /api/v1/customer/home/recommendations?cursor={cursor}&limit={PAGE_SIZE}
 ```
 
 The API should still enforce its own maximum `limit`; the frontend environment value exists primarily for UX and performance tuning.
@@ -1196,7 +1196,7 @@ The exact endpoint names are implementation choices. A homepage aggregation endp
 Example:
 
 ```http
-GET /api/storefront/home
+GET /api/v1/customer/home
 ```
 
 Possible response:
@@ -1282,13 +1282,13 @@ Homepage search should support a lightweight search experience and route to a de
 Suggested query:
 
 ```http
-GET /api/products/search?q={query}&page={page}
+GET /api/v1/customer/products/search?q={query}&page={page}
 ```
 
 Optional autocomplete:
 
 ```http
-GET /api/search/suggestions?q={query}
+GET /api/v1/customer/search/suggestions?q={query}
 ```
 
 Suggestion types:

@@ -1,6 +1,6 @@
 # Database Schema
 
-> **Status:** Implemented foundation schema
+> **Status:** Implemented foundation and customer-homepage schema
 >
 > **Last synchronized:** 2026-08-28
 >
@@ -71,6 +71,11 @@ erDiagram
     USERS ||--o| SHOPS : owns_as_seller
     SHOP_CATEGORIES o|--o{ SHOPS : classifies
     CATEGORIES o|--o{ CATEGORIES : parent_of
+    SHOPS ||--o{ PRODUCTS : sells
+    CATEGORIES o|--o{ PRODUCTS : classifies
+    FLASH_DEALS }o--o{ PRODUCTS : includes
+    USERS ||--o{ RECENTLY_VIEWED_PRODUCTS : views
+    PRODUCTS ||--o{ RECENTLY_VIEWED_PRODUCTS : appears_in
 
     COURIER_PROFILES ||--o{ VEHICLES : registers
 
@@ -97,6 +102,8 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
 | `ShopStatus` | `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
+| `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
+| `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
 | `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
 | `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
 
@@ -493,7 +500,7 @@ The foreign key cannot verify that `seller_id` has the Seller role. The API must
 
 **Model:** `Category`
 
-This is the hierarchical catalog taxonomy. Product relationships will be added with the future product schema.
+This is the hierarchical catalog taxonomy used by storefront product discovery.
 
 | Column | PostgreSQL type | Nullable | Default | Notes |
 | --- | --- | --- | --- | --- |
@@ -502,6 +509,8 @@ This is the hierarchical catalog taxonomy. Product relationships will be added w
 | `name` | VARCHAR | No | — | Display name |
 | `slug` | VARCHAR | No | — | Globally unique route/filter key |
 | `description` | TEXT | Yes | `NULL` | Optional description |
+| `image_disk` | VARCHAR | No | `public` | Filesystem disk containing the homepage image |
+| `image_path` | TEXT | Yes | `NULL` | Category-card image path |
 | `status` | VARCHAR | No | `active` | Cast to `CategoryStatus` |
 | `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 | `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
@@ -512,6 +521,83 @@ Constraints and indexes:
 - Index: (`parent_id`, `status`).
 
 Deleting a parent preserves its children and sets their `parent_id` to `NULL`. Cycle prevention belongs in application validation.
+
+### 9.4 `products`
+
+**Model:** `Product`
+
+The first product schema intentionally stores the lightweight, authoritative fields needed by storefront search and homepage cards. Product variations, inventory movements, and order-time snapshots remain deferred.
+
+| Column | PostgreSQL type | Nullable | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
+| `shop_id` | UUID | No | — | FK → `shops.id`; `ON DELETE RESTRICT` |
+| `category_id` | UUID | Yes | `NULL` | FK → `categories.id`; `ON DELETE SET NULL` |
+| `name` | VARCHAR | No | — | Searchable product/card title |
+| `slug` | VARCHAR | No | — | Globally unique product route key |
+| `short_description` | TEXT | Yes | `NULL` | Summary copy; excluded from homepage DTOs |
+| `thumbnail_disk` | VARCHAR | No | `public` | Filesystem disk for the primary card image |
+| `thumbnail_path` | TEXT | Yes | `NULL` | Primary product-card image path |
+| `price` | NUMERIC(12,2) | No | — | Current regular selling price |
+| `original_price` | NUMERIC(12,2) | Yes | `NULL` | Legitimate comparison price when higher than `price` |
+| `stock_quantity` | BIGINT | No | `0` | Current aggregate stock for discovery eligibility |
+| `average_rating` | NUMERIC(3,2) | Yes | `NULL` | Derived rating summary |
+| `review_count` | BIGINT | No | `0` | Real persisted review count |
+| `sold_count` | BIGINT | No | `0` | Real persisted completed-sale count used for MVP ranking |
+| `badges` | JSON | Yes | `NULL` | Storefront-safe promotional badge identifiers |
+| `is_promoted` | BOOLEAN | No | `false` | Rule-based discovery signal |
+| `status` | VARCHAR | No | `draft` | Cast to `ProductStatus` |
+| `published_at` | TIMESTAMP | Yes | `NULL` | Product is not publicly visible before this time |
+| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+
+Public storefront queries centrally require an active/published product, an active approved Seller, an active Shop, and a Shop that is not in vacation mode. Primary discovery and deal queries additionally require positive product stock.
+
+### 9.5 `homepage_campaigns`
+
+**Model:** `HomepageCampaign`
+
+| Column | PostgreSQL type | Nullable | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
+| `placement` | VARCHAR(32) | No | — | Cast to `HomepageCampaignPlacement` |
+| `title` | VARCHAR | No | — | Internal/display campaign title |
+| `image_disk` | VARCHAR | No | `public` | Filesystem disk for banner media |
+| `image_desktop_path` | TEXT | No | — | Desktop banner image path |
+| `image_mobile_path` | TEXT | No | — | Mobile banner image path |
+| `alt_text` | VARCHAR | No | — | Accessible image alternative |
+| `destination_url` | TEXT | No | — | Sanitized against internal/allowed storefront hosts at output |
+| `starts_at` | TIMESTAMP | No | — | Inclusive campaign start |
+| `ends_at` | TIMESTAMP | No | — | Exclusive campaign end |
+| `priority` | INTEGER | No | `0` | Higher values render first |
+| `is_active` | BOOLEAN | No | `true` | Developer/admin operational switch |
+| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+
+Only active records satisfying `starts_at <= now < ends_at` are exposed. Homepage caching is invalidated on normal model saves/deletes, and expiry is rechecked after cache retrieval.
+
+### 9.6 `flash_deals` and `flash_deal_products`
+
+**Model:** `FlashDeal`; products use an Eloquent many-to-many relationship.
+
+`flash_deals` stores the named, server-authoritative deal window (`starts_at`, `ends_at`, and `is_active`). `flash_deal_products` uses (`flash_deal_id`, `product_id`) as its composite primary key and stores `deal_price NUMERIC(12,2)`, `deal_stock BIGINT`, `sold_quantity BIGINT`, and timestamps.
+
+Both foreign keys cascade on delete. The homepage exposes a deal only during its active window and only when at least one attached product is storefront-purchasable, has remaining deal stock, and has a deal price below its regular price.
+
+### 9.7 `recently_viewed_products`
+
+**Model:** `RecentlyViewedProduct`
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 primary key |
+| `user_id` | UUID | No | FK → `users.id`; `ON DELETE CASCADE` |
+| `product_id` | UUID | No | FK → `products.id`; `ON DELETE CASCADE` |
+| `last_viewed_at` | TIMESTAMP | No | Most recent authenticated view time |
+| `created_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+
+Unique (`user_id`, `product_id`) deduplicates repeated views. Index (`user_id`, `last_viewed_at`) supports most-recent-first retrieval. The API only personalizes with this data when the authenticated identity is an active Customer.
 
 ## 10. Framework infrastructure tables
 
@@ -547,6 +633,10 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Shop → Seller User | `RESTRICT` | Prevent a hard delete from orphaning the tenant |
 | Shop → shop category | `SET NULL` | Preserve shop if classification is removed |
 | Category → parent category | `SET NULL` | Preserve child categories if parent is removed |
+| Product → Shop | `RESTRICT` | Products must be archived/removed before hard-deleting their tenant Shop |
+| Product → Category | `SET NULL` | Preserve product if taxonomy is reorganized |
+| Flash deal item → Flash deal/Product | `CASCADE` | Deal membership has no meaning without either side |
+| Recently viewed item → User/Product | `CASCADE` | History has no meaning without either side |
 | Session → User | `SET NULL` | Session record may outlive user cleanup briefly |
 
 ## 12. Application-enforced invariants
@@ -565,10 +655,13 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 10. Category ancestry must not contain cycles.
 11. Enum transitions and values must be validated before persistence because the database columns are strings without native enum or `CHECK` constraints.
 12. Hard deletion should not replace account suspension/deactivation workflows.
-13. Audit logs are append-only at both the Eloquent and database-trigger layers; normal application paths may create them but must not update or delete them.
-14. Audit payloads must pass through the sanitizer and must not contain credentials, authorization/session material, raw evidence or binary file contents.
-15. An audit outbox row must be committed with its business transition. Only the post-commit writer creates the ledger row, and retries must reuse the outbox UUID to remain idempotent.
-16. Only successful active-Admin logins generate `admin.login_succeeded`; failed, inactive, and non-Admin authentication attempts do not generate that event.
+13. Product prices, stock, ratings, counts, and deal quantities must remain nonnegative; deal price must be below regular price before storefront exposure.
+14. Homepage campaign windows must end after they start, and campaign destinations must remain internal or use explicitly allowed storefront hosts.
+15. `recently_viewed_products.user_id` must identify a Customer even though the foreign key cannot enforce a user role.
+16. Audit logs are append-only at both the Eloquent and database-trigger layers; normal application paths may create them but must not update or delete them.
+17. Audit payloads must pass through the sanitizer and must not contain credentials, authorization/session material, raw evidence or binary file contents.
+18. An audit outbox row must be committed with its business transition. Only the post-commit writer creates the ledger row, and retries must reuse the outbox UUID to remain idempotent.
+19. Only successful active-Admin logins generate `admin.login_succeeded`; failed, inactive, and non-Admin authentication attempts do not generate that event.
 
 ## 13. Migration order
 
@@ -592,11 +685,16 @@ Migrations currently run in this dependency order:
 16. `2026_08_27_000112_create_shops_table.php`.
 17. `2026_08_27_000113_create_categories_table.php`.
 18. `2026_08_27_000114_scope_password_reset_tokens_by_role.php`.
-19. `2026_08_28_000115_create_audit_logs_table.php`.
-20. `2026_08_28_000116_enrich_audit_logs_for_viewer.php`.
-21. `2026_08_28_000117_create_audit_outbox_table.php`.
-22. `2026_08_28_000118_make_audit_logs_append_only.php`.
-23. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
+19. `2026_08_28_000115_add_homepage_media_to_categories_table.php`.
+20. `2026_08_28_000115_create_audit_logs_table.php`.
+21. `2026_08_28_000116_create_products_table.php`.
+22. `2026_08_28_000116_enrich_audit_logs_for_viewer.php`.
+23. `2026_08_28_000117_create_audit_outbox_table.php`.
+24. `2026_08_28_000117_create_homepage_campaigns_table.php`.
+25. `2026_08_28_000118_create_flash_deals_tables.php`.
+26. `2026_08_28_000118_make_audit_logs_append_only.php`.
+27. `2026_08_28_000119_create_recently_viewed_products_table.php`.
+28. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
 
 ## 14. Deferred schema
 
@@ -604,8 +702,8 @@ The following capabilities appear in requirements but have no migrations or mode
 
 | Capability | Deferred data design |
 | --- | --- |
-| Catalog and inventory | Products, media, options/values, purchasable variants, stock, reservations, and inventory movements |
-| Promotions | Seller/platform vouchers, discount rules, eligibility, limits, and redemptions |
+| Catalog and inventory | Additional product media, options/values, purchasable variants, reservations, and inventory movements beyond the implemented homepage product summary fields |
+| Promotions | Seller/platform vouchers, general discount rules, eligibility, limits, and redemptions beyond the implemented homepage flash-deal windows |
 | Cart and checkout | Carts/items and a checkout grouping model for multi-shop purchases |
 | Orders and finance | Shop-scoped orders, immutable order-item/address snapshots, payments, fees, commissions, and status history |
 | First-party logistics | Organization/hub decision, shipments/parcels, waybills, scan events, pickup/final-delivery tasks, assignments, proof of delivery, and Courier earnings |

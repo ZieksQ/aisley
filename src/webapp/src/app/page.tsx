@@ -1,69 +1,124 @@
-import Image from "next/image";
+import type { Metadata } from "next";
 
-export default function Home() {
+import { CategorySection } from "@/components/marketplace/category-section";
+import { DiscoveryFeed } from "@/components/marketplace/discovery-feed";
+import { FlashDealsSection } from "@/components/marketplace/flash-deals-section";
+import { HeroCampaignWindow } from "@/components/marketplace/hero-campaign-window";
+import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
+import { HomepageAnalytics } from "@/components/marketplace/homepage-analytics";
+import {
+  MarketplaceHeader,
+  UtilityBar,
+} from "@/components/marketplace/marketplace-header";
+import { ProductRail } from "@/components/marketplace/product-rail";
+import { QuickActions } from "@/components/marketplace/quick-actions";
+import { RecentlyViewedSection } from "@/components/marketplace/recently-viewed-section";
+import { marketplaceConfig } from "@/lib/marketplace/config";
+import { getPublicHomepage } from "@/lib/marketplace/server";
+
+const title = "Aisley | Shop Products, Deals & Local Marketplace Finds";
+const description =
+  "Discover products, current deals, and everyday marketplace finds from trusted Aisley sellers in the Philippines.";
+
+export const metadata: Metadata = {
+  title: { absolute: title },
+  description,
+  alternates: { canonical: "/" },
+  keywords: [
+    "Aisley marketplace",
+    "online shopping Philippines",
+    "local sellers",
+    "marketplace deals",
+  ],
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Aisley",
+    title,
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
+};
+
+export const revalidate = 60;
+
+export default async function Home() {
+  const homepage = await getPublicHomepage(marketplaceConfig.discoveryPageSize);
+  const siteUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  ).replace(/\/$/, "");
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        name: "Aisley",
+        url: siteUrl,
+        logo: `${siteUrl}/aisley-logo-with-title.svg`,
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        name: "Aisley",
+        url: siteUrl,
+        publisher: { "@id": `${siteUrl}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <HomeDataProvider initialData={homepage}>
+      <HomepageAnalytics />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
+      <UtilityBar />
+      <MarketplaceHeader />
+
+      <main className="flex-1">
+        <h1 className="sr-only">
+          Aisley marketplace products, deals, and local finds
+        </h1>
+
+        <div className="mx-auto max-w-[1400px] px-4 pb-5 pt-4 sm:px-5 sm:pt-5 lg:px-8">
+          <HeroCampaignWindow
+            heroCampaigns={homepage.campaigns.hero}
+            sideCampaigns={homepage.campaigns.side}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <QuickActions actions={homepage.quickActions} />
+
+        <div className="mx-auto max-w-[1400px] space-y-9 px-4 py-8 sm:px-5 lg:space-y-11 lg:px-8 lg:py-10">
+          <CategorySection categories={homepage.categories} />
+          <FlashDealsSection />
+          <ProductRail
+            id="top-products"
+            title="Top products"
+            actionHref="/products?sort=top"
+            products={homepage.topProducts}
+          />
+          <RecentlyViewedSection />
+          <DiscoveryFeed />
         </div>
       </main>
-    </div>
+    </HomeDataProvider>
   );
 }

@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
+use App\Http\Controllers\Customer\HomepageController;
+use App\Http\Controllers\Customer\ProductSearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
@@ -54,4 +56,11 @@ Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
         Route::get('/me', [CustomerAuthController::class, 'show'])->name('me');
         Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
     });
+});
+
+Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->group(function () {
+    Route::get('/home', [HomepageController::class, 'show'])->name('home.show');
+    Route::get('/home/recommendations', [HomepageController::class, 'recommendations'])
+        ->name('home.recommendations');
+    Route::get('/products/search', ProductSearchController::class)->name('products.search');
 });

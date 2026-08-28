@@ -74,6 +74,11 @@ class User extends Authenticatable
         return $this->hasOne(Shop::class, 'seller_id');
     }
 
+    public function recentlyViewedProducts(): HasMany
+    {
+        return $this->hasMany(RecentlyViewedProduct::class);
+    }
+
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'admin_permissions', 'admin_id', 'permission_id')
