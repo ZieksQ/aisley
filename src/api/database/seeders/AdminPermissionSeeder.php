@@ -19,6 +19,11 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'registrations.review',
             'description' => 'Approve or reject pending account registration applications.',
         ],
+        [
+            'name' => 'View system audit logs',
+            'slug' => 'audit-logs.view',
+            'description' => 'View and investigate the immutable administrative audit ledger.',
+        ],
     ];
 
     public function run(): void

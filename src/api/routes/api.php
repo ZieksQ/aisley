@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -15,6 +16,16 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->middleware('admin.permission:audit-logs.view')
+        ->name('audit-logs.index');
+    Route::get('/audit-logs/options', [AuditLogController::class, 'options'])
+        ->middleware('admin.permission:audit-logs.view')
+        ->name('audit-logs.options');
+    Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])
+        ->middleware('admin.permission:audit-logs.view')
+        ->name('audit-logs.show');
+
     Route::get('/registrations', [RegistrationController::class, 'index'])
         ->middleware('admin.permission:registrations.view')
         ->name('registrations.index');

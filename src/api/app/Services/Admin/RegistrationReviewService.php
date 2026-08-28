@@ -2,14 +2,15 @@
 
 namespace App\Services\Admin;
 
+use App\Enums\Admin\AuditSourceFeature;
 use App\Enums\AdminAuditAction;
 use App\Enums\ApplicationStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
-use App\Models\AuditLog;
 use App\Models\RegistrationApplication;
 use App\Models\User;
 use App\Notifications\Admin\RegistrationDecisionNotification;
+use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -17,6 +18,8 @@ use Throwable;
 
 class RegistrationReviewService
 {
+    public function __construct(private readonly AuditService $auditService) {}
+
     public function decide(
         RegistrationApplication $registration,
         User $reviewer,
@@ -24,6 +27,7 @@ class RegistrationReviewService
         ?string $reason,
         ?string $ipAddress,
         ?string $userAgent,
+        ?string $requestId = null,
     ): RegistrationApplication {
         $registration = DB::transaction(function () use (
             $registration,
@@ -32,6 +36,7 @@ class RegistrationReviewService
             $reason,
             $ipAddress,
             $userAgent,
+            $requestId,
         ): RegistrationApplication {
             $application = RegistrationApplication::query()
                 ->whereKey($registration->id)
@@ -69,24 +74,31 @@ class RegistrationReviewService
                     : UserStatus::Rejected,
             ]);
 
-            AuditLog::create([
-                'actor_id' => $reviewer->id,
-                'action' => $decision === ApplicationStatus::Approved
+            $this->auditService->record(
+                actor: $reviewer,
+                action: $decision === ApplicationStatus::Approved
                     ? AdminAuditAction::RegistrationApproved
                     : AdminAuditAction::RegistrationRejected,
-                'auditable_type' => RegistrationApplication::class,
-                'auditable_id' => $application->id,
-                'old_values' => $oldValues,
-                'new_values' => [
+                sourceFeature: AuditSourceFeature::AccountApproval,
+                target: $application,
+                before: $oldValues,
+                after: [
                     'application_status' => $decision->value,
                     'account_status' => $application->user->status->value,
-                    'reviewer_id' => $reviewer->id,
-                    'rejection_reason' => $rejectionReason,
                 ],
-                'ip_address' => $ipAddress,
-                'user_agent' => $userAgent,
-                'created_at' => $reviewedAt,
-            ]);
+                targetSnapshot: [
+                    'registration_id' => $application->id,
+                    'account_id' => $application->user_id,
+                    'role' => $application->application_type->value,
+                ],
+                metadata: [
+                    'decision' => $decision->value,
+                ],
+                occurredAt: $reviewedAt,
+                ipAddress: $ipAddress,
+                userAgent: $userAgent,
+                requestId: $requestId,
+            );
 
             return $application;
         });

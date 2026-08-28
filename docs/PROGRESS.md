@@ -45,3 +45,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Updated the Admin sidebar to follow the selected theme: light mode now uses a white neutral surface with readable purple/slate active, hover, profile, and navigation states, while dark mode preserves the original dark-purple appearance.
+
+## 2026-08-28
+
+- Added permission-gated Admin system audit logs with searchable/filterable/paginated list and read-only detail screens, historical actor and target snapshots, safe structured before/after state, event/request metadata, and resilient rendering for older taxonomy values. Reworked account-approval auditing into a sanitized transactional outbox with post-commit queued persistence, idempotent retries, scheduled recovery, and database-enforced append-only ledger rows. Clean migrations and all 45 API tests/303 assertions pass on SQLite and PostgreSQL 18.3; Admin lint and production build pass.
