@@ -63,3 +63,11 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Expanded the root `pnpm dev` launcher to automatically start the Laravel database queue worker and scheduler alongside the API and frontend applications, so queued notifications/audit events are processed and pending audit outbox events are recovered during local development.
+
+## 2026-08-28
+
+- Documented the current Admin feature set and Dashboard implementation boundaries in `apue-admin-req.md`, including the ready-but-deferred Pending Registrations KPI and Registration Action Center, currently feasible follow-up work, and domain-dependent features that must not be implemented yet. No application code or Dashboard UI was changed.
+
+## 2026-08-28
+
+- Added a permission-aware Admin Dashboard registration aggregate with pending Customer/Seller totals and per-role counts, plus a PII-minimized five-item oldest-first Registration Action Center linking to authoritative review screens. Added responsive loading, zero, error, retry, timestamp, and deep-link states while preserving the remaining Dashboard scaffold. All 48 API tests and 358 assertions pass on SQLite and PostgreSQL 18.3; Admin lint and production build pass.

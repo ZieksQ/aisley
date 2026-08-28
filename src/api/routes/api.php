@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\HomepageController;
@@ -18,6 +19,9 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'show'])
+        ->name('dashboard.show');
+
     Route::get('/audit-logs', [AuditLogController::class, 'index'])
         ->middleware('admin.permission:audit-logs.view')
         ->name('audit-logs.index');
