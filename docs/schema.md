@@ -65,7 +65,8 @@ erDiagram
     USERS ||--o{ ADMIN_PERMISSIONS : receives
     USERS o|--o{ ADMIN_PERMISSIONS : grants
     PERMISSIONS ||--o{ ADMIN_PERMISSIONS : defines
-    USERS o|--o{ AUDIT_LOGS : performs
+    USERS o|--o{ AUDIT_LOGS : historically_attributed_to
+    USERS o|--o{ AUDIT_OUTBOX : performs
 
     USERS ||--o| SHOPS : owns_as_seller
     SHOP_CATEGORIES o|--o{ SHOPS : classifies
@@ -103,9 +104,10 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
-| `AdminAuditAction` | `registration.approved`, `registration.rejected` | `audit_logs.action` |
+| `AdminAuditAction` | `registration.approved`, `registration.rejected` | New `audit_logs.action` and `audit_outbox.action` values |
+| `AuditSourceFeature` | `account_approval` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
 
-The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values.
+The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
 
 ## 5. Identity and authentication
 
@@ -357,22 +359,66 @@ This append-only table records security-relevant Admin decisions. The audited re
 | Column | PostgreSQL type | Nullable | Notes |
 | --- | --- | --- | --- |
 | `id` | UUID | No | Primary key generated as UUIDv7 |
-| `actor_id` | UUID | Yes | FK → `users.id`; `ON DELETE SET NULL` |
-| `action` | VARCHAR(128) | No | Cast to `AdminAuditAction` |
+| `actor_id` | UUID | Yes | Historical Admin identifier; intentionally not a database FK |
+| `actor_name` | VARCHAR | Yes | Immutable display-name snapshot for deleted/deactivated actors |
+| `action` | VARCHAR(128) | No | Write paths use `AdminAuditAction`; readers tolerate historical values |
+| `source_feature` | VARCHAR(64) | No | Event source; defaults to `account_approval` for pre-viewer rows |
 | `auditable_type` | VARCHAR | No | Audited Eloquent model class |
 | `auditable_id` | UUID | No | Audited resource identifier; no database FK because the relation is polymorphic |
+| `target_snapshot` | JSON | Yes | Minimal target identity/context retained after target changes or deletion |
 | `old_values` | JSON | Yes | Relevant state immediately before the action |
 | `new_values` | JSON | Yes | Relevant state immediately after the action |
+| `changed_fields` | JSON | Yes | Stable list of fields represented by the before/after values |
+| `metadata` | JSON | Yes | Sanitized non-secret action context |
+| `request_id` | VARCHAR(64) | Yes | Request/correlation identifier |
+| `schema_version` | SMALLINT | No | Audit payload version; defaults to `1` |
+| `occurred_at` | TIMESTAMP | Yes | Original business-event time, preserved across delayed persistence |
 | `ip_address` | VARCHAR(45) | Yes | Request IP when available |
 | `user_agent` | TEXT | Yes | Request user-agent when available |
-| `created_at` | TIMESTAMP | No | Action timestamp; no `updated_at` column |
+| `created_at` | TIMESTAMP | No | Ledger persistence time; no `updated_at` column |
 
 Indexes:
 
 - (`action`, `created_at`).
 - (`auditable_type`, `auditable_id`).
+- (`source_feature`, `occurred_at`).
+- (`actor_id`, `occurred_at`).
+- `occurred_at`.
+- `request_id`.
 
-The Eloquent model rejects update and delete operations. Account-registration decisions insert the audit row in the same transaction as the application and user-status transition.
+The Eloquent model rejects update and delete operations. PostgreSQL and SQLite triggers also reject direct database updates/deletes. `actor_id` is a soft historical reference rather than a foreign key because a database-level `ON DELETE SET NULL` would attempt to mutate this append-only table; `actor_name` preserves attribution if the User is later removed.
+
+### 7.4 `audit_outbox`
+
+**Model:** `AuditOutbox`
+
+Account-registration decisions write one outbox event inside the same transaction as the application and user-status transition. A queued, idempotent writer copies the sanitized event into `audit_logs` after commit. A scheduled recovery command redispatches due unprocessed rows if queue dispatch or processing is interrupted.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Primary/event ID; reused as `audit_logs.id` to prevent duplicate ledger rows |
+| `actor_id` | UUID | Yes | FK → `users.id`; `ON DELETE SET NULL` |
+| `actor_name` | VARCHAR | Yes | Actor display-name snapshot |
+| `action` | VARCHAR(128) | No | Audit action value |
+| `source_feature` | VARCHAR(64) | No | Audit source feature |
+| `auditable_type` | VARCHAR | No | Target Eloquent model class |
+| `auditable_id` | UUID | No | Target identifier; no polymorphic database FK |
+| `target_snapshot` | JSON | Yes | Sanitized target identity/context |
+| `old_values`, `new_values` | JSON | Yes | Sanitized before/after state |
+| `changed_fields` | JSON | Yes | Fields included in the state comparison |
+| `metadata` | JSON | Yes | Sanitized non-secret action context |
+| `request_id` | VARCHAR(64) | Yes | Request/correlation identifier |
+| `schema_version` | SMALLINT | No | Payload version; defaults to `1` |
+| `ip_address` | VARCHAR(45) | Yes | Request IP when available |
+| `user_agent` | TEXT | Yes | Truncated request user agent |
+| `occurred_at` | TIMESTAMP | No | Original business-event time |
+| `attempts` | INTEGER | No | Persistence attempt count; defaults to `0` |
+| `available_at` | TIMESTAMP | Yes | Earliest retry/dispatch time |
+| `processed_at` | TIMESTAMP | Yes | Successful ledger persistence time |
+| `last_error` | TEXT | Yes | Truncated latest processing error for recovery diagnostics |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+
+Indexes: (`processed_at`, `available_at`) for recovery scans and (`auditable_type`, `auditable_id`) for target diagnostics.
 
 ## 8. Courier foundation
 
@@ -581,7 +627,8 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Address → User | `CASCADE` | Address belongs to user |
 | Admin permission → admin/permission | `CASCADE` | Grant is invalid without either side |
 | Admin permission → grantor User | `SET NULL` | Preserve the grant after grantor removal |
-| Audit log → actor User | `SET NULL` | Preserve the historical event if the Admin account is removed |
+| Audit log → actor User | No database FK | Preserve immutable actor ID/name snapshots without an FK-triggered ledger update |
+| Audit outbox → actor User | `SET NULL` | Pending/recoverable event remains valid after actor removal |
 | Vehicle → Courier profile | `CASCADE` | Vehicle registration belongs to Courier profile |
 | Shop → Seller User | `RESTRICT` | Prevent a hard delete from orphaning the tenant |
 | Shop → shop category | `SET NULL` | Preserve shop if classification is removed |
@@ -611,7 +658,9 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 13. Product prices, stock, ratings, counts, and deal quantities must remain nonnegative; deal price must be below regular price before storefront exposure.
 14. Homepage campaign windows must end after they start, and campaign destinations must remain internal or use explicitly allowed storefront hosts.
 15. `recently_viewed_products.user_id` must identify a Customer even though the foreign key cannot enforce a user role.
-16. Audit logs are append-only; normal application paths may create them but must not update or delete them.
+16. Audit logs are append-only at both the Eloquent and database-trigger layers; normal application paths may create them but must not update or delete them.
+17. Audit payloads must pass through the sanitizer and must not contain credentials, authorization/session material, raw evidence or binary file contents.
+18. An audit outbox row must be committed with its business transition. Only the post-commit writer creates the ledger row, and retries must reuse the outbox UUID to remain idempotent.
 
 ## 13. Migration order
 
@@ -641,6 +690,10 @@ Migrations currently run in this dependency order:
 22. `2026_08_28_000118_create_flash_deals_tables.php`.
 23. `2026_08_28_000119_create_recently_viewed_products_table.php`.
 24. `2026_08_28_000115_create_audit_logs_table.php`.
+25. `2026_08_28_000116_enrich_audit_logs_for_viewer.php`.
+26. `2026_08_28_000117_create_audit_outbox_table.php`.
+27. `2026_08_28_000118_make_audit_logs_append_only.php`.
+28. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
 
 ## 14. Deferred schema
 

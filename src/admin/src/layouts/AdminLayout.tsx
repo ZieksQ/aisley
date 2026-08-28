@@ -4,6 +4,7 @@ import {
   FaBars,
   FaBell,
   FaClipboardCheck,
+  FaClockRotateLeft,
   FaGaugeHigh,
   FaShieldHalved,
   FaXmark,
@@ -29,15 +30,19 @@ export function AdminLayout() {
   const firstName = admin?.profile?.first_name ?? 'Administrator'
   const initials = `${admin?.profile?.first_name?.[0] ?? 'A'}${admin?.profile?.last_name?.[0] ?? ''}`
   const canViewRegistrations = admin?.permissions.includes('registrations.view') ?? false
+  const canViewAuditLogs = admin?.permissions.includes('audit-logs.view') ?? false
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
+  const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
   const pageTitle = location.pathname.startsWith('/registrations')
-    ? isRegistrationDetail
-      ? 'Registration review'
-      : 'Manage account registrations'
-    : 'Dashboard'
+    ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
+    : location.pathname.startsWith('/audit-logs')
+      ? isAuditDetail ? 'Audit event' : 'System audit logs'
+      : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
-    : 'Admin workspace'
+    : location.pathname.startsWith('/audit-logs')
+      ? 'System accountability'
+      : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -83,6 +88,12 @@ export function AdminLayout() {
               <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/registrations">
                 <FaClipboardCheck aria-hidden="true" />
                 Account registrations
+              </NavLink>
+            )}
+            {canViewAuditLogs && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/audit-logs">
+                <FaClockRotateLeft aria-hidden="true" />
+                System audit logs
               </NavLink>
             )}
           </div>

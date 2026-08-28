@@ -76,6 +76,7 @@ class RegistrationController extends Controller
             null,
             $request->ip(),
             $request->userAgent(),
+            $request->header('X-Request-ID'),
         )));
     }
 
@@ -91,6 +92,7 @@ class RegistrationController extends Controller
             $request->string('reason')->trim()->value() ?: null,
             $request->ip(),
             $request->userAgent(),
+            $request->header('X-Request-ID'),
         )));
     }
 
