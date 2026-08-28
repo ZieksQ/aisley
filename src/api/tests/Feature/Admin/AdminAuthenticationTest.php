@@ -121,31 +121,46 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonPath('message', 'This area is restricted to administrators.');
     }
 
-    public function test_initial_admin_seeder_uses_configured_credentials_without_resetting_an_existing_password(): void
+    public function test_initial_admin_seeder_restores_the_shared_test_credentials_idempotently(): void
     {
-        config()->set('admin.initial', [
-            'email' => 'owner@example.com',
-            'password' => 'initial-secret',
-            'first_name' => 'Initial',
-            'last_name' => 'Owner',
+        User::factory()->create([
+            'email' => 'admin@test.com',
+            'role' => UserRole::Customer,
         ]);
 
-        $this->seed(InitialAdminSeeder::class);
+        app(InitialAdminSeeder::class)->run();
 
         $admin = User::query()
-            ->where('email', 'owner@example.com')
+            ->where('email', 'admin@test.com')
             ->where('role', UserRole::Admin)
             ->firstOrFail();
 
         $this->assertSame(UserStatus::Active, $admin->status);
-        $this->assertTrue(Hash::check('initial-secret', $admin->password));
-        $this->assertSame('Initial', $admin->adminProfile->first_name);
+        $this->assertTrue(Hash::check('Admin12345', $admin->password));
+        $this->assertSame('Test', $admin->adminProfile->first_name);
 
-        config()->set('admin.initial.password', 'replacement-secret');
+        $admin->update([
+            'password' => 'changed-password',
+            'status' => UserStatus::Suspended,
+        ]);
         $this->seed(InitialAdminSeeder::class);
 
-        $this->assertTrue(Hash::check('initial-secret', $admin->fresh()->password));
-        $this->assertDatabaseCount('users', 1);
+        $admin->refresh();
+        $this->assertSame(UserStatus::Active, $admin->status);
+        $this->assertTrue(Hash::check('Admin12345', $admin->password));
+        $this->assertDatabaseCount('users', 2);
+    }
+
+    public function test_shared_test_admin_is_not_seeded_in_production(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+
+        app(InitialAdminSeeder::class)->run();
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'admin@test.com',
+            'role' => UserRole::Admin->value,
+        ]);
     }
 
     private function fromAdminSpa(): self

@@ -218,17 +218,10 @@ class RegistrationManagementTest extends TestCase
 
     public function test_database_seeder_grants_registration_permissions_to_initial_admin(): void
     {
-        config()->set('admin.initial', [
-            'email' => 'owner@example.com',
-            'password' => 'initial-secret',
-            'first_name' => 'Initial',
-            'last_name' => 'Owner',
-        ]);
-
         $this->seed(DatabaseSeeder::class);
 
         $admin = User::query()
-            ->where('email', 'owner@example.com')
+            ->where('email', 'admin@test.com')
             ->where('role', UserRole::Admin)
             ->firstOrFail();
 

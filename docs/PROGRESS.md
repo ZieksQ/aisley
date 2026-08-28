@@ -35,3 +35,9 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Added Admin account-registration management for the currently implemented Customer and Seller roles, with a permission-gated paginated/searchable review queue, role-aware details, atomic approval/rejection transitions, reviewer metadata, queued applicant emails, immutable UUID audit records, and conflict protection. Added responsive queue/detail screens and minimal dashboard/sidebar navigation while preserving the dashboard scaffold; Courier applications remain excluded. All 34 API tests and 244 assertions pass on SQLite and PostgreSQL 18.3, and Admin lint and production build pass.
+- Replaced the environment-dependent initial Admin bootstrap with the shared local/testing seed account `admin@test.com`, restored to its known active credentials whenever the seeder runs, while preventing that test account from being seeded in production. All 35 API tests and 246 assertions pass.
+
+## 2026-08-28
+
+- Completed the Admin account-approval workflow: authorized Admins can open Customer and Seller registration details, approve or reject pending accounts, optionally provide a rejection reason, and safely handle already-reviewed conflicts. Decisions atomically update the application and user account, record the reviewer and timestamp, create an immutable audit entry, and queue the applicant email.
+- Added the shared local/testing Admin account to `InitialAdminSeeder`: email `admin@test.com`, password `Admin12345`. Running `php artisan db:seed` creates or restores the active account and grants its registration view/review permissions; the known test account is not seeded in production.
