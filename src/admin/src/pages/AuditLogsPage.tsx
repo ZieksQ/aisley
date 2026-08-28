@@ -25,7 +25,7 @@ const emptyOptions: AuditLogOptionsResponse = {
 }
 
 export function AuditLogsPage() {
-  const { logout } = useAuth()
+  const { admin, logout } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('search') ?? ''
@@ -233,7 +233,10 @@ export function AuditLogsPage() {
                     <tr className="hover:bg-slate-50/80 dark:hover:bg-white/[0.025]" key={audit.id}>
                       <td className="whitespace-nowrap px-5 py-4 text-slate-500 dark:text-slate-400">{formatAuditDate(audit.occurred_at)}</td>
                       <td className="px-5 py-4">
-                        <p className="font-semibold">{audit.actor.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{audit.actor.name}</p>
+                          {audit.actor.id === admin?.id && <SelfBadge />}
+                        </div>
                         {audit.actor.email && <p className="mt-1 text-xs text-slate-400">{audit.actor.email}</p>}
                       </td>
                       <td className="px-5 py-4">
@@ -266,7 +269,10 @@ export function AuditLogsPage() {
                     <Link className="text-sm font-semibold text-[#b0005d] dark:text-pink-300" to={`/audit-logs/${audit.id}`}>View</Link>
                   </div>
                   <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    <div><dt className="text-xs text-slate-400">Administrator</dt><dd className="mt-1 font-medium">{audit.actor.name}</dd></div>
+                    <div>
+                      <dt className="text-xs text-slate-400">Administrator</dt>
+                      <dd className="mt-1 flex items-center gap-2 font-medium">{audit.actor.name}{audit.actor.id === admin?.id && <SelfBadge />}</dd>
+                    </div>
                     <div><dt className="text-xs text-slate-400">Target</dt><dd className="mt-1 font-medium">{audit.target.type_label}</dd></div>
                   </dl>
                 </article>
@@ -372,4 +378,8 @@ function AuditListSkeleton() {
       ))}
     </div>
   )
+}
+
+function SelfBadge() {
+  return <span className="rounded-full bg-pink-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#b0005d] dark:bg-pink-400/10 dark:text-pink-300">You</span>
 }

@@ -55,3 +55,7 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Added permission-gated Admin system audit logs with searchable/filterable/paginated list and read-only detail screens, historical actor and target snapshots, safe structured before/after state, event/request metadata, and resilient rendering for older taxonomy values. Reworked account-approval auditing into a sanitized transactional outbox with post-commit queued persistence, idempotent retries, scheduled recovery, and database-enforced append-only ledger rows. Clean migrations and all 45 API tests/303 assertions pass on SQLite and PostgreSQL 18.3; Admin lint and production build pass.
+
+## 2026-08-28
+
+- Added successful active-Admin login events to the System Audit Log, capturing the authenticated Admin account, server timestamp, IP address, user agent, and safe session-authentication context while excluding failed, inactive, Customer, Seller, and Courier attempts. The viewer marks the currently signed-in Admin's events as `You`; all 45 API tests/322 assertions pass on SQLite and PostgreSQL 18.3, and Admin lint/build pass.

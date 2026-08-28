@@ -392,7 +392,7 @@ The Eloquent model rejects update and delete operations. PostgreSQL and SQLite t
 
 **Model:** `AuditOutbox`
 
-Account-registration decisions write one outbox event inside the same transaction as the application and user-status transition. A queued, idempotent writer copies the sanitized event into `audit_logs` after commit. A scheduled recovery command redispatches due unprocessed rows if queue dispatch or processing is interrupted.
+Account-registration decisions write one outbox event inside the same transaction as the application and user-status transition. Successful active-Admin logins write an Admin-authentication event after the secure session is established; the authenticated Admin is both actor and target. A queued, idempotent writer copies sanitized events into `audit_logs` after commit. A scheduled recovery command redispatches due unprocessed rows if queue dispatch or processing is interrupted.
 
 | Column | PostgreSQL type | Nullable | Notes |
 | --- | --- | --- | --- |
@@ -661,6 +661,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 16. Audit logs are append-only at both the Eloquent and database-trigger layers; normal application paths may create them but must not update or delete them.
 17. Audit payloads must pass through the sanitizer and must not contain credentials, authorization/session material, raw evidence or binary file contents.
 18. An audit outbox row must be committed with its business transition. Only the post-commit writer creates the ledger row, and retries must reuse the outbox UUID to remain idempotent.
+19. Only successful active-Admin logins generate `admin.login_succeeded`; failed, inactive, and non-Admin authentication attempts do not generate that event.
 
 ## 13. Migration order
 

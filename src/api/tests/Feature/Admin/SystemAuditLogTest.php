@@ -86,7 +86,19 @@ class SystemAuditLogTest extends TestCase
             ->assertJsonPath('actors.0.id', $viewer->id)
             ->assertJsonPath('source_features.0.value', 'account_approval')
             ->assertJsonPath('actions.0.value', 'registration.approved')
-            ->assertJsonPath('target_types.0.value', 'registration_application');
+            ->assertJsonPath('target_types.0.value', 'registration_application')
+            ->assertJsonFragment([
+                'value' => 'admin_authentication',
+                'label' => 'Admin Authentication',
+            ])
+            ->assertJsonFragment([
+                'value' => 'admin.login_succeeded',
+                'label' => 'Admin signed in',
+            ])
+            ->assertJsonFragment([
+                'value' => 'admin_account',
+                'label' => 'Admin account',
+            ]);
 
         $this->assertNotContains($unusedAdmin->id, collect($response->json('actors'))->pluck('id'));
     }

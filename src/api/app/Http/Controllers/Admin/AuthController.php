@@ -2,22 +2,28 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Admin\AuditSourceFeature;
+use App\Enums\AdminAuditAction;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LoginRequest;
 use App\Http\Resources\Admin\AdminUserResource;
 use App\Models\User;
+use App\Services\Audit\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AuthController extends Controller
 {
     private const MAX_LOGIN_ATTEMPTS = 5;
+
+    public function __construct(private readonly AuditService $auditService) {}
 
     public function store(LoginRequest $request): JsonResponse
     {
@@ -45,6 +51,28 @@ class AuthController extends Controller
         RateLimiter::clear($request->throttleKey());
         Auth::guard('web')->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+
+        try {
+            $this->auditService->record(
+                actor: $user,
+                action: AdminAuditAction::AdminLoginSucceeded,
+                sourceFeature: AuditSourceFeature::AdminAuthentication,
+                target: $user,
+                targetSnapshot: [
+                    'admin_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role->value,
+                ],
+                metadata: [
+                    'authentication_method' => 'sanctum_session',
+                ],
+                ipAddress: $request->ip(),
+                userAgent: $request->userAgent(),
+                requestId: $request->header('X-Request-ID'),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         return response()->json([
             'message' => 'Signed in successfully.',

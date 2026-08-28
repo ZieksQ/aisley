@@ -153,7 +153,7 @@ export function AuditLogDetailPage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.035]">
             <SectionHeading icon={<FaUserShield aria-hidden="true" />} subtitle="Administrator attribution" title="Actor" compact />
             <dl className="mt-5 space-y-4">
-              <DetailField label="Name" value={audit.actor.name} />
+              <DetailField label="Name" value={`${audit.actor.name}${audit.actor.id === admin?.id ? ' (You)' : ''}`} />
               <DetailField label="Email" value={audit.actor.email ?? 'Unavailable'} />
               <DetailField label="Administrator ID" value={audit.actor.id ?? 'Unavailable'} mono />
             </dl>

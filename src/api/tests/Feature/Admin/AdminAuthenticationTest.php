@@ -4,7 +4,9 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\AdminPermission;
 use App\Models\AdminProfile;
+use App\Models\Permission;
 use App\Models\User;
 use Database\Seeders\InitialAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,8 +30,16 @@ class AdminAuthenticationTest extends TestCase
             'first_name' => 'Avery',
             'last_name' => 'Admin',
         ]);
+        $permission = Permission::create([
+            'name' => 'View system audit logs',
+            'slug' => 'audit-logs.view',
+        ]);
+        AdminPermission::create([
+            'admin_id' => $admin->id,
+            'permission_id' => $permission->id,
+        ]);
 
-        $this->fromAdminSpa()->postJson('/api/v1/admin/auth/login', [
+        $this->fromAdminSpa()->withHeader('User-Agent', 'Admin authentication test')->postJson('/api/v1/admin/auth/login', [
             'email' => 'ADMIN@example.com',
             'password' => 'correct-password',
             'remember' => false,
@@ -46,12 +56,24 @@ class AdminAuthenticationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('admin.email', 'admin@example.com');
 
+        $this->getJson('/api/v1/admin/audit-logs?action=admin.login_succeeded')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.actor.id', $admin->id)
+            ->assertJsonPath('data.0.actor.email', 'admin@example.com')
+            ->assertJsonPath('data.0.source_feature', 'admin_authentication')
+            ->assertJsonPath('data.0.action', 'admin.login_succeeded')
+            ->assertJsonPath('data.0.target.type', 'admin_account')
+            ->assertJsonPath('data.0.target.id', $admin->id)
+            ->assertJsonPath('data.0.target.snapshot.email', 'admin@example.com');
+
         $this->postJson('/api/v1/admin/auth/logout')
             ->assertOk()
             ->assertJsonPath('message', 'Signed out successfully.');
 
         $this->assertGuest('web');
         $this->getJson('/api/v1/admin/auth/me')->assertUnauthorized();
+        $this->assertDatabaseCount('audit_logs', 1);
     }
 
     public function test_invalid_credentials_do_not_create_an_admin_session(): void
@@ -69,6 +91,7 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonValidationErrors('email');
 
         $this->assertGuest();
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 
     public function test_non_admin_credentials_cannot_sign_in_to_the_admin_app(): void
@@ -86,6 +109,7 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonValidationErrors('email');
 
         $this->assertGuest();
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 
     public function test_inactive_admin_cannot_sign_in_or_use_an_existing_session(): void
@@ -106,6 +130,7 @@ class AdminAuthenticationTest extends TestCase
         $this->actingAs($admin)
             ->getJson('/api/v1/admin/auth/me')
             ->assertForbidden();
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 
     public function test_authenticated_non_admin_is_blocked_from_admin_routes(): void
