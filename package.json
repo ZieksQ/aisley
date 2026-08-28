@@ -3,8 +3,10 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "concurrently -n API,WEBAPP,SELLER,ADMIN -c green,cyan,magenta,yellow \"pnpm dev:api\" \"pnpm dev:webapp\" \"pnpm dev:seller\" \"pnpm dev:admin\"",
+    "dev": "concurrently -n API,QUEUE,SCHEDULE,WEBAPP,SELLER,ADMIN -c green,blue,white,cyan,magenta,yellow \"pnpm dev:api\" \"pnpm dev:queue\" \"pnpm dev:schedule\" \"pnpm dev:webapp\" \"pnpm dev:seller\" \"pnpm dev:admin\"",
     "dev:api": "cd src/api && php artisan serve --host=0.0.0.0 --port=8000",
+    "dev:queue": "cd src/api && php artisan queue:work --tries=5 --timeout=90",
+    "dev:schedule": "cd src/api && php artisan schedule:work",
     "dev:webapp": "pnpm --dir src/webapp dev",
     "dev:seller": "pnpm --dir src/seller dev",
     "dev:admin": "pnpm --dir src/admin dev"
@@ -13,4 +15,3 @@
     "concurrently": "^9.0.1"
   }
 }
-
