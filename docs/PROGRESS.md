@@ -35,3 +35,4 @@ Project is currently in the planning/documentation phase. No code has been imple
 ## 2026-08-28
 
 - Added public Customer marketplace homepage APIs for aggregated campaign/category/deal/product content, bounded cursor-based discovery, and product/shop/category search. Added approval-aware storefront visibility, authenticated delivery and recently viewed context, lightweight product-card DTOs, safe campaign destinations, PostgreSQL-backed product/campaign/flash-deal/history schema, cache-aware public metadata, and feature coverage; all 29 API tests and 273 assertions pass.
+- Added idempotent initial Customer and product catalog seeders. The Customer seeder creates an active, approved account from `APPROVED_CUSTOMER_*` environment settings; the catalog seeds active seller/shop/category dependencies and four storefront-visible products with remote Unsplash thumbnails.
