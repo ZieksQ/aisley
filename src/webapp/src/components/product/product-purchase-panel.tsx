@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiCheck, HiMinus, HiPlus, HiShoppingCart } from "react-icons/hi2";
 
+import { useAuth } from "@/components/auth/auth-provider";
+import { useCart } from "@/components/cart/cart-provider";
+import { ApiError } from "@/lib/api";
 import type {
   ProductDetail,
   ProductVariant,
@@ -22,6 +26,50 @@ const badgeLabels: Record<string, string> = {
   top_rated: "Top rated",
 };
 
+const pendingCartIntentKey = "aisley:pending-cart-intent";
+
+type PendingCartIntent = {
+  productId: string;
+  variantId: string | null;
+  quantity: number;
+};
+
+function selectedValuesForVariant(
+  product: ProductDetail,
+  variant: ProductVariant,
+) {
+  return Object.fromEntries(
+    product.optionGroups.flatMap((group) => {
+      const selectedValue = group.values.find((value) =>
+        variant.optionValueIds.includes(value.id),
+      );
+      return selectedValue ? [[group.id, selectedValue.id]] : [];
+    }),
+  );
+}
+
+function readPendingCartIntent(): PendingCartIntent | null {
+  try {
+    const value = sessionStorage.getItem(pendingCartIntentKey);
+    if (!value) return null;
+
+    const parsed = JSON.parse(value) as Partial<PendingCartIntent>;
+    return typeof parsed.productId === "string" &&
+      (typeof parsed.variantId === "string" || parsed.variantId === null) &&
+      typeof parsed.quantity === "number" &&
+      Number.isSafeInteger(parsed.quantity) &&
+      parsed.quantity > 0
+      ? (parsed as PendingCartIntent)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function savePendingCartIntent(intent: PendingCartIntent) {
+  sessionStorage.setItem(pendingCartIntentKey, JSON.stringify(intent));
+}
+
 export function ProductPurchasePanel({
   onSelectedVariantChange,
   product,
@@ -29,9 +77,14 @@ export function ProductPurchasePanel({
   onSelectedVariantChange: (variant: ProductVariant | null) => void;
   product: ProductDetail;
 }) {
+  const router = useRouter();
+  const { auth, refresh: refreshAuth } = useAuth();
+  const { addItem } = useCart();
   const [selectedValues, setSelectedValues] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const restoredIntent = useRef(false);
 
   const selectedIds = Object.values(selectedValues);
   const selectedVariant = useMemo(
@@ -59,6 +112,33 @@ export function ProductPurchasePanel({
     selectedVariant?.originalPrice ?? product.originalPrice;
   const displayedDiscount =
     selectedVariant?.discountPercent ?? product.discountPercent;
+
+  useEffect(() => {
+    if (restoredIntent.current) return;
+    restoredIntent.current = true;
+
+    const intent = readPendingCartIntent();
+    if (!intent || intent.productId !== product.id) return;
+
+    const variant = intent.variantId
+      ? product.variants.find((item) => item.id === intent.variantId) ?? null
+      : null;
+    if (product.availability.requiresVariantSelection && !variant) return;
+
+    const availableQuantity = variant?.stockQuantity ?? product.availability.stockQuantity ?? 1;
+    const restoreTimer = window.setTimeout(() => {
+      setSelectedValues(
+        variant ? selectedValuesForVariant(product, variant) : {},
+      );
+      setQuantity(Math.min(intent.quantity, Math.max(1, availableQuantity)));
+      setMessage(
+        "Your previous selection was restored. Review it and select Add to cart again.",
+      );
+      onSelectedVariantChange(variant);
+    }, 0);
+
+    return () => window.clearTimeout(restoreTimer);
+  }, [onSelectedVariantChange, product]);
 
   function isValueAvailable(groupId: string, valueId: string) {
     const requiredIds = Object.entries(selectedValues)
@@ -95,7 +175,78 @@ export function ProductPurchasePanel({
     onSelectedVariantChange(variant);
   }
 
-  function submit(intent: "add_to_cart" | "buy_now") {
+  async function addToCart() {
+    if (!purchasable) {
+      setMessage(
+        configurationComplete
+          ? "This selection is currently out of stock."
+          : "Select every product option before continuing.",
+      );
+      return;
+    }
+
+    setMessage(null);
+    setSubmitting(true);
+    const intent: PendingCartIntent = {
+      productId: product.id,
+      variantId: selectedVariant?.id ?? null,
+      quantity,
+    };
+
+    try {
+      const settledAuth = auth.status === "loading" ? await refreshAuth() : auth;
+      if (settledAuth.status !== "authenticated") {
+        savePendingCartIntent(intent);
+        router.push(`/login?next=${encodeURIComponent(`/products/${product.id}`)}`);
+        return;
+      }
+
+      await addItem({
+        product_id: intent.productId,
+        variant_id: intent.variantId,
+        quantity: intent.quantity,
+      });
+      sessionStorage.removeItem(pendingCartIntentKey);
+
+      const choices = selectedVariant
+        ? product.optionGroups
+            .map((group) =>
+              group.values.find((value) =>
+                selectedVariant.optionValueIds.includes(value.id),
+              )?.value,
+            )
+            .filter(Boolean)
+            .join(" · ")
+        : null;
+      setMessage(
+        `${product.title}${choices ? ` (${choices})` : ""} was added to your cart.`,
+      );
+    } catch (caught) {
+      const error =
+        caught instanceof ApiError
+          ? caught
+          : new ApiError(0, {
+              message: "We could not add this item. Please try again.",
+            });
+
+      if (error.status === 401 || error.status === 419) {
+        savePendingCartIntent(intent);
+        router.push(`/login?next=${encodeURIComponent(`/products/${product.id}`)}`);
+      } else if (error.status === 409) {
+        setMessage(`Availability changed: ${error.message}`);
+      } else if (error.status === 422) {
+        setMessage(`Check your selection: ${error.message}`);
+      } else if (error.status === 403) {
+        setMessage("Your account cannot use the cart right now.");
+      } else {
+        setMessage(error.message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function buyNow() {
     if (!purchasable) {
       setMessage(
         configurationComplete
@@ -109,13 +260,13 @@ export function ProductPurchasePanel({
       productId: product.id,
       variantId: selectedVariant?.id ?? null,
       quantity,
-      intent,
+      intent: "buy_now",
     };
-    window.dispatchEvent(new CustomEvent("aisley:product-purchase-intent", { detail }));
+    window.dispatchEvent(
+      new CustomEvent("aisley:product-purchase-intent", { detail }),
+    );
     setMessage(
-      intent === "add_to_cart"
-        ? "Cart service is not available yet. Your selection has not been added."
-        : "Buy Now is not available yet. Your selection has not been reserved.",
+      "Buy Now is not available yet. Your selection has not been reserved.",
     );
   }
 
@@ -245,17 +396,18 @@ export function ProductPurchasePanel({
       <div className="mt-5 grid grid-cols-2 gap-3">
         <button
           type="button"
-          disabled={!purchasable}
-          onClick={() => submit("add_to_cart")}
+          disabled={!purchasable || submitting}
+          aria-busy={submitting}
+          onClick={() => void addToCart()}
           className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-[#E6007A] bg-white px-3 text-sm font-semibold text-[#C8006B] hover:bg-[#FFF3F9] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:cursor-not-allowed disabled:border-[#D8D0DA] disabled:bg-[#F2EFF3] disabled:text-[#9A909D]"
         >
           <HiShoppingCart aria-hidden="true" className="size-5" />
-          Add to cart
+          {submitting ? "Adding…" : "Add to cart"}
         </button>
         <button
           type="button"
           disabled={!purchasable}
-          onClick={() => submit("buy_now")}
+          onClick={buyNow}
           className="min-h-12 rounded-md bg-[#E6007A] px-3 text-sm font-semibold text-white hover:bg-[#C8006B] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:cursor-not-allowed disabled:bg-[#CFC6D2]"
         >
           Buy now
