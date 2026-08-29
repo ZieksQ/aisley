@@ -11,6 +11,7 @@ use App\Models\ProductOptionGroup;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Database\Seeders\InitialCustomerSeeder;
+use Database\Seeders\InitialSellerSeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -52,11 +53,18 @@ class DatabaseSeedersTest extends TestCase
 
     public function test_product_seeder_creates_storefront_visible_products_with_remote_thumbnails(): void
     {
+        $this->seed(InitialSellerSeeder::class);
         $this->seed(ProductSeeder::class);
 
         $products = Product::query()->storefrontPurchasable()->get();
+        $seller = User::query()
+            ->where('email', 'catalog@aisley.test')
+            ->where('role', UserRole::Seller)
+            ->firstOrFail();
 
         $this->assertCount(4, $products);
+        $this->assertTrue(Hash::check('Seller12345', $seller->password));
+        $this->assertSame('Aisley Demo Store', $seller->shop->name);
         $this->assertTrue($products->every(
             fn (Product $product) => $product->status === ProductStatus::Active
                 && str_starts_with($product->thumbnail_path, 'https://images.unsplash.com/')
@@ -79,5 +87,52 @@ class DatabaseSeedersTest extends TestCase
         $this->assertDatabaseCount('product_option_groups', 3);
         $this->assertDatabaseCount('product_option_values', 6);
         $this->assertDatabaseCount('product_variants', 6);
+    }
+
+    public function test_initial_seller_seeder_creates_and_restores_the_shared_catalog_seller(): void
+    {
+        $this->seed(InitialSellerSeeder::class);
+
+        $seller = User::query()
+            ->where('email', 'catalog@aisley.test')
+            ->where('role', UserRole::Seller)
+            ->firstOrFail();
+
+        $this->assertSame(UserStatus::Active, $seller->status);
+        $this->assertTrue(Hash::check('Seller12345', $seller->password));
+        $this->assertSame('Aisley', $seller->sellerProfile->first_name);
+        $this->assertSame('Catalog', $seller->sellerProfile->last_name);
+
+        $seller->forceFill([
+            'password' => 'Changed12345',
+            'status' => UserStatus::Suspended,
+        ])->save();
+        $seller->sellerProfile->update(['first_name' => 'Changed']);
+
+        $this->seed(InitialSellerSeeder::class);
+
+        $seller->refresh();
+        $this->assertSame(UserStatus::Active, $seller->status);
+        $this->assertTrue(Hash::check('Seller12345', $seller->password));
+        $this->assertSame('Aisley', $seller->sellerProfile->fresh()->first_name);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('seller_profiles', 1);
+    }
+
+    public function test_shared_test_seller_is_not_seeded_in_production(): void
+    {
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => 'production');
+
+        try {
+            app(InitialSellerSeeder::class)->run();
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'catalog@aisley.test',
+            'role' => UserRole::Seller->value,
+        ]);
     }
 }
