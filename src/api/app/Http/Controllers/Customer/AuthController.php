@@ -11,6 +11,7 @@ use App\Http\Requests\Customer\LoginRequest;
 use App\Http\Requests\Customer\RegisterRequest;
 use App\Http\Requests\Customer\ResetPasswordRequest;
 use App\Http\Resources\Customer\CustomerUserResource;
+use App\Http\Resources\Customer\CustomerNavigationResource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Notifications\Customer\ResetPasswordNotification;
@@ -109,7 +110,7 @@ class AuthController extends Controller
 
         $response = [
             'message' => 'Signed in successfully.',
-            'customer' => new CustomerUserResource($this->loadCustomer($user)),
+            'customer' => new CustomerNavigationResource($this->loadCustomer($user)),
         ];
 
         if ($request->wantsMobileToken()) {
@@ -131,7 +132,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'customer' => new CustomerUserResource($this->loadCustomer($user)),
+            'customer' => new CustomerNavigationResource($this->loadCustomer($user)),
         ]);
     }
 

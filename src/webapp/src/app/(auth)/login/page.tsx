@@ -34,9 +34,9 @@ function safeReturnPath(value: string | string[] | undefined) {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; returnTo?: string | string[] }>;
 }) {
-  const { returnTo } = await searchParams;
+  const { next, returnTo } = await searchParams;
 
   return (
     <section className="w-full max-w-md">
@@ -45,7 +45,7 @@ export default async function LoginPage({
         title="Sign in to Aisley"
         description="Use your approved customer account to pick up where you left off."
       />
-      <LoginForm returnTo={safeReturnPath(returnTo)} />
+      <LoginForm returnTo={safeReturnPath(next ?? returnTo)} />
 
       <p className="mt-7 text-center text-sm text-[#746778]">
         New to Aisley?{" "}
