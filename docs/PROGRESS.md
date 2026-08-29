@@ -80,3 +80,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-28
 
 - Added Azure Blob Storage support to the Laravel filesystem configuration through the maintained Azure Blob Laravel driver. Storage remains local by default and can be switched by setting `FILESYSTEM_DISK=azure` with the documented `AZURE_STORAGE_*` connection settings.
+
+## 2026-08-29
+
+- Added the public UUID-based Customer product-detail API with storefront visibility enforcement, ordered media, safe public media URLs, Markdown descriptions, specifications, shop summaries, valid option combinations, variant price inheritance/overrides, and stock availability. Added the supporting product detail/variant schema and models, and upgraded the idempotent catalog seeder with detailed products, variants, zero-stock combinations, and 12 verified Unsplash stock images. All 59 API tests and 514 assertions pass on SQLite and PostgreSQL 18.3, and a clean PostgreSQL migration/seed cycle passes.

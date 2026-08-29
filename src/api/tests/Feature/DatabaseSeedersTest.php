@@ -6,6 +6,9 @@ use App\Enums\ProductStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Product;
+use App\Models\ProductMedia;
+use App\Models\ProductOptionGroup;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Database\Seeders\InitialCustomerSeeder;
 use Database\Seeders\ProductSeeder;
@@ -56,11 +59,25 @@ class DatabaseSeedersTest extends TestCase
         $this->assertCount(4, $products);
         $this->assertTrue($products->every(
             fn (Product $product) => $product->status === ProductStatus::Active
-                && str_starts_with($product->thumbnail_path, 'https://images.unsplash.com/'),
+                && str_starts_with($product->thumbnail_path, 'https://images.unsplash.com/')
+                && $product->description_markdown !== null
+                && $product->specifications !== null,
         ));
+
+        $this->assertDatabaseCount('product_media', 12);
+        $this->assertDatabaseCount('product_option_groups', 3);
+        $this->assertDatabaseCount('product_option_values', 6);
+        $this->assertDatabaseCount('product_variants', 6);
+        $this->assertSame(12, ProductMedia::query()->where('path', 'like', 'https://images.unsplash.com/%')->count());
+        $this->assertSame(3, ProductOptionGroup::query()->count());
+        $this->assertSame(6, ProductVariant::query()->count());
 
         $this->seed(ProductSeeder::class);
 
         $this->assertDatabaseCount('products', 4);
+        $this->assertDatabaseCount('product_media', 12);
+        $this->assertDatabaseCount('product_option_groups', 3);
+        $this->assertDatabaseCount('product_option_values', 6);
+        $this->assertDatabaseCount('product_variants', 6);
     }
 }

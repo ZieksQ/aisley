@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\HomepageController;
+use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,3 +65,8 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         ->name('home.recommendations');
     Route::get('/products/search', ProductSearchController::class)->name('products.search');
 });
+
+Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
+    ->whereUuid('id')
+    ->middleware('throttle:120,1')
+    ->name('products.show');

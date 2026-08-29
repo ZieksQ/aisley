@@ -24,6 +24,8 @@ class Product extends Model
         'name',
         'slug',
         'short_description',
+        'description_markdown',
+        'specifications',
         'thumbnail_disk',
         'thumbnail_path',
         'price',
@@ -51,6 +53,7 @@ class Product extends Model
             'review_count' => 'integer',
             'sold_count' => 'integer',
             'badges' => 'array',
+            'specifications' => 'array',
             'is_promoted' => 'boolean',
             'status' => ProductStatus::class,
             'published_at' => 'datetime',
@@ -77,6 +80,21 @@ class Product extends Model
     public function recentViews(): HasMany
     {
         return $this->hasMany(RecentlyViewedProduct::class);
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(ProductMedia::class)->orderBy('position');
+    }
+
+    public function optionGroups(): HasMany
+    {
+        return $this->hasMany(ProductOptionGroup::class)->orderBy('position');
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
     }
 
     /**
