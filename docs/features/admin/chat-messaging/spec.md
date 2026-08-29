@@ -1,1417 +1,459 @@
 ---
-feature: Admin Chat / Messaging
+feature: chat-messaging
+title: Admin Chat / Messaging
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 1.0
 status: Draft
-scope: Admin Web Application / Shared Messaging Integration
-source_coverage: Admin.md, app.md, Buyer.md, Seller.md, Logistics.md, Courier.md
+role: Admin
+scope: Admin Web Application
 ---
 
-# Admin Chat / Messaging Specification
+# Admin Chat / Messaging
 
-## 1. Purpose
+## WHAT
 
-Admin Chat / Messaging is the direct, secure communication channel between AISLEY Admins and platform users.
-`Admin.md` defines the feature as:
+- **Purpose:** Secure, persistent Admin ↔ user messaging for support, account inquiries, compliance actions, and related platform communication.
+- **Primary actor:** Authenticated `ADMIN`.
+- **Participants:** Authorized Buyer, Seller, Courier, or Logistics accounts.
+- **Source-defined Admin behavior:**
+  - initiate/respond to user conversations
+  - handle support and account anomalies
+  - explain compliance/moderation actions
+  - send seller-compliance warnings
+  - support read receipts
+  - archive history for accountability
+- **Shared-domain requirement:** Buyer, Seller, Courier, and Logistics also use messaging; Admin Chat must use the same messaging domain, not a separate Admin-only store.
+- **Architecture:**
+  - Next.js/React: inbox, conversation UI, composer, unread/read presentation, real-time subscriptions.
+  - Laravel: authentication, authorization, validation, persistence, pagination, read state, events, broadcasting.
+  - Laravel data is authoritative; broadcasts synchronize committed state.
+- **Recommended flow:**
 
 ```text
-Core Value:
-Communicate with the users.
-Expanded Definition:
-A direct, secure communication channel
-bridging the administration and the user base.
-Used for:
-- official platform support
-- inquiring about account anomalies
-- providing detailed explanations regarding compliance actions
-System Context:
-- Admin can initiate or respond to threads
-- read receipts are required
-- historical archiving is required for accountability
+open
+→ fetch persisted history
+→ authorize
+→ subscribe private channel
+
+send
+→ POST to Laravel
+→ validate + authorize
+→ persist
+→ commit
+→ broadcast
+
+read
+→ persist read marker
+→ broadcast read update
 ```
 
-This file defines requirements, boundaries, data expectations, APIs, security rules, integrations, acceptance criteria, and Open Decisions.
-Step-by-step thread/send/read/archive behavior belongs in `flow.md`.
+- **Recommended routes:** `/messages` and `/messages/{conversation}`.
+- **MVP:** text messages.
+- **Optional context:** existing order, complaint/dispute, or compliance-case relationship when supported by the real schema.
+- **Non-goals:** public rooms, anonymous chat, voice/video, blanket Admin surveillance, reactions, editing, hard deletion, arbitrary attachments, AI replies.
 
-## 2. Source Context
+## MUST
 
-Related role documents also define messaging:
+### Authorization
 
-- Buyer ↔ Seller for product questions and post-purchase support
-- Seller ↔ Buyer for customer support
-- Logistics ↔ Courier / Buyer / Seller for active order operations
-- Courier ↔ Buyer / Seller / Logistics for delivery clarification
-  These related systems support a shared messaging architecture, but their role-specific behavior does not automatically apply to Admin Messaging.
+- Every messaging API and private broadcast channel requires authentication.
+- Admin actions require:
+  - authenticated `ADMIN`
+  - Chat/Messaging permission where configured
+  - authorization for the target conversation/user/context
+- Sender identity comes from the authenticated account.
+- Never trust client-submitted sender ID, role, permission, timestamp, or read state.
+- Check authorization for:
+  - conversation list/detail
+  - message history
+  - send
+  - mark read
+  - channel subscription
+  - attachment access if later added
+- Guessed conversation IDs must not expose data.
+- Frontend guards are UX only.
+- Use project error conventions: `401`, `403`, `404`, `422`, `409`.
 
-## 3. Core Responsibility
+### Admin scope
 
-Admin Chat / Messaging owns:
+- Admin may initiate/respond to authorized Admin-user threads for support, account inquiries, and compliance communication.
+- Seller Compliance may reference an Admin ↔ Seller warning conversation.
+- Complaint/dispute flows may reference relevant Admin-user messages when explicitly linked.
+- Current sources do **not** grant Admin blanket access to unrelated Buyer ↔ Seller/Courier/Logistics conversations.
+- Do not implement global chat surveillance without a separate authorization/privacy requirement.
 
-- Admin-to-user direct conversations
-- Admin-initiated threads
-- Admin responses to existing threads
-- user replies to Admin threads where allowed
-- message history
-- read receipts
-- unread state
-- historical archive
-- safe participant identity
-- links to related account/compliance/complaint context
-- official Admin/support identity
-  It does not own:
-- complaint/dispute case state
-- Seller Compliance sanctions
-- user suspension/deactivation
-- Account Approval decisions
-- refunds
-- order-state changes
-- Logistics dispatch
-- Push Notification campaigns
-- platform-wide announcements
-- Buyer/Seller commercial chat rules
-- Courier active-delivery chat rules
+### Shared data model
 
-## 4. Primary Actor
-
-The primary operator is an authorized:
+- Minimum conceptual entities:
 
 ```text
-ADMIN
-```
-
-An Admin may:
-
-- find a user
-- start a direct thread
-- open an existing thread
-- read messages
-- send replies
-- view read state
-- view historical conversations
-  Exact permissions are Open Decisions.
-
-## 5. User Participants
-
-Potential user participants are role-accounts such as:
-
-```text
-BUYER
-SELLER
-LOGISTICS
-COURIER
-```
-
-The architecture should support these roles where product policy allows direct Admin contact.
-Admin Messaging should not be used for Admin-to-Admin internal collaboration unless separately specified.
-
-## 6. Role-Aware Identity
-
-AISLEY uses:
-
-```text
-unique(email, role)
-```
-
-Therefore a thread must target a specific role-account, not an email alone.
-Example:
-
-```text
-alex@example.com + BUYER
-alex@example.com + SELLER
-```
-
-A thread intended for the Seller must not become visible to the Buyer account.
-
-## 7. Participant Identity
-
-A thread should preserve:
-
-```text
-target_user_id
-target_role
-```
-
-and each message should preserve:
-
-```text
-sender_user_id
-sender_role
-sent_at
-```
-
-The backend derives sender identity from authentication.
-The client must not be able to spoof:
-
-```text
-sender_id
-sender_role
-```
-
-## 8. Admin Visibility Model
-
-AISLEY can have multiple Admin accounts.
-The source says the "Admin" entity can initiate or respond to threads but does not define whether threads are:
-
-- owned by one Admin
-- visible to all authorized Admins
-- assigned to a support team
-  Recommended MVP:
-
-```text
-thread is visible to authorized Admin Messaging operators
-each Admin message retains the specific Admin sender ID
-```
-
-This supports continuity and accountability.
-Exact visibility/assignment policy is Open.
-
-## 9. Admin Messaging Use Cases
-
-Source-backed uses:
-
-```text
-official platform support
-account anomaly inquiry
-compliance explanation
-```
-
-Recommended optional context labels:
-
-```text
-GENERAL_SUPPORT
-USER_ACCOUNT
-SELLER_COMPLIANCE
-COMPLAINT_DISPUTE
-```
-
-These labels organize conversations; they are not business workflow states.
-
-## 10. Thread vs Business Case
-
-A message thread is not a complaint ticket.
-
-```text
-Admin Messaging
-    communication
-Complaints & Disputes
-    case/evidence/decision
-```
-
-A message thread may link to a complaint, but the complaint feature remains authoritative for:
-
-- status
-- evidence
-- resolution
-- binding decision
-
-## 11. Thread vs Seller Compliance
-
-Likewise:
-
-```text
-Admin Messaging
-    warning/explanation communication
-Seller Compliance
-    warning record
-    Seller suspension
-    product removal
-    compliance case state
-```
-
-Sending a message alone must not suspend a Seller or remove a listing.
-
-## 12. Account Anomaly Inquiry
-
-Admin Messaging may be launched from Manage User Accounts to ask a user for clarification.
-The message does not change:
-
-```text
-account status
-registration status
-Global Ban state
-```
-
-Any account action must happen through the owning feature.
-
-## 13. Seller Compliance Integration
-
-`Admin.md` explicitly requires Seller Compliance integration with messaging for warnings.
-Recommended integration:
-
-```text
-Compliance Case
-→ Message Seller
-→ create/open Admin ↔ Seller thread
-→ link thread/message to compliance case
-```
-
-The compliance feature remains the authoritative source for the warning/sanction itself.
-
-## 14. Complaints & Disputes Integration
-
-A complaint may link to direct Admin conversations used to:
-
-- request additional information
-- explain a decision
-- follow up with a complainant
-- follow up with a respondent
-  Separate direct threads are recommended for separate dispute parties.
-  Do not expose one party's conversation to another party.
-
-## 15. Manage User Accounts Integration
-
-User detail may provide:
-
-```text
-Message User
-```
-
-The action must target the exact role-account selected in Manage User Accounts.
-
-## 16. Admin Notifications Integration
-
-A new user reply may create:
-
-```text
-ADMIN_MESSAGE_RECEIVED
-```
-
-in Admin Notifications.
-Admin Notifications owns the attention alert.
-Messaging owns the thread/message/unread state.
-
-## 17. Push Notification Boundary
-
-```text
-Admin Chat / Messaging
-    one-to-one / direct conversation
-Push Notification Management
-    one-to-many audience campaign
-```
-
-Do not use Admin Chat for bulk promotional broadcasts.
-
-## 18. Platform Announcement Boundary
-
-Platform announcements belong to Platform Settings.
-Do not create one Admin chat thread per user to distribute an announcement.
-
-## 19. Thread Context
-
-A thread may optionally reference:
-
-```text
-context_type
-context_id
-```
-
-Examples:
-
-```text
-USER_ACCOUNT
-SELLER_COMPLIANCE_CASE
-COMPLAINT_CASE
-```
-
-General support may have no external context.
-
-## 20. Context Validation
-
-If a thread is linked to a case:
-
-- the context must exist
-- the target user must actually relate to that case where applicable
-- the Admin must have permission to access the linked feature
-- context access must not leak internal data to the user
-
-## 21. User-Facing Context
-
-The user may see only safe labels such as:
-
-```text
-AISLEY Support
-Seller Compliance
-Complaint Support
-```
-
-Do not expose:
-
-- internal Admin notes
-- private evidence
-- another party's data
-- internal risk/fraud metadata
-
-## 22. Message Content
-
-Minimum MVP message payload:
-
-```text
-text
-```
-
-The source does not require:
-
-- attachments
-- image uploads
-- voice
-- video
-- rich text
-- reactions
-- typing indicators
-  Plain text is sufficient.
-
-## 23. Message Validation
-
-Messages must:
-
-- contain non-whitespace text
-- respect a backend maximum length
-- be rendered safely
-- not execute HTML/scripts
-- use server-generated sender/time metadata
-  Exact length is Open.
-
-## 24. Message Immutability
-
-Historical archiving is required for accountability.
-Recommended MVP:
-
-```text
-sent messages are not editable
-sent messages are not hard-deletable
-```
-
-If an Admin makes a mistake, send a follow-up correction.
-A future governed redaction feature may be added if privacy/legal policy requires it.
-
-## 25. Attachments
-
-Admin Messaging attachments are not source-required.
-Although Seller chat may support images and Complaint cases may contain evidence, Admin chat should not assume file upload support.
-If added later, attachment rules need separate requirements for:
-
-- storage
-- malware scanning
-- file authorization
-- retention
-- evidence handling
-
-## 26. Official Admin Identity
-
-User-facing messages should clearly identify the sender as official AISLEY communication.
-Recommended label:
-
-```text
-AISLEY Admin
-```
-
-or:
-
-```text
-AISLEY Support
-```
-
-The exact display name is Open.
-Do not expose an Admin's private email/phone unless intended.
-
-## 27. Read Receipts
-
-`Admin.md` explicitly requires read receipts.
-The system must track when a message has been read by the recipient.
-Possible implementation:
-
-```text
-read_at
-```
-
-for simple two-party threads,
-or:
-
-```text
-message_receipts
-```
-
-for multiple Admin readers/participants.
-Exact schema depends on the Admin visibility model.
-
-## 28. Read Semantics
-
-A message should be marked read when the recipient actually opens/views the relevant conversation according to UI policy.
-Opening the inbox alone should not mark every conversation read.
-
-## 29. Read Receipt Direction
-
-Admin should be able to know when the user has read an Admin message.
-User-facing UI may show that AISLEY Support has read a reply.
-If multiple Admins share a thread, exact "read by Admin/team" semantics are Open.
-
-## 30. Unread State
-
-Unread counts are recommended for usability.
-Possible:
-
-```text
-unread threads
-unread messages per thread
-```
-
-Unread state must be server-authoritative.
-
-## 31. Historical Archiving
-
-Historical archiving is explicitly required.
-Messages should remain retrievable by authorized users/Admins according to policy even when:
-
-- a thread becomes old
-- a user is deactivated
-- an Admin leaves
-- a related case is closed
-  Exact retention duration is Open.
-
-## 32. Archive vs Delete
-
-If an Archive action is implemented:
-
-```text
-archive ≠ delete
-```
-
-Archiving removes a thread from the active inbox but preserves history.
-Archive state itself is optional for MVP.
-
-## 33. Thread Lifecycle
-
-The source does not define formal ticket states.
-Do not invent:
-
-```text
-OPEN
-PENDING
-RESOLVED
-ESCALATED
-```
-
-as mandatory messaging states.
-Messaging is not a support-ticket workflow.
-An optional active/archive state is sufficient if needed.
-
-## 34. Real-Time Delivery
-
-Admin source does not explicitly require WebSockets, but Buyer/Seller messaging expects real-time architecture.
-Recommended:
-
-```text
-WebSocket / SSE
-```
-
-with API/database history as the authoritative source.
-Polling is an acceptable MVP fallback if shared real-time infrastructure is not ready.
-
-## 35. Persistence Before Broadcast
-
-Recommended send order:
-
-```text
-authorize
-validate
-persist message
-commit
-broadcast/notify
-```
-
-A socket event must never be the only copy of a message.
-
-## 36. Broadcast Failure
-
-If real-time broadcast fails after message persistence:
-
-```text
-message remains stored
-recipient retrieves it on refresh/reconnect
-```
-
-Do not roll back a valid stored message because the transient real-time transport failed.
-
-## 37. Offline Behavior
-
-If Admin or user is offline:
-
-- messages still persist
-- unread state remains
-- history loads after reconnect
-- no message should depend on both sides being online
-
-## 38. Message Ordering
-
-Use deterministic server-authoritative ordering.
-Recommended:
-
-```text
-sent_at
-+
-message id
-```
-
-Do not trust client timestamps.
-
-## 39. Duplicate Send Protection
-
-Retries/double-clicks can create duplicates.
-Recommended:
-
-```text
-client_message_id
-idempotency key
-```
-
-or equivalent shared messaging protection.
-Exact mechanism is Open.
-
-## 40. Thread List
-
-Recommended Admin inbox shows:
-
-- participant name
-- participant role
-- safe context label
-- last message preview
-- last activity time
-- unread count
-  Recommended order:
-
-```text
-most recently active first
-```
-
-## 41. Search and Filters
-
-Recommended:
-
-- search by user name
-- search by email
-- role filter
-- unread filter
-- context filter
-  If searching by email, role must be clearly visible because email is not globally unique.
-  Full message-text search is not MVP-required.
-
-## 42. New Conversation
-
-Recommended Admin flow begins with:
-
-```text
-New Message
-→ find/select exact role-account
-→ optional context
-→ compose first message
-→ send
-```
-
-Detailed sequence belongs in `flow.md`.
-
-## 43. Conversation View
-
-Recommended components:
-
-```text
-participant identity
-role
-safe context
-message history
-read state
-composer
-```
-
-Optional sidebar may show safe account context.
-Do not load unrelated PII.
-
-## 44. Participant PII
-
-Admin UI should minimize data.
-Do not automatically expose:
-
-- Buyer full address
-- Seller payout details
-- Courier license/payout details
-- payment credentials
-- full evidence files
-  Use links to owning features where authorized.
-
-## 45. Credential Safety
-
-Admins should never ask users through chat for:
-
-```text
-password
-OTP
-2FA secret
-full card number
-bank password
-```
-
-Optional UI guidance may remind Admins of this rule.
-
-## 46. Phone Privacy
-
-Related Courier messaging explicitly protects phone numbers.
-Admin Messaging should similarly avoid exposing raw phone numbers unless operationally necessary and authorized.
-
-## 47. Suspended Users
-
-The source does not define whether suspended users can access Admin Messaging.
-Because compliance explanations may need to remain accessible, recommended policy is:
-
-```text
-suspended user may retain limited official support/compliance messaging access
-```
-
-This is still an Open Decision.
-
-## 48. Deactivated Users
-
-Historical conversations should remain archived.
-Whether a deactivated user can personally access old messages is Open.
-
-## 49. Pending / Rejected Registrations
-
-Account Approval already uses source-defined email notifications.
-Admin Messaging is not required for pending/rejected applicants.
-
-## 50. Globally Banned Users
-
-Messaging availability for globally banned users is a security-policy decision.
-Messaging must not bypass Global Ban automatically.
-
-## 51. Existing Business State
-
-A message must never directly mutate:
-
-- account status
-- Seller suspension
-- listing state
-- complaint status
-- order status
-- refund state
-- financial records
-  Only the owning business feature can perform those actions.
-
-## 52. Recommended Shared Messaging Model
-
-A shared platform messaging core is recommended because several AISLEY roles require chat.
-Conceptual tables:
-
-```text
-message_threads
-message_thread_participants
+conversations
+conversation_participants
 messages
-message_receipts
 ```
 
-Role-specific UI/policies can use the same core.
+- Participants reference the shared authenticated user/account record.
+- Conversation requires:
+  - immutable server ID
+  - participant membership
+  - created timestamp
+  - updated/last-message ordering value
+- Message requires:
+  - immutable server ID
+  - conversation ID
+  - authenticated sender ID
+  - body
+  - server-created timestamp
+- Participant rows must be unique.
+- Optional context may reference order, complaint/dispute, or compliance case only when those schemas exist.
+- Whether one canonical Admin-user thread or multiple threads are allowed is open.
 
-## 53. Thread Data
+### Message validation and ordering
 
-Conceptual fields:
+- Validate message body server-side.
+- Reject empty/whitespace-only messages.
+- Define a server-side maximum length.
+- Render user text safely; do not trust it as HTML.
+- Order messages using server-generated IDs/timestamps, never client clock alone.
+- Persist before broadcast.
+- Broadcast failure must not roll back a committed message.
+- Apply the project idempotency/duplicate-submit mechanism to sends.
+
+### History
+
+- Admin source requires archived history.
+- History must be paginated with stable ordering.
+- Real-time events must merge without duplicating paginated messages.
+- MVP must not expose hard deletion of Admin-user messages.
+- Retention duration is open.
+- If deletion is introduced later, it must preserve dispute/compliance/accountability rules.
+
+### Read receipts
+
+- Persist read state in Laravel.
+- Recommended representation:
 
 ```text
-id
-context_type
-context_id
-created_at
-last_message_at
-archived_at
+conversation_participants.last_read_message_id
+conversation_participants.last_read_at
 ```
 
-Participant identity may be stored in a participant table.
-Exact schema is Open.
+or equivalent.
 
-## 54. Participant Data
+- Unread counts derive from backend state.
+- Users may mark only authorized conversations as read.
+- Read marker must reference a message in the same conversation.
+- Read state is monotonic; stale clients cannot move it backward.
+- Persist before broadcasting read-state changes.
 
-Conceptual:
+### Inbox
 
-```text
-thread_id
-user_id
-role
-```
+- Admin inbox must be paginated.
+- Safe summary fields may include:
+  - conversation ID
+  - other participant display identity
+  - optional context summary
+  - last-message preview
+  - last-message timestamp
+  - unread count/status
+- Filters/sorts must be allow-listed.
+- Sensitive profile/contact data follows project masking rules.
 
-If Admin-team visibility is permission-based rather than participant-based, the schema may differ.
+### Start conversation
 
-## 55. Message Data
-
-Conceptual:
-
-```text
-id
-thread_id
-sender_user_id
-sender_role
-body
-sent_at
-client_message_id
-```
-
-Only use fields required by the selected architecture.
-
-## 56. Receipt Data
-
-Conceptual:
-
-```text
-message_id
-reader_user_id
-read_at
-```
-
-For simple two-party threads, a simpler `read_at` model may be enough.
-
-## 57. Backend Authorization
-
-Every messaging request must:
-
-```text
-authenticate actor
-verify actor role
-verify thread access
-verify context access where applicable
-verify send permission
-```
-
-Backend authorization is authoritative.
-
-## 58. IDOR Protection
-
-A user/Admin must not access a thread merely by guessing:
-
-```text
-thread_id
-```
-
-The backend must confirm membership/authorized Admin access.
-
-## 59. Sender Spoofing
-
-The backend derives sender from authenticated identity.
-Client-provided sender IDs/roles are not authoritative.
-
-## 60. Context Spoofing
-
-If Admin creates a thread linked to:
-
-```text
-Seller Compliance Case #10
-```
-
-the backend verifies that the selected Seller is related to Case #10.
-
-## 61. XSS Protection
-
-Messages are user-authored content.
-Render safely.
-Never execute raw HTML/scripts.
-If Markdown/rich text is later supported, sanitize it before rendering.
-
-## 62. URL Safety
-
-If automatic links are enabled, restrict unsafe schemes and prevent script execution.
-External-link policy is Open.
-
-## 63. CSRF
-
-Admin web mutations must use the existing Sanctum CSRF protections.
-Examples:
-
-```text
-create thread
-send message
-mark read
-archive thread
-```
-
-where applicable.
-
-## 64. Rate Limiting
-
-Message endpoints should use sensible anti-spam/rate limits.
-Exact limits are not source-defined.
-
-## 65. System Audit Logs
-
-Historical chat and Audit Logs serve different purposes.
-
-```text
-Messaging
-    conversation content/history
-System Audit Logs
-    Admin action accountability
-```
-
-Recommended Audit events:
-
-```text
-ADMIN_THREAD_INITIATED
-ADMIN_MESSAGE_SENT
-ADMIN_MESSAGE_THREAD_ARCHIVED
-```
-
-Exact coverage is Open.
-
-## 66. Audit Content Rule
-
-Audit Logs should normally store:
-
-```text
-thread id
-message id
-Admin actor
-target user
-context reference
-timestamp
-```
-
-Do not duplicate full message bodies unless a formal policy requires it.
-
-## 67. Routine Reads
-
-Normal message reads should not create Admin Audit events.
-Read receipts already record messaging read state.
-
-## 68. Admin Notifications
-
-A user reply may create an Admin Notification with:
-
-```text
-thread id
-safe preview/summary
-```
-
-Do not copy the entire sensitive message into broad notification payloads unless necessary.
-
-## 69. User Notification
-
-Users need awareness of new Admin messages.
-At minimum, the relevant user app should expose unread state.
-Whether new Admin messages also send push/email/SMS is Open.
-
-## 70. API Surface
-
-Conceptual Admin APIs:
+- Admin may start a thread only with an existing authorized account.
+- Conceptual endpoint:
 
 ```http
-GET  /api/admin/messages/threads
-POST /api/admin/messages/threads
-GET  /api/admin/messages/threads/{threadId}
-POST /api/admin/messages/threads/{threadId}/messages
-POST /api/admin/messages/threads/{threadId}/read
-POST /api/admin/messages/threads/{threadId}/archive
+POST /api/messages/conversations
 ```
 
-Archive endpoint is optional.
-User-role apps may expose shared equivalents.
+- Request may contain target account ID, supported context, and optional first message.
+- Laravel resolves the target and authorizes contact.
+- Reject invalid/self/duplicate combinations according to selected thread rules.
+- Do not expose unrestricted user-directory data just to support chat.
 
-## 71. Thread List API
+### Send message
 
-Recommended query support:
-
-```text
-search
-role
-unread
-context_type
-cursor/page
-```
-
-Only return threads the Admin is allowed to access.
-
-## 72. Create Thread API
-
-Conceptual payload:
-
-```json
-{
-  "target_user_id": "user-id",
-  "context_type": "SELLER_COMPLIANCE",
-  "context_id": "case-id",
-  "message": "..."
-}
-```
-
-The backend validates the target and context.
-
-## 73. Send Message API
-
-Conceptual:
+- Conceptual endpoint:
 
 ```http
-POST /api/admin/messages/threads/{threadId}/messages
+POST /api/messages/conversations/{conversation}/messages
 ```
 
-Payload:
+- Conceptual request:
 
 ```json
-{
-  "message": "..."
-}
+{ "body": "Message text" }
 ```
 
-Sender identity comes from authentication.
+- Backend sequence:
+  1. authenticate
+  2. scope/load conversation
+  3. authorize
+  4. validate
+  5. persist message
+  6. update conversation metadata if used
+  7. commit
+  8. broadcast/notify after commit
 
-## 74. Thread Detail API
+### Real-time delivery
 
-Returns:
+- Use Laravel broadcasting consumed by React.
+- Use an authorized **private** channel per conversation or equivalent secure scheme.
+- Never broadcast private message content on public channels.
+- Channel authorization must verify conversation access.
+- Broadcast only safe message DTO fields.
+- Recommended events:
+  - `MessageSent`
+  - `ConversationRead`
+- Presence and typing indicators are not MVP requirements.
+- Do not assume Reverb/Pusher/Ably until repository configuration confirms the driver.
 
-- safe participant identity
-- role
-- safe context
-- paginated message history
-- read state
-  Do not embed full complaint/compliance objects.
+### Real-time security
 
-## 75. Pagination
+- Production WebSockets use `wss://`.
+- Restrict allowed origins.
+- Socket authentication does not replace authorization of messaging mutations.
+- Apply message-size, send-rate, and connection limits.
+- Do not log full private message bodies in infrastructure/security logs by default.
+- Session/token invalidation must stop unauthorized private-channel access.
 
-Thread lists must be bounded.
-Message history must be paginated/cursor-based.
-Recommended UX:
+### Notifications
+
+- A committed message may update:
+  - open conversation
+  - inbox summary
+  - unread count
+  - shared platform notification
+- Notification/broadcast failure must not undo message persistence.
+- Email/SMS/push for each chat message is not required.
+
+### Attachments
+
+- Attachments are not required by the Admin source.
+- If later enabled:
+  - Laravel-authorized upload
+  - type/size validation
+  - malware scan
+  - configured external storage
+  - asset references instead of server paths
+  - authorized/signed access
+
+### Audit and privacy
+
+- Chat history provides accountability.
+- Security-sensitive Admin chat actions may also write safe audit metadata:
+  - Admin ID
+  - conversation ID
+  - message ID
+  - action
+  - timestamp
+- Do not duplicate full private message bodies into immutable Admin audit logs unless policy requires it.
+- Never log auth secrets or private signed URLs/tokens.
+
+### Frontend states
+
+- Inbox: loading, empty, loaded, error, forbidden.
+- Conversation: loading, older-history loading, loaded, sending, validation error, send failure, disconnected/reconnecting.
+- Prevent/reconcile duplicate sends.
+- Optimistic messages, if used, must reconcile to the authoritative server message ID.
+- Reconnect must refetch enough state to recover missed messages.
+- Loaded persisted history remains usable during temporary real-time disconnect.
+
+### Accessibility
+
+- Inbox, conversation, and composer require semantic labels and keyboard navigation.
+- Read/unread state cannot rely on color alone.
+- Incoming messages must not steal focus.
+- Screen-reader announcements should avoid excessive interruption.
+
+### Acceptance criteria
+
+- [ ] Guest cannot access Admin Chat.
+- [ ] Non-Admin cannot use Admin-only chat actions.
+- [ ] Admin sees only authorized conversations.
+- [ ] Admin can start an authorized user conversation.
+- [ ] Admin can send a valid text message.
+- [ ] Sender identity is server-derived.
+- [ ] Empty/oversized messages are rejected.
+- [ ] Message persists before broadcast.
+- [ ] Broadcast failure does not remove committed message.
+- [ ] Unauthorized conversation-ID access fails.
+- [ ] Unauthorized private-channel subscription fails.
+- [ ] Private message content is never broadcast publicly.
+- [ ] History is paginated and stably ordered.
+- [ ] MVP provides no hard-delete action for archived Admin-user messages.
+- [ ] Read state is persisted and cannot regress.
+- [ ] Unread state is backend-derived.
+- [ ] Real-time events do not duplicate existing messages.
+- [ ] Reconnect/refetch recovers missed messages.
+- [ ] Direct API calls enforce conversation authorization.
+- [ ] Admin receives no blanket access to unrelated user chats.
+- [ ] Production real-time transport is secure and origin-restricted.
+- [ ] UI covers loading, empty, forbidden, send-error, and disconnected states.
+
+## HOW
+
+### Project findings
+
+- `Admin.md`: Admin messaging covers support, account anomalies, compliance explanations, read receipts, and historical archiving.
+- Seller Compliance uses messaging for warnings.
+- Buyer, Seller, Courier, and Logistics also define messaging, requiring a shared domain.
+- Logistics explicitly mentions order-linked threads.
+- Courier messaging emphasizes protecting user contact information.
+- `README.md` selects Laravel broadcasting consumed by React and requires Laravel-owned authorization/validation, pagination, scoped data, and post-commit async work.
+- Exact code, Eloquent schema, auth guard, and broadcasting driver were not available during research.
+
+### Laravel model
+
+Recommended conceptual schema:
 
 ```text
-newest thread list first
-load older messages when scrolling upward
+conversations
+- id
+- optional supported context reference
+- created_at
+- updated_at
+
+conversation_participants
+- conversation_id
+- user_id
+- last_read_message_id nullable
+- last_read_at nullable
+
+messages
+- id
+- conversation_id
+- sender_user_id
+- body
+- created_at
 ```
 
-## 76. Error States
+- Use repository naming/types.
+- Index participant lookup, ordered conversation messages, and unread calculations.
+- Enforce unique conversation participant membership.
+- Add domain context fields only when supported by actual order/complaint/compliance schemas.
 
-Admin inbox:
+### Laravel API
+
+Conceptual API:
+
+```http
+GET  /api/messages/conversations
+POST /api/messages/conversations
+GET  /api/messages/conversations/{conversation}
+GET  /api/messages/conversations/{conversation}/messages
+POST /api/messages/conversations/{conversation}/messages
+POST /api/messages/conversations/{conversation}/read
+```
+
+- Follow repository versioning/resource conventions.
+- Use Form Requests and Policies/Gates.
+- Suggested actions:
+  - `StartConversation`
+  - `SendMessage`
+  - `MarkConversationRead`
+- Scope records before returning/mutating.
+- Use API Resources or equivalent safe DTOs.
+- Use a transaction for message + conversation metadata changes.
+- Broadcast/notify only after commit.
+
+### Broadcasting
+
+- Use the configured Laravel broadcasting driver.
+- Recommended private channel:
 
 ```text
-loading
-empty
-filtered empty
-error
-unauthenticated
-forbidden
+conversations.{conversationId}
 ```
 
-Conversation:
-
-```text
-loading
-not found
-forbidden
-participant unavailable
-context unavailable
-send failure
-realtime disconnected
-```
-
-## 77. Send Failure
-
-If persistence fails:
-
-```text
-do not show the message as successfully sent
-```
-
-The frontend may preserve the unsent draft for retry.
-
-## 78. Read Receipt Failure
-
-If marking read fails, the message remains readable and the receipt update may retry.
-Do not report a false read state.
-
-## 79. Reconnect
-
-After real-time reconnect:
-
-```text
-refetch latest messages
-refetch read state
-```
-
-so missed events are recovered.
-
-## 80. Accessibility
-
-Admin messaging should:
-
-- use semantic message/thread structure
-- identify sender and role
-- expose unread/read state as text
-- support keyboard navigation
-- provide accessible composer labels
-- announce send errors
-- avoid color-only state
-- preserve focus on thread navigation
-
-## 81. Responsive Behavior
-
-On narrower screens:
-
-```text
-thread list
-→ selected conversation
-```
-
-may become a stacked navigation pattern.
-Participant role/context must remain visible.
-
-## 82. Performance
-
-Use:
-
-- indexed thread-participant lookups
-- indexed `last_message_at`
-- indexed message thread/time ordering
-- bounded pagination
-- aggregate unread counts
-  Do not load every message for every inbox row.
-
-## 83. MVP Scope
-
-### Required
-
-- authenticated Admin inbox
-- Admin can initiate a direct thread
-- Admin can respond to a thread
-- exact role-account targeting
-- Buyer/Seller/Logistics/Courier participant support where policy permits
-- plain text messages
-- persistent message history
-- historical archiving
-- read receipts
-- unread state
-- thread pagination
-- message pagination
-- safe rendering/XSS protection
-- backend participant authorization
-- official AISLEY Admin identity
-- Manage User Accounts integration
-- Seller Compliance integration
-- Complaints & Disputes integration
-- System Audit Logs integration for consequential Admin actions
-- CSRF protection
-- loading/empty/error states
-
-### Recommended
-
-- shared messaging core
-- WebSocket/SSE delivery
-- polling/refetch fallback
-- Admin Notification on user reply
-- context links
-- per-Admin unread tracking
-- no editing/hard deletion of sent messages
-- duplicate-send protection
-
-### Not Required
-
-- attachments
-- image upload
-- voice/video
-- masked calling
-- group chat
-- typing indicators
-- online presence
-- reactions
-- message editing
-- unsend
-- hard delete
-- scheduled messages
-- templates
-- chatbot/AI replies
-- support SLAs
-- assignment queues
-- conversation analytics
-- transcript export
-- full-text message search
-
-## 84. Acceptance Criteria
-
-### AC-01 — Admin Authentication
-
-Unauthenticated users cannot access Admin messaging APIs.
-
-### AC-02 — Admin Permission
-
-An Admin without Messaging permission cannot list/read/send Admin threads.
-
-### AC-03 — Initiate Thread
-
-An authorized Admin can start a thread with a valid role-account and first message.
-
-### AC-04 — Respond
-
-An authorized Admin can reply to an accessible thread.
-
-### AC-05 — User Receive
-
-The target user can retrieve Admin messages through their authorized messaging surface.
-
-### AC-06 — User Reply
-
-A permitted target user can reply and the Admin can retrieve that reply.
-
-### AC-07 — Role Isolation
-
-Same-email accounts under different roles do not share Admin threads.
-
-### AC-08 — Sender Authority
-
-Admin sender identity is derived from the authenticated session.
-
-### AC-09 — User Cannot Spoof Admin
-
-A Buyer/Seller/Logistics/Courier cannot create a message stored as `ADMIN`.
-
-### AC-10 — IDOR
-
-A user cannot access another user's Admin thread by guessing its ID.
-
-### AC-11 — Context Validation
-
-A compliance/complaint context must match the intended target and Admin permissions.
-
-### AC-12 — Compliance Integration
-
-Seller Compliance can link warning/explanation messaging without giving Messaging ownership of the sanction state.
-
-### AC-13 — Complaint Integration
-
-A complaint can link direct conversations while Complaint state/evidence/decision remains authoritative.
-
-### AC-14 — Party Confidentiality
-
-One dispute party cannot read another party's Admin conversation.
-
-### AC-15 — User Account Integration
-
-Manage User Accounts can open a thread targeting the exact selected role-account.
-
-### AC-16 — Persistence
-
-A message reported as sent is stored in the authoritative messaging store.
-
-### AC-17 — Broadcast Failure Recovery
-
-Real-time delivery failure does not delete a successfully stored message.
-
-### AC-18 — Send Failure
-
-Storage failure does not appear as successful send.
-
-### AC-19 — Historical Archive
-
-Old conversations remain retrievable according to retention policy.
-
-### AC-20 — Deactivated User History
-
-Deactivation does not automatically erase historical conversations.
-
-### AC-21 — Read Receipt
-
-Reading a message updates server-authoritative read state.
-
-### AC-22 — Read Idempotency
-
-Repeated read updates do not create inconsistent state.
-
-### AC-23 — Unread Count
-
-Unread counts reflect only authorized messages.
-
-### AC-24 — Safe Rendering
-
-User/Admin text cannot execute scripts in the messaging UI.
-
-### AC-25 — Official Identity
-
-User-facing Admin messages are visibly identifiable as official AISLEY communication.
-
-### AC-26 — No Business Mutation
-
-Sending a message alone does not suspend users, resolve complaints, change orders, or alter financial state.
-
-### AC-27 — No Bulk Campaign
-
-Admin Messaging does not function as Push Notification Management.
-
-### AC-28 — No Announcement Fan-Out
-
-Publishing a platform announcement does not create one chat thread per user.
-
-### AC-29 — Audit Reference
-
-Consequential Admin message actions can create safe Audit Log references without credential/secrets.
-
-### AC-30 — Pagination
-
-Thread lists and long message histories are bounded/paginated.
-
-### AC-31 — Empty Message
-
-Whitespace-only messages are rejected.
-
-### AC-32 — Secret Safety
-
-Thread APIs do not expose passwords, tokens, payout credentials, or unrelated sensitive data.
-
-### AC-33 — CSRF
-
-Admin web message mutations require configured Sanctum CSRF protection.
-
-### AC-34 — Reconnect
-
-A disconnected client can refetch messages/read state and recover missed events.
-
-## 85. Backend Tests
-
-Test:
-
-- guest denied
-- non-Admin denied
-- Admin without Messaging permission denied
-- Admin can create thread
-- Admin can reply
-- empty message rejected
-- sender derived from auth
-- user cannot spoof ADMIN role
-- same-email Buyer/Seller remain separate
-- thread access uses user ID/participant relation, not email
-- Compliance context target relation is validated
-- Complaint context participant relation is validated
-- complaint party A cannot read party B thread
-- message persists before broadcast
-- broadcast failure preserves message
-- persistence failure does not emit false success
-- read receipts are idempotent
-- unread counts are scoped correctly
-- thread list paginated
-- message history paginated
-- XSS payload renders safely
-- user deactivation does not erase archive
-- Admin deactivation does not erase archive
-- Audit event contains safe IDs only
-- CSRF required
-- realtime reconnect/refetch restores missed messages
-
-## 86. Frontend Tests
-
-Test:
-
-- inbox loads
-- empty state
-- search/filter states
-- participant role visible
-- same-email role results distinguishable
-- new thread targets selected role-account
-- conversation loads
-- send state/success/failure
-- whitespace-only send blocked
-- incoming message appears through realtime/refetch
-- unread count updates
-- opening thread updates read state
-- user read receipt renders
-- official AISLEY Admin identity renders
-- unsafe HTML does not execute
-- forbidden context handled safely
-- responsive layout works
-- keyboard navigation works
-- sender/time/read state accessible
-
-## 87. Open Decisions
-
-The current sources do not define:
-
-1. one Admin owner vs shared Admin inbox
-2. thread assignment
-3. exact Admin Messaging permission keys
-4. whether users may initiate Admin support threads
-5. exact user entry point for Admin support
-6. whether Courier can always be directly messaged by platform Admin
-7. suspended-user messaging access
-8. deactivated-user history access
-9. globally banned-user messaging access
-10. exact thread categories
-11. one thread per user vs multiple context threads
-12. exact thread uniqueness rules
-13. exact schema
-14. per-message vs per-recipient read receipts
-15. per-Admin vs team unread semantics
-16. exact Admin display identity
-17. message maximum length
-18. rich text/Markdown
-19. attachments
-20. image/document upload
-21. message editing
-22. deletion/redaction
-23. archive behavior
-24. retention duration
-25. user privacy deletion/anonymization
-26. real-time transport/provider
-27. polling interval
-28. typing indicators
-29. presence/last-seen
-30. delivery receipts beyond read
-31. duplicate-send/idempotency mechanism
-32. user push/email notification for new Admin messages
-33. whether official Admin messages can be muted
-34. Audit Log coverage for every message vs only consequential contexts
-35. full message body in Audit Logs (not recommended)
-36. rate limits
-37. group/multi-party threads
-38. internal Admin-only notes
-39. message templates
-40. full-text search
-41. transcript export
-42. legal hold
-43. support SLA/queue/assignment
-44. encryption beyond platform-standard transport/storage
-
-## 88. Final Definition
-
-AISLEY Admin Chat / Messaging is:
-
-```text
-a secure,
-Admin-to-user,
-role-aware direct messaging system
-for:
-    official support
-    account anomaly inquiries
-    compliance explanations
-with:
-    Admin-initiated/responded threads
-    read receipts
-    unread state
-    historical archiving
-    safe participant identity
-    related-case links
-```
-
-It remains separate from:
-
-```text
-Complaints & Disputes
-Seller Compliance
-Manage User Accounts
-Push Notification Management
-Platform Announcements
-role-specific operational chats
-```
-
-Central identity rule:
-
-```text
-A conversation belongs to
-a specific AISLEY role-account,
-not merely an email address.
-```
-
-Central business-boundary rule:
-
-```text
-Messaging communicates a decision,
-question, warning, or explanation.
-The owning feature still controls
-the authoritative business state.
-```
+- Authorize subscription against conversation access.
+- For Sanctum SPA auth, use Laravel's authenticated private-channel authorization configuration.
+- Broadcast a safe persisted DTO, not unrestricted Eloquent data.
+- Configure transaction-dependent broadcasts to dispatch after commit.
+- Reverb is a valid first-party option if the project has not selected a driver, but it is not mandatory.
+
+### Next.js / React
+
+- Build inbox, conversation history, and composer.
+- Keep HTTP access in the shared API client.
+- Use client components only where live subscription/composer state requires them.
+- Flow:
+  1. fetch persisted conversation/history
+  2. render
+  3. subscribe private channel
+  4. reconcile incoming events by server message ID
+- On reconnect, refetch recent state and deduplicate.
+- Use server ordering values.
+- Leave channels when conversation UI unmounts.
+
+### Read-state implementation
+
+- Client submits the highest message actually read.
+- Laravel verifies participant access and conversation ownership of that message.
+- Reject/ignore backward read markers.
+- Persist then broadcast the read state.
+
+### Tests
+
+- **Laravel:** guest/non-Admin denial, conversation isolation, start-thread authorization, valid/invalid send, forged sender protection, pagination/order, read-state persistence/non-regression, unread counts, post-commit broadcast, rollback behavior, idempotent duplicate send, private-channel authorization, safe DTOs.
+- **Frontend:** inbox states, history pagination, send/error states, incoming event, duplicate reconciliation, reconnect recovery, read/unread update, forbidden state, keyboard/accessibility behavior.
+
+### Research-backed recommendations
+
+- Use private Laravel broadcast channels with server-side channel authorization.
+- Use secure WebSocket transport and explicit allowed origins.
+- Treat message content as untrusted input.
+- Apply size/rate limits.
+- Persist first; broadcast after commit.
+- Avoid logging full private message content.
+- Prefer the repository's configured broadcasting driver; select Reverb only if the project chooses it.
+
+### Risks
+
+- **Privacy:** blanket Admin visibility exceeds the source scope.
+- **Fragmentation:** separate role-specific stores break shared conversations.
+- **Broadcast-before-commit:** clients could display rolled-back messages.
+- **Channel leakage:** weak authorization can expose private chat.
+- **Duplicates:** retries/reconnects can duplicate rows.
+- **Read races:** stale tabs can regress read state.
+- **History loss:** hard deletion conflicts with accountability.
+- **Logging leakage:** message bodies may expose private user data.
+- **Code gap:** exact models/routes/driver must follow the real repository.
+
+### Open questions
+
+- One canonical Admin-user thread or multiple threads.
+- Maximum message length.
+- Retention duration.
+- Local archive/hide behavior.
+- Attachments in MVP.
+- Complaint/dispute evidence linkage.
+- Automatic Seller thread for compliance warnings.
+- Order linkage for Admin threads.
+- Search/filter requirements.
+- Presence/typing indicators.
+- Delivery states beyond persisted/read.
+- Offline notification behavior.
+- Selected broadcasting driver.
+- Exact rate/connection limits.
+
+### Sources
+
+- Project rules: `SKILL.md`
+- Architecture contract: `README.md`
+- Role models: `Admin.md`, `Buyer.md`, `Seller.md`, `Courier.md`, `Logistics.md`
+- Laravel Sanctum private broadcast authorization:
+  - https://laravel.com/docs/12.x/sanctum#authorizing-private-broadcast-channels
+- Laravel broadcasting:
+  - https://laravel.com/docs/11.x/broadcasting
+- Laravel queues / after-commit:
+  - https://laravel.com/docs/12.x/queues#jobs-and-database-transactions
+- Laravel notifications:
+  - https://laravel.com/docs/12.x/notifications#broadcast-notifications
+- Laravel Reverb:
+  - https://reverb.laravel.com/
+- OWASP WebSocket Security Cheat Sheet:
+  - https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html

@@ -1,1417 +1,488 @@
 ---
-feature: System Audit Logs
+feature: system-audit-logs
+title: Admin System Audit Logs
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 1.0
 status: Draft
-scope: Admin Web Application / Shared Admin Infrastructure
-source_coverage: Admin.md, app.md, current AISLEY Admin feature specifications
+role: Admin
+scope: Admin Web Application
 ---
 
-# System Audit Logs Specification
-
-## 1. Purpose
-
-System Audit Logs is AISLEY's immutable administrative accountability ledger.
-`Admin.md` defines:
-
+# Admin System Audit Logs
+## WHAT
+- **Purpose:** Provide an immutable, timestamped ledger of administrative actions for security, accountability, and post-incident investigation.
+- **Primary actor:** Authorized authenticated `ADMIN` viewing audit history.
+- **Primary producers:** Administrative mutations performed across AISLEY Admin features.
+- **Source-defined requirements:**
+  - record administrative operations
+  - identify who performed the action
+  - identify what data/resource was changed
+  - record when it occurred
+  - preserve an immutable history
+  - write audit events without causing the primary Admin action to fail
+  - use a dedicated `AuditLogs` table or external logging service
+- **Architecture:**
+  - Next.js/React owns the read-only audit-log viewer, filters, pagination, detail drawer/page, and UI states.
+  - Laravel owns audit-event creation, normalization, authorization, persistence/dispatch, redaction, and query APIs.
+  - Database/external audit storage is authoritative.
+- **Core flow:**
 ```text
-Core Value:
-Track administrative actions and changes made
-within the system for security and accountability.
-
-Expanded Definition:
-An immutable, time-stamped ledger
-recording every administrative operation.
-
-It tracks:
-- who performed an action
-- what data was altered
-- when it occurred
-
-It is designed to:
-- prevent abuse of power
-- facilitate post-incident forensics
-
-System Context:
-Requires a dedicated AuditLogs table
-or an external logging service.
-
-Operations across the Admin dashboard
-must trigger middleware that asynchronously
-writes to this log
-without failing the primary request.
+Admin mutation succeeds
+→ capture normalized audit event
+→ source transaction commits
+→ enqueue/persist audit event
+→ immutable audit store
+→ authorized Admin can search/view
 ```
-
-For AISLEY MVP:
-
+- **Audit record answers:**
 ```text
-dedicated internal AuditLogs table = default
-external logging service = optional
+WHO performed it?
+WHAT action occurred?
+WHICH resource was affected?
+WHEN did it happen?
+WHAT safe before/after context is needed?
+WHERE/through which request did it occur? (optional)
 ```
-
-No third-party logging provider is required.
-
-## 2. Core Principle
-
-Audit Logs records:
-
+- **Feature boundary:**
+  - System Audit Logs record administrative/business actions.
+  - Application/security logs record technical/security telemetry.
+  - Complaint case timelines remain owned by Complaints & Disputes.
+  - Compliance histories remain owned by Seller Compliance.
+  - Audit Logs may reference those records but must not replace their domain history.
+- **Authentication boundary:**
+  - current sources do not decide whether successful login, logout, or failed login belongs in this immutable Admin Audit Log.
+  - these may remain in security/auth logs instead.
+- **Recommended route:**
 ```text
-who
-did what
-to which resource
-when
+/system-audit-logs
 ```
-
-Optionally, where safe:
-
+- **Non-goals:**
+  - editing or deleting audit events from normal Admin UI
+  - storing plaintext secrets
+  - storing full evidence files/message bodies
+  - replacing infrastructure/application error logs
+  - automatically reversing Admin actions
+  - SIEM implementation unless separately selected
+  - capturing every read request by default
+## MUST
+### Access control
+- Every audit-log endpoint requires:
+  - authenticated session
+  - persisted role = `ADMIN`
+  - System Audit Logs permission when custom Admin permissions exist
+- Reading audit logs is highly sensitive and requires explicit backend authorization.
+- React route visibility is not authorization.
+- Direct API calls cannot bypass permission checks.
+- Use project-standard:
+  - `401` unauthenticated
+  - `403` forbidden
+  - `404` scoped log not found
+  - `422` invalid filters
+- Whether all Admins or only privileged Admins can view audit logs is an Open Question.
+### Immutability
+- Audit records are append-only.
+- Normal application code must not expose:
+  - update audit-log endpoint
+  - delete audit-log endpoint
+  - bulk-clear endpoint
+- Admin UI is read-only.
+- Once recorded, historical action facts must not be silently rewritten.
+- Corrections, when truly necessary, should be represented as a new compensating/correction event referencing the original record.
+- Database/service permissions should restrict modification/deletion where practical.
+- If an external logging service is chosen, its retention/tamper-protection controls must satisfy the same immutability intent.
+### What must be audited
+- Security-sensitive and administrative mutations across Admin features must produce audit events.
+- Existing examples include:
+  - account approval/rejection
+  - user suspension/restoration/deactivation
+  - seller warning/suspension/product removal
+  - complaint/dispute resolution
+  - platform-policy publication
+  - announcement publication/archive
+  - Global Ban create/revoke
+  - outbound notification campaign send/cancel
+  - sensitive Admin account/security-setting changes
+- Exact event catalog must be defined by each owning feature.
+- Read-only page views do not automatically require immutable audit events unless policy explicitly requires them.
+- Financial-report export may be auditable where sensitive-report access policy requires it.
+- Login/logout/failed-login inclusion remains Open.
+### Audit event schema
+- Every audit event must have:
+  - immutable server-generated ID
+  - event/action type
+  - actor Admin ID
+  - target/resource type when applicable
+  - target/resource ID when applicable
+  - occurred/created timestamp
+- Recommended safe fields:
+  - request/correlation ID
+  - previous state summary
+  - new state summary
+  - reason/reason code
+  - source feature
+  - related domain record ID
+  - safe IP/user-agent metadata where policy permits
+- Exact schema follows the real repository and privacy policy.
+### Actor identity
+- Actor identity must be derived from the authenticated Laravel Admin context.
+- Never trust client-submitted:
 ```text
-what changed
-```
-
-## 3. Primary Actor
-
-The main actor recorded by this feature is:
-
-```text
-ADMIN
-```
-
-Every consequential Admin action should identify the exact:
-
-```text
-admin_user_id
-```
-
-Do not record only:
-
-```text
-role = ADMIN
-```
-
-without the actor identity.
-
-## 4. Audit Viewer
-
-Authorized Admins may view Audit Logs.
-Viewing logs should require a dedicated permission or equivalent Admin authorization.
-Not every Admin must automatically have full audit visibility.
-
-## 5. Core Responsibilities
-
-System Audit Logs owns:
-
-- immutable audit records
-- Admin actor identity
-- event/action type
-- target resource reference
-- timestamp
-- safe before/after metadata where appropriate
-- source feature reference
-- searchable/filterable Admin viewer
-- pagination
-- asynchronous write integration
-- retry/recovery when audit writing fails
-- safe retention
-- access control
-  It does not own the business action being audited.
-
-## 6. Non-Goals
-
-System Audit Logs does not perform:
-
-- account approval
-- user suspension/restoration
-- Seller Compliance decisions
-- complaint decisions
-- policy publication
-- Global Ban changes
-- campaign delivery
-- Admin Chat messaging
-- payment processing
-- order changes
-- fraud detection
-- application error logging
-- performance monitoring
-- analytics telemetry
-- SIEM as an MVP requirement
-
-## 7. Source Boundary
-
-The source permits either:
-
-```text
-dedicated AuditLogs table
-OR
-external logging service
-```
-
-AISLEY MVP should use:
-
-```text
-dedicated internal AuditLogs table
-```
-
-External forwarding may be added later.
-
-## 8. Third-Party Requirement
-
-No third-party service is required for System Audit Logs.
-Optional future integrations may include:
-
-```text
-SIEM
-security log aggregator
-external archival service
-```
-
-These remain Open Decisions.
-
-# Event Scope
-
-## 9. What Should Be Audited
-
-Audit consequential Admin mutations.
-Examples:
-
-- approve registration
-- reject registration
-- suspend user
-- restore user
-- deactivate user
-- issue Seller warning
-- apply Seller compliance suspension
-- remove non-compliant product
-- resolve complaint
-- publish announcement
-- publish policy
-- require re-consent
-- create/disable Global Ban entry
-- update Admin account/security settings where appropriate
-- send outbound Notification Management campaign
-- other high-impact Admin mutations
-
-## 10. Routine Reads
-
-Routine read-only operations should not create Audit Log records by default.
-Examples:
-
-```text
-open Dashboard
-view report
-search users
-view notification list
-```
-
-These are not consequential mutations.
-
-## 11. Read Auditing Exceptions
-
-Certain sensitive reads may later warrant auditing.
-Examples:
-
-```text
-view highly sensitive evidence
-download financial export
-```
-
-Exact policy is Open.
-
-## 12. Authentication Events
-
-Whether successful/failed Admin login attempts belong in this Audit Log is Open.
-They may instead belong to dedicated security/authentication logs.
-
-## 13. Runtime Security Events
-
-High-frequency events such as:
-
-```text
-every blocked IP request
-every Global Ban match
-```
-
-should not create one Audit Log row each.
-Those belong to:
-
-```text
-security/application logs
-```
-
-Admin changes to the blocklist itself should be audited.
-
-## 14. Complaints Integration
-
-`Admin.md` explicitly requires:
-
-```text
-an audit trail of messages and actions
-taken by the administrator
-during complaint resolution
-```
-
-Complaint-specific history may exist inside the complaint case.
-System Audit Logs should still record consequential Admin actions such as:
-
-```text
-COMPLAINT_DECIDED
-COMPLAINT_CLOSED
-```
-
-## 15. Domain Authority
-
-Audit Logs is historical accountability infrastructure.
-It is not the authoritative business state.
-Example:
-
-```text
-USER_ACCOUNT_SUSPENDED
-```
-
-records the action.
-Manage User Accounts owns:
-
-```text
-current account status
-```
-
-# Audit Record
-
-## 16. Recommended Fields
-
-Conceptual:
-
-```text
-id
-actor_admin_id
-event_type
-source_feature
-target_type
-target_id
-summary
-before_data
-after_data
-metadata
-occurred_at
-created_at
-```
-
-Exact schema is implementation-specific.
-
-## 17. Actor
-
-Required:
-
-```text
-actor_admin_id
-```
-
-Optional:
-
-```text
-actor_role
-actor_display_name snapshot
-```
-
-The user ID is authoritative.
-
-## 18. Event Type
-
-Each audit event should have a stable machine-readable event type.
-Examples:
-
-```text
-ACCOUNT_REGISTRATION_APPROVED
-USER_ACCOUNT_SUSPENDED
-SELLER_COMPLIANCE_WARNING_ISSUED
-POLICY_VERSION_PUBLISHED
-BLOCKLIST_USER_ADDED
-```
-
-Exact naming convention is Open.
-
-## 19. Source Feature
-
-Recommended:
-
-```text
-source_feature
-```
-
-Examples:
-
-```text
-MANAGE_ACCOUNT_REGISTRATIONS
-MANAGE_USER_ACCOUNTS
-SELLER_COMPLIANCE
-COMPLAINTS
-PLATFORM_SETTINGS
-GLOBAL_BAN
-NOTIFICATION_MANAGEMENT
-```
-
-## 20. Target
-
-Recommended:
-
-```text
-target_type
-target_id
-```
-
-Examples:
-
-```text
-USER + user_id
-COMPLAINT + case_id
-PRODUCT + product_id
-POLICY_VERSION + version_id
-BLOCKLIST_ENTRY + entry_id
-CAMPAIGN + campaign_id
-```
-
-## 21. Summary
-
-A short human-readable summary may be stored.
-Example:
-
-```text
-Seller account suspended for compliance violation.
-```
-
-Do not rely on summary text as the only structured event data.
-
-## 22. Before / After
-
-Safe structured before/after values may be useful for mutations.
-Example:
-
-```text
-before:
-status = ACTIVE
-
-after:
-status = SUSPENDED
-```
-
-## 23. Before / After Minimization
-
-Do not dump full database rows into Audit Logs.
-Store only fields relevant to the action.
-
-## 24. Metadata
-
-Metadata may contain:
-
-```text
-reason reference
-case ID
-policy version
-campaign audience summary
-```
-
-It must remain bounded and safe.
-
-## 25. Timestamp
-
-Each record must include a server-generated timestamp.
-Recommended:
-
-```text
-occurred_at
-```
-
-## 26. Server Authority
-
-Do not trust the frontend to provide:
-
-```text
-actor identity
-event timestamp
-before state
-authoritative target state
-```
-
-These must be determined by the backend.
-
-# Immutability
-
-## 27. Immutable Ledger
-
-Source requirement:
-
-```text
-immutable
-```
-
-Therefore normal Admin UI must not support:
-
-- edit audit record
-- delete audit record
-- rewrite event type
-- rewrite actor
-- rewrite timestamp
-- rewrite target
-
-## 28. No CRUD Management
-
-Audit Logs is not a normal CRUD feature.
-Recommended Admin capabilities:
-
-```text
-READ
-SEARCH
-FILTER
-```
-
-Not:
-
-```text
-CREATE manually
-UPDATE
-DELETE
-```
-
-## 29. Database Protection
-
-Recommended implementation controls:
-
-- no public update/delete endpoints
-- restricted database permissions where practical
-- append-only application service
-- no cascading deletion from source records
-
-## 30. Source Record Deletion
-
-If a source record is later deactivated/removed:
-
-```text
-audit record remains
-```
-
-It should preserve stable target identifiers.
-
-## 31. Hard Delete
-
-Routine Admin hard delete of audit history is not allowed.
-Retention/archival cleanup must be a controlled system process if later required.
-
-## 32. Cryptographic Tamper Proofing
-
-Hash chains, signing, notarization, blockchain, or WORM storage are not source-required.
-Open Decision.
-
-# Async Writing
-
-## 33. Source Requirement
-
-`Admin.md` requires Audit Log writing to be:
-
-```text
-asynchronous
-```
-
-and:
-
-```text
-must not fail the primary request
-```
-
-## 34. Primary Action First
-
-Conceptually:
-
-```text
-Admin action
-→ business transaction commits
-→ audit event is persisted/queued
-→ audit writer stores AuditLog
-```
-
-## 35. Primary Action Independence
-
-Example:
-
-```text
-account suspension commits
-audit worker temporarily fails
-```
-
-Result:
-
-```text
-account suspension remains committed
-```
-
-Do not roll back the business action solely because the asynchronous audit writer failed.
-
-## 36. Reliability Requirement
-
-Although the primary action should not fail because of audit delivery problems, audit events must not be silently discarded.
-Recommended:
-
-```text
-transactional outbox
-or equivalent durable event handoff
-```
-
-## 37. Transactional Outbox
-
-Recommended architecture:
-
-```text
-business transaction
-→ domain change
-+ durable audit event/outbox record
-→ commit
-→ async worker
-→ AuditLogs table
-```
-
-This reconciles:
-
-```text
-do not fail primary request
-```
-
-with:
-
-```text
-do not lose audit history
-```
-
-## 38. Middleware
-
-`Admin.md` mentions:
-
-```text
-middleware
-```
-
-Middleware may participate in capturing request/action context.
-However, domain-level audit events are often safer for accurately recording:
-
-```text
-what actually committed
-```
-
-Exact architecture may combine middleware and domain events.
-
-## 39. Do Not Audit Failed Mutation as Success
-
-If a business mutation fails:
-
-```text
-do not create a success audit event
-```
-
-A separate failure/security log may be used if required.
-
-## 40. Worker Retry
-
-Audit-writer failure should retry according to bounded queue policy.
-Exact retry count/backoff is Open.
-
-## 41. Dead-Letter / Failed Jobs
-
-Recommended:
-
-```text
-failed audit job
-→ operational visibility
-→ manual/system retry path
-```
-
-Exact implementation is Open.
-
-# Feature Integrations
-
-## 42. Manage Account Registrations
-
-Recommended events:
-
-```text
-ACCOUNT_REGISTRATION_APPROVED
-ACCOUNT_REGISTRATION_REJECTED
-```
-
-Target:
-
-```text
-user_id + role
-```
-
-## 43. Manage User Accounts
-
-Recommended:
-
-```text
-USER_PROFILE_UPDATED
-USER_ACCOUNT_SUSPENDED
-USER_ACCOUNT_RESTORED
-USER_ACCOUNT_DEACTIVATED
-```
-
-## 44. Seller Compliance
-
-Recommended:
-
-```text
-SELLER_COMPLIANCE_WARNING_ISSUED
-SELLER_COMPLIANCE_SUSPENSION_APPLIED
-SELLER_COMPLIANCE_SUSPENSION_REMOVED
-SELLER_PRODUCT_REMOVED_FOR_COMPLIANCE
-SELLER_COMPLIANCE_CASE_RESOLVED
-```
-
-## 45. Complaints & Disputes
-
-Recommended:
-
-```text
-COMPLAINT_DECIDED
-COMPLAINT_CASE_CLOSED
-```
-
-Request-information/message events may remain in complaint/chat history unless policy requires Audit Log duplication.
-
-## 46. Manage Platform Settings
-
-Recommended:
-
-```text
-ANNOUNCEMENT_CREATED
-ANNOUNCEMENT_UPDATED
-ANNOUNCEMENT_PUBLISHED
-ANNOUNCEMENT_ARCHIVED
-POLICY_VERSION_CREATED
-POLICY_VERSION_PUBLISHED
-POLICY_RECONSENT_REQUIRED
-```
-
-## 47. Global Ban / Blocklist
-
-Recommended:
-
-```text
-BLOCKLIST_USER_ADDED
-BLOCKLIST_IP_ADDED
-BLOCKLIST_PAYMENT_METHOD_ADDED
-BLOCKLIST_ENTRY_DISABLED
-BLOCKLIST_ENTRY_REACTIVATED
-```
-
-Runtime block matches are not Audit Log mutations.
-
-## 48. Notification Management
-
-Recommended:
-
-```text
-NOTIFICATION_CAMPAIGN_CREATED
-NOTIFICATION_CAMPAIGN_UPDATED
-NOTIFICATION_CAMPAIGN_QUEUED
-```
-
-Completion may be logged if useful.
-
-## 49. Admin Account Management
-
-Recommended:
-
-```text
-ADMIN_PROFILE_UPDATED
-ADMIN_PASSWORD_CHANGED
-ADMIN_TWO_FACTOR_ENABLED
-ADMIN_TWO_FACTOR_DISABLED
-```
-
-Do not log passwords, secrets, recovery codes, or OTP values.
-
-## 50. Admin Chat
-
-Routine individual message bodies should not be copied into System Audit Logs by default.
-The chat system owns message history.
-Audit Logs may record high-level administrative events if later required.
-
-## 51. Reports Overview
-
-Routine report views are not audited by default.
-Recommended sensitive actions:
-
-```text
-FINANCIAL_REPORT_EXPORT_REQUESTED
-FINANCIAL_REPORT_EXPORT_DOWNLOADED
-```
-
-if export auditing is enabled.
-
-## 52. Admin Notifications
-
-Routine:
-
-```text
-UNREAD → READ
-```
-
-does not require Audit Log entries by default.
-
-# Data Safety
-
-## 53. Secret Exclusion
-
-Never store:
-
-- password
-- password hash
-- session cookie
-- access token
-- refresh token
-- OTP
-- 2FA secret
-- recovery code
-- API key
-- provider credential
-- CVV
-- full payment card data
-
-## 54. Payment Data
-
-For blocklist/payment-related events, use safe identifiers only.
-Examples:
-
-```text
-provider reference
-masked identifier
-safe fingerprint reference
-```
-
-## 55. Complaint Evidence
-
-Do not copy evidence binaries or full sensitive evidence into Audit Logs.
-Store:
-
-```text
-case/evidence reference
-```
-
-instead.
-
-## 56. Message Content
-
-Do not copy entire private Admin Chat conversations into Audit Logs.
-Store safe references when needed.
-
-## 57. PII Minimization
-
-Prefer:
-
-```text
-user ID
+admin_id
+actor_id
+performed_by
 role
-safe display identifier
 ```
-
-Avoid unnecessary addresses, phone numbers, and personal details.
-
-## 58. Reason Fields
-
-Reasons may contain sensitive information.
-Keep them concise, safely rendered, and only as detailed as needed.
-
-## 59. Structured Metadata
-
-Prefer bounded structured metadata over arbitrary unvalidated JSON.
-Exact schema strategy is Open.
-
-# Viewer
-
-## 60. Recommended Route
-
+- Persist the immutable Admin/account ID.
+- Optionally persist a safe display snapshot if historical readability requires it, but the stable ID remains authoritative.
+- Automated/system-originated audit events may use a distinct `SYSTEM` actor representation only if explicitly supported.
+### Action naming
+- Use stable application-level action names.
+- Recommended style:
 ```text
-/audit-logs
+account_registration.approved
+user.suspended
+seller.warning_issued
+product.removed_for_compliance
+dispute.resolved
+policy.published
+global_ban.created
+push_campaign.sent
 ```
-
-or equivalent Admin route.
-
-## 61. List Columns
-
-Recommended:
-
+- Do not require frontend logic to infer semantics from route names.
+- Event names must be allow-listed/defined by application code.
+- Client input must not invent event types.
+### Target/resource references
+- Store stable IDs instead of full serialized models.
+- Recommended:
 ```text
-Timestamp
-Admin Actor
-Action
-Target
-Source Feature
-Summary
+subject_type
+subject_id
 ```
-
-## 62. Detail View
-
-Recommended:
-
+or repository-equivalent fields.
+- For multi-resource actions, store one primary target plus safe related IDs in structured metadata.
+- Avoid duplicating complete domain records into the audit table.
+### Before/after data
+- Audit logs may record safe changed-field summaries where useful.
+- Prefer changed-field names and safe previous/new values rather than dumping full models.
+- Example:
+```json
+{
+  "changes": {
+    "status": {
+      "from": "ACTIVE",
+      "to": "SUSPENDED"
+    }
+  }
+}
+```
+- Never include hidden/authentication/payment secrets merely because a model changed.
+- For large/sensitive objects, store references/reason codes rather than raw content.
+### Sensitive-data exclusion
+- Never intentionally audit:
+  - plaintext passwords
+  - password hashes
+  - session cookies/IDs
+  - CSRF secrets
+  - Bearer/personal-access tokens
+  - 2FA secrets
+  - recovery codes
+  - OTP values
+  - API/provider secret keys
+  - database connection strings
+  - CVV/CVC/PIN/full-track payment data
+- Avoid full payment-card/bank data.
+- Avoid full identity documents/evidence files.
+- Avoid full private message bodies unless a separately approved policy requires it.
+- PII must be minimized, masked, pseudonymized, or omitted where the actor/resource ID is sufficient.
+- OWASP recommends excluding or masking authentication secrets, tokens, sensitive PII, payment data, and encryption keys from logs.
+### Audit metadata sanitization
+- Treat all textual metadata as untrusted input.
+- Sanitize/encode values before display.
+- Prevent log injection/control-character abuse.
+- Do not render audit metadata as executable HTML.
+- Free-text reasons may be stored only within documented limits and safe serialization.
+### Write timing
+- `Admin.md` requires asynchronous audit writes that do not fail the primary Admin request.
+- Audit creation must not cause an otherwise-valid domain mutation to fail solely because the downstream audit sink is temporarily unavailable.
+- Audit event dispatch should happen only after the source domain transaction commits.
+- Do not create immutable audit records for a mutation that ultimately rolls back.
+- Laravel's after-commit queue/listener behavior is appropriate for asynchronous post-commit dispatch.
+- Exact delivery-guarantee architecture is an Open Question.
+### Delivery reliability
+- Async delivery introduces a risk that an event could be lost after the primary transaction succeeds.
+- At minimum:
+  - queued jobs must retry transient failures
+  - failures must be observable
+  - duplicate retries must not create duplicate logical audit events
+- Recommended event payload includes a stable event/audit ID generated before dispatch.
+- A stronger transactional-outbox pattern may be used if the project later requires durable "no lost audit event" guarantees.
+- Do not introduce an outbox as mandatory unless repository/reliability requirements justify it.
+### Idempotency
+- Replayed queue jobs must not create duplicate audit rows.
+- Enforce uniqueness with a stable audit-event ID/idempotency key where appropriate.
+- Retrying an audit write must not repeat the business mutation.
+- Audit persistence consumes facts about the completed action; it does not execute the action.
+### Middleware vs domain events
+- Source mentions middleware triggering audit writes across the Admin dashboard.
+- Generic middleware can capture:
+  - actor
+  - route
+  - request/correlation ID
+  - request time
+  - response/result category
+- Middleware alone may not know:
+  - exact domain action
+  - target resource
+  - previous/new business state
+  - safe reason code
+- Recommended implementation:
+  - use shared audit infrastructure
+  - emit structured audit events from domain actions/services
+  - optionally enrich them with request context from middleware
+- Do not blindly serialize every request body from middleware.
+### Failed actions
+- Immutable Admin Audit Logs primarily describe administrative operations.
+- Whether rejected/failed Admin mutation attempts are stored here or in security/application logs is an Open Question.
+- If failed attempts are audited:
+  - mark outcome explicitly
+  - never claim a mutation occurred when it did not
+- Authorization failures should normally be available in security logs even if excluded from business audit history.
+### Audit-log viewer
+- Admin must be able to view a paginated audit-log collection.
+- Default order: newest first.
+- Recommended allow-listed filters:
+  - Admin/actor
+  - action/event type
+  - source feature
+  - resource type
+  - resource ID
+  - date/time range
+- Optional search may cover safe identifiers only.
+- Avoid unrestricted full-text search over sensitive metadata unless explicitly required.
+- Use server-side filtering/pagination.
+### Date/time
+- Store timestamps in UTC according to project conventions.
+- Return ISO 8601 timestamps with timezone context.
+- Render in the Admin's locale/timezone.
+- Filters must normalize browser-entered date ranges server-side.
+- Preserve precise ordering for events occurring close together.
+- Server-generated timestamps are authoritative; never trust a client-submitted event timestamp.
+### Audit detail
+- Authorized Admin may open a single log entry.
+- Detail may contain:
+  - actor summary
+  - action
+  - target/resource reference
+  - timestamp
+  - safe before/after changes
+  - safe reason/reference
+  - correlation/request ID
+- Detail must not expose secrets/redacted fields omitted during write.
+- Audit detail is read-only.
+### Correlation IDs
+- A request/correlation ID is recommended for linking audit records to application/security logs.
+- Generate/propagate correlation IDs server-side according to project middleware conventions.
+- Correlation IDs are diagnostic references, not authentication credentials.
+- Do not use them as permission proof.
+### Retention
+- Audit data must have a documented retention policy.
+- Source does not define retention duration.
+- Normal Admin users must not delete history to satisfy retention.
+- Automated retention/archival may remove data only according to approved policy.
+- OWASP recommends not destroying logs before required retention and not retaining them beyond justified duration.
+- Exact archive/storage tier is an Open Question.
+### Integrity/tamper resistance
+- Protect audit storage from unauthorized modification/deletion.
+- Restrict write privileges to the application/audit service.
+- Restrict read privileges to authorized Admins/operations.
+- Consider database permissions, append-only storage, external immutable storage, checksums/hash chaining, or SIEM/WORM storage only if risk/compliance needs justify them.
+- These stronger mechanisms are implementation options, not current source requirements.
+- Access to audit logs itself may need monitoring depending on privacy/security policy.
+### Performance
+- Audit writes must not materially delay primary Admin actions.
+- Queue asynchronous storage when following the source-defined architecture.
+- Viewer queries must be indexed/paginated.
+- Likely index candidates:
+  - occurred/created timestamp
+  - actor Admin ID
+  - action
+  - subject type + ID
+  - source feature
+- Do not load the entire audit ledger into Next.js.
+- Large metadata blobs should be avoided.
+### Audit-log failure observability
+- Queue/audit-sink failures must be observable to system operators.
+- Do not silently swallow failures forever.
+- Use Laravel failed-job/monitoring mechanisms or configured external observability.
+- Failure alerts belong to operational/security monitoring, not necessarily the Admin audit viewer itself.
+- Exact alert channel is Open.
+### Frontend states
+- Audit list:
+  - loading
+  - empty
+  - loaded
+  - error
+  - forbidden
+- Filters:
+  - applying
+  - invalid date range
+  - no results
+- Detail:
+  - loading
+  - loaded
+  - not found
+  - forbidden
+  - error
+- UI must provide no edit/delete controls.
+- A failed viewer request must not imply logs were erased.
+### Accessibility
+- Audit table/list must support keyboard navigation.
+- Table headers and filters require semantic labels.
+- Action/outcome indicators cannot rely on color alone.
+- Structured before/after changes need accessible textual rendering.
+- Date/time labels should expose understandable values.
+### Acceptance criteria
+- [ ] Guest cannot access System Audit Logs.
+- [ ] Non-Admin cannot access System Audit Logs.
+- [ ] Custom Audit Logs permission is enforced.
+- [ ] Audit viewer exposes no update/delete operation.
+- [ ] Administrative mutations produce structured audit events according to their feature specs.
+- [ ] Actor ID is derived from authenticated Admin context.
+- [ ] Event timestamp is server-generated.
+- [ ] Target/resource references use server-validated IDs.
+- [ ] Secrets/tokens/passwords/payment secrets are never persisted in audit metadata.
+- [ ] Rolled-back business mutation does not produce a false successful audit event.
+- [ ] Audit dispatch occurs after source transaction commit.
+- [ ] Audit-delivery failure does not roll back a successful Admin mutation.
+- [ ] Retry does not create duplicate logical audit events.
+- [ ] Viewer list is paginated and newest-first.
+- [ ] Filters are server-side and allow-listed.
+- [ ] Audit timestamps are returned in ISO 8601/timezone-aware form.
+- [ ] Admin can inspect a safe read-only event detail.
+- [ ] Audit records are protected against normal application update/delete.
+- [ ] Retention is controlled by policy rather than user deletion.
+- [ ] Audit metadata renders safely without log/HTML injection.
+- [ ] Login/logout/failed-login behavior remains separate until policy is decided.
+## HOW
+### Project findings
+- `Admin.md` defines System Audit Logs as an immutable, timestamped ledger of every administrative operation, recording who acted, what data changed, and when. fileciteturn21file0
+- It explicitly permits a dedicated `AuditLogs` table or external logging service and requires asynchronous writes that do not fail the primary request. fileciteturn21file0
+- The project architecture requires security-sensitive/admin mutations to be written to an audit trail and asynchronous follow-up work to run after commit. fileciteturn21file10turn21file15
+- Admin Auth explicitly leaves login/logout/failed-login inclusion in this immutable ledger unresolved. fileciteturn21file2turn21file13
+- Exact audit schema, retention period, external logging service, failure guarantees, and permissions for viewing logs are not defined by current project sources.
+### Recommended Laravel model
+Conceptual table:
 ```text
-Event ID
-Timestamp
-Admin
-Event Type
-Source Feature
-Target
-Before
-After
-Safe Metadata
+audit_logs
+- id / event_id
+- actor_admin_id
+- action
+- source_feature
+- subject_type nullable
+- subject_id nullable
+- changes_json nullable
+- metadata_json nullable
+- request_id nullable
+- occurred_at
 ```
-
-## 63. Search
-
-Recommended:
-
+- Keep rows append-only.
+- Do not add ordinary update/delete Admin endpoints.
+- Index timestamp, actor, action, source feature, and subject lookup columns.
+- Use JSON metadata only for bounded safe structured context, not arbitrary model dumps.
+### Audit event service
+- Prefer one shared service/event contract:
 ```text
-event ID
-Admin name/email
-target ID
-event type
+AuditEvent
+AuditRecorder
 ```
-
-If email is used for Admin search, resolve to exact Admin account identity.
-
-## 64. Filters
-
-Recommended:
-
+- Domain action supplies:
+  - action type
+  - target
+  - safe change summary
+  - reason/reference
+- Shared request context supplies:
+  - authenticated Admin ID
+  - request/correlation ID
+  - optional safe request metadata
+- Redaction/sanitization occurs before enqueue/persistence.
+- Generate a stable event ID for retry deduplication.
+### Laravel integration
+Recommended conceptual flow:
 ```text
-date
-Admin actor
-source feature
-event type
-target type
+Admin domain action
+→ database transaction
+→ successful state mutation
+→ emit structured audit event
+→ commit
+→ queued after-commit listener
+→ append audit record
 ```
-
-## 65. Pagination
-
-Audit Logs must be paginated/bounded.
-Do not load the entire ledger into the browser.
-
-## 66. Sorting
-
-Default:
-
-```text
-newest first
-```
-
-## 67. Read-Only UI
-
-The viewer must not expose:
-
-```text
-Edit
-Delete
-Rewrite
-```
-
-actions.
-
-## 68. Empty State
-
-Example:
-
-```text
-No audit events found for this filter.
-```
-
-## 69. Loading / Error
-
-Support:
-
-```text
-loading
-empty
-filtered empty
-error
-```
-
-# API
-
-## 70. Recommended Read API
-
+- Laravel can defer queued listeners/jobs/events until open database transactions commit. citeturn512908search3
+- Do not enqueue raw Eloquent models containing sensitive hidden fields when a minimal immutable payload is enough.
+- Queue worker reload is unnecessary when the event already contains the safe historical change facts.
+### Middleware
+- Use Admin middleware/request context to provide common metadata.
+- Do not rely on middleware alone for business semantics.
+- Middleware must never automatically dump full request bodies.
+- Domain services should identify the exact business action and safe changes.
+### Viewer API
 Conceptual:
-
 ```http
 GET /api/admin/audit-logs
-GET /api/admin/audit-logs/{auditLogId}
+GET /api/admin/audit-logs/{auditLog}
 ```
-
-## 71. No Public Mutation API
-
-Do not expose normal Admin endpoints such as:
-
-```http
-POST   /api/admin/audit-logs
-PATCH  /api/admin/audit-logs/{id}
-DELETE /api/admin/audit-logs/{id}
-```
-
-Audit records are generated by trusted backend infrastructure.
-
-## 72. List Query
-
-Recommended:
-
-```text
-actor_id
-event_type
-source_feature
-target_type
-target_id
-date_from
-date_to
-search
-page/cursor
-```
-
-## 73. Detail Response
-
-Return safe event metadata only.
-Never return secrets/redacted fields.
-
-# Authorization
-
-## 74. Authentication
-
-Audit Log viewer requires:
-
-```text
-authenticated ADMIN
-```
-
-## 75. Permission
-
-Possible:
-
-```text
-view audit logs
-```
-
-Exact permission key is Open.
-
-## 76. Field-Level Visibility
-
-Some metadata may require additional restrictions.
-Exact field-level policy is Open.
-
-## 77. CSRF
-
-Read-only Audit Log GET endpoints do not require mutation CSRF behavior beyond normal authenticated session protections.
-There should be no normal audit-log mutation endpoint.
-
-## 78. IDOR
-
-Knowing an Audit Log ID does not grant access.
-Authorization must be checked for list/detail requests.
-
-# Retention
-
-## 79. Retention Requirement
-
-The source requires historical accountability but does not define a retention duration.
-Open Decision.
-
-## 80. Retention Policy
-
-Possible future policies:
-
-```text
-retain indefinitely
-retain N years
-archive after N months
-```
-
-Do not invent a duration.
-
-## 81. Archive
-
-Archiving old logs to lower-cost storage is optional.
-It must preserve immutability and authorized retrieval if implemented.
-
-## 82. External Archive
-
-External archival services are optional, not required.
-
-# Performance
-
-## 83. Write Path
-
-Audit writing must not significantly delay Admin mutations.
-Use asynchronous processing.
-
-## 84. Query Indexes
-
-Likely useful:
-
-```text
-occurred_at
-actor_admin_id
-event_type
-source_feature
-target_type + target_id
-```
-
-Exact indexes depend on schema.
-
-## 85. Large Ledger
-
-Use pagination/cursor-based retrieval for large datasets.
-
-## 86. Avoid Large Payloads
-
-Keep Audit Log records compact.
-Do not store:
-
-- full source rows
-- binary evidence
-- full conversation histories
-- giant campaign recipient lists
-
-# Operational Behavior
-
-## 87. Audit Writer Failure
-
-Recommended:
-
-```text
-retry
-surface failed jobs operationally
-preserve durable source event
-```
-
-## 88. Audit Database Failure
-
-A temporary AuditLogs table/storage failure should not invalidate the already-committed business action.
-Recovery should process durable pending events later.
-
-## 89. Duplicate Processing
-
-Audit event handling should be idempotent.
-A retried event should not create uncontrolled duplicate Audit Log records.
-
-## 90. Idempotency Key
-
-Recommended:
-
-```text
-event_id
-```
-
-or equivalent unique source event identifier.
-
-## 91. Ordering
-
-Strict total ordering across every Admin action is not required by source.
-Each event must at minimum preserve accurate server time.
-
-# Accessibility
-
-## 92. Accessibility
-
-Audit viewer should:
-
-- expose data in semantic tables/lists
-- support keyboard filtering/navigation
-- provide textual timestamps/actions
-- not rely on color alone
-- clearly indicate redacted values
-
-## 93. Responsive Behavior
-
-Audit list/detail should remain usable on smaller Admin screens.
-
-# MVP Scope
-
-## 94. Required
-
-- dedicated internal AuditLogs table
-- immutable append-only records
-- exact Admin actor ID
-- event type
-- target type/ID
-- timestamp
-- source feature
-- safe metadata
-- asynchronous writing
-- primary business action not rolled back because audit writer temporarily fails
-- durable retry/recovery strategy
-- read-only Admin viewer
-- search/filter
-- pagination
-- Admin authorization
-- secret/PII minimization
-- integration with consequential Admin features
-
-## 95. Recommended
-
-- transactional outbox
-- safe before/after values
-- idempotent event processing
-- dedicated audit-view permission
-- failed-job operational visibility
-- export download auditing where sensitive
-- database-level protection against ordinary update/delete
-
-## 96. Not Required
-
-- external logging vendor
-- SIEM
-- blockchain
-- cryptographic hash chain
-- WORM appliance
-- real-time analytics dashboard
-- audit-log editing
-- routine read-event logging
-- one audit row per runtime blocklist match
-- full chat-message duplication
-- full evidence duplication
-- indefinite retention unless policy chooses it
-
-# Acceptance Criteria
-
-## 97. AC-01 — Admin Actor
-
-Every audited Admin mutation records the exact Admin actor ID.
-
-## 98. AC-02 — Action
-
-Every audit record has a stable event/action type.
-
-## 99. AC-03 — Target
-
-Consequential target mutations identify the affected resource by stable ID where available.
-
-## 100. AC-04 — Timestamp
-
-Every Audit Log uses a server-generated timestamp.
-
-## 101. AC-05 — Immutable
-
-Normal Admin UI/API cannot edit or delete Audit Log records.
-
-## 102. AC-06 — Async
-
-Audit writing does not require the primary Admin HTTP action to wait for final AuditLogs persistence.
-
-## 103. AC-07 — Primary Action Independence
-
-Temporary audit-writer failure does not roll back an already-committed business action.
-
-## 104. AC-08 — Durable Recovery
-
-Audit events are not silently lost when asynchronous writing temporarily fails.
-
-## 105. AC-09 — Idempotent Retry
-
-Retrying the same audit event does not create uncontrolled duplicates.
-
-## 106. AC-10 — Registration Decisions
-
-Account registration approval/rejection actions create appropriate Audit events.
-
-## 107. AC-11 — User Lifecycle
-
-Suspend/restore/deactivate actions create appropriate Audit events.
-
-## 108. AC-12 — Seller Compliance
-
-Warning/suspension/product-removal actions create appropriate Audit events.
-
-## 109. AC-13 — Complaint Decision
-
-Binding complaint decisions create Audit events.
-
-## 110. AC-14 — Platform Settings
-
-Announcement/policy publication creates Audit events.
-
-## 111. AC-15 — Global Ban
-
-Blocklist add/disable/reactivate actions create Audit events.
-
-## 112. AC-16 — Notification Campaign
-
-Outbound notification campaign send/queue creates an Audit event.
-
-## 113. AC-17 — Runtime Blocklist Boundary
-
-Routine blocked-request matches do not flood System Audit Logs.
-
-## 114. AC-18 — Routine Read Boundary
-
-Opening Dashboard/searching users does not create Audit events by default.
-
-## 115. AC-19 — Secret Safety
-
-Audit Logs never store passwords, tokens, OTPs, recovery codes, API keys, or payment secrets.
-
-## 116. AC-20 — Evidence Safety
-
-Complaint evidence binaries are referenced, not copied into Audit Logs.
-
-## 117. AC-21 — Chat Safety
-
-Full Admin Chat message bodies are not duplicated into Audit Logs by default.
-
-## 118. AC-22 — Viewer Permission
-
-Unauthorized Admins cannot view Audit Logs.
-
-## 119. AC-23 — Pagination
-
-Audit list is paginated/bounded.
-
-## 120. AC-24 — No Third Party Required
-
-MVP works using the internal AuditLogs table without an external logging service.
-
-# Tests
-
-## 121. Backend Tests
-
-Test:
-
-- guest denied from viewer
-- non-Admin denied
-- Admin without audit permission denied
-- account approval produces event
-- account rejection produces event
-- user suspension produces event
-- user restore produces event
-- Seller warning produces event
-- Seller suspension produces event
-- complaint decision produces event
-- policy publication produces event
-- blocklist mutation produces event
-- Notification Management campaign queue/send produces event
-- exact actor Admin ID recorded
-- target ID/type recorded
-- server timestamp recorded
-- before/after fields bounded
-- passwords/tokens omitted
-- payment secrets omitted
-- evidence binaries omitted
-- chat content omitted
-- audit record cannot be updated through Admin API
-- audit record cannot be deleted through Admin API
-- failed async writer does not roll back domain action
-- durable event can be retried
-- duplicate event retry idempotent
-- list search/filter works
-- pagination works
-
-## 122. Frontend Tests
-
-Test:
-
-- Audit Logs page loads
-- loading state
-- empty state
-- error state
-- newest-first list
-- filter by Admin
-- filter by event
-- filter by source feature
-- filter by date
-- search target/event
-- detail view
-- before/after values displayed safely
-- no Edit action
-- no Delete action
-- redacted/sensitive values not shown
-- responsive layout
-- keyboard accessibility
-
-# Open Decisions
-
-## 123. Open Decisions
-
-Current sources do not define:
-
-1. exact table/schema names
-2. exact event naming convention
-3. exact audit-view permission key
-4. whether successful Admin login is audited here
-5. whether failed login is audited here
-6. actor IP storage
-7. actor user-agent/device storage
-8. field-level visibility
-9. exact before/after schema
-10. metadata structure
-11. exact transactional outbox design
-12. queue technology
-13. retry count/backoff
-14. dead-letter handling
-15. retention duration
-16. archival strategy
-17. export capability for Audit Logs
-18. sensitive-read auditing
-19. financial export download auditing
-20. cryptographic integrity controls
-21. database-level append-only enforcement
-22. external SIEM/log forwarding
-23. external long-term archive
-24. timezone/display format
-25. whether Admin Chat high-level events are audited
-26. whether campaign completion creates a second Audit event
-
-# Final Definition
-
-## 124. Final Definition
-
-AISLEY System Audit Logs is:
-
-```text
-an immutable, time-stamped,
-Admin accountability ledger
-```
-
-It records:
-
-```text
-who
-did what
-to which resource
-when
-```
-
-Core architecture:
-
-```text
-Admin business action
-→ commit authoritative change
-→ durable audit event
-→ asynchronous writer
-→ internal AuditLogs table
-```
-
-Critical reliability rule:
-
-```text
-audit writer failure
-must not roll back
-an already committed primary Admin action
-```
-
-Critical security rule:
-
-```text
-Audit Logs are append-only/read-only
-for normal Admin workflows
-and never contain secrets.
-```
-
-Third-party rule:
-
-```text
-external logging service = optional
-
-internal AuditLogs table = sufficient for MVP
-```
+- No normal `POST`, `PATCH`, or `DELETE` endpoints for audit rows.
+- Use Policy/Gate authorization.
+- Use query validator/Form Request for filters.
+- Use dedicated API Resource for safe output.
+- Paginate collection.
+### Next.js / React
+- Build:
+  - filterable audit-log table/list
+  - actor/action/resource/date filters
+  - read-only detail panel/page
+  - structured before/after display
+- Use shared Laravel API client.
+- Keep filters in URL search params when consistent with the router conventions.
+- Never implement edit/delete controls.
+- Escape/render all metadata as data, not HTML.
+### Security/logging guidance
+- OWASP distinguishes audit/transaction trails from ordinary security-event logs and recommends collecting administrative actions while keeping purposes clear. citeturn512908search0
+- OWASP recommends excluding/masking passwords, tokens, sensitive PII, payment data, keys, and other secrets from logs. citeturn512908search0
+- OWASP also recommends protecting logs from unauthorized modification/deletion and controlling retention. citeturn512908search0
+### Tests
+- **Laravel:** authorization denial; structured event creation; server-derived actor/timestamp; redaction; after-commit/rollback behavior; retry deduplication; filters/pagination; read-only API; safe serialization.
+- **Frontend:** loading/empty/error/forbidden states; filters; pagination; safe detail display; no edit/delete controls; accessibility.
+### Research-backed recommendations
+- Keep audit records append-only and separate from ordinary technical/security logs. citeturn512908search0
+- Record Admin/privilege/data changes without secrets or unnecessary PII. citeturn512908search0turn512908search1
+- Protect logs against tampering, deletion, and unauthorized access. citeturn512908search0
+- Use after-commit async delivery so rolled-back actions do not create false audit history. citeturn512908search3
+### Risks
+- **Secret leakage:** raw request/model dumps can preserve credentials or PII.
+- **Lost async events:** queue outages can create gaps without retries/monitoring.
+- **Duplicate events:** retries can duplicate records without stable IDs.
+- **Tampering:** edit/delete capability defeats ledger integrity.
+- **False history:** pre-commit writes can record rolled-back actions.
+- **Log injection:** untrusted text can corrupt displays.
+- **Storage growth:** unlimited retention can become expensive.
+- **Coverage gaps/noise:** generic middleware can both miss meaningful actions and overlog trivial ones.
+### Open questions
+- Mandatory event catalog and failed/forbidden-action policy.
+- Login/logout/failed-login inclusion.
+- Read permission and whether viewing/exporting logs is itself audited.
+- Database table vs external service.
+- Delivery guarantee/outbox requirement.
+- Retention/archive and audit-export requirements.
+- IP/user-agent collection policy.
+- Before/after value depth.
+- Whether hash chaining, WORM, or SIEM integration is needed.
+### Sources
+- Project feature-spec rules: `SKILL.md`
+- AISLEY architecture/system-flow contract: `README.md`
+- Admin feature model: `Admin.md`
+- Admin Authentication source/spec
+- Laravel Queues / after-commit: https://laravel.com/docs/12.x/queues
+- OWASP Logging Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+- OWASP Logging Vocabulary Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html

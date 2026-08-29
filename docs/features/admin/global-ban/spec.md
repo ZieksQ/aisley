@@ -1,1452 +1,457 @@
 ---
-feature: Global Ban / Blocklist Management
+feature: global-ban
+title: Admin Global Ban / Blocklist Management
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 1.0
 status: Draft
-scope: Admin Web Application / Shared Security Enforcement
-source_coverage: Admin.md, app.md, current AISLEY Admin feature specifications
+role: Admin
+scope: Admin Web Application
 ---
 
-# Global Ban / Blocklist Management Specification
+# Admin Global Ban / Blocklist Management
 
-## 1. Purpose
+## WHAT
 
-Global Ban / Blocklist Management is AISLEY's centralized security feature for maintaining malicious or prohibited identifiers and blocking matching access or transaction attempts.
-`Admin.md` defines three source-backed categories:
+- **Purpose:** Maintain and enforce a centralized security blocklist for known malicious or fraudulent users, IP addresses, and payment methods.
+- **Primary actor:** Authenticated `ADMIN`.
+- **Source-defined targets:**
+  - banned users
+  - fraudulent IP addresses
+  - flagged payment methods
+- **Source-defined behavior:**
+  - Admin can add/manage blocklist entries.
+  - Matching targets are blocked from applicable access or transactions.
+  - Checks must be efficient because IP/user checks may run on frequent request paths.
+- **Architecture:**
+  - Next.js/React owns list/detail/forms, filters, confirmations, and result presentation.
+  - Laravel owns validation, authorization, normalization, persistence, enforcement, caching, and audit records.
+  - Laravel/database state is authoritative.
+- **Recommended enforcement split:**
 
 ```text
-fraudulent IP addresses
-flagged payment methods
-banned users
+request
+→ resolve trustworthy client IP
+→ IP block check
+
+authenticated request
+→ resolve account
+→ user block check
+
+checkout/payment
+→ obtain safe provider payment identifier/fingerprint
+→ payment-method block check
 ```
 
-It also requires:
+- Payment-method blocking belongs in payment/checkout logic, not generic HTTP middleware.
+- **Feature boundaries:**
+  - Manage User Accounts owns ordinary account suspension/deactivation.
+  - Global Ban owns security block entries and cross-system enforcement.
+  - Admin Authentication respects applicable block middleware.
+  - System Audit Logs records blocklist mutations.
+- Whether a user ban changes normal account status or applies to Admin accounts is open.
+- **Recommended route:** `/security/blocklist`.
+- **Non-goals:** automatic fraud scoring, ML fraud detection, device fingerprinting, CAPTCHA, automatic permanent bans from one heuristic, raw card storage, IP geolocation, VPN detection.
 
-```text
-high-performance checks
-especially for IP/payment methods
-on almost every incoming request
-or transaction attempt
-```
+## MUST
 
-This file defines requirements, boundaries, data rules, Admin APIs, security controls, acceptance criteria, and Open Decisions. Runtime sequences are in `flow.md`.
+### Access control
 
-## 2. Core Block Types
+- Require authenticated `ADMIN` and Global Ban/Blocklist permission where custom permissions exist.
+- Laravel authorization is authoritative; direct API calls cannot bypass it.
+- Use project-standard `401`, `403`, `404`, `422`, and `409` responses.
 
-MVP block types:
+### Block types
+
+- MVP supports:
 
 ```text
 USER
-IP_ADDRESS
+IP
 PAYMENT_METHOD
 ```
 
-Do not silently add:
+- Each entry has exactly one type.
+- Reject unknown client-defined types.
+- Type determines validation and enforcement location.
 
-```text
-device fingerprint
-email
-phone
-shipping address
-country
-browser fingerprint
+### Block entry
+
+- Minimum fields:
+  - server-generated ID
+  - type
+  - normalized target reference/value
+  - active/revoked state
+  - reason
+  - creating Admin ID
+  - created timestamp
+- Recommended optional fields:
+  - `expires_at`
+  - `revoked_at`
+  - `revoked_by_admin_id`
+  - internal notes
+  - complaint/compliance/security-event reference
+- Expired/revoked entries must not enforce.
+- Prefer revocation over hard deletion so security history remains available.
+- Exact reason taxonomy and default expiration are open.
+
+### User bans
+
+- `USER` blocks reference an existing shared AISLEY user/account ID.
+- Do not ban by email alone; AISLEY permits role-aware accounts sharing an email.
+- Enforce after authenticated identity is known.
+- Do not expose internal fraud notes to blocked users.
+- Broad middleware must not accidentally block required recovery/support flows.
+- Decide separately whether blocked users may:
+  - log out
+  - contact support/appeal
+  - view historical orders
+  - receive refunds
+  - finish already-running fulfillment
+- Whether a user block also changes account status is open.
+
+### IP blocks
+
+- Accept valid IPv4 and IPv6.
+- Normalize before storage/comparison.
+- Exact-address matching is sufficient for MVP.
+- CIDR/range blocking is optional/future.
+- Resolve client IP only through correctly configured trusted proxies.
+- Never trust arbitrary forwarded-IP headers directly.
+- Treat IP as a security signal, not proof of identity.
+- Admin UI must warn that shared/NAT/mobile-network addresses can affect unrelated users.
+- IP retention/privacy policy is open.
+
+### IP enforcement
+
+- Apply checks early on configured application routes.
+- Explicitly define exemptions for routes such as:
+  - health checks
+  - internal callbacks/webhooks
+  - static/public assets
+  - Admin recovery/access if Admin IP blocks are excluded
+- Do not assume literally every route needs block middleware.
+- Failure-open vs failure-closed behavior during cache/database outage is an Open Question.
+
+### Payment-method blocks
+
+- Store only safe identifiers supplied/derived from the configured payment provider:
+  - provider name
+  - provider payment-method reference where appropriate
+  - provider fingerprint where a stable fraud-matching fingerprint exists
+- Do not store raw PAN/card number solely for blocking.
+- Never store CVV/CVC, PIN/PIN block, or full track data after authorization.
+- Never put raw payment secrets in Admin forms, logs, URLs, block records, or audit records.
+- Check payment blocks inside checkout/payment flow when the safe identifier is available.
+- A blocked method must stop the affected transaction before prohibited processing proceeds.
+- Exact authorization/capture ordering depends on the chosen gateway.
+- Do not assume wallet/token fingerprints map exactly to the underlying physical card.
+
+### Create block
+
+Conceptual endpoint:
+
+```http
+POST /api/admin/blocklist
 ```
 
-without new requirements.
+Laravel must:
 
-## 3. Responsibilities
+1. authenticate/authorize Admin
+2. validate type and type-specific target
+3. normalize/resolve target
+4. validate reason/expiration
+5. reject conflicting active duplicate
+6. persist block
+7. write required audit record
+8. refresh/invalidate enforcement cache after commit
 
-The feature owns:
+- High-impact block creation requires clear confirmation.
+- Duplicate active blocks must not be silently created.
 
-- user-ban records
-- blocked-IP records
-- blocked payment-method records
-- Admin add/view/disable operations
-- fast runtime matching
-- shared Blocklist service/middleware
-- duplicate prevention
-- Audit Log integration
-- safe reason/source references
-- cache/index synchronization where used
-  It does not own:
-- normal account suspension/restoration
-- registration rejection
-- Seller Compliance sanctions
-- complaint decisions
-- order cancellation/refund
-- payment-provider fraud scoring
-- automatic AI fraud detection
-- Logistics/Courier operational recovery
+### Revoke block
 
-## 4. Primary Actor
+Conceptual endpoint:
 
-Management actor:
-
-```text
-ADMIN
+```http
+POST /api/admin/blocklist/{entry}/revoke
 ```
 
-Runtime enforcement actor:
+- Require authorization.
+- Mark inactive/revoked rather than deleting.
+- Preserve actor, timestamp, and history.
+- Refresh/invalidate affected cache after commit.
+- Unblocking does not automatically reverse unrelated suspension/compliance state.
+
+### Expiration
+
+- Temporary blocks may use `expires_at`.
+- Null expiration may represent indefinite.
+- Backend determines effective state.
+- Expired entries remain visible historically.
+- Cache cleanup must not delete persistent history.
+
+### List/search
+
+- Paginate blocklist entries.
+- Recommended filters:
+  - type
+  - active/revoked/expired
+  - created date
+- Search only safe identifiers:
+  - account ID / approved display identity
+  - normalized IP
+  - safe payment fingerprint/reference
+- Allow-list filters/sorts.
+- Never expose raw sensitive payment data.
+
+### Enforcement service
+
+- Centralize matching in a reusable Laravel service rather than duplicating queries.
 
 ```text
-shared AISLEY security layer
-```
-
-An authorized Admin may:
-
-- list/search/filter entries
-- add user bans
-- add IP blocks
-- add payment-method blocks
-- inspect safe entry details
-- disable an active entry
-- reactivate an entry if supported
-  Exact permission keys are Open Decisions.
-
-## 5. Boundary — Manage User Accounts
-
-Keep these states separate:
-
-```text
-Manage User Accounts
-    suspension / restoration / deactivation
-
-Global Ban / Blocklist
-    security-level user ban
-    fraudulent IP
-    flagged payment method
-```
-
-Rules:
-
-- restoring an account does not clear Global Ban
-- disabling Global Ban does not restore an independently suspended account
-- account status and security block can coexist
-
-## 6. Boundary — Account Approval
-
-Registration states:
-
-```text
-PENDING
-APPROVED
-REJECTED
-```
-
-are not blocklist states.
-Rules:
-
-- rejected registration is not automatically a ban
-- banned user is not automatically `REJECTED`
-- approval/rejection must not implicitly add/remove Global Ban
-
-## 7. Boundary — Seller Compliance
-
-Seller Compliance may warn, suspend, audit, or remove listings.
-Rules:
-
-- compliance suspension is separate from Global Ban
-- unbanning does not clear compliance restrictions
-- compliance cases do not auto-ban unless future policy explicitly adds that behavior
-
-## 8. Boundary — Complaints & Disputes
-
-A complaint may provide evidence supporting a separate security action.
-Recommended:
-
-```text
-Complaint
-→ explicit "Create Blocklist Entry"
-→ prefill safe case reference
-→ Admin reviews
-→ Admin confirms
-```
-
-Complaint resolution itself must not silently ban/unban.
-
-## 9. Identity Rule
-
-AISLEY uses:
-
-```text
-unique(email, role)
-```
-
-Example:
-
-```text
-alex@example.com + BUYER
-alex@example.com + SELLER
-```
-
-User bans must target:
-
-```text
-user_id
-```
-
-with role context.
-Do not ban by email alone.
-
-## 10. Same Email Across Roles
-
-Banning:
-
-```text
-Seller user_id = 123
-```
-
-must not automatically ban:
-
-```text
-Buyer user_id = 456
-```
-
-even if both accounts share the same email.
-Cross-role person-wide bans are not currently defined.
-
-# User Ban
-
-## 11. User Ban Definition
-
-A `USER` entry blocks a specific AISLEY role-account according to the shared enforcement policy.
-Minimum identifier:
-
-```text
-user_id
-```
-
-Recommended Admin display:
-
-- name
-- role
-- masked email
-- stable user ID where useful
-
-## 12. Existing Session / Token
-
-A user already authenticated must not bypass a newly active ban.
-Web:
-
-```text
-Sanctum session
-```
-
-Mobile:
-
-```text
-Bearer personal access token
-```
-
-Both remain subject to backend block checks on subsequent protected requests.
-Actual session/token revocation is Open.
-
-## 13. Role-Specific Operational Effects
-
-The source does not define downstream operational recovery after a user ban.
-Open examples:
-
-- Buyer with in-flight order
-- Seller with existing orders/listings
-- Logistics with active shipments
-- Courier with active task
-  Global Ban should deny protected access, but should not silently rewrite unrelated order/financial records.
-
-## 14. Admin Ban
-
-Whether `ADMIN` role-accounts can be globally banned through this feature is not defined and requires separate governance.
-
-# IP Block
-
-## 15. IP Purpose
-
-`IP_ADDRESS` entries represent known fraudulent IP addresses.
-Active IP blocks should be checked on incoming requests according to configured middleware scope.
-
-## 16. IP Validation
-
-Minimum support:
-
-```text
-IPv4
-IPv6
-```
-
-Requirements:
-
-- reject malformed input
-- normalize deterministically
-- compare canonical values
-- prevent duplicate active equivalents
-
-## 17. CIDR / Range
-
-The source says "IP addresses", not networks/ranges.
-Therefore minimum requirement:
-
-```text
-exact IP match
-```
-
-CIDR/subnet/range support is Open.
-
-## 18. Trusted Proxy Rule
-
-Do not blindly trust arbitrary:
-
-```text
-X-Forwarded-For
-```
-
-Client IP resolution must use trusted proxy configuration appropriate to deployment.
-
-## 19. Shared IP Risk
-
-An IP may represent many legitimate users behind:
-
-- NAT
-- office network
-- carrier-grade NAT
-- public Wi-Fi
-- VPN
-  IP blocks should therefore be deliberate and auditable.
-  Exact false-positive handling is Open.
-
-## 20. Middleware Scope
-
-`Admin.md` says block checks run on almost every incoming request.
-Exact exceptions may include:
-
-- health checks
-- internal callbacks
-- provider webhooks
-- static assets
-- emergency recovery routes
-  Exact route scope is Open.
-
-# Payment Method Block
-
-## 21. Payment Purpose
-
-`PAYMENT_METHOD` entries represent flagged payment methods that should stop applicable transaction attempts.
-
-## 22. Sensitive Payment Data
-
-Never store as blocklist identifiers:
-
-```text
-full card number
-CVV
-OTP
-bank password
-```
-
-Use provider-safe values such as:
-
-```text
-payment token
-provider fingerprint
-provider reference
-masked identifier
-```
-
-depending on actual payment architecture.
-
-## 23. Provider Dependency
-
-Current AISLEY sources do not define the payment provider or fingerprint model.
-Therefore:
-
-```text
-exact payment identifier format = Open Decision
-```
-
-The system may only store identifiers that are safe and reliably comparable.
-
-## 24. Backend Transaction Check
-
-The authoritative block check must occur on the backend transaction path.
-Conceptually:
-
-```text
-payment attempt
-→ derive safe identifier
-→ BlocklistService check
-→ blocked?
-   yes → deny
-   no  → continue
-```
-
-A frontend-only checkout check is insufficient.
-
-## 25. Historical Payment Integrity
-
-Adding a payment block controls future/applicable attempts.
-It must not rewrite completed historical transactions.
-
-## 26. COD
-
-Cash-on-Delivery block behavior is not defined and remains Open.
-
-# Entry Lifecycle
-
-## 27. Recommended Status
-
-The source does not define lifecycle enums.
-Recommended:
-
-```text
-ACTIVE
-INACTIVE
-```
-
-or equivalent.
-`ACTIVE` participates in enforcement.
-`INACTIVE` does not participate in enforcement but remains for history.
-
-## 28. Hard Delete
-
-Hard deleting historical blocklist records is not recommended.
-Prefer:
-
-```text
-disable / deactivate
-```
-
-to preserve accountability.
-
-## 29. Expiry
-
-The source does not define:
-
-```text
-temporary bans
-expires_at
-automatic expiry
-```
-
-These remain Open.
-
-## 30. Reason and Source
-
-Recommended fields:
-
-```text
-reason
-source_type
-source_id
-```
-
-Possible source references:
-
-- complaint case
-- Seller Compliance case
-- security investigation
-  Prefer references over copied evidence.
-
-## 31. Actor Metadata
-
-Recommended:
-
-```text
-created_by_admin_id
-created_at
-disabled_by_admin_id
-disabled_at
-```
-
-## 32. Duplicate Active Entry
-
-Prevent equivalent active duplicates:
-
-```text
-USER
-    same user_id
-
-IP_ADDRESS
-    same canonical IP
-
-PAYMENT_METHOD
-    same provider + safe fingerprint/reference
-```
-
-## 33. Reactivation
-
-If a matching inactive historical entry exists, reactivation may be supported instead of creating another record.
-Not source-required.
-
-# Runtime Enforcement
-
-## 34. Central Service
-
-Recommended conceptual service:
-
-```text
-BlocklistService
-
 isUserBlocked(userId)
 isIpBlocked(ip)
-isPaymentMethodBlocked(provider, identifier)
+isPaymentMethodBlocked(provider, reference)
 ```
 
-Exact class names are implementation-specific.
+- Auth, request middleware, and checkout must use the same normalization/matching rules.
 
-## 35. Middleware Strategy
+### Performance
 
-Recommended:
+- Add indexes for active lookup by type/target.
+- Never full-scan the blocklist per request.
+- Cache frequent checks when justified.
+- Database is authoritative; cache is only an optimization.
+- Create/revoke/expiration must invalidate affected keys promptly.
+- Do not use process-local memory as the only cache in multi-instance deployment.
+- Redis is appropriate if already configured, but is not required by this spec.
+
+### Layered abuse controls
+
+- Global Ban does not replace rate limiting.
+- Continue rate limits on abuse-prone endpoints.
+- Do not automatically create permanent bans from a single rate-limit or IP signal.
+- Any future automatic blocking requires separate thresholds, expiry, review, and false-positive policy.
+
+### Audit
+
+- Every create/revoke/update is security-sensitive and auditable.
+- Safe audit data:
+  - Admin ID
+  - action
+  - block entry ID
+  - target type
+  - safe normalized target reference
+  - reason/reason code
+  - timestamp
+- Never audit raw payment secrets.
+- High-volume middleware decisions may use separate security logs instead of one immutable Admin Audit row per request.
+
+### Frontend
+
+- Required states:
+  - list loading/empty/loaded/error/forbidden
+  - create validation/duplicate/submitting/success/failure
+  - revoke confirmation/submitting/success/failure
+- Type-specific forms must clearly show target, reason, and expiration/indefinite status.
+- Do not optimistically mark a block active before Laravel confirms persistence.
+- Refresh list/detail state after create/revoke.
+
+### Accessibility
+
+- Forms/dialogs require labels and keyboard support.
+- Status cannot rely on color alone.
+- Validation errors must map to fields.
+- Confirmation dialogs must manage focus accessibly.
+
+### Acceptance criteria
+
+- [ ] Guest and non-Admin access is rejected.
+- [ ] Custom Admin permission is enforced server-side.
+- [ ] `USER`, `IP`, and `PAYMENT_METHOD` are supported.
+- [ ] Unknown block types are rejected.
+- [ ] User block references a real account ID.
+- [ ] Same-email different-role accounts are not accidentally banned together.
+- [ ] IPv4/IPv6 are validated and normalized.
+- [ ] Client IP resolution follows trusted-proxy configuration.
+- [ ] Payment block stores only safe provider identifiers/fingerprints.
+- [ ] CVV/PIN/full-track data is never stored.
+- [ ] Duplicate active blocks are prevented.
+- [ ] Create/revoke actions are audited.
+- [ ] Revocation preserves history.
+- [ ] Expired/revoked entries do not enforce.
+- [ ] User block is enforced after authentication.
+- [ ] IP block is enforced on configured routes.
+- [ ] Payment block prevents affected payment transaction.
+- [ ] Block checks use indexed/cached lookup, not full scans.
+- [ ] Cache is refreshed promptly after mutation.
+- [ ] List is paginated/filterable.
+- [ ] Restricted payment/security fields are absent from DTOs.
+- [ ] Global Ban and ordinary account status remain distinct unless explicitly integrated.
+- [ ] Required recovery/support exemptions follow the chosen policy.
+
+## HOW
+
+### Project findings
+
+- `Admin.md` defines a centralized blocklist for fraudulent IPs, flagged payment methods, and banned users, with proactive access/transaction blocking and high-performance checks. fileciteturn7file0
+- Admin Authentication already identifies Global Ban as shared middleware integration and leaves Admin/IP-ban applicability open. fileciteturn7file2
+- `README.md` requires Laravel-owned authorization/validation, transactions, audit trails, pagination, and safe serialization. fileciteturn7file9
+- Exact repository models, payment gateway, cache driver, proxy topology, and account-status schema were not available during research.
+
+### Laravel data model
+
+Recommended conceptual schema:
 
 ```text
-IP check
-    high-level middleware
-
-User check
-    after authenticated identity is available
-
-Payment check
-    near payment/transaction service
-```
-
-Avoid scattering manual block checks across controllers.
-
-## 36. Request Evaluation
-
-Conceptually:
-
-```text
-incoming request
-→ resolve trusted IP
-→ IP blocked?
-   yes → deny
-   no  → continue
-
-if authenticated:
-→ user blocked?
-   yes → deny
-   no  → authorization/business logic
-```
-
-## 37. Payment Evaluation
-
-Conceptually:
-
-```text
-transaction attempt
-→ safe provider identifier available
-→ payment block check
-→ allow or deny
-```
-
-## 38. Blocked Response
-
-Return a safe generic denial.
-Do not reveal:
-
-- internal reason
-- Admin creator
-- linked evidence
-- fraud rules
-- payment fingerprint
-- security notes
-
-## 39. No Public Security Oracle
-
-Do not expose public endpoints such as:
-
-```text
-/is-this-ip-blacklisted
-/is-this-payment-blocked
-```
-
-that allow attackers to probe internal security lists.
-
-# Performance
-
-## 40. Performance Requirement
-
-The source explicitly requires high-performance matching because checks may run on almost every request/transaction attempt.
-Runtime lookups must avoid:
-
-- broad scans
-- unnecessary joins
-- loading the entire blocklist per request
-- controller-by-controller custom queries
-
-## 41. Recommended Architecture
-
-```text
-durable Blocklist store
-→ optimized index/cache
-→ BlocklistService / middleware
-```
-
-Database remains authoritative.
-
-## 42. Cache Rule
-
-Critical:
-
-```text
-cache = acceleration
-database = source of truth
-```
-
-Cache loss must not erase security state.
-
-## 43. Cache Invalidation
-
-Admin mutations should promptly update/invalidate relevant cached keys.
-Examples:
-
-```text
-add
-disable
-reactivate
-```
-
-## 44. Database Fallback
-
-Recommended:
-
-```text
-cache unavailable
-→ database fallback
-```
-
-where feasible.
-
-## 45. Fail-Open / Fail-Closed
-
-The source does not define behavior if blocklist infrastructure is unavailable.
-The project must decide separately for:
-
-- user checks
-- IP checks
-- payment checks
-  This is a major security/availability decision.
-
-## 46. Indexing
-
-Runtime lookup fields should be indexed.
-Examples:
-
-```text
-active user_id
-active canonical IP
-active provider + payment identifier
-```
-
-## 47. Performance SLO
-
-The source says high-performance but provides no concrete latency/throughput target.
-Exact SLO remains Open.
-
-# Admin UI
-
-## 48. Recommended Route
-
-```text
-/security/blocklist
-```
-
-or:
-
-```text
-/blocklist
-```
-
-## 49. List
-
-Recommended columns:
-
-```text
-Type
-Identifier
-Role / Provider
-Status
-Reason
-Created By
-Created At
-```
-
-Payment values must remain masked/provider-safe.
-
-## 50. Filters
-
-Recommended:
-
-```text
-All
-Users
-IP Addresses
-Payment Methods
-```
-
-Additional:
-
-```text
-status
-creator
-date
-```
-
-## 51. Search
-
-Possible:
-
-- user name
-- user email
-- user ID
-- IP address
-- masked payment reference
-- entry ID
-  If searching by email, always show role.
-
-## 52. Pagination
-
-Blocklist lists must be paginated/bounded.
-
-## 53. Add User Ban UI
-
-Select an exact role-account.
-Show:
-
-```text
-name
-role
-masked email
-```
-
-Do not target email alone.
-
-## 54. Add IP UI
-
-Require a valid IPv4/IPv6 value.
-Normalize before persistence.
-
-## 55. Add Payment UI
-
-Require only provider-safe identifiers.
-Never request:
-
-```text
-CVV
-OTP
-bank password
-full card number
-```
-
-## 56. Confirmation
-
-Block/unblock actions are high-impact.
-Recommended confirmation shows:
-
-```text
-Type
-Target
-Reason
-Source reference
-Expected security effect
-```
-
-## 57. Duplicate UI
-
-If an active equivalent already exists:
-
-```text
-This target is already blocked.
-```
-
-Link to the existing entry.
-
-## 58. Disable UI
-
-Prefer:
-
-```text
-Disable Block
-```
-
-over hard delete.
-The UI should explain that independent suspension/compliance restrictions remain unchanged.
-
-## 59. Detail View
-
-Recommended:
-
-- entry ID
-- block type
-- safe target
-- status
+blocklist_entries
+- id
+- type
+- user_id nullable
+- ip_address nullable
+- payment_provider nullable
+- payment_reference nullable
 - reason
-- source reference
-- creator/time
-- disabled actor/time
-- Audit Log reference
+- status
+- expires_at nullable
+- created_by_admin_id
+- revoked_by_admin_id nullable
+- revoked_at nullable
+- created_at
+- updated_at
+```
 
-# API
+- Use constraints so only type-relevant target fields are populated where practical.
+- Index:
+  - active user lookup
+  - active normalized IP
+  - active provider + payment reference
+- Avoid an unstructured JSON-only matcher unless the repository already uses that pattern.
 
-## 60. List / Detail
+### Laravel API
 
-Conceptual:
+Conceptual endpoints:
 
 ```http
-GET /api/admin/security/blocklist
-GET /api/admin/security/blocklist/{entryId}
+GET  /api/admin/blocklist
+POST /api/admin/blocklist
+GET  /api/admin/blocklist/{entry}
+POST /api/admin/blocklist/{entry}/revoke
 ```
 
-## 61. Add User
+- Use Form Requests and Admin Policies/Gates.
+- Suggested actions:
+  - `CreateBlocklistEntry`
+  - `RevokeBlocklistEntry`
+  - `BlocklistChecker`
+- Keep controllers thin.
+- Execute block + required audit mutation transactionally.
+- Update cache after commit.
 
-Conceptual:
+### Enforcement integration
 
-```http
-POST /api/admin/security/blocklist/users
-```
+- **IP:** request middleware → `BlocklistChecker::isIpBlocked()`.
+- **User:** authenticated middleware/service → `isUserBlocked($user->id)`.
+- **Payment:** checkout/payment action → `isPaymentMethodBlocked(provider, reference)`.
+- Do not force all block types into one generic middleware.
+- Document route groups and exemptions explicitly.
 
-```json
-{
-  "user_id": "user-id",
-  "reason": "...",
-  "source_type": "...",
-  "source_id": "..."
-}
-```
+### IP implementation
 
-## 62. Add IP
+- Laravel supports IP/IPv4/IPv6 validation.
+- Configure trusted proxies before relying on `$request->ip()`.
+- Laravel documentation explicitly treats IP addresses as untrusted/user-controlled input.
+- Add CIDR later only if needed, using a tested utility rather than custom string-prefix matching.
 
-Conceptual:
+### Payment implementation
 
-```http
-POST /api/admin/security/blocklist/ip-addresses
-```
+- Inspect the selected gateway first.
+- Use its non-sensitive reusable identifier/fingerprint when available.
+- Stripe is one example: its PaymentMethod card fingerprint can identify repeated use of a card number, with caveats for tokenized wallets/regions.
+- Keep gateway-specific matching behind a payment-risk adapter/service.
+- PCI guidance prohibits retaining sensitive authentication data such as CVV after authorization.
 
-```json
-{
-  "ip_address": "203.0.113.10",
-  "reason": "..."
-}
-```
+### Cache
 
-## 63. Add Payment
-
-Conceptual:
-
-```http
-POST /api/admin/security/blocklist/payment-methods
-```
-
-Illustrative only:
-
-```json
-{
-  "provider": "provider-name",
-  "fingerprint": "safe-provider-value",
-  "reason": "..."
-}
-```
-
-## 64. Disable / Reactivate
-
-Conceptual:
-
-```http
-POST /api/admin/security/blocklist/{entryId}/disable
-POST /api/admin/security/blocklist/{entryId}/reactivate
-```
-
-Reactivation is optional.
-
-# Data Model
-
-## 65. Storage Design
-
-Possible:
+Recommended key shape:
 
 ```text
-single blocklist_entries table
+block:user:{userId}
+block:ip:{normalizedIp}
+block:payment:{provider}:{reference}
 ```
 
-or separate type-specific tables.
-The source does not dictate schema.
-
-## 66. Conceptual Unified Entry
-
-Possible fields:
-
-```text
-id
-type
-status
-user_id
-ip_address
-payment_provider
-payment_identifier
-reason
-source_type
-source_id
-created_by_admin_id
-created_at
-disabled_by_admin_id
-disabled_at
-```
-
-Only type-relevant identifier fields are populated.
-
-## 67. Historical Integrity
-
-Disabling a block must not erase:
-
-- original target
-- original creator
-- original creation time
-- Audit Log history
-
-# Audit Logs
-
-## 68. Audit Requirement
-
-Blocklist mutations are high-impact Admin actions.
-Recommended events:
-
-```text
-BLOCKLIST_USER_ADDED
-BLOCKLIST_IP_ADDED
-BLOCKLIST_PAYMENT_METHOD_ADDED
-BLOCKLIST_ENTRY_DISABLED
-BLOCKLIST_ENTRY_REACTIVATED
-```
-
-## 69. Audit Data
-
-Recommended:
-
-```text
-Admin actor
-entry ID
-block type
-safe target reference
-safe reason/source
-before/after status
-timestamp
-```
-
-Never audit raw sensitive payment credentials.
-
-## 70. Runtime Match Logging Boundary
-
-Routine blocked requests should not create one System Audit Log record each.
-Use:
-
-```text
-security/application logs
-```
-
-for runtime matches.
-Use:
-
-```text
-System Audit Logs
-```
-
-for Admin mutations.
-
-## 71. Admin Notifications
-
-Repeated/high-risk block matches may optionally create aggregated Admin security notifications.
-Not source-required.
-Avoid one notification per malicious request.
-
-# Security
-
-## 72. Authentication / Authorization
-
-All management endpoints require:
-
-```text
-authenticated ADMIN
-```
-
-Possible permission split:
-
-```text
-view
-add user ban
-add IP block
-add payment block
-disable/reactivate
-```
-
-Exact permission keys are Open.
-
-## 73. CSRF
-
-Admin web mutations require Sanctum CSRF protection.
-
-## 74. Self-Lockout
-
-Blocking the current Admin or current Admin's IP may cause administrative lockout.
-Whether to prevent or specially confirm this is Open.
-
-## 75. Payment Secret Safety
-
-Never expose raw payment credentials through:
-
-- UI
-- API
-- logs
-- Audit Logs
-- cache keys where unsafe
-
-## 76. IP Privacy
-
-IP addresses are sensitive security data and should be visible only to authorized Admins.
-
-## 77. XSS Safety
-
-Admin-entered reasons/notes must render safely.
-
-## 78. Metrics Privacy
-
-Do not use raw:
-
-```text
-IP
-user ID
-payment fingerprint
-```
-
-as high-cardinality public metric labels.
-
-# Integrations
-
-## 79. Manage User Accounts
-
-User detail may show:
-
-```text
-Globally Banned
-```
-
-when authorized.
-Restoring account status does not clear the ban.
-
-## 80. Seller Compliance
-
-A case may link to an explicit "Create Global Ban" action.
-No automatic coupling.
-
-## 81. Complaints & Disputes
-
-A complaint may link to an explicit blocklist action.
-No automatic coupling.
-
-## 82. Push Notification Management
-
-Recommended for promotional campaigns:
-
-```text
-exclude globally banned users
-```
-
-This is not source-mandated; critical/security communications remain Open.
-
-# Error Handling
-
-## 83. Admin Errors
-
-Handle:
-
-```text
-duplicate active block
-invalid user
-invalid IP
-invalid payment identifier
-permission denied
-entry not found
-already disabled
-session expired
-storage/cache error
-```
-
-## 84. Runtime Infrastructure Failure
-
-If blocklist infrastructure fails, behavior follows the configured fail-open/fail-closed policy and the failure is logged safely.
-
-# Observability
-
-## 85. Recommended Metrics
-
-Useful aggregates:
-
-```text
-user block matches
-IP block matches
-payment block matches
-lookup latency
-cache hit/miss
-blocklist service errors
-```
-
-No sensitive identifiers in metric labels.
-
-# Accessibility / UX
-
-## 86. Accessibility
-
-Admin UI should:
-
-- label block type/status clearly
-- support keyboard navigation
-- expose validation errors accessibly
-- use accessible confirmation dialogs
-- not rely on color alone
-
-## 87. Responsive Behavior
-
-Lists/forms/detail views should remain usable on smaller screens.
-Long identifiers should truncate/wrap safely without exposing more sensitive data than permitted.
-
-# MVP Scope
-
-## 88. Required
-
-- authenticated Admin blocklist page
-- USER type
-- IP_ADDRESS type
-- PAYMENT_METHOD type
-- role-aware user targeting
-- exact IPv4/IPv6 validation
-- provider-safe payment identifier
-- list/search/filter/pagination
-- add active block
-- safe detail view
-- disable without erasing history
-- duplicate active-entry prevention
-- shared runtime Blocklist service
-- IP middleware check
-- authenticated-user check
-- backend payment check
-- generic blocked response
-- Audit Log integration
-- CSRF
-- PII/payment-secret protection
-- loading/empty/error states
-
-## 89. Recommended
-
-- cache/index acceleration
-- database fallback
-- immediate cache invalidation
-- reason/source references
-- reactivation
-- runtime security logs
-- aggregate monitoring
-- deliberate confirmation
-
-## 90. Not Required
-
-- CIDR/ranges
-- automatic expiry
-- hard delete
-- device/email/phone blocks
-- geo bans
-- automatic fraud scoring
-- AI anomaly detection
-- automatic complaint/compliance bans
-- cross-role person-wide bans
-- threat-intelligence feeds
-- SIEM integration
-
-# Acceptance Criteria
-
-## 91. AC-01 — Authenticated Admin
-
-Guests and non-Admins cannot manage Blocklist entries.
-
-## 92. AC-02 — Permission
-
-Admin mutations require the configured Blocklist permission.
-
-## 93. AC-03 — Exact User Target
-
-A user ban targets `user_id`, not email alone.
-
-## 94. AC-04 — Cross-Role Isolation
-
-Banning a Seller does not automatically ban a same-email Buyer.
-
-## 95. AC-05 — Runtime User Ban
-
-An active user ban denies applicable protected requests.
-
-## 96. AC-06 — Existing Session
-
-An existing web session does not bypass a newly active user ban.
-
-## 97. AC-07 — Existing Mobile Token
-
-An existing Bearer token does not bypass a newly active user ban.
-
-## 98. AC-08 — IP Validation
-
-Malformed IP values cannot be persisted as valid blocks.
-
-## 99. AC-09 — IPv4/IPv6 Match
-
-Canonical active IPv4/IPv6 entries match their corresponding request IPs.
-
-## 100. AC-10 — Trusted Proxy
-
-Client IP resolution follows trusted proxy configuration.
-
-## 101. AC-11 — Payment Secrets
-
-Raw card/CVV/OTP/bank-password data is never required or stored.
-
-## 102. AC-12 — Payment Enforcement
-
-A matching active provider-safe payment identifier blocks the backend transaction attempt.
-
-## 103. AC-13 — Backend Recheck
-
-Payment blocking is enforced at transaction time, not only at frontend load.
-
-## 104. AC-14 — Historical Integrity
-
-Blocking a payment method does not rewrite completed historical transactions.
-
-## 105. AC-15 — Duplicate Prevention
-
-Equivalent active user/IP/payment blocks cannot be duplicated.
-
-## 106. AC-16 — Disable
-
-Disabling an entry removes it from enforcement without deleting history.
-
-## 107. AC-17 — Account Independence
-
-Unban does not restore an independently suspended/deactivated account.
-
-## 108. AC-18 — Compliance Independence
-
-Unban does not clear Seller Compliance restrictions.
-
-## 109. AC-19 — Registration Independence
-
-Blocklist changes do not change approval/rejection state.
-
-## 110. AC-20 — Complaint Independence
-
-Blocklist changes do not change complaint state.
-
-## 111. AC-21 — Efficient Lookup
-
-Runtime checks use indexed/cache-optimized lookups.
-
-## 112. AC-22 — Cache Invalidation
-
-Add/disable/reactivate updates enforcement cache/index promptly.
-
-## 113. AC-23 — Durable Authority
-
-Cache loss does not erase Blocklist records.
-
-## 114. AC-24 — Generic Denial
-
-Blocked users do not receive internal security evidence or block reasons.
-
-## 115. AC-25 — No Public Oracle
-
-Public users cannot probe arbitrary blocklist identifiers.
-
-## 116. AC-26 — Audit Add/Disable
-
-Admin blocklist mutations create safe Audit events.
-
-## 117. AC-27 — Audit Secret Safety
-
-Audit Logs contain no raw payment credentials.
-
-## 118. AC-28 — Runtime Log Boundary
-
-Blocked-request matches do not flood the Admin mutation Audit Log.
-
-## 119. AC-29 — CSRF
-
-Admin blocklist mutations require configured Sanctum CSRF protection.
-
-## 120. AC-30 — Pagination
-
-The Admin blocklist list is bounded/paginated.
-
-## 121. AC-31 — Search Role Context
-
-User search results show role so same-email accounts are distinguishable.
-
-## 122. AC-32 — No Automatic Order Mutation
-
-Adding/removing a block does not silently cancel or rewrite orders/financial records.
-
-# Tests
-
-## 123. Backend Tests
-
-Test:
-
-- guest denied
-- non-Admin denied
-- Admin without permission denied
-- create user ban
-- exact user ID targeting
-- same-email role isolation
-- existing web session blocked
-- existing mobile token blocked
-- valid IPv4 accepted
-- valid IPv6 accepted
-- malformed IP rejected
-- canonical duplicate IP detected
-- trusted proxy behavior
-- safe payment identifier accepted
-- raw card/CVV/OTP not stored
-- backend payment block enforced
-- historical payment unchanged
-- duplicate active user/IP/payment blocks prevented
-- disable removes enforcement
-- disable preserves history
-- account suspension survives unban
-- compliance restriction survives unban
-- approval state remains independent
-- complaint state remains independent
-- cache invalidates on add/disable
-- cache loss does not delete database records
-- generic denial response
-- no public blocklist probe
-- add/disable audited
-- payment secrets absent from Audit Logs
-- runtime matches use security logs
-- CSRF required
-- pagination works
-
-## 124. Frontend Tests
-
-Test:
-
-- Blocklist page loads
-- loading/empty states
-- type/status filters
-- search
-- role visible in user results
-- add User ban confirmation
-- IP validation
-- Payment form never asks for raw secrets
-- duplicate links to existing entry
-- disable confirmation
-- inactive entry remains in history
-- masked payment identifier
-- unauthorized action unavailable
-- session expiration handling
-- safe reason rendering
-- responsive layout
-- keyboard navigation
-- textual status
-
-# Open Decisions
-
-## 125. Open Decisions
-
-Current sources do not define:
-
-1. exact schema
-2. unified vs type-specific tables
-3. status enum
-4. hard-delete policy
-5. expiry/temporary bans
-6. reason taxonomy
-7. required source references
-8. reactivation
-9. permission keys
-10. Admin-account bans
-11. self-lockout protection
-12. cross-role person-wide bans
-13. session revocation on user ban
-14. mobile-token revocation
-15. banned-user support/chat access
-16. Buyer in-flight order behavior
-17. Seller existing-order/listing behavior
-18. Logistics active-shipment behavior
-19. Courier active-task behavior
-20. CIDR/range support
-21. private/internal IP restrictions
-22. NAT/VPN false-positive policy
-23. trusted proxy topology
-24. IP middleware exclusions
-25. payment provider
-26. payment fingerprint/reference format
-27. payment identifier retention/protection
-28. COD behavior
-29. transaction failure semantics
-30. cache technology
-31. cache TTL/key design
-32. cache invalidation implementation
-33. database fallback
-34. fail-open/fail-closed per check type
-35. latency/throughput SLO
-36. match-log retention
-37. security-alert thresholds
-38. Push campaign handling for banned users
-39. privacy retention
-40. threat-intelligence/SIEM integration
-
-# Final Definition
-
-## 126. Final Definition
-
-AISLEY Global Ban / Blocklist Management is:
-
-```text
-an Admin-managed security blocklist
-
-for:
-    banned users
-    fraudulent IP addresses
-    flagged payment methods
-```
-
-Runtime enforcement:
-
-```text
-incoming request
-→ IP check
-→ user check where identity is known
-→ allow / deny
-
-transaction attempt
-→ safe payment identifier
-→ payment block check
-→ allow / deny
-```
-
-Central identity rule:
-
-```text
-A user ban targets a specific user ID / role-account,
-not an email address.
-```
-
-Central boundary:
-
-```text
-Global Ban is separate from
-account suspension,
-registration approval,
-Seller Compliance,
-and complaint resolution.
-```
-
-Central performance rule:
-
-```text
-Durable Blocklist state must be enforceable
-efficiently on high-frequency request
-and transaction paths.
-```
+- Choose positive-only vs positive+negative caching based on traffic.
+- Bound TTLs.
+- Invalidate immediately after create/revoke.
+- Never use cached state to authorize Admin management actions.
+
+### Next.js / React
+
+- Build:
+  - blocklist table
+  - create form/dialog
+  - entry detail
+  - revoke confirmation
+- Change inputs based on block type.
+- User target should use authorized user lookup, not free-text email matching.
+- Payment UI accepts only safe provider reference/fingerprint.
+- IP client validation is UX only; Laravel remains authoritative.
+- Use shared API client and refetch after mutations.
+
+### Tests
+
+- **Laravel:** guest/non-Admin denial, permission checks, all three types, invalid target/type, IPv4/IPv6 normalization, duplicate block, expiration, revocation, audit, user/IP/payment enforcement, cache invalidation, trusted-proxy behavior, safe payment serialization.
+- **Frontend:** list states, filters/pagination, type-specific forms, validation, duplicate conflict, confirmations, create/revoke, forbidden state, accessible interaction, no raw payment-secret fields.
+
+### Research-backed recommendations
+
+- Treat IP as untrusted/contextual and configure trusted proxies correctly. citeturn591610search0
+- Layer blocklists with rate limits/business controls rather than relying on a single IP signal. citeturn718623search1
+- Cache frequent checks using Laravel's shared cache facilities when needed. citeturn330767search0
+- Use provider fingerprints/references rather than raw card data; Stripe exposes a card fingerprint for repeated-card identification. citeturn591610search2
+- Never store sensitive authentication data such as CVV after authorization. citeturn718623search0
+
+### Risks
+
+- **IP false positives:** NAT, schools, offices, ISPs, and mobile networks may share addresses.
+- **Proxy misconfiguration:** spoofed forwarded headers can cause incorrect decisions.
+- **Self-lockout:** applying bans to Admin routes without policy can lock out administrators.
+- **Payment-data exposure:** raw card storage increases security/compliance risk.
+- **Provider mismatch:** fingerprint semantics differ across gateways/wallets.
+- **Cache staleness:** stale decisions can delay a block or unblock.
+- **Feature overlap:** user bans may conflict with suspension/deactivation.
+- **Overblocking:** one weak heuristic may harm legitimate users.
+- **Performance:** per-request full-table scans violate the source requirement.
+
+### Open questions
+
+- Can `ADMIN` accounts be globally banned?
+- Do IP bans apply to Admin routes?
+- Which routes are exempt?
+- What can blocked users still access for support/refund/history?
+- Does user ban change account status?
+- Default expiration/indefinite behavior.
+- Reason taxonomy and user-facing messages.
+- CIDR support.
+- IP retention/privacy period.
+- Failure-open vs failure-closed policy.
+- Payment provider/fingerprint semantics.
+- Exact payment-flow enforcement point.
+- Cache backend/TTL.
+- Whether automated signals can propose blocks for Admin review.
+- Appeal/review flow for false positives.
+
+### Sources
+
+- Project rules: `SKILL.md`
+- Architecture contract: `README.md`
+- Admin feature model: `Admin.md`
+- Admin Authentication integration
+- Laravel Request IP / trusted proxies: https://laravel.com/docs/12.x/requests
+- Laravel IP validation: https://api.laravel.com/docs/12.x/Illuminate/Validation/Concerns/ValidatesAttributes.html
+- Laravel Cache: https://laravel.com/docs/12.x/cache
+- OWASP Bot Management and Anti-Automation: https://cheatsheetseries.owasp.org/cheatsheets/Bot_Management_and_Anti-Automation_Cheat_Sheet.html
+- Stripe PaymentMethod fingerprint: https://docs.stripe.com/api/payment_methods/object
+- PCI SSC sensitive authentication data: https://www.pcisecuritystandards.org/faqs/1533/
