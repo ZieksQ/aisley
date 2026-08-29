@@ -97,6 +97,11 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartItem::class);
+    }
+
     /**
      * Limit products to records that may be exposed on the public storefront.
      *

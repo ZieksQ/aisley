@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { useCart } from "@/components/cart/cart-provider";
 import { AccountMenu } from "./account-menu";
 import { useHomeData } from "./home-data-provider";
 
@@ -69,8 +70,15 @@ export function DeliveryLocation() {
 }
 
 export function HeaderAccountControls() {
+  const { auth } = useAuth();
+  const { cart } = useCart();
   const { data } = useHomeData();
   const { viewer } = data;
+  const cartItemCount = cart?.itemCount ?? 0;
+  const cartHref =
+    auth.status === "guest"
+      ? `/login?next=${encodeURIComponent("/cart")}`
+      : "/cart";
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
@@ -84,14 +92,14 @@ export function HeaderAccountControls() {
       </Link>
 
       <Link
-        href={authDestination("/cart", viewer.isAuthenticated)}
-        aria-label={`Cart with ${viewer.cartItemCount} items`}
+        href={cartHref}
+        aria-label={`Cart with ${cartItemCount} items`}
         className="relative flex min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
       >
         <FiShoppingCart aria-hidden="true" className="size-5" />
-        {viewer.cartItemCount > 0 ? (
+        {cartItemCount > 0 ? (
           <span className="absolute right-0.5 top-0 flex min-w-4 items-center justify-center rounded-md bg-[#E6007A] px-1 text-[10px] font-bold leading-4 text-white">
-            {viewer.cartItemCount > 99 ? "99+" : viewer.cartItemCount}
+            {cartItemCount > 99 ? "99+" : cartItemCount}
           </span>
         ) : null}
         <span className="mt-0.5 hidden lg:block">Cart</span>

@@ -79,6 +79,11 @@ class User extends Authenticatable
         return $this->hasMany(RecentlyViewedProduct::class);
     }
 
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class, 'customer_id');
+    }
+
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'admin_permissions', 'admin_id', 'permission_id')

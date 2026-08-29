@@ -57,4 +57,9 @@ class ProductVariant extends Model
     {
         return $this->belongsTo(ProductMedia::class, 'primary_media_id');
     }
+
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartItem::class, 'variant_id');
+    }
 }

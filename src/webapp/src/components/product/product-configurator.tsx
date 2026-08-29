@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { ProductDetail } from "@/lib/marketplace/types";
 
@@ -9,6 +9,11 @@ import { ProductPurchasePanel } from "./product-purchase-panel";
 
 export function ProductConfigurator({ product }: { product: ProductDetail }) {
   const [preferredMediaId, setPreferredMediaId] = useState<string | null>(null);
+  const handleSelectedVariantChange = useCallback(
+    (variant: ProductDetail["variants"][number] | null) =>
+      setPreferredMediaId(variant?.primaryMediaId ?? null),
+    [],
+  );
 
   return (
     <div className="grid gap-7 md:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)] lg:gap-10">
@@ -20,7 +25,7 @@ export function ProductConfigurator({ product }: { product: ProductDetail }) {
       />
       <ProductPurchasePanel
         product={product}
-        onSelectedVariantChange={(variant) => setPreferredMediaId(variant?.primaryMediaId ?? null)}
+        onSelectedVariantChange={handleSelectedVariantChange}
       />
     </div>
   );
