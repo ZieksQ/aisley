@@ -98,6 +98,9 @@ importers:
       react-icons:
         specifier: ^5.7.0
         version: 5.7.0(react@19.2.8)
+      react-router-dom:
+        specifier: ^7.18.2
+        version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.3.3

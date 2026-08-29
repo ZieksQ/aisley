@@ -9,6 +9,8 @@ use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Seller\AuthController as SellerAuthController;
+use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
@@ -58,6 +60,22 @@ Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
         Route::get('/me', [CustomerAuthController::class, 'show'])->name('me');
         Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
     });
+});
+
+Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
+    Route::post('/register', [SellerAuthController::class, 'register'])->name('register');
+    Route::post('/login', [SellerAuthController::class, 'login'])->name('login');
+    Route::post('/forgot-password', [SellerAuthController::class, 'forgotPassword'])->name('password.email');
+    Route::post('/reset-password', [SellerAuthController::class, 'resetPassword'])->name('password.update');
+
+    Route::middleware(['auth:sanctum', 'seller.active'])->group(function () {
+        Route::get('/me', [SellerAuthController::class, 'show'])->name('me');
+        Route::post('/logout', [SellerAuthController::class, 'logout'])->name('logout');
+    });
+});
+
+Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active'])->group(function () {
+    Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
 });
 
 Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->group(function () {
