@@ -146,44 +146,70 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonPath('message', 'This area is restricted to administrators.');
     }
 
-    public function test_initial_admin_seeder_restores_the_shared_test_credentials_idempotently(): void
+    public function test_initial_admin_seeder_uses_configuration_without_overwriting_an_existing_account(): void
     {
+        config()->set('admin.initial', [
+            'email' => ' BOOTSTRAP.ADMIN@example.com ',
+            'password' => 'InitialAdmin123',
+            'first_name' => 'Bootstrap',
+            'last_name' => 'Administrator',
+        ]);
+
         User::factory()->create([
-            'email' => 'admin@test.com',
+            'email' => 'bootstrap.admin@example.com',
             'role' => UserRole::Customer,
         ]);
 
         app(InitialAdminSeeder::class)->run();
 
         $admin = User::query()
-            ->where('email', 'admin@test.com')
+            ->where('email', 'bootstrap.admin@example.com')
             ->where('role', UserRole::Admin)
             ->firstOrFail();
 
         $this->assertSame(UserStatus::Active, $admin->status);
-        $this->assertTrue(Hash::check('Admin12345', $admin->password));
-        $this->assertSame('Test', $admin->adminProfile->first_name);
+        $this->assertTrue(Hash::check('InitialAdmin123', $admin->password));
+        $this->assertSame('Bootstrap', $admin->adminProfile->first_name);
 
         $admin->update([
-            'password' => 'changed-password',
+            'password' => 'ChangedAdmin456',
             'status' => UserStatus::Suspended,
         ]);
+        config()->set('admin.initial.password', 'ReplacementAdmin789');
         $this->seed(InitialAdminSeeder::class);
 
         $admin->refresh();
-        $this->assertSame(UserStatus::Active, $admin->status);
-        $this->assertTrue(Hash::check('Admin12345', $admin->password));
+        $this->assertSame(UserStatus::Suspended, $admin->status);
+        $this->assertTrue(Hash::check('ChangedAdmin456', $admin->password));
         $this->assertDatabaseCount('users', 2);
     }
 
-    public function test_shared_test_admin_is_not_seeded_in_production(): void
+    public function test_initial_admin_seeder_requires_explicit_credentials_in_production(): void
     {
         $this->app->detectEnvironment(fn () => 'production');
+        config()->set('admin.initial', [
+            'email' => null,
+            'password' => null,
+            'first_name' => 'Platform',
+            'last_name' => 'Administrator',
+        ]);
 
         app(InitialAdminSeeder::class)->run();
 
         $this->assertDatabaseMissing('users', [
-            'email' => 'admin@test.com',
+            'role' => UserRole::Admin->value,
+        ]);
+
+        config()->set('admin.initial', [
+            'email' => 'production-admin@example.com',
+            'password' => 'ProductionAdmin123',
+            'first_name' => 'Production',
+            'last_name' => 'Administrator',
+        ]);
+        app(InitialAdminSeeder::class)->run();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'production-admin@example.com',
             'role' => UserRole::Admin->value,
         ]);
     }

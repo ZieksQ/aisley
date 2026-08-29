@@ -6,9 +6,14 @@ This file lists the user-role seeders currently available in the Laravel API. Bu
 
 | Role | Seeder | Credentials | Result |
 | --- | --- | --- | --- |
-| Admin | `InitialAdminSeeder` | `admin@test.com` / `Admin12345` | Creates or restores an active local/testing Admin with registration review and audit-log permissions. It does not run in production. |
-| Seller | `InitialSellerSeeder` | `catalog@aisley.test` / `Seller12345` | Creates or restores the active local/testing Seller used by the seeded catalog. The full database seeder subsequently attaches the `Aisley Demo Store` and sample products through `ProductSeeder`. It does not run in production. |
+| Admin | `InitialAdminSeeder` | `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` | Creates an active Admin with registration review and audit-log permissions when both values are configured. Existing credentials, status, and profile data are not overwritten. |
+| Seller | `InitialSellerSeeder` | `INITIAL_SELLER_EMAIL` and `INITIAL_SELLER_PASSWORD` | Creates an active Seller when both values are configured. The full database seeder attaches `Aisley Demo Store` and sample products to that account. Existing credentials, status, and profile data are not overwritten. |
 | Buyer / Customer | `InitialCustomerSeeder` | Configured through `APPROVED_CUSTOMER_EMAIL` and `APPROVED_CUSTOMER_PASSWORD` | Creates one active Customer and profile when both values are configured. No fixed Buyer password is stored in the repository. |
+
+Optional profile values are configured with:
+
+- Admin: `INITIAL_ADMIN_FIRST_NAME`, `INITIAL_ADMIN_LAST_NAME`
+- Seller: `INITIAL_SELLER_FIRST_NAME`, `INITIAL_SELLER_LAST_NAME`, `INITIAL_SELLER_CONTACT_NUMBER`, `INITIAL_SELLER_BIRTH_DATE`
 
 ## Commands
 
@@ -27,6 +32,14 @@ php artisan db:seed --class=InitialSellerSeeder
 php artisan db:seed --class=InitialCustomerSeeder
 ```
 
-`ProductSeeder` is a catalog seeder rather than a user-role seeder. When the complete `DatabaseSeeder` runs locally, `InitialSellerSeeder` runs first so `ProductSeeder` reuses the known Seller account instead of creating its random-password fallback account.
+`ProductSeeder` is a catalog seeder rather than a user-role seeder. When both Seller credential variables are configured, `InitialSellerSeeder` runs first and `ProductSeeder` reuses that Seller. Without them, the catalog seeder retains its inaccessible random-password fallback account for data integrity.
 
-These credentials are intended only for local development and automated testing. Never reproduce the fixed Admin or Seller accounts in production.
+## Production safety
+
+- `.env.example` intentionally leaves Admin and Seller email/password values blank.
+- Store real credentials only in the deployment environment or untracked `.env`; never commit them.
+- Use strong, unique production passwords and rotate the account password after bootstrap when appropriate.
+- The seeders skip account creation when either required value is missing.
+- Rerunning a seeder never resets the password, status, or profile of an existing same-role account.
+- After changing environment values on a configuration-cached deployment, run `php artisan config:clear` or rebuild the configuration cache before seeding.
+- Production seeding requires the explicit `php artisan db:seed --force` command.

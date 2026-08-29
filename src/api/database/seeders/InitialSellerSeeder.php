@@ -10,34 +10,36 @@ use Illuminate\Database\Seeder;
 
 class InitialSellerSeeder extends Seeder
 {
-    private const TEST_SELLER_EMAIL = 'catalog@aisley.test';
-
-    private const TEST_SELLER_PASSWORD = 'Seller12345';
-
     public function run(): void
     {
-        if (! app()->environment(['local', 'testing'])) {
+        $email = config('seller.initial.email');
+        $password = config('seller.initial.password');
+        $normalizedEmail = is_string($email) ? strtolower(trim($email)) : '';
+
+        if ($normalizedEmail === '' || ! is_string($password) || $password === '') {
+            $this->command?->warn('Initial seller was not created: configure INITIAL_SELLER_EMAIL and INITIAL_SELLER_PASSWORD.');
+
             return;
         }
 
-        $seller = User::query()->updateOrCreate(
+        $seller = User::query()->firstOrCreate(
             [
-                'email' => self::TEST_SELLER_EMAIL,
+                'email' => $normalizedEmail,
                 'role' => UserRole::Seller,
             ],
             [
-                'password' => self::TEST_SELLER_PASSWORD,
+                'password' => $password,
                 'status' => UserStatus::Active,
                 'email_verified_at' => now(),
             ],
         );
 
-        $seller->sellerProfile()->updateOrCreate([], [
-            'first_name' => 'Aisley',
-            'last_name' => 'Catalog',
-            'contact_number' => '+639171234568',
+        $seller->sellerProfile()->firstOrCreate([], [
+            'first_name' => config('seller.initial.first_name', 'Aisley'),
+            'last_name' => config('seller.initial.last_name', 'Catalog'),
+            'contact_number' => config('seller.initial.contact_number', '+639171234568'),
             'sex' => UserSex::PreferNotToSay,
-            'birth_date' => '1995-01-01',
+            'birth_date' => config('seller.initial.birth_date', '1995-01-01'),
         ]);
     }
 }
