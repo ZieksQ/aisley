@@ -94,12 +94,12 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Forms must provide labels, keyboard access, visible focus, field errors, submit-progress state, and non-color-only status feedback.
 - Registration success must show the pending-approval state and direct the applicant to email/status guidance, not the dashboard.
 - Login links to registration and password recovery; approval/rejection screens link back to login or support where appropriate.
-- [ ] Seller registration creates one pending User/Profile/Application transactionally.
-- [ ] Same-email accounts remain isolated by role across registration, login, and password reset.
-- [ ] Pending, rejected, suspended, and deactivated Sellers cannot access protected APIs.
-- [ ] Approved active Seller can sign in, restore a session, reach `/dashboard`, and log out.
-- [ ] CSRF, session regeneration, credentialed CORS, throttling, and generic credential failures are covered.
-- [ ] Seller data and routes cannot be accessed with Customer, Admin, or Courier authentication.
+- [x] Seller registration creates one pending User/Profile/Application transactionally.
+- [x] Same-email accounts remain isolated by role across registration, login, and password reset.
+- [x] Pending, rejected, suspended, and deactivated Sellers cannot access protected APIs.
+- [x] Approved active Seller can sign in, restore a session, reach `/dashboard`, and log out.
+- [x] CSRF, session regeneration, credentialed CORS, throttling, and generic credential failures are covered.
+- [x] Seller data and routes cannot be accessed with Customer, Admin, or Courier authentication.
 
 ## HOW
 
