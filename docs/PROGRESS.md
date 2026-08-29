@@ -113,3 +113,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-29
 
 - Added the dedicated local/testing `InitialSellerSeeder` with the shared `catalog@aisley.test` / `Seller12345` account, active Seller profile restoration, production exclusion, and default-seeder ordering before the catalog so the same Seller owns `Aisley Demo Store`. Documented the existing Admin, Seller, and Buyer/Customer role seeders and their credential policies in `docs/users.md`; all 76 API tests and 690 assertions pass on SQLite and PostgreSQL 18.3.
+
+## 2026-08-29
+
+- Revised the Seller Order Management specification into a concise catalog-management contract that adopts MDXEditor for `description_markdown`, with toolbar, paste, and drop picture insertion backed by Seller-scoped upload, scanning, canonical asset URLs, safe Markdown rendering, and separation from Product gallery media. No application code was changed.
