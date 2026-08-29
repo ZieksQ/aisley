@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation and customer-homepage schema
+> **Status:** Implemented foundation, customer-homepage, and product-detail schema
 >
-> **Last synchronized:** 2026-08-28
+> **Last synchronized:** 2026-08-29
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -73,6 +73,13 @@ erDiagram
     CATEGORIES o|--o{ CATEGORIES : parent_of
     SHOPS ||--o{ PRODUCTS : sells
     CATEGORIES o|--o{ PRODUCTS : classifies
+    PRODUCTS ||--o{ PRODUCT_OPTION_GROUPS : configures
+    PRODUCT_OPTION_GROUPS ||--o{ PRODUCT_OPTION_VALUES : contains
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : offers
+    PRODUCT_VARIANTS }o--o{ PRODUCT_OPTION_VALUES : selects
+    PRODUCTS ||--o{ PRODUCT_MEDIA : has
+    PRODUCT_VARIANTS o|--o{ PRODUCT_MEDIA : has
+    PRODUCT_VARIANTS o|--o| PRODUCT_MEDIA : primary_media
     FLASH_DEALS }o--o{ PRODUCTS : includes
     USERS ||--o{ RECENTLY_VIEWED_PRODUCTS : views
     PRODUCTS ||--o{ RECENTLY_VIEWED_PRODUCTS : appears_in
@@ -103,6 +110,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `ShopStatus` | `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
+| `ProductVariantStatus` | `active`, `inactive` | `product_variants.status` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
 | `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
 | `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
@@ -526,7 +534,7 @@ Deleting a parent preserves its children and sets their `parent_id` to `NULL`. C
 
 **Model:** `Product`
 
-The first product schema intentionally stores the lightweight, authoritative fields needed by storefront search and homepage cards. Product variations, inventory movements, and order-time snapshots remain deferred.
+Products store both the storefront-card fields and the product-detail content. Options, variants, and ordered media are normalized into the related tables below; inventory movements and order-time snapshots remain deferred.
 
 | Column | PostgreSQL type | Nullable | Default | Notes |
 | --- | --- | --- | --- | --- |
@@ -536,6 +544,8 @@ The first product schema intentionally stores the lightweight, authoritative fie
 | `name` | VARCHAR | No | — | Searchable product/card title |
 | `slug` | VARCHAR | No | — | Globally unique product route key |
 | `short_description` | TEXT | Yes | `NULL` | Summary copy; excluded from homepage DTOs |
+| `description_markdown` | TEXT | Yes | `NULL` | GFM product description for the detail page |
+| `specifications` | JSONB | Yes | `NULL` | Product specification key/value data |
 | `thumbnail_disk` | VARCHAR | No | `public` | Filesystem disk for the primary card image |
 | `thumbnail_path` | TEXT | Yes | `NULL` | Primary product-card image path |
 | `price` | NUMERIC(12,2) | No | — | Current regular selling price |
@@ -551,9 +561,87 @@ The first product schema intentionally stores the lightweight, authoritative fie
 | `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 | `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
+Indexes: (`status`, `stock_quantity`, `published_at`), (`category_id`, `status`), (`shop_id`, `status`), and (`sold_count`, `average_rating`).
+
 Public storefront queries centrally require an active/published product, an active approved Seller, an active Shop, and a Shop that is not in vacation mode. Primary discovery and deal queries additionally require positive product stock.
 
-### 9.5 `homepage_campaigns`
+### 9.5 Product options, variants, and media
+
+#### `product_option_groups`
+
+**Model:** `ProductOptionGroup`
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 primary key |
+| `product_id` | UUID | No | FK → `products.id`; `ON DELETE CASCADE` |
+| `name` | VARCHAR | No | Option label, such as Color or Size |
+| `position` | INTEGER | No | Display order within the product |
+
+Unique (`product_id`, `position`) maintains a stable group ordering. This model has no timestamps.
+
+#### `product_option_values`
+
+**Model:** `ProductOptionValue`
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 primary key |
+| `option_group_id` | UUID | No | FK → `product_option_groups.id`; `ON DELETE CASCADE` |
+| `value` | VARCHAR | No | Human-readable option value |
+| `swatch_color` | VARCHAR(32) | Yes | Optional color swatch token |
+| `swatch_image_path` | TEXT | Yes | Optional image swatch object path |
+| `position` | INTEGER | No | Display order within the group |
+
+Unique (`option_group_id`, `value`) prevents duplicate values; unique (`option_group_id`, `position`) maintains stable ordering. This model has no timestamps.
+
+#### `product_variants`
+
+**Model:** `ProductVariant`
+
+| Column | PostgreSQL type | Nullable | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
+| `product_id` | UUID | No | — | FK → `products.id`; `ON DELETE CASCADE` |
+| `sku` | VARCHAR | No | — | Globally unique Seller SKU |
+| `price` | NUMERIC(12,2) | Yes | `NULL` | Overrides the parent product price when supplied |
+| `original_price` | NUMERIC(12,2) | Yes | `NULL` | Overrides the parent comparison price when supplied |
+| `stock_quantity` | BIGINT | No | `0` | Variant availability quantity |
+| `status` | VARCHAR | No | `active` | Cast to `ProductVariantStatus` |
+| `primary_media_id` | UUID | Yes | `NULL` | FK → `product_media.id`; `ON DELETE SET NULL` |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+
+Indexes: (`product_id`, `status`) and `primary_media_id`.
+
+#### `product_variant_option_values`
+
+This timestamp-free pivot represents the option-value combination selected by a variant.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `product_variant_id` | UUID | No | FK → `product_variants.id`; `ON DELETE CASCADE` |
+| `product_option_value_id` | UUID | No | FK → `product_option_values.id`; `ON DELETE CASCADE` |
+
+Composite primary key: (`product_variant_id`, `product_option_value_id`).
+
+#### `product_media`
+
+**Model:** `ProductMedia`
+
+| Column | PostgreSQL type | Nullable | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
+| `product_id` | UUID | No | — | FK → `products.id`; `ON DELETE CASCADE` |
+| `product_variant_id` | UUID | Yes | `NULL` | FK → `product_variants.id`; `ON DELETE SET NULL` |
+| `disk` | VARCHAR | No | `public` | Laravel filesystem disk name |
+| `path` | TEXT | No | — | Object/blob path |
+| `alt_text` | VARCHAR | Yes | `NULL` | Accessible image description |
+| `position` | INTEGER | No | — | Ordered media position within the product |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+
+Unique (`product_id`, `position`) maintains the product gallery ordering; (`product_variant_id`, `position`) supports variant-media retrieval. The `product_variants.primary_media_id` foreign key is created after this table to resolve the circular reference.
+
+### 9.6 `homepage_campaigns`
 
 **Model:** `HomepageCampaign`
 
@@ -576,7 +664,7 @@ Public storefront queries centrally require an active/published product, an acti
 
 Only active records satisfying `starts_at <= now < ends_at` are exposed. Homepage caching is invalidated on normal model saves/deletes, and expiry is rechecked after cache retrieval.
 
-### 9.6 `flash_deals` and `flash_deal_products`
+### 9.7 `flash_deals` and `flash_deal_products`
 
 **Model:** `FlashDeal`; products use an Eloquent many-to-many relationship.
 
@@ -584,7 +672,7 @@ Only active records satisfying `starts_at <= now < ends_at` are exposed. Homepag
 
 Both foreign keys cascade on delete. The homepage exposes a deal only during its active window and only when at least one attached product is storefront-purchasable, has remaining deal stock, and has a deal price below its regular price.
 
-### 9.7 `recently_viewed_products`
+### 9.8 `recently_viewed_products`
 
 **Model:** `RecentlyViewedProduct`
 
@@ -635,6 +723,13 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Category → parent category | `SET NULL` | Preserve child categories if parent is removed |
 | Product → Shop | `RESTRICT` | Products must be archived/removed before hard-deleting their tenant Shop |
 | Product → Category | `SET NULL` | Preserve product if taxonomy is reorganized |
+| Product option group → Product | `CASCADE` | Options have no meaning without their product |
+| Product option value → Option group | `CASCADE` | Values have no meaning without their option group |
+| Product variant → Product | `CASCADE` | Variants have no meaning without their product |
+| Variant option value → Variant/option value | `CASCADE` | A selection cannot survive either side's removal |
+| Product media → Product | `CASCADE` | Gallery media belongs to its product |
+| Product media → Variant | `SET NULL` | Preserve product-gallery media if a variant is removed |
+| Variant primary media → Product media | `SET NULL` | Keep the variant if its selected media is removed |
 | Flash deal item → Flash deal/Product | `CASCADE` | Deal membership has no meaning without either side |
 | Recently viewed item → User/Product | `CASCADE` | History has no meaning without either side |
 | Session → User | `SET NULL` | Session record may outlive user cleanup briefly |
@@ -662,6 +757,9 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 17. Audit payloads must pass through the sanitizer and must not contain credentials, authorization/session material, raw evidence or binary file contents.
 18. An audit outbox row must be committed with its business transition. Only the post-commit writer creates the ledger row, and retries must reuse the outbox UUID to remain idempotent.
 19. Only successful active-Admin logins generate `admin.login_succeeded`; failed, inactive, and non-Admin authentication attempts do not generate that event.
+20. A variant's selected option values must belong to option groups of that variant's product; the composite pivot cannot enforce this cross-table tenancy constraint.
+21. A variant's `primary_media_id` and a media row's optional `product_variant_id` must refer to records for the same product; application writes must preserve this relationship.
+22. Product, variant, and option ordering positions must be nonnegative and product/variant prices and stock quantities must remain nonnegative.
 
 ## 13. Migration order
 
@@ -695,6 +793,7 @@ Migrations currently run in this dependency order:
 26. `2026_08_28_000118_make_audit_logs_append_only.php`.
 27. `2026_08_28_000119_create_recently_viewed_products_table.php`.
 28. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
+29. `2026_08_29_000120_add_product_details_and_variants.php` — product detail content, options, variants, variant selections, and media.
 
 ## 14. Deferred schema
 
@@ -702,7 +801,7 @@ The following capabilities appear in requirements but have no migrations or mode
 
 | Capability | Deferred data design |
 | --- | --- |
-| Catalog and inventory | Additional product media, options/values, purchasable variants, reservations, and inventory movements beyond the implemented homepage product summary fields |
+| Catalog and inventory | Reservations and inventory movements beyond the implemented product, media, option, and purchasable-variant schema |
 | Promotions | Seller/platform vouchers, general discount rules, eligibility, limits, and redemptions beyond the implemented homepage flash-deal windows |
 | Cart and checkout | Carts/items and a checkout grouping model for multi-shop purchases |
 | Orders and finance | Shop-scoped orders, immutable order-item/address snapshots, payments, fees, commissions, and status history |
