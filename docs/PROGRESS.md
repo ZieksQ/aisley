@@ -96,3 +96,4 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-29
 
 - Fixed storefront session restoration after refresh: any non-authenticated server hydration now uses the navbar loading state while the browser performs a credentialed `GET /api/v1/customer/auth/me`, and the shared provider retries that validation once for each public-route visit until an active Customer is confirmed.
+- Added the active-Customer Cart API with authenticated read/add/update/delete endpoints, one UUID Cart per Customer, SKU-level partial uniqueness, transactional quantity/variation merges, authoritative storefront/variant/stock validation, current-price and ordered-choice projections, unavailable-intent preservation, and Customer-scoped item access. All 68 API tests and 617 assertions pass on SQLite, with the full 68-test/615-assertion suite also passing on PostgreSQL 18.3 after a clean migration cycle.

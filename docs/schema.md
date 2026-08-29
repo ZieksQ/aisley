@@ -687,6 +687,31 @@ Both foreign keys cascade on delete. The homepage exposes a deal only during its
 
 Unique (`user_id`, `product_id`) deduplicates repeated views. Index (`user_id`, `last_viewed_at`) supports most-recent-first retrieval. The API only personalizes with this data when the authenticated identity is an active Customer.
 
+### 9.9 `carts` and `cart_items`
+
+**Models:** `Cart`, `CartItem`
+
+`carts` provides one persistent active Cart per Customer.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 primary key |
+| `customer_id` | UUID | No | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+
+`cart_items` stores one Product configuration per line. Prices, option labels, and availability are deliberately not snapshotted; the Customer Cart API resolves their current authoritative values from the catalog on every response.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 primary key |
+| `cart_id` | UUID | No | FK → `carts.id`; `ON DELETE CASCADE` |
+| `product_id` | UUID | No | FK → `products.id`; `ON DELETE CASCADE` |
+| `variant_id` | UUID | Yes | FK → `product_variants.id`; `ON DELETE CASCADE`; `NULL` only for products without variants |
+| `quantity` | INTEGER | No | Positive requested quantity, enforced by the API |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+
+PostgreSQL/SQLite partial unique indexes enforce one line per purchasable configuration: (`cart_id`, `product_id`, `variant_id`) where `variant_id IS NOT NULL`, and (`cart_id`, `product_id`) where `variant_id IS NULL`. Indexes on (`cart_id`, `created_at`) and (`product_id`, `variant_id`) support ordered Customer projection and catalog-reference lookups.
+
 ## 10. Framework infrastructure tables
 
 These tables are created by the Laravel foundation migrations and do not have application-domain Eloquent models.
@@ -732,6 +757,8 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Variant primary media → Product media | `SET NULL` | Keep the variant if its selected media is removed |
 | Flash deal item → Flash deal/Product | `CASCADE` | Deal membership has no meaning without either side |
 | Recently viewed item → User/Product | `CASCADE` | History has no meaning without either side |
+| Cart → Customer User | `CASCADE` | A Cart belongs exclusively to its authenticating Customer |
+| Cart item → Cart/Product/Variant | `CASCADE` | A Cart line cannot survive its Cart or selected catalog configuration |
 | Session → User | `SET NULL` | Session record may outlive user cleanup briefly |
 
 ## 12. Application-enforced invariants
@@ -760,6 +787,9 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 20. A variant's selected option values must belong to option groups of that variant's product; the composite pivot cannot enforce this cross-table tenancy constraint.
 21. A variant's `primary_media_id` and a media row's optional `product_variant_id` must refer to records for the same product; application writes must preserve this relationship.
 22. Product, variant, and option ordering positions must be nonnegative and product/variant prices and stock quantities must remain nonnegative.
+23. `carts.customer_id` must identify an active Customer for Cart access, and every Cart query/mutation must derive ownership from the authenticated Customer rather than client input.
+24. A Cart Item with Product options must reference one active, complete Variant combination belonging to that Product; a Product without options must use `variant_id = NULL`.
+25. Cart quantities must be positive and within current Product/Variant stock when mutated. Cart writes do not reserve or decrement inventory, and reads preserve unavailable intent while reporting current availability.
 
 ## 13. Migration order
 
@@ -794,6 +824,7 @@ Migrations currently run in this dependency order:
 27. `2026_08_28_000119_create_recently_viewed_products_table.php`.
 28. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
 29. `2026_08_29_000120_add_product_details_and_variants.php` — product detail content, options, variants, variant selections, and media.
+30. `2026_08_29_000121_create_carts_and_cart_items.php` — one Customer Cart, SKU-level Cart Items, and PostgreSQL-safe partial configuration uniqueness.
 
 ## 14. Deferred schema
 
@@ -803,7 +834,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | --- | --- |
 | Catalog and inventory | Reservations and inventory movements beyond the implemented product, media, option, and purchasable-variant schema |
 | Promotions | Seller/platform vouchers, general discount rules, eligibility, limits, and redemptions beyond the implemented homepage flash-deal windows |
-| Cart and checkout | Carts/items and a checkout grouping model for multi-shop purchases |
+| Checkout | Checkout selection/grouping for multi-shop purchases; Cart persistence is implemented |
 | Orders and finance | Shop-scoped orders, immutable order-item/address snapshots, payments, fees, commissions, and status history |
 | First-party logistics | Organization/hub decision, shipments/parcels, waybills, scan events, pickup/final-delivery tasks, assignments, proof of delivery, and Courier earnings |
 | Reviews | Verified-purchase ratings, review media, and Seller responses |
