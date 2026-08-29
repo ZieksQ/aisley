@@ -103,3 +103,4 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-29
 
 - Added an implementation-ready Seller Authentication specification covering role-isolated registration, Admin approval gating, Sanctum web sessions, password recovery, Seller frontend integration, security, testing, rollout requirements, and unresolved shop/document decisions. No application code was changed.
+- Revised the Seller Dashboard specification into a concise, implementation-ready phased contract aligned with the React/Vite Seller app, `/api/v1` conventions, Seller Auth, current Shop/Product schema, strict tenant isolation, and explicit unavailable states for deferred Orders, finance, Inventory, Reviews, notifications, and analytics domains. No application code was changed.
