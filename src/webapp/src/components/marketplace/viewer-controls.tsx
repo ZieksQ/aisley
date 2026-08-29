@@ -5,37 +5,27 @@ import {
   FiMapPin,
   FiMessageCircle,
   FiShoppingCart,
-  FiUser,
 } from "react-icons/fi";
 
+import { useAuth } from "@/components/auth/auth-provider";
+import { AccountMenu } from "./account-menu";
 import { useHomeData } from "./home-data-provider";
 
 function authDestination(path: string, isAuthenticated: boolean) {
-  return isAuthenticated ? path : `/login?returnTo=${encodeURIComponent(path)}`;
-}
-
-function accountLabel(viewer: {
-  displayName: string | null;
-  email: string | null;
-}) {
-  return viewer.displayName?.trim() || viewer.email || "My Account";
-}
-
-function accountInitial(viewer: {
-  displayName: string | null;
-  email: string | null;
-}) {
-  return accountLabel(viewer).charAt(0).toLocaleUpperCase();
+  return isAuthenticated ? path : `/login?next=${encodeURIComponent(path)}`;
 }
 
 export function UtilityAccountControls() {
-  const { data } = useHomeData();
-  const { viewer } = data;
+  const { auth } = useAuth();
 
-  return viewer.isAuthenticated ? (
+  if (auth.status === "loading") {
+    return <span aria-label="Checking account session" className="h-4 w-24 animate-pulse bg-[#F0EBF1]" />;
+  }
+
+  return auth.status === "authenticated" ? (
     <>
-      <Link href="/account" className="hover:text-[#E6007A]">
-        {accountLabel(viewer)}
+      <Link href="/account/profile" className="hover:text-[#E6007A]">
+        {auth.customer.displayName ?? "My Account"}
       </Link>
       <Link href="/account/orders" className="hover:text-[#E6007A]">
         Track Order
@@ -82,8 +72,6 @@ export function HeaderAccountControls() {
   const { data } = useHomeData();
   const { viewer } = data;
 
-  const profileLabel = accountLabel(viewer);
-
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
       <Link
@@ -109,25 +97,7 @@ export function HeaderAccountControls() {
         <span className="mt-0.5 hidden lg:block">Cart</span>
       </Link>
 
-      <Link
-        href={viewer.isAuthenticated ? "/account" : "/login"}
-        aria-label={viewer.isAuthenticated ? `Profile for ${profileLabel}` : "Sign in"}
-        className="flex min-w-11 max-w-20 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-      >
-        {viewer.isAuthenticated ? (
-          <span
-            aria-hidden="true"
-            className="flex size-5 items-center justify-center rounded-full bg-[#4C1268] text-[10px] font-bold text-white"
-          >
-            {accountInitial(viewer)}
-          </span>
-        ) : (
-          <FiUser aria-hidden="true" className="size-5" />
-        )}
-        <span className="mt-0.5 hidden max-w-16 truncate lg:block">
-          {viewer.isAuthenticated ? profileLabel : "Sign in"}
-        </span>
-      </Link>
+      <AccountMenu />
     </div>
   );
 }

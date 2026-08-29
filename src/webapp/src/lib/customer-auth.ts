@@ -1,4 +1,5 @@
 import { apiRequest, initializeCsrf } from "./api";
+import type { AuthenticatedCustomer } from "./auth/types";
 
 const customerAuthPath = "/api/v1/customer/auth";
 
@@ -51,7 +52,10 @@ export function loginCustomer(payload: {
   password: string;
   remember: boolean;
 }) {
-  return secureRequest<{ customer: Customer; message: string }>("/login", payload);
+  return secureRequest<{ customer: AuthenticatedCustomer; message: string }>(
+    "/login",
+    payload,
+  );
 }
 
 export function requestPasswordReset(email: string) {

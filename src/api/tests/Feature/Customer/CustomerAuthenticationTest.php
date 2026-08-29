@@ -95,13 +95,19 @@ class CustomerAuthenticationTest extends TestCase
         ])->assertOk()
             ->assertJsonMissingPath('token')
             ->assertJsonPath('customer.id', $customer->id)
-            ->assertJsonPath('customer.profile.first_name', 'Aisley');
+            ->assertJsonPath('customer.displayName', 'Aisley Buyer')
+            ->assertJsonMissingPath('customer.email')
+            ->assertJsonMissingPath('customer.profile');
 
         $this->assertAuthenticatedAs($customer);
 
         $this->getJson('/api/v1/customer/auth/me')
             ->assertOk()
-            ->assertJsonPath('customer.email', 'customer@example.com');
+            ->assertJsonPath('customer.displayName', 'Aisley Buyer')
+            ->assertJsonPath('customer.role', UserRole::Customer->value)
+            ->assertJsonPath('customer.status', UserStatus::Active->value)
+            ->assertJsonMissingPath('customer.email')
+            ->assertJsonMissingPath('customer.profile');
 
         $this->postJson('/api/v1/customer/auth/logout')
             ->assertOk()

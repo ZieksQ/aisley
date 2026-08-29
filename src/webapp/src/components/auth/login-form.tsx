@@ -7,11 +7,13 @@ import { type FormEvent, useState } from "react";
 import { FiArrowRight, FiMail } from "react-icons/fi";
 import { ApiError, firstFieldError } from "@/lib/api";
 import { loginCustomer } from "@/lib/customer-auth";
+import { useAuth } from "@/components/auth/auth-provider";
 import { FormAlert } from "./form-alert";
 import { PasswordField } from "./password-field";
 
 export function LoginForm({ returnTo }: { returnTo: string }) {
   const router = useRouter();
+  const { setAuthenticatedCustomer } = useAuth();
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,11 +25,12 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
     const form = new FormData(event.currentTarget);
 
     try {
-      await loginCustomer({
+      const { customer } = await loginCustomer({
         email: String(form.get("email") ?? ""),
         password: String(form.get("password") ?? ""),
         remember: form.get("remember") === "on",
       });
+      setAuthenticatedCustomer(customer);
       router.replace(returnTo);
       router.refresh();
     } catch (caught) {
