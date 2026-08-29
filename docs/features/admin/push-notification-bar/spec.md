@@ -1,1488 +1,499 @@
 ---
-feature: Notification Management
+feature: push-notification-bar
+title: Admin Push Notification Bar
 system: AISLEY
 type: Feature Specification
-version: 3.0
+version: 1.0
 status: Draft
-scope: Admin Web Application / Outbound Role-Targeted User Notifications
-source_coverage: app.md, Admin.md, project clarification
-project_override: Email via Brevo is the MVP delivery channel. Push and SMS are future extensions, not MVP requirements.
+role: Admin
+scope: Admin Web Application
 ---
 
-# Notification Management Specification
-
-## 1. Purpose
-
-Notification Management is AISLEY's Admin-controlled outbound communication feature for sending targeted notifications to AISLEY user roles and segments.
-The intended MVP behavior is:
-
+# Admin Push Notification Bar
+## WHAT
+- **Purpose:** Provide an Admin-facing outbound notification composer for sending targeted push notifications and, when enabled, SMS messages to selected AISLEY user segments.
+- **Primary actor:** Authenticated `ADMIN`.
+- **Source terminology:** `Admin.md` calls the underlying capability **Push Notification Management**.
+- **Feature name in this project:** `push-notification-bar`.
+- **Source-defined capabilities:**
+  - compose customized notification messages
+  - target specific user segments
+  - send push notifications
+  - optionally send SMS blasts
+  - support announcements, promotions, re-engagement, and critical alerts
+  - dispatch large recipient batches asynchronously
+- **Example source segments:**
+  - inactive buyers
+  - top-performing sellers
+- These are examples, not the complete segmentation model.
+- **Architecture:**
+  - Next.js/React owns the Admin composer/bar UI, audience controls, preview, confirmation, submission state, and campaign/result display.
+  - Laravel owns authorization, audience resolution, validation, campaign persistence, dispatch jobs, provider integrations, consent/preferences, retries, and audit records.
+  - Third-party providers deliver external push/SMS.
+- **Outbound flow:**
 ```text
-Admin creates notification
-→ selects target role / segment
-→ AISLEY resolves recipients
-→ AISLEY queues email delivery
-→ Brevo sends the email
-→ AISLEY records campaign results
+Admin composes message
+→ selects channel(s)
+→ selects approved audience segment
+→ preview/recipient estimate
+→ confirms send
+→ Laravel validates + authorizes
+→ persist campaign
+→ queue fan-out
+→ provider delivery
+→ update campaign delivery status
 ```
-
-This project clarification intentionally narrows the older `Admin.md` wording that described Push/SMS delivery.
-For the MVP:
-
+- **Feature boundary:**
+  - `admin-notification` is the Admin's inbound notification inbox.
+  - `push-notification-bar` is an outbound Admin communication tool.
+  - Manage Platform Settings owns persistent platform announcements/policies.
+  - Publishing an announcement does not automatically send a push/SMS campaign.
+  - Chat/Messaging owns direct conversation messages.
+- **Recommended UI placement:** a dedicated Admin communication control/page, optionally exposed from a top/header bar.
+- **Recommended route:**
 ```text
-EMAIL = required delivery channel
-PUSH = future
-SMS = future
+/push-notifications
 ```
-
-No separate Push or SMS provider is required for the MVP.
-
-## 2. Existing Email Provider
-
-`app.md` explicitly defines:
-
-```text
-Brevo
-```
-
-for sending emails.
-Therefore Notification Management should reuse the existing AISLEY email integration rather than introduce a second notification provider.
-
-## 3. Why Brevo Is Used
-
-AISLEY owns:
-
-- who should receive the notification
-- which role/segment is targeted
-- notification content
-- campaign history
-- recipient resolution
-- delivery state
-  Brevo only handles:
-
-```text
-actual email transport
-```
-
-Conceptually:
-
-```text
-AISLEY business logic
-→ Brevo email API
-→ recipient inbox
-```
-
-## 4. Core Boundary
-
-Notification Management is:
-
-```text
-Admin → AISLEY users
-```
-
-It is not:
-
-```text
-platform → Admin attention feed
-```
-
-That belongs to:
-
-```text
-Admin Notifications
-```
-
-## 5. Admin Notifications vs Notification Management
-
-```text
-Admin Notifications
-    inbound operational alerts for Admins
-
-Notification Management
-    outbound Admin-created user communications
-```
-
-These must remain separate.
-
-## 6. Platform Settings Boundary
-
-Manage Platform Settings owns:
-
-```text
-platform announcements
-Terms of Service
-Privacy Policy
-internal rules
-```
-
-Notification Management may distribute or reference announcement content by email.
-Publishing an announcement does not automatically email all users unless an Admin explicitly creates/sends a notification campaign.
-
-## 7. Admin Chat Boundary
-
-Admin Chat / Messaging is:
-
-```text
-Admin ↔ specific user
-two-way conversation
-```
-
-Notification Management is:
-
-```text
-Admin → many selected users
-one-way campaign communication
-```
-
-A campaign must not create one Admin Chat thread per recipient.
-
-## 8. Primary Actor
-
-The primary actor is:
-
-```text
-ADMIN
-```
-
-Only authenticated and authorized Admins may create, preview, or send user notification campaigns.
-
-# Audience
-
-## 9. Core Role Targets
-
-AISLEY user roles include:
-
-```text
-BUYER
-SELLER
-LOGISTICS
-COURIER
-```
-
-Notification Management should support targeting these role-accounts.
-
-## 10. Role-Specific Notification Examples
-
-Examples:
-
-```text
-BUYER
-    marketplace announcement
-    promotion
-    re-engagement email
-
-SELLER
-    Seller-specific announcement
-    platform update
-    Seller reminder
-
-LOGISTICS
-    Logistics-specific announcement
-    service notice
-
-COURIER
-    Courier-specific announcement
-    operational or safety notice
-```
-
-These are examples, not mandatory template categories.
-
-## 11. All Users
-
-A campaign may target:
-
-```text
-ALL USERS
-```
-
-if the Admin has permission and the message is appropriate for all supported user roles.
-
-## 12. Single Role
-
-Examples:
-
-```text
-BUYER only
-SELLER only
-LOGISTICS only
-COURIER only
-```
-
-## 13. Multiple Roles
-
-Recommended:
-
-```text
-BUYER + SELLER
-SELLER + LOGISTICS
-all supported roles
-```
-
-Exact role-combination UI is implementation-specific.
-
-## 14. Role-Aware Identity
-
-AISLEY uses:
-
-```text
-unique(email, role)
-```
-
-Therefore audience membership is based on:
-
-```text
-user_id + role
-```
-
-not email alone.
-
-## 15. Same Email Across Roles
-
-Example:
-
-```text
-alex@example.com + BUYER
-alex@example.com + SELLER
-```
-
-These are separate AISLEY role-accounts.
-If both roles are targeted, the account model may produce two logical recipients even if the physical email address is the same.
-Exact duplicate-email delivery policy is an Open Decision.
-
-## 16. Behavioral Segments
-
-The older source gives examples such as:
-
-```text
-inactive Buyers
-top-performing Sellers
-```
-
-These can remain optional segment capabilities.
-They are not required to define the basic role-targeting feature.
-
-## 17. Inactive Buyer
-
-If implemented, "inactive" must be configured explicitly.
-The source does not define:
-
-```text
-30 days
-60 days
-90 days
-```
-
-Do not invent a default inactivity threshold.
-
-## 18. Top-Performing Seller
-
-If implemented, the source does not define whether "top-performing" means:
-
-```text
-sales
-order count
-rating
-revenue
-time period
-```
-
-This remains configurable/Open.
-
-## 19. Segment Membership
-
-A segment returns exact AISLEY role-accounts.
-Example:
-
-```text
-role = BUYER
-last_activity < configured threshold
-```
-
-## 20. Audience Preview
-
-Before sending, Admin should be able to see:
-
-```text
-target role(s)
-segment criteria
-matched account count
-email-eligible count
-excluded count
-```
-
-## 21. Recipient Eligibility
-
-For EMAIL MVP, a recipient generally needs:
-
-```text
-valid account email
-```
-
-Other eligibility rules such as:
-
-- email preferences
-- marketing consent
-- banned-account exclusion
-- suspended-account exclusion
-  are Open Decisions unless defined elsewhere.
-
-# Campaign
-
-## 22. Campaign Definition
-
-A notification campaign stores:
-
-- creator
-- target audience
-- subject
-- message body
-- delivery channel
-- campaign state
-- recipient results
-- timestamps
-
-## 23. MVP Channel
-
-MVP:
-
-```text
-EMAIL
-```
-
-Future:
-
-```text
-PUSH
-SMS
-```
-
-## 24. Recommended Campaign Lifecycle
-
-Recommended:
-
+or repository-equivalent.
+- **MVP recommendation:** support push first; SMS only when a provider, consent model, and project requirement are configured.
+- **Non-goals:**
+  - Admin inbox/read receipts
+  - ordinary chat messages
+  - email marketing unless separately specified
+  - arbitrary raw provider API access from the browser
+  - sending without consent/preferences where required
+  - client-side audience calculation
+  - storing provider secrets in Next.js browser code
+## MUST
+### Access control
+- Every push-notification-bar API requires:
+  - authenticated session
+  - persisted role = `ADMIN`
+  - Push Notification Management permission where custom Admin permissions exist
+- Laravel authorization is authoritative.
+- Frontend visibility is not authorization.
+- Direct API requests cannot bypass permission checks.
+- Provider credentials must remain server-side.
+- Use project-standard:
+  - `401` unauthenticated
+  - `403` forbidden
+  - `404` campaign/segment not found
+  - `422` validation failure
+  - `409` duplicate/conflicting dispatch state
+### Campaign model
+- Each outbound send must be represented as a server-side campaign/message record.
+- Minimum conceptual fields:
+  - immutable campaign ID
+  - title
+  - body
+  - selected channel(s)
+  - audience/segment definition or reference
+  - status
+  - creating Admin ID
+  - created timestamp
+- Recommended optional fields:
+  - scheduled/send timestamp
+  - destination/deep link
+  - recipient estimate
+  - sent count
+  - failed count
+  - completed timestamp
+- Exact campaign-status names are not source-defined.
+- Recommended lifecycle:
 ```text
 DRAFT
-QUEUED
-PROCESSING
-COMPLETED
-PARTIAL
-FAILED
-```
+→ QUEUED
+→ SENDING
+→ COMPLETED
 
-Exact enum names are implementation-defined.
-
-## 25. Draft
-
-A `DRAFT` campaign:
-
-- is editable
-- has not begun delivery
-- may be incomplete
-
-## 26. Queued
-
-`QUEUED` means:
-
-```text
-Admin confirmed send
-and the campaign is waiting for background processing
-```
-
-## 27. Processing
-
-`PROCESSING` means:
-
-```text
-recipient emails are being generated/sent
-```
-
-## 28. Completed
-
-`COMPLETED` means:
-
-```text
-campaign processing finished successfully according to configured completion policy
-```
-
-It does not guarantee every recipient read the email.
-
-## 29. Partial
-
-Recommended:
-
-```text
-some recipients succeeded
-some failed or were skipped
-```
-
-## 30. Failed
-
-`FAILED` indicates campaign-level processing could not complete meaningfully.
-Exact thresholds are Open.
-
-# Message Composition
-
-## 31. Email Subject
-
-Required:
-
-```text
-subject
-```
-
-Requirements:
-
-- non-empty
-- bounded length
-- safe text
-  Exact maximum length is Open.
-
-## 32. Email Body
-
-Required:
-
-```text
-message body
-```
-
-Content format may be:
-
-```text
-plain text
-HTML template
-rich email template
-```
-
-Exact rendering model is Open.
-
-## 33. Safe HTML
-
-If HTML email is supported:
-
-- sanitize/admin-template content as appropriate
-- do not permit unsafe script execution
-- ensure generated email markup is provider-compatible
-
-## 34. Branding
-
-Recommended:
-
-```text
-AISLEY email branding
-```
-
-using shared email layout/templates.
-Exact design belongs to the email/design system.
-
-## 35. Message Preview
-
-Admin should preview:
-
-```text
-subject
-body
-target role/segment
-estimated recipients
-```
-
-before sending.
-
-## 36. Templates
-
-Reusable email templates are optional.
-Not required for MVP.
-
-## 37. Personalization
-
-Variables such as:
-
-```text
-{{name}}
-```
-
-are optional and not source-required.
-
-## 38. Links
-
-Email links should point to approved AISLEY routes/domains.
-Avoid arbitrary unsafe links in Admin-authored campaign content.
-
-# Delivery
-
-## 39. Delivery Architecture
-
-MVP:
-
-```text
-Admin confirms send
-→ campaign QUEUED
-→ background worker resolves recipient batch
-→ email job calls shared Brevo integration
-→ result recorded
-```
-
-## 40. Why Queueing Is Still Useful
-
-Even with email only, sending hundreds or thousands of emails synchronously inside one Admin HTTP request is undesirable.
-Recommended:
-
-```text
-Admin request
-→ queue work
-→ immediately return campaign status
-```
-
-This prevents:
-
-- long request timeouts
-- partial browser failures
-- excessive memory use
-- poor retry control
-
-## 41. Queue Vendor
-
-A third-party queue vendor is not required.
-AISLEY may use the queue technology already supported by the backend.
-Exact queue technology is Open.
-
-## 42. Redis/Celery
-
-The older `Admin.md` listed:
-
-```text
-Redis/Celery
-```
-
-as examples.
-They are not requirements.
-Laravel's own queue-supported architecture or another project-selected mechanism may be used.
-
-## 43. Background Batch Processing
-
-Recommended:
-
-```text
-campaign
-→ recipient snapshot/list
-→ bounded batches
-→ email jobs
-```
-
-## 44. Brevo Integration
-
-The email job should use the existing shared Brevo email service.
-Do not create a second Brevo implementation just for campaign notifications.
-
-## 45. Brevo Responsibility
-
-Brevo handles:
-
-- email transport
-- provider acceptance/error result
-  AISLEY handles:
-- campaign state
-- audience
-- recipient records
-- retries
-- history
-- permissions
-
-## 46. Provider Acceptance
-
-If Brevo accepts a send:
-
-```text
-SENT
-```
-
-may be recorded according to provider semantics.
-Do not claim:
-
-```text
-READ
-```
-
-unless the system later integrates reliable tracking and explicitly defines it.
-
-## 47. Brevo Failure
-
-A temporary provider failure should not delete the campaign.
-Recommended:
-
-```text
-record failure
-→ retry according to policy
-```
-
-## 48. Invalid Email
-
-Invalid/unusable email:
-
-```text
-SKIPPED
 or
-FAILED
+→ FAILED / PARTIALLY_FAILED
 ```
-
-for that recipient according to implementation.
-It must not fail the entire campaign.
-
-## 49. Partial Failure
-
-Successful recipient sends remain successful even if other recipients fail.
-
-# Recipient Records
-
-## 50. Recommended Recipient Record
-
-Conceptual:
-
+- The client must not assign arbitrary campaign status values.
+- A campaign must not become `COMPLETED` merely because it was accepted into the queue.
+### Composer
+- Admin must be able to provide:
+  - notification title
+  - notification body
+  - delivery channel(s)
+  - approved audience segment
+- Optional fields when supported:
+  - internal destination/deep link
+  - image/icon
+  - scheduled send time
+- Title/body must be validated server-side.
+- Define maximum lengths compatible with selected providers/clients.
+- Do not allow raw HTML/script execution in notification content.
+- Do not trust client-provided recipient IDs generated from arbitrary frontend filtering.
+### Audience segmentation
+- Audience resolution must happen in Laravel.
+- Admin chooses only approved segment definitions/filters.
+- Segment filters must be allow-listed.
+- Source examples include:
+  - inactive buyers
+  - top-performing sellers
+- Exact definitions of "inactive" and "top-performing" are Open Questions.
+- Segment membership must be calculated from authoritative backend data.
+- Admin must not receive unrestricted raw user exports solely to build a campaign.
+- Respect role boundaries and account status.
+- Exclude accounts that cannot legally/technically receive the selected channel.
+### Segment snapshot
+- Audience membership can change between preview and dispatch.
+- Decide whether campaigns use:
+  - audience resolved at send time, or
+  - a persisted recipient snapshot
+- MVP recommendation: resolve and persist recipient targets when campaign dispatch begins so retries use the same intended audience.
+- Do not silently expand the audience during retry.
+- Exact recipient-snapshot retention is an Open Question.
+### Push recipient eligibility
+- Push delivery requires a valid registered device/app/browser token or subscription.
+- Store push subscription/device registration records server-side.
+- A user/account may have multiple devices.
+- Invalid/expired device tokens must eventually be disabled/removed.
+- Never expose all device tokens to Admin UI.
+- Admin selects users/segments, not raw FCM tokens.
+- Provider token lifecycle is handled by integration/services.
+### Web push permission
+- For browser push:
+  - browser permission must be granted by the user
+  - permission requests must originate from an appropriate user interaction
+  - HTTPS/service-worker requirements must be satisfied
+- The Admin campaign feature cannot override a user's browser notification permission.
+- A user with denied/no permission is excluded from Web Push delivery.
+- Do not repeatedly nag users for browser permission after denial.
+### Mobile push
+- If AISLEY's Flutter/mobile client receives push:
+  - register its provider/device token through the authenticated mobile client
+  - associate the token with the correct account/device
+  - refresh/remove stale tokens according to provider guidance
+- Exact Flutter push setup belongs to the client notification-registration implementation.
+- Campaign logic should not depend on raw client implementation details.
+### Push provider
+- `Admin.md` names Firebase Cloud Messaging, Twilio, or AWS SNS as examples.
+- Do not treat all of them as simultaneously required.
+- The repository/project must select the actual provider.
+- **Recommended for AISLEY if no provider is already selected:** Firebase Cloud Messaging for cross-platform push because it supports Web, Android, and Flutter/mobile clients.
+- Provider integration must live in a trusted Laravel/server environment.
+- Never send FCM/provider server credentials to the browser.
+### Push targeting
+- Provider-level topic targeting may be used when segment semantics fit provider topics.
+- Do not expose arbitrary topic names to the Admin unless those topics are managed/allow-listed by AISLEY.
+- For sensitive/small audiences, direct device-token targeting may be preferable to public topic semantics.
+- FCM topic messaging is optimized for throughput and is suitable for broad opted-in audiences.
+- Exact mapping from AISLEY segments to FCM topics vs direct token fan-out is an implementation decision.
+### SMS channel
+- SMS is optional until a provider and consent requirements are implemented.
+- If SMS is enabled:
+  - only users with an eligible verified phone number may receive it
+  - respect message consent/communication preferences
+  - honor opt-out state
+  - use the configured provider from Laravel
+  - do not expose provider credentials/client secrets
+- SMS campaign behavior must comply with provider and applicable legal requirements.
+- Twilio requires recipient consent and supports standard opt-out behavior such as STOP.
+- Users who opted out must not receive subsequent promotional SMS.
+- Critical transactional/legal exceptions, if any, require separate policy definition.
+### User consent/preferences
+- Push/SMS marketing communication must respect applicable user consent/preferences.
+- Do not assume registration automatically grants unrestricted promotional consent.
+- Maintain channel eligibility/preferences in authoritative backend data.
+- A segment preview and final dispatch must apply preference/opt-out filtering.
+- Preference changes between campaign creation and send must be respected according to the selected audience-resolution policy.
+- Exact consent UI belongs to user Account Management/onboarding features.
+### Internal destination/deep link
+- Push notification may link to an AISLEY page/resource.
+- Destination must be allow-listed/internal.
+- Laravel must validate destination syntax/type.
+- Do not allow arbitrary phishing/external URLs through the Admin composer.
+- Opening a push destination must still pass the destination feature's authentication/authorization.
+- FCM Web supports HTTPS click links; use the provider/client mechanism appropriate to the target platform.
+### Preview
+- Before dispatch, show a preview containing:
+  - title/body
+  - selected channel(s)
+  - selected segment
+  - estimated eligible recipient count
+  - destination when used
+- Recipient count is advisory if the audience is resolved at dispatch time.
+- Preview must not expose unnecessary user PII or device tokens.
+- High-volume sends require a confirmation action.
+### Dispatch
+- Sending must be asynchronous.
+- HTTP request should enqueue work rather than loop through thousands of external provider calls.
+- Recommended flow:
 ```text
-campaign_id
-user_id
-role
-email_reference
-status
-attempt_count
-provider_message_id
-last_error
-timestamps
+POST campaign send
+→ validate + authorize
+→ lock/check campaign state
+→ persist QUEUED
+→ commit
+→ dispatch fan-out jobs
+→ provider batches/messages
+→ record aggregate outcomes
 ```
-
-## 51. Recipient Status
-
-Recommended:
-
+- Provider/API failures must not block the original HTTP request indefinitely.
+- Queue retries must not cause accidental duplicate campaign creation.
+- A campaign may be partially successful.
+- Do not represent partial failures as total success.
+### Queueing and batching
+- Use Laravel queues/jobs.
+- Dispatch only after campaign transaction commits.
+- Split large audiences into bounded batches/chunks.
+- Respect provider quotas/rate limits.
+- Configure retry/backoff for transient failures.
+- Permanent provider failures should be recorded without infinite retry.
+- Exact batch size/concurrency depends on provider limits and infrastructure.
+- Do not hard-code FCM/Twilio quotas unless verified for the selected account/provider.
+### Delivery tracking
+- Track at least campaign-level operational state.
+- Recommended aggregate counters:
+  - intended/eligible recipients
+  - queued
+  - sent/provider-accepted
+  - failed
+- Provider acceptance is not always proof that a human saw the notification.
+- Do not label provider acceptance as "read".
+- Open/read/conversion analytics are not required unless supported and explicitly added.
+- Per-device delivery logs may be stored only if operationally necessary and retention is defined.
+### Duplicate prevention
+- A double-click/retried HTTP request must not enqueue the same campaign twice.
+- Use the project's idempotency mechanism or a campaign state transition lock.
+- Queue retries may retry delivery tasks without recreating the campaign.
+- Provider-specific idempotency/collapse behavior may supplement, not replace, application-level duplicate protection.
+### Scheduling
+- Source does not require scheduled future sends.
+- MVP may support immediate dispatch only.
+- If scheduling is added:
+  - store UTC scheduled time
+  - validate it is in the future
+  - let Laravel scheduler/queue trigger dispatch
+  - allow cancellation only before dispatch begins
+- Exact scheduled-send behavior is an Open Question.
+### Campaign history
+- Admin should be able to review campaign history for operational accountability.
+- History must be paginated.
+- Safe fields:
+  - campaign ID
+  - title
+  - channels
+  - audience label
+  - status
+  - counts
+  - created/sent timestamps
+  - creating Admin
+- Do not expose raw device tokens or recipient phone lists.
+- Failed campaign details may show safe provider error categories, not credentials/secrets.
+### Audit trail
+- Creating/sending/cancelling a campaign is an administrative action.
+- Record:
+  - Admin ID
+  - campaign ID
+  - action
+  - channel(s)
+  - audience/segment reference
+  - timestamp
+- Do not duplicate provider credentials or full recipient lists into immutable audit logs.
+- Campaign records preserve detailed operational history.
+### Feature integration boundaries
+- `admin-notification` is inbound; `push-notification-bar` is outbound.
+- Campaign completion becomes an Admin Notification only if separately configured.
+- Platform announcements remain persistent in-app content; they may be referenced by a campaign, but publishing one does not automatically send push/SMS.
+### Frontend states
+- Composer:
+  - idle
+  - validating
+  - preview
+  - confirming
+  - submitting/queueing
+  - success
+  - failure
+- Audience:
+  - loading
+  - estimated
+  - empty/no eligible recipients
+  - error
+- Campaign:
+  - draft
+  - queued
+  - sending
+  - completed
+  - partial failure
+  - failed
+- Disable duplicate send while the campaign is being queued.
+- Do not optimistically report delivery success before backend/provider results exist.
+### Accessibility
+- Composer fields and segment/channel controls require semantic labels.
+- Delivery status must not rely on color alone.
+- Confirmation must state audience, channels, and recipient estimate.
+- Errors/status changes must be announced accessibly.
+- Browser notification permission prompts must result from user interaction on recipient apps, not hidden automatic requests.
+### Acceptance criteria
+- [ ] Guest cannot access Push Notification Bar.
+- [ ] Non-Admin cannot create/send campaigns.
+- [ ] Custom Admin permission is enforced.
+- [ ] Admin can compose valid title/body.
+- [ ] Admin selects only allow-listed audience segments.
+- [ ] Audience is resolved server-side.
+- [ ] Raw device tokens/recipient phone lists are not exposed in Admin UI.
+- [ ] Push uses only eligible registered endpoints.
+- [ ] Browser push respects user permission.
+- [ ] SMS, when enabled, respects consent/opt-out state.
+- [ ] Provider credentials never reach browser code.
+- [ ] Send action is queued/asynchronous.
+- [ ] Campaign is persisted before fan-out.
+- [ ] Queue jobs start after commit.
+- [ ] Large audiences are processed in bounded jobs/batches.
+- [ ] Duplicate send request cannot enqueue the same campaign twice.
+- [ ] Campaign distinguishes complete, failed, and partial-failure states.
+- [ ] Provider acceptance is not mislabeled as user read.
+- [ ] Destination links are validated/internal and re-authorized on open.
+- [ ] Campaign history is paginated and omits raw secrets/recipient tokens.
+- [ ] Send/cancel actions are auditable.
+- [ ] Push Notification Bar remains distinct from Admin Notifications and Platform Announcements.
+## HOW
+### Project findings
+- `Admin.md` defines **Push Notification Management** as customized push notifications or SMS blasts to user segments such as inactive buyers and top-performing sellers for announcements/promotions. fileciteturn15file9
+- It calls for third-party notification integration and asynchronous queueing for large fan-out. fileciteturn15file9
+- `admin-notification` is already defined separately as the Admin's inbound notification center. fileciteturn15file1
+- `README.md` assigns integrations, queues, jobs, events, listeners, and notifications to Laravel and keeps Next.js as the presentation layer. fileciteturn15file13
+- Exact provider, user communication-consent schema, segment definitions, device-token schema, and SMS requirement are not defined by project sources.
+### Laravel data model
+Recommended conceptual records:
 ```text
-PENDING
-SENT
-FAILED
-SKIPPED
+notification_campaigns
+- id
+- title
+- body
+- channels
+- segment_type/reference
+- destination nullable
+- status
+- created_by_admin_id
+- scheduled_at nullable
+- started_at nullable
+- completed_at nullable
+- recipient_count
+- sent_count
+- failed_count
+- created_at
+
+push_endpoints
+- id
+- user_id
+- platform
+- provider
+- token/subscription reference
+- enabled
+- last_seen_at
 ```
-
-Exact enum is Open.
-
-## 52. Email Privacy
-
-Campaign history should avoid exposing full recipient lists unnecessarily.
-Use:
-
-- aggregate totals by default
-- masked email where recipient detail is needed
-- pagination
-
-## 53. Deduplication
-
-Prevent duplicate email jobs for the same logical campaign recipient.
-Recommended unique identity:
-
-```text
-campaign_id + user_id + role
-```
-
-## 54. Same Physical Email
-
-Because same email may belong to multiple role-accounts, physical-email deduplication is a product decision.
-Possible policies:
-
-```text
-send once per role-account
-```
-
-or:
-
-```text
-send once per email for identical campaign
-```
-
-Open Decision.
-
-# Admin UI
-
-## 55. Recommended Route
-
-```text
-/notification-management
-```
-
-or:
-
-```text
-/notifications/manage
-```
-
-## 56. Campaign List
-
-Recommended columns:
-
-```text
-Campaign
-Audience
-Channel
-Status
-Created By
-Created At
-Processed At
-```
-
-Channel for MVP:
-
-```text
-EMAIL
-```
-
-## 57. Filters
-
-Recommended:
-
-```text
-status
-target role
-creator
-date
-```
-
-## 58. Pagination
-
-Campaign history must be paginated/bounded.
-
-## 59. New Campaign UI
-
-Recommended sequence:
-
-```text
-Choose audience
-→ optional segment
-→ preview recipient count
-→ compose email
-→ preview
-→ confirm
-→ send
-```
-
-## 60. Audience Selector
-
-Minimum role options:
-
-```text
-Buyers
-Sellers
-Logistics
-Couriers
-All Users
-```
-
-## 61. Behavioral Segment Selector
-
-Optional:
-
-```text
-Inactive Buyers
-Top-Performing Sellers
-```
-
-once their definitions are configured.
-
-## 62. Confirmation
-
-Sending to many users is a consequential operation.
-Require explicit confirmation.
-Recommended summary:
-
-```text
-Channel: Email
-Audience
-Recipient estimate
-Subject
-Message preview
-```
-
-## 63. Edit After Queue
-
-Once:
-
-```text
-QUEUED
-```
-
-the send configuration should not be silently modified.
-Recommended:
-
-```text
-queued campaign configuration = immutable
-```
-
-## 64. Campaign Detail
-
-Recommended:
-
-- campaign ID
-- creator
-- target role/segment
-- subject/body
-- state
-- matched count
-- sent count
-- failed count
-- skipped count
-- created/queued/completed times
-
-# API
-
-## 65. Campaign List
-
-Conceptual:
-
+- Add a recipient snapshot/join table only if the selected dispatch strategy needs durable per-recipient retry/audit.
+- SMS eligibility should reuse the user contact/preferences model rather than copy phone data into campaign records.
+- Store provider references/tokens securely and never expose them through Admin Resources.
+### Laravel API
+Conceptual endpoints:
 ```http
-GET /api/admin/notification-campaigns
+GET  /api/admin/push-campaigns
+POST /api/admin/push-campaigns
+POST /api/admin/push-campaigns/{campaign}/preview
+POST /api/admin/push-campaigns/{campaign}/send
+GET  /api/admin/push-campaigns/{campaign}
 ```
-
-## 66. Create Draft
-
-Conceptual:
-
-```http
-POST /api/admin/notification-campaigns
-```
-
-## 67. Update Draft
-
-Conceptual:
-
-```http
-PATCH /api/admin/notification-campaigns/{campaignId}
-```
-
-Only editable while draft.
-
-## 68. Preview Audience
-
-Conceptual:
-
-```http
-POST /api/admin/notification-campaigns/{campaignId}/preview
-```
-
-## 69. Send
-
-Conceptual:
-
-```http
-POST /api/admin/notification-campaigns/{campaignId}/send
-```
-
-Responsibilities:
-
-- authenticate Admin
-- authorize send
-- validate campaign
-- resolve/freeze configuration
-- transition to queued
-- persist
-- emit Audit event
-- enqueue delivery work
-
-## 70. Send Response
-
-Recommended:
-
+- Add schedule/cancel endpoints only if scheduling is approved.
+- Use Form Requests, Policy/Gate checks, API Resources, and domain actions.
+- Suggested services:
+  - `ResolveNotificationAudience`
+  - `CreateNotificationCampaign`
+  - `DispatchNotificationCampaign`
+  - `PushDeliveryService`
+  - optional `SmsDeliveryService`
+- Keep provider-specific DTOs behind integration adapters.
+### Audience implementation
+- Define named segment strategies rather than raw arbitrary SQL/filter JSON.
+- Example interfaces:
 ```text
-campaign accepted / queued
+InactiveBuyersSegment
+TopPerformingSellersSegment
 ```
-
-Do not wait for all email sends.
-
-## 71. Campaign Detail
-
-Conceptual:
-
-```http
-GET /api/admin/notification-campaigns/{campaignId}
-```
-
-## 72. Recipient Results
-
-Optional:
-
-```http
-GET /api/admin/notification-campaigns/{campaignId}/recipients
-```
-
-Must be paginated and PII-safe.
-
-# Authentication / Authorization
-
-## 73. Authentication
-
-All management endpoints require:
-
-```text
-authenticated ADMIN
-```
-
-## 74. Permissions
-
-Possible conceptual permissions:
-
-```text
-view notification campaigns
-create notification campaigns
-send notification campaigns
-view delivery results
-```
-
-Exact permission keys are Open.
-
-## 75. CSRF
-
-Admin web campaign mutations require Sanctum CSRF protection.
-
-## 76. High-Impact Send
-
-The permission to send to all users may be separated from draft creation if desired.
-Open Decision.
-
-# Security
-
-## 77. Target Authorization
-
-An Admin must not be able to bypass role/segment restrictions by injecting arbitrary recipient IDs.
-
-## 78. Recipient Query
-
-Recipient resolution happens on the backend.
-Do not trust a browser-submitted raw recipient list as authoritative.
-
-## 79. Brevo Credentials
-
-Brevo API credentials must remain in secure server configuration.
-Do not expose them:
-
-- to the browser
-- in campaign records
-- in Audit Logs
-
-## 80. Email Address Safety
-
-Do not expose unnecessary full email lists in the Admin interface.
-
-## 81. Content Safety
-
-Safely render campaign content in Admin preview/history.
-
-## 82. Link Safety
-
-Restrict campaign CTA/deep links to approved destinations if link fields are supported.
-
-# Audit Logs
-
-## 83. Audit Requirement
-
-Campaign send actions should be auditable.
-Recommended events:
-
-```text
-NOTIFICATION_CAMPAIGN_CREATED
-NOTIFICATION_CAMPAIGN_UPDATED
-NOTIFICATION_CAMPAIGN_QUEUED
-NOTIFICATION_CAMPAIGN_COMPLETED
-```
-
-Exact taxonomy is Open.
-
-## 84. Audit Data
-
-Recommended:
-
-```text
-Admin actor
-campaign ID
-delivery channel
-target role/segment
-recipient count
-state change
-timestamp
-```
-
-Do not place full recipient lists or Brevo credentials into Audit Logs.
-
-# Cross-Feature Integrations
-
-## 85. Platform Settings
-
-A published announcement may be used as the content basis for an email campaign.
-Recommended:
-
-```text
-published announcement
-→ Create Notification Campaign
-→ copy/reference content
-→ Admin confirms audience/send
-```
-
-No automatic broadcast.
-
-## 86. Manage Account Registrations
-
-Account Approval already sends individual:
-
-```text
-approval/rejection email
-```
-
-Those transactional emails remain owned by Manage Account Registrations.
-They do not need to be manually created through Notification Management.
-
-## 87. Seller Compliance
-
-Formal Seller warnings are direct case-related communication.
-They remain owned by:
-
-```text
-Seller Compliance + Admin Chat
-```
-
-Do not require mass Notification Management for individual compliance warnings.
-
-## 88. Admin Notifications
-
-Campaign completion/failure may optionally create an Admin Notification.
-This is optional.
-
-# Error Handling
-
-## 89. Errors
-
-Handle:
-
-```text
-campaign not found
-permission denied
-invalid audience
-empty recipient audience
-invalid subject/body
-already queued
-stale edit
-queue failure
-Brevo failure
-session expired
-```
-
-## 90. Empty Audience
-
-If the resolved audience has zero eligible recipients:
-
-```text
-do not dispatch
-```
-
-Require Admin to adjust or explicitly handle according to UX policy.
-
-## 91. Queue Failure
-
-If queue insertion fails:
-
-```text
-do not claim campaign is successfully processing
-```
-
-## 92. Brevo Failure
-
-Brevo outage:
-
-```text
-campaign remains durable
-→ failed recipient jobs retained
-→ retries follow configured policy
-```
-
-## 93. Campaign State Accuracy
-
-Do not show:
-
-```text
-COMPLETED
-```
-
-while required recipient jobs remain pending.
-
-# Performance
-
-## 94. Large Audience
-
-The system must not load all user records into the browser.
-Audience resolution belongs on the backend.
-
-## 95. Batching
-
-Large campaigns should use bounded recipient batches/jobs.
-
-## 96. No N+1
-
-Segment queries should avoid one query per user.
-
-## 97. Aggregate Progress
-
-Campaign UI should query aggregate counts rather than loading all recipient rows.
-
-# UX / Accessibility
-
-## 98. Campaign States
-
-Support:
-
-```text
-loading
-editing
-saving
-previewing
-confirming
-queued
-processing
-completed
-partial
-failed
-```
-
-## 99. Progress
-
-For queued campaigns:
-
-```text
-show aggregate progress/status
-```
-
-rather than a blocking send spinner.
-
-## 100. Accessibility
-
-UI should:
-
-- label target roles clearly
-- expose campaign state textually
-- support keyboard operation
-- use accessible confirmation dialogs
-- expose validation errors clearly
-- not rely on color alone
-
-## 101. Responsive Behavior
-
-Campaign list/editor/detail should remain usable on smaller Admin screens.
-
-# MVP Scope
-
-## 102. Required
-
-- authenticated Admin Notification Management page
-- EMAIL delivery channel
-- shared Brevo integration
-- Buyer targeting
-- Seller targeting
-- Logistics targeting
-- Courier targeting
-- All Users targeting
-- role-aware user identity
-- campaign drafts
-- subject/body composition
-- audience preview/count
-- explicit send confirmation
-- asynchronous queue/background delivery
-- recipient batching
-- recipient sent/failed/skipped state
-- campaign aggregate result
-- duplicate-job protection
-- campaign history
-- pagination
-- System Audit Log integration
-- CSRF
-- PII/credential protection
-- loading/error/progress states
-
-## 103. Recommended
-
-- multiple-role targeting
-- optional behavioral segments
-- inactive Buyer segment once defined
-- top-performing Seller segment once defined
-- masked recipient email display
-- bounded retry
-- campaign completion/failure Admin Notification
-- announcement-to-campaign handoff
-- shared email templates/branding
-
-## 104. Future / Not MVP
-
-- mobile Push notifications
-- SMS blasts
-- Firebase Cloud Messaging
-- Twilio
-- AWS SNS
-- device-token storage
-- SMS phone normalization
-- mobile Push delivery receipts
-- scheduled campaigns
-- recurring campaigns
-- A/B tests
-- AI message generation
-- personalization variables
-- click/open analytics
-- budget/cost controls
-
-# Acceptance Criteria
-
-## 105. AC-01 — Admin Access
-
-Guests/non-Admins cannot access Notification Management endpoints.
-
-## 106. AC-02 — Permission
-
-Campaign send requires configured Admin authorization.
-
-## 107. AC-03 — Email MVP
-
-The MVP delivery channel is Email.
-
-## 108. AC-04 — Brevo Reuse
-
-Notification Management uses AISLEY's shared Brevo email integration.
-
-## 109. AC-05 — No Push Provider
-
-MVP does not require Firebase, SNS, or another mobile Push provider.
-
-## 110. AC-06 — No SMS Provider
-
-MVP does not require Twilio or another SMS provider.
-
-## 111. AC-07 — Buyer Targeting
-
-Admin can target Buyer role-accounts.
-
-## 112. AC-08 — Seller Targeting
-
-Admin can target Seller role-accounts.
-
-## 113. AC-09 — Logistics Targeting
-
-Admin can target Logistics role-accounts.
-
-## 114. AC-10 — Courier Targeting
-
-Admin can target Courier role-accounts.
-
-## 115. AC-11 — Role-Aware Identity
-
-Audience resolution targets exact account IDs/roles, not email alone.
-
-## 116. AC-12 — Draft
-
-Admin can save a campaign without sending it.
-
-## 117. AC-13 — Preview
-
-Admin can preview target audience/count before sending.
-
-## 118. AC-14 — Confirmation
-
-Admin must explicitly confirm campaign delivery.
-
-## 119. AC-15 — Async Delivery
-
-Large email campaigns are queued/background processed rather than fully sent inside the Admin HTTP request.
-
-## 120. AC-16 — Invalid Recipient Isolation
-
-One invalid email does not fail the entire campaign.
-
-## 121. AC-17 — Retry Safety
-
-Retrying delivery does not create uncontrolled duplicate emails for the same logical recipient.
-
-## 122. AC-18 — Partial Failure
-
-Successful sends remain recorded when other recipients fail.
-
-## 123. AC-19 — State Accuracy
-
-Campaign state reflects actual background processing state.
-
-## 124. AC-20 — Read Claim
-
-AISLEY does not claim an email was read merely because Brevo accepted delivery.
-
-## 125. AC-21 — Brevo Secret Safety
-
-Brevo credentials never appear in browser payloads or Audit Logs.
-
-## 126. AC-22 — PII Safety
-
-Campaign list/detail does not expose unnecessary full recipient email lists.
-
-## 127. AC-23 — Admin Notification Boundary
-
-This feature does not replace the inbound Admin Notifications feed.
-
-## 128. AC-24 — Platform Settings Boundary
-
-Publishing an announcement does not automatically send an email campaign.
-
-## 129. AC-25 — Registration Email Boundary
-
-Approval/rejection emails remain owned by Manage Account Registrations.
-
-## 130. AC-26 — Audit
-
-Campaign send creates a safe Audit event.
-
-## 131. AC-27 — Pagination
-
-Campaign history/recipient details are bounded.
-
-## 132. AC-28 — CSRF
-
-Admin campaign mutations require configured Sanctum CSRF protection.
-
-# Tests
-
-## 133. Backend Tests
-
-Test:
-
-- guest denied
-- non-Admin denied
-- unauthorized send denied
-- create email campaign draft
-- Buyer target resolution
-- Seller target resolution
-- Logistics target resolution
-- Courier target resolution
-- all-user target resolution
-- same-email role accounts resolved distinctly
-- audience preview
-- empty audience handling
-- subject/body validation
-- send confirmation endpoint validation
-- campaign transitions to queued
-- background jobs created
-- Brevo shared service called
-- invalid email isolated
-- recipient status stored
-- duplicate retry protection
-- partial failure aggregation
-- completed state waits for terminal jobs
-- Brevo credentials absent from responses/logs
-- campaign send audited
-- pagination
-- CSRF required
-
-## 134. Frontend Tests
-
-Test:
-
-- campaign list loads
-- create draft
-- target-role selector
-- Buyer/Seller/Logistics/Courier options
-- All Users option
-- optional segment selector
-- audience preview
-- subject/body validation
-- email preview
-- send confirmation
-- queued/processing state
-- completed/partial/failed states
-- aggregate results
-- recipient emails masked where shown
-- responsive layout
-- keyboard accessibility
-- state not color-only
-
-# Open Decisions
-
-## 135. Open Decisions
-
-Current requirements do not define:
-
-1. exact campaign status enum
-2. exact recipient status enum
-3. duplicate physical-email handling across role-accounts
-4. whether all roles may be combined arbitrarily
-5. inactive Buyer definition
-6. top-performing Seller definition
-7. other behavioral segments
-8. email marketing consent/preferences
-9. unsubscribe behavior
-10. globally banned-user campaign eligibility
-11. suspended/deactivated-user eligibility
-12. exact email subject limit
-13. email body format
-14. template system
-15. personalization
-16. queue technology
-17. batch size
-18. worker concurrency
-19. retry count/backoff
-20. Brevo rate-limit handling
-21. provider message-ID storage
-22. delivery/open/click tracking
-23. campaign cancellation
-24. campaign clone
-25. scheduling
-26. recurring campaigns
-27. exact permission keys
-28. campaign retention
-29. recipient-record retention
-30. exact Audit event names
-31. campaign completion/failure Admin Notification
-32. whether Push is added later
-33. whether SMS is added later
-
-# Final Definition
-
-## 136. Final Definition
-
-AISLEY Notification Management is:
-
-```text
-an Admin-controlled,
-role-targeted outbound email communication feature.
-```
-
-MVP:
-
-```text
-Admin
-→ choose Buyer / Seller / Logistics / Courier / All
-→ optional behavioral segment
-→ compose email
-→ preview audience
-→ confirm
-→ queue
-→ Brevo
-→ recipient inbox
-```
-
-AISLEY owns:
-
-```text
-audience
-business rules
-campaign content
-recipient resolution
-campaign history
-delivery state
-```
-
-Brevo owns:
-
-```text
-email transport
-```
-
-Future:
-
-```text
-PUSH
-SMS
-```
-
-No Push/SMS provider is required for the MVP.
+- The exact business definition belongs in one server-side segment class/query.
+- Preview and dispatch must use the same resolver/versioned criteria.
+- Apply communication eligibility/opt-out filters before producing final recipients.
+### Push implementation
+- If Firebase Cloud Messaging is selected:
+  - send from Laravel/trusted server using FCM HTTP v1 or an appropriate maintained server SDK/library
+  - store device registration tokens/subscriptions server-side
+  - use direct tokens for specific recipients
+  - consider topics only for suitable broad opt-in segments
+- FCM supports Web, Android, Flutter, and other clients and can target tokens/topics/conditions. citeturn597884search4turn597884search0
+- FCM topic messaging is optimized for throughput and intended for subscribed groups. citeturn597884search1turn597884search9
+- For Web Push, FCM requires HTTPS/service-worker-compatible clients. citeturn597884search2
+- Web notification click links should be HTTPS and point to approved AISLEY destinations. citeturn597884search11
+### SMS implementation
+- Add an SMS provider adapter only if SMS is in MVP.
+- If Twilio is selected:
+  - send through Laravel/server integration
+  - model consent/opt-out state
+  - respect STOP/standard opt-out handling
+  - do not send promotional messages after opt-out
+- Twilio's messaging policy requires prior express consent and an accessible opt-out mechanism. citeturn514507search3turn514507search6
+### Laravel queues
+- Campaign dispatch must be queued.
+- Chunk recipients into jobs.
+- Configure provider-specific retry/backoff/rate limiting.
+- Laravel notifications/jobs support asynchronous delivery; transaction-dependent work should dispatch only after commit. citeturn514507search0
+- Avoid keeping one huge job containing thousands of serialized user models.
+- Jobs should re-load minimal required recipient/provider data by IDs/references.
+### Next.js / React
+- Build:
+  - compact notification composer/bar or dedicated page
+  - channel selector
+  - segment selector
+  - message preview
+  - recipient estimate
+  - send confirmation
+  - campaign history/status
+- Keep API calls in shared request client.
+- Do not send directly from browser to FCM/Twilio.
+- Poll or subscribe to backend campaign-status updates if live progress is desired.
+- Handle stale campaign status by refetching.
+### Tests
+- **Laravel:** guest/non-Admin/permission denial; segment validation/resolution; recipient opt-out filtering; campaign create/preview/send; duplicate send; after-commit queueing; batching; partial provider failure; safe history DTO; provider-secret/token non-exposure; destination validation.
+- **Frontend:** composer validation; segment/channel controls; preview; empty audience; confirmation; duplicate-submit prevention; queued/sending/completed/partial-failure states; forbidden/error states; accessibility.
+### Research-backed recommendations
+- Use FCM as a strong default candidate for cross-platform push if AISLEY has no provider selected. citeturn597884search4
+- Send from a trusted server environment, never directly from Admin browser code. citeturn597884search6
+- Ask browser users for notification permission from a user gesture and respect denial. citeturn514507search1turn514507search2
+- Queue large fan-out and keep provider calls outside the interactive request.
+- For SMS, require consent and preserve easy opt-out behavior. citeturn514507search3
+### Risks
+- **Feature confusion:** outbound campaigns can be mistaken for the Admin's inbound notification center.
+- **Spam/consent:** promotional messaging without opt-in can violate user expectations/provider rules.
+- **Audience mistakes:** bad segment definitions can send a message to the wrong users.
+- **Credential leakage:** provider keys in browser code expose the messaging account.
+- **Large fan-out:** synchronous delivery can time out and overwhelm Laravel/provider quotas.
+- **Duplicate sends:** request/job retries can resend campaigns.
+- **Token churn:** stale device tokens increase failures and queue load.
+- **Misleading metrics:** provider acceptance is not proof a notification was read.
+- **Channel mismatch:** SMS and push have different consent/delivery semantics and should not be treated identically.
+### Open questions
+- Provider choice; whether SMS is MVP or future.
+- Allowed audience segments and whether filters may be combined dynamically.
+- Push/SMS consent/preferences and device-token/subscription lifecycle.
+- Scheduling, images, and message-size limits.
+- Recipient snapshot vs resolve-at-send behavior.
+- Provider batch/concurrency limits and retry/permanent-failure policy.
+- Whether campaign completion creates an Admin Notification.
+- Campaign/recipient-log retention and analytics beyond sent/failed.
+- Whether published announcements can be reused as campaign content.
+### Sources
+- Project rules: `SKILL.md`
+- AISLEY architecture contract: `README.md`
+- Admin model: `Admin.md`
+- Existing Admin Notifications spec
+- Laravel Notifications: https://laravel.com/docs/12.x/notifications
+- Firebase Cloud Messaging overview: https://firebase.google.com/docs/cloud-messaging
+- FCM HTTP v1 API: https://firebase.google.com/docs/cloud-messaging/send/v1-api
+- FCM Topic Messaging: https://firebase.google.com/docs/cloud-messaging/send-topic-messages
+- FCM Web setup: https://firebase.google.com/docs/cloud-messaging/web/get-started
+- MDN Web Push best practices: https://developer.mozilla.org/en-US/docs/Web/API/Push_API/Best_Practices
+- MDN Notifications API: https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
+- Twilio Messaging Policy: https://www.twilio.com/en-us/legal/messaging-policy

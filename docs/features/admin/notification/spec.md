@@ -1,1389 +1,467 @@
 ---
-feature: Admin Notifications
+feature: admin-notification
+title: Admin Notifications
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 1.0
 status: Draft
-scope: Admin Web Application / Internal Admin Attention Feed
-source_coverage: Admin.md, Courier.md, app.md, current AISLEY Admin feature specifications
+role: Admin
+scope: Admin Web Application
 ---
 
-# Admin Notifications Specification
+# Admin Notifications
 
-## 1. Purpose
+## WHAT
 
-Admin Notifications is AISLEY's internal, Admin-facing attention feed.
-Its purpose is to surface meaningful platform events that require Admin awareness or action and route the Admin to the authoritative feature that owns the underlying record.
-`Admin.md` defines the Dashboard as:
+- **Purpose:** Provide authenticated Admins with a persistent notification inbox/center for important platform events and pending Admin attention.
+- **Primary actor:** Authenticated `ADMIN`.
+- **Source support:**
+  - Admin Dashboard must display important notifications requiring attention.
+  - Admin Authentication lists Admin Notifications as a protected Admin feature.
+  - AISLEY's architecture supports Laravel notifications, queues, and broadcasting for real-time UI updates.
+- **Source limitation:** `Admin.md` does not define a standalone Admin Notifications feature with a fixed event catalog.
+  - This spec defines the notification infrastructure and user-facing behavior.
+  - Exact notification-producing events remain owned by their source features.
+- **Examples of plausible producers from existing Admin features:**
+  - new pending registration
+  - new complaint/dispute
+  - seller-compliance item requiring review
+  - new Admin chat/message
+  - other future Admin-action-required events
+- These examples are integrations with existing features, not a mandatory exhaustive event list.
+- **Architecture:**
+  - Next.js/React owns notification list/bell UI, unread badges, navigation, loading/error states, and real-time subscriptions.
+  - Laravel owns notification creation, recipient selection, persistence, read state, authorization, queuing, broadcasting, and safe destination metadata.
+  - Database notification state is authoritative.
+- **Recommended surfaces:**
 
 ```text
-Overview of platform, display notification.
+/dashboard       → recent/high-priority notifications
+/notifications   → full paginated notification center
+header/navbar    → unread badge + recent preview
 ```
 
-It further requires:
+- **Recommended lifecycle:**
 
 ```text
-alerts for critical notifications
-that require immediate attention upon login
+domain event commits
+→ create Admin notification
+→ persist database notification
+→ broadcast after commit
+→ Admin UI receives/refetches
+→ Admin opens/marks read
 ```
 
-and:
+- **Feature boundary:**
+  - Admin Notifications **receives** platform-generated notifications.
+  - Push Notification Management **sends** targeted push/SMS campaigns to user segments.
+  - Chat/Messaging owns conversations/messages; a message notification may link to chat but does not duplicate the message.
+  - Dashboard may display notification summaries but does not own notification persistence.
+- **Non-goals:**
+  - marketing campaign creation
+  - SMS/push audience segmentation
+  - email campaign management
+  - storing full domain records inside notification payloads
+  - arbitrary client-generated notifications
+  - suspicious-login alerts unless separately specified
+  - turning every system event into a notification
+
+## MUST
+
+### Access control
+- Every Admin notification endpoint requires:
+  - authenticated session
+  - persisted role = `ADMIN`
+  - Admin Notifications permission if custom permissions are configured
+- Laravel authorization is authoritative.
+- Admin can access only notifications addressed to that Admin or an explicitly authorized Admin audience.
+- Guessing another notification ID must not expose it.
+- Frontend filtering is not authorization.
+- Use project-standard:
+  - `401` unauthenticated
+  - `403` forbidden
+  - `404` notification not found/scoped out
+  - `422` invalid request
+
+### Persistence
+- Important Admin notifications must be persisted so they survive:
+  - page reload
+  - browser restart
+  - temporary WebSocket disconnection
+- Prefer Laravel's database notification channel when compatible with the existing `User` model.
+- Laravel database notifications provide:
+  - notification ID
+  - notifiable identity
+  - type
+  - JSON data
+  - `read_at`
+  - timestamps
+- Do not introduce a second custom notification table unless the repository's domain requirements cannot be represented safely by Laravel's notification model.
+- Database state is authoritative over frontend memory.
+
+### Recipient model
+- Notifications must target specific authorized Admin accounts or an explicitly resolved Admin recipient set.
+- Never trust a client-submitted recipient list for domain-generated notifications.
+- Source feature/business logic determines recipients.
+- Custom Admin permissions should influence notification recipients where applicable.
+- Example:
+  - an Admin lacking Seller Compliance permission should not receive sensitive Seller Compliance notifications merely because they have the `ADMIN` role.
+- Exact recipient-routing rules per domain event are Open Questions.
+
+### Notification payload
+- Keep persisted payloads compact.
+- Recommended safe fields:
 
 ```text
-a real-time or polling mechanism
-for incoming notifications
-```
-
-Admin Notifications therefore provides:
-
-```text
-platform event
-→ Admin-facing notification
-→ safe preview
-→ owning feature/deep link
-```
-
-A separate `flow.md` is not required because this feature has only a small notification lifecycle and no substantial business-state machine of its own.
-
-## 2. Core Boundary
-
-Admin Notifications is:
-
-```text
-inbound platform → Admin alerts
-```
-
-It is not:
-
-```text
-Admin → user Push/SMS campaign
-```
-
-That belongs to:
-
-```text
-Push Notification Management
-```
-
-It is also not:
-
-```text
-Admin ↔ user conversation
-```
-
-That belongs to:
-
-```text
-Admin Chat / Messaging
-```
-
-## 3. Primary Recipient
-
-The recipient is:
-
-```text
-ADMIN
-```
-
-AISLEY supports multiple Admin accounts and custom permissions.
-Therefore notification visibility must be permission-aware.
-A notification should only be visible to Admins authorized to access the underlying feature/data.
-
-## 4. Core Responsibilities
-
-Admin Notifications owns:
-
-- Admin notification records
-- notification feed
-- unread/read state
-- unread count/badge
-- safe notification previews
-- source feature metadata
-- deep links
-- permission-aware visibility
-- deterministic ordering
-- real-time or polling delivery
-- deduplication where appropriate
-- Dashboard notification preview
-- notification history
-- safe retention according to policy
-  It does not own:
-- Account Registration approval
-- Seller Compliance decisions
-- Complaint resolution
-- report generation
-- Admin Chat conversation state
-- Push/SMS campaigns
-- platform announcements
-- Global Ban decisions
-- Audit Log storage
-- Courier dispatch actions
-
-## 5. Notification Principle
-
-A notification is:
-
-```text
-an attention signal
-```
-
-It is not:
-
-```text
-the authoritative business record
-```
-
-Example:
-
-```text
-"New complaint submitted"
-```
-
-links to the complaint case.
-The complaint case, not the notification, owns:
-
-```text
-evidence
-status
-decision
-resolution
-```
-
-## 6. Source-Backed Notification Need
-
-The source explicitly requires Admin notifications at Dashboard level.
-The strongest source-backed Admin attention sources are:
-
-- Seller Compliance internal flags/reports
-- Complaints/Disputes submitted for Admin review
-- Courier SOS/emergency events when platform Admin is an intended recipient
-- critical platform events surfaced to the Dashboard
-  Other integrations can be added where owning features emit meaningful Admin events.
-
-## 7. Manage Account Registrations Integration
-
-Manage Account Registrations owns:
-
-```text
-PENDING
-APPROVED
-REJECTED
-```
-
-A newly submitted Buyer/Seller/Logistics registration is a reasonable Admin attention event.
-Recommended notification:
-
-```text
-ACCOUNT_REGISTRATION_PENDING
-```
-
-This integration is recommended from the Admin workload model, but `Admin.md` explicitly requires the decision email to the applicant rather than explicitly naming an Admin notification event.
-
-## 8. Registration Role Scope
-
-If registration notifications are implemented, include Admin-owned approvals:
-
-```text
-BUYER
-SELLER
-LOGISTICS
-```
-
-Exclude:
-
-```text
-COURIER
-```
-
-because Courier registration approval belongs to Logistics.
-
-## 9. Registration Notification Deep Link
-
-Recommended:
-
-```text
-notification
-→ Manage Account Registrations
-→ exact pending registration
-```
-
-Opening the notification must not approve/reject the account.
-
-## 10. Seller Compliance Integration
-
-`Admin.md` requires:
-
-```text
-internal reporting/flagging mechanism
-```
-
-A new compliance item requiring Admin review is a direct notification candidate.
-Recommended:
-
-```text
-SELLER_COMPLIANCE_REVIEW_REQUIRED
-```
-
-The notification links to:
-
-```text
-Monitor Seller Compliance
-```
-
-## 11. Compliance Boundary
-
-Marking a compliance notification read:
-
-```text
-does not resolve the compliance case
-```
-
-The compliance feature remains authoritative.
-
-## 12. Complaints & Disputes Integration
-
-`Admin.md` requires Admin review of:
-
-```text
-user-submitted reports/complaints
-```
-
-A newly submitted complaint is a direct Admin attention event.
-Recommended:
-
-```text
-COMPLAINT_SUBMITTED
-```
-
-Deep link:
-
-```text
-Manage Complaints & Disputes
-```
-
-## 13. Complaint Boundary
-
-Marking a complaint notification read:
-
-```text
-does not resolve or close the complaint
-```
-
-## 14. Courier SOS Integration
-
-`Courier.md` defines:
-
-```text
-SOS/Emergency Button
-```
-
-with:
-
-```text
-immediately alerts the Logistics team
-and local authorities
-```
-
-and further states the primary utility is:
-
-```text
-internal alerting
-(notifying the logistics/admin team)
-```
-
-It may transmit:
-
-```text
-courier last known GPS coordinates
-active task ID
-```
-
-Therefore Courier SOS is source-supported as a critical Admin notification when platform Admin is included in the configured safety-alert audience.
-
-## 15. SOS Recipient Boundary
-
-The source refers to:
-
-```text
-logistics/admin team
-```
-
-but does not define whether every platform Admin receives every SOS.
-Exact recipient routing is Open.
-
-## 16. SOS Data Minimization
-
-A broad Admin notification preview should not expose more location/task data than necessary.
-Recommended preview:
-
-```text
-Courier SOS alert requires attention.
-```
-
-Detailed GPS/task information should be accessed only by authorized recipients through the owning operational/safety surface.
-
-## 17. SOS Priority
-
-Courier SOS is clearly safety-critical.
-If a priority model exists, SOS should use the highest relevant priority.
-Exact priority enum is Open.
-
-## 18. Admin Chat Integration
-
-A user reply in an Admin Chat thread may reasonably notify eligible Admins.
-Recommended:
-
-```text
-ADMIN_MESSAGE_RECEIVED
-```
-
-This is a recommended integration rather than an explicitly named event in `Admin.md`.
-
-## 19. Chat Boundary
-
-The notification:
-
-```text
-links to the thread
-```
-
-Admin Chat owns:
-
-```text
-message history
-read receipts
-conversation state
-```
-
-Notification read state must not be treated as message read state.
-
-## 20. Reports Overview Integration
-
-Reports Overview may use background processing for large exports.
-Recommended events:
-
-```text
-REPORT_EXPORT_COMPLETED
-REPORT_EXPORT_FAILED
-```
-
-This is an implementation recommendation, not an explicit source requirement.
-
-## 21. Reports Boundary
-
-Admin Notifications does not:
-
-- generate reports
-- calculate platform revenue
-- store report files
-  It only alerts the Admin when a background result is available if that integration is implemented.
-
-## 22. Global Ban Integration
-
-Routine blocked requests should not produce one Admin notification each.
-That would flood the feed.
-Possible future aggregated security notification:
-
-```text
-Repeated blocked activity detected
-```
-
-Exact threshold is Open.
-
-## 23. Platform Settings Boundary
-
-Publishing an announcement is not normally an Admin Notification.
-Manage Platform Settings owns:
-
-```text
-announcement content
-policy content
-```
-
-Admin Notifications is for events requiring Admin attention.
-
-## 24. Push Notification Management Boundary
-
-Critical distinction:
-
-```text
-Admin Notifications
-    internal inbound alerts
-
-Push Notification Management
-    outbound Push/SMS campaigns
-```
-
-The notification feed must never become a campaign composer.
-
-## 25. Notification Data Model
-
-Conceptual fields:
-
-```text
-id
 type
-source_type
-source_id
-recipient_scope
 title
-message_preview
-priority
-created_at
+message/summary
+resource_type
+resource_id
+destination
+severity/priority optional
+metadata optional
 ```
 
-Read state may be stored separately per Admin.
-Exact schema is Open.
+- Do not serialize whole Eloquent models into notification data.
+- Do not include:
+  - passwords/auth secrets
+  - private document URLs
+  - payment credentials
+  - complaint evidence
+  - full private message bodies
+  - unrestricted PII
+- Prefer resource IDs and safe summaries.
+- Fetch authoritative detail from the owning feature after navigation.
 
-## 26. Source Reference
-
-Every actionable notification should preserve enough metadata to resolve its authoritative source.
-Recommended:
+### Notification type
+- Use stable application-level notification type names.
+- Do not require frontend logic to depend on PHP class names.
+- Laravel allows custom database notification types; use them when useful.
+- Recommended style:
 
 ```text
-source_type
-source_id
+account-registration.pending
+complaint.created
+seller-compliance.review-required
+chat.message-received
 ```
 
-Examples:
+- Exact event/type catalog must be defined by each producing feature.
+- Unknown types must still render safely with generic fallback behavior.
+
+### Read/unread state
+- Read state must be persisted in Laravel.
+- New notifications default to unread unless the specific notification semantics say otherwise.
+- Admin must be able to mark:
+  - one notification read
+  - optionally all currently authorized unread notifications read
+- Do not mark all notifications read merely because Dashboard loaded.
+- A read mutation must target only the authenticated Admin's notification.
+- Marking an already-read notification read again must be safe/idempotent.
+- Whether "mark unread" is supported is an Open Question.
+- Unread badge/count must come from backend state or be reconciled against it.
+
+### Listing
+- Notification center must be paginated.
+- Default ordering: newest first.
+- Recommended filters:
+  - unread/read
+  - notification type/category
+  - date
+- Only allow-listed filters/sorts are accepted.
+- Dashboard may request only a small recent subset plus unread count.
+- Full notification center owns browsing older history.
+- Exact page size and retention period are Open Questions.
+
+### Navigation/destination
+- A notification may include an internal destination to the owning Admin feature.
+- Examples:
 
 ```text
-ACCOUNT_REGISTRATION + user_id
-SELLER_COMPLIANCE + case_id
-COMPLAINT + case_id
-ADMIN_CHAT + thread_id
-COURIER_SOS + alert/task reference
-REPORT_EXPORT + export_id
+pending registration → /account-registrations/{id}
+complaint → /complaints-disputes/{id}
+compliance review → /seller-compliance/{id}
+message → /messages/{conversationId}
 ```
 
-## 27. Notification Content
+- Destination must be generated/validated server-side.
+- Never trust arbitrary external URLs from notification payloads.
+- Navigation does not bypass destination-feature authorization.
+- If the referenced resource no longer exists or is no longer authorized:
+  - the notification remains readable
+  - destination access may return `404`/`403`
+  - UI must handle the stale destination gracefully.
 
-A notification should contain:
-
-- concise title
-- safe preview
-- source type
-- timestamp
-- unread/read state for current Admin
-- deep link when applicable
-  Avoid embedding full domain data.
-
-## 28. PII Minimization
-
-Do not put unnecessary sensitive information into feed rows.
-Avoid:
-
-- full addresses
-- payout credentials
-- payment data
-- complaint evidence
-- raw GPS coordinates unless justified
-- passwords/tokens
-- private Admin notes
-
-## 29. Read State
-
-Recommended lifecycle:
+### Creation boundary
+- Notification creation belongs to the source domain event/action.
+- The browser must not directly create arbitrary Admin notifications.
+- Example:
 
 ```text
-UNREAD → READ
+complaint successfully created
+→ complaint transaction commits
+→ domain event/listener determines Admin recipients
+→ Admin notification queued/persisted/broadcast
 ```
 
-No separate flow file is needed for this simple state.
+- A notification is not the source of truth for the underlying event.
+- Failure to send/broadcast a notification must not undo the source domain transaction.
 
-## 30. Read Meaning
+### After-commit behavior
+- Notifications caused by database mutations must be dispatched only after the source transaction commits.
+- This prevents workers/UI from observing records that later roll back.
+- Use Laravel queue/notification after-commit behavior according to repository configuration.
+- Retrying notification delivery must not repeat the underlying domain mutation.
 
-`READ` means:
+### Real-time delivery
+- AISLEY architecture supports Laravel broadcasting consumed by React.
+- Use broadcast notifications or equivalent domain broadcast events for live updates.
+- Broadcast to a private authenticated Admin/notifiable channel.
+- Do not broadcast private Admin notification data over public channels.
+- Broadcast payload should be minimal and safe.
+- The UI must still work without real-time delivery by fetching persisted notifications.
+- Reconnect must refetch/reconcile authoritative state.
+- Duplicate broadcast events must not duplicate notification rows/UI items.
+
+### Notification channels
+- **Database** is recommended for the Admin inbox/read-state source of truth.
+- **Broadcast** is recommended for real-time web delivery when the broadcasting driver is configured.
+- **Mail/SMS/push** are not automatically required for Admin Notifications.
+- If a future high-priority event uses multiple channels, each producing feature defines those channels.
+- Do not conflate this inbox with Push Notification Management.
+
+### Dashboard integration
+- Dashboard may show:
+  - unread count
+  - recent notifications
+  - high-priority notifications
+- Dashboard must use the same notification records/API/domain rather than a duplicate table.
+- Dashboard rendering must not automatically mark notifications read.
+- Notification center remains the canonical browsing/read-management surface.
+- Real-time updates may update Dashboard badge/list after persistence.
+
+### Notification deletion/retention
+- Current sources require display/read behavior but do not define deletion.
+- MVP should not require hard delete.
+- Retain notifications according to a defined retention policy.
+- Optional user-facing archive/delete behavior is an Open Question.
+- Deleting an old notification must never delete the source domain record.
+- Important security/compliance history belongs to the owning feature/audit trail, not solely to notifications.
+
+### Priority/severity
+- Source says Dashboard should alert Admins to critical notifications.
+- A priority/severity field is therefore reasonable, but exact levels are not defined.
+- Recommended optional levels:
 
 ```text
-the Admin has viewed/acknowledged the notification
-```
-
-It does not mean:
-
-```text
-the underlying work is completed
-```
-
-## 31. Read vs Resolved
-
-Examples:
-
-```text
-registration notification READ
-registration still PENDING
-
-complaint notification READ
-complaint still actionable
-
-compliance notification READ
-case still requires action
-```
-
-## 32. Mark Read
-
-Recommended:
-
-```http
-POST /api/admin/notifications/{id}/read
-```
-
-or equivalent PATCH endpoint.
-Backend must verify the Admin may access the notification.
-
-## 33. Mark All Read
-
-Optional:
-
-```http
-POST /api/admin/notifications/read-all
-```
-
-This is a convenience feature, not source-required.
-
-## 34. Unread Count
-
-Recommended:
-
-```text
-notification bell badge
-```
-
-The count should reflect notifications visible to the current Admin only.
-
-## 35. Per-Admin Read State
-
-Because AISLEY supports multiple Admins:
-
-```text
-Admin A reads notification
-```
-
-must not automatically imply:
-
-```text
-Admin B read notification
-```
-
-Recommended:
-
-```text
-per-Admin read state
-```
-
-unless a future shared-team acknowledgment model is selected.
-
-## 36. Recipient Scope
-
-Possible models:
-
-```text
-all authorized Admins
-Admins with required permission
-specific assigned Admin
-specific Admin team
-```
-
-Current sources do not define assignment/team routing.
-
-## 37. Permission-Aware Delivery
-
-If an Admin cannot access Seller Compliance:
-
-```text
-do not expose sensitive Seller Compliance notification content
-```
-
-Recommended:
-
-```text
-do not surface inaccessible notifications
-```
-
-## 38. Permission Re-Check on Open
-
-A notification being visible once does not permanently grant access.
-On deep-link open:
-
-```text
-owning feature rechecks authorization
-```
-
-## 39. Ordering
-
-Recommended:
-
-```text
-newest first
-```
-
-Use server timestamps.
-
-## 40. Priority
-
-The source requires:
-
-```text
-critical notifications
-```
-
-A conceptual model may be:
-
-```text
-NORMAL
-HIGH
+INFO
+ACTION_REQUIRED
 CRITICAL
 ```
 
-Exact enum and classification rules are Open.
+- Do not invent severity mappings until source features define them.
+- Priority affects presentation/sorting only; it must not replace feature authorization/business state.
 
-## 41. Priority Is Not Workflow State
+### Idempotency and duplicates
+- One source event should not generate duplicate persisted notifications for the same intended Admin/channel because a listener/job retries.
+- Use a stable source-event/reference key when the project's event architecture supports it.
+- Frontend should deduplicate by persisted notification ID.
+- Replayed broadcast delivery must not create a second database notification.
 
-Priority changes presentation/attention.
-It does not alter the underlying case/account state.
+### Security/privacy
+- Minimize payload data.
+- Notification previews must not leak sensitive complaint, identity, payment, or message contents.
+- Private details are loaded only from the authorized destination feature.
+- Avoid logging notification payloads when they contain user-sensitive summaries.
+- Channel authorization must prevent one Admin/user from subscribing to another account's private notification channel.
+- Session expiration/logout must stop continued authorized access according to the configured broadcasting stack.
 
-## 42. Deduplication
+### Frontend states
+- Bell/recent preview:
+  - loading
+  - unread count
+  - empty
+  - error
+- Notification center:
+  - loading
+  - empty
+  - loaded
+  - loading more/page change
+  - error
+  - forbidden
+- Read mutation:
+  - pending
+  - success
+  - failure
+- Real-time:
+  - connected
+  - disconnected/reconnecting
+- Temporary real-time loss must not erase persisted notifications.
+- Do not optimistically remove unread state permanently unless backend mutation succeeds.
 
-Repeated delivery of the same event should not create unnecessary duplicate notifications.
-Recommended idempotency basis:
+### Accessibility
+- Notification bell must have an accessible name and unread count/status.
+- Notification items must be keyboard navigable.
+- Read/unread/priority must not rely on color alone.
+- New real-time notifications should use restrained live-region announcements and must not steal focus.
+- Time labels must be rendered accessibly in the user's locale.
 
-```text
-event type
-+ source ID
-+ logical event occurrence
-```
+### Acceptance criteria
+- [ ] Guest cannot access Admin Notifications.
+- [ ] Non-Admin cannot access Admin notification APIs.
+- [ ] Custom Admin notification permission is enforced when configured.
+- [ ] Admin sees only notifications addressed/authorized to them.
+- [ ] Notifications persist across reloads.
+- [ ] New persisted notifications default to unread where applicable.
+- [ ] Admin can mark their notification read.
+- [ ] Admin cannot mark another account's notification read.
+- [ ] Mark-read is idempotent.
+- [ ] Unread count is backend-backed/reconciled.
+- [ ] Notification list is paginated and newest-first.
+- [ ] Payload contains safe summary/reference data only.
+- [ ] Destination URLs are internal/server-controlled.
+- [ ] Destination feature re-authorizes access.
+- [ ] Source transaction commits before dependent notification dispatch.
+- [ ] Notification failure does not roll back source-domain success.
+- [ ] Private real-time channel authorization prevents cross-account access.
+- [ ] Reconnect/refetch recovers missed notifications.
+- [ ] Replayed broadcasts do not duplicate UI entries.
+- [ ] Dashboard and notification center share the same notification domain.
+- [ ] Admin Notifications remains separate from Push Notification Management.
+- [ ] Normal login errors do not create Admin Notifications.
+- [ ] UI handles empty, error, forbidden, read-mutation, and disconnected states.
 
-Exact key format is Open.
+## HOW
 
-## 43. Distinct Repeated Events
+### Project findings
+- `Admin.md` requires the Dashboard to display critical notifications and support real-time or polling updates. fileciteturn14file3
+- `Admin.md` separately defines **Push Notification Management** as Admin-created push/SMS campaigns, so it is not this feature. fileciteturn14file0
+- Admin Authentication explicitly lists **Admin Notifications** as a protected Admin feature and states normal login errors do not generate Admin Notifications. fileciteturn14file1turn14file4
+- `README.md` defines Laravel queues/notifications for asynchronous work and Laravel broadcasting consumed by React for notifications/live dashboard changes. fileciteturn14file9
+- It also requires notifications to be queued after the source transaction commits. fileciteturn14file6
+- Current sources do not define a complete Admin notification event catalog, severity taxonomy, retention period, or per-event recipient rules.
 
-One source record may legitimately produce different notifications.
-Example:
+### Laravel notification model
+- Prefer Laravel's built-in database notification system if compatible with the shared `User` model.
+- Ensure the notifiable Admin model uses `Notifiable`.
+- Create Laravel's notification table if the repository does not already have one.
+- Use `toDatabase()` for persisted inbox data.
+- Use `toBroadcast()` separately when the real-time payload should be smaller/different.
+- Define a stable `databaseType()`/application type when frontend behavior should not depend on the PHP class name.
+- Keep notification classes thin; recipient/business decision logic belongs to source-domain services/listeners.
 
-```text
-complaint submitted
-complaint receives new evidence
-```
-
-These may be distinct events if product policy chooses to notify both.
-
-## 44. Real-Time or Polling
-
-`Admin.md` explicitly allows:
-
-```text
-real-time or polling
-```
-
-Acceptable implementations:
-
-```text
-WebSocket
-SSE
-polling
-```
-
-Exact mechanism is Open.
-
-## 45. Durable Feed
-
-Realtime transport is an enhancement.
-If realtime fails:
-
-```text
-notification remains stored
-→ Admin receives it on refresh/poll/reconnect
-```
-
-## 46. Persistence Before Broadcast
-
-Recommended:
-
-```text
-domain event
-→ durable notification
-→ commit
-→ realtime signal
-```
-
-Do not use a transient socket event as the only copy.
-
-## 47. Async Generation
-
-Non-critical notification generation may be asynchronous.
-Exact queue infrastructure is Open.
-
-## 48. Critical Delivery
-
-Courier SOS should not rely exclusively on:
-
-```text
-transient toast
-```
-
-Use a durable alert record plus appropriate high-priority delivery to intended recipients.
-Exact redundant/escalation channels are Open.
-
-## 49. Dashboard Integration
-
-Admin Dashboard consumes:
-
-```text
-bounded notification preview
-unread count
-```
-
-Full history remains in Admin Notifications.
-
-## 50. Dashboard Preview
-
-Recommended:
-
-```text
-latest 5–10 relevant notifications
-```
-
-Exact count is Open.
-
-## 51. Dashboard Load
-
-Recommended:
-
-```text
-loading Dashboard
-does not mark notifications read
-```
-
-Read state changes only according to explicit notification-view/acknowledgment UX.
-
-## 52. Notification Center Route
-
-Recommended:
-
-```text
-/notifications
-```
-
-or:
-
-```text
-/admin/notifications
-```
-
-Exact route follows repository conventions.
-
-## 53. Notification List
-
-Recommended content:
-
-```text
-Unread indicator
-Priority
-Title
-Source
-Safe preview
-Created At
-```
-
-## 54. Filters
-
-Recommended:
-
-```text
-unread/read
-source type
-priority
-date
-```
-
-## 55. Pagination
-
-Notification history must be paginated/bounded.
-
-## 56. Retention
-
-Retention duration is not defined.
-Notifications may be pruned according to policy because authoritative business history remains in owning features.
-Do not use notification rows as the only record of consequential actions.
-
-## 57. Delete / Dismiss
-
-Not source-defined.
-Recommended MVP:
-
-```text
-read/unread only
-```
-
-Archive/dismiss/delete is Open.
-
-## 58. API Surface
-
-Conceptual:
+### Laravel API
+Conceptual endpoints:
 
 ```http
 GET  /api/admin/notifications
 GET  /api/admin/notifications/unread-count
-POST /api/admin/notifications/{id}/read
+POST /api/admin/notifications/{notification}/read
 POST /api/admin/notifications/read-all
 ```
 
-`read-all` is optional.
+- Exact URLs follow repository conventions.
+- Query through the authenticated Admin's notification relationship.
+- Never query by notification ID globally and authorize afterward when scoped lookup can be used.
+- Paginate notification collections.
+- Return a dedicated safe Resource/DTO.
 
-## 59. List API
+### Read-state implementation
+- Laravel database notifications provide `read_at` and `markAsRead()`.
+- Single-read:
+  - scope notification to authenticated Admin
+  - mark read
+  - return current state
+- Mark-all-read:
+  - update only authenticated Admin's unread notification relation
+- Read mutations do not require a domain transaction unless additional related state changes atomically.
+- Avoid one SQL update per notification when marking all read; use relation-level mass update where appropriate.
 
-Recommended query:
-
-```text
-read_state
-source_type
-priority
-date
-page/cursor
-```
-
-Return only notifications visible to the current Admin.
-
-## 60. Notification DTO
-
-Conceptual:
-
-```json
-{
-  "id": "notification-id",
-  "type": "COMPLAINT_SUBMITTED",
-  "title": "New complaint submitted",
-  "message": "Complaint #123 requires review.",
-  "priority": "NORMAL",
-  "source_type": "COMPLAINT",
-  "source_id": "123",
-  "is_read": false,
-  "created_at": "..."
-}
-```
-
-## 61. Deep Link
-
-The API may return a safe internal route or source metadata used to construct one.
-Do not allow arbitrary external URLs from event payloads.
-
-## 62. Open Redirect Safety
-
-If notification destinations are stored:
-
-```text
-allow internal Admin routes only
-```
-
-## 63. Authentication
-
-All Admin Notification endpoints require:
-
-```text
-authenticated ADMIN
-```
-
-## 64. Authorization
-
-Visibility must respect custom Admin permissions.
-Notifications do not bypass owning-feature authorization.
-
-## 65. CSRF
-
-Read-state mutation endpoints require configured Sanctum CSRF protection.
-
-## 66. IDOR
-
-Knowing a notification ID does not grant permission to read/update it.
-
-## 67. Safe Rendering
-
-Notification previews may contain user/domain text.
-Render safely and never execute untrusted HTML/scripts.
-
-## 68. Secret Safety
-
-Never place:
-
-```text
-password
-password hash
-session cookie
-access token
-OTP
-CVV
-full payment details
-```
-
-in notification payloads.
-
-## 69. Audit Log Boundary
-
-```text
-System Audit Logs
-    immutable Admin accountability
-
-Admin Notifications
-    attention feed
-```
-
-Routine notification read/unread changes do not require Audit Log entries by default.
-
-## 70. Notification Generation Failure
-
-If an underlying business event commits but notification generation fails:
-
-```text
-do not roll back the business event
-```
-
-Recommended:
-
-- retry notification creation
-- log failure
-- use durable event/outbox architecture when reliability matters
-
-## 71. Domain Authority
-
-Example:
-
-```text
-complaint committed
-notification failed
-```
-
-The complaint remains authoritative and actionable.
-
-## 72. Outbox Pattern
-
-Recommended:
+### Producing notifications
+- Source features decide when an Admin notification exists.
+- Recommended pattern:
 
 ```text
 domain transaction
-→ durable event/outbox
-→ notification worker
-→ notification record
-→ realtime signal
+→ commit
+→ event/listener
+→ resolve authorized Admin recipients
+→ notify()
 ```
 
-This is an implementation recommendation.
-
-## 73. Generation Idempotency
-
-Worker retries must not create uncontrolled duplicate notifications for the same logical event.
-
-## 74. Realtime Reconnect
-
-After reconnect:
-
-```text
-refetch notification list
-refetch unread count
-```
-
-This recovers missed events.
-
-## 75. Loading State
-
-Support:
-
-```text
-loading
-loaded
-empty
-error
-```
-
-## 76. Empty State
-
-Example:
-
-```text
-No notifications.
-```
-
-Zero notifications is valid.
-
-## 77. Unread Empty State
-
-Example:
-
-```text
-You're all caught up.
-```
-
-Exact wording is design-owned.
-
-## 78. Accessibility
-
-Notification UI should:
-
-- expose unread/read state textually
-- expose priority textually
-- use semantic list/navigation
-- support keyboard activation
-- provide meaningful link names
-- announce critical alerts appropriately
-- not rely on color alone
-
-## 79. Responsive Behavior
-
-Notification center and Dashboard preview should remain usable on smaller Admin screens.
-
-## 80. Notification Bell
-
-Recommended Admin-shell element:
-
-```text
-notification bell
-+ unread badge
-```
-
-Click may open:
-
-```text
-bounded notification panel
-or full Notification Center
-```
-
-## 81. Toasts
-
-Realtime events may optionally show transient toasts.
-Toasts must not replace durable notification records for actionable events.
-
-## 82. Critical Alert UX
-
-Courier SOS may require:
-
-- persistent visual treatment
-- sound
-- explicit acknowledgment
-- repeated prominence
-  These are Open Decisions.
-
-# MVP Scope
-
-## 83. Required
-
-- authenticated Admin notification feed
-- Dashboard notification preview
-- unread/read state
-- per-Admin unread count
-- permission-aware visibility
-- source feature/type
-- source ID/reference
-- safe title/preview
-- deep links
-- newest-first ordering
-- pagination
-- realtime or polling refresh
-- durable notification records
-- safe rendering
-- role/permission authorization
-- Seller Compliance integration
-- Complaints integration
-- Courier SOS integration when Admin is an intended recipient
-- CSRF for read mutations
-- loading/empty/error states
-
-## 84. Recommended
-
-- pending registration notification
-- Admin Chat reply notification
-- report export completion/failure notification
-- priority field
-- bell/badge
-- event deduplication
-- outbox/async generation
-- reconnect refetch
-- safe internal deep-link mapping
-- aggregated security alerts instead of one-per-blocked-request
-
-## 85. Not Required
-
-- outbound Push campaigns
-- SMS campaigns
-- promotional targeting
-- announcement authoring
-- direct chat
-- Admin email notifications
-- browser Push for Admin
-- mobile Admin notifications
-- notification templates CMS
-- snooze
-- assignment
-- escalation workflows
-- user-configurable Admin notification preferences
-- notification export
-
-# Acceptance Criteria
-
-## 86. AC-01 — Admin Access
-
-Guests/non-Admins cannot access Admin Notification APIs.
-
-## 87. AC-02 — Permission Visibility
-
-An Admin does not receive sensitive notification data for a feature they cannot access.
-
-## 88. AC-03 — Durable Notification
-
-An actionable notification is stored independently of realtime transport.
-
-## 89. AC-04 — Dashboard Preview
-
-Dashboard can retrieve a bounded notification preview.
-
-## 90. AC-05 — Unread Count
-
-Current Admin can retrieve an unread count for visible notifications.
-
-## 91. AC-06 — Per-Admin Read
-
-Admin A marking a notification read does not automatically mark it read for Admin B.
-
-## 92. AC-07 — Read Transition
-
-An unread notification can be marked read.
-
-## 93. AC-08 — Read Idempotency
-
-Marking an already-read notification read again does not corrupt state.
-
-## 94. AC-09 — Read Does Not Resolve
-
-Marking a notification read does not mutate the underlying business item.
-
-## 95. AC-10 — Registration Role Scope
-
-If pending-registration notifications are implemented, Courier approval is excluded from platform Admin registration workload.
-
-## 96. AC-11 — Compliance Link
-
-Seller Compliance notification routes to the authoritative compliance case.
-
-## 97. AC-12 — Complaint Link
-
-Complaint notification routes to the authoritative complaint case.
-
-## 98. AC-13 — Chat Boundary
-
-Admin Chat notification read state does not replace chat-message read receipts.
-
-## 99. AC-14 — SOS Alert
-
-A Courier SOS routed to platform Admin can create a critical durable notification.
-
-## 100. AC-15 — SOS Privacy
-
-Broad SOS preview does not unnecessarily expose precise location/task details.
-
-## 101. AC-16 — Report Boundary
-
-Report notification does not calculate/generate the report itself.
-
-## 102. AC-17 — Push Boundary
-
-Admin Notifications cannot dispatch Push/SMS campaigns.
-
-## 103. AC-18 — Announcement Boundary
-
-Publishing an announcement does not create a campaign or one notification per user.
-
-## 104. AC-19 — Deduplication
-
-Retrying the same logical event does not create uncontrolled duplicates.
-
-## 105. AC-20 — Realtime Failure
-
-Realtime failure does not delete the durable notification.
-
-## 106. AC-21 — Reconnect
-
-Client can refetch notifications/unread count after reconnect.
-
-## 107. AC-22 — Business Independence
-
-Notification-generation failure does not roll back the committed business event.
-
-## 108. AC-23 — Deep-Link Authorization
-
-Owning feature re-checks authorization when a notification is opened.
-
-## 109. AC-24 — Route Safety
-
-Notification deep links cannot redirect to arbitrary external URLs.
-
-## 110. AC-25 — Safe Rendering
-
-Notification previews cannot execute untrusted scripts.
-
-## 111. AC-26 — Secret Safety
-
-Notification payloads do not expose passwords, tokens, OTPs, or payment secrets.
-
-## 112. AC-27 — Pagination
-
-Notification history is bounded/paginated.
-
-## 113. AC-28 — CSRF
-
-Read-state mutations use configured Sanctum CSRF protection.
-
-# Tests
-
-## 114. Backend Tests
-
-Test:
-
-- guest denied
-- non-Admin denied
-- permission-filtered visibility
-- durable notification creation
-- newest-first ordering
-- unread count
-- per-Admin read state
-- mark read
-- idempotent mark read
-- read does not change registration status
-- read does not resolve complaint
-- read does not resolve compliance case
-- Seller Compliance source/deep link
-- Complaint source/deep link
-- Courier SOS critical notification when Admin recipient
-- SOS payload minimized
-- pending registration excludes Courier if implemented
-- retry does not duplicate logical event
-- notification failure does not roll back domain event
-- realtime broadcast failure preserves stored notification
-- pagination/filtering
-- internal deep-link validation
-- unsafe preview escaped/sanitized
-- secrets absent from payloads
-- CSRF required
-
-## 115. Frontend Tests
-
-Test:
-
-- bell renders
-- unread badge renders
-- Dashboard preview loads
-- full notification center loads
-- loading/empty/error states
-- unread/read distinction
-- mark-read update
-- read does not imply resolved
-- source/priority visible where applicable
-- deep link opens correct feature
-- forbidden destination handled safely
-- realtime notification appears
-- reconnect refetch recovers missed items
-- critical SOS visually distinguished when configured
-- safe preview rendering
-- responsive layout
-- keyboard navigation
-- state not color-only
-
-# Open Decisions
-
-## 116. Open Decisions
-
-Current sources do not define:
-
-1. exact notification schema
-2. exact event-type enum
-3. recipient routing
-4. all-Admins vs permission-scoped notifications
-5. assigned-Admin notifications
-6. Admin teams/groups
-7. priority enum
-8. priority rules
-9. whether pending registrations always notify Admin
-10. whether Admin Chat replies notify Admin
-11. whether report exports notify Admin
-12. whether every Courier SOS reaches platform Admin
-13. SOS acknowledgment
-14. SOS escalation/repeat behavior
-15. exact SOS preview data
-16. realtime transport
-17. polling interval
-18. queue/outbox implementation
-19. deduplication key format
-20. notification retention
-21. dismiss/archive/delete
-22. mark-all-read
-23. Dashboard preview count
-24. page size
-25. unread-count cache
-26. browser-tab synchronization
-27. toasts
-28. critical sound/banner behavior
-29. read-on-click vs read-on-detail-open
-30. whether opening the notification panel marks anything read
-31. Admin notification preferences
-32. quiet hours
-33. email/browser Push for Admin
-34. exact Admin permission keys
-35. security aggregation thresholds
-36. exact event naming
-37. retention/privacy rules for notification snapshots
-38. notification-content immutability
-
-# Final Definition
-
-## 117. Final Definition
-
-AISLEY Admin Notifications is:
-
-```text
-an internal Admin-facing attention feed
-
-that converts meaningful platform events
-into durable, permission-aware alerts
-with safe previews and deep links
-to authoritative Admin workflows.
-```
-
-Core mini-lifecycle:
-
-```text
-event
-→ notification
-→ UNREAD
-→ READ
-```
-
-Important rule:
-
-```text
-READ notification
-≠
-RESOLVED business item
-```
-
-Examples:
-
-```text
-Seller Compliance alert
-→ Monitor Seller Compliance
-
-Complaint alert
-→ Manage Complaints & Disputes
-
-Courier SOS
-→ intended Admin/safety destination
-
-Pending registration (recommended)
-→ Manage Account Registrations
-```
-
-Central boundary:
-
-```text
-Admin Notifications
-= platform → Admin alerts
-
-Push Notification Management
-= Admin → user Push/SMS campaigns
-```
+- Where the notification implements `ShouldQueue`, use Laravel queue infrastructure.
+- Use `afterCommit()` or configured queue `after_commit` behavior for transaction-dependent notifications.
+- Keep a source resource/event ID for navigation and duplicate protection.
+
+### Broadcasting
+- Add the `broadcast` channel when real-time Admin delivery is required.
+- Laravel broadcast notifications use private notifiable channels by default.
+- Subscribe from React/Echo using the authenticated Admin's authorized private channel.
+- If the repository uses custom broadcast channel naming, authorize it explicitly.
+- Real-time payload should contain only the information needed to update the badge/list.
+- Refetch the persisted notification when full detail is needed.
+
+### Next.js / React
+- Build:
+  - notification bell/badge
+  - recent-notification popover
+  - full notification center
+  - read/unread presentation
+- Keep API calls in the shared request client.
+- Use a client component for Echo/live subscription.
+- Initial load:
+  1. fetch unread count/recent notifications
+  2. render server-backed state
+  3. subscribe to private notification channel
+- On live notification:
+  - deduplicate by notification ID
+  - update preview/unread count
+  - optionally refetch when payload is insufficient
+- On reconnect:
+  - refetch unread count/recent list
+- On navigation:
+  - validate/use only the server-provided internal destination
+  - destination page performs its own authorization.
+
+### Tests
+- **Laravel:** guest/non-Admin/permission denial; scoped/paginated list; unread count; single/all mark-read; cross-account isolation; safe DTO; after-commit creation; retry/duplicate protection; private-channel authorization; database/broadcast payloads.
+- **Frontend:** badge/count; empty/list/error states; pagination; mark-read; live updates; duplicate-event handling; reconnect/refetch; stale destinations; forbidden state; accessibility.
+
+### Research-backed recommendations
+- Use Laravel database notifications for persistent inbox state and built-in unread/read handling. citeturn703667search0
+- Separate `toDatabase()` and `toBroadcast()` when persisted/live payloads differ. citeturn703667search0
+- Queue slow delivery and dispatch transaction-dependent notifications after commit. citeturn703667search0turn703667search1
+- Use private broadcast notification channels/Echo for real-time updates. citeturn703667search0turn703667search3
+- Protect API/private-channel access with configured Sanctum authentication. citeturn703667search2
+
+### Risks
+- **Feature confusion:** inbox notifications may be confused with outbound Push Notification Management.
+- **Information leakage:** previews may expose sensitive complaint/compliance/user data.
+- **Permission leakage:** role-only recipient routing may notify Admins lacking feature permission.
+- **Duplicates:** retries can duplicate notifications without stable source identity.
+- **Broadcast-only design:** unpersisted events disappear on reload.
+- **Stale links:** referenced resources may later disappear or become unauthorized.
+- **Notification overload:** low-value events can bury critical alerts.
+- **Transaction race:** delivery may reference uncommitted data without after-commit handling.
+
+### Open questions
+- Event catalog and per-event recipient/permission rules.
+- Whether all Admins receive platform-wide operational notifications.
+- Priority/severity taxonomy and retention duration.
+- Mark-unread, delete/archive, search/filter behavior.
+- Dashboard recent-notification limit and default page size.
+- Behavior when source items are resolved/removed.
+- Selected broadcast driver.
+- Whether any Admin notifications also use email/push/browser notifications.
+
+### Sources
+- Project feature-spec rules: `SKILL.md`
+- AISLEY architecture/system-flow contract: `README.md`
+- Admin feature model: `Admin.md`
+- Admin Authentication source/spec
+- Admin Dashboard spec
+- Laravel Notifications: https://laravel.com/docs/12.x/notifications
+- Laravel Queues: https://laravel.com/docs/12.x/queues
+- Laravel Sanctum: https://laravel.com/docs/12.x/sanctum
+- Laravel Broadcasting: https://laravel.com/docs/11.x/broadcasting

@@ -1,1011 +1,456 @@
 ---
-feature: Admin Authentication
+feature: admin-auth
+title: Admin Auth
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 1.0
 status: Draft
+role: Admin
 scope: Admin Web Application
-source_coverage: app.md, Admin.md, current AISLEY Admin architecture
 ---
 
-# Admin Authentication Specification
+# Admin Authentication
 
-## 1. Purpose
+## WHAT
 
-Admin Authentication protects the AISLEY Admin web application and establishes the authenticated Admin session used by all Admin features.
-
-The source defines the web mechanism as:
-
-```text
-React / Next.js
-→ GET /sanctum/csrf-cookie
-→ POST /login
-→ Laravel authenticated session
-→ encrypted HttpOnly session cookie
-→ browser sends the cookie automatically
-```
-
-AISLEY also defines role-aware identity:
-
-```text
-all roles live in the same users table
-unique(email, role)
-```
-
-The initial Admin is created from `.env` credentials. This specification defines the requirements and boundaries; sequence-heavy behavior stays in `flow.md`.
-
-## 2. Source Requirements
-
-From `app.md`:
-
-- Admin is a web application on its own domain.
-- React/Next.js web apps use stateful `HttpOnly` session cookies.
-- The web app fetches `/sanctum/csrf-cookie` before sending credentials to `/login`.
-- Laravel attaches an encrypted session cookie.
-- The browser automatically sends the cookie on future requests.
-- The rationale is protection against XSS token theft.
-- Account identity is constrained by `unique(email, role)`.
-- The initial Admin is created from `.env` email/password.
-- Additional Admins may later be added with custom permissions.
-
-From `Admin.md`:
-
-- Dashboard is the Admin's primary post-login entry point.
-- Admin Account Management is heavily gated by authentication middleware.
-- Admin features depend on authenticated/authorized Admin access.
-
-## 3. Responsibilities
-
-Admin Auth owns:
-
-- initial Admin authentication bootstrap dependency
-- Admin login
-- CSRF initialization
-- role-aware Admin identity resolution
-- password verification
-- stateful session creation
-- session restoration/current-Admin resolution
-- protected Admin route authentication
-- Admin-role enforcement
-- authorization handoff
-- Dashboard redirect
-- logout/session invalidation
-
-Admin Auth does not own:
-
-- public Admin registration
-- creating additional Admins
-- assigning custom permissions
-- Admin profile editing
-- password changes
-- 2FA configuration
-- Account Approval
-- forgot-password/recovery unless separately specified
-- SSO, social login, passkeys
-- active-session/device management
-
-## 4. Primary Actor
-
-The actor is an AISLEY `ADMIN` role-account using the Admin web application.
-
-A valid Buyer, Seller, Logistics, or Courier account must not gain Admin access merely because it uses the same email or a valid password.
-
-## 5. Role-Aware Identity
-
-AISLEY identity is:
+- **Feature:** Admin Authentication for the AISLEY Admin web application.
+- **Purpose:** Establish and maintain a secure authenticated `ADMIN` session before any protected Admin feature can be used.
+- **Primary actor:** A user account whose persisted role is `ADMIN`.
+- **Application boundary:**
+  - Next.js + React owns the login UI, auth-loading state, redirects, and calls to the Laravel API.
+  - Laravel is the source of truth for credentials, sessions, roles, permissions, and protected-route authorization.
+  - Admin web authentication uses Laravel Sanctum's stateful SPA/session authentication.
+- **Identity model:**
+  - AISLEY accounts are role-aware.
+  - Account identity is resolved using `email + role`.
+  - Admin login must resolve `email + ADMIN`, not email alone.
+  - A Buyer, Seller, Courier, or Logistics account sharing the same email must not authenticate as Admin.
+  - The role is read from persisted server data; the client must not choose or prove its own role.
+- **Admin bootstrap:**
+  - The initial Admin is created from configured `.env` email/password credentials.
+  - Bootstrap exists only to ensure the initial `ADMIN` account is available.
+  - Admin deployment secrets are never exposed in the Admin UI.
+- **Auth lifecycle:**
 
 ```text
-unique(email, role)
+Admin opens web app
+→ resolve existing session
+→ unauthenticated
+   → /login
+   → GET /sanctum/csrf-cookie
+   → POST /login
+   → resolve email + ADMIN
+   → verify password
+   → create Laravel session
+   → browser receives HttpOnly session cookie
+   → /dashboard
+
+authenticated request
+→ browser sends session cookie
+→ Laravel authenticates account
+→ enforce role = ADMIN
+→ hand off to feature permission/authorization
+→ allow protected action
+
+logout
+→ POST /logout
+→ invalidate backend session
+→ clear frontend auth state
+→ /login
 ```
 
-Example:
+- **Owned by this feature:**
+  - initial Admin bootstrap dependency
+  - Admin login
+  - CSRF initialization
+  - role-aware identity resolution
+  - password verification
+  - session creation
+  - current Admin/session restoration
+  - authentication guard for Admin routes
+  - `ADMIN` role enforcement
+  - authorization handoff
+  - post-login Dashboard redirect
+  - session-expiration handling
+  - logout and backend session invalidation
+- **Non-goals:**
+  - public Admin registration
+  - creating additional Admin accounts
+  - custom permission assignment
+  - Admin profile editing
+  - password-change UI
+  - forgot-password/recovery
+  - a concrete 2FA implementation
+  - SSO/social login/passkeys
+  - remember-me
+  - active-session/device management
+  - login-history UI
+
+## MUST
+
+### Authentication and identity
+
+- The backend must authenticate the specific `ADMIN` role-account.
+- Admin lookup must use the equivalent of:
 
 ```text
-person@example.com + BUYER
-person@example.com + SELLER
-person@example.com + ADMIN
+email = submitted email
+AND
+role = ADMIN
 ```
 
-Admin authentication must resolve:
+- The login request must not accept `role`, `permissions`, or `is_admin` as proof of Admin access.
+- Valid credentials for a non-Admin role must not grant access to the Admin application.
+- Unknown Admin email and wrong password must produce a generic credential failure.
+- Authentication errors must not reveal whether the email exists under another role.
+- Password verification must use Laravel/framework password-hashing mechanisms.
+- Plaintext passwords must never be persisted.
 
-```text
-email + role = ADMIN
-```
+### Initial Admin bootstrap
 
-not email alone.
+- Bootstrap must read the configured Admin email/password from deployment configuration.
+- Bootstrap must search by `email + ADMIN`.
+- Bootstrap must create the Admin only when the `ADMIN` role-account is missing.
+- Bootstrap must hash the configured password before persistence.
+- Bootstrap must be idempotent.
+- A same-email non-Admin account must not satisfy the bootstrap lookup.
+- Re-running bootstrap must not create duplicate Admin records.
+- Existing Admin credentials must not automatically be overwritten from `.env` unless a later project decision explicitly requires re-sync behavior.
 
-Critical invariant:
+### Stateful web authentication
 
-```text
-Valid credentials authenticate
-the specific ADMIN account,
-not every account sharing the email.
-```
-
-The role must come from the persisted account, not a client-provided `role` field.
-
-## 6. Initial Admin Bootstrap
-
-`app.md` defines:
-
-```text
-initial admin created
-(use .env for email and password)
-```
-
-Bootstrap should:
-
-- read configured Admin email/password
-- search by `email + ADMIN`
-- create the account only when missing
-- hash the password before persistence
-- be idempotent
-- avoid duplicate Admin records
-- ignore same-email accounts under other roles
-
-The Admin UI must never expose or edit deployment secrets.
-
-Whether `.env` credentials re-sync an existing Admin later is an Open Decision.
-
-## 7. Login Page
-
-Recommended route:
-
-```text
-/login
-```
-
-Minimum form:
-
-- email
-- password
-- login action
-
-No public Admin registration is required.
-
-If a valid Admin session already exists, `/login` should redirect to `/dashboard`.
-
-## 8. CSRF Initialization
-
-Before stateful web login:
+- Admin web auth must use the source-defined Sanctum stateful session flow.
+- Before login, the frontend must initialize CSRF protection through:
 
 ```http
 GET /sanctum/csrf-cookie
 ```
 
-This establishes CSRF state for Laravel Sanctum.
-
-The frontend must use the configured stateful web-auth mechanism rather than bypassing CSRF.
-
-## 9. Login Request
-
-Conceptual request:
+- Credentials are then submitted through the Laravel login endpoint:
 
 ```http
 POST /login
 ```
 
-```json
-{
-  "email": "admin@example.com",
-  "password": "..."
-}
-```
+- Successful login must create a Laravel authenticated session.
+- The browser must rely on the server-issued session cookie for future authenticated requests.
+- Admin web auth must not depend on JavaScript-managed Bearer tokens stored in:
+  - `localStorage`
+  - `sessionStorage`
+  - IndexedDB
+- The shared frontend API client must send the credentials/cookies and CSRF data required by the configured Laravel/Sanctum deployment.
+- CSRF, CORS, session-domain, stateful-domain, `Secure`, and `SameSite` settings must be configured for the actual Admin/API deployment domains.
 
-Do not trust client-provided:
+### Login request and result
 
-```text
-role
-permissions
-is_admin
-```
-
-as authentication/authorization proof.
-
-## 10. Credential Validation
-
-The backend must:
-
-1. validate request fields
-2. normalize email according to project conventions
-3. resolve the account using `email + ADMIN`
-4. verify the password using framework mechanisms
-5. reject invalid credentials safely
-6. create a session only after successful verification
-
-If no matching Admin exists, authentication fails.
-
-If the password is invalid, authentication fails.
-
-Recommended user-facing error:
+- Minimum login input:
+  - `email`
+  - `password`
+- Server validation must return project-standard field-addressable validation errors when input is malformed.
+- Duplicate form submission must be disabled while login is in progress.
+- Successful login must enter the Admin application at `/dashboard`.
+- A valid existing Admin session visiting `/login` should be redirected to `/dashboard`.
+- Recommended generic credential error:
 
 ```text
 Invalid email or password.
 ```
 
-Do not reveal whether the same email exists under another role.
+### Session restoration
 
-## 11. Successful Login
-
-On valid credentials:
+- On Admin application startup, frontend auth state must begin unresolved, e.g.:
 
 ```text
-Laravel creates authenticated session
-→ encrypted HttpOnly session cookie
-→ browser stores/sends cookie automatically
-→ Admin identity can be restored
-→ redirect /dashboard
+CHECKING
 ```
 
-The frontend must not need to access the cookie directly.
-
-## 12. Browser Storage Rule
-
-Admin web authentication must not replace the source-defined session model with JavaScript-readable Bearer tokens stored in:
-
-```text
-localStorage
-sessionStorage
-IndexedDB
-```
-
-## 13. Web vs Mobile Auth
-
-`app.md` defines two mechanisms:
-
-```text
-WEB
-stateful HttpOnly session cookies
-
-FLUTTER MOBILE
-personal access token
-Authorization: Bearer <token>
-flutter_secure_storage
-```
-
-Admin Auth uses the web mechanism.
-
-Courier/mobile Bearer-token behavior is out of scope for this Admin Auth feature.
-
-## 14. Session Restoration
-
-When the Admin application loads:
-
-```text
-auth state = checking
-→ request current authenticated Admin
-→ valid ADMIN session?
-   yes → authenticated app
-   no  → login
-```
-
-Protected content should not render while authentication is unresolved.
-
-## 15. Current Admin Endpoint
-
-Conceptual:
+- The frontend must ask Laravel for the current authenticated identity before rendering protected Admin content.
+- A current-Admin endpoint may be:
 
 ```http
 GET /api/admin/me
 ```
 
-or an equivalent shared current-user endpoint.
+- If repository conventions already define a shared current-user endpoint, use that instead of introducing a duplicate endpoint.
+- The current Admin response may expose only fields needed by the Admin shell, such as:
+  - id
+  - name
+  - email
+  - role
+  - effective permissions when required
+- It must never expose:
+  - password/password hash
+  - session cookie/value
+  - access tokens
+  - 2FA secrets
+  - recovery codes
+- Protected Admin content must not flash before session resolution finishes.
+- An invalid, expired, or unusable session must be treated as unauthenticated.
+- Frontend "logged in" state must never override Laravel's session result.
 
-Safe response may include:
+### Protected Admin access
 
-- id
-- name
-- email
-- role
-- effective permissions if needed
+- Every protected Admin API must require:
+  - authenticated session
+  - persisted role = `ADMIN`
+- Backend authorization is authoritative.
+- Hiding a page, button, menu item, or React component is not sufficient authorization.
+- Authentication and authorization must remain separate:
 
-Never include:
+```text
+authentication
+→ identify current account and verify ADMIN role
 
-- password hash
-- session cookie/value
-- tokens
-- 2FA secret
-- recovery codes
+authorization
+→ verify this Admin may use the requested feature/action
+```
 
-## 16. Frontend Auth State
+- A valid Admin session must still respect custom permissions where the authorization system defines them.
+- Direct API calls must not bypass Admin authentication or role middleware.
+- Use project-standard semantics:
+  - `401` for unauthenticated requests
+  - `403` for authenticated requests lacking permission
 
-Recommended states:
+### Session expiration
+
+- When an authenticated request becomes unauthenticated because the session expired or became invalid:
+  - protected data/actions must stop being usable
+  - frontend auth state must become unauthenticated
+  - the user must return to `/login`
+- Session expiration must not be inferred only from stale client state.
+- Exact idle timeout, absolute lifetime, concurrent-session policy, and remember-me behavior remain open decisions.
+
+### Logout
+
+- Logout must use a state-changing backend request, conceptually:
+
+```http
+POST /logout
+```
+
+- Logout must invalidate the Laravel/backend session.
+- Frontend-only state clearing is not valid logout.
+- After successful logout:
+  - frontend authenticated state is cleared
+  - user is redirected to `/login`
+  - the old session can no longer access protected Admin APIs
+- Logout must follow the configured CSRF/session protection rules.
+
+### Security and privacy
+
+- Auth responses and logs must not expose:
+  - plaintext passwords
+  - password hashes
+  - session cookie values
+  - CSRF secrets
+  - Bearer tokens
+  - 2FA secrets
+  - OTP/recovery secrets
+  - raw database/security errors
+- Safe operational logging may include:
+  - request ID
+  - route
+  - timestamp
+  - result category
+  - resolved Admin ID after successful authentication
+- Whether login, failed login, and logout events belong in the immutable Admin Audit Log remains an open decision.
+- Login rate limiting and brute-force mitigation should be enabled using the project's Laravel security conventions.
+- Suspicious-login detection, CAPTCHA, and security notification emails are not required unless separately specified.
+
+### UI requirements
+
+- `/login` must provide:
+  - email field
+  - password field
+  - login action
+  - submitting/loading state
+  - safe invalid-credential state
+  - server-error state
+- The page must:
+  - use semantic labels
+  - support keyboard navigation
+  - use appropriate email/password autocomplete attributes
+  - expose validation/authentication errors accessibly
+  - not communicate errors using color alone
+  - remain usable on smaller screens
+
+### Acceptance criteria
+
+- [ ] Initial Admin bootstrap creates an `ADMIN` account when missing.
+- [ ] Re-running bootstrap does not create a duplicate Admin.
+- [ ] Same-email non-Admin accounts do not satisfy Admin bootstrap.
+- [ ] Bootstrap password is stored hashed.
+- [ ] Frontend requests `/sanctum/csrf-cookie` before login.
+- [ ] Valid `email + ADMIN` credentials create an authenticated session.
+- [ ] Wrong password does not create a session.
+- [ ] Email without an `ADMIN` role-account does not authenticate.
+- [ ] Same-email Buyer/Seller/Courier/Logistics credentials cannot enter Admin.
+- [ ] Successful login uses the configured stateful session cookie.
+- [ ] Admin web auth does not require a Bearer token in JavaScript storage.
+- [ ] Valid session survives page reload through session restoration.
+- [ ] Invalid/expired session becomes unauthenticated.
+- [ ] Guest requests cannot access protected Admin APIs.
+- [ ] Authenticated non-Admin accounts cannot access protected Admin APIs.
+- [ ] Valid Admin sessions still respect feature permissions.
+- [ ] Successful login redirects to `/dashboard`.
+- [ ] Existing valid Admin session does not remain on `/login`.
+- [ ] Expired session clears protected frontend auth state and returns to login.
+- [ ] Logout invalidates the backend session.
+- [ ] Old session cannot access protected APIs after logout.
+- [ ] Credential errors do not disclose role-account existence.
+- [ ] Auth DTOs and logs do not expose secrets.
+- [ ] No unrestricted public Admin registration is exposed.
+
+## HOW
+
+### Laravel API
+
+- Use the Laravel authentication/session mechanism already configured for the project and Sanctum's stateful SPA mode.
+- Configure Sanctum stateful API middleware and deployment domains according to the Laravel version and repository conventions.
+- Keep business authority in Laravel; do not create a separate Next.js authentication implementation that bypasses Laravel.
+- Provide or reuse:
+  - CSRF cookie endpoint: `GET /sanctum/csrf-cookie`
+  - Admin login endpoint: `POST /login`
+  - current Admin endpoint: `GET /api/admin/me` or existing equivalent
+  - logout endpoint: `POST /logout`
+- Login orchestration should:
+  1. validate `email` and `password`
+  2. normalize the email according to project convention
+  3. query the account using `email + ADMIN`
+  4. verify the password
+  5. reject failure with a generic credential error
+  6. authenticate the resolved Admin through Laravel's session guard
+  7. regenerate the session identifier after successful login
+  8. return the project-standard success response
+- Protect Admin routes with the configured Sanctum/session authentication middleware plus Admin-role middleware/policy.
+- Apply feature-specific Gates/Policies after authentication.
+- Return safe identity through an API Resource or equivalent project response convention.
+- On logout:
+  - log the user out through the configured guard
+  - invalidate the session
+  - regenerate the CSRF token according to Laravel session conventions
+- Use Laravel rate limiting for login attempts if not already provided by the authentication stack.
+
+### Bootstrap
+
+- Implement initial Admin creation using the project's seeding/bootstrap convention.
+- Read Admin email/password from server-side configuration only.
+- Use a role-aware lookup equivalent to:
+
+```text
+where email = configured email
+and role = ADMIN
+```
+
+- Hash the password using Laravel's password hashing API.
+- Do not update an existing Admin password from `.env` unless re-sync is explicitly chosen later.
+
+### Next.js / React
+
+- Create or reuse the Admin login route at `/login`.
+- Keep authentication requests in the shared API client.
+- Configure the client to send credentials and XSRF information required by Sanctum.
+- Login flow:
+
+```text
+submit
+→ set submitting
+→ initialize CSRF
+→ POST credentials
+→ fetch/resolve current Admin if needed
+→ set authenticated
+→ navigate /dashboard
+```
+
+- App startup flow:
 
 ```text
 CHECKING
-AUTHENTICATED
-UNAUTHENTICATED
+→ fetch current Admin
+→ success + ADMIN
+   → AUTHENTICATED
+→ 401/invalid session
+   → UNAUTHENTICATED
+   → /login
 ```
 
-Optional:
+- Use a shared auth provider/store only for presentation/session-resolution state.
+- Never treat client-side role or permission values as authoritative.
+- Centralize handling of unauthenticated responses so session expiration consistently returns the Admin to `/login`.
+- Render `401` and `403` as different states:
+  - `401`: session missing/expired → login
+  - `403`: signed in but action is forbidden
+
+### Data and schema
+
+- Reuse the existing shared users/account schema where possible.
+- Preserve the role-aware identity constraint:
 
 ```text
-ERROR
+unique(email, role)
 ```
 
-Do not render protected feature content until the session has been resolved as authenticated.
-
-## 17. Protected Admin Routes
-
-Every protected Admin feature requires:
-
-```text
-authenticated session
-role = ADMIN
-```
-
-Protected features include:
-
-- Dashboard
-- Account Approval
-- Manage User Accounts
-- Seller Compliance
-- Complaints & Disputes
-- Reports Overview
-- Admin Notifications
-- System Audit Logs
-- Platform Settings
-- Admin Account Management
-- Admin Chat / Messaging
-- Global Ban / Blocklist
-- Push Notification Management
-
-Frontend guards are convenience only. Backend middleware/policies are authoritative.
-
-## 18. Authentication vs Authorization
-
-Authentication:
-
-```text
-Who is the current account?
-Is it ADMIN?
-```
-
-Authorization:
-
-```text
-Which Admin feature/action may this Admin use?
-```
-
-`app.md` states additional Admins can have custom permissions. Therefore a valid Admin session does not automatically grant full platform authority.
-
-## 19. Permission Handoff
-
-After authentication:
-
-```text
-authenticated ADMIN
-→ authorization middleware/policy
-→ feature permission
-→ requested Admin action
-```
-
-Admin Auth establishes identity; the authorization system determines access.
-
-## 20. Dashboard Handoff
-
-Successful login should normally enter:
-
-```text
-/dashboard
-```
-
-Dashboard remains responsible for its own data and permissions.
-
-## 21. Session Expiration
-
-If the session expires:
-
-```text
-protected request
-→ unauthenticated response
-→ clear frontend auth state
-→ redirect /login
-```
-
-Protected actions must not remain usable after session expiration.
-
-## 22. Invalid Session
-
-Invalid, expired, or unusable session cookies must be treated as unauthenticated.
-
-The frontend must not keep a stale local "logged in" state as authoritative.
-
-## 23. Session Lifetime
-
-The source does not define:
-
-- idle timeout
-- absolute session lifetime
-- remember-me
-- concurrent sessions
-- session-device limits
-
-These are Open Decisions.
-
-## 24. Password Changes
-
-Admin Auth verifies the current password during login.
-
-Changing the Admin password belongs to:
-
-```text
-Admin Account Management
-```
-
-After a password change, Admin Auth follows the shared session-invalidation policy.
-
-## 25. Two-Factor Authentication
-
-`Admin.md` mentions 2FA under Admin Account Management, but does not define a concrete login challenge.
-
-The base Auth implementation must not invent TOTP, SMS OTP, email OTP, or passkey behavior.
-
-Future generic insertion:
-
-```text
-password valid
-→ 2FA enabled?
-   no  → session
-   yes → configured second-factor challenge
-         → session only after success
-```
-
-Exact 2FA behavior remains Open.
-
-## 26. Forgot Password / Recovery
-
-The current sources do not define:
-
-- forgot password
-- Admin password reset
-- recovery email
-- emergency recovery
-
-These are not required for the current MVP unless separately specified.
-
-## 27. Admin Account Creation Boundary
-
-Customer/Seller/Logistics accounts use registration and approval flows.
-
-Admin accounts do not use that public registration flow.
-
-Current source:
-
-```text
-initial Admin from .env
-→ create partners
-→ add Admins with custom permissions
-```
-
-Do not expose unrestricted `/admin/register` by default.
-
-## 28. Logout
-
-Recommended:
-
-```http
-POST /logout
-```
-
-Logout must invalidate the backend session.
-
-After success:
-
-```text
-clear frontend authenticated state
-→ redirect /login
-```
-
-Frontend-only state clearing is not valid logout.
-
-## 29. Logout Security
-
-Logout is a state-changing request and should follow the configured web CSRF/session protections.
-
-After logout, the old session must not access protected Admin endpoints.
-
-## 30. Error Handling
-
-Required error categories:
-
-- invalid credentials
-- unauthenticated
-- forbidden
-- session expired
-- server error
-
-Conceptually:
-
-```text
-401 = unauthenticated
-403 = authenticated but not authorized
-```
-
-Exact Laravel response shapes follow project conventions.
-
-## 31. Error Privacy
-
-Authentication errors must not expose:
-
-- whether an email exists under another role
-- password hashes
-- session identifiers
-- database errors
-- internal security policy details
-
-## 32. Security Logging
-
-Never intentionally log:
-
-```text
-plaintext password
-password hash
-session cookie
-CSRF secret
-Bearer token
-2FA secret
-OTP
-```
-
-Safe technical fields may include:
-
-- request ID
-- route
-- result category
-- resolved Admin ID after successful authentication
-- timestamp
-
-subject to security/privacy policy.
-
-## 33. Login Audit Boundary
-
-System Audit Logs are primarily for administrative actions.
-
-The current sources do not define whether:
-
-- successful Admin login
-- logout
-- failed login
-
-must be written to the immutable Admin Audit Log.
-
-These may instead belong to security/auth logs. Final policy is Open.
-
-## 34. Admin Notifications Boundary
-
-Normal login errors do not create Admin Notifications.
-
-Suspicious-login alerts are not currently source-defined.
-
-## 35. Global Ban / Blocklist Integration
-
-Global Ban may block user/IP access through shared middleware.
-
-Admin Auth should respect applicable shared security middleware.
-
-Whether Admin accounts themselves can be globally banned or whether Admin-domain IP bans apply is an Open Decision in the security model.
-
-## 36. Cookie Security
-
-Cookie/session settings should follow Laravel/Sanctum production security configuration.
-
-Deployment-specific settings include:
-
-- `Secure`
-- `SameSite`
-- cookie/session domain
-- expiration
-- stateful domains
-
-Exact values depend on the Admin deployment domains and are not defined in the source.
-
-## 37. Multiple Web Domains
-
-AISLEY uses different domains for Admin, Storefront, Seller, and Logistics.
-
-Sanctum/CORS/stateful-domain configuration must allow the intended Admin frontend while preserving role/application boundaries.
-
-Exact domain names are Open.
-
-## 38. API Surface
-
-Conceptual endpoints:
-
-```http
-GET  /sanctum/csrf-cookie
-POST /login
-GET  /api/admin/me
-POST /logout
-```
-
-Repository conventions may use a different current-user endpoint.
-
-## 39. Login DTO
-
-Conceptual:
-
-```json
-{
-  "email": "admin@example.com",
-  "password": "..."
-}
-```
-
-The backend determines the expected role.
-
-## 40. Current Admin DTO
-
-Conceptual:
-
-```json
-{
-  "id": "admin-user-id",
-  "name": "Admin Name",
-  "email": "admin@example.com",
-  "role": "ADMIN",
-  "permissions": []
-}
-```
-
-Only include data needed by the Admin shell and authorization UI.
-
-## 41. Login Response
-
-Because authentication is cookie-based, the framework manages the session cookie.
-
-The API may:
-
-- return safe Admin data immediately, or
-- return success and let the frontend fetch `/api/admin/me`
-
-Exact response design is Open.
-
-## 42. Login UI States
-
-Recommended:
-
-```text
-idle
-requesting CSRF
-submitting
-success
-invalid credentials
-server error
-```
-
-Disable duplicate submission while a login attempt is active.
-
-## 43. Redirect Rules
-
-Default successful redirect:
-
-```text
-/dashboard
-```
-
-If a future `returnTo` flow is added, allow only validated internal Admin destinations to prevent open redirects.
-
-## 44. Accessibility
-
-The login UI should:
-
-- provide semantic labels
-- support keyboard navigation
-- use appropriate password/email autocomplete
-- expose errors accessibly
-- not rely on color alone
-- move focus appropriately after validation/auth errors
-
-## 45. Responsive Behavior
-
-Admin login must remain usable on smaller screens even though Admin is a web application.
-
-## 46. Performance
-
-Authentication should use indexed role-aware lookup.
-
-The current-user endpoint should return only safe fields needed by the Admin app, not unrelated platform aggregates.
-
-## 47. Security Requirements
-
-Admin Auth must:
-
-- use the source-defined stateful Sanctum session architecture
-- initialize CSRF
-- use HttpOnly cookies
-- resolve `email + ADMIN`
-- verify passwords with framework mechanisms
-- reject non-Admin role accounts
-- protect backend routes
-- separate authentication from authorization
-- invalidate sessions on logout
-- avoid web Bearer-token storage
-- redact auth secrets
-- use safe generic login errors
-- hand off to custom permission checks
-
-## 48. MVP Scope
-
-### Required
-
-- initial Admin bootstrap from `.env`
-- role-aware bootstrap lookup
-- password hashing
-- Admin login page
-- `/sanctum/csrf-cookie`
-- `/login`
-- `email + ADMIN` identity resolution
-- password verification
-- stateful Laravel session
-- encrypted HttpOnly session cookie
-- session restoration/current Admin lookup
-- Admin-role middleware
-- feature authorization handoff
-- Dashboard redirect
-- session-expiration handling
-- `/logout`
-- server-side session invalidation
-- safe authentication errors
-- secure logging
-- accessible/responsive login basics
-
-### Recommended
-
-- login rate limiting
-- brute-force mitigation
-- explicit auth-checking state
-- safe internal return-to routing
-- current-Admin endpoint
-- hardened production cookie settings
-
-### Not Required
-
-- public Admin registration
-- forgot password
-- recovery
-- specific 2FA method
-- SSO
-- social login
-- passkeys
-- remember me
-- active-session UI
-- login history
-- device management
-- CAPTCHA
-
-## 49. Acceptance Criteria
-
-### AC-01 — Bootstrap
-
-If the configured initial Admin does not exist, the system can create the `ADMIN` account.
-
-### AC-02 — Bootstrap Idempotency
-
-Repeated bootstrap execution does not create duplicate Admin accounts.
-
-### AC-03 — Bootstrap Role Isolation
-
-A same-email Buyer/Seller/etc. account does not satisfy the Admin bootstrap lookup.
-
-### AC-04 — Password Storage
-
-Bootstrap/login passwords are never stored in plaintext.
-
-### AC-05 — CSRF
-
-The Admin web client initializes the configured Sanctum CSRF state before login.
-
-### AC-06 — Valid Admin Login
-
-Valid credentials for `email + ADMIN` create an authenticated session.
-
-### AC-07 — Wrong Password
-
-An invalid password does not create a session.
-
-### AC-08 — Unknown Admin
-
-An email without an `ADMIN` role-account does not authenticate.
-
-### AC-09 — Same Email Non-Admin
-
-Valid credentials for a same-email non-Admin role cannot enter the Admin application.
-
-### AC-10 — HttpOnly Session
-
-Successful Admin login uses the configured stateful HttpOnly session cookie.
-
-### AC-11 — No Web Bearer Storage
-
-Admin web auth does not depend on storing a Bearer token in browser JavaScript storage.
-
-### AC-12 — Session Restore
-
-A valid existing Admin session restores authenticated state after reload.
-
-### AC-13 — Invalid Session
-
-An expired/invalid session is treated as unauthenticated.
-
-### AC-14 — Protected Backend
-
-Unauthenticated requests cannot access protected Admin APIs.
-
-### AC-15 — Admin Role
-
-Authenticated non-Admin roles cannot access the Admin app.
-
-### AC-16 — Permission Handoff
-
-A valid Admin session still respects custom feature permissions.
-
-### AC-17 — Dashboard Redirect
-
-Successful login can enter `/dashboard`.
-
-### AC-18 — Existing Session
-
-A valid Admin session visiting `/login` is redirected to the Admin application.
-
-### AC-19 — Session Expiration
-
-Expired sessions cause protected requests to fail and frontend auth state to clear.
-
-### AC-20 — Logout
-
-Logout invalidates the backend session.
-
-### AC-21 — Logout UI
-
-After logout, the frontend clears auth state and returns to login.
-
-### AC-22 — No Frontend-Only Logout
-
-Clearing local React state without invalidating the backend session is insufficient.
-
-### AC-23 — Generic Error
-
-Login failure does not reveal role-account existence details.
-
-### AC-24 — Secret Safety
-
-Auth APIs do not expose passwords, hashes, session values, or security secrets.
-
-### AC-25 — Safe Logs
-
-Logs do not intentionally contain auth secrets.
-
-### AC-26 — Web/Mobile Separation
-
-Admin web uses cookie authentication rather than the Flutter Bearer-token mechanism.
-
-### AC-27 — Direct API Protection
-
-Direct API calls cannot bypass Admin authentication/role middleware.
-
-### AC-28 — No Public Registration
-
-MVP exposes no unrestricted public Admin registration flow.
-
-## 50. Backend Tests
-
-Test:
-
-- bootstrap creates initial ADMIN
-- bootstrap is idempotent
-- same-email non-Admin does not satisfy bootstrap
-- bootstrap password is hashed
-- valid Admin login succeeds
-- wrong password fails
-- unknown Admin fails
-- same-email Seller/Buyer credentials fail for Admin
-- role is resolved server-side
-- successful login establishes stateful session
-- current Admin endpoint returns safe identity
-- current Admin endpoint rejects guest
-- protected route rejects guest
-- protected route rejects non-Admin
-- custom permission remains enforced
-- expired session returns unauthenticated
-- logout invalidates session
-- old session cannot access protected route after logout
-- passwords/cookies/tokens are absent from logs/DTOs
-- direct API calls cannot bypass middleware
-- Admin web does not use the Flutter Bearer-token flow
-
-## 51. Frontend Tests
-
-Test:
-
-- login page renders
-- form labels are accessible
-- CSRF initialization occurs
-- submitting state renders
-- valid login redirects to Dashboard
-- invalid credentials show safe error
-- same-email non-Admin cannot enter
-- valid existing session skips login
-- auth checking prevents protected-content flash
-- expired session redirects to login
-- logout returns to login
-- unauthenticated users cannot render protected pages
-- forbidden and unauthenticated states differ
-- responsive layout works
-- keyboard navigation works
-
-## 52. Open Decisions
-
-The current sources do not define:
-
-1. exact bootstrap implementation
-2. `.env` re-sync behavior
-3. exact login response shape
-4. exact current-user endpoint name
-5. session lifetime
-6. idle timeout
-7. absolute timeout
-8. remember-me behavior
-9. concurrent-session policy
-10. session revocation
-11. password-change session invalidation
-12. exact password policy
-13. login rate limit
-14. brute-force lockout
-15. CAPTCHA
-16. suspicious-login detection
-17. login/logout Audit Log policy
-18. failed-login security logging
-19. exact cookie `SameSite`/domain configuration
-20. exact Admin domain
-21. Sanctum stateful-domain/CORS deployment configuration
-22. 2FA mechanism
-23. 2FA login challenge
-24. 2FA recovery
-25. forgot-password support
-26. password-reset flow
-27. email verification for additional Admins
-28. post-login return-to behavior
-29. Admin Global Ban behavior
-30. Admin IP-block behavior
-31. active-session UI
-32. login history
-33. device/session naming
-34. security notification emails
-35. SSO/passkeys
-36. emergency Admin recovery procedure
-
-## 53. Final Definition
-
-AISLEY Admin Authentication is:
-
-```text
-a role-aware,
-stateful,
-Sanctum-based web authentication layer
-for ADMIN accounts
-
-using:
-    GET /sanctum/csrf-cookie
-    POST /login
-    encrypted HttpOnly session cookies
-    backend authentication middleware
-    role = ADMIN enforcement
-    authorization handoff
-    POST /logout
-```
-
-Central identity rule:
-
-```text
-Authenticate the specific ADMIN role-account,
-not every AISLEY account sharing the email.
-```
-
-Central web-security rule:
-
-```text
-Admin web authentication uses
-stateful HttpOnly session cookies,
-not JavaScript-managed Bearer tokens.
-```
+- Ensure the Admin login lookup can use an index supporting email/role lookup.
+- Do not create a separate Admin credential store unless the repository architecture explicitly requires it.
+
+### Testing
+
+- **Laravel feature tests:**
+  - bootstrap creates missing Admin
+  - bootstrap is idempotent
+  - same-email non-Admin does not satisfy bootstrap
+  - password is hashed
+  - valid Admin login succeeds
+  - wrong password fails
+  - unknown Admin fails
+  - same-email non-Admin credentials fail for Admin
+  - server resolves role instead of trusting client role
+  - session is established and regenerated on successful login
+  - current Admin endpoint returns safe fields
+  - current Admin endpoint rejects guest
+  - protected routes reject guest
+  - protected routes reject non-Admin roles
+  - feature permission checks still apply to Admin
+  - logout invalidates session
+  - old session fails after logout
+  - auth secrets are absent from responses/logging paths under test
+- **Frontend tests:**
+  - login form renders and is accessible
+  - CSRF initialization precedes login
+  - duplicate submission is disabled while pending
+  - valid login enters Dashboard
+  - invalid credentials show generic error
+  - valid existing session skips login
+  - protected content does not flash during `CHECKING`
+  - expired session returns to login
+  - `401` and `403` produce different behavior
+  - logout returns to login
+  - responsive/keyboard behavior remains usable
+
+### Open questions
+
+- Exact bootstrap/seeder command or lifecycle hook.
+- Whether `.env` credentials ever re-sync an existing Admin.
+- Exact login success response shape.
+- Whether `/api/admin/me` or a shared current-user endpoint is preferred.
+- Exact session idle and absolute lifetime.
+- Concurrent Admin session/revocation policy.
+- Password-change session invalidation policy.
+- Exact Admin password policy.
+- Exact login rate-limit/lockout thresholds.
+- Whether login/logout/failed-login events enter Admin Audit Logs or separate security logs.
+- Exact Admin/API domains and resulting Sanctum/CORS/cookie configuration.
+- Whether Admin accounts participate in Global Ban/IP block rules.
+- Concrete 2FA behavior.
+- Forgot-password/recovery behavior.
+- Safe `returnTo` behavior after future deep-link login.
+- Active-session/device management.
+- Emergency Admin recovery procedure.
+
+### Source alignment
+
+- Project feature-spec rule: keep the feature concise, implementation-ready, below 500 lines, and organized as `WHAT`, `MUST`, and `HOW`.
+- AISLEY system-flow contract: Next.js/React handles presentation; Laravel owns authentication, authorization, validation, persistence, and security-sensitive behavior.
+- Admin model: Admin features require authenticated/authorized access, with Dashboard as the primary entry point.
+- Supplied Admin Authentication draft: defines role-aware `email + ADMIN` identity, initial Admin bootstrap, Sanctum CSRF/session flow, current-session restoration, protected Admin access, and logout.
+- Laravel Sanctum SPA authentication documentation: https://laravel.com/docs/sanctum#spa-authentication
