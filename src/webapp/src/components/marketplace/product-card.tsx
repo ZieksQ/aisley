@@ -42,7 +42,7 @@ export function ProductCard({
 
   return (
     <Link
-      href={`/products/${product.slug}`}
+      href={`/products/${product.id}`}
       aria-label={`${product.title}, ${moneyFormatter.format(product.price)}`}
       data-analytics-event="homepage_product_click"
       data-analytics-product-id={product.id}

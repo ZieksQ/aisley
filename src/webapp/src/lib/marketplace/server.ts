@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   HomepageData,
+  ProductDetail,
   ProductSearchResponse,
 } from "./types";
 
@@ -13,6 +14,7 @@ const emptyHomepage: HomepageData = {
   viewer: {
     isAuthenticated: false,
     displayName: null,
+    email: null,
     deliveryLocation: null,
     cartItemCount: 0,
   },
@@ -77,4 +79,28 @@ export async function searchPublicProducts(
   return publicApiRequest<ProductSearchResponse>(
     `/api/v1/customer/products/search?${parameters.toString()}`,
   );
+}
+
+export async function getPublicProduct(id: string): Promise<ProductDetail | null> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/products/${encodeURIComponent(id)}`,
+    {
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      next: { revalidate: 30 },
+    },
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Product detail request failed with status ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as { data: ProductDetail };
+  return payload.data;
 }
