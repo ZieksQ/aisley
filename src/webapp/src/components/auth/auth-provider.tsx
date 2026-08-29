@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 
 import { ApiError, apiRequest, initializeCsrf } from "@/lib/api";
 import type { AuthState, AuthenticatedCustomer } from "@/lib/auth/types";
@@ -36,8 +37,15 @@ export function AuthProvider({
   children: ReactNode;
   initialAuth: AuthState;
 }) {
-  const [auth, setAuth] = useState<AuthState>(initialAuth);
+  // A server-side guest result can be caused by a cross-origin deployment
+  // boundary not forwarding the browser's session cookie. Let the browser
+  // settle it with its credentialed request before rendering guest controls.
+  const [auth, setAuth] = useState<AuthState>(() =>
+    initialAuth.status === "authenticated" ? initialAuth : { status: "loading" },
+  );
+  const pathname = usePathname();
   const refreshRequest = useRef<Promise<AuthState> | null>(null);
+  const refreshedPath = useRef<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (refreshRequest.current) {
@@ -68,12 +76,13 @@ export function AuthProvider({
   }, []);
 
   useEffect(() => {
-    if (initialAuth.status !== "loading") {
+    if (auth.status === "authenticated" || refreshedPath.current === pathname) {
       return;
     }
 
+    refreshedPath.current = pathname;
     void refresh();
-  }, [initialAuth.status, refresh]);
+  }, [auth.status, pathname, refresh]);
 
   useEffect(() => {
     const refreshOnFocus = () => void refresh();

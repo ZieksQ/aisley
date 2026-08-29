@@ -92,3 +92,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-29
 
 - Added customer-only, server-validated auth-aware storefront navigation. The root layout forwards request cookies to the active-Customer Sanctum endpoint with no-store semantics and hydrates one shared auth provider; non-Customer, inactive, expired, and anonymous sessions are normalized as guests. The responsive header now has a keyboard-accessible account menu with Profile, Wishlist, Settings, and CSRF-protected logout, while login/register redirect active Customers home and `/account/*` preserves a same-origin return path for signed-in access. The Customer `/me` and login responses now expose only the minimal navigation DTO; all 59 API tests (523 assertions), storefront lint, strict TypeScript checks, and webpack production build pass. Turbopack remains blocked in this environment by its local CSS-worker port restriction.
+
+## 2026-08-29
+
+- Fixed storefront session restoration after refresh: any non-authenticated server hydration now uses the navbar loading state while the browser performs a credentialed `GET /api/v1/customer/auth/me`, and the shared provider retries that validation once for each public-route visit until an active Customer is confirmed.
