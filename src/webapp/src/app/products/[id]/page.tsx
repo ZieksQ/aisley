@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { HiChevronRight } from "react-icons/hi2";
 
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
+import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { ProductConfigurator } from "@/components/product/product-configurator";
 import {
   ProductDescription,
@@ -11,7 +12,8 @@ import {
   RatingSummary,
   ShopSummary,
 } from "@/components/product/product-detail-sections";
-import { getPublicProduct } from "@/lib/marketplace/server";
+import { marketplaceConfig } from "@/lib/marketplace/config";
+import { getPublicHomepage, getPublicProduct } from "@/lib/marketplace/server";
 
 type ProductPageProps = {
   params: Promise<{ id: string }>;
@@ -50,7 +52,10 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
-  const product = await getPublicProduct(id);
+  const [product, homepage] = await Promise.all([
+    getPublicProduct(id),
+    getPublicHomepage(marketplaceConfig.discoveryPageSize),
+  ]);
   if (!product) notFound();
 
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -79,7 +84,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   };
 
   return (
-    <>
+    <HomeDataProvider initialData={homepage} trackView={false}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
@@ -117,6 +122,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       </main>
-    </>
+    </HomeDataProvider>
   );
 }

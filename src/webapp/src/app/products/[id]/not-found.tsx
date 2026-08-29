@@ -1,10 +1,15 @@
 import Link from "next/link";
 
+import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
+import { marketplaceConfig } from "@/lib/marketplace/config";
+import { getPublicHomepage } from "@/lib/marketplace/server";
 
-export default function ProductNotFound() {
+export default async function ProductNotFound() {
+  const homepage = await getPublicHomepage(marketplaceConfig.discoveryPageSize);
+
   return (
-    <>
+    <HomeDataProvider initialData={homepage} trackView={false}>
       <UtilityBar />
       <MarketplaceHeader />
       <main className="flex flex-1 items-center justify-center px-4 py-16">
@@ -21,6 +26,6 @@ export default function ProductNotFound() {
           </Link>
         </section>
       </main>
-    </>
+    </HomeDataProvider>
   );
 }
