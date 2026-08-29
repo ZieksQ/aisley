@@ -102,3 +102,73 @@ export type ProductSearchResponse = {
     total: number;
   };
 };
+
+export type ProductMedia = {
+  id: string | null;
+  url: string;
+  altText: string;
+  position: number;
+  variantId: string | null;
+};
+
+export type ProductOptionValue = {
+  id: string;
+  value: string;
+  position: number;
+  swatch: {
+    color: string | null;
+    imageUrl: string | null;
+  };
+};
+
+export type ProductOptionGroup = {
+  id: string;
+  name: string;
+  position: number;
+  values: ProductOptionValue[];
+};
+
+export type ProductVariant = {
+  id: string;
+  sku: string;
+  optionValueIds: string[];
+  price: number;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  stockQuantity: number;
+  inStock: boolean;
+  primaryMediaId: string | null;
+};
+
+export type ProductDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string | null;
+  descriptionMarkdown: string | null;
+  specifications: Record<string, string | number | boolean | null> | null;
+  price: number;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  badges: string[];
+  averageRating: number | null;
+  reviewCount: number;
+  soldCount: number;
+  availability: {
+    inStock: boolean;
+    stockQuantity: number | null;
+    requiresVariantSelection: boolean;
+  };
+  media: ProductMedia[];
+  optionGroups: ProductOptionGroup[];
+  variants: ProductVariant[];
+  shop: {
+    id: string;
+    slug: string;
+    name: string;
+    logoUrl: string | null;
+    isOnVacation: boolean;
+    vacationMessage: string | null;
+    storefrontUrl: string;
+  };
+};
