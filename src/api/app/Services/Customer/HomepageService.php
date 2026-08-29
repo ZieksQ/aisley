@@ -90,6 +90,7 @@ class HomepageService
             return [
                 'isAuthenticated' => false,
                 'displayName' => null,
+                'email' => null,
                 'deliveryLocation' => null,
                 'cartItemCount' => 0,
             ];
@@ -105,8 +106,10 @@ class HomepageService
         return [
             'isAuthenticated' => true,
             'displayName' => $customer->customerProfile?->first_name,
+            'email' => $customer->email,
             'deliveryLocation' => $address ? [
                 'id' => $address->id,
+                'label' => $address->label,
                 'cityMunicipality' => $address->city_municipality,
                 'province' => $address->province,
             ] : null,

@@ -1,8 +1,10 @@
 export type HomepageViewer = {
   isAuthenticated: boolean;
   displayName: string | null;
+  email: string | null;
   deliveryLocation: {
     id: string;
+    label: string | null;
     cityMunicipality: string;
     province: string;
   } | null;

@@ -14,6 +14,7 @@ const emptyHomepage: HomepageData = {
   viewer: {
     isAuthenticated: false,
     displayName: null,
+    email: null,
     deliveryLocation: null,
     cartItemCount: 0,
   },

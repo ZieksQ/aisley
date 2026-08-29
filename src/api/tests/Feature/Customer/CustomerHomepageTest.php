@@ -132,6 +132,7 @@ class CustomerHomepageTest extends TestCase
         $response
             ->assertHeader('Cache-Control', 'max-age=60, public')
             ->assertJsonPath('viewer.isAuthenticated', false)
+            ->assertJsonPath('viewer.email', null)
             ->assertJsonPath('viewer.deliveryLocation', null)
             ->assertJsonPath('campaigns.hero.0.id', $campaign->id)
             ->assertJsonCount(1, 'campaigns.hero')
@@ -208,6 +209,8 @@ class CustomerHomepageTest extends TestCase
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('viewer.isAuthenticated', true)
             ->assertJsonPath('viewer.displayName', 'Aisley')
+            ->assertJsonPath('viewer.email', $customer->email)
+            ->assertJsonPath('viewer.deliveryLocation.label', 'Home')
             ->assertJsonPath('viewer.deliveryLocation.cityMunicipality', 'Makati City')
             ->assertJsonPath('viewer.deliveryLocation.province', 'Metro Manila')
             ->assertJsonCount(2, 'recentlyViewed')

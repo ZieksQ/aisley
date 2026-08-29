@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  FiHeart,
   FiMapPin,
   FiMessageCircle,
   FiShoppingCart,
@@ -15,6 +14,20 @@ function authDestination(path: string, isAuthenticated: boolean) {
   return isAuthenticated ? path : `/login?returnTo=${encodeURIComponent(path)}`;
 }
 
+function accountLabel(viewer: {
+  displayName: string | null;
+  email: string | null;
+}) {
+  return viewer.displayName?.trim() || viewer.email || "My Account";
+}
+
+function accountInitial(viewer: {
+  displayName: string | null;
+  email: string | null;
+}) {
+  return accountLabel(viewer).charAt(0).toLocaleUpperCase();
+}
+
 export function UtilityAccountControls() {
   const { data } = useHomeData();
   const { viewer } = data;
@@ -22,7 +35,7 @@ export function UtilityAccountControls() {
   return viewer.isAuthenticated ? (
     <>
       <Link href="/account" className="hover:text-[#E6007A]">
-        {viewer.displayName ? `Hi, ${viewer.displayName}` : "My Account"}
+        {accountLabel(viewer)}
       </Link>
       <Link href="/account/orders" className="hover:text-[#E6007A]">
         Track Order
@@ -54,7 +67,11 @@ export function DeliveryLocation() {
       <span className="min-w-0 leading-tight">
         <span className="block text-[11px] text-[#746778]">Deliver to</span>
         <span className="block truncate text-xs font-semibold">
-          {location?.cityMunicipality ?? "Set location"}
+          {location
+            ? `${location.cityMunicipality}, ${location.province}`
+            : viewer.isAuthenticated
+              ? "Add address"
+              : "Set location"}
         </span>
       </span>
     </Link>
@@ -65,50 +82,18 @@ export function HeaderAccountControls() {
   const { data } = useHomeData();
   const { viewer } = data;
 
-  const controls = [
-    {
-      label: "Messages",
-      href: authDestination("/messages", viewer.isAuthenticated),
-      icon: FiMessageCircle,
-      desktopOnly: true,
-    },
-    {
-      label: "Wishlist",
-      href: authDestination("/wishlist", viewer.isAuthenticated),
-      icon: FiHeart,
-      desktopOnly: true,
-    },
-    {
-      label: viewer.isAuthenticated
-        ? viewer.displayName ?? "Account"
-        : "Sign in",
-      href: viewer.isAuthenticated ? "/account" : "/login",
-      icon: FiUser,
-      desktopOnly: true,
-    },
-  ];
+  const profileLabel = accountLabel(viewer);
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-      {controls.map((control) => {
-        const Icon = control.icon;
-
-        return (
-          <Link
-            key={control.label}
-            href={control.href}
-            aria-label={control.label}
-            className={`${
-              control.desktopOnly ? "hidden sm:flex" : "flex"
-            } min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]`}
-          >
-            <Icon aria-hidden="true" className="size-5" />
-            <span className="mt-0.5 hidden max-w-16 truncate lg:block">
-              {control.label}
-            </span>
-          </Link>
-        );
-      })}
+      <Link
+        href={authDestination("/messages", viewer.isAuthenticated)}
+        aria-label="Messages"
+        className="flex min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+      >
+        <FiMessageCircle aria-hidden="true" className="size-5" />
+        <span className="mt-0.5 hidden lg:block">Messages</span>
+      </Link>
 
       <Link
         href={authDestination("/cart", viewer.isAuthenticated)}
@@ -122,6 +107,26 @@ export function HeaderAccountControls() {
           </span>
         ) : null}
         <span className="mt-0.5 hidden lg:block">Cart</span>
+      </Link>
+
+      <Link
+        href={viewer.isAuthenticated ? "/account" : "/login"}
+        aria-label={viewer.isAuthenticated ? `Profile for ${profileLabel}` : "Sign in"}
+        className="flex min-w-11 max-w-20 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+      >
+        {viewer.isAuthenticated ? (
+          <span
+            aria-hidden="true"
+            className="flex size-5 items-center justify-center rounded-full bg-[#4C1268] text-[10px] font-bold text-white"
+          >
+            {accountInitial(viewer)}
+          </span>
+        ) : (
+          <FiUser aria-hidden="true" className="size-5" />
+        )}
+        <span className="mt-0.5 hidden max-w-16 truncate lg:block">
+          {viewer.isAuthenticated ? profileLabel : "Sign in"}
+        </span>
       </Link>
     </div>
   );
