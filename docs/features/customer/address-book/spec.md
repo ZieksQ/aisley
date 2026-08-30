@@ -468,6 +468,16 @@ AddressValidationService
 - Whether delivery notes/landmarks/gate codes belong here or Checkout.
 - How Order Modification selects/revalidates a replacement address.
 
+### Current checkout implementation (2026-08-30)
+
+- Active Customers can list their own saved addresses with `GET /api/v1/customer/addresses` and create a Customer-owned address with `POST /api/v1/customer/addresses`.
+- The create endpoint accepts the existing `shipping`, `billing`, or `both` string-backed `AddressType`, validates all normalized address fields, prohibits owner assignment, and accepts latitude/longitude only as a complete valid pair.
+- Setting a new default is serialized transactionally and clears an overlapping shipping/billing default supported by the existing single `is_default` field.
+- Checkout exposes shipping-capable saved addresses and an inline create form. Address editing, deletion, and the complete `/account/addresses` management experience remain future Address Book work.
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` optionally enables the Google Maps JavaScript Place Autocomplete widget on the checkout address form. The browser key must be restricted by allowed HTTP referrers, and the Google Cloud project must enable Maps JavaScript API and Places API (New).
+- A chosen Google suggestion may populate the street, barangay/locality, city/municipality, province, region, postal code, country, latitude, and longitude already present in the schema. Customers must review the populated fields; manual entry remains available when Google is unconfigured or unavailable.
+- Coordinates are cleared when the Customer manually changes a populated location component, preventing a stale Google coordinate from being saved with edited address text. No draggable map pin, serviceability decision, shipping-zone rule, or logistics selection was added.
+
 ### Sources
 - Project rules: `SKILL.md`
 - AISLEY architecture contract: `README.md`

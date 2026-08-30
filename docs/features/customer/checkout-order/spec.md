@@ -124,3 +124,10 @@ intent → server resolution → group by shop → quote/choose vouchers
 - Shopee documents voucher selection at checkout and eligibility terms such as minimum spend, item scope, validity, caps, and payment method: https://help.shopee.ph/portal/4/article/165965
 - Shopee also distinguishes a platform voucher and a Shop voucher per Shop at checkout: https://help.shopee.ph/portal/4/article/81465
 - Lazada's terms require voucher application/review at checkout and note voucher-combination restrictions: https://pages.lazada.com.ph/wow/gcp/route/lazada/ph/upr_1000345_lazada/channel/ph/upr-router/render?at_iframe=1&data_prefetch=true&hybrid=1&prefetch_replace=1&wh_pid=%2Flazada%2Fchannel%2Fph%2Flegal%2Fterms-conditions
+
+### Current storefront implementation (2026-08-30)
+
+- Product Detail Buy Now and selected Cart lines now hand off a server-authoritative intent to the authenticated `/checkout` route.
+- Checkout lists and creates shipping-capable Customer addresses, always uses COD, quotes each Shop group, displays per-Shop products/fees/vouchers/totals, requires explicit App-voucher targeting, and requotes after address or voucher changes.
+- Placement uses a UUID idempotency key, preserves the key for safe retry, refreshes stale quotes for Customer review, refreshes Cart state after success, and redirects to a private batch confirmation with every created Shop Order reference, initial status, address snapshot, items, savings, and COD total.
+- The frontend does not calculate authoritative price, stock, voucher savings, shipping fees, or totals. Logistics provider/method selection remains intentionally absent.

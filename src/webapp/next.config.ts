@@ -29,6 +29,11 @@ const remotePatterns = imageSourceUrls.flatMap((value) => {
 });
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // TypeScript 5 exposes the compiler API; avoid the CLI capture path that
+    // can truncate `tsc --showConfig` output under the local Node runtime.
+    useTypeScriptCli: false,
+  },
   images: {
     remotePatterns,
     unoptimized: true,

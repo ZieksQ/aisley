@@ -7,6 +7,7 @@ import { HiCheck, HiMinus, HiPlus, HiShoppingCart } from "react-icons/hi2";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { ApiError } from "@/lib/api";
+import { saveCheckoutIntent } from "@/lib/checkout/intent";
 import type {
   ProductDetail,
   ProductVariant,
@@ -29,6 +30,7 @@ const badgeLabels: Record<string, string> = {
 const pendingCartIntentKey = "aisley:pending-cart-intent";
 
 type PendingCartIntent = {
+  action?: "cart" | "buy_now";
   productId: string;
   variantId: string | null;
   quantity: number;
@@ -132,7 +134,9 @@ export function ProductPurchasePanel({
       );
       setQuantity(Math.min(intent.quantity, Math.max(1, availableQuantity)));
       setMessage(
-        "Your previous selection was restored. Review it and select Add to cart again.",
+        intent.action === "buy_now"
+          ? "Your previous selection was restored. Review it and select Buy now again."
+          : "Your previous selection was restored. Review it and select Add to cart again.",
       );
       onSelectedVariantChange(variant);
     }, 0);
@@ -188,6 +192,7 @@ export function ProductPurchasePanel({
     setMessage(null);
     setSubmitting(true);
     const intent: PendingCartIntent = {
+      action: "cart",
       productId: product.id,
       variantId: selectedVariant?.id ?? null,
       quantity,
@@ -246,7 +251,7 @@ export function ProductPurchasePanel({
     }
   }
 
-  function buyNow() {
+  async function buyNow() {
     if (!purchasable) {
       setMessage(
         configurationComplete
@@ -256,18 +261,29 @@ export function ProductPurchasePanel({
       return;
     }
 
-    const detail = {
+    const intent: PendingCartIntent = {
+      action: "buy_now",
       productId: product.id,
       variantId: selectedVariant?.id ?? null,
       quantity,
-      intent: "buy_now",
     };
-    window.dispatchEvent(
-      new CustomEvent("aisley:product-purchase-intent", { detail }),
-    );
-    setMessage(
-      "Buy Now is not available yet. Your selection has not been reserved.",
-    );
+
+    setMessage(null);
+    const settledAuth = auth.status === "loading" ? await refreshAuth() : auth;
+    if (settledAuth.status !== "authenticated") {
+      savePendingCartIntent(intent);
+      router.push(`/login?next=${encodeURIComponent(`/products/${product.id}`)}`);
+      return;
+    }
+
+    sessionStorage.removeItem(pendingCartIntentKey);
+    saveCheckoutIntent({
+      mode: "buy_now",
+      productId: intent.productId,
+      variantId: intent.variantId,
+      quantity: intent.quantity,
+    });
+    router.push("/checkout");
   }
 
   return (
@@ -407,7 +423,7 @@ export function ProductPurchasePanel({
         <button
           type="button"
           disabled={!purchasable}
-          onClick={buyNow}
+          onClick={() => void buyNow()}
           className="min-h-12 rounded-md bg-[#E6007A] px-3 text-sm font-semibold text-white hover:bg-[#C8006B] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:cursor-not-allowed disabled:bg-[#CFC6D2]"
         >
           Buy now
