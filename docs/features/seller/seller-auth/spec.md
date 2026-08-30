@@ -99,7 +99,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Login links to registration and password recovery; approval/rejection screens link back to login or support where appropriate.
 - [x] Seller registration creates one pending User/Profile/Application transactionally.
 - [x] Seller registration creates one pending Shop, one manual default business Address, and the required private ID/permit evidence.
-- [ ] Seller registration offers Philippines-scoped Geoapify suggestions for administrative address fields while preserving complete manual entry.
+- [x] Seller registration offers Philippines-scoped Geoapify suggestions for administrative address fields while preserving complete manual entry.
 - [x] Signup Shop Category options come from the canonical 14-group/83-product-category database taxonomy.
 - [x] Same-email accounts remain isolated by role across registration, login, and password reset.
 - [x] Pending, rejected, suspended, and deactivated Sellers cannot access protected APIs.
