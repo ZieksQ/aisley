@@ -11,6 +11,8 @@ use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
+use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
+use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
@@ -82,6 +84,18 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active'])->group(function () {
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
+    Route::get('/products', [SellerProductController::class, 'index'])->name('products.index');
+    Route::post('/products', [SellerProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{product}', [SellerProductController::class, 'show'])->whereUuid('product')->name('products.show');
+    Route::patch('/products/{product}', [SellerProductController::class, 'update'])->whereUuid('product')->name('products.update');
+    Route::post('/products/{product}/publish', [SellerProductController::class, 'publish'])->whereUuid('product')->name('products.publish');
+    Route::post('/products/{product}/archive', [SellerProductController::class, 'archive'])->whereUuid('product')->name('products.archive');
+    Route::get('/inventory', [SellerInventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/{inventorySku}', [SellerInventoryController::class, 'show'])->whereUuid('inventorySku')->name('inventory.show');
+    Route::get('/inventory/{inventorySku}/movements', [SellerInventoryController::class, 'movements'])->whereUuid('inventorySku')->name('inventory.movements');
+    Route::post('/inventory/{inventorySku}/adjustments', [SellerInventoryController::class, 'adjust'])->whereUuid('inventorySku')->name('inventory.adjust');
+    Route::patch('/inventory/{inventorySku}/threshold', [SellerInventoryController::class, 'threshold'])->whereUuid('inventorySku')->name('inventory.threshold');
 });
 
 Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->group(function () {

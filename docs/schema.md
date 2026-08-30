@@ -538,7 +538,7 @@ Deleting a parent preserves its children and sets their `parent_id` to `NULL`. D
 
 **Model:** `Product`
 
-Products store both the storefront-card fields and the product-detail content. Options, variants, and ordered media are normalized into the related tables below; inventory movements and order-time snapshots remain deferred.
+Products store both the storefront-card fields and the product-detail content. Options, variants, ordered media, and inventory records are normalized into the related tables below; order-time snapshots remain deferred.
 
 | Column | PostgreSQL type | Nullable | Default | Notes |
 | --- | --- | --- | --- | --- |
@@ -644,6 +644,14 @@ Composite primary key: (`product_variant_id`, `product_option_value_id`).
 | `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
 Unique (`product_id`, `position`) maintains the product gallery ordering; (`product_variant_id`, `position`) supports variant-media retrieval. The `product_variants.primary_media_id` foreign key is created after this table to resolve the circular reference.
+
+### 9.5A Inventory SKUs, balances, and movements
+
+`inventory_skus` gives both base products and Product Variants one stable stock identity. A database check requires base SKUs to have no variant and variant SKUs to reference one. SKU codes and variant references are globally unique; records are retained when a product is archived.
+
+`inventory_balances` stores one current balance per SKU with unsigned `on_hand`, `reserved`, and nullable `alert_threshold` quantities. PostgreSQL checks enforce `0 <= reserved <= on_hand`; available stock is derived as `on_hand - reserved`.
+
+`inventory_movements` is the append-only stock ledger. Each movement records string-backed `movement_type`, signed on-hand/reserved deltas, resulting balances, optional reference and idempotency keys, the nullable acting User, reason, and creation time. Application models reject updates and deletes. Existing Product/Product Variant quantities are backfilled as opening balances and remain synchronized compatibility projections for the current storefront and Cart queries.
 
 ### 9.6 `homepage_campaigns`
 
@@ -833,6 +841,7 @@ Migrations currently run in this dependency order:
 29. `2026_08_29_000120_add_product_details_and_variants.php` — product detail content, options, variants, variant selections, and media.
 30. `2026_08_29_000121_create_carts_and_cart_items.php` — one Customer Cart, SKU-level Cart Items, and PostgreSQL-safe partial configuration uniqueness.
 31. `2026_08_30_000122_link_product_categories_to_shop_categories.php` — associates each Product Category with its Shop Category taxonomy group.
+32. `2026_08_30_000123_create_inventory_ledger.php` — SKU identities, current balances, immutable movements, constraints, and catalog-stock backfill.
 
 ## 14. Deferred schema
 
@@ -840,7 +849,7 @@ The following capabilities appear in requirements but have no migrations or mode
 
 | Capability | Deferred data design |
 | --- | --- |
-| Catalog and inventory | Reservations and inventory movements beyond the implemented product, media, option, and purchasable-variant schema |
+| Catalog and inventory | Order-driven reservation/release/fulfillment integration beyond the implemented Seller catalog, SKU balances, manual adjustments, thresholds, and movement ledger |
 | Promotions | Seller/platform vouchers, general discount rules, eligibility, limits, and redemptions beyond the implemented homepage flash-deal windows |
 | Checkout | Checkout selection/grouping for multi-shop purchases; Cart persistence is implemented |
 | Orders and finance | Shop-scoped orders, immutable order-item/address snapshots, payments, fees, commissions, and status history |
