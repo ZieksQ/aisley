@@ -393,7 +393,6 @@ function DocumentPreview({ document }: { document: RegistrationDocument }) {
     </article>
   )
 }
-
 function DetailField({ label, value }: { label: string; value: string | number | null }) {
   return (
     <div>
