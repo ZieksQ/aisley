@@ -2,6 +2,8 @@
 
 namespace App\Enums\Admin;
 
+use App\Models\Announcement;
+use App\Models\PlatformPolicyVersion;
 use App\Models\RegistrationApplication;
 use App\Models\User;
 
@@ -9,12 +11,16 @@ enum AuditTargetType: string
 {
     case RegistrationApplication = 'registration_application';
     case AdminAccount = 'admin_account';
+    case Announcement = 'announcement';
+    case PlatformPolicyVersion = 'platform_policy_version';
 
     public function label(): string
     {
         return match ($this) {
             self::RegistrationApplication => 'Registration',
             self::AdminAccount => 'Admin account',
+            self::Announcement => 'Announcement',
+            self::PlatformPolicyVersion => 'Policy version',
         };
     }
 
@@ -23,6 +29,8 @@ enum AuditTargetType: string
         return match ($this) {
             self::RegistrationApplication => RegistrationApplication::class,
             self::AdminAccount => User::class,
+            self::Announcement => Announcement::class,
+            self::PlatformPolicyVersion => PlatformPolicyVersion::class,
         };
     }
 
@@ -31,6 +39,8 @@ enum AuditTargetType: string
         return match ($modelClass) {
             RegistrationApplication::class => self::RegistrationApplication,
             User::class => self::AdminAccount,
+            Announcement::class => self::Announcement,
+            PlatformPolicyVersion::class => self::PlatformPolicyVersion,
             default => null,
         };
     }

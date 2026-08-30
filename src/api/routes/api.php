@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
@@ -36,6 +38,18 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::post('/account/profile-photo', [AccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
     Route::get('/account/profile-photo', [AccountController::class, 'profilePhoto'])->name('account.photo.show');
     Route::delete('/account/profile-photo', [AccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
+
+    Route::prefix('platform-settings')->name('platform-settings.')->group(function () {
+        Route::get('/announcements', [PlatformSettingsController::class, 'announcements'])->middleware('admin.permission:platform-settings.view')->name('announcements.index');
+        Route::post('/announcements', [PlatformSettingsController::class, 'storeAnnouncement'])->middleware('admin.permission:platform-settings.manage')->name('announcements.store');
+        Route::patch('/announcements/{announcement}', [PlatformSettingsController::class, 'updateAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.update');
+        Route::post('/announcements/{announcement}/publish', [PlatformSettingsController::class, 'publishAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.publish');
+        Route::post('/announcements/{announcement}/archive', [PlatformSettingsController::class, 'archiveAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.archive');
+        Route::get('/policies', [PlatformSettingsController::class, 'policies'])->middleware('admin.permission:platform-settings.view')->name('policies.index');
+        Route::post('/policies/{type}/versions', [PlatformSettingsController::class, 'storePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->name('policies.versions.store');
+        Route::patch('/policy-versions/{version}', [PlatformSettingsController::class, 'updatePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.update');
+        Route::post('/policy-versions/{version}/publish', [PlatformSettingsController::class, 'publishPolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.publish');
+    });
 
     Route::get('/dashboard', [DashboardController::class, 'show'])
         ->name('dashboard.show');
@@ -147,3 +161,8 @@ Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
     ->whereUuid('id')
     ->middleware('throttle:120,1')
     ->name('products.show');
+
+Route::prefix('v1/platform')->name('platform.')->middleware('throttle:120,1')->group(function () {
+    Route::get('/announcements', [PlatformContentController::class, 'announcements'])->name('announcements.index');
+    Route::get('/policies/{type}', [PlatformContentController::class, 'policy'])->name('policies.show');
+});

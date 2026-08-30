@@ -8,6 +8,7 @@ import {
   FaGaugeHigh,
   FaShieldHalved,
   FaUserGear,
+  FaSliders,
   FaXmark,
 } from 'react-icons/fa6'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -33,18 +34,19 @@ export function AdminLayout() {
   const initials = `${admin?.profile?.first_name?.[0] ?? 'A'}${admin?.profile?.last_name?.[0] ?? ''}`
   const canViewRegistrations = admin?.permissions.includes('registrations.view') ?? false
   const canViewAuditLogs = admin?.permissions.includes('audit-logs.view') ?? false
+  const canViewPlatformSettings = admin?.permissions.includes('platform-settings.view') ?? false
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
   const pageTitle = location.pathname.startsWith('/registrations')
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'
+      : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : location.pathname.startsWith('/account') ? 'Administrator account' : 'Admin workspace'
+      : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? 'Announcements and policies' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -96,6 +98,12 @@ export function AdminLayout() {
               <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/audit-logs">
                 <FaClockRotateLeft aria-hidden="true" />
                 System audit logs
+              </NavLink>
+            )}
+            {canViewPlatformSettings && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/platform-settings">
+                <FaSliders aria-hidden="true" />
+                Platform settings
               </NavLink>
             )}
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">

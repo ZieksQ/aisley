@@ -12,6 +12,13 @@ enum AdminAuditAction: string
     case AdminPasswordUpdated = 'admin_account.password_updated';
     case AdminProfilePhotoUpdated = 'admin_account.profile_photo_updated';
     case AdminProfilePhotoRemoved = 'admin_account.profile_photo_removed';
+    case AnnouncementCreated = 'platform_settings.announcement_created';
+    case AnnouncementUpdated = 'platform_settings.announcement_updated';
+    case AnnouncementPublished = 'platform_settings.announcement_published';
+    case AnnouncementArchived = 'platform_settings.announcement_archived';
+    case PolicyVersionCreated = 'platform_settings.policy_version_created';
+    case PolicyVersionUpdated = 'platform_settings.policy_version_updated';
+    case PolicyVersionPublished = 'platform_settings.policy_version_published';
 
     public function label(): string
     {
@@ -24,6 +31,13 @@ enum AdminAuditAction: string
             self::AdminPasswordUpdated => 'Admin password updated',
             self::AdminProfilePhotoUpdated => 'Admin profile photo updated',
             self::AdminProfilePhotoRemoved => 'Admin profile photo removed',
+            self::AnnouncementCreated => 'Announcement created',
+            self::AnnouncementUpdated => 'Announcement updated',
+            self::AnnouncementPublished => 'Announcement published',
+            self::AnnouncementArchived => 'Announcement archived',
+            self::PolicyVersionCreated => 'Policy version created',
+            self::PolicyVersionUpdated => 'Policy version updated',
+            self::PolicyVersionPublished => 'Policy version published',
         };
     }
 }

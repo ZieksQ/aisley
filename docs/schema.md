@@ -133,9 +133,12 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `VoucherIssuerType` | `app`, `shop` | `vouchers.issuer_type`, `order_vouchers.issuer_type` |
 | `VoucherBenefitType` | `discount`, `shipping` | `vouchers.benefit_type`, `order_vouchers.benefit_type` |
 | `VoucherValueType` | `fixed`, `percent` | `vouchers.value_type` |
+| `AnnouncementStatus` | `draft`, `published`, `archived` | `announcements.status` |
+| `PlatformPolicyType` | `terms_of_service`, `privacy_policy`, `internal_rules` | `platform_policies.type` |
+| `PlatformPolicyVersionStatus` | `draft`, `published`, `superseded` | `platform_policy_versions.status` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
-| `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
-| `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
+| `AdminAuditAction` | Registration, Admin authentication/account, and Platform Settings action strings defined by the PHP enum | `audit_logs.action`, `audit_outbox.action` |
+| `AuditSourceFeature` | `account_approval`, `admin_authentication`, `admin_account_management`, `platform_settings` | `audit_logs.source_feature`, `audit_outbox.source_feature` |
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
 
@@ -786,6 +789,18 @@ Successful placement increments `inventory_balances.reserved`, writes an immutab
 
 Logistics provider/method selection is not stored or accepted. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
 
+### 9.16 Platform announcements and policies
+
+**Models:** `Announcement`, `PlatformPolicy`, `PlatformPolicyVersion`, `PolicyAcceptance`
+
+`announcements` stores one platform-wide plain-text announcement with a draft/published/archived lifecycle, optional expiration, Admin creator/updater references, and an incrementing `revision` used to reject stale edits and transitions. Published-read queries require `published_at <= now` and no elapsed expiration.
+
+`platform_policies` allow-lists Terms of Service, Privacy Policy, and Internal Platform Rules. Its unique `type` is the stable identity and nullable unique `current_version_id` points to the one effective published version.
+
+`platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
+
+`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. User-facing consent presentation and enforcement remain a separate integration decision.
+
 ## 10. Framework infrastructure tables
 
 These tables are created by the Laravel foundation migrations and do not have application-domain Eloquent models.
@@ -881,6 +896,9 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 32. Final placement locks inventory balances in stable SKU order, revalidates the quote, and reserves stock atomically with all Orders and selected-Cart cleanup.
 33. Shop vouchers apply only to their issuer's Order. At most one App voucher is redeemed per batch and only against its explicit eligible target Shop; distinct-benefit stacking requires reciprocal stored permission.
 34. A Customer-scoped idempotency key returns the original batch only for the identical placement request. A reused key with different details is a conflict.
+35. Platform Settings exposes only allow-listed announcement and policy records; it cannot mutate environment variables, secrets, or infrastructure configuration.
+36. Published policy versions are immutable, and each policy has at most one current version through `platform_policies.current_version_id`.
+37. Announcement and policy mutations require matching persisted revisions so stale Admin clients cannot silently overwrite newer state.
 
 ## 13. Migration order
 
@@ -920,6 +938,7 @@ Migrations currently run in this dependency order:
 32. `2026_08_30_000123_create_inventory_ledger.php` — SKU identities, current balances, immutable movements, constraints, and catalog-stock backfill.
 33. `2026_08_30_000124_add_admin_profile_photo_metadata.php` — configured-disk and validated image metadata for private Admin profile photos.
 34. `2026_08_30_000125_create_checkout_orders_and_vouchers.php` — Voucher definitions/redemptions, expiring checkout quotes, idempotent batches, Shop Orders, immutable item/address/voucher snapshots, and initial status history.
+35. `2026_08_30_000126_create_platform_settings_tables.php` — announcements, stable policy identities, immutable policy versions, and exact-version consent records.
 
 ## 14. Deferred schema
 
@@ -934,7 +953,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Reviews | Verified-purchase ratings, review media, and Seller responses |
 | Support and compliance | Complaints/disputes, evidence, resolutions, warnings, and moderation actions |
 | Messaging and notifications | Conversations, participants, messages, read state, and persisted notifications |
-| Admin content | Announcements, policies, settings, and policy consent |
+| Policy consent integration | User-facing consent presentation, acceptance endpoints, and login/application enforcement against the implemented version-specific acceptance schema |
 | Reporting | Derived Seller/Admin aggregates; avoid report tables until query performance requires them |
 
 Before adding these tables:

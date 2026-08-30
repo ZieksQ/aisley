@@ -117,6 +117,11 @@ class User extends Authenticatable
         return $this->hasMany(AdminPermission::class, 'granted_by');
     }
 
+    public function policyAcceptances(): HasMany
+    {
+        return $this->hasMany(PolicyAcceptance::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

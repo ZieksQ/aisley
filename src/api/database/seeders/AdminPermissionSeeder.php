@@ -24,6 +24,16 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'audit-logs.view',
             'description' => 'View and investigate the immutable administrative audit ledger.',
         ],
+        [
+            'name' => 'View platform settings',
+            'slug' => 'platform-settings.view',
+            'description' => 'View announcement and platform-policy administration records.',
+        ],
+        [
+            'name' => 'Manage platform settings',
+            'slug' => 'platform-settings.manage',
+            'description' => 'Create, edit, publish, archive, and version platform content.',
+        ],
     ];
 
     public function run(): void

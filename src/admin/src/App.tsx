@@ -7,6 +7,7 @@ import { AuditLogsPage } from './pages/AuditLogsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegistrationDetailPage } from './pages/RegistrationDetailPage'
+import { PlatformSettingsPage } from './pages/PlatformSettingsPage'
 import { RegistrationsPage } from './pages/RegistrationsPage'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<AccountPage />} path="/account" />
+          <Route element={<PlatformSettingsPage />} path="/platform-settings" />
           <Route element={<RegistrationsPage />} path="/registrations" />
           <Route element={<RegistrationDetailPage />} path="/registrations/:registrationId" />
           <Route element={<AuditLogsPage />} path="/audit-logs" />
