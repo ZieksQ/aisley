@@ -1,7 +1,7 @@
 export type AdminProfile = {
   first_name: string | null
   last_name: string | null
-  profile_photo_path: string | null
+  profile_photo_url: string | null
 }
 
 export type AdminUser = {

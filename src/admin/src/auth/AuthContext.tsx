@@ -49,6 +49,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setAdmin(null)
         }
       },
+      updateAdmin: setAdmin,
     }),
     [admin, isLoading],
   )

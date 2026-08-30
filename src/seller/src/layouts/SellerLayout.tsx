@@ -3,10 +3,12 @@ import {
   FaArrowRightFromBracket,
   FaBars,
   FaGaugeHigh,
+  FaBoxesStacked,
+  FaBoxOpen,
   FaStore,
   FaXmark,
 } from 'react-icons/fa6'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 
@@ -20,6 +22,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 export function SellerLayout() {
   const { seller, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
@@ -66,10 +69,18 @@ export function SellerLayout() {
             <FaGaugeHigh aria-hidden="true" />
             Dashboard
           </NavLink>
+          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/products">
+            <FaBoxOpen aria-hidden="true" />
+            Products
+          </NavLink>
+          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/inventory">
+            <FaBoxesStacked aria-hidden="true" />
+            Inventory
+          </NavLink>
         </nav>
 
         <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
-          Catalog, order, inventory, and reporting tools will be added as their workflows become available.
+          Purchased-order fulfillment and reporting will appear when their source domains become available.
         </p>
 
         <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-white/10">
@@ -114,7 +125,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">Dashboard</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/inventory') ? 'Inventory' : 'Dashboard'}</h1>
           </div>
           <ThemeToggle />
         </header>
