@@ -96,16 +96,16 @@ POST  /policy-versions/{version}/publish
 
 ### Acceptance criteria
 
-- [ ] Guests, non-Admins, and Admins without permission cannot mutate Platform Settings.
-- [ ] Admin can create, edit, publish, archive, and safely render an announcement; only active Published announcements reach users.
-- [ ] Admin can create a policy Draft and publish it as the sole current version.
-- [ ] Edit on a Published policy creates a copied successor Draft; the source row remains byte-for-byte unchanged.
-- [ ] Updating or abandoning a successor Draft does not change the current user-facing policy.
-- [ ] Publishing a successor supersedes the former current version atomically and preserves exact historical content.
-- [ ] Stale/concurrent successor, Draft-update, and publish attempts return `409` without corrupting version state.
-- [ ] User default view returns only the current policy; history excludes Drafts and renders a selected historical version exactly.
-- [ ] Re-consent and acceptance reference the exact policy version; users are never auto-accepted.
-- [ ] Administrative mutations create safe audit entries and invalidate relevant caches after commit.
+- [x] Guests, non-Admins, and Admins without permission cannot mutate Platform Settings.
+- [x] Admin can create, edit, publish, archive, and safely render an announcement; only active Published announcements reach users.
+- [x] Admin can create a policy Draft and publish it as the sole current version.
+- [x] Edit on a Published policy creates a copied successor Draft; the source row remains byte-for-byte unchanged.
+- [x] Updating or abandoning a successor Draft does not change the current user-facing policy.
+- [x] Publishing a successor supersedes the former current version atomically and preserves exact historical content.
+- [x] Stale/concurrent successor, Draft-update, and publish attempts return `409` without corrupting version state.
+- [x] User default view returns only the current policy; history excludes Drafts and renders a selected historical version exactly.
+- [x] Re-consent and acceptance reference the exact policy version; users are never auto-accepted.
+- [x] Administrative mutations create safe audit entries and invalidate relevant caches after commit.
 
 ## HOW
 
