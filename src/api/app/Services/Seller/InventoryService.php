@@ -61,7 +61,7 @@ class InventoryService
             }
 
             $balance->update(['on_hand' => $nextOnHand]);
-            $this->syncLegacyQuantity($sku, $nextOnHand);
+            $this->syncLegacyQuantity($sku, $nextOnHand - $balance->reserved);
 
             return $balance->movements()->create([
                 'movement_type' => $type,
@@ -76,15 +76,15 @@ class InventoryService
         });
     }
 
-    private function syncLegacyQuantity(InventorySku $sku, int $onHand): void
+    private function syncLegacyQuantity(InventorySku $sku, int $available): void
     {
         if ($sku->is_base) {
-            $sku->product()->update(['stock_quantity' => $onHand]);
+            $sku->product()->update(['stock_quantity' => $available]);
 
             return;
         }
 
-        $sku->variant()->update(['stock_quantity' => $onHand]);
+        $sku->variant()->update(['stock_quantity' => $available]);
         $sku->product()->update([
             'stock_quantity' => (int) $sku->product->variants()->sum('stock_quantity'),
         ]);

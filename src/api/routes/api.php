@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
+use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
@@ -123,6 +124,11 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
             ->whereUuid('item')
             ->name('cart.items.destroy');
+        Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');
+        Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
+        Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])
+            ->whereUuid('batch')
+            ->name('checkout.show');
     });
 });
 
