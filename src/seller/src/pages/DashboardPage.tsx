@@ -5,7 +5,6 @@ import {
   FaCircleExclamation,
   FaClipboardList,
   FaCommentDots,
-  FaCubes,
   FaRotateRight,
   FaStore,
   FaWallet,
@@ -18,7 +17,6 @@ import type { CatalogSection, DashboardResponse } from '../types/dashboard'
 const deferredSections = [
   { key: 'financial', name: 'Financial summary', detail: 'Waiting for Orders, payments, fees, refunds, and settlement definitions.', icon: FaWallet },
   { key: 'orders', name: 'Order workload', detail: 'Waiting for the canonical Order lifecycle and Seller fulfillment states.', icon: FaClipboardList },
-  { key: 'inventory', name: 'Inventory attention', detail: 'Waiting for inventory movements, reservations, and low-stock rules.', icon: FaCubes },
   { key: 'reviews', name: 'Review summary', detail: 'Waiting for verified Reviews and Seller response rules.', icon: FaCommentDots },
   { key: 'traffic', name: 'Traffic and conversion', detail: 'Waiting for Seller-scoped analytics event definitions.', icon: FaChartLine },
   { key: 'notifications', name: 'Notifications', detail: 'Waiting for the shared persisted notification domain.', icon: FaCircleExclamation },
@@ -176,7 +174,7 @@ function CatalogSummary({ catalog }: { catalog: CatalogSection }) {
       </dl>
       <div className="flex gap-2 border-t border-zinc-200 py-4 text-xs leading-5 text-zinc-500 dark:border-white/10">
         <FaBox aria-hidden="true" className="mt-0.5 shrink-0" />
-        Stock figures are current catalog quantities, not authoritative available inventory.
+        Catalog quantities are synchronized from the Inventory ledger. Use Inventory to review availability and record adjustments.
       </div>
     </div>
   )

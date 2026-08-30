@@ -4,6 +4,10 @@ import { SellerLayout } from './layouts/SellerLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
+import { InventoryDetailPage } from './pages/InventoryDetailPage'
+import { InventoryPage } from './pages/InventoryPage'
+import { ProductFormPage } from './pages/ProductFormPage'
+import { ProductsPage } from './pages/ProductsPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 
@@ -18,6 +22,11 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<SellerLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<ProductsPage />} path="/products" />
+          <Route element={<ProductFormPage />} path="/products/new" />
+          <Route element={<ProductFormPage />} path="/products/:productId/edit" />
+          <Route element={<InventoryPage />} path="/inventory" />
+          <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

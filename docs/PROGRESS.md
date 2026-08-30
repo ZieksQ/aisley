@@ -138,3 +138,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-30
 
 - Fixed Admin registration-evidence review by fetching private document images through the authorized API with session credentials and rendering secure inline previews with full-size, download, loading, error, retry, and object-URL cleanup behavior. Admin lint, strict TypeScript checks, production build, and all 12 registration-management API tests pass.
+
+## 2026-08-30
+
+- Added Seller Product/Catalog Management and authoritative Inventory Management for approved Sellers. Seller-scoped APIs and responsive workspace screens now support product draft creation/editing, category validation, publication/archival, SKU listing/search, on-hand/reserved/available balances, low/out-of-stock filters, thresholds, manual adjustments, and immutable movement history. Added an additive inventory-ledger migration with catalog-stock backfill and synchronized legacy quantities for Storefront/Cart compatibility. Purchased-order fulfillment remains deferred until the canonical Order domain exists. All 92 API tests and 837 assertions, Seller lint, strict TypeScript, and the production build pass.
