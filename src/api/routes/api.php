@@ -10,6 +10,7 @@ use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\HomepageController;
+use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
@@ -132,6 +133,13 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])
             ->whereUuid('batch')
             ->name('checkout.show');
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [OrderController::class, 'show'])
+            ->whereUuid('order')
+            ->name('orders.show');
+        Route::get('/orders/{order}/tracking', [OrderController::class, 'tracking'])
+            ->whereUuid('order')
+            ->name('orders.tracking');
     });
 });
 

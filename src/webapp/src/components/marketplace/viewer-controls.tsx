@@ -28,7 +28,7 @@ export function UtilityAccountControls() {
       <Link href="/account/profile" className="hover:text-[#E6007A]">
         {auth.customer.displayName ?? "My Account"}
       </Link>
-      <Link href="/account/orders" className="hover:text-[#E6007A]">
+      <Link href="/orders" className="hover:text-[#E6007A]">
         Track Order
       </Link>
     </>

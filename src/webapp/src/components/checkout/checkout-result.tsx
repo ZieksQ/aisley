@@ -39,8 +39,6 @@ export function CheckoutResult({ batchId }: { batchId: string }) {
     if (auth.status !== "authenticated") return;
 
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
     fetchCheckoutBatch(batchId, controller.signal)
       .then(setBatch)
       .catch((caught: unknown) => {
@@ -78,7 +76,7 @@ export function CheckoutResult({ batchId }: { batchId: string }) {
           <article id={`order-${order.id}`} key={order.id} className="scroll-mt-32 border border-[#DED7E1] bg-white">
             <header className="flex flex-wrap items-start justify-between gap-3 border-b border-[#E6E0E8] px-4 py-4 sm:px-5">
               <div><h2 className="font-semibold text-[#2D2231]">{order.shop.name}</h2><p className="mt-1 text-xs text-[#746978]">Order {order.reference}</p></div>
-              <div className="text-right"><p className="text-sm font-semibold text-[#6D1748]">{readableStatus(order.status)}</p><p className="mt-1 text-xs text-[#746978]">COD · {readableStatus(order.paymentStatus)}</p></div>
+              <div className="text-right"><p className="text-sm font-semibold text-[#6D1748]">{readableStatus(order.status)}</p><p className="mt-1 text-xs text-[#746978]">COD · {readableStatus(order.paymentStatus)}</p><Link href={order.detailUrl} className="mt-2 inline-block text-xs font-semibold text-[#4C1268] hover:text-[#E6007A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">View order</Link></div>
             </header>
             <div className="divide-y divide-[#EEE9EF]">
               {order.items.map((item) => (
@@ -93,7 +91,7 @@ export function CheckoutResult({ batchId }: { batchId: string }) {
         ))}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3"><Link href="/" className="rounded-md bg-[#E6007A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#C8006B]">Continue shopping</Link><Link href={`/checkout/result/${batch.id}#order-${batch.orders[0]?.id}`} className="rounded-md border border-[#CFC6D2] bg-white px-5 py-2.5 text-sm font-semibold text-[#4C1268]">View order details</Link></div>
+      <div className="mt-6 flex flex-wrap gap-3"><Link href="/" className="rounded-md bg-[#E6007A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#C8006B]">Continue shopping</Link><Link href="/orders" className="rounded-md border border-[#CFC6D2] bg-white px-5 py-2.5 text-sm font-semibold text-[#4C1268]">View all orders</Link></div>
     </div>
   );
 }

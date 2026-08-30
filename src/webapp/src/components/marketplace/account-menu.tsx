@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { FiChevronDown, FiLogOut, FiSettings, FiUser } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiLogOut,
+  FiPackage,
+  FiSettings,
+  FiUser,
+} from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
 
@@ -109,6 +115,9 @@ export function AccountMenu() {
         >
           <Link role="menuitem" href="/account/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
             <FiUser aria-hidden="true" className="size-4" /> Profile
+          </Link>
+          <Link role="menuitem" href="/orders" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
+            <FiPackage aria-hidden="true" className="size-4" /> Orders
           </Link>
           <Link role="menuitem" href="/account/wishlist" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
             <FiUser aria-hidden="true" className="size-4" /> Wishlist

@@ -8,6 +8,9 @@ import type { AuthState, AuthenticatedCustomer } from "./types";
 const apiBaseUrl = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 ).replace(/\/$/, "");
+const storefrontUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/$/, "");
 
 type AuthResponse = { customer: AuthenticatedCustomer };
 
@@ -20,6 +23,7 @@ export const getServerAuthState = cache(async (): Promise<AuthState> => {
       headers: {
         Accept: "application/json",
         Cookie: cookieHeader,
+        Referer: `${storefrontUrl}/`,
         "X-Requested-With": "XMLHttpRequest",
       },
     });
