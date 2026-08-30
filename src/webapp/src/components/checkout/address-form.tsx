@@ -8,9 +8,9 @@ import { createAddress } from "@/lib/checkout/client";
 import type { CreateAddressPayload, CustomerAddress } from "@/lib/checkout/types";
 
 import {
-  GooglePlaceAutocomplete,
-  type GoogleAddressSelection,
-} from "./google-place-autocomplete";
+  GeoapifyAddressAutocomplete,
+  type GeoapifyAddressSelection,
+} from "./geoapify-address-autocomplete";
 
 type AddressFormValues = {
   label: string;
@@ -58,11 +58,11 @@ const locationFields = new Set<keyof AddressFormValues>([
 ]);
 
 export function AddressForm({
-  googleMapsApiKey,
+  geoapifyApiKey,
   onCancel,
   onCreated,
 }: {
-  googleMapsApiKey: string;
+  geoapifyApiKey: string;
   onCancel?: () => void;
   onCreated: (address: CustomerAddress) => void;
 }) {
@@ -71,7 +71,7 @@ export function AddressForm({
   const [submitting, setSubmitting] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
-  const applyGoogleAddress = useCallback((selection: GoogleAddressSelection) => {
+  const applyGeoapifyAddress = useCallback((selection: GeoapifyAddressSelection) => {
     setValues((current) => ({
       ...current,
       address_line_1: selection.addressLine1 || current.address_line_1,
@@ -161,11 +161,11 @@ export function AddressForm({
         ) : null}
       </div>
 
-      {googleMapsApiKey ? (
+      {geoapifyApiKey ? (
         <div className="mt-5">
-          <GooglePlaceAutocomplete
-            apiKey={googleMapsApiKey}
-            onSelect={applyGoogleAddress}
+          <GeoapifyAddressAutocomplete
+            apiKey={geoapifyApiKey}
+            onSelect={applyGeoapifyAddress}
           />
         </div>
       ) : (

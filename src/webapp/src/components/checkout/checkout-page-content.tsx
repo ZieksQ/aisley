@@ -81,9 +81,9 @@ function payload(
 }
 
 export function CheckoutPageContent({
-  googleMapsApiKey,
+  geoapifyApiKey,
 }: {
-  googleMapsApiKey: string;
+  geoapifyApiKey: string;
 }) {
   const router = useRouter();
   const { auth } = useAuth();
@@ -301,7 +301,7 @@ export function CheckoutPageContent({
           {showAddressForm ? (
             <div className="mt-4">
               <AddressForm
-                googleMapsApiKey={googleMapsApiKey}
+                geoapifyApiKey={geoapifyApiKey}
                 onCancel={addresses.length > 0 ? () => setShowAddressForm(false) : undefined}
                 onCreated={(address) => {
                   setAddresses((current) => [address, ...current.map((item) => address.isDefault ? { ...item, isDefault: false } : item)]);
