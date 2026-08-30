@@ -49,6 +49,26 @@ class User extends Authenticatable
         return $this->hasMany(Address::class);
     }
 
+    public function checkoutBatches(): HasMany
+    {
+        return $this->hasMany(CheckoutBatch::class, 'customer_id');
+    }
+
+    public function checkoutQuotes(): HasMany
+    {
+        return $this->hasMany(CheckoutQuote::class, 'customer_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'customer_id');
+    }
+
+    public function voucherRedemptions(): HasMany
+    {
+        return $this->hasMany(VoucherRedemption::class, 'customer_id');
+    }
+
     public function registrationApplications(): HasMany
     {
         return $this->hasMany(RegistrationApplication::class);

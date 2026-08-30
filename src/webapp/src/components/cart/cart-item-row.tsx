@@ -28,7 +28,15 @@ const availabilityMessages: Record<
   insufficient_stock: "Quantity exceeds current stock.",
 };
 
-export function CartItemRow({ item }: { item: CartItem }) {
+export function CartItemRow({
+  item,
+  onSelectedChange,
+  selected,
+}: {
+  item: CartItem;
+  onSelectedChange: (selected: boolean) => void;
+  selected: boolean;
+}) {
   const { removeItem, updateItem } = useCart();
   const [quantity, setQuantity] = useState(item.quantity);
   const [pendingAction, setPendingAction] = useState<
@@ -83,7 +91,17 @@ export function CartItemRow({ item }: { item: CartItem }) {
 
   return (
     <article className="border-b border-[#E6E0E8] px-4 py-5 last:border-b-0 sm:px-5">
-      <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 sm:grid-cols-[112px_minmax(0,1fr)_auto]">
+      <div className="grid grid-cols-[24px_88px_minmax(0,1fr)] gap-3 sm:grid-cols-[24px_112px_minmax(0,1fr)_auto] sm:gap-4">
+        <div className="pt-1">
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={!item.availability.isAvailable}
+            onChange={(event) => onSelectedChange(event.target.checked)}
+            aria-label={`Select ${item.product.name} for checkout`}
+            className="size-4 rounded border-[#BFB5C3] accent-[#E6007A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:cursor-not-allowed"
+          />
+        </div>
         <Link
           href={item.product.url}
           className="relative aspect-square overflow-hidden rounded-md border border-[#E2DCE4] bg-[#F5F2F5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
@@ -145,7 +163,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pl-0 sm:pl-32">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pl-0 sm:pl-40">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-[#514656]">Quantity</span>
           <div className="flex h-9 overflow-hidden rounded-md border border-[#CFC6D2] bg-white">
@@ -218,7 +236,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
       </div>
 
       {error ? (
-        <p role="alert" className="mt-3 text-sm text-[#B42318] sm:pl-32">
+        <p role="alert" className="mt-3 text-sm text-[#B42318] sm:pl-40">
           {error}
         </p>
       ) : null}

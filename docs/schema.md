@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, customer-homepage, and product-detail schema
+> **Status:** Implemented foundation, catalog/inventory, Cart, and Customer checkout/order schema
 >
-> **Last synchronized:** 2026-08-29
+> **Last synchronized:** 2026-08-30
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -61,6 +61,9 @@ erDiagram
     USERS o|--o{ DOCUMENTS : reviews
     REGISTRATION_APPLICATIONS o|--o{ DOCUMENTS : contains
     USERS ||--o{ ADDRESSES : owns
+    USERS ||--o{ CHECKOUT_QUOTES : requests
+    USERS ||--o{ CHECKOUT_BATCHES : places
+    USERS ||--o{ ORDERS : purchases
 
     USERS ||--o{ ADMIN_PERMISSIONS : receives
     USERS o|--o{ ADMIN_PERMISSIONS : grants
@@ -83,6 +86,18 @@ erDiagram
     FLASH_DEALS }o--o{ PRODUCTS : includes
     USERS ||--o{ RECENTLY_VIEWED_PRODUCTS : views
     PRODUCTS ||--o{ RECENTLY_VIEWED_PRODUCTS : appears_in
+    CHECKOUT_QUOTES ||--o| CHECKOUT_BATCHES : produces
+    CHECKOUT_BATCHES ||--o{ ORDERS : groups
+    SHOPS ||--o{ ORDERS : owns
+    SHOPS o|--o{ VOUCHERS : issues
+    USERS ||--o{ VOUCHER_REDEMPTIONS : redeems
+    ORDERS ||--o{ ORDER_ITEMS : snapshots
+    ORDERS ||--|| ORDER_ADDRESSES : delivers_to
+    ORDERS ||--o{ ORDER_STATUS_EVENTS : records
+    VOUCHERS ||--o{ ORDER_VOUCHERS : snapshots
+    VOUCHERS ||--o{ VOUCHER_REDEMPTIONS : consumes
+    ORDERS ||--o{ ORDER_VOUCHERS : applies
+    ORDERS ||--o{ VOUCHER_REDEMPTIONS : redeems
 
     COURIER_PROFILES ||--o{ VEHICLES : registers
 
@@ -111,6 +126,13 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
 | `ProductVariantStatus` | `active`, `inactive` | `product_variants.status` |
+| `CheckoutMode` | `cart`, `buy_now` | Checkout request validation and `checkout_quotes.input_payload` |
+| `PaymentMethod` | `cod` | `orders.payment_method`, optional `vouchers.payment_method` |
+| `PaymentStatus` | `pending` | `orders.payment_status` |
+| `OrderStatus` | `pending_payment`, `placed`, `seller_processing`, `ready_for_pickup`, `assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivered`, `cancelled`, `rejected`, `delivery_failed`, `return_requested`, `returned` | `orders.status`, `order_status_events.from_status`/`to_status` |
+| `VoucherIssuerType` | `app`, `shop` | `vouchers.issuer_type`, `order_vouchers.issuer_type` |
+| `VoucherBenefitType` | `discount`, `shipping` | `vouchers.benefit_type`, `order_vouchers.benefit_type` |
+| `VoucherValueType` | `fixed`, `percent` | `vouchers.value_type` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
 | `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
 | `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
@@ -653,7 +675,7 @@ Unique (`product_id`, `position`) maintains the product gallery ordering; (`prod
 
 `inventory_balances` stores one current balance per SKU with unsigned `on_hand`, `reserved`, and nullable `alert_threshold` quantities. PostgreSQL checks enforce `0 <= reserved <= on_hand`; available stock is derived as `on_hand - reserved`.
 
-`inventory_movements` is the append-only stock ledger. Each movement records string-backed `movement_type`, signed on-hand/reserved deltas, resulting balances, optional reference and idempotency keys, the nullable acting User, reason, and creation time. Application models reject updates and deletes. Existing Product/Product Variant quantities are backfilled as opening balances and remain synchronized compatibility projections for the current storefront and Cart queries.
+`inventory_movements` is the append-only stock ledger. Each movement records string-backed `movement_type`, signed on-hand/reserved deltas, resulting balances, optional reference and idempotency keys, the nullable acting User, reason, and creation time. Application models reject updates and deletes. Existing Product/Product Variant quantities are backfilled as opening balances and remain synchronized compatibility projections of **available** stock (`on_hand - reserved`) for current storefront and Cart queries. `ProductSeeder` creates missing SKU balances and opening movements for products seeded after the inventory migration.
 
 ### 9.6 `homepage_campaigns`
 
@@ -726,6 +748,44 @@ Unique (`user_id`, `product_id`) deduplicates repeated views. Index (`user_id`, 
 
 PostgreSQL/SQLite partial unique indexes enforce one line per purchasable configuration: (`cart_id`, `product_id`, `variant_id`) where `variant_id IS NOT NULL`, and (`cart_id`, `product_id`) where `variant_id IS NULL`. Indexes on (`cart_id`, `created_at`) and (`product_id`, `variant_id`) support ordered Customer projection and catalog-reference lookups.
 
+### 9.10 `vouchers`
+
+**Model:** `Voucher`
+
+Voucher definitions use UUID primary keys and a unique `code`. String-backed `issuer_type`, `benefit_type`, and `value_type` distinguish App/Shop funding, merchandise/shipping benefit, and fixed/percent calculation. A Shop voucher has a restricting `shop_id`; an App voucher has no Shop owner. PostgreSQL enforces that issuer/Shop nullability pairing.
+
+Money terms are `value`, nullable `maximum_discount`, and `minimum_spend` as `NUMERIC(12,2)`. Eligibility state includes UTC `starts_at`/`ends_at`, `is_active`, nullable `global_limit`, `per_customer_limit`, `redeemed_count`, optional COD restriction, JSON `eligibility_rules`, JSON `stacking_policy`, immutable-snapshot source fields `terms_summary` and `version`, plus timestamps. PostgreSQL checks require a valid date window, nonnegative monetary/count fields, a positive per-Customer limit, and percentages no greater than 100; checkout applies the same term validation on every database engine. Checkout locks selected definitions before final eligibility and capacity validation.
+
+### 9.11 `checkout_quotes` and `checkout_batches`
+
+`checkout_quotes` stores a short-lived Customer-owned checkout intent as normalized JSON, a SHA-256 request hash, an authoritative state hash, and `expires_at`. It does not accept a client price, shipping fee, address snapshot, status, or total. The state hash covers selected catalog/variant/inventory state, Address Book revision, selected voucher state, and the server shipping configuration.
+
+`checkout_batches` records one successful atomic placement and has a unique `checkout_quote_id`. It stores Customer, Customer-scoped UUID `idempotency_key`, placement request hash, three-character currency, and `placed_at`. Unique (`customer_id`, `idempotency_key`) makes retries return the original Orders while rejecting reuse for different details.
+
+### 9.12 `orders` and `order_items`
+
+Each Shop group in a batch creates exactly one `orders` row. Orders reference the batch, Customer, and Shop with restrictive delete behavior; unique (`checkout_batch_id`, `shop_id`) prevents duplicate Shop Orders. Each row has a unique public `reference`, string-backed status/payment fields, currency, and fixed-precision snapshots for `merchandise_subtotal`, `shipping_fee`, `discount_total`, `shipping_discount_total`, and `payable_total`. New COD Orders start at `placed` with `pending` payment. PostgreSQL checks all totals are nonnegative.
+
+`order_items` preserves nullable historical Product/Variant references plus immutable `product_name`, optional `variant_name`/`sku`, JSON selected-option labels, `unit_price`, positive `quantity`, `line_subtotal`, and currency. Product/Variant deletion sets the references to `NULL`; Order deletion is restricted. The snapshot remains usable after catalog changes.
+
+### 9.13 `order_addresses` and `order_status_events`
+
+Every Order has one `order_addresses` delivery snapshot. It retains a nullable `source_address_id` for traceability and independently copies recipient/contact, address lines, barangay, city/municipality, province, region, postal code, country, and optional coordinates. Deleting or editing the Address Book source cannot change the snapshot.
+
+`order_status_events` is the UUID-backed status history. It stores nullable `from_status`, `to_status`, source, optional safe public JSON metadata, and server `occurred_at`. Placement creates the first `placed` event. Future fulfillment features must append validated transitions rather than rewrite history.
+
+### 9.14 `order_vouchers` and `voucher_redemptions`
+
+`order_vouchers` is the immutable applied-benefit snapshot: nullable source definition, code, issuer/benefit type, qualifying basis, discount amount, currency, rule version, terms summary, and redemption time. Unique (`order_id`, `voucher_id`) prevents one definition being applied twice to an Order.
+
+`voucher_redemptions` links the locked Voucher, Customer, Order, and checkout batch and stores saving/currency/redemption time. Unique (`voucher_id`, `order_id`) and the (`voucher_id`, `customer_id`, `redeemed_at`) index support atomic capacity and per-Customer usage enforcement. A failed transaction creates neither snapshots nor redemptions.
+
+### 9.15 Checkout inventory and shipping boundary
+
+Successful placement increments `inventory_balances.reserved`, writes an immutable `reserve` movement linked to the Order, and updates catalog compatibility quantities to available stock. All Shop Orders, lines, address snapshots, status events, voucher records, inventory reservations, and selected-Cart cleanup commit in one transaction.
+
+Logistics provider/method selection is not stored or accepted. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
+
 ## 10. Framework infrastructure tables
 
 These tables are created by the Laravel foundation migrations and do not have application-domain Eloquent models.
@@ -773,6 +833,14 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Recently viewed item → User/Product | `CASCADE` | History has no meaning without either side |
 | Cart → Customer User | `CASCADE` | A Cart belongs exclusively to its authenticating Customer |
 | Cart item → Cart/Product/Variant | `CASCADE` | A Cart line cannot survive its Cart or selected catalog configuration |
+| Checkout quote → Customer User | `CASCADE` | An unplaced temporary intent has no purpose without its Customer |
+| Checkout batch/Order → Customer, Shop, quote/batch | `RESTRICT` | Preserve placed marketplace and idempotency history |
+| Order item → Product/Variant | `SET NULL` | Preserve immutable line history if catalog references are removed |
+| Order address → source Address | `SET NULL` | Preserve delivery snapshot after Address Book deletion |
+| Order children → Order | `RESTRICT` | Prevent accidental removal of financial, delivery, voucher, and status history |
+| Voucher → Shop | `RESTRICT` | Preserve Shop issuer scope while the definition exists |
+| Voucher snapshot → Voucher | `SET NULL` | Preserve applied terms after a definition is removed |
+| Voucher redemption → Voucher/Customer/Order/batch | `RESTRICT` | Preserve usage-limit and financial history |
 | Session → User | `SET NULL` | Session record may outlive user cleanup briefly |
 
 ## 12. Application-enforced invariants
@@ -807,6 +875,12 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 26. Seller registration creates its pending User, profile, default manual business address, pending one-to-one Shop, Registration Application, and two private evidence records as one logical operation; failed persistence must remove any blobs already written.
 27. A Seller approval/rejection must transition the User, Registration Application, Shop, and attached evidence statuses atomically. Registration evidence is private and may be downloaded only by an authorized registration reviewer.
 28. Seller registration accepts manually entered address components only; latitude, longitude, third-party place identifiers, and client-selected account/shop statuses are prohibited.
+29. Checkout accepts exactly one Customer-owned Cart selection or one Buy Now configuration, resolves every Product/Shop/Variant server-side, and creates one Order per Shop.
+30. Checkout accepts only a Customer-owned shipping/both Address and copies it into each Order; delivery never resolves from the mutable Address after placement.
+31. COD is the only accepted payment method. Client-supplied prices, shipping fees, totals, ownership fields, and lifecycle state are prohibited.
+32. Final placement locks inventory balances in stable SKU order, revalidates the quote, and reserves stock atomically with all Orders and selected-Cart cleanup.
+33. Shop vouchers apply only to their issuer's Order. At most one App voucher is redeemed per batch and only against its explicit eligible target Shop; distinct-benefit stacking requires reciprocal stored permission.
+34. A Customer-scoped idempotency key returns the original batch only for the identical placement request. A reused key with different details is a conflict.
 
 ## 13. Migration order
 
@@ -845,6 +919,7 @@ Migrations currently run in this dependency order:
 31. `2026_08_30_000122_link_product_categories_to_shop_categories.php` — associates each Product Category with its Shop Category taxonomy group.
 32. `2026_08_30_000123_create_inventory_ledger.php` — SKU identities, current balances, immutable movements, constraints, and catalog-stock backfill.
 33. `2026_08_30_000124_add_admin_profile_photo_metadata.php` — configured-disk and validated image metadata for private Admin profile photos.
+34. `2026_08_30_000125_create_checkout_orders_and_vouchers.php` — Voucher definitions/redemptions, expiring checkout quotes, idempotent batches, Shop Orders, immutable item/address/voucher snapshots, and initial status history.
 
 ## 14. Deferred schema
 
@@ -852,10 +927,9 @@ The following capabilities appear in requirements but have no migrations or mode
 
 | Capability | Deferred data design |
 | --- | --- |
-| Catalog and inventory | Order-driven reservation/release/fulfillment integration beyond the implemented Seller catalog, SKU balances, manual adjustments, thresholds, and movement ledger |
-| Promotions | Seller/platform vouchers, general discount rules, eligibility, limits, and redemptions beyond the implemented homepage flash-deal windows |
-| Checkout | Checkout selection/grouping for multi-shop purchases; Cart persistence is implemented |
-| Orders and finance | Shop-scoped orders, immutable order-item/address snapshots, payments, fees, commissions, and status history |
+| Catalog and inventory | Reservation release and conversion to fulfillment for cancellation/Seller processing beyond implemented checkout reservation |
+| Promotions | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented |
+| Payments and finance | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers |
 | First-party logistics | Organization/hub decision, shipments/parcels, waybills, scan events, pickup/final-delivery tasks, assignments, proof of delivery, and Courier earnings |
 | Reviews | Verified-purchase ratings, review media, and Seller responses |
 | Support and compliance | Complaints/disputes, evidence, resolutions, warnings, and moderation actions |

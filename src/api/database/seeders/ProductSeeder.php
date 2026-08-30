@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\InventoryMovementType;
+use App\Enums\InventorySkuStatus;
 use App\Enums\ProductStatus;
 use App\Enums\ProductVariantStatus;
 use App\Enums\ShopStatus;
@@ -9,6 +11,9 @@ use App\Enums\UserRole;
 use App\Enums\UserSex;
 use App\Enums\UserStatus;
 use App\Models\Category;
+use App\Models\InventoryBalance;
+use App\Models\InventoryMovement;
+use App\Models\InventorySku;
 use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductOptionGroup;
@@ -105,6 +110,7 @@ class ProductSeeder extends Seeder
 
                 $values = $this->seedOptions($product, $optionGroups);
                 $seededVariants = $this->seedVariants($product, $variants, $values);
+                $this->seedInventory($product, $seededVariants);
                 $seededMedia = $this->seedMedia($product, $media, $seededVariants);
 
                 foreach ($variants as $variant) {
@@ -116,6 +122,33 @@ class ProductSeeder extends Seeder
                 }
             }
         });
+    }
+
+    /** @param array<string, ProductVariant> $variants */
+    private function seedInventory(Product $product, array $variants): void
+    {
+        $targets = $variants === []
+            ? [[null, 'BASE-'.strtoupper(substr(str_replace('-', '', $product->id), 0, 12)), $product->stock_quantity]]
+            : collect($variants)->map(fn (ProductVariant $variant) => [$variant, $variant->sku, $variant->stock_quantity])->all();
+
+        foreach ($targets as [$variant, $code, $stock]) {
+            $sku = InventorySku::query()->firstOrCreate(
+                $variant === null ? ['product_id' => $product->id, 'is_base' => true] : ['product_variant_id' => $variant->id],
+                ['product_id' => $product->id, 'code' => $code, 'is_base' => $variant === null, 'status' => InventorySkuStatus::Active],
+            );
+            $balance = InventoryBalance::query()->firstOrCreate(
+                ['inventory_sku_id' => $sku->id],
+                ['on_hand' => $stock, 'reserved' => 0],
+            );
+            if ($balance->wasRecentlyCreated && $stock > 0) {
+                InventoryMovement::create([
+                    'inventory_balance_id' => $balance->id, 'movement_type' => InventoryMovementType::Restock,
+                    'on_hand_delta' => $stock, 'reserved_delta' => 0, 'resulting_on_hand' => $stock,
+                    'resulting_reserved' => 0, 'reference_type' => 'catalog_seed',
+                    'idempotency_key' => 'catalog-seed-'.$sku->id, 'reason' => 'Opening balance from ProductSeeder.',
+                ]);
+            }
+        }
     }
 
     /**

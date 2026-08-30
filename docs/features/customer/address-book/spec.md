@@ -233,18 +233,13 @@ Address Book record
 - Do not claim an address is physically deliverable solely because its text format is valid.
 - Delivery-zone eligibility belongs to logistics/shipping rules.
 
-### Optional external address validation
-- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1
-- This is a recommendation, not a mandatory dependency.
-- If Google Address Validation is selected:
-  - call it from a trusted server/integration layer
-  - keep API credentials out of browser bundles
-  - use HTTPS
-  - provide the country/region when known for better validation
-  - handle suggested corrections/uncertain components by asking the Buyer to confirm
-- Google states its Address Validation API validates/standardizes/geocodes address components and can flag components needing correction or confirmation. citeturn777642search11turn777642search9
-- Google Address Validation requires authentication/billing and has service-specific storage/attribution restrictions. citeturn777642search0turn777642search3turn777642search5
-- Do not make this paid service mandatory without a project decision.
+### Optional external address assistance
+- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1 The project implementation uses Geoapify instead.
+- Geoapify Address Autocomplete may suggest structured address components and coordinates from partial Customer input.
+- Use HTTPS, restrict the browser API key by allowed origins/referrers and CORS, and filter suggestions to the supported country when known.
+- Treat suggestions as Customer-confirmable input, not proof that an address is complete, correct, deliverable, or inside a shipping zone.
+- Manual entry must remain available when Geoapify is unconfigured, unavailable, or has no suitable result.
+- Show the Geoapify and OpenStreetMap attribution required by the selected service plan and source data.
 
 ### Geolocation coordinates
 - Latitude/longitude is optional unless Logistics/zone mapping requires it.
@@ -408,15 +403,12 @@ rather than global lookup followed by client ownership checks.
   5. proceeds with the checkout transaction
 - This keeps Address Book reusable while preserving historical order destinations.
 
-### Optional Google integration
-- If Google Address Validation is adopted, use a Laravel integration/service such as:
-```text
-AddressValidationService
-```
-- Call Google's `validateAddress` endpoint from the server.
-- Google recommends a `regionCode` when known and returns signals for corrected/unconfirmed address components. citeturn777642search7turn777642search9
-- Treat suggestions as Buyer-confirmable input, not automatic unquestioned replacement.
-- Review Google's billing, quota, attribution, and storage terms before implementation. citeturn777642search3turn777642search5
+### Optional Geoapify integration
+- The checkout Client Component calls Geoapify Address Autocomplete over HTTPS after the Customer enters enough search text.
+- Use `filter=countrycode:ph` for the current Philippines address form, debounce requests, cancel stale requests, and keep result counts bounded.
+- The browser-visible key is configuration, not a secret. Restrict it in Geoapify by allowed origins/referrers and CORS.
+- Map the selected structured result into the existing address fields and latitude/longitude, then require the Customer to review the populated values.
+- Geoapify suggestions do not replace Laravel validation, Customer ownership checks, checkout revalidation, or future logistics serviceability rules.
 
 ### Next.js / React
 - Build:
@@ -438,8 +430,8 @@ AddressValidationService
 ### Research-backed recommendations
 - Use the source-required Buyer `hasMany` Address relationship. Laravel natively supports one-to-many Eloquent relationships. citeturn875176search1turn875176search3
 - Keep an order-time address snapshot instead of treating the mutable Address Book row as historical delivery truth.
-- Treat external address validation as optional; Google can validate/standardize/geocode addresses but requires billing/authentication and has usage/storage policies. citeturn777642search11turn777642search3turn777642search5
-- Ask the Buyer to confirm materially corrected/unconfirmed address components rather than silently replacing them. citeturn777642search9
+- Treat external address assistance as optional. Geoapify can autocomplete structured address components and coordinates, but it adds quotas, latency, attribution, and provider availability considerations.
+- Ask the Buyer to review populated address components rather than silently treating an external suggestion as authoritative.
 
 ### Risks
 - **Ownership leak:** global Address lookup can expose another Buyer's location.
@@ -459,7 +451,7 @@ AddressValidationService
 - Whether checkout can enter a one-time address without saving it.
 - Whether checkout can save a newly entered address automatically/optionally.
 - Whether billing address can differ from shipping address.
-- External validation/geocoding provider, if any.
+- Whether Geoapify remains the long-term autocomplete/geocoding provider.
 - Whether latitude/longitude is persisted.
 - Delivery-serviceability/zone validation ownership.
 - Address Book record limit.
@@ -468,13 +460,23 @@ AddressValidationService
 - Whether delivery notes/landmarks/gate codes belong here or Checkout.
 - How Order Modification selects/revalidates a replacement address.
 
+### Current checkout implementation (2026-08-30)
+
+- Active Customers can list their own saved addresses with `GET /api/v1/customer/addresses` and create a Customer-owned address with `POST /api/v1/customer/addresses`.
+- The create endpoint accepts the existing `shipping`, `billing`, or `both` string-backed `AddressType`, validates all normalized address fields, prohibits owner assignment, and accepts latitude/longitude only as a complete valid pair.
+- Setting a new default is serialized transactionally and clears an overlapping shipping/billing default supported by the existing single `is_default` field.
+- Checkout exposes shipping-capable saved addresses and an inline create form. Address editing, deletion, and the complete `/account/addresses` management experience remain future Address Book work.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` optionally enables Geoapify Address Autocomplete on the checkout address form. The browser-visible key must be restricted by allowed origins/referrers and CORS in the Geoapify project.
+- Autocomplete requests are debounced, stale requests are cancelled, results are limited and filtered to the Philippines, and the suggestion list supports keyboard selection.
+- A chosen Geoapify suggestion may populate the street, barangay/locality, city/municipality, province, region, postal code, country, latitude, and longitude already present in the schema. Customers must review the populated fields; manual entry remains available when Geoapify is unconfigured or unavailable.
+- Coordinates are cleared when the Customer manually changes a populated location component, preventing stale Geoapify coordinates from being saved with edited address text. No draggable map pin, serviceability decision, shipping-zone rule, or logistics selection was added.
+- The checkout displays Geoapify and OpenStreetMap attribution alongside the suggestions.
+
 ### Sources
 - Project rules: `SKILL.md`
 - AISLEY architecture contract: `README.md`
 - Buyer feature model: `Buyer.md`
 - Laravel Eloquent relationships: https://api.laravel.com/docs/12.x/Illuminate/Database/Eloquent/Concerns/HasRelationships.html
-- Google Address Validation overview: https://developers.google.com/maps/documentation/address-validation/overview
-- Google Address Validation requests: https://developers.google.com/maps/documentation/address-validation/requests-validate-address
-- Google Address Validation confirmation guidance: https://developers.google.com/maps/documentation/address-validation/confirm-address-example
-- Google Address Validation usage/billing: https://developers.google.com/maps/documentation/address-validation/usage-and-billing
-- Google Address Validation policies: https://developers.google.com/maps/documentation/address-validation/policies
+- Geoapify Address Autocomplete API: https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/
+- Geoapify terms and attribution requirements: https://www.geoapify.com/terms-and-conditions/
+- OpenStreetMap copyright and attribution: https://www.openstreetmap.org/copyright

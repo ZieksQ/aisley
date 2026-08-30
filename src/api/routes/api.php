@@ -5,8 +5,10 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RegistrationController;
+use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
+use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
@@ -115,6 +117,8 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/products/search', ProductSearchController::class)->name('products.search');
 
     Route::middleware(['auth:sanctum', 'customer.active'])->group(function () {
+        Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
+        Route::post('/addresses', [CustomerAddressController::class, 'store'])->name('addresses.store');
         Route::get('/cart', [CartController::class, 'show'])->name('cart.show');
         Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
         Route::patch('/cart/items/{item}', [CartController::class, 'update'])
@@ -123,6 +127,11 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
             ->whereUuid('item')
             ->name('cart.items.destroy');
+        Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');
+        Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
+        Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])
+            ->whereUuid('batch')
+            ->name('checkout.show');
     });
 });
 

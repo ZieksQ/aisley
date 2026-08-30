@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiArrowLeft, FiRefreshCw, FiShoppingCart } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { saveCheckoutIntent } from "@/lib/checkout/intent";
 
 import { CartItemRow } from "./cart-item-row";
 import { useCart } from "./cart-provider";
@@ -21,12 +22,30 @@ export function CartPageContent() {
   const { auth } = useAuth();
   const { cart, refresh, status } = useCart();
   const [retrying, setRetrying] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const initializedCartId = useRef<string | null>(null);
 
   useEffect(() => {
     if (auth.status === "guest") {
       router.replace(`/login?next=${encodeURIComponent("/cart")}`);
     }
   }, [auth.status, router]);
+
+  useEffect(() => {
+    if (!cart) return;
+    const availableIds = cart.items
+      .filter((item) => item.availability.isAvailable)
+      .map((item) => item.id);
+
+    if (initializedCartId.current !== cart.id) {
+      initializedCartId.current = cart.id;
+      setSelectedItemIds(availableIds);
+      return;
+    }
+
+    const available = new Set(availableIds);
+    setSelectedItemIds((current) => current.filter((id) => available.has(id)));
+  }, [cart]);
 
   if (auth.status !== "authenticated" || status === "loading") {
     return <CartLoadingState />;
@@ -110,6 +129,14 @@ export function CartPageContent() {
           <CartItemRow
             key={`${item.id}:${item.variant?.id ?? "base"}:${item.quantity}`}
             item={item}
+            selected={selectedItemIds.includes(item.id)}
+            onSelectedChange={(selected) =>
+              setSelectedItemIds((current) =>
+                selected
+                  ? [...new Set([...current, item.id])]
+                  : current.filter((id) => id !== item.id),
+              )
+            }
           />
         ))}
       </section>
@@ -141,10 +168,14 @@ export function CartPageContent() {
 
         <button
           type="button"
-          disabled
-          className="mt-5 min-h-11 w-full rounded-md bg-[#CFC6D2] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed"
+          disabled={selectedItemIds.length === 0}
+          onClick={() => {
+            saveCheckoutIntent({ mode: "cart", cartItemIds: selectedItemIds });
+            router.push("/checkout");
+          }}
+          className="mt-5 min-h-11 w-full rounded-md bg-[#E6007A] px-4 text-sm font-semibold text-white hover:bg-[#C8006B] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:cursor-not-allowed disabled:bg-[#CFC6D2]"
         >
-          Checkout not available yet
+          Checkout {selectedItemIds.length || "selected"}
         </button>
         <p className="mt-3 text-xs leading-5 text-[#746978]">
           Cart items do not reserve stock. Price and availability are refreshed by Aisley.
