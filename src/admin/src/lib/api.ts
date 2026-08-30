@@ -71,3 +71,26 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
   return payload
 }
+
+export async function apiBlobRequest(path: string, options: RequestInit = {}): Promise<Blob> {
+  const headers = new Headers(options.headers)
+  headers.set('Accept', 'image/jpeg, image/png, image/webp')
+
+  const response = await fetch(url(path), {
+    ...options,
+    credentials: 'include',
+    headers,
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as ErrorPayload
+    throw new ApiError(response.status, payload)
+  }
+
+  const blob = await response.blob()
+  if (!blob.type.startsWith('image/')) {
+    throw new ApiError(422, { message: 'The stored document is not a supported image.' })
+  }
+
+  return blob
+}

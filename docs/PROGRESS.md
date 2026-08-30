@@ -134,3 +134,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-30
 
 - Fixed Seller registration submission by capturing its multipart form payload before the asynchronous Sanctum CSRF request, ensuring the registration POST and evidence uploads proceed instead of falling into the generic API-connectivity error. Seller lint, strict TypeScript checks, and the production build pass.
+
+## 2026-08-30
+
+- Fixed Admin registration-evidence review by fetching private document images through the authorized API with session credentials and rendering secure inline previews with full-size, download, loading, error, retry, and object-URL cleanup behavior. Admin lint, strict TypeScript checks, production build, and all 12 registration-management API tests pass.
