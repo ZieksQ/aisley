@@ -171,6 +171,10 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Condensed the Seller Account Management specification into an implementation-ready contract for Seller-scoped profile/storefront settings, password security, controlled sensitive changes, payout boundaries, private document replacement, and safe audit/review behavior. No application code was changed.
 
+## 2026-08-30
+
+- Updated the Seller Authentication specification for optional Philippines-scoped Geoapify suggestions for province, city/municipality, and barangay. The contract preserves fully editable manual address entry, treats Laravel's submitted fields as authoritative, and requires restricted browser keys and attribution. No application code was changed.
+
 ## 2026-08-31
 
 - Revised the Customer Order Monitoring and Logistics Tracking specification into an implementation-ready 136-line contract. It defines the authenticated Account icon → Orders journey, makes confirmed Logistics waybill receipt the Aisley-specific transition to the Customer-facing To Ship group, keeps transfer timeline/location authority in Logistics, and specifies a privacy-safe read-only embedded Customer map. The revision aligns the existing Order enum/events and checkout boundary with Shopee/Lazada tracking research; no application behavior was changed.
