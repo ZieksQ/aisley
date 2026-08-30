@@ -7,11 +7,13 @@ import {
   FaClockRotateLeft,
   FaGaugeHigh,
   FaShieldHalved,
+  FaUserGear,
   FaXmark,
 } from 'react-icons/fa6'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { AdminAvatar } from '../components/AdminAvatar'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${
@@ -37,12 +39,12 @@ export function AdminLayout() {
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : 'Dashboard'
+      : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : 'Admin workspace'
+      : location.pathname.startsWith('/account') ? 'Administrator account' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -96,6 +98,10 @@ export function AdminLayout() {
                 System audit logs
               </NavLink>
             )}
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
+              <FaUserGear aria-hidden="true" />
+              Account settings
+            </NavLink>
           </div>
         </nav>
 
@@ -105,9 +111,7 @@ export function AdminLayout() {
 
         <div className="mt-auto border-t border-slate-200 pt-5 dark:border-white/10">
           <div className="flex items-center gap-3 px-2">
-            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-purple-50 text-sm font-semibold uppercase text-[#4C1268] dark:bg-purple-200/15 dark:text-purple-100">
-              {initials}
-            </div>
+            <AdminAvatar initials={initials} photoUrl={admin?.profile?.profile_photo_url} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{firstName}</p>
               <p className="truncate text-xs text-slate-400 dark:text-purple-100/45">{admin?.email}</p>

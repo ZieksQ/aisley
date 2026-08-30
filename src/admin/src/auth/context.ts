@@ -6,6 +6,7 @@ export type AuthContextValue = {
   isLoading: boolean
   login: (credentials: LoginCredentials) => Promise<void>
   logout: () => Promise<void>
+  updateAdmin: (admin: AdminUser) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
