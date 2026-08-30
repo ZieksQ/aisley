@@ -100,3 +100,21 @@ Project is in active implementation across the API, Customer storefront, and Adm
 - Condensed the Customer View Cart draft into the implementation-ready feature-spec format, retaining the variant and Add to Cart decisions while removing duplicated checkout detail; no application behavior was changed.
 - Added the active-Customer Cart API with authenticated read/add/update/delete endpoints, one UUID Cart per Customer, SKU-level partial uniqueness, transactional quantity/variation merges, authoritative storefront/variant/stock validation, current-price and ordered-choice projections, unavailable-intent preservation, and Customer-scoped item access. All 68 API tests and 617 assertions pass on SQLite, with the full 68-test/615-assertion suite also passing on PostgreSQL 18.3 after a clean migration cycle.
 - Added the responsive Customer Cart storefront and integrated all Cart endpoints through shared authenticated state. Product Detail now performs real Add to Cart mutations with login return and intentional post-login retry, the header reflects authoritative Cart quantity, and `/cart` supports current-price/availability display, quantity updates, removal, recoverable errors, and an accessible valid-combination variation editor. Storefront lint, strict TypeScript checks, and the Next.js webpack production build pass.
+
+## 2026-08-29
+
+- Added an implementation-ready Seller Authentication specification covering role-isolated registration, Admin approval gating, Sanctum web sessions, password recovery, Seller frontend integration, security, testing, rollout requirements, and unresolved shop/document decisions. No application code was changed.
+- Revised the Seller Dashboard specification into a concise, implementation-ready phased contract aligned with the React/Vite Seller app, `/api/v1` conventions, Seller Auth, current Shop/Product schema, strict tenant isolation, and explicit unavailable states for deferred Orders, finance, Inventory, Reviews, notifications, and analytics domains. No application code was changed.
+
+## 2026-08-29
+
+- Added Seller-only Sanctum web authentication with transactional pending registration, Admin approval gating, role-isolated login/session restoration/logout, stable account-state errors, throttling, and Seller-scoped password recovery. Replaced the static Seller demo with accessible registration/login/recovery routes, a protected responsive light/dark shell, and a skeleton Dashboard backed by strict Shop-scoped catalog counts; missing-Shop and deferred finance, Orders, Inventory, Reviews, traffic, and notification states are explicit and contain no fabricated data. All 74 API tests and 678 assertions pass on SQLite and PostgreSQL 18.3, and Seller lint, TypeScript, and the production build pass.
+
+## 2026-08-29
+
+- Added the dedicated local/testing `InitialSellerSeeder` with the shared `catalog@aisley.test` / `Seller12345` account, active Seller profile restoration, production exclusion, and default-seeder ordering before the catalog so the same Seller owns `Aisley Demo Store`. Documented the existing Admin, Seller, and Buyer/Customer role seeders and their credential policies in `docs/users.md`; all 76 API tests and 690 assertions pass on SQLite and PostgreSQL 18.3.
+
+## 2026-08-29
+
+- Revised the Seller Order Management specification into a concise catalog-management contract that adopts MDXEditor for `description_markdown`, with toolbar, paste, and drop picture insertion backed by Seller-scoped upload, scanning, canonical asset URLs, safe Markdown rendering, and separation from Product gallery media. No application code was changed.
+- Replaced hard-coded Admin and Seller bootstrap credentials with optional `INITIAL_ADMIN_*` and `INITIAL_SELLER_*` environment configuration. The seeders now skip safely when credentials are absent, can be explicitly enabled in production, preserve existing passwords/account states/profile data on reruns, and let the catalog seeder reuse the configured Seller without silently reactivating it. Documented secure deployment setup and verified all 76 API tests and 693 assertions on SQLite and PostgreSQL 18.3.

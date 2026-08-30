@@ -10,31 +10,33 @@ use Illuminate\Database\Seeder;
 
 class InitialAdminSeeder extends Seeder
 {
-    private const TEST_ADMIN_EMAIL = 'admin@test.com';
-
-    private const TEST_ADMIN_PASSWORD = 'Admin12345';
-
     public function run(): void
     {
-        if (! app()->environment(['local', 'testing'])) {
+        $email = config('admin.initial.email');
+        $password = config('admin.initial.password');
+        $normalizedEmail = is_string($email) ? strtolower(trim($email)) : '';
+
+        if ($normalizedEmail === '' || ! is_string($password) || $password === '') {
+            $this->command?->warn('Initial admin was not created: configure INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD.');
+
             return;
         }
 
-        $admin = User::query()->updateOrCreate(
+        $admin = User::query()->firstOrCreate(
             [
-                'email' => self::TEST_ADMIN_EMAIL,
+                'email' => $normalizedEmail,
                 'role' => UserRole::Admin,
             ],
             [
-                'password' => self::TEST_ADMIN_PASSWORD,
+                'password' => $password,
                 'status' => UserStatus::Active,
                 'email_verified_at' => now(),
             ],
         );
 
-        $admin->adminProfile()->updateOrCreate([], [
-            'first_name' => 'Test',
-            'last_name' => 'Administrator',
+        $admin->adminProfile()->firstOrCreate([], [
+            'first_name' => config('admin.initial.first_name', 'Platform'),
+            'last_name' => config('admin.initial.last_name', 'Administrator'),
         ]);
 
         $admin->permissions()->syncWithoutDetaching(

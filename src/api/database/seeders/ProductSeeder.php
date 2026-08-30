@@ -27,20 +27,28 @@ class ProductSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function (): void {
+            $configuredEmail = config('seller.initial.email');
+            $configuredPassword = config('seller.initial.password');
+            $normalizedConfiguredEmail = is_string($configuredEmail)
+                ? strtolower(trim($configuredEmail))
+                : '';
+            $hasConfiguredSeller = $normalizedConfiguredEmail !== ''
+                && is_string($configuredPassword)
+                && $configuredPassword !== '';
+            $sellerEmail = $hasConfiguredSeller
+                ? $normalizedConfiguredEmail
+                : 'catalog@aisley.test';
+
             $seller = User::query()->firstOrCreate(
-                ['email' => 'catalog@aisley.test', 'role' => UserRole::Seller],
+                ['email' => $sellerEmail, 'role' => UserRole::Seller],
                 ['password' => Str::random(40), 'status' => UserStatus::Active, 'email_verified_at' => now()],
             );
-            $seller->forceFill([
-                'status' => UserStatus::Active,
-                'email_verified_at' => $seller->email_verified_at ?? now(),
-            ])->save();
-            $seller->sellerProfile()->updateOrCreate([], [
-                'first_name' => 'Aisley',
-                'last_name' => 'Catalog',
-                'contact_number' => '+639171234568',
+            $seller->sellerProfile()->firstOrCreate([], [
+                'first_name' => config('seller.initial.first_name', 'Aisley'),
+                'last_name' => config('seller.initial.last_name', 'Catalog'),
+                'contact_number' => config('seller.initial.contact_number', '+639171234568'),
                 'sex' => UserSex::PreferNotToSay,
-                'birth_date' => '1995-01-01',
+                'birth_date' => config('seller.initial.birth_date', '1995-01-01'),
             ]);
 
             $shopCategory = ShopCategory::query()->updateOrCreate(

@@ -11,6 +11,7 @@ use App\Models\ProductOptionGroup;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Database\Seeders\InitialCustomerSeeder;
+use Database\Seeders\InitialSellerSeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -52,11 +53,19 @@ class DatabaseSeedersTest extends TestCase
 
     public function test_product_seeder_creates_storefront_visible_products_with_remote_thumbnails(): void
     {
+        $this->configureInitialSeller();
+        $this->seed(InitialSellerSeeder::class);
         $this->seed(ProductSeeder::class);
 
         $products = Product::query()->storefrontPurchasable()->get();
+        $seller = User::query()
+            ->where('email', 'seeded-seller@example.com')
+            ->where('role', UserRole::Seller)
+            ->firstOrFail();
 
         $this->assertCount(4, $products);
+        $this->assertTrue(Hash::check('InitialSeller123', $seller->password));
+        $this->assertSame('Aisley Demo Store', $seller->shop->name);
         $this->assertTrue($products->every(
             fn (Product $product) => $product->status === ProductStatus::Active
                 && str_starts_with($product->thumbnail_path, 'https://images.unsplash.com/')
@@ -72,12 +81,97 @@ class DatabaseSeedersTest extends TestCase
         $this->assertSame(3, ProductOptionGroup::query()->count());
         $this->assertSame(6, ProductVariant::query()->count());
 
+        $seller->update(['status' => UserStatus::Suspended]);
         $this->seed(ProductSeeder::class);
 
+        $this->assertSame(UserStatus::Suspended, $seller->fresh()->status);
         $this->assertDatabaseCount('products', 4);
         $this->assertDatabaseCount('product_media', 12);
         $this->assertDatabaseCount('product_option_groups', 3);
         $this->assertDatabaseCount('product_option_values', 6);
         $this->assertDatabaseCount('product_variants', 6);
+    }
+
+    public function test_initial_seller_seeder_uses_configuration_without_overwriting_an_existing_account(): void
+    {
+        $this->configureInitialSeller([
+            'email' => ' SEEDED-SELLER@example.com ',
+        ]);
+        $this->seed(InitialSellerSeeder::class);
+
+        $seller = User::query()
+            ->where('email', 'seeded-seller@example.com')
+            ->where('role', UserRole::Seller)
+            ->firstOrFail();
+
+        $this->assertSame(UserStatus::Active, $seller->status);
+        $this->assertTrue(Hash::check('InitialSeller123', $seller->password));
+        $this->assertSame('Aisley', $seller->sellerProfile->first_name);
+        $this->assertSame('Catalog', $seller->sellerProfile->last_name);
+
+        $seller->forceFill([
+            'password' => 'Changed12345',
+            'status' => UserStatus::Suspended,
+        ])->save();
+        $seller->sellerProfile->update(['first_name' => 'Changed']);
+        config()->set('seller.initial.password', 'ReplacementSeller456');
+        config()->set('seller.initial.first_name', 'Replacement');
+
+        $this->seed(InitialSellerSeeder::class);
+
+        $seller->refresh();
+        $this->assertSame(UserStatus::Suspended, $seller->status);
+        $this->assertTrue(Hash::check('Changed12345', $seller->password));
+        $this->assertSame('Changed', $seller->sellerProfile->fresh()->first_name);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('seller_profiles', 1);
+    }
+
+    public function test_initial_seller_seeder_requires_explicit_credentials_in_production(): void
+    {
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => 'production');
+        config()->set('seller.initial', [
+            'email' => null,
+            'password' => null,
+            'first_name' => 'Aisley',
+            'last_name' => 'Catalog',
+            'contact_number' => '+639171234568',
+            'birth_date' => '1995-01-01',
+        ]);
+
+        try {
+            app(InitialSellerSeeder::class)->run();
+
+            $this->assertDatabaseMissing('users', [
+                'role' => UserRole::Seller->value,
+            ]);
+
+            $this->configureInitialSeller([
+                'email' => 'production-seller@example.com',
+                'password' => 'ProductionSeller123',
+            ]);
+            app(InitialSellerSeeder::class)->run();
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'production-seller@example.com',
+            'role' => UserRole::Seller->value,
+        ]);
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function configureInitialSeller(array $overrides = []): void
+    {
+        config()->set('seller.initial', array_merge([
+            'email' => 'seeded-seller@example.com',
+            'password' => 'InitialSeller123',
+            'first_name' => 'Aisley',
+            'last_name' => 'Catalog',
+            'contact_number' => '+639171234568',
+            'birth_date' => '1995-01-01',
+        ], $overrides));
     }
 }
