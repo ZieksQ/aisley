@@ -5,13 +5,18 @@ export type SellerProfile = {
   contact_number: string | null
   sex: 'male' | 'female' | 'non_binary' | 'prefer_not_to_say' | null
   birth_date: string | null
+  age: number | null
   profile_photo_path: string | null
 }
 
 export type SellerShop = {
   id: string
   name: string
-  status: 'active' | 'suspended' | 'deactivated'
+  status: 'pending' | 'active' | 'suspended' | 'deactivated'
+  category: {
+    id: string
+    name: string
+  } | null
   is_on_vacation: boolean
 }
 
@@ -35,14 +40,17 @@ export type LoginCredentials = {
   remember: boolean
 }
 
-export type RegistrationPayload = {
-  first_name: string
-  last_name: string
-  middle_name: string | null
-  contact_number: string
-  sex: NonNullable<SellerProfile['sex']>
-  birth_date: string
-  email: string
-  password: string
-  password_confirmation: string
+export type ShopCategoryOption = {
+  id: string
+  name: string
+  slug: string
+  product_categories: Array<{
+    id: string
+    name: string
+    slug: string
+  }>
+}
+
+export type RegistrationOptionsResponse = {
+  shop_categories: ShopCategoryOption[]
 }

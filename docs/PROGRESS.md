@@ -122,3 +122,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-30
 
 - Added `react-markdown` and `remark-gfm` to the Seller app dependencies for safe GFM description viewing alongside MDXEditor authoring.
+
+## 2026-08-30
+
+- Added the canonical 14-Shop-Category/83-Product-Category taxonomy and linked Product Categories to their Shop Category groups. Expanded Seller registration to collect a calculated-age profile, manually entered Philippine business address, business name/line of business, and private government-ID/business-permit images on the configured filesystem; registration now creates a pending Shop and Admin approval transitions the account, Shop, application, and evidence together. Added protected Admin evidence review/download support and updated both SPAs without third-party address services. All 89 API tests and 818 assertions pass on SQLite and PostgreSQL 18.3; Seller and Admin lint and production builds pass.

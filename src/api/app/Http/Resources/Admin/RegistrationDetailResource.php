@@ -19,6 +19,10 @@ class RegistrationDetailResource extends JsonResource
             UserRole::Seller => $user->sellerProfile,
             default => null,
         };
+        $address = $user->relationLoaded('addresses')
+            ? ($user->addresses->firstWhere('is_default', true) ?? $user->addresses->first())
+            : null;
+        $shop = $this->application_type === UserRole::Seller ? $user->shop : null;
 
         return [
             'id' => $this->id,
@@ -38,6 +42,25 @@ class RegistrationDetailResource extends JsonResource
                 'contact_number' => $profile?->contact_number,
                 'sex' => $profile?->sex?->value,
                 'birth_date' => $profile?->birth_date?->toDateString(),
+                'age' => $profile?->age,
+                'business' => $shop ? [
+                    'name' => $shop->name,
+                    'status' => $shop->status->value,
+                    'category' => $shop->shopCategory ? [
+                        'id' => $shop->shopCategory->id,
+                        'name' => $shop->shopCategory->name,
+                    ] : null,
+                ] : null,
+                'address' => $address ? [
+                    'address_line_1' => $address->address_line_1,
+                    'address_line_2' => $address->address_line_2,
+                    'barangay' => $address->barangay,
+                    'city_municipality' => $address->city_municipality,
+                    'province' => $address->province,
+                    'region' => $address->region,
+                    'postal_code' => $address->postal_code,
+                    'country' => $address->country,
+                ] : null,
             ],
             'documents' => $this->whenLoaded('documents', fn () => $this->documents->map(fn ($document) => [
                 'id' => $document->id,
@@ -46,6 +69,10 @@ class RegistrationDetailResource extends JsonResource
                 'original_name' => $document->original_name,
                 'mime_type' => $document->mime_type,
                 'size_bytes' => $document->size_bytes,
+                'download_url' => route('admin.registrations.documents.show', [
+                    'registration' => $this->id,
+                    'document' => $document->id,
+                ], false),
                 'reviewed_at' => $document->reviewed_at?->toIso8601String(),
                 'rejection_reason' => $document->rejection_reason,
             ])),

@@ -3,25 +3,42 @@
 namespace Tests\Feature\Seller;
 
 use App\Enums\ApplicationStatus;
+use App\Enums\DocumentType;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserSex;
 use App\Enums\UserStatus;
+use App\Models\Category;
+use App\Models\Document;
 use App\Models\SellerProfile;
 use App\Models\Shop;
+use App\Models\ShopCategory;
 use App\Models\User;
 use App\Notifications\Seller\ResetPasswordNotification;
+use Database\Seeders\MarketplaceCategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class SellerAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('registration-test');
+        config()->set('filesystems.default', 'registration-test');
+        config()->set('seller.registration.evidence_disk', 'registration-test');
+    }
 
     protected function tearDown(): void
     {
@@ -32,7 +49,7 @@ class SellerAuthenticationTest extends TestCase
 
     public function test_registration_creates_one_pending_seller_profile_and_application_without_a_shop_or_session(): void
     {
-        $this->fromSellerApp()->postJson('/api/v1/seller/auth/register', $this->registrationPayload([
+        $this->postRegistration($this->registrationPayload([
             'email' => ' NEW.SELLER@example.com ',
         ]))->assertCreated()
             ->assertJsonPath('message', 'Registration submitted for approval.')
@@ -40,7 +57,8 @@ class SellerAuthenticationTest extends TestCase
             ->assertJsonPath('seller.role', UserRole::Seller->value)
             ->assertJsonPath('seller.status', UserStatus::Pending->value)
             ->assertJsonPath('seller.profile.first_name', 'Aisley')
-            ->assertJsonPath('seller.shop', null);
+            ->assertJsonPath('seller.shop.name', 'Aisley Merchant Store')
+            ->assertJsonPath('seller.shop.status', ShopStatus::Pending->value);
 
         $this->assertGuest();
 
@@ -59,7 +77,40 @@ class SellerAuthenticationTest extends TestCase
             'application_type' => UserRole::Seller->value,
             'status' => ApplicationStatus::Pending->value,
         ]);
-        $this->assertDatabaseCount('shops', 0);
+        $this->assertDatabaseHas('shops', [
+            'seller_id' => $seller->id,
+            'name' => 'Aisley Merchant Store',
+            'status' => ShopStatus::Pending->value,
+        ]);
+        $this->assertDatabaseHas('addresses', [
+            'user_id' => $seller->id,
+            'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City',
+            'country' => 'Philippines',
+        ]);
+        $this->assertDatabaseCount('documents', 2);
+        $this->assertEqualsCanonicalizing(
+            [DocumentType::GovernmentId, DocumentType::BusinessRegistration],
+            Document::query()->pluck('type')->all(),
+        );
+        Document::query()->each(fn (Document $document) => Storage::disk($document->disk)->assertExists($document->path));
+    }
+
+    public function test_registration_options_expose_the_canonical_shop_and_product_category_taxonomy(): void
+    {
+        $this->seed(MarketplaceCategorySeeder::class);
+
+        $response = $this->getJson('/api/v1/seller/auth/registration-options')
+            ->assertOk()
+            ->assertJsonCount(14, 'shop_categories')
+            ->assertJsonFragment(['name' => 'Electronics and Gadgets']);
+
+        $electronics = collect($response->json('shop_categories'))->firstWhere('name', 'Electronics and Gadgets');
+        $this->assertCount(6, $electronics['product_categories']);
+
+        $this->assertDatabaseCount('shop_categories', 14);
+        $this->assertDatabaseCount('categories', 83);
+        $this->assertSame(83, Category::query()->whereNotNull('shop_category_id')->count());
     }
 
     public function test_registration_is_unique_within_the_seller_role_and_rejects_authority_fields(): void
@@ -69,17 +120,17 @@ class SellerAuthenticationTest extends TestCase
             'role' => UserRole::Customer,
         ]);
 
-        $this->postJson('/api/v1/seller/auth/register', $this->registrationPayload([
+        $this->postRegistration($this->registrationPayload([
             'email' => 'shared@example.com',
         ]))->assertCreated();
 
-        $this->postJson('/api/v1/seller/auth/register', $this->registrationPayload([
+        $this->postRegistration($this->registrationPayload([
             'email' => 'SHARED@example.com',
         ]))->assertUnprocessable()
             ->assertJsonPath('code', 'EMAIL_ALREADY_REGISTERED')
             ->assertJsonValidationErrors('email');
 
-        $this->postJson('/api/v1/seller/auth/register', $this->registrationPayload([
+        $this->postRegistration($this->registrationPayload([
             'email' => 'another@example.com',
             'role' => UserRole::Admin->value,
             'status' => UserStatus::Active->value,
@@ -88,6 +139,26 @@ class SellerAuthenticationTest extends TestCase
             ->assertJsonValidationErrors(['role', 'status', 'reviewer_id']);
 
         $this->assertDatabaseCount('users', 2);
+    }
+
+    public function test_registration_requires_valid_private_images_and_rejects_location_authority_fields(): void
+    {
+        $payload = $this->registrationPayload([
+            'government_id' => UploadedFile::fake()->create('identity.pdf', 20, 'application/pdf'),
+            'business_permit' => $this->imageUpload('permit.php'),
+            'address' => [
+                ...$this->manualAddress(),
+                'latitude' => 14.5995,
+                'longitude' => 120.9842,
+            ],
+        ]);
+
+        $this->postRegistration($payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['government_id', 'business_permit', 'address.latitude', 'address.longitude']);
+
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('documents', 0);
     }
 
     public function test_active_seller_can_use_a_web_session_restore_identity_and_logout(): void
@@ -335,10 +406,53 @@ class SellerAuthenticationTest extends TestCase
             'contact_number' => '+639171234567',
             'sex' => UserSex::PreferNotToSay->value,
             'birth_date' => '1995-01-01',
+            'business_name' => 'Aisley Merchant Store',
+            'shop_category_id' => $this->shopCategory()->id,
+            'address' => $this->manualAddress(),
+            'government_id' => $this->imageUpload('government-id.png'),
+            'business_permit' => $this->imageUpload('business-permit.png'),
             'email' => 'seller@example.com',
             'password' => 'Password1',
             'password_confirmation' => 'Password1',
         ], $overrides);
+    }
+
+    /** @return array<string, string> */
+    private function manualAddress(): array
+    {
+        return [
+            'address_line_1' => '123 Market Street',
+            'address_line_2' => 'Unit 4',
+            'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City',
+            'province' => 'Metro Manila',
+            'region' => 'NCR',
+            'postal_code' => '1210',
+        ];
+    }
+
+    private function shopCategory(): ShopCategory
+    {
+        return ShopCategory::query()->firstOrCreate(
+            ['slug' => 'electronics-and-gadgets'],
+            ['name' => 'Electronics and Gadgets'],
+        );
+    }
+
+    private function imageUpload(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent(
+            $name,
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true),
+        );
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function postRegistration(array $payload): TestResponse
+    {
+        return $this->fromSellerApp()->post('/api/v1/seller/auth/register', $payload, [
+            'Accept' => 'application/json',
+        ]);
     }
 
     /** @param array<string, mixed> $overrides */

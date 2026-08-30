@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\CategoryStatus;
 use App\Enums\ProductStatus;
 use App\Enums\ProductVariantStatus;
 use App\Enums\ShopStatus;
@@ -26,6 +25,8 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(MarketplaceCategorySeeder::class);
+
         DB::transaction(function (): void {
             $configuredEmail = config('seller.initial.email');
             $configuredPassword = config('seller.initial.password');
@@ -51,14 +52,9 @@ class ProductSeeder extends Seeder
                 'birth_date' => config('seller.initial.birth_date', '1995-01-01'),
             ]);
 
-            $shopCategory = ShopCategory::query()->updateOrCreate(
-                ['slug' => 'general-merchandise'],
-                [
-                    'name' => 'General Merchandise',
-                    'description' => 'Everyday products for the seeded marketplace catalog.',
-                    'status' => CategoryStatus::Active,
-                ],
-            );
+            $shopCategory = ShopCategory::query()
+                ->where('slug', 'electronics-and-gadgets')
+                ->firstOrFail();
             $shop = Shop::query()->updateOrCreate(
                 ['slug' => 'aisley-demo-store'],
                 [
@@ -74,13 +70,12 @@ class ProductSeeder extends Seeder
             );
 
             $categories = collect([
-                'electronics' => ['name' => 'Electronics', 'description' => 'Audio and imaging essentials.'],
-                'fashion' => ['name' => 'Fashion', 'description' => 'Everyday footwear and accessories.'],
-            ])->mapWithKeys(fn (array $category, string $slug) => [
-                $slug => Category::query()->updateOrCreate(
-                    ['slug' => $slug],
-                    [...$category, 'status' => CategoryStatus::Active],
-                ),
+                'audio-video-equipment' => 'electronics-and-gadgets-audio-video-equipment',
+                'cameras-photography' => 'electronics-and-gadgets-cameras-photography',
+                'mens-shoes-accessories' => 'mens-apparel-shoes-accessories',
+                'watches-men-women' => 'jewelry-and-watches-watches-for-men-women',
+            ])->mapWithKeys(fn (string $slug, string $key) => [
+                $key => Category::query()->where('slug', $slug)->firstOrFail(),
             ]);
 
             foreach ($this->catalog() as $definition) {
@@ -220,7 +215,7 @@ class ProductSeeder extends Seeder
     {
         return [
             'slug' => 'studio-wireless-headphones',
-            'category' => 'electronics',
+            'category' => 'audio-video-equipment',
             'name' => 'Studio Wireless Headphones',
             'short_description' => 'Comfortable over-ear headphones for focused listening.',
             'description_markdown' => "## Immersive sound, all day\n\nEnjoy balanced wireless audio with soft memory-foam ear cushions and a fold-flat design.\n\n- Up to **30 hours** of listening\n- USB-C quick charging\n- Built-in microphone for clear calls",
@@ -257,7 +252,7 @@ class ProductSeeder extends Seeder
     {
         return [
             'slug' => 'compact-everyday-camera',
-            'category' => 'electronics',
+            'category' => 'cameras-photography',
             'name' => 'Compact Everyday Camera',
             'short_description' => 'A lightweight camera for daily memories and travel.',
             'description_markdown' => "## Ready for everyday moments\n\nA compact camera with straightforward controls, crisp stills, and lightweight construction for day trips and holidays.",
@@ -285,7 +280,7 @@ class ProductSeeder extends Seeder
     {
         return [
             'slug' => 'city-runner-sneakers',
-            'category' => 'fashion',
+            'category' => 'mens-shoes-accessories',
             'name' => 'City Runner Sneakers',
             'short_description' => 'Cushioned sneakers made for everyday movement.',
             'description_markdown' => "## Made to keep moving\n\nBreathable city sneakers with a cushioned midsole and flexible rubber outsole. See the size choices for currently available combinations.",
@@ -324,7 +319,7 @@ class ProductSeeder extends Seeder
     {
         return [
             'slug' => 'classic-everyday-watch',
-            'category' => 'fashion',
+            'category' => 'watches-men-women',
             'name' => 'Classic Everyday Watch',
             'short_description' => 'A clean, timeless watch for daily wear.',
             'description_markdown' => "## A timeless daily essential\n\nA slim analog watch with a clean dial, mineral glass, and comfortable leather strap.",

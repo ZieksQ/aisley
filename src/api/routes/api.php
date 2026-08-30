@@ -42,6 +42,9 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::get('/registrations/{registration}', [RegistrationController::class, 'show'])
         ->middleware('admin.permission:registrations.view')
         ->name('registrations.show');
+    Route::get('/registrations/{registration}/documents/{document}', [RegistrationController::class, 'document'])
+        ->middleware('admin.permission:registrations.view')
+        ->name('registrations.documents.show');
     Route::post('/registrations/{registration}/approve', [RegistrationController::class, 'approve'])
         ->middleware('admin.permission:registrations.review')
         ->name('registrations.approve');
@@ -63,6 +66,9 @@ Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
+    Route::get('/registration-options', [SellerAuthController::class, 'registrationOptions'])
+        ->middleware('throttle:60,1')
+        ->name('registration-options');
     Route::post('/register', [SellerAuthController::class, 'register'])->name('register');
     Route::post('/login', [SellerAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [SellerAuthController::class, 'forgotPassword'])->name('password.email');

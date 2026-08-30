@@ -6,6 +6,7 @@ use App\Enums\AdminAuditAction;
 use App\Enums\ApplicationStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
+use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserSex;
 use App\Enums\UserStatus;
@@ -13,11 +14,13 @@ use App\Models\AdminPermission;
 use App\Models\Document;
 use App\Models\Permission;
 use App\Models\RegistrationApplication;
+use App\Models\Shop;
 use App\Models\User;
 use App\Notifications\Admin\RegistrationDecisionNotification;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RegistrationManagementTest extends TestCase
@@ -139,6 +142,69 @@ class RegistrationManagementTest extends TestCase
             'auditable_id' => $registration->id,
         ]);
         Notification::assertSentTo($registration->user, RegistrationDecisionNotification::class);
+    }
+
+    public function test_approving_a_seller_activates_the_pending_shop_and_verifies_evidence(): void
+    {
+        Notification::fake();
+        $admin = $this->adminWithPermissions('registrations.review');
+        $registration = $this->application(UserRole::Seller, ApplicationStatus::Pending);
+        $shop = Shop::create([
+            'seller_id' => $registration->user_id,
+            'name' => 'Pending Seller Shop',
+            'slug' => 'pending-seller-shop',
+            'status' => ShopStatus::Pending,
+        ]);
+        $document = Document::create([
+            'user_id' => $registration->user_id,
+            'registration_application_id' => $registration->id,
+            'type' => DocumentType::GovernmentId,
+            'status' => DocumentStatus::Pending,
+            'disk' => 'local',
+            'path' => 'registration-evidence/id.jpg',
+            'original_name' => 'id.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 1024,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson("/api/v1/admin/registrations/{$registration->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.application.business.status', ShopStatus::Active->value)
+            ->assertJsonPath('data.documents.0.status', DocumentStatus::Verified->value);
+
+        $this->assertSame(ShopStatus::Active, $shop->fresh()->status);
+        $this->assertSame(DocumentStatus::Verified, $document->fresh()->status);
+        $this->assertSame($admin->id, $document->fresh()->reviewer_id);
+    }
+
+    public function test_authorized_admin_can_download_registration_evidence_but_other_documents_are_hidden(): void
+    {
+        Storage::fake('admin-registration-evidence');
+        $admin = $this->adminWithPermissions('registrations.view');
+        $registration = $this->application(UserRole::Seller, ApplicationStatus::Pending);
+        $other = $this->application(UserRole::Seller, ApplicationStatus::Pending);
+        Storage::disk('admin-registration-evidence')->put('registration-evidence/id.jpg', 'private-image');
+        $document = Document::create([
+            'user_id' => $registration->user_id,
+            'registration_application_id' => $registration->id,
+            'type' => DocumentType::GovernmentId,
+            'status' => DocumentStatus::Pending,
+            'disk' => 'admin-registration-evidence',
+            'path' => 'registration-evidence/id.jpg',
+            'original_name' => 'id.jpg',
+            'mime_type' => 'image/jpeg',
+            'size_bytes' => 13,
+        ]);
+
+        $this->actingAs($admin)
+            ->get("/api/v1/admin/registrations/{$registration->id}/documents/{$document->id}")
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private');
+
+        $this->actingAs($admin)
+            ->get("/api/v1/admin/registrations/{$other->id}/documents/{$document->id}")
+            ->assertNotFound();
     }
 
     public function test_authorized_admin_can_reject_pending_registration_with_optional_reason(): void

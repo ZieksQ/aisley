@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   FaArrowLeft,
   FaCheck,
+  FaDownload,
   FaFileLines,
   FaRotateRight,
   FaUser,
@@ -11,7 +12,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { DecisionDialog } from '../components/registrations/DecisionDialog'
 import { StatusBadge } from '../components/registrations/StatusBadge'
-import { ApiError, apiRequest } from '../lib/api'
+import { ApiError, apiRequest, apiUrl } from '../lib/api'
 import {
   formatDate,
   formatFieldLabel,
@@ -206,6 +207,29 @@ export function RegistrationDetailPage() {
               <DetailField label="Contact number" value={registration.application.contact_number} />
               <DetailField label="Sex" value={registration.application.sex ? formatFieldLabel(registration.application.sex) : null} />
               <DetailField label="Birth date" value={registration.application.birth_date} />
+              <DetailField label="Age" value={registration.application.age} />
+              {registration.application.business && (
+                <>
+                  <DetailField label="Business name" value={registration.application.business.name} />
+                  <DetailField label="Line of business" value={registration.application.business.category?.name ?? null} />
+                  <DetailField label="Shop status" value={formatFieldLabel(registration.application.business.status)} />
+                </>
+              )}
+              {registration.application.address && (
+                <DetailField
+                  label="Business address"
+                  value={[
+                    registration.application.address.address_line_1,
+                    registration.application.address.address_line_2,
+                    registration.application.address.barangay,
+                    registration.application.address.city_municipality,
+                    registration.application.address.province,
+                    registration.application.address.region,
+                    registration.application.address.postal_code,
+                    registration.application.address.country,
+                  ].filter(Boolean).join(', ')}
+                />
+              )}
             </dl>
           </section>
 
@@ -230,7 +254,13 @@ export function RegistrationDetailPage() {
                         {formatFieldLabel(document.type)} · {document.mime_type} · {formatFileSize(document.size_bytes)}
                       </p>
                     </div>
-                    <span className="text-xs font-semibold capitalize text-slate-500 dark:text-slate-300">{document.status}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold capitalize text-slate-500 dark:text-slate-300">{document.status}</span>
+                      <a className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold hover:border-[#E6007A] hover:text-[#E6007A] dark:border-white/10" href={apiUrl(document.download_url)} target="_blank" rel="noreferrer">
+                        <FaDownload aria-hidden="true" />
+                        View
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -278,11 +308,11 @@ export function RegistrationDetailPage() {
   )
 }
 
-function DetailField({ label, value }: { label: string; value: string | null }) {
+function DetailField({ label, value }: { label: string; value: string | number | null }) {
   return (
     <div>
       <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</dt>
-      <dd className="mt-1.5 break-words text-sm font-medium text-slate-700 dark:text-slate-200">{value || 'Not provided'}</dd>
+      <dd className="mt-1.5 break-words text-sm font-medium text-slate-700 dark:text-slate-200">{value ?? 'Not provided'}</dd>
     </div>
   )
 }

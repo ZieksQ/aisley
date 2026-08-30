@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\ListRegistrationsRequest;
 use App\Http\Requests\Admin\RejectRegistrationRequest;
 use App\Http\Resources\Admin\RegistrationDetailResource;
 use App\Http\Resources\Admin\RegistrationSummaryResource;
+use App\Models\Document;
 use App\Models\RegistrationApplication;
 use App\Models\User;
 use App\Services\Admin\RegistrationReviewService;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RegistrationController extends Controller
 {
@@ -62,6 +65,21 @@ class RegistrationController extends Controller
         $this->ensureManaged($registration);
 
         return new RegistrationDetailResource($this->loadDetail($registration));
+    }
+
+    public function document(RegistrationApplication $registration, Document $document): StreamedResponse
+    {
+        $this->ensureManaged($registration);
+        abort_unless($document->registration_application_id === $registration->id, 404);
+
+        return Storage::disk($document->disk)->download(
+            $document->path,
+            $document->original_name,
+            [
+                'Content-Type' => $document->mime_type,
+                'Cache-Control' => 'private, no-store',
+            ],
+        );
     }
 
     public function approve(Request $request, RegistrationApplication $registration): JsonResource
@@ -111,6 +129,8 @@ class RegistrationController extends Controller
         return $registration->load([
             'user.customerProfile',
             'user.sellerProfile',
+            'user.addresses',
+            'user.shop.shopCategory',
             'documents',
             'reviewer.adminProfile',
         ]);
