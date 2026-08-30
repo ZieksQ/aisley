@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -25,6 +26,14 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+    Route::get('/account', [AccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::patch('/account/email', [AccountController::class, 'updateEmail'])->name('account.email.update');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::post('/account/profile-photo', [AccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
+    Route::get('/account/profile-photo', [AccountController::class, 'profilePhoto'])->name('account.photo.show');
+    Route::delete('/account/profile-photo', [AccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
+
     Route::get('/dashboard', [DashboardController::class, 'show'])
         ->name('dashboard.show');
 

@@ -146,3 +146,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-30
 
 - Added an explicit Edit action for draft Seller products and a confirmed Unarchive workflow for archived products. Unarchiving restores the Product to Draft, clears its publication timestamp, and reactivates its inventory SKUs without exposing it to buyers until the Seller publishes again. The focused 4-test/27-assertion API suite, Seller lint, strict TypeScript, and production build pass.
+
+## 2026-08-30
+
+- Added self-service Admin Account Management at `/account` for the authenticated Admin's defined profile fields, role-aware email, password, and private profile photo. Email and password changes use current-password confirmation without 2FA for now; no 2FA mechanism or preferences were invented. Profile images enforce the shared JPEG/PNG/WebP, exact-under-10-MiB, decoded-image, extension-match, ownership, generated-path, and private-delivery rules, storing bytes on the configured filesystem/Azure Blob and only validated metadata in PostgreSQL. All sensitive mutations emit redacted durable audit events. All 98 API tests and 892 assertions, Admin lint, strict TypeScript, and production build pass.
