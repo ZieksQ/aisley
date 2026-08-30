@@ -60,10 +60,11 @@ export function RegisterPage() {
     setIsSubmitting(true)
 
     try {
+      const formData = new FormData(event.currentTarget)
       await initializeCsrf()
       const response = await apiRequest<AuthResponse>('/api/v1/seller/auth/register', {
         method: 'POST',
-        body: new FormData(event.currentTarget),
+        body: formData,
       })
       setSubmittedEmail(response.seller.email)
       window.scrollTo({ top: 0, behavior: 'smooth' })
