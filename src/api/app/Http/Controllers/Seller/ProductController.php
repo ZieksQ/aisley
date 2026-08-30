@@ -109,6 +109,22 @@ class ProductController extends Controller
         return response()->json(['data' => $this->payload($product)]);
     }
 
+    public function unarchive(Request $request, Product $product, SellerShopService $shops): JsonResponse
+    {
+        $this->assertOwned($request, $product, $shops);
+        abort_unless($product->status === ProductStatus::Archived, 409, 'Only archived products can be restored.');
+
+        DB::transaction(function () use ($product) {
+            $product->update([
+                'status' => ProductStatus::Draft,
+                'published_at' => null,
+            ]);
+            $product->inventorySkus()->update(['status' => InventorySkuStatus::Active->value]);
+        });
+
+        return response()->json(['data' => $this->payload($product)]);
+    }
+
     private function assertOwned(Request $request, Product $product, SellerShopService $shops)
     {
         /** @var User $seller */ $seller = $request->user();

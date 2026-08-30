@@ -91,6 +91,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/products/{product}', [SellerProductController::class, 'update'])->whereUuid('product')->name('products.update');
     Route::post('/products/{product}/publish', [SellerProductController::class, 'publish'])->whereUuid('product')->name('products.publish');
     Route::post('/products/{product}/archive', [SellerProductController::class, 'archive'])->whereUuid('product')->name('products.archive');
+    Route::post('/products/{product}/unarchive', [SellerProductController::class, 'unarchive'])->whereUuid('product')->name('products.unarchive');
     Route::get('/inventory', [SellerInventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/{inventorySku}', [SellerInventoryController::class, 'show'])->whereUuid('inventorySku')->name('inventory.show');
     Route::get('/inventory/{inventorySku}/movements', [SellerInventoryController::class, 'movements'])->whereUuid('inventorySku')->name('inventory.movements');

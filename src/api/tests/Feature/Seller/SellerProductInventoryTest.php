@@ -82,6 +82,29 @@ class SellerProductInventoryTest extends TestCase
         $movement->update(['reason' => 'Changed']);
     }
 
+    public function test_seller_can_restore_an_archived_product_to_draft(): void
+    {
+        [$seller, , $category] = $this->sellerShop();
+        $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Restorable Product', 'category_id' => $category->id, 'sku' => 'RESTORE-1',
+            'price' => 150, 'opening_stock' => 4,
+        ])->assertCreated();
+        $productId = $created->json('data.id');
+        $skuId = $created->json('data.skus.0.id');
+
+        $this->postJson("/api/v1/seller/products/{$productId}/archive")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'archived');
+
+        $this->postJson("/api/v1/seller/products/{$productId}/unarchive")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.published_at', null);
+
+        $this->assertDatabaseHas('inventory_skus', ['id' => $skuId, 'status' => 'active']);
+        $this->postJson("/api/v1/seller/products/{$productId}/unarchive")->assertConflict();
+    }
+
     private function sellerShop(string $suffix = 'one'): array
     {
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
