@@ -97,6 +97,11 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function inventorySkus(): HasMany
+    {
+        return $this->hasMany(InventorySku::class);
+    }
+
     public function cartItems(): HasMany
     {
         return $this->hasMany(CartItem::class);

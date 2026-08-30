@@ -134,3 +134,19 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-30
 
 - Fixed Seller registration submission by capturing its multipart form payload before the asynchronous Sanctum CSRF request, ensuring the registration POST and evidence uploads proceed instead of falling into the generic API-connectivity error. Seller lint, strict TypeScript checks, and the production build pass.
+
+## 2026-08-30
+
+- Fixed Admin registration-evidence review by fetching private document images through the authorized API with session credentials and rendering secure inline previews with full-size, download, loading, error, retry, and object-URL cleanup behavior. Admin lint, strict TypeScript checks, production build, and all 12 registration-management API tests pass.
+
+## 2026-08-30
+
+- Added Seller Product/Catalog Management and authoritative Inventory Management for approved Sellers. Seller-scoped APIs and responsive workspace screens now support product draft creation/editing, category validation, publication/archival, SKU listing/search, on-hand/reserved/available balances, low/out-of-stock filters, thresholds, manual adjustments, and immutable movement history. Added an additive inventory-ledger migration with catalog-stock backfill and synchronized legacy quantities for Storefront/Cart compatibility. Purchased-order fulfillment remains deferred until the canonical Order domain exists. All 92 API tests and 837 assertions, Seller lint, strict TypeScript, and the production build pass.
+
+## 2026-08-30
+
+- Added an explicit Edit action for draft Seller products and a confirmed Unarchive workflow for archived products. Unarchiving restores the Product to Draft, clears its publication timestamp, and reactivates its inventory SKUs without exposing it to buyers until the Seller publishes again. The focused 4-test/27-assertion API suite, Seller lint, strict TypeScript, and production build pass.
+
+## 2026-08-30
+
+- Added self-service Admin Account Management at `/account` for the authenticated Admin's defined profile fields, role-aware email, password, and private profile photo. Email and password changes use current-password confirmation without 2FA for now; no 2FA mechanism or preferences were invented. Profile images enforce the shared JPEG/PNG/WebP, exact-under-10-MiB, decoded-image, extension-match, ownership, generated-path, and private-delivery rules, storing bytes on the configured filesystem/Azure Blob and only validated metadata in PostgreSQL. All sensitive mutations emit redacted durable audit events. All 98 API tests and 892 assertions, Admin lint, strict TypeScript, and production build pass.
