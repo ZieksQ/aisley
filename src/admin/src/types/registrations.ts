@@ -32,6 +32,22 @@ export type RegistrationDetail = {
     contact_number: string | null
     sex: string | null
     birth_date: string | null
+    age: number | null
+    business: {
+      name: string
+      status: 'pending' | 'active' | 'suspended' | 'deactivated'
+      category: { id: string; name: string } | null
+    } | null
+    address: {
+      address_line_1: string
+      address_line_2: string | null
+      barangay: string
+      city_municipality: string
+      province: string
+      region: string
+      postal_code: string
+      country: string
+    } | null
   }
   documents: Array<{
     id: string
@@ -40,6 +56,7 @@ export type RegistrationDetail = {
     original_name: string
     mime_type: string
     size_bytes: number
+    download_url: string
     reviewed_at: string | null
     rejection_reason: string | null
   }>

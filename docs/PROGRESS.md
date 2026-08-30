@@ -118,3 +118,19 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Revised the Seller Order Management specification into a concise catalog-management contract that adopts MDXEditor for `description_markdown`, with toolbar, paste, and drop picture insertion backed by Seller-scoped upload, scanning, canonical asset URLs, safe Markdown rendering, and separation from Product gallery media. No application code was changed.
 - Replaced hard-coded Admin and Seller bootstrap credentials with optional `INITIAL_ADMIN_*` and `INITIAL_SELLER_*` environment configuration. The seeders now skip safely when credentials are absent, can be explicitly enabled in production, preserve existing passwords/account states/profile data on reruns, and let the catalog seeder reuse the configured Seller without silently reactivating it. Documented secure deployment setup and verified all 76 API tests and 693 assertions on SQLite and PostgreSQL 18.3.
+
+## 2026-08-30
+
+- Added `react-markdown` and `remark-gfm` to the Seller app dependencies for safe GFM description viewing alongside MDXEditor authoring.
+
+## 2026-08-30
+
+- Added the canonical 14-Shop-Category/83-Product-Category taxonomy and linked Product Categories to their Shop Category groups. Expanded Seller registration to collect a calculated-age profile, manually entered Philippine business address, business name/line of business, and private government-ID/business-permit images on the configured filesystem; registration now creates a pending Shop and Admin approval transitions the account, Shop, application, and evidence together. Added protected Admin evidence review/download support and updated both SPAs without third-party address services. All 89 API tests and 818 assertions pass on SQLite and PostgreSQL 18.3; Seller and Admin lint and production builds pass.
+
+## 2026-08-30
+
+- Marked every required Seller registration field with an asterisk and added a short required-field key while preserving the existing form layout and validation behavior. Seller lint, strict TypeScript checks, and the production build pass.
+
+## 2026-08-30
+
+- Fixed Seller registration submission by capturing its multipart form payload before the asynchronous Sanctum CSRF request, ensuring the registration POST and evidence uploads proceed instead of falling into the generic API-connectivity error. Seller lint, strict TypeScript checks, and the production build pass.

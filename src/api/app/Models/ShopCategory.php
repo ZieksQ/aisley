@@ -17,6 +17,7 @@ class ShopCategory extends Model
         'slug',
         'description',
         'status',
+        'position',
     ];
 
     /**
@@ -26,11 +27,17 @@ class ShopCategory extends Model
     {
         return [
             'status' => CategoryStatus::class,
+            'position' => 'integer',
         ];
     }
 
     public function shops(): HasMany
     {
         return $this->hasMany(Shop::class);
+    }
+
+    public function productCategories(): HasMany
+    {
+        return $this->hasMany(Category::class)->orderBy('position')->orderBy('name');
     }
 }

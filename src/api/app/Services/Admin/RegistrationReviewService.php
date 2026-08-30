@@ -5,6 +5,8 @@ namespace App\Services\Admin;
 use App\Enums\Admin\AuditSourceFeature;
 use App\Enums\AdminAuditAction;
 use App\Enums\ApplicationStatus;
+use App\Enums\DocumentStatus;
+use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\RegistrationApplication;
@@ -58,6 +60,12 @@ class RegistrationReviewService
                 'application_status' => $application->status->value,
                 'account_status' => $application->user->status->value,
             ];
+            $shop = $application->application_type === UserRole::Seller
+                ? $application->user->shop()->lockForUpdate()->first()
+                : null;
+            if ($shop) {
+                $oldValues['shop_status'] = $shop->status->value;
+            }
             $reviewedAt = now();
             $rejectionReason = $decision === ApplicationStatus::Rejected ? $reason : null;
 
@@ -74,6 +82,23 @@ class RegistrationReviewService
                     : UserStatus::Rejected,
             ]);
 
+            $shop?->update([
+                'status' => $decision === ApplicationStatus::Approved
+                    ? ShopStatus::Active
+                    : ShopStatus::Deactivated,
+            ]);
+
+            if ($application->application_type === UserRole::Seller) {
+                $application->documents()->update([
+                    'status' => $decision === ApplicationStatus::Approved
+                        ? DocumentStatus::Verified
+                        : DocumentStatus::Rejected,
+                    'reviewer_id' => $reviewer->id,
+                    'reviewed_at' => $reviewedAt,
+                    'rejection_reason' => $rejectionReason,
+                ]);
+            }
+
             $this->auditService->record(
                 actor: $reviewer,
                 action: $decision === ApplicationStatus::Approved
@@ -85,6 +110,7 @@ class RegistrationReviewService
                 after: [
                     'application_status' => $decision->value,
                     'account_status' => $application->user->status->value,
+                    ...($shop ? ['shop_status' => $shop->status->value] : []),
                 ],
                 targetSnapshot: [
                     'registration_id' => $application->id,

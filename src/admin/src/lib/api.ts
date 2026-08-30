@@ -21,6 +21,10 @@ function url(path: string) {
   return `${apiBaseUrl}${path}`
 }
 
+export function apiUrl(path: string) {
+  return url(path)
+}
+
 function csrfToken() {
   const cookie = document.cookie
     .split('; ')
