@@ -47,6 +47,7 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::post('/announcements/{announcement}/archive', [PlatformSettingsController::class, 'archiveAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.archive');
         Route::get('/policies', [PlatformSettingsController::class, 'policies'])->middleware('admin.permission:platform-settings.view')->name('policies.index');
         Route::post('/policies/{type}/versions', [PlatformSettingsController::class, 'storePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->name('policies.versions.store');
+        Route::post('/policy-versions/{version}/successor', [PlatformSettingsController::class, 'createPolicySuccessor'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.successor');
         Route::patch('/policy-versions/{version}', [PlatformSettingsController::class, 'updatePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.update');
         Route::post('/policy-versions/{version}/publish', [PlatformSettingsController::class, 'publishPolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.publish');
     });
@@ -164,5 +165,7 @@ Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
 
 Route::prefix('v1/platform')->name('platform.')->middleware('throttle:120,1')->group(function () {
     Route::get('/announcements', [PlatformContentController::class, 'announcements'])->name('announcements.index');
+    Route::get('/policies/{type}/history/{version}', [PlatformContentController::class, 'policyHistoryVersion'])->whereNumber('version')->name('policies.history.show');
+    Route::get('/policies/{type}/history', [PlatformContentController::class, 'policyHistory'])->name('policies.history.index');
     Route::get('/policies/{type}', [PlatformContentController::class, 'policy'])->name('policies.show');
 });

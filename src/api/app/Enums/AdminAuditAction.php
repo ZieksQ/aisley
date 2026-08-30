@@ -17,6 +17,7 @@ enum AdminAuditAction: string
     case AnnouncementPublished = 'platform_settings.announcement_published';
     case AnnouncementArchived = 'platform_settings.announcement_archived';
     case PolicyVersionCreated = 'platform_settings.policy_version_created';
+    case PolicySuccessorCreated = 'platform_settings.policy_successor_created';
     case PolicyVersionUpdated = 'platform_settings.policy_version_updated';
     case PolicyVersionPublished = 'platform_settings.policy_version_published';
 
@@ -36,6 +37,7 @@ enum AdminAuditAction: string
             self::AnnouncementPublished => 'Announcement published',
             self::AnnouncementArchived => 'Announcement archived',
             self::PolicyVersionCreated => 'Policy version created',
+            self::PolicySuccessorCreated => 'Policy successor draft created',
             self::PolicyVersionUpdated => 'Policy version updated',
             self::PolicyVersionPublished => 'Policy version published',
         };

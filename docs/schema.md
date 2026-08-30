@@ -797,7 +797,7 @@ Logistics provider/method selection is not stored or accepted. Until the later l
 
 `platform_policies` allow-lists Terms of Service, Privacy Policy, and Internal Platform Rules. Its unique `type` is the stable identity and nullable unique `current_version_id` points to the one effective published version.
 
-`platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
+`platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, an optional user-safe change summary, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Nullable unique `source_policy_version_id` records the published version copied into a successor Draft and prevents competing successor copies for the same source. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
 
 `policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. User-facing consent presentation and enforcement remain a separate integration decision.
 
@@ -899,6 +899,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 35. Platform Settings exposes only allow-listed announcement and policy records; it cannot mutate environment variables, secrets, or infrastructure configuration.
 36. Published policy versions are immutable, and each policy has at most one current version through `platform_policies.current_version_id`.
 37. Announcement and policy mutations require matching persisted revisions so stale Admin clients cannot silently overwrite newer state.
+38. A policy successor Draft must copy the current Published version without modifying its source; unique `source_policy_version_id` permits at most one successor lineage for that source.
 
 ## 13. Migration order
 
@@ -939,6 +940,7 @@ Migrations currently run in this dependency order:
 33. `2026_08_30_000124_add_admin_profile_photo_metadata.php` — configured-disk and validated image metadata for private Admin profile photos.
 34. `2026_08_30_000125_create_checkout_orders_and_vouchers.php` — Voucher definitions/redemptions, expiring checkout quotes, idempotent batches, Shop Orders, immutable item/address/voucher snapshots, and initial status history.
 35. `2026_08_30_000126_create_platform_settings_tables.php` — announcements, stable policy identities, immutable policy versions, and exact-version consent records.
+36. `2026_08_30_000127_add_successor_lineage_to_platform_policy_versions.php` — successor source linkage and optional user-safe policy change summaries.
 
 ## 14. Deferred schema
 

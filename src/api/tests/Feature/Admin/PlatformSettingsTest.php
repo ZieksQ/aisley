@@ -111,6 +111,87 @@ class PlatformSettingsTest extends TestCase
         ])->assertNotFound();
     }
 
+    public function test_editing_current_published_policy_creates_one_copied_successor_draft(): void
+    {
+        $admin = $this->adminWithSettingsPermissions();
+        $published = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/policies/terms_of_service/versions', [
+            'title' => 'Terms of Service',
+            'content' => 'The exact published terms.',
+            'change_summary' => 'Initial publication',
+            'requires_reconsent' => true,
+        ])->assertCreated();
+        $publishedId = $published->json('data.id');
+        $this->postJson("/api/v1/admin/platform-settings/policy-versions/{$publishedId}/publish", ['revision' => 1])->assertOk();
+
+        $successor = $this->postJson("/api/v1/admin/platform-settings/policy-versions/{$publishedId}/successor", [
+            'change_summary' => 'Clarify marketplace responsibilities',
+        ])->assertCreated()
+            ->assertJsonPath('data.version', 2)
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.title', 'Terms of Service')
+            ->assertJsonPath('data.content', 'The exact published terms.')
+            ->assertJsonPath('data.requires_reconsent', true)
+            ->assertJsonPath('data.source_policy_version_id', $publishedId)
+            ->assertJsonPath('data.change_summary', 'Clarify marketplace responsibilities');
+        $successorId = $successor->json('data.id');
+
+        $this->postJson("/api/v1/admin/platform-settings/policy-versions/{$publishedId}/successor")
+            ->assertOk()
+            ->assertJsonPath('data.id', $successorId);
+
+        $this->patchJson("/api/v1/admin/platform-settings/policy-versions/{$successorId}", [
+            'title' => 'Updated Terms of Service',
+            'content' => 'The successor-only draft content.',
+            'change_summary' => 'Clarify marketplace responsibilities',
+            'requires_reconsent' => false,
+            'revision' => 1,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('platform_policy_versions', [
+            'id' => $publishedId,
+            'title' => 'Terms of Service',
+            'content' => 'The exact published terms.',
+            'status' => 'published',
+            'requires_reconsent' => true,
+        ]);
+        $this->getJson('/api/v1/platform/policies/terms_of_service')->assertOk()
+            ->assertJsonPath('data.version.id', $publishedId)
+            ->assertJsonPath('data.version.content', 'The exact published terms.');
+        $this->assertDatabaseCount('platform_policy_versions', 2);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'platform_settings.policy_successor_created']);
+    }
+
+    public function test_public_policy_history_excludes_drafts_and_internal_rules(): void
+    {
+        $admin = $this->adminWithSettingsPermissions();
+        $first = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/policies/privacy_policy/versions', [
+            'title' => 'Privacy Policy', 'content' => 'Published privacy version one.', 'change_summary' => 'Initial version', 'requires_reconsent' => false,
+        ])->assertCreated();
+        $firstId = $first->json('data.id');
+        $this->postJson("/api/v1/admin/platform-settings/policy-versions/{$firstId}/publish", ['revision' => 1])->assertOk();
+        $draft = $this->postJson("/api/v1/admin/platform-settings/policy-versions/{$firstId}/successor", [
+            'change_summary' => 'Draft-only changes',
+        ])->assertCreated();
+
+        $this->getJson('/api/v1/platform/policies/privacy_policy/history')->assertOk()
+            ->assertJsonCount(1, 'data.versions')
+            ->assertJsonPath('data.versions.0.id', $firstId)
+            ->assertJsonMissing(['id' => $draft->json('data.id')])
+            ->assertJsonMissingPath('data.versions.0.content');
+        $this->getJson('/api/v1/platform/policies/privacy_policy/history/1')->assertOk()
+            ->assertJsonPath('data.version.id', $firstId)
+            ->assertJsonPath('data.version.content', 'Published privacy version one.')
+            ->assertJsonMissingPath('data.version.revision');
+        $this->getJson('/api/v1/platform/policies/privacy_policy/history/2')->assertNotFound();
+
+        $internal = $this->postJson('/api/v1/admin/platform-settings/policies/internal_rules/versions', [
+            'title' => 'Internal Rules', 'content' => 'Authorized operators only.', 'requires_reconsent' => false,
+        ])->assertCreated();
+        $this->postJson('/api/v1/admin/platform-settings/policy-versions/'.$internal->json('data.id').'/publish', ['revision' => 1])->assertOk();
+        $this->getJson('/api/v1/platform/policies/internal_rules')->assertNotFound();
+        $this->getJson('/api/v1/platform/policies/internal_rules/history')->assertNotFound();
+    }
+
     private function adminWithSettingsPermissions(): User
     {
         $admin = $this->admin();

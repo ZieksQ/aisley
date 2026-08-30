@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\PlatformPolicyType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CreatePolicySuccessorRequest;
 use App\Http\Requests\Admin\PublishPlatformContentRequest;
 use App\Http\Requests\Admin\StoreAnnouncementRequest;
 use App\Http\Requests\Admin\StorePolicyVersionRequest;
@@ -81,6 +82,16 @@ class PlatformSettingsController extends Controller
     public function updatePolicyVersion(UpdatePolicyVersionRequest $request, PlatformPolicyVersion $version): PlatformPolicyVersionResource
     {
         return new PlatformPolicyVersionResource($this->settings->updatePolicyVersion($this->admin($request), $version, $request->validated(), $this->context($request))->load('creator:id,email'));
+    }
+
+    public function createPolicySuccessor(CreatePolicySuccessorRequest $request, PlatformPolicyVersion $version): PlatformPolicyVersionResource
+    {
+        return new PlatformPolicyVersionResource($this->settings->createPolicySuccessor(
+            $this->admin($request),
+            $version,
+            $request->validated('change_summary'),
+            $this->context($request),
+        )->load('creator:id,email'));
     }
 
     public function publishPolicyVersion(PublishPlatformContentRequest $request, PlatformPolicyVersion $version): PlatformPolicyVersionResource

@@ -17,11 +17,13 @@ export type PolicyVersion = {
   version: number
   title: string
   content: string
+  change_summary: string | null
   status: 'draft' | 'published' | 'superseded'
   requires_reconsent: boolean
   revision: number
   published_at: string | null
   created_at: string
+  source_policy_version_id: string | null
 }
 
 export type Policy = {

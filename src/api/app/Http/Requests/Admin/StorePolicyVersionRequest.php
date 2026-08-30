@@ -16,6 +16,7 @@ class StorePolicyVersionRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:200'],
             'content' => ['required', 'string', 'max:100000', 'not_regex:/<[^>]+>/'],
+            'change_summary' => ['nullable', 'string', 'max:1000', 'not_regex:/<[^>]+>/'],
             'requires_reconsent' => ['required', 'boolean'],
             'status' => ['prohibited'],
             'version' => ['prohibited'],

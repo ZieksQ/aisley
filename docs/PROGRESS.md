@@ -163,6 +163,10 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Condensed the Admin Platform Settings specification into an implementation-ready contract and clarified that editing a published policy creates a copied successor Draft, while normal user views show only the current version and expose published history separately. No application code was changed.
 
+## 2026-08-30
+
+- Refined Admin Platform Settings to match the revised specification: editing the current Published policy now creates or reopens one concurrency-safe copied successor Draft with source lineage and an optional safe change summary; the Admin UI separates current content, drafts, and immutable history with preview, exact-version viewing, confirmation, retry, and stale-state recovery. Added published-safe public current/history APIs for Terms and Privacy while keeping Internal Rules Admin-only until its audience is decided. The additive migration is applied to PostgreSQL; all 105 API tests and 975 assertions, Admin lint, strict TypeScript checks, and production build pass.
+
 ## 2026-08-31
 
 - Revised the Customer Order Monitoring and Logistics Tracking specification into an implementation-ready 136-line contract. It defines the authenticated Account icon → Orders journey, makes confirmed Logistics waybill receipt the Aisley-specific transition to the Customer-facing To Ship group, keeps transfer timeline/location authority in Logistics, and specifies a privacy-safe read-only embedded Customer map. The revision aligns the existing Order enum/events and checkout boundary with Shopee/Lazada tracking research; no application behavior was changed.

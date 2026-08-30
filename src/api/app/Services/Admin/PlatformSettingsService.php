@@ -115,11 +115,52 @@ class PlatformSettingsService
         });
     }
 
+    public function createPolicySuccessor(User $admin, PlatformPolicyVersion $version, ?string $changeSummary, array $context): PlatformPolicyVersion
+    {
+        return DB::transaction(function () use ($admin, $version, $changeSummary, $context) {
+            $policy = PlatformPolicy::whereKey($version->platform_policy_id)->lockForUpdate()->firstOrFail();
+            $source = PlatformPolicyVersion::whereKey($version->id)->lockForUpdate()->firstOrFail();
+
+            if ($source->status !== PlatformPolicyVersionStatus::Published || $policy->current_version_id !== $source->id) {
+                throw new ConflictHttpException('Only the current published policy version can be edited into a successor draft.');
+            }
+
+            $existing = PlatformPolicyVersion::query()
+                ->where('source_policy_version_id', $source->id)
+                ->where('status', PlatformPolicyVersionStatus::Draft)
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $successor = $policy->versions()->create([
+                'source_policy_version_id' => $source->id,
+                'version' => ((int) $policy->versions()->max('version')) + 1,
+                'title' => $source->title,
+                'content' => $source->content,
+                'change_summary' => $changeSummary,
+                'status' => PlatformPolicyVersionStatus::Draft,
+                'requires_reconsent' => $source->requires_reconsent,
+                'created_by_admin_id' => $admin->id,
+            ]);
+
+            $this->audit($admin, AdminAuditAction::PolicySuccessorCreated, $successor, $context, [
+                'policy_type' => $policy->type->value,
+                'source_policy_version_id' => $source->id,
+                'source_version' => $source->version,
+                'version' => $successor->version,
+            ]);
+
+            return $successor;
+        });
+    }
+
     public function publishPolicyVersion(User $admin, PlatformPolicyVersion $version, int $revision, array $context): PlatformPolicyVersion
     {
         $result = DB::transaction(function () use ($admin, $version, $revision, $context) {
+            $policy = PlatformPolicy::whereKey($version->platform_policy_id)->lockForUpdate()->firstOrFail();
             $locked = PlatformPolicyVersion::whereKey($version->id)->lockForUpdate()->firstOrFail();
-            $policy = PlatformPolicy::whereKey($locked->platform_policy_id)->lockForUpdate()->firstOrFail();
             $this->assertRevision($locked->revision, $revision);
             if ($locked->status !== PlatformPolicyVersionStatus::Draft) {
                 throw new ConflictHttpException('Only draft policy versions can be published.');

@@ -14,11 +14,13 @@ class PlatformPolicyVersionResource extends JsonResource
             'version' => $this->version,
             'title' => $this->title,
             'content' => $this->content,
+            'change_summary' => $this->change_summary,
             'status' => $this->status->value,
             'requires_reconsent' => $this->requires_reconsent,
             'revision' => $this->revision,
             'published_at' => $this->published_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
+            'source_policy_version_id' => $this->source_policy_version_id,
             'created_by' => $this->whenLoaded('creator', fn () => ['id' => $this->creator->id, 'email' => $this->creator->email]),
         ];
     }
