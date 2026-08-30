@@ -21,6 +21,7 @@ scope: Customer storefront and Laravel API
 - **To Ship** is a customer label, not a new persisted `orders.status`; it represents a parcel Aisley Logistics has received and is moving through its network.
 - The Logistics dashboard owns transfers, hub scans, dispatch, courier assignment, location updates, and exception handling.
 - The Customer detail page mirrors a safe, read-only shipment timeline and an embedded map while the parcel is actively moving.
+- The Orders page follows the familiar Shopee/Lazada-style purchase history pattern: one **All** list with status tabs that filter the same Customer-owned Orders.
 - An order with multiple Shop Orders remains separately trackable; a checkout batch is not one shared shipment.
 - Entry journey: sign in → select the account icon in the marketplace navbar → choose **Orders** in its dropdown → `/orders` → choose an Order → `/orders/{order}`.
 - Guests who select Orders go to `/login?next=/orders`; non-Customer, inactive, or unapproved sessions receive no Order data.
@@ -56,6 +57,9 @@ scope: Customer storefront and Laravel API
 - Only the shared Logistics transition service may perform that handoff, after validating the parcel, current state, authorization, and idempotency.
 - Normal delivery may continue `assigned → picked_up → in_transit → out_for_delivery → delivered`; reject skipped or backward transitions with `409`.
 - A Customer tab must not be mistaken for a persisted status, and exceptional states must not appear as normal progress.
+- Render tabs in this order: **All**, **To Pay**, **To Prepare**, **To Ship**, **Out for Delivery**, **Completed**, and **Cancelled / Issue**.
+- **All** is selected by default and lists every Customer-owned Order, newest activity first; it is not a status and has no status filter value.
+- Selecting a status tab filters the existing `/orders` collection server-side, resets pagination to page one, and preserves no results as an explicit filtered-empty state.
 
 ### Logistics timeline and embedded map
 
@@ -96,6 +100,7 @@ scope: Customer storefront and Laravel API
 - The detail view uses a status heading, accessible text timeline, item/order summary, delivery snapshot, and map panel where available; color alone cannot communicate progress.
 - Map loading, stale-location, unavailable-location, and reconnect states must be explicit and must not block timeline access.
 - [ ] A signed-in Customer reaches `/orders` from **Account icon → Orders**; a guest is redirected to sign-in with a safe return path.
+- [ ] `/orders` opens on the **All** tab and lists every Customer-owned Order; every other visible tab applies only its mapped status-group filter.
 - [ ] A Customer cannot retrieve, subscribe to, or infer another Customer’s Order or map data.
 - [ ] A Seller-ready order stays **To Prepare** until Logistics confirms its waybill receipt; that receipt changes its group to **To Ship** exactly once.
 - [ ] Logistics transfer scans appear in chronological Customer timeline order with persisted server timestamps.
