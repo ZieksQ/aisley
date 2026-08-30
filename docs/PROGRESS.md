@@ -159,6 +159,10 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Added permission-gated Admin Platform Settings at `/platform-settings` with responsive announcement and policy management. Announcements support draft editing, explicit publication, expiration, archival, stale-revision conflicts, caching, published-only reads, and audit events. Terms of Service, Privacy Policy, and Internal Platform Rules use allow-listed identities, immutable version history, atomic supersession, explicit per-version re-consent decisions, published-only reads, and exact-version acceptance storage without inventing login enforcement. Environment variables, secrets, targeted push campaigns, and arbitrary settings remain outside this feature. All 103 API tests and 939 assertions, Admin lint, strict TypeScript, and production build pass.
 
+## 2026-08-30
+
+- Condensed the Admin Platform Settings specification into an implementation-ready contract and clarified that editing a published policy creates a copied successor Draft, while normal user views show only the current version and expose published history separately. No application code was changed.
+
 ## 2026-08-31
 
 - Revised the Customer Order Monitoring and Logistics Tracking specification into an implementation-ready 136-line contract. It defines the authenticated Account icon → Orders journey, makes confirmed Logistics waybill receipt the Aisley-specific transition to the Customer-facing To Ship group, keeps transfer timeline/location authority in Logistics, and specifies a privacy-safe read-only embedded Customer map. The revision aligns the existing Order enum/events and checkout boundary with Shopee/Lazada tracking research; no application behavior was changed.
