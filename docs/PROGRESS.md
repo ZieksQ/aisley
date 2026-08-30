@@ -130,3 +130,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-08-30
 
 - Marked every required Seller registration field with an asterisk and added a short required-field key while preserving the existing form layout and validation behavior. Seller lint, strict TypeScript checks, and the production build pass.
+
+## 2026-08-30
+
+- Fixed Seller registration submission by capturing its multipart form payload before the asynchronous Sanctum CSRF request, ensuring the registration POST and evidence uploads proceed instead of falling into the generic API-connectivity error. Seller lint, strict TypeScript checks, and the production build pass.
