@@ -105,18 +105,20 @@ export function RegisterPage() {
       wide
     >
       <form className="space-y-7" encType="multipart/form-data" onSubmit={handleSubmit}>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Fields marked with * are required.</p>
+
         <fieldset>
           <legend className="mb-4 font-semibold">Personal information</legend>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField error={errors.first_name?.[0]} id="first_name" label="First name" name="first_name" required />
-            <FormField error={errors.last_name?.[0]} id="last_name" label="Last name" name="last_name" required />
+            <FormField error={errors.first_name?.[0]} id="first_name" label="First name *" name="first_name" required />
+            <FormField error={errors.last_name?.[0]} id="last_name" label="Last name *" name="last_name" required />
             <FormField error={errors.middle_name?.[0]} id="middle_name" label="Middle initial (optional)" maxLength={1} name="middle_name" />
-            <FormField error={errors.contact_number?.[0]} id="contact_number" label="Contact number" name="contact_number" required type="tel" />
-            <SelectField defaultValue="" error={errors.sex?.[0]} id="sex" label="Sex" name="sex" required>
+            <FormField error={errors.contact_number?.[0]} id="contact_number" label="Contact number *" name="contact_number" required type="tel" />
+            <SelectField defaultValue="" error={errors.sex?.[0]} id="sex" label="Sex *" name="sex" required>
               <option disabled value="">Select an option</option>
               <option value="female">Female</option><option value="male">Male</option><option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option>
             </SelectField>
-            <FormField error={errors.birth_date?.[0]} id="birth_date" label="Birth date" name="birth_date" onChange={(event) => setBirthDate(event.target.value)} required type="date" value={birthDate} />
+            <FormField error={errors.birth_date?.[0]} id="birth_date" label="Birth date *" name="birth_date" onChange={(event) => setBirthDate(event.target.value)} required type="date" value={birthDate} />
             <div>
               <span className="mb-1.5 block text-sm font-medium">Age</span>
               <output className="flex h-11 items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3.5 text-sm text-zinc-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300" htmlFor="birth_date">
@@ -129,8 +131,8 @@ export function RegisterPage() {
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-4 font-semibold">Business information</legend>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField error={errors.business_name?.[0]} id="business_name" label="Business name" name="business_name" required />
-            <SelectField defaultValue="" disabled={isLoadingOptions || Boolean(optionsError)} error={errors.shop_category_id?.[0] ?? optionsError ?? undefined} id="shop_category_id" label="Line of business" name="shop_category_id" required>
+            <FormField error={errors.business_name?.[0]} id="business_name" label="Business name *" name="business_name" required />
+            <SelectField defaultValue="" disabled={isLoadingOptions || Boolean(optionsError)} error={errors.shop_category_id?.[0] ?? optionsError ?? undefined} id="shop_category_id" label="Line of business *" name="shop_category_id" required>
               <option disabled value="">{isLoadingOptions ? 'Loading categories…' : 'Select a shop category'}</option>
               {shopCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </SelectField>
@@ -141,13 +143,13 @@ export function RegisterPage() {
           <legend className="mb-1 font-semibold">Business address</legend>
           <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Enter the address manually. Province, municipality, and barangay lookup services are not used.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField error={errors['address.address_line_1']?.[0]} id="address_line_1" label="Street and house/building number" name="address[address_line_1]" required />
+            <FormField error={errors['address.address_line_1']?.[0]} id="address_line_1" label="Street and house/building number *" name="address[address_line_1]" required />
             <FormField error={errors['address.address_line_2']?.[0]} id="address_line_2" label="Unit, floor, or landmark (optional)" name="address[address_line_2]" />
-            <FormField error={errors['address.barangay']?.[0]} id="barangay" label="Barangay" name="address[barangay]" required />
-            <FormField error={errors['address.city_municipality']?.[0]} id="city_municipality" label="City or municipality" name="address[city_municipality]" required />
-            <FormField error={errors['address.province']?.[0]} id="province" label="Province" name="address[province]" required />
-            <FormField error={errors['address.region']?.[0]} id="region" label="Region" name="address[region]" required />
-            <FormField error={errors['address.postal_code']?.[0]} id="postal_code" label="Postal code" maxLength={10} name="address[postal_code]" required />
+            <FormField error={errors['address.barangay']?.[0]} id="barangay" label="Barangay *" name="address[barangay]" required />
+            <FormField error={errors['address.city_municipality']?.[0]} id="city_municipality" label="City or municipality *" name="address[city_municipality]" required />
+            <FormField error={errors['address.province']?.[0]} id="province" label="Province *" name="address[province]" required />
+            <FormField error={errors['address.region']?.[0]} id="region" label="Region *" name="address[region]" required />
+            <FormField error={errors['address.postal_code']?.[0]} id="postal_code" label="Postal code *" maxLength={10} name="address[postal_code]" required />
             <FormField disabled id="country" label="Country" name="country_display" value="Philippines" />
           </div>
         </fieldset>
@@ -156,18 +158,18 @@ export function RegisterPage() {
           <legend className="mb-1 font-semibold">Verification documents</legend>
           <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Upload JPEG, PNG, or WebP images smaller than 10 MB. Files remain private and are available only to authorized reviewers.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" error={errors.government_id?.[0]} id="government_id" label="Government-issued ID" name="government_id" required type="file" />
-            <FormField accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" error={errors.business_permit?.[0]} id="business_permit" label="Business permit" name="business_permit" required type="file" />
+            <FormField accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" error={errors.government_id?.[0]} id="government_id" label="Government-issued ID *" name="government_id" required type="file" />
+            <FormField accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" error={errors.business_permit?.[0]} id="business_permit" label="Business permit *" name="business_permit" required type="file" />
           </div>
         </fieldset>
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-4 font-semibold">Sign-in details</legend>
           <div className="space-y-4">
-            <FormField autoComplete="email" error={errors.email?.[0]} id="register_email" label="Email address" name="email" required type="email" />
+            <FormField autoComplete="email" error={errors.email?.[0]} id="register_email" label="Email address *" name="email" required type="email" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField autoComplete="new-password" error={errors.password?.[0]} id="register_password" label="Password" minLength={8} name="password" required type="password" />
-              <FormField autoComplete="new-password" id="password_confirmation" label="Confirm password" minLength={8} name="password_confirmation" required type="password" />
+              <FormField autoComplete="new-password" error={errors.password?.[0]} id="register_password" label="Password *" minLength={8} name="password" required type="password" />
+              <FormField autoComplete="new-password" id="password_confirmation" label="Confirm password *" minLength={8} name="password_confirmation" required type="password" />
             </div>
             <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-400">Use at least 8 characters with uppercase, lowercase, and a number.</p>
           </div>
