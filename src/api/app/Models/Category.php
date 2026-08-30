@@ -18,12 +18,14 @@ class Category extends Model
 
     protected $fillable = [
         'parent_id',
+        'shop_category_id',
         'name',
         'slug',
         'description',
         'image_disk',
         'image_path',
         'status',
+        'position',
     ];
 
     /**
@@ -33,12 +35,18 @@ class Category extends Model
     {
         return [
             'status' => CategoryStatus::class,
+            'position' => 'integer',
         ];
     }
 
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function shopCategory(): BelongsTo
+    {
+        return $this->belongsTo(ShopCategory::class);
     }
 
     public function children(): HasMany

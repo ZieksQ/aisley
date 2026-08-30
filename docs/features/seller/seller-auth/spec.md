@@ -17,8 +17,8 @@ scope: Seller Web Application
 - **Primary actors:** Seller applicant, approved Seller, and the existing authorized Admin reviewer.
 - **Application boundary:** React/Vite owns auth forms and route state; Laravel owns identity, validation, approval gating, sessions, and authorization.
 - **Canonical identity:** a persisted `users` record with `role = seller`, resolved by normalized `email + role`.
-- **Existing foundation:** `users`, `seller_profiles`, `registration_applications`, optional documents, database sessions, and Admin Seller approval already exist.
-- **Current gap:** no Seller auth controller, routes, requests, resource, active-role middleware, feature tests, or frontend auth shell exists.
+- **Existing foundation:** Seller auth, approval gating, database sessions, Admin review, addresses, shops, private registration evidence, and the Shop/Product Category taxonomy are implemented.
+- **Current registration scope:** collect the account holder, manual business address, pending shop, line of business, government ID image, and business permit image for one Admin decision.
 - **Core lifecycle:**
 
 ```text
@@ -30,8 +30,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - **Frontend routes:** `/register`, `/login`, `/forgot-password`, `/reset-password`, and protected `/dashboard`.
 - **API namespace:** `/api/v1/seller/auth/*`.
 - **Boundaries:** Admin registration management owns approval/rejection; Seller Account Management owns signed-in profile and password changes.
-- **Non-goals:** Admin review UI, shop/catalog management, social login, MFA, mobile tokens, staff sub-accounts, or changing Seller account status.
-- **Open scope:** Seller documents and the timing of one-shop creation are not defined by current requirements and must not be invented here.
+- **Non-goals:** redesigning the Admin review workflow, post-approval shop/catalog management, social login, MFA, mobile tokens, staff sub-accounts, or Seller-controlled account-status changes.
 
 ## MUST
 
@@ -39,15 +38,17 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 
 - Seller lookup and uniqueness must use normalized `email + seller`; a same-email Customer/Admin/Courier must remain isolated.
 - The API must derive `role = seller`; client-supplied `role`, `status`, reviewer, or approval fields are prohibited.
-- Registration must validate and persist the existing Seller profile fields: first name, optional middle name, last name, contact number, sex, and birth date.
+- Registration must validate and persist first name, optional one-character middle initial, last name, contact number, sex, and birth date; age is calculated from birth date and is never accepted as authoritative input.
+- Registration must accept a business name and one active Shop Category selected from the server-provided canonical taxonomy.
+- Registration must accept manually entered street/building, optional secondary line, barangay, city/municipality, province, region, and postal code. Country is server-owned as Philippines; coordinates and third-party address identifiers are prohibited.
+- Registration must require a government ID image and business permit image under `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP only, each smaller than 10 MiB and stored privately on the configured filesystem.
 - Registration must accept email, password, and password confirmation using the project-wide password policy.
-- Laravel must create the User, SellerProfile, and pending RegistrationApplication in one database transaction.
+- Laravel must create the User, SellerProfile, default business Address, pending Shop, pending RegistrationApplication, and two evidence records as one logical operation, cleaning up stored blobs if persistence fails.
 - New records must use UUIDs, `UserStatus::Pending`, `ApplicationStatus::Pending`, and `UserRole::Seller`.
 - Passwords must use the configured Eloquent/Laravel hash mechanism and never appear in responses, logs, or audit payloads.
 - Duplicate and concurrent submissions must produce one Seller role-account/application and a stable field-addressable error.
 - Existing Admin registration management must be able to review the resulting application without a parallel approval model.
-- Seller-specific documents may be uploaded only after the required checklist, limits, and registration UX are decided.
-- Registration must not create a fabricated default shop; shop creation timing remains an open product decision.
+- The Shop must use the submitted business name and selected Shop Category, derive a collision-resistant server-owned slug, and remain `pending` until the Admin decision.
 
 ### Approval and account gating
 
@@ -55,7 +56,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - `pending`, `rejected`, `suspended`, and `deactivated` accounts must be denied even when the password is correct.
 - Use stable response codes such as `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_INACTIVE`.
 - Inactive responses may explain the applicant's own state but must not expose Admin-only notes or unrelated accounts.
-- Approval must activate the existing User/Application atomically; it must not create a second Seller account.
+- Approval must activate the existing User and Shop and approve the Application/evidence atomically; rejection must reject the User/Application/evidence and deactivate the pending Shop. It must not create a second Seller account or Shop.
 - Every protected Seller API must apply `auth:sanctum` and Seller-active role/status middleware.
 - Frontend guards improve navigation only; direct API requests remain protected by Laravel.
 - Seller-owned resources must be scoped from the authenticated Seller and must never trust a submitted `seller_id` or `shop_id`.
@@ -69,7 +70,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Unknown Seller email, wrong password, and an email existing only under another role must share a generic credential error.
 - Rate-limit login by normalized email and IP; return `429` with `Retry-After` when exhausted.
 - Successful login returns a safe Seller DTO and redirects the SPA to `/dashboard`.
-- The DTO may contain Seller ID, safe profile name/email, role, account status, and safe shop summary when one exists.
+- The DTO may contain Seller ID, calculated age, safe profile name/email, role, account status, and safe pending/active shop/category summary.
 - The DTO must exclude hashes, session IDs, remember tokens, registration evidence, and private review metadata.
 - Seller port `5174` and production Seller origin must be included in Sanctum stateful-domain and credentialed CORS configuration.
 - Production Seller and API hosts must share the same top-level domain required by Sanctum SPA authentication.
@@ -95,6 +96,8 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Registration success must show the pending-approval state and direct the applicant to email/status guidance, not the dashboard.
 - Login links to registration and password recovery; approval/rejection screens link back to login or support where appropriate.
 - [x] Seller registration creates one pending User/Profile/Application transactionally.
+- [x] Seller registration creates one pending Shop, one manual default business Address, and the required private ID/permit evidence.
+- [x] Signup Shop Category options come from the canonical 14-group/83-product-category database taxonomy.
 - [x] Same-email accounts remain isolated by role across registration, login, and password reset.
 - [x] Pending, rejected, suspended, and deactivated Sellers cannot access protected APIs.
 - [x] Approved active Seller can sign in, restore a session, reach `/dashboard`, and log out.
@@ -107,7 +110,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Register middleware in `bootstrap/app.php`; add `/api/v1/seller/auth` routes beside existing Customer/Admin auth groups.
 - Mirror proven Customer transaction, status-code, reset-token, and race-handling patterns without cross-importing Customer classes.
 - Reuse the Admin `RegistrationReviewService` and `RegistrationDecisionNotification`, which already support `UserRole::Seller`.
-- Keep enum-like database values as strings with PHP enum casts; no schema migration is currently required for the base auth flow.
+- Keep enum-like database values as strings with PHP enum casts. Product Categories use the additive `shop_category_id` migration to retain their canonical Shop Category grouping.
 - Add Seller origin `localhost:5174`/`127.0.0.1:5174` to `.env.example`, Sanctum defaults, and CORS defaults.
 - Add the project-declared React Router dependency to `src/seller` and replace the static dashboard entry with public/protected route layouts.
 - Implement one credentialed API client, auth context/store, session bootstrap, protected-route boundary, and status-specific error mapping.
@@ -115,6 +118,6 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - API feature tests must cover registration rollback/duplicates, role isolation, every account status, throttle, session fixation, `me`, logout, and reset-token role isolation.
 - Run the API suite on SQLite and PostgreSQL; run Seller lint, TypeScript/build, and focused browser/session checks from port `5174`.
 - Log safe operational result categories and request IDs; never log submitted passwords, cookies, CSRF values, or reset tokens.
-- Roll out only after Seller origins and cookie domains are configured in each environment and the initial shop-onboarding decision is recorded.
-- **Open questions:** shop creation during registration vs post-approval onboarding; required Seller documents; email verification; remember-me policy; full web-session revocation after reset.
+- Roll out only after Seller origins/cookie domains and the configured private filesystem are available in each environment, and after the canonical taxonomy seeder has run.
+- **Open questions:** email verification, remember-me policy, full web-session revocation after reset, and whether business permits will later support a separately approved PDF policy.
 - **References:** [Laravel 13 Sanctum SPA authentication](https://laravel.com/framework/docs/13.x/sanctum#spa-authentication), [Laravel 13 authentication](https://laravel.com/framework/docs/13.x/authentication), and [Laravel 13 password reset](https://laravel.com/framework/docs/13.x/passwords).

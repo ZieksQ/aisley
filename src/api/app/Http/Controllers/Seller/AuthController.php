@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers\Seller;
 
+use App\Enums\AddressType;
 use App\Enums\ApplicationStatus;
+use App\Enums\CategoryStatus;
+use App\Enums\DocumentType;
+use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
@@ -11,8 +15,10 @@ use App\Http\Requests\Seller\LoginRequest;
 use App\Http\Requests\Seller\RegisterRequest;
 use App\Http\Requests\Seller\ResetPasswordRequest;
 use App\Http\Resources\Seller\SellerUserResource;
+use App\Models\ShopCategory;
 use App\Models\User;
 use App\Notifications\Seller\ResetPasswordNotification;
+use App\Services\Seller\RegistrationEvidenceService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +27,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -29,16 +37,44 @@ class AuthController extends Controller
 
     private const MAX_PASSWORD_RESET_ATTEMPTS = 5;
 
+    public function __construct(private readonly RegistrationEvidenceService $registrationEvidence) {}
+
+    public function registrationOptions(): JsonResponse
+    {
+        $shopCategories = ShopCategory::query()
+            ->where('status', CategoryStatus::Active)
+            ->with(['productCategories' => fn ($query) => $query
+                ->where('status', CategoryStatus::Active)
+                ->orderBy('position')
+                ->orderBy('name')])
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (ShopCategory $shopCategory): array => [
+                'id' => $shopCategory->id,
+                'name' => $shopCategory->name,
+                'slug' => $shopCategory->slug,
+                'product_categories' => $shopCategory->productCategories->map(fn ($category): array => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])->values(),
+            ]);
+
+        return response()->json(['shop_categories' => $shopCategories]);
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $email = (string) $request->input('email');
+        $storedEvidence = [];
 
         if ($this->sellerExists($email)) {
             return $this->emailAlreadyRegisteredResponse();
         }
 
         try {
-            $user = DB::transaction(function () use ($request, $email): User {
+            $user = DB::transaction(function () use ($request, $email, &$storedEvidence): User {
                 $user = User::create([
                     'email' => $email,
                     'password' => (string) $request->input('password'),
@@ -55,16 +91,67 @@ class AuthController extends Controller
                     'birth_date',
                 ]));
 
-                $user->registrationApplications()->create([
+                $application = $user->registrationApplications()->create([
                     'application_type' => UserRole::Seller,
                     'status' => ApplicationStatus::Pending,
                     'submitted_at' => now(),
                 ]);
 
+                $recipientName = trim(implode(' ', array_filter([
+                    $request->input('first_name'),
+                    $request->input('middle_name'),
+                    $request->input('last_name'),
+                ])));
+                $address = $request->validated('address');
+
+                $user->addresses()->create([
+                    'type' => AddressType::Both,
+                    'label' => 'Business address',
+                    'recipient_name' => $recipientName,
+                    'contact_number' => (string) $request->input('contact_number'),
+                    'address_line_1' => $address['address_line_1'],
+                    'address_line_2' => $address['address_line_2'] ?? null,
+                    'barangay' => $address['barangay'],
+                    'city_municipality' => $address['city_municipality'],
+                    'province' => $address['province'],
+                    'region' => $address['region'],
+                    'postal_code' => $address['postal_code'],
+                    'country' => 'Philippines',
+                    'is_default' => true,
+                ]);
+
+                $businessName = trim((string) $request->input('business_name'));
+                $slugBase = Str::slug($businessName) ?: 'seller-shop';
+                $user->shop()->create([
+                    'shop_category_id' => (string) $request->input('shop_category_id'),
+                    'name' => $businessName,
+                    'slug' => $slugBase.'-'.substr($user->id, 0, 8),
+                    'status' => ShopStatus::Pending,
+                    'contact_email' => $email,
+                    'contact_number' => (string) $request->input('contact_number'),
+                ]);
+
+                foreach ([
+                    'government_id' => DocumentType::GovernmentId,
+                    'business_permit' => DocumentType::BusinessRegistration,
+                ] as $field => $type) {
+                    $document = $this->registrationEvidence->store(
+                        $user,
+                        $application,
+                        $request->file($field),
+                        $type,
+                    );
+                    $storedEvidence[] = [$document->disk, $document->path];
+                }
+
                 return $user;
             });
-        } catch (QueryException $exception) {
-            if ($this->sellerExists($email)) {
+        } catch (Throwable $exception) {
+            foreach ($storedEvidence as [$disk, $path]) {
+                Storage::disk($disk)->delete($path);
+            }
+
+            if ($exception instanceof QueryException && $this->sellerExists($email)) {
                 return $this->emailAlreadyRegisteredResponse();
             }
 
@@ -247,7 +334,7 @@ class AuthController extends Controller
 
     private function loadSeller(User $user): User
     {
-        return $user->loadMissing(['sellerProfile', 'shop']);
+        return $user->loadMissing(['sellerProfile', 'shop.shopCategory']);
     }
 
     private function emailAlreadyRegisteredResponse(): JsonResponse

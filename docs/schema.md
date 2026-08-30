@@ -107,7 +107,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `AddressType` | `shipping`, `billing`, `both` | `addresses.type` |
 | `VehicleType` | `motorcycle`, `car`, `van` | `vehicles.type` |
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
-| `ShopStatus` | `active`, `suspended`, `deactivated` | `shops.status` |
+| `ShopStatus` | `pending`, `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
 | `ProductVariantStatus` | `active`, `inactive` | `product_variants.status` |
@@ -460,7 +460,7 @@ Constraints and indexes:
 
 **Model:** `ShopCategory`
 
-This table classifies the Seller's business/shop. It is distinct from the hierarchical product catalog in `categories`.
+This table classifies the Seller's business/shop. Each canonical Shop Category owns the allowed Product Categories through `categories.shop_category_id`.
 
 | Column | PostgreSQL type | Nullable | Default | Notes |
 | --- | --- | --- | --- | --- |
@@ -469,6 +469,7 @@ This table classifies the Seller's business/shop. It is distinct from the hierar
 | `slug` | VARCHAR | No | — | Unique route/filter key |
 | `description` | TEXT | Yes | `NULL` | Optional description |
 | `status` | VARCHAR | No | `active` | Cast to `CategoryStatus`; indexed |
+| `position` | SMALLINT | No | `0` | Canonical Shop Category display order |
 | `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 | `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
@@ -514,12 +515,14 @@ This is the hierarchical catalog taxonomy used by storefront product discovery.
 | --- | --- | --- | --- | --- |
 | `id` | UUID | No | Eloquent UUIDv7 | Primary key |
 | `parent_id` | UUID | Yes | `NULL` | Self-FK → `categories.id`; `ON DELETE SET NULL` |
+| `shop_category_id` | UUID | Yes | `NULL` | FK → `shop_categories.id`; `ON DELETE SET NULL` |
 | `name` | VARCHAR | No | — | Display name |
 | `slug` | VARCHAR | No | — | Globally unique route/filter key |
 | `description` | TEXT | Yes | `NULL` | Optional description |
 | `image_disk` | VARCHAR | No | `public` | Filesystem disk containing the homepage image |
 | `image_path` | TEXT | Yes | `NULL` | Category-card image path |
 | `status` | VARCHAR | No | `active` | Cast to `CategoryStatus` |
+| `position` | SMALLINT | No | `0` | Display order within the Shop Category |
 | `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 | `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
@@ -527,8 +530,9 @@ Constraints and indexes:
 
 - Unique: `slug`.
 - Index: (`parent_id`, `status`).
+- Index: (`shop_category_id`, `status`).
 
-Deleting a parent preserves its children and sets their `parent_id` to `NULL`. Cycle prevention belongs in application validation.
+Deleting a parent preserves its children and sets their `parent_id` to `NULL`. Deleting a Shop Category preserves Product Categories while clearing their Shop Category association. The canonical taxonomy seeder creates 14 Shop Categories and 83 associated Product Categories from `docs/references/seller-shop-catagories.md`. Cycle prevention belongs in application validation.
 
 ### 9.4 `products`
 
@@ -790,6 +794,9 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 23. `carts.customer_id` must identify an active Customer for Cart access, and every Cart query/mutation must derive ownership from the authenticated Customer rather than client input.
 24. A Cart Item with Product options must reference one active, complete Variant combination belonging to that Product; a Product without options must use `variant_id = NULL`.
 25. Cart quantities must be positive and within current Product/Variant stock when mutated. Cart writes do not reserve or decrement inventory, and reads preserve unavailable intent while reporting current availability.
+26. Seller registration creates its pending User, profile, default manual business address, pending one-to-one Shop, Registration Application, and two private evidence records as one logical operation; failed persistence must remove any blobs already written.
+27. A Seller approval/rejection must transition the User, Registration Application, Shop, and attached evidence statuses atomically. Registration evidence is private and may be downloaded only by an authorized registration reviewer.
+28. Seller registration accepts manually entered address components only; latitude, longitude, third-party place identifiers, and client-selected account/shop statuses are prohibited.
 
 ## 13. Migration order
 
@@ -825,6 +832,7 @@ Migrations currently run in this dependency order:
 28. `2026_08_28_000119_stabilize_audit_append_only_function.php`.
 29. `2026_08_29_000120_add_product_details_and_variants.php` — product detail content, options, variants, variant selections, and media.
 30. `2026_08_29_000121_create_carts_and_cart_items.php` — one Customer Cart, SKU-level Cart Items, and PostgreSQL-safe partial configuration uniqueness.
+31. `2026_08_30_000122_link_product_categories_to_shop_categories.php` — associates each Product Category with its Shop Category taxonomy group.
 
 ## 14. Deferred schema
 
