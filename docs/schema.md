@@ -70,6 +70,9 @@ erDiagram
     PERMISSIONS ||--o{ ADMIN_PERMISSIONS : defines
     USERS o|--o{ AUDIT_LOGS : historically_attributed_to
     USERS o|--o{ AUDIT_OUTBOX : performs
+    USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ ACCOUNT_LIFECYCLE_EVENTS : undergoes
+    USERS ||--o{ ACCOUNT_LIFECYCLE_EVENTS : administers
 
     USERS ||--o| SHOPS : owns_as_seller
     SHOP_CATEGORIES o|--o{ SHOPS : classifies
@@ -115,6 +118,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | --- | --- | --- |
 | `UserRole` | `customer`, `seller`, `admin`, `courier` | `users.role`, `registration_applications.application_type`, `password_reset_tokens.role` |
 | `UserStatus` | `pending`, `active`, `rejected`, `suspended`, `deactivated` | `users.status` |
+| `AccountLifecycleAction` | `suspended`, `restored`, `deactivated` | `account_lifecycle_events.action` |
 | `UserSex` | `male`, `female`, `non_binary`, `prefer_not_to_say` | Role-profile `sex` columns |
 | `ApplicationStatus` | `pending`, `approved`, `rejected` | `registration_applications.status` |
 | `DocumentType` | `government_id`, `business_registration`, `tax_document`, `drivers_license`, `vehicle_registration`, `proof_of_address`, `other` | `documents.type` |
@@ -133,9 +137,14 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `VoucherIssuerType` | `app`, `shop` | `vouchers.issuer_type`, `order_vouchers.issuer_type` |
 | `VoucherBenefitType` | `discount`, `shipping` | `vouchers.benefit_type`, `order_vouchers.benefit_type` |
 | `VoucherValueType` | `fixed`, `percent` | `vouchers.value_type` |
+| `AnnouncementStatus` | `draft`, `published`, `archived` | `announcements.status` |
+| `PlatformPolicyType` | `terms_of_service`, `privacy_policy`, `internal_rules` | `platform_policies.type` |
+| `PlatformPolicyVersionStatus` | `draft`, `published`, `superseded` | `platform_policy_versions.status` |
+| `SellerComplianceCaseStatus` | `open`, `confirmed`, `dismissed`, `closed` | `seller_compliance_cases.status` |
+| `SellerComplianceActionType` | `case_dismissed`, `case_closed`, `warning_issued`, `product_restricted`, `product_restriction_revoked`, `seller_suspension_referred` | `seller_compliance_actions.action` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
-| `AdminAuditAction` | `registration.approved`, `registration.rejected`, `admin.login_succeeded` | New `audit_logs.action` and `audit_outbox.action` values |
-| `AuditSourceFeature` | `account_approval`, `admin_authentication` | New `audit_logs.source_feature` and `audit_outbox.source_feature` values |
+| `AdminAuditAction` | Registration, Admin authentication/account, Platform Settings, and user-account lifecycle action strings defined by the PHP enum | `audit_logs.action`, `audit_outbox.action` |
+| `AuditSourceFeature` | `account_approval`, `admin_authentication`, `admin_account_management`, `platform_settings`, `user_account_management`, `seller_compliance` | `audit_logs.source_feature`, `audit_outbox.source_feature` |
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
 
@@ -451,6 +460,54 @@ Account-registration decisions write one outbox event inside the same transactio
 | `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
 
 Indexes: (`processed_at`, `available_at`) for recovery scans and (`auditable_type`, `auditable_id`) for target diagnostics.
+
+### 7.5 `notifications`
+
+Laravel's database notification table stores role-scoped per-user inbox records. Current producers record pending Customer/Seller registration summaries for authorized Admin recipients and committed compliance-warning/restriction/suspension summaries for the affected Seller; payloads contain only safe summary and internal destination data.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Primary notification identifier |
+| `type` | VARCHAR | No | Stable application type such as `account-registration.pending` |
+| `notifiable_type` | VARCHAR | No | Polymorphic recipient model class |
+| `notifiable_id` | UUID | No | Recipient identifier |
+| `data` | TEXT | No | Laravel-encoded compact JSON payload |
+| `read_at` | TIMESTAMP | Yes | `NULL` while unread |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Laravel |
+
+Indexes cover the polymorphic recipient and recipient/read/time inbox query. Notification destinations are generated and allow-listed by the API; database payloads are never accepted directly from an Admin client.
+
+### 7.6 `account_lifecycle_events`
+
+**Model:** `AccountLifecycleEvent`
+
+This append-preserving history records non-Admin account suspension, restoration, and deactivation independently from the current `users.status` value.
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Primary key |
+| `user_id` | UUID | No | Managed account FK → `users.id`; `ON DELETE RESTRICT` |
+| `action` | VARCHAR | No | Cast to `AccountLifecycleAction` |
+| `previous_status`, `new_status` | VARCHAR | No | Cast to `UserStatus` |
+| `reason` | TEXT | Yes | Safe administrative lifecycle reason |
+| `acted_by_admin_id` | UUID | No | Acting Admin FK → `users.id`; `ON DELETE RESTRICT` |
+| `source_feature` | VARCHAR | No | Defaults to `user_account_management` for future cross-feature reuse |
+| `source_reference_type` | VARCHAR | Yes | Optional owning-feature reference type |
+| `source_reference_id` | UUID | Yes | Optional owning-feature reference UUID |
+| `occurred_at` | TIMESTAMP | No | Authoritative transition time |
+| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+
+Indexes support account history, actor history, and optional source-reference lookup. Transitions lock the User row, require the client's expected current status, write this history and the audit outbox atomically, and never hard-delete the User.
+
+### 7.7 Seller compliance cases and actions
+
+**Models:** `SellerComplianceCase`, `SellerComplianceAction`, `ProductComplianceRestriction`
+
+`seller_compliance_cases` stores a manual Admin review of one Seller and, optionally, one Product owned by that Seller. It retains an optional immutable published-policy version, safe review reason, source type/reference, string-backed status, optimistic `revision`, Admin creator/dismissal/closure attribution, and decision timestamps. Seller, Product, policy, and Admin foreign keys use restrictive deletion to preserve moderation history.
+
+`seller_compliance_actions` is the immutable decision ledger. Every row stores one string-backed action type, safe reason, acting Admin, server occurrence time, unique UUID idempotency key, and optional Product-restriction or Account-lifecycle-event link. Retried requests with the same key return the canonical case without duplicating history, notifications, or audit events.
+
+`product_compliance_restrictions` preserves each imposed and revoked listing restriction. One Product may have at most one active restriction through unique (`product_id`, `active_marker`), where active rows use `active` and revoked rows set the marker to `NULL`. Revocation appends a compliance action and fills revoker/reason/time without deleting the restriction. Storefront discovery/detail, Cart, Checkout, Seller publish, and Seller unarchive all exclude or reject Products with an active restriction.
 
 ## 8. Courier foundation
 
@@ -786,6 +843,18 @@ Successful placement increments `inventory_balances.reserved`, writes an immutab
 
 Logistics provider/method selection is not stored or accepted. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
 
+### 9.16 Platform announcements and policies
+
+**Models:** `Announcement`, `PlatformPolicy`, `PlatformPolicyVersion`, `PolicyAcceptance`
+
+`announcements` stores one platform-wide plain-text announcement with a draft/published/archived lifecycle, optional expiration, Admin creator/updater references, and an incrementing `revision` used to reject stale edits and transitions. Published-read queries require `published_at <= now` and no elapsed expiration.
+
+`platform_policies` allow-lists Terms of Service, Privacy Policy, and Internal Platform Rules. Its unique `type` is the stable identity and nullable unique `current_version_id` points to the one effective published version.
+
+`platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, an optional user-safe change summary, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Nullable unique `source_policy_version_id` records the published version copied into a successor Draft and prevents competing successor copies for the same source. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
+
+`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. User-facing consent presentation and enforcement remain a separate integration decision.
+
 ## 10. Framework infrastructure tables
 
 These tables are created by the Laravel foundation migrations and do not have application-domain Eloquent models.
@@ -816,6 +885,11 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Admin permission → grantor User | `SET NULL` | Preserve the grant after grantor removal |
 | Audit log → actor User | No database FK | Preserve immutable actor ID/name snapshots without an FK-triggered ledger update |
 | Audit outbox → actor User | `SET NULL` | Pending/recoverable event remains valid after actor removal |
+| Notification → recipient | Polymorphic, no database FK | Laravel scopes persisted inbox rows through the authenticated recipient |
+| Lifecycle event → managed User/Admin actor | `RESTRICT` | Preserve account lifecycle and actor attribution; hard deletion is not an account-management action |
+| Compliance case → Seller/Product/policy/Admin actors | `RESTRICT` | Preserve the reviewed subject, governing version, and decision attribution |
+| Compliance action → case/Admin/restriction/lifecycle event | `RESTRICT` | Immutable decisions must retain their owning case and linked enforcement records |
+| Product compliance restriction → Product/case/policy/Admin actors | `RESTRICT` | Listing moderation is revoked by append-preserving state, not deletion |
 | Vehicle → Courier profile | `CASCADE` | Vehicle registration belongs to Courier profile |
 | Shop → Seller User | `RESTRICT` | Prevent a hard delete from orphaning the tenant |
 | Shop → shop category | `SET NULL` | Preserve shop if classification is removed |
@@ -881,6 +955,17 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 32. Final placement locks inventory balances in stable SKU order, revalidates the quote, and reserves stock atomically with all Orders and selected-Cart cleanup.
 33. Shop vouchers apply only to their issuer's Order. At most one App voucher is redeemed per batch and only against its explicit eligible target Shop; distinct-benefit stacking requires reciprocal stored permission.
 34. A Customer-scoped idempotency key returns the original batch only for the identical placement request. A reused key with different details is a conflict.
+35. Platform Settings exposes only allow-listed announcement and policy records; it cannot mutate environment variables, secrets, or infrastructure configuration.
+36. Published policy versions are immutable, and each policy has at most one current version through `platform_policies.current_version_id`.
+37. Announcement and policy mutations require matching persisted revisions so stale Admin clients cannot silently overwrite newer state.
+38. A policy successor Draft must copy the current Published version without modifying its source; unique `source_policy_version_id` permits at most one successor lineage for that source.
+39. Manage User Accounts may target only non-Admin UUID accounts. `active → suspended`, `suspended → active`, and `active|suspended → deactivated` are the only current lifecycle transitions.
+40. Lifecycle mutations must lock and compare the current status with `expected_status`, persist one lifecycle event plus audit outbox entry atomically, and never update a same-email account under another role.
+41. Pending/rejected onboarding states remain under registration approval, and ordinary lifecycle status remains independent from Global Ban or future compliance records.
+42. A compliance case Seller must have the Seller role, and its optional Product must belong to that Seller's authoritative Shop.
+43. Compliance actions require the persisted expected case revision and a unique idempotency key; cases, affected Products, Sellers, and active restrictions are rechecked under database locks.
+44. Active Product compliance restrictions override publication state across discovery, Product Detail, Cart, Checkout, Seller publish, and Seller unarchive without deleting catalog, Inventory, or historical Order data.
+45. Seller suspension referrals use the canonical Account Management lifecycle service and require the exact `email/seller` confirmation; compliance does not write `users.status` directly.
 
 ## 13. Migration order
 
@@ -920,6 +1005,12 @@ Migrations currently run in this dependency order:
 32. `2026_08_30_000123_create_inventory_ledger.php` — SKU identities, current balances, immutable movements, constraints, and catalog-stock backfill.
 33. `2026_08_30_000124_add_admin_profile_photo_metadata.php` — configured-disk and validated image metadata for private Admin profile photos.
 34. `2026_08_30_000125_create_checkout_orders_and_vouchers.php` — Voucher definitions/redemptions, expiring checkout quotes, idempotent batches, Shop Orders, immutable item/address/voucher snapshots, and initial status history.
+35. `2026_08_30_000126_create_platform_settings_tables.php` — announcements, stable policy identities, immutable policy versions, and exact-version consent records.
+36. `2026_08_30_000127_add_successor_lineage_to_platform_policy_versions.php` — successor source linkage and optional user-safe policy change summaries.
+37. `2026_08_31_000128_add_seller_profile_photo_metadata.php` — configured-disk and validated image metadata for private Seller profile photos.
+38. `2026_08_31_000129_create_notifications_table.php` — Laravel database notification inbox with UUID recipients/read state.
+39. `2026_08_31_000130_create_account_lifecycle_events_table.php` — durable non-Admin account lifecycle history and actor/source attribution.
+40. `2026_08_31_000131_create_seller_compliance_tables.php` — manual cases, immutable decisions, idempotent action keys, and active/revocable Product restrictions.
 
 ## 14. Deferred schema
 
@@ -932,9 +1023,9 @@ The following capabilities appear in requirements but have no migrations or mode
 | Payments and finance | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers |
 | First-party logistics | Organization/hub decision, shipments/parcels, waybills, scan events, pickup/final-delivery tasks, assignments, proof of delivery, and Courier earnings |
 | Reviews | Verified-purchase ratings, review media, and Seller responses |
-| Support and compliance | Complaints/disputes, evidence, resolutions, warnings, and moderation actions |
-| Messaging and notifications | Conversations, participants, messages, read state, and persisted notifications |
-| Admin content | Announcements, policies, settings, and policy consent |
+| Support and compliance | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
+| Messaging | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately |
+| Policy consent integration | User-facing consent presentation, acceptance endpoints, and login/application enforcement against the implemented version-specific acceptance schema |
 | Reporting | Derived Seller/Admin aggregates; avoid report tables until query performance requires them |
 
 Before adding these tables:

@@ -199,7 +199,7 @@ class CheckoutService
         if ($lock) {
             $productQuery->lockForUpdate();
         }
-        $products = $productQuery->with(['shop.seller', 'optionGroups'])->get()->keyBy('id');
+        $products = $productQuery->with(['shop.seller', 'optionGroups', 'activeComplianceRestriction'])->get()->keyBy('id');
 
         $variantQuery = ProductVariant::query()->whereIn('id', $variantIds)->orderBy('id');
         if ($lock) {
@@ -315,7 +315,8 @@ class CheckoutService
         $visible = $product->status === ProductStatus::Active
             && $product->published_at !== null && ! $product->published_at->isFuture()
             && $product->shop?->status === ShopStatus::Active && ! $product->shop->is_on_vacation
-            && $product->shop->seller?->role === UserRole::Seller && $product->shop->seller?->status === UserStatus::Active;
+            && $product->shop->seller?->role === UserRole::Seller && $product->shop->seller?->status === UserStatus::Active
+            && ! $product->isComplianceRestricted();
         if (! $visible) {
             throw CheckoutException::conflict('PRODUCT_UNAVAILABLE', 'A selected product is no longer available.', 'product_id');
         }

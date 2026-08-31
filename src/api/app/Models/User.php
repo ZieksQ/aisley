@@ -74,6 +74,26 @@ class User extends Authenticatable
         return $this->hasMany(RegistrationApplication::class);
     }
 
+    public function lifecycleEvents(): HasMany
+    {
+        return $this->hasMany(AccountLifecycleEvent::class);
+    }
+
+    public function sellerComplianceCases(): HasMany
+    {
+        return $this->hasMany(SellerComplianceCase::class, 'seller_id');
+    }
+
+    public function createdSellerComplianceCases(): HasMany
+    {
+        return $this->hasMany(SellerComplianceCase::class, 'created_by_admin_id');
+    }
+
+    public function performedLifecycleEvents(): HasMany
+    {
+        return $this->hasMany(AccountLifecycleEvent::class, 'acted_by_admin_id');
+    }
+
     public function reviewedApplications(): HasMany
     {
         return $this->hasMany(RegistrationApplication::class, 'reviewer_id');
@@ -115,6 +135,11 @@ class User extends Authenticatable
     public function grantedAdminPermissions(): HasMany
     {
         return $this->hasMany(AdminPermission::class, 'granted_by');
+    }
+
+    public function policyAcceptances(): HasMany
+    {
+        return $this->hasMany(PolicyAcceptance::class);
     }
 
     /**

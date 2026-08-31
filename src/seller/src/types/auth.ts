@@ -6,7 +6,7 @@ export type SellerProfile = {
   sex: 'male' | 'female' | 'non_binary' | 'prefer_not_to_say' | null
   birth_date: string | null
   age: number | null
-  profile_photo_path: string | null
+  profile_photo_url: string | null
 }
 
 export type SellerShop = {

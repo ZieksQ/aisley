@@ -163,7 +163,8 @@ class CartService
             && $product->shop?->status === ShopStatus::Active
             && ! $product->shop->is_on_vacation
             && $product->shop->seller?->role === UserRole::Seller
-            && $product->shop->seller?->status === UserStatus::Active;
+            && $product->shop->seller?->status === UserStatus::Active
+            && ! $product->isComplianceRestricted();
 
         if (! $isVisible) {
             throw CartOperationException::conflict(
@@ -268,6 +269,7 @@ class CartService
         return $cart->fresh()->load([
             'items' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
             'items.product.shop.seller',
+            'items.product.activeComplianceRestriction',
             'items.product.optionGroups',
             'items.variant.optionValues.optionGroup',
             'items.variant.primaryMedia',

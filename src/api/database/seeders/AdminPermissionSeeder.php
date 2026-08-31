@@ -24,6 +24,36 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'audit-logs.view',
             'description' => 'View and investigate the immutable administrative audit ledger.',
         ],
+        [
+            'name' => 'View platform settings',
+            'slug' => 'platform-settings.view',
+            'description' => 'View announcement and platform-policy administration records.',
+        ],
+        [
+            'name' => 'Manage platform settings',
+            'slug' => 'platform-settings.manage',
+            'description' => 'Create, edit, publish, archive, and version platform content.',
+        ],
+        [
+            'name' => 'View Admin notifications',
+            'slug' => 'notifications.view',
+            'description' => 'View and manage the authenticated administrator notification inbox.',
+        ],
+        [
+            'name' => 'View user accounts',
+            'slug' => 'users.view',
+            'description' => 'Search and inspect non-Admin user accounts and lifecycle history.',
+        ],
+        [
+            'name' => 'Manage user accounts',
+            'slug' => 'users.manage',
+            'description' => 'Suspend, restore, and deactivate eligible non-Admin user accounts.',
+        ],
+        [
+            'name' => 'Manage Seller compliance',
+            'slug' => 'seller_compliance.manage',
+            'description' => 'Review Seller and Product compliance cases and apply authorized actions.',
+        ],
     ];
 
     public function run(): void

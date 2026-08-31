@@ -18,7 +18,7 @@ scope: Seller Web Application
 - **Application boundary:** React/Vite owns auth forms and route state; Laravel owns identity, validation, approval gating, sessions, and authorization.
 - **Canonical identity:** a persisted `users` record with `role = seller`, resolved by normalized `email + role`.
 - **Existing foundation:** Seller auth, approval gating, database sessions, Admin review, addresses, shops, private registration evidence, and the Shop/Product Category taxonomy are implemented.
-- **Current registration scope:** collect the account holder, manual business address, pending shop, line of business, government ID image, and business permit image for one Admin decision.
+- **Current registration scope:** collect the account holder, a business address using PSGC-backed administrative dropdowns plus manual postal/street details, pending shop, line of business, government ID image, and business permit image for one Admin decision.
 - **Core lifecycle:**
 
 ```text
@@ -40,7 +40,11 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - The API must derive `role = seller`; client-supplied `role`, `status`, reviewer, or approval fields are prohibited.
 - Registration must validate and persist first name, optional one-character middle initial, last name, contact number, sex, and birth date; age is calculated from birth date and is never accepted as authoritative input.
 - Registration must accept a business name and one active Shop Category selected from the server-provided canonical taxonomy.
-- Registration must accept manually entered street/building, optional secondary line, barangay, city/municipality, province, region, and postal code. Country is server-owned as Philippines; coordinates and third-party address identifiers are prohibited.
+- Registration must provide cascading dropdowns backed by the bundled Q2 2026 PSGC JSON files under `src/api/addresses` in this order: Region, Province, City/Municipality, and Barangay. Changing a parent must clear and reload its descendants.
+- Postal code must be a required manual field placed between Province and City/Municipality because the bundled dataset does not supply postal codes. Street/building and the optional secondary line also remain manual.
+- A complete manual administrative-address fallback must remain available when the bundled data is missing, invalid, or does not represent an independent city or other valid address cleanly.
+- Country is server-owned as Philippines. Laravel must validate and persist the selected address names; PSGC codes are lookup-only values and must not be persisted as authoritative registration data.
+- The Seller browser must call only versioned Aisley API routes. Laravel reads the bundled files locally; registration address lookup must not make a third-party network request or require a provider token.
 - Registration must require a government ID image and business permit image under `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP only, each smaller than 10 MiB and stored privately on the configured filesystem.
 - Registration must accept email, password, and password confirmation using the project-wide password policy.
 - Laravel must create the User, SellerProfile, default business Address, pending Shop, pending RegistrationApplication, and two evidence records as one logical operation, cleaning up stored blobs if persistence fails.
@@ -97,6 +101,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Login links to registration and password recovery; approval/rejection screens link back to login or support where appropriate.
 - [x] Seller registration creates one pending User/Profile/Application transactionally.
 - [x] Seller registration creates one pending Shop, one manual default business Address, and the required private ID/permit evidence.
+- [x] Seller registration offers server-proxied cascading PSGC administrative dropdowns and preserves complete manual entry.
 - [x] Signup Shop Category options come from the canonical 14-group/83-product-category database taxonomy.
 - [x] Same-email accounts remain isolated by role across registration, login, and password reset.
 - [x] Pending, rejected, suspended, and deactivated Sellers cannot access protected APIs.
@@ -114,6 +119,8 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Add Seller origin `localhost:5174`/`127.0.0.1:5174` to `.env.example`, Sanctum defaults, and CORS defaults.
 - Add the project-declared React Router dependency to `src/seller` and replace the static dashboard entry with public/protected route layouts.
 - Implement one credentialed API client, auth context/store, session bootstrap, protected-route boundary, and status-specific error mapping.
+- Implement keyboard-accessible cascading selects backed by Seller-namespaced Laravel endpoints. Reset descendants when Region, Province, or City/Municipality changes, ignore stale responses, and retain the manual path when no useful result is returned.
+- Read and normalize the bundled `src/api/addresses` hierarchy in Laravel, cache decoded files, flatten sub-municipality descendants for Barangay options, throttle the public registration lookup routes, and return a generic safe `503` when local data is unavailable. Do not make address lookup calls part of the registration transaction.
 - Reuse `@aisley/ui` form primitives where compatible and follow `docs/design.md` dashboard accessibility/dark-mode rules.
 - API feature tests must cover registration rollback/duplicates, role isolation, every account status, throttle, session fixation, `me`, logout, and reset-token role isolation.
 - Run the API suite on SQLite and PostgreSQL; run Seller lint, TypeScript/build, and focused browser/session checks from port `5174`.

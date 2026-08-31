@@ -49,6 +49,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setSeller(null)
         }
       },
+      updateSeller: setSeller,
     }),
     [seller, isLoading],
   )

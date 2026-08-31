@@ -10,6 +10,7 @@ import { ProductFormPage } from './pages/ProductFormPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { AccountPage } from './pages/AccountPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />
           <Route element={<InventoryPage />} path="/inventory" />
           <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
+          <Route element={<AccountPage />} path="/account" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />
