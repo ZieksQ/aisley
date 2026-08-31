@@ -42,8 +42,10 @@ role: Seller, Customer, Courier
 - **Age (autogen)\***
   - The age process is already handled by the API, but make the UI display the age of the seller
 - **Address (API)**
-  - Dropdown: Province, Municipality, Barangay
+  - PSGC dropdowns: Region, Province, City/Municipality, Barangay
+  - Required manual entry between Province and City/Municipality: Postal code
   - Manual entry: Street, House number, etc.
+  - Preserve a complete manual fallback when PSGC is unavailable or incomplete
 - **Business name**
 - **Line of business (category)**
   - Dropdown to pick from sellers shop catagories

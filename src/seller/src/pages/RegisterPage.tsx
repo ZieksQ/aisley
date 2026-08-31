@@ -5,9 +5,8 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { AuthShell } from '../components/AuthShell'
 import { FormField, SelectField } from '../components/FormField'
-import { GeoapifyAddressField } from '../components/GeoapifyAddressField'
-import type { GeoapifySuggestion } from '../components/GeoapifyAddressField'
 import { LoadingScreen } from '../components/LoadingScreen'
+import { PsgcAddressFields } from '../components/PsgcAddressFields'
 import { ApiError, apiRequest, initializeCsrf } from '../lib/api'
 import type { AuthResponse, RegistrationOptionsResponse, ShopCategoryOption } from '../types/auth'
 
@@ -34,9 +33,7 @@ export function RegisterPage() {
   const [shopCategories, setShopCategories] = useState<ShopCategoryOption[]>([])
   const [optionsError, setOptionsError] = useState<string | null>(null)
   const [isLoadingOptions, setIsLoadingOptions] = useState(true)
-  const [address, setAddress] = useState({ barangay: '', cityMunicipality: '', province: '', region: '', postalCode: '' })
   const age = useMemo(() => ageFromBirthDate(birthDate), [birthDate])
-  const geoapifyApiKey = (import.meta.env.VITE_GEOAPIFY_API_KEY ?? '').trim()
 
   useEffect(() => {
     document.title = 'Seller registration | Aisley'
@@ -82,17 +79,6 @@ export function RegisterPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  function selectAdministrativeAddress(suggestion: GeoapifySuggestion) {
-    setAddress((current) => ({
-      ...current,
-      barangay: suggestion.barangay ?? current.barangay,
-      cityMunicipality: suggestion.municipality ?? current.cityMunicipality,
-      province: suggestion.province ?? current.province,
-      region: suggestion.region ?? current.region,
-      postalCode: suggestion.postcode ?? current.postalCode,
-    }))
   }
 
   if (submittedEmail) {
@@ -157,23 +143,11 @@ export function RegisterPage() {
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-1 font-semibold">Business address</legend>
-          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Use the optional address dropdown to copy a Province, Municipality, and Barangay suggestion, then review or complete the separate manual address fields.</p>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Select the administrative address in order. Postal code and street details remain manual because they are not supplied by PSGC.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <GeoapifyAddressField apiKey={geoapifyApiKey} onSelect={selectAdministrativeAddress} />
-            </div>
-            <p className="border-t border-zinc-200 pt-4 text-sm font-semibold dark:border-white/10 sm:col-span-2">Manual address</p>
-            <FormField error={errors['address.address_line_1']?.[0]} id="address_line_1" label="Street and house/building number *" name="address[address_line_1]" required />
-            <FormField error={errors['address.address_line_2']?.[0]} id="address_line_2" label="Unit, floor, or landmark (optional)" name="address[address_line_2]" />
-            <FormField error={errors['address.province']?.[0]} id="province" label="Province *" name="address[province]" onChange={(event) => setAddress((current) => ({ ...current, province: event.target.value }))} required value={address.province} />
-            <FormField error={errors['address.city_municipality']?.[0]} id="city_municipality" label="City or municipality *" name="address[city_municipality]" onChange={(event) => setAddress((current) => ({ ...current, cityMunicipality: event.target.value }))} required value={address.cityMunicipality} />
-            <FormField error={errors['address.barangay']?.[0]} id="barangay" label="Barangay *" name="address[barangay]" onChange={(event) => setAddress((current) => ({ ...current, barangay: event.target.value }))} required value={address.barangay} />
-            <FormField error={errors['address.region']?.[0]} id="region" label="Region *" name="address[region]" onChange={(event) => setAddress((current) => ({ ...current, region: event.target.value }))} required value={address.region} />
-            <FormField error={errors['address.postal_code']?.[0]} id="postal_code" label="Postal code *" maxLength={10} name="address[postal_code]" onChange={(event) => setAddress((current) => ({ ...current, postalCode: event.target.value }))} required value={address.postalCode} />
-            <FormField disabled id="country" label="Country" name="country_display" value="Philippines" />
+            <PsgcAddressFields errors={errors} />
           </div>
-          {!geoapifyApiKey ? <p className="mt-4 text-sm text-amber-700 dark:text-amber-300" role="status">Geoapify suggestions are not configured in this environment. You can still enter the complete address manually.</p> : null}
-          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Suggestions powered by <a className="underline underline-offset-2" href="https://www.geoapify.com/" rel="noreferrer" target="_blank">Geoapify</a> and <a className="underline underline-offset-2" href="https://www.openstreetmap.org/copyright" rel="noreferrer" target="_blank">© OpenStreetMap contributors</a>.</p>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Administrative classifications supplied by the <a className="underline underline-offset-2" href="https://psa.gov.ph/classifications-api/psgc" rel="noreferrer" target="_blank">Philippine Statistics Authority PSGC API</a>.</p>
         </fieldset>
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">

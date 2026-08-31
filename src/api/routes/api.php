@@ -19,6 +19,7 @@ use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
@@ -95,6 +96,12 @@ Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
+    Route::prefix('address-options')->name('address-options.')->middleware('throttle:60,1')->group(function () {
+        Route::get('/regions', [SellerRegistrationAddressController::class, 'regions'])->name('regions');
+        Route::get('/provinces', [SellerRegistrationAddressController::class, 'provinces'])->name('provinces');
+        Route::get('/municipalities', [SellerRegistrationAddressController::class, 'municipalities'])->name('municipalities');
+        Route::get('/barangays', [SellerRegistrationAddressController::class, 'barangays'])->name('barangays');
+    });
     Route::get('/registration-options', [SellerAuthController::class, 'registrationOptions'])
         ->middleware('throttle:60,1')
         ->name('registration-options');
