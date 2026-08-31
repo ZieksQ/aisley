@@ -39,6 +39,16 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'notifications.view',
             'description' => 'View and manage the authenticated administrator notification inbox.',
         ],
+        [
+            'name' => 'View user accounts',
+            'slug' => 'users.view',
+            'description' => 'Search and inspect non-Admin user accounts and lifecycle history.',
+        ],
+        [
+            'name' => 'Manage user accounts',
+            'slug' => 'users.manage',
+            'description' => 'Suspend, restore, and deactivate eligible non-Admin user accounts.',
+        ],
     ];
 
     public function run(): void

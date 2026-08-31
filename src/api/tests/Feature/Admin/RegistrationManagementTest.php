@@ -299,7 +299,7 @@ class RegistrationManagementTest extends TestCase
             ->firstOrFail();
 
         $this->assertEqualsCanonicalizing(
-            ['registrations.view', 'registrations.review', 'audit-logs.view', 'platform-settings.view', 'platform-settings.manage', 'notifications.view'],
+            ['registrations.view', 'registrations.review', 'audit-logs.view', 'platform-settings.view', 'platform-settings.manage', 'notifications.view', 'users.view', 'users.manage'],
             $admin->permissions()->pluck('slug')->all(),
         );
     }

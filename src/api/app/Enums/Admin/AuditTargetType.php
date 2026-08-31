@@ -2,6 +2,7 @@
 
 namespace App\Enums\Admin;
 
+use App\Models\AccountLifecycleEvent;
 use App\Models\Announcement;
 use App\Models\PlatformPolicyVersion;
 use App\Models\RegistrationApplication;
@@ -13,6 +14,7 @@ enum AuditTargetType: string
     case AdminAccount = 'admin_account';
     case Announcement = 'announcement';
     case PlatformPolicyVersion = 'platform_policy_version';
+    case AccountLifecycleEvent = 'account_lifecycle_event';
 
     public function label(): string
     {
@@ -21,6 +23,7 @@ enum AuditTargetType: string
             self::AdminAccount => 'Admin account',
             self::Announcement => 'Announcement',
             self::PlatformPolicyVersion => 'Policy version',
+            self::AccountLifecycleEvent => 'Account lifecycle event',
         };
     }
 
@@ -31,6 +34,7 @@ enum AuditTargetType: string
             self::AdminAccount => User::class,
             self::Announcement => Announcement::class,
             self::PlatformPolicyVersion => PlatformPolicyVersion::class,
+            self::AccountLifecycleEvent => AccountLifecycleEvent::class,
         };
     }
 
@@ -41,6 +45,7 @@ enum AuditTargetType: string
             User::class => self::AdminAccount,
             Announcement::class => self::Announcement,
             PlatformPolicyVersion::class => self::PlatformPolicyVersion,
+            AccountLifecycleEvent::class => self::AccountLifecycleEvent,
             default => null,
         };
     }

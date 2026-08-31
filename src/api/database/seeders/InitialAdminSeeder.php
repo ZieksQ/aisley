@@ -48,6 +48,8 @@ class InitialAdminSeeder extends Seeder
                     'platform-settings.view',
                     'platform-settings.manage',
                     'notifications.view',
+                    'users.view',
+                    'users.manage',
                 ])
                 ->pluck('id'),
         );

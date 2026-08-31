@@ -181,6 +181,7 @@ DEACTIVATED
   - record actor/timestamp/reason as required
 - A deactivated account must not retain normal protected access.
 - Whether deactivation is reversible is an Open Question.
+- **Implemented MVP decision:** deactivation is not reversible through Manage User Accounts; only suspended accounts can be restored.
 - Prefer status-based deactivation or soft deletion over destructive deletion when records are referenced by historical transactions.
 - Hard delete must not be exposed merely because the source says CRUD.
 - Permanent deletion requires a separately defined retention/privacy workflow.
@@ -310,25 +311,25 @@ DEACTIVATED
 - Validation/conflict messages must be accessible.
 
 ### Acceptance criteria
-- [ ] Guest cannot access Manage User Accounts.
-- [ ] Non-Admin cannot access Admin user-management APIs.
-- [ ] Custom Admin permission is enforced.
-- [ ] User list is paginated and supports allow-listed search/filtering.
-- [ ] List/detail DTOs omit restricted secrets and unnecessary PII.
-- [ ] Account actions target immutable user/account ID.
-- [ ] Same-email accounts under another role are not modified accidentally.
-- [ ] Client cannot arbitrarily change role or account status.
-- [ ] Eligible active account can be suspended.
-- [ ] Eligible suspended account can be restored.
-- [ ] Eligible account can be deactivated without destroying required history.
-- [ ] Invalid/stale transitions return conflict instead of overwriting state.
-- [ ] Lifecycle actions preserve actor, timestamp, and history.
-- [ ] Lifecycle actions are audited.
-- [ ] Existing authenticated access is denied promptly after suspension/deactivation.
-- [ ] Global Ban remains independent from normal lifecycle state.
-- [ ] Cross-feature account actions use the same lifecycle rules.
-- [ ] Hard delete is not exposed without explicit retention/privacy requirements.
-- [ ] UI handles loading, empty, forbidden, conflict, validation, success, and failure states.
+- [x] Guest cannot access Manage User Accounts.
+- [x] Non-Admin cannot access Admin user-management APIs.
+- [x] Custom Admin permission is enforced.
+- [x] User list is paginated and supports allow-listed search/filtering.
+- [x] List/detail DTOs omit restricted secrets and unnecessary PII.
+- [x] Account actions target immutable user/account ID.
+- [x] Same-email accounts under another role are not modified accidentally.
+- [x] Client cannot arbitrarily change role or account status.
+- [x] Eligible active account can be suspended.
+- [x] Eligible suspended account can be restored.
+- [x] Eligible account can be deactivated without destroying required history.
+- [x] Invalid/stale transitions return conflict instead of overwriting state.
+- [x] Lifecycle actions preserve actor, timestamp, and history.
+- [x] Lifecycle actions are audited.
+- [x] Existing authenticated access is denied promptly after suspension/deactivation.
+- [x] Global Ban remains independent from normal lifecycle state.
+- [x] Cross-feature account actions use the same lifecycle rules.
+- [x] Hard delete is not exposed without explicit retention/privacy requirements.
+- [x] UI handles loading, empty, forbidden, conflict, validation, success, and failure states.
 
 ## HOW
 

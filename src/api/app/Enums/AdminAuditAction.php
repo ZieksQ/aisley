@@ -20,6 +20,9 @@ enum AdminAuditAction: string
     case PolicySuccessorCreated = 'platform_settings.policy_successor_created';
     case PolicyVersionUpdated = 'platform_settings.policy_version_updated';
     case PolicyVersionPublished = 'platform_settings.policy_version_published';
+    case UserAccountSuspended = 'user_account.suspended';
+    case UserAccountRestored = 'user_account.restored';
+    case UserAccountDeactivated = 'user_account.deactivated';
 
     public function label(): string
     {
@@ -40,6 +43,9 @@ enum AdminAuditAction: string
             self::PolicySuccessorCreated => 'Policy successor draft created',
             self::PolicyVersionUpdated => 'Policy version updated',
             self::PolicyVersionPublished => 'Policy version published',
+            self::UserAccountSuspended => 'User account suspended',
+            self::UserAccountRestored => 'User account restored',
+            self::UserAccountDeactivated => 'User account deactivated',
         };
     }
 }

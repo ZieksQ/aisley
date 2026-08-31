@@ -10,6 +10,8 @@ import { RegistrationDetailPage } from './pages/RegistrationDetailPage'
 import { PlatformSettingsPage } from './pages/PlatformSettingsPage'
 import { RegistrationsPage } from './pages/RegistrationsPage'
 import { NotificationsPage } from './pages/NotificationsPage'
+import { UsersPage } from './pages/UsersPage'
+import { UserDetailPage } from './pages/UserDetailPage'
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
           <Route element={<AuditLogsPage />} path="/audit-logs" />
           <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
           <Route element={<NotificationsPage />} path="/notifications" />
+          <Route element={<UsersPage />} path="/users" />
+          <Route element={<UserDetailPage />} path="/users/:userId" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

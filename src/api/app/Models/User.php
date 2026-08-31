@@ -74,6 +74,21 @@ class User extends Authenticatable
         return $this->hasMany(RegistrationApplication::class);
     }
 
+    public function lifecycleEvents(): HasMany
+    {
+        return $this->hasMany(AccountLifecycleEvent::class);
+    }
+
+    public function latestLifecycleEvent(): HasOne
+    {
+        return $this->hasOne(AccountLifecycleEvent::class)->latestOfMany('occurred_at');
+    }
+
+    public function performedLifecycleEvents(): HasMany
+    {
+        return $this->hasMany(AccountLifecycleEvent::class, 'acted_by_admin_id');
+    }
+
     public function reviewedApplications(): HasMany
     {
         return $this->hasMany(RegistrationApplication::class, 'reviewer_id');

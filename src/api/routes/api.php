@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
+use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
@@ -34,6 +35,15 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserAccountController::class, 'index'])->middleware('admin.permission:users.view')->name('index');
+        Route::get('/{user}', [UserAccountController::class, 'show'])->middleware('admin.permission:users.view')->whereUuid('user')->name('show');
+        Route::get('/{user}/history', [UserAccountController::class, 'history'])->middleware('admin.permission:users.view')->whereUuid('user')->name('history');
+        Route::post('/{user}/suspend', [UserAccountController::class, 'suspend'])->middleware('admin.permission:users.manage')->whereUuid('user')->name('suspend');
+        Route::post('/{user}/restore', [UserAccountController::class, 'restore'])->middleware('admin.permission:users.manage')->whereUuid('user')->name('restore');
+        Route::post('/{user}/deactivate', [UserAccountController::class, 'deactivate'])->middleware('admin.permission:users.manage')->whereUuid('user')->name('deactivate');
+    });
+
     Route::prefix('notifications')->name('notifications.')->middleware('admin.permission:notifications.view')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
         Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
