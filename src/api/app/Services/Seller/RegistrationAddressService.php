@@ -59,7 +59,7 @@ class RegistrationAddressService
     /** @return array<string, mixed> */
     private function region(string $code): array
     {
-        $entry = collect($this->index())->first(fn ($item): bool => is_array($item)
+        $entry = collect($this->index())->first(fn($item): bool => is_array($item)
             && (string) ($item['psgc_code'] ?? '') === $code);
 
         if (! is_array($entry) || ! isset($entry['file']) || ! is_string($entry['file'])) {
@@ -80,7 +80,7 @@ class RegistrationAddressService
     /** @return list<array<string, mixed>> */
     private function index(): array
     {
-        $payload = $this->readJson($this->basePath().'/list-of-all-reions.json');
+        $payload = $this->readJson($this->basePath() . '/list-of-all-regions.json');
 
         if (! array_is_list($payload)) {
             throw new RuntimeException('The address region index is invalid.');
@@ -92,7 +92,7 @@ class RegistrationAddressService
     /** @return array<string, mixed> */
     private function findDirectChild(array $parent, string $code, array $levels): array
     {
-        $child = collect($parent['children'] ?? [])->first(fn ($item): bool => is_array($item)
+        $child = collect($parent['children'] ?? [])->first(fn($item): bool => is_array($item)
             && (string) ($item['psgc_code'] ?? '') === $code
             && in_array($item['geographic_level'] ?? null, $levels, true));
 
@@ -108,7 +108,7 @@ class RegistrationAddressService
     {
         return $this->toOptions(array_values(array_filter(
             $parent['children'] ?? [],
-            fn ($item): bool => is_array($item) && in_array($item['geographic_level'] ?? null, $levels, true),
+            fn($item): bool => is_array($item) && in_array($item['geographic_level'] ?? null, $levels, true),
         )));
     }
 
@@ -140,10 +140,10 @@ class RegistrationAddressService
     private function toOptions(array $items, string $codeField = 'psgc_code'): array
     {
         return collect($items)
-            ->filter(fn ($item): bool => is_array($item)
+            ->filter(fn($item): bool => is_array($item)
                 && trim((string) ($item[$codeField] ?? '')) !== ''
                 && trim((string) ($item['name'] ?? '')) !== '')
-            ->map(fn (array $item): array => [
+            ->map(fn(array $item): array => [
                 'code' => trim((string) $item[$codeField]),
                 'name' => trim((string) $item['name']),
             ])
@@ -160,7 +160,7 @@ class RegistrationAddressService
             throw new RuntimeException('Address data is unavailable.');
         }
 
-        $cacheKey = 'registration-addresses:'.hash('sha256', $path.':'.filemtime($path));
+        $cacheKey = 'registration-addresses:' . hash('sha256', $path . ':' . filemtime($path));
 
         return Cache::remember($cacheKey, 86400, function () use ($path): array {
             $contents = file_get_contents($path);
@@ -177,9 +177,9 @@ class RegistrationAddressService
     private function safePath(string $relativePath): string
     {
         $base = realpath($this->basePath());
-        $path = realpath($this->basePath().'/'.$relativePath);
+        $path = realpath($this->basePath() . '/' . $relativePath);
 
-        if ($base === false || $path === false || ! str_starts_with($path, $base.DIRECTORY_SEPARATOR)) {
+        if ($base === false || $path === false || ! str_starts_with($path, $base . DIRECTORY_SEPARATOR)) {
             throw new RuntimeException('Address data path is invalid.');
         }
 
