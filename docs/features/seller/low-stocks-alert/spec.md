@@ -85,13 +85,13 @@ available > threshold again
 - Alert list/detail provide loading, empty, error, retry, resolved, and stale/refetched states with keyboard-operable filters and links.
 - The empty state explains that thresholds are configured from Inventory SKU details and distinguishes no configured thresholds from no alert history.
 - Inventory history remains the source for adjustment reasons; the alert only references its triggering movement.
-- [ ] A Seller cannot configure or view another Seller's SKU threshold or alert.
-- [ ] Threshold `null`, `0`, and a positive integer follow the defined availability rule.
-- [ ] One low-stock cycle produces one active alert despite repeated mutations, retries, or notifications.
-- [ ] Restocking above threshold resolves the cycle; a later breach creates a new historical alert.
-- [ ] Alerting does not alter authoritative balances, reservations, Product publication, or Orders.
-- [ ] Failed/duplicate notification delivery cannot undo or duplicate the stored alert.
-- [ ] Alert history remains available after the SKU recovers or its Product is archived.
+- [x] A Seller cannot configure or view another Seller's SKU threshold or alert.
+- [x] Threshold `null`, `0`, and a positive integer follow the defined availability rule.
+- [x] One low-stock cycle produces one active alert despite repeated mutations, retries, or notifications.
+- [x] Restocking above threshold resolves the cycle; a later breach creates a new historical alert.
+- [x] Alerting does not alter authoritative balances, reservations, Product publication, or Orders.
+- [x] Failed/duplicate notification delivery cannot undo or duplicate the stored alert.
+- [x] Alert history remains available after the SKU recovers or its Product is archived.
 
 ## HOW
 
