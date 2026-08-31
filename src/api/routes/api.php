@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressOptionController;
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
@@ -25,6 +26,13 @@ use App\Http\Controllers\Seller\InventoryController as SellerInventoryController
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1/address-options')->name('address-options.')->middleware('throttle:60,1')->group(function () {
+    Route::get('/regions', [AddressOptionController::class, 'regions'])->name('regions');
+    Route::get('/provinces', [AddressOptionController::class, 'provinces'])->name('provinces');
+    Route::get('/municipalities', [AddressOptionController::class, 'municipalities'])->name('municipalities');
+    Route::get('/barangays', [AddressOptionController::class, 'barangays'])->name('barangays');
+});
 
 Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
     Route::post('/login', [AuthController::class, 'store'])->name('login');

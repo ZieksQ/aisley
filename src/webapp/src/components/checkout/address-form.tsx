@@ -12,6 +12,10 @@ import {
   type GeoapifyAddressSelection,
 } from "./geoapify-address-autocomplete";
 import { MapboxLocationPicker } from "./mapbox-location-picker";
+import {
+  PsgcAddressFields,
+  type AdministrativeAddressField,
+} from "./psgc-address-fields";
 
 type AddressFormValues = {
   type: "shipping" | "billing" | "both";
@@ -136,6 +140,29 @@ export function AddressForm({
     if (locationFields.has(field)) setLocationMessage(null);
   }
 
+  const updateAdministrativeField = useCallback((
+    field: AdministrativeAddressField,
+    value: string,
+  ) => {
+    setValues((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "region" ? { province: "", city_municipality: "", barangay: "" } : {}),
+      ...(field === "province" ? { city_municipality: "", barangay: "" } : {}),
+      ...(field === "city_municipality" ? { barangay: "" } : {}),
+      latitude: null,
+      longitude: null,
+    }));
+    setLocationMessage(null);
+  }, []);
+
+  const canonicalizeAdministrativeField = useCallback((
+    field: AdministrativeAddressField,
+    value: string,
+  ) => {
+    setValues((current) => current[field] === value ? current : { ...current, [field]: value });
+  }, []);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -218,10 +245,22 @@ export function AddressForm({
         <Field label="Contact number" name="contact_number" required value={values.contact_number} onChange={(value) => update("contact_number", value)} error={firstFieldError(error, "contact_number")} autoComplete="tel" inputMode="tel" />
         <Field label="Street, building, or house number" name="address_line_1" required value={values.address_line_1} onChange={(value) => update("address_line_1", value)} error={firstFieldError(error, "address_line_1")} autoComplete="address-line1" />
         <Field label="Unit, floor, or landmark" name="address_line_2" value={values.address_line_2} onChange={(value) => update("address_line_2", value)} error={firstFieldError(error, "address_line_2")} autoComplete="address-line2" />
-        <Field label="Barangay" name="barangay" required value={values.barangay} onChange={(value) => update("barangay", value)} error={firstFieldError(error, "barangay")} />
-        <Field label="City or municipality" name="city_municipality" required value={values.city_municipality} onChange={(value) => update("city_municipality", value)} error={firstFieldError(error, "city_municipality")} autoComplete="address-level2" />
-        <Field label="Province" name="province" required value={values.province} onChange={(value) => update("province", value)} error={firstFieldError(error, "province")} autoComplete="address-level1" />
-        <Field label="Region" name="region" required value={values.region} onChange={(value) => update("region", value)} error={firstFieldError(error, "region")} />
+        <PsgcAddressFields
+          errors={{
+            barangay: firstFieldError(error, "barangay"),
+            city_municipality: firstFieldError(error, "city_municipality"),
+            province: firstFieldError(error, "province"),
+            region: firstFieldError(error, "region"),
+          }}
+          onCanonicalize={canonicalizeAdministrativeField}
+          onUserChange={updateAdministrativeField}
+          values={{
+            barangay: values.barangay,
+            city_municipality: values.city_municipality,
+            province: values.province,
+            region: values.region,
+          }}
+        />
         <Field label="Postal code" name="postal_code" required value={values.postal_code} onChange={(value) => update("postal_code", value)} error={firstFieldError(error, "postal_code")} autoComplete="postal-code" inputMode="numeric" />
         <Field label="Country" name="country" required value={values.country} onChange={(value) => update("country", value)} error={firstFieldError(error, "country")} autoComplete="country-name" />
       </div>
