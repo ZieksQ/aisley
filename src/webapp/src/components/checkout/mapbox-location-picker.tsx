@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Coordinates = { latitude: number; longitude: number };
 
@@ -21,6 +21,7 @@ export function MapboxLocationPicker({
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
   const markerRef = useRef<import("mapbox-gl").Marker | null>(null);
   const onChangeRef = useRef(onChange);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -31,50 +32,67 @@ export function MapboxLocationPicker({
 
     let disposed = false;
 
-    void import("mapbox-gl").then(({ default: mapboxgl }) => {
-      if (disposed || !containerRef.current) return;
+    void import("mapbox-gl")
+      .then(({ default: mapboxgl }) => {
+        if (disposed || !containerRef.current) return;
 
-      mapboxgl.accessToken = accessToken;
-      const hasLocation = latitude !== null && longitude !== null;
-      const map = new mapboxgl.Map({
-        container: containerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
-        center: hasLocation ? [longitude, latitude] : PHILIPPINES_CENTER,
-        zoom: hasLocation ? 16 : 4.8,
-      });
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-      mapRef.current = map;
-
-      function placePin(point: Coordinates, notify: boolean) {
-        if (!markerRef.current) {
-          markerRef.current = new mapboxgl.Marker({
-            color: "#E6007A",
-            draggable: true,
-          })
-            .setLngLat([point.longitude, point.latitude])
-            .addTo(map);
-          markerRef.current.on("dragend", () => {
-            const position = markerRef.current?.getLngLat();
-            if (position) {
-              onChangeRef.current({
-                latitude: position.lat,
-                longitude: position.lng,
-              });
-            }
-          });
-        } else {
-          markerRef.current.setLngLat([point.longitude, point.latitude]);
+        if (!mapboxgl.supported()) {
+          setMapUnavailable(true);
+          return;
         }
 
-        if (notify) onChangeRef.current(point);
-      }
+        mapboxgl.accessToken = accessToken;
+        const hasLocation = latitude !== null && longitude !== null;
+        let map: import("mapbox-gl").Map;
 
-      if (hasLocation) placePin({ latitude, longitude }, false);
+        try {
+          map = new mapboxgl.Map({
+            container: containerRef.current,
+            style: "mapbox://styles/mapbox/streets-v12",
+            center: hasLocation ? [longitude, latitude] : PHILIPPINES_CENTER,
+            zoom: hasLocation ? 16 : 4.8,
+          });
+        } catch {
+          setMapUnavailable(true);
+          return;
+        }
 
-      map.on("click", (event) => {
-        placePin({ latitude: event.lngLat.lat, longitude: event.lngLat.lng }, true);
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+        mapRef.current = map;
+
+        function placePin(point: Coordinates, notify: boolean) {
+          if (!markerRef.current) {
+            markerRef.current = new mapboxgl.Marker({
+              color: "#E6007A",
+              draggable: true,
+            })
+              .setLngLat([point.longitude, point.latitude])
+              .addTo(map);
+            markerRef.current.on("dragend", () => {
+              const position = markerRef.current?.getLngLat();
+              if (position) {
+                onChangeRef.current({
+                  latitude: position.lat,
+                  longitude: position.lng,
+                });
+              }
+            });
+          } else {
+            markerRef.current.setLngLat([point.longitude, point.latitude]);
+          }
+
+          if (notify) onChangeRef.current(point);
+        }
+
+        if (hasLocation) placePin({ latitude, longitude }, false);
+
+        map.on("click", (event) => {
+          placePin({ latitude: event.lngLat.lat, longitude: event.lngLat.lng }, true);
+        });
+      })
+      .catch(() => {
+        if (!disposed) setMapUnavailable(true);
       });
-    });
 
     return () => {
       disposed = true;
@@ -115,15 +133,23 @@ export function MapboxLocationPicker({
 
   return (
     <div>
-      <div
-        ref={containerRef}
-        role="region"
-        aria-label="Mapbox address location picker"
-        className="h-72 w-full overflow-hidden rounded-md border border-[#CFC6D2] bg-[#ECE7EE]"
-      />
-      <p className="mt-2 text-xs leading-5 text-[#746978]">
-        Click the map or drag the pin to the exact entrance. This saves coordinates for future delivery routing.
-      </p>
+      {mapUnavailable ? (
+        <div role="status" className="border-l-2 border-[#FF8800] bg-[#FFF8EF] px-3 py-2 text-sm leading-5 text-[#6B4516]">
+          The interactive map is unavailable in this browser. You can still use an address suggestion or enter the address manually.
+        </div>
+      ) : (
+        <>
+          <div
+            ref={containerRef}
+            role="region"
+            aria-label="Mapbox address location picker"
+            className="h-72 w-full overflow-hidden rounded-md border border-[#CFC6D2] bg-[#ECE7EE]"
+          />
+          <p className="mt-2 text-xs leading-5 text-[#746978]">
+            Click the map or drag the pin to the exact entrance. This saves coordinates for future delivery routing.
+          </p>
+        </>
+      )}
       <p aria-live="polite" className="mt-1 text-xs font-medium text-[#514656]">
         {latitude !== null && longitude !== null
           ? `Pinned at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
