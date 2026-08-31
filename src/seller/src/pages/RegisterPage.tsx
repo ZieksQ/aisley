@@ -143,11 +143,11 @@ export function RegisterPage() {
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-1 font-semibold">Business address</legend>
-          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Select the administrative address in order. Postal code and street details remain manual because they are not supplied by PSGC.</p>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Select the administrative address in order. Postal code and street details remain manual because they are not included in the address dataset.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <PsgcAddressFields errors={errors} />
           </div>
-          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Administrative classifications supplied by the <a className="underline underline-offset-2" href="https://psa.gov.ph/classifications-api/psgc" rel="noreferrer" target="_blank">Philippine Statistics Authority PSGC API</a>.</p>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Administrative options are served from Aisley’s bundled Q2 2026 PSGC dataset.</p>
         </fieldset>
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">

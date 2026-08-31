@@ -50,7 +50,7 @@ export function PsgcAddressFields({ errors }: Props) {
     requestSequence.current += 1
     setManual(true)
     setLoading(null)
-    setNotice('PSGC address options are unavailable. Enter the administrative address manually to continue.')
+    setNotice('Address options are unavailable. Enter the administrative address manually to continue.')
   }
 
   async function loadOptions(level: 'provinces' | 'municipalities' | 'barangays', query: URLSearchParams) {
@@ -123,7 +123,7 @@ export function PsgcAddressFields({ errors }: Props) {
         <FormField defaultValue={municipality?.name ?? ''} error={errors['address.city_municipality']?.[0]} id="city_municipality" label="City or municipality *" name="address[city_municipality]" required />
         <FormField defaultValue={barangay?.name ?? ''} error={errors['address.barangay']?.[0]} id="barangay" label="Barangay *" name="address[barangay]" required />
         <button className="self-end justify-self-start text-sm font-semibold text-[#b0005d] hover:underline dark:text-pink-400" onClick={() => { setManual(false); setNotice(null) }} type="button">
-          Use PSGC dropdowns
+          Use address dropdowns
         </button>
         <ManualAddressLines errors={errors} />
       </>

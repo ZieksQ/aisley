@@ -40,11 +40,11 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - The API must derive `role = seller`; client-supplied `role`, `status`, reviewer, or approval fields are prohibited.
 - Registration must validate and persist first name, optional one-character middle initial, last name, contact number, sex, and birth date; age is calculated from birth date and is never accepted as authoritative input.
 - Registration must accept a business name and one active Shop Category selected from the server-provided canonical taxonomy.
-- Registration must provide cascading PSGC Classifications API dropdowns in this order: Region, Province, City/Municipality, and Barangay. Changing a parent must clear and reload its descendants.
-- Postal code must be a required manual field placed between Province and City/Municipality because the PSGC API does not supply postal codes. Street/building and the optional secondary line also remain manual.
-- A complete manual administrative-address fallback must remain available when PSGC is unconfigured, unavailable, or does not represent an independent city or other valid address cleanly.
+- Registration must provide cascading dropdowns backed by the bundled Q2 2026 PSGC JSON files under `src/api/addresses` in this order: Region, Province, City/Municipality, and Barangay. Changing a parent must clear and reload its descendants.
+- Postal code must be a required manual field placed between Province and City/Municipality because the bundled dataset does not supply postal codes. Street/building and the optional secondary line also remain manual.
+- A complete manual administrative-address fallback must remain available when the bundled data is missing, invalid, or does not represent an independent city or other valid address cleanly.
 - Country is server-owned as Philippines. Laravel must validate and persist the selected address names; PSGC codes are lookup-only values and must not be persisted as authoritative registration data.
-- The PSGC API token must remain in Laravel configuration. The Seller browser must call only versioned Aisley API routes and must never receive or call the PSA API with the token directly.
+- The Seller browser must call only versioned Aisley API routes. Laravel reads the bundled files locally; registration address lookup must not make a third-party network request or require a provider token.
 - Registration must require a government ID image and business permit image under `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP only, each smaller than 10 MiB and stored privately on the configured filesystem.
 - Registration must accept email, password, and password confirmation using the project-wide password policy.
 - Laravel must create the User, SellerProfile, default business Address, pending Shop, pending RegistrationApplication, and two evidence records as one logical operation, cleaning up stored blobs if persistence fails.
@@ -120,7 +120,7 @@ register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashbo
 - Add the project-declared React Router dependency to `src/seller` and replace the static dashboard entry with public/protected route layouts.
 - Implement one credentialed API client, auth context/store, session bootstrap, protected-route boundary, and status-specific error mapping.
 - Implement keyboard-accessible cascading selects backed by Seller-namespaced Laravel endpoints. Reset descendants when Region, Province, or City/Municipality changes, ignore stale responses, and retain the manual path when no useful result is returned.
-- Keep the PSA token in `services.psgc`, proxy and normalize provider responses in Laravel, cache normalized option lists, throttle the public registration lookup routes, and return a generic safe `503` when lookup is unavailable. Do not make address lookup calls part of the registration transaction.
+- Read and normalize the bundled `src/api/addresses` hierarchy in Laravel, cache decoded files, flatten sub-municipality descendants for Barangay options, throttle the public registration lookup routes, and return a generic safe `503` when local data is unavailable. Do not make address lookup calls part of the registration transaction.
 - Reuse `@aisley/ui` form primitives where compatible and follow `docs/design.md` dashboard accessibility/dark-mode rules.
 - API feature tests must cover registration rollback/duplicates, role isolation, every account status, throttle, session fixation, `me`, logout, and reset-token role isolation.
 - Run the API suite on SQLite and PostgreSQL; run Seller lint, TypeScript/build, and focused browser/session checks from port `5174`.

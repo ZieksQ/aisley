@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
-use App\Services\Seller\PsgcAddressService;
+use App\Services\Seller\RegistrationAddressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
 class RegistrationAddressController extends Controller
 {
-    public function __construct(private readonly PsgcAddressService $psgc) {}
+    public function __construct(private readonly RegistrationAddressService $addresses) {}
 
     public function regions(): JsonResponse
     {
@@ -19,7 +19,7 @@ class RegistrationAddressController extends Controller
 
     public function provinces(Request $request): JsonResponse
     {
-        $validated = $request->validate(['reg' => ['required', 'regex:/^\d{1,3}$/']]);
+        $validated = $request->validate(['reg' => ['required', 'regex:/^\d{10}$/']]);
 
         return $this->respond('provinces', ['reg' => $validated['reg']]);
     }
@@ -27,8 +27,8 @@ class RegistrationAddressController extends Controller
     public function municipalities(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'reg' => ['required', 'regex:/^\d{1,3}$/'],
-            'prv' => ['nullable', 'regex:/^\d{1,3}$/'],
+            'reg' => ['required', 'regex:/^\d{10}$/'],
+            'prv' => ['nullable', 'regex:/^\d{10}$/'],
         ]);
         $filters = ['reg' => $validated['reg']];
 
@@ -42,9 +42,9 @@ class RegistrationAddressController extends Controller
     public function barangays(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'reg' => ['required', 'regex:/^\d{1,3}$/'],
-            'prv' => ['nullable', 'regex:/^\d{1,3}$/'],
-            'mun' => ['required', 'regex:/^\d{1,3}$/'],
+            'reg' => ['required', 'regex:/^\d{10}$/'],
+            'prv' => ['nullable', 'regex:/^\d{10}$/'],
+            'mun' => ['required', 'regex:/^\d{10}$/'],
         ]);
         $filters = ['reg' => $validated['reg'], 'mun' => $validated['mun']];
 
@@ -59,10 +59,10 @@ class RegistrationAddressController extends Controller
     private function respond(string $level, array $filters = []): JsonResponse
     {
         try {
-            return response()->json(['options' => $this->psgc->options($level, $filters)]);
+            return response()->json(['options' => $this->addresses->options($level, $filters)]);
         } catch (Throwable) {
             return response()->json([
-                'code' => 'PSGC_UNAVAILABLE',
+                'code' => 'ADDRESS_DATA_UNAVAILABLE',
                 'message' => 'Address options are temporarily unavailable. Enter the address manually or try again later.',
             ], 503);
         }
