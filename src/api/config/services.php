@@ -35,11 +35,4 @@ return [
         ],
     ],
 
-    'psgc' => [
-        'base_url' => env('PSGC_API_BASE_URL', 'https://classification.psa.gov.ph/psgc'),
-        'version' => env('PSGC_API_VERSION', 'Q2_2024'),
-        'token' => env('PSGC_API_TOKEN'),
-        'cache_ttl' => (int) env('PSGC_API_CACHE_TTL', 86400),
-    ],
-
 ];
