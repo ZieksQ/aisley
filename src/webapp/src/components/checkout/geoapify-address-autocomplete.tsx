@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { FiMapPin } from "react-icons/fi";
 
-export type MapboxAddressSelection = {
+export type GeoapifyAddressSelection = {
   addressLine1?: string;
   barangay?: string;
   cityMunicipality?: string;
@@ -15,73 +15,67 @@ export type MapboxAddressSelection = {
   longitude: number;
 };
 
-type MapboxContextItem = {
+type GeoapifyResult = {
+  place_id?: string;
+  result_type?: string;
+  formatted?: string;
   name?: string;
-  address_number?: string;
-  street_name?: string;
+  address_line1?: string;
+  housenumber?: string;
+  street?: string;
+  suburb?: string;
+  district?: string;
+  city?: string;
+  municipality?: string;
+  county?: string;
+  state_district?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  lat?: number;
+  lon?: number;
 };
 
-type MapboxFeature = {
-  id?: string;
-  geometry?: { coordinates?: [number, number] };
-  properties?: {
-    mapbox_id?: string;
-    feature_type?: string;
-    full_address?: string;
-    name?: string;
-    place_formatted?: string;
-    coordinates?: { longitude?: number; latitude?: number };
-    context?: {
-      address?: MapboxContextItem;
-      neighborhood?: MapboxContextItem;
-      locality?: MapboxContextItem;
-      place?: MapboxContextItem;
-      district?: MapboxContextItem;
-      region?: MapboxContextItem;
-      postcode?: MapboxContextItem;
-      country?: MapboxContextItem;
-    };
-  };
-};
+type GeoapifyResponse = { results?: GeoapifyResult[] };
 
-type MapboxResponse = { features?: MapboxFeature[] };
+function coordinates(result: GeoapifyResult) {
+  const { lat: latitude, lon: longitude } = result;
 
-function coordinates(feature: MapboxFeature) {
-  const longitude =
-    feature.properties?.coordinates?.longitude ?? feature.geometry?.coordinates?.[0];
-  const latitude =
-    feature.properties?.coordinates?.latitude ?? feature.geometry?.coordinates?.[1];
-
-  return typeof longitude === "number" && typeof latitude === "number"
-    ? { longitude, latitude }
+  return typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180
+    ? { latitude, longitude }
     : null;
 }
 
-function addressLine1(feature: MapboxFeature) {
-  const address = feature.properties?.context?.address;
-  if (address) {
-    return [address.address_number, address.street_name ?? address.name]
-      .filter(Boolean)
-      .join(" ");
-  }
+function addressLine1(result: GeoapifyResult) {
+  if (result.address_line1) return result.address_line1;
 
-  return ["address", "street"].includes(feature.properties?.feature_type ?? "")
-    ? feature.properties?.name
+  const streetAddress = [result.housenumber, result.street].filter(Boolean).join(" ");
+  if (streetAddress) return streetAddress;
+
+  return ["amenity", "building", "street"].includes(result.result_type ?? "")
+    ? result.name
     : undefined;
 }
 
-export function MapboxAddressAutocomplete({
-  accessToken,
+export function GeoapifyAddressAutocomplete({
+  apiKey,
   onSelect,
 }: {
-  accessToken: string;
-  onSelect: (selection: MapboxAddressSelection) => void;
+  apiKey: string;
+  onSelect: (selection: GeoapifyAddressSelection) => void;
 }) {
   const listboxId = useId();
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedQuery = useRef<string | null>(null);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<MapboxFeature[]>([]);
+  const [results, setResults] = useState<GeoapifyResult[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -96,29 +90,24 @@ export function MapboxAddressAutocomplete({
     const timer = setTimeout(async () => {
       setStatus("loading");
       const params = new URLSearchParams({
-        q: text,
-        access_token: accessToken,
-        autocomplete: "true",
-        permanent: "true",
-        country: "ph",
-        language: "en",
+        text,
+        apiKey,
+        format: "json",
+        filter: "countrycode:ph",
+        lang: "en",
         limit: "6",
-        types: "address,street,neighborhood,locality,place,postcode",
       });
 
       try {
         const response = await fetch(
-          `https://api.mapbox.com/search/geocode/v6/forward?${params.toString()}`,
+          `https://api.geoapify.com/v1/geocode/autocomplete?${params.toString()}`,
           { signal: controller.signal },
         );
-        if (!response.ok) throw new Error("Mapbox geocoding failed");
+        if (!response.ok) throw new Error("Geoapify autocomplete failed");
 
-        const payload = (await response.json()) as MapboxResponse;
-        const nextResults = (payload.features ?? []).filter(
-          (feature) =>
-            Boolean(feature.properties?.mapbox_id ?? feature.id) &&
-            Boolean(feature.properties?.full_address ?? feature.properties?.name) &&
-            coordinates(feature) !== null,
+        const payload = (await response.json()) as GeoapifyResponse;
+        const nextResults = (payload.results ?? []).filter(
+          (result) => Boolean(result.place_id && result.formatted) && coordinates(result) !== null,
         );
         setResults(nextResults);
         setActiveIndex(-1);
@@ -136,7 +125,7 @@ export function MapboxAddressAutocomplete({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [accessToken, query]);
+  }, [apiKey, query]);
 
   useEffect(
     () => () => {
@@ -145,28 +134,23 @@ export function MapboxAddressAutocomplete({
     [],
   );
 
-  function select(feature: MapboxFeature) {
-    const point = coordinates(feature);
+  function select(result: GeoapifyResult) {
+    const point = coordinates(result);
     if (!point) return;
 
-    const properties = feature.properties;
-    const context = properties?.context;
-    const formatted = properties?.full_address ??
-      [properties?.name, properties?.place_formatted].filter(Boolean).join(", ");
-
+    const formatted = result.formatted ?? result.name ?? "";
     selectedQuery.current = formatted;
     setQuery(formatted);
     setResults([]);
     setIsOpen(false);
     onSelect({
-      addressLine1: addressLine1(feature),
-      barangay: context?.neighborhood?.name ?? context?.locality?.name,
-      cityMunicipality:
-        context?.place?.name ?? context?.locality?.name ?? context?.district?.name,
-      province: context?.district?.name ?? context?.region?.name,
-      region: context?.region?.name,
-      postalCode: context?.postcode?.name,
-      country: context?.country?.name,
+      addressLine1: addressLine1(result),
+      barangay: result.suburb ?? result.district,
+      cityMunicipality: result.city ?? result.municipality ?? result.county,
+      province: result.county ?? result.state_district ?? result.state,
+      region: result.state,
+      postalCode: result.postcode,
+      country: result.country,
       ...point,
     });
   }
@@ -227,23 +211,20 @@ export function MapboxAddressAutocomplete({
 
         {isOpen && results.length > 0 ? (
           <ul id={listboxId} role="listbox" className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-[#D9D3DE] bg-white py-1 shadow-[0_2px_8px_rgba(45,34,49,0.12)]">
-            {results.map((feature, index) => {
-              const properties = feature.properties;
-              return (
-                <li
-                  id={`${listboxId}-${index}`}
-                  key={properties?.mapbox_id ?? feature.id}
-                  role="option"
-                  aria-selected={activeIndex === index}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={() => select(feature)}
-                  className={`cursor-pointer px-3 py-2.5 text-sm leading-5 ${activeIndex === index ? "bg-[#F6F0F8] text-[#31123F]" : "text-[#514656]"}`}
-                >
-                  {properties?.full_address ?? [properties?.name, properties?.place_formatted].filter(Boolean).join(", ")}
-                </li>
-              );
-            })}
+            {results.map((result, index) => (
+              <li
+                id={`${listboxId}-${index}`}
+                key={result.place_id}
+                role="option"
+                aria-selected={activeIndex === index}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => select(result)}
+                className={`cursor-pointer px-3 py-2.5 text-sm leading-5 ${activeIndex === index ? "bg-[#F6F0F8] text-[#31123F]" : "text-[#514656]"}`}
+              >
+                {result.formatted}
+              </li>
+            ))}
           </ul>
         ) : null}
       </div>
@@ -258,9 +239,12 @@ export function MapboxAddressAutocomplete({
                 ? "No matching address found. You can enter it manually below."
                 : "Choose a suggestion, then review every address field and map pin."}
         </span>
-        <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noreferrer" className="shrink-0 underline hover:text-[#4C1268]">
-          Powered by Mapbox
-        </a>
+        <span className="shrink-0">
+          Powered by{" "}
+          <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer" className="underline hover:text-[#4C1268]">Geoapify</a>
+          {" · "}
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline hover:text-[#4C1268]">© OpenStreetMap contributors</a>
+        </span>
       </div>
     </div>
   );

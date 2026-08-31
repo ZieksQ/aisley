@@ -52,9 +52,11 @@ function sharesUse(left: CustomerAddress, right: CustomerAddress) {
 }
 
 export function AddressBookContent({
+  geoapifyApiKey,
   mapboxAccessToken,
   returnTo,
 }: {
+  geoapifyApiKey: string;
   mapboxAccessToken: string;
   returnTo: "/checkout" | null;
 }) {
@@ -185,6 +187,7 @@ export function AddressBookContent({
         <AddressForm
           key={editing === "new" ? "new" : editing.id}
           address={editing === "new" ? undefined : editing}
+          geoapifyApiKey={geoapifyApiKey}
           mapboxAccessToken={mapboxAccessToken}
           onCancel={() => setEditing(null)}
           onSaved={applySaved}

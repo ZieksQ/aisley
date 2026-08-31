@@ -8,9 +8,9 @@ import { createAddress, updateAddress } from "@/lib/checkout/client";
 import type { AddressPayload, CustomerAddress } from "@/lib/checkout/types";
 
 import {
-  MapboxAddressAutocomplete,
-  type MapboxAddressSelection,
-} from "./mapbox-address-autocomplete";
+  GeoapifyAddressAutocomplete,
+  type GeoapifyAddressSelection,
+} from "./geoapify-address-autocomplete";
 import { MapboxLocationPicker } from "./mapbox-location-picker";
 
 type AddressFormValues = {
@@ -90,11 +90,13 @@ function initialValues(address?: CustomerAddress): AddressFormValues {
 
 export function AddressForm({
   address,
+  geoapifyApiKey,
   mapboxAccessToken,
   onCancel,
   onSaved,
 }: {
   address?: CustomerAddress;
+  geoapifyApiKey: string;
   mapboxAccessToken: string;
   onCancel?: () => void;
   onSaved: (address: CustomerAddress) => void;
@@ -104,7 +106,7 @@ export function AddressForm({
   const [submitting, setSubmitting] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
-  const applyMapboxAddress = useCallback((selection: MapboxAddressSelection) => {
+  const applyGeoapifyAddress = useCallback((selection: GeoapifyAddressSelection) => {
     setValues((current) => ({
       ...current,
       address_line_1: selection.addressLine1 || current.address_line_1,
@@ -178,7 +180,7 @@ export function AddressForm({
             {address ? "Edit address" : "Add address"}
           </h2>
           <p className="mt-1 text-xs leading-5 text-[#746978]">
-            Search with Mapbox or enter the address manually. Required fields are checked again at checkout.
+            Search with Geoapify or enter the address manually. Required fields are checked again at checkout.
           </p>
         </div>
         {onCancel ? (
@@ -188,14 +190,14 @@ export function AddressForm({
         ) : null}
       </div>
 
-      {mapboxAccessToken ? (
+      {geoapifyApiKey ? (
         <div className="mt-5">
-          <MapboxAddressAutocomplete accessToken={mapboxAccessToken} onSelect={applyMapboxAddress} />
+          <GeoapifyAddressAutocomplete apiKey={geoapifyApiKey} onSelect={applyGeoapifyAddress} />
         </div>
       ) : (
         <div className="mt-5 flex gap-2 border-l-2 border-[#A897AE] pl-3 text-xs leading-5 text-[#665A6A]">
           <FiMapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          Mapbox is not configured. You can still enter and save the address manually.
+          Geoapify suggestions are not configured. You can still enter and save the address manually.
         </div>
       )}
 
@@ -237,7 +239,12 @@ export function AddressForm({
             }}
           />
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-5 flex gap-2 border-l-2 border-[#A897AE] pl-3 text-xs leading-5 text-[#665A6A]">
+          <FiMapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          The Mapbox location picker is not configured. Coordinates from a Geoapify suggestion can still be saved.
+        </div>
+      )}
 
       <label className="mt-5 flex items-start gap-3 text-sm text-[#514656]">
         <input type="checkbox" checked={values.is_default} onChange={(event) => update("is_default", event.target.checked)} className="mt-0.5 size-4 rounded border-[#BFB5C3] accent-[#E6007A]" />

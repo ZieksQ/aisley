@@ -234,13 +234,13 @@ Address Book record
 - Delivery-zone eligibility belongs to logistics/shipping rules.
 
 ### Optional external address assistance
-- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1 The project implementation uses Mapbox instead.
-- Mapbox Geocoding API v6 may suggest structured address components and coordinates from partial Customer input.
-- Use HTTPS, restrict the public browser token by allowed storefront URLs and permitted Mapbox APIs, and filter suggestions to the supported country when known.
+- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1 The project implementation uses Geoapify for address autocomplete and Mapbox GL JS for map rendering.
+- Geoapify Address Autocomplete may suggest structured address components and coordinates from partial Customer input.
+- Use HTTPS, restrict the public Geoapify browser key by allowed storefront URLs, and filter suggestions to the supported country when known.
 - Treat suggestions as Customer-confirmable input, not proof that an address is complete, correct, deliverable, or inside a shipping zone.
-- Manual entry must remain available when Mapbox is unconfigured, unavailable, or has no suitable result.
-- Because selected results are persisted in the Address Book, geocoding requests must use Mapbox permanent mode and the Mapbox account must be entitled to permanent geocoding.
-- Show Mapbox attribution in the search experience and retain the embedded map's required Mapbox/data-provider attribution controls.
+- Manual entry must remain available when Geoapify is unconfigured, unavailable, or has no suitable result.
+- Selected Geoapify results supply the stored address components and coordinate pair. The application must not call Mapbox Geocoding API or Search Box API for autocomplete, forward geocoding, or reverse geocoding.
+- Show Geoapify attribution in the search experience and retain the embedded map's required Mapbox/data-provider attribution controls.
 
 ### Geolocation coordinates
 - Latitude/longitude is optional unless Logistics/zone mapping requires it.
@@ -404,13 +404,15 @@ rather than global lookup followed by client ownership checks.
   5. proceeds with the checkout transaction
 - This keeps Address Book reusable while preserving historical order destinations.
 
-### Optional Mapbox integration
-- The Address Book Client Component calls Mapbox Geocoding API v6 over HTTPS after the Customer enters enough search text.
-- Use `country=ph`, `autocomplete=true`, and `permanent=true` for the current Philippines address form, debounce requests, cancel stale requests, and keep result counts bounded.
-- `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` is a public browser token. Restrict it by allowed storefront URLs and only the required Mapbox APIs in the Mapbox dashboard.
-- Map the selected structured result into the existing address fields and latitude/longitude, then require the Customer to review the populated values.
+### Optional Geoapify autocomplete and Mapbox map integration
+- The Address Book Client Component calls Geoapify Address Autocomplete over HTTPS after the Customer enters enough search text.
+- Use `filter=countrycode:ph` for the current Philippines address form, debounce requests, cancel stale requests, and keep result counts bounded.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` is a public browser key. Restrict it by allowed storefront URLs in the Geoapify dashboard.
+- Map the selected Geoapify result into the existing address fields and its `lat`/`lon` into latitude/longitude, then require the Customer to review the populated values.
+- `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` is a public browser token used only by Mapbox GL JS. Restrict it by allowed storefront URLs and only the required Maps APIs in the Mapbox dashboard.
 - The embedded Mapbox GL JS map provides a clickable and draggable pin; pin movement updates the coordinate pair without silently rewriting the Customer-reviewed address text.
-- Mapbox suggestions and pins do not replace Laravel validation, Customer ownership checks, checkout revalidation, or future logistics serviceability rules.
+- Selecting a Geoapify result moves the Mapbox pin to the returned longitude/latitude. Mapbox receives the coordinate only for client-side map positioning; no Mapbox Geocoding API or Search Box API request is made.
+- Geoapify suggestions and Mapbox pins do not replace Laravel validation, Customer ownership checks, checkout revalidation, or future logistics serviceability rules.
 
 ### Next.js / React
 - Build:
@@ -432,7 +434,7 @@ rather than global lookup followed by client ownership checks.
 ### Research-backed recommendations
 - Use the source-required Buyer `hasMany` Address relationship. Laravel natively supports one-to-many Eloquent relationships. citeturn875176search1turn875176search3
 - Keep an order-time address snapshot instead of treating the mutable Address Book row as historical delivery truth.
-- Treat external address assistance as optional. Mapbox can autocomplete structured address components and coordinates, but it adds billing, quotas, latency, attribution, storage-policy, and provider-availability considerations.
+- Treat external address assistance as optional. Geoapify autocomplete and Mapbox map rendering each add separate quotas, billing thresholds, latency, attribution, and provider-availability considerations.
 - Ask the Buyer to review populated address components rather than silently treating an external suggestion as authoritative.
 
 ### Risks
@@ -453,7 +455,7 @@ rather than global lookup followed by client ownership checks.
 - Whether checkout can enter a one-time address without saving it.
 - Whether checkout can save a newly entered address automatically/optionally.
 - Whether billing address can differ from shipping address.
-- Whether Mapbox remains the long-term autocomplete/geocoding/map provider.
+- Whether Geoapify remains the long-term autocomplete provider and Mapbox remains the long-term map provider.
 - Whether latitude/longitude is persisted.
 - Delivery-serviceability/zone validation ownership.
 - Address Book record limit.
@@ -468,9 +470,10 @@ rather than global lookup followed by client ownership checks.
 - Create/update accepts the existing `shipping`, `billing`, or `both` string-backed `AddressType`, validates all normalized address fields, prohibits owner assignment, and accepts latitude/longitude only as a complete valid pair.
 - Setting a new default is serialized transactionally and clears an overlapping shipping/billing default supported by the existing single `is_default` field.
 - Checkout displays only its currently selected shipping-capable default/first address and links to the separate Address Book for adding, editing, deleting, or selecting another address, preventing a large saved collection from crowding checkout.
-- `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` optionally enables Mapbox Geocoding API v6 autocomplete and the embedded Mapbox GL JS pin picker on the Address Book form.
-- Permanent autocomplete requests are debounced, stale requests are cancelled, results are limited and filtered to the Philippines, and the suggestion list supports keyboard selection.
-- A chosen Mapbox suggestion may populate the street, barangay/locality, city/municipality, province, region, postal code, country, latitude, and longitude already present in the schema. Customers must review the populated fields; manual entry remains available when Mapbox is unconfigured or unavailable.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` optionally enables Geoapify Address Autocomplete, while `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` independently enables only the embedded Mapbox GL JS pin picker on the Address Book form.
+- Geoapify autocomplete requests are debounced, stale requests are cancelled, results are limited and filtered to the Philippines, and the suggestion list supports keyboard selection.
+- A chosen Geoapify suggestion may populate the street, barangay/locality, city/municipality, province, region, postal code, country, latitude, and longitude already present in the schema. Customers must review the populated fields; manual entry remains available when Geoapify is unconfigured or unavailable.
+- Geoapify-provided coordinates center the embedded Mapbox map and position its pin. The storefront does not call Mapbox Geocoding API or Search Box API, so persisted coordinates are not Mapbox geocoding results.
 - The Customer may click the embedded map or drag its pin to refine longitude/latitude. Coordinates are cleared when a populated location component is manually changed, preventing stale coordinates from being saved with edited text.
 - No serviceability decision, shipping-zone rule, routing behavior, or logistics selection was added.
 
@@ -479,6 +482,8 @@ rather than global lookup followed by client ownership checks.
 - AISLEY architecture contract: `README.md`
 - Buyer feature model: `Buyer.md`
 - Laravel Eloquent relationships: https://api.laravel.com/docs/12.x/Illuminate/Database/Eloquent/Concerns/HasRelationships.html
-- Mapbox Geocoding API v6: https://docs.mapbox.com/api/search/geocoding/
+- Geoapify Address Autocomplete API: https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/
+- Geoapify pricing: https://www.geoapify.com/pricing/
 - Mapbox GL JS: https://docs.mapbox.com/mapbox-gl-js/guides/
+- Mapbox GL JS pricing: https://docs.mapbox.com/mapbox-gl-js/guides/pricing/
 - Mapbox attribution guidance: https://docs.mapbox.com/help/getting-started/attribution/
