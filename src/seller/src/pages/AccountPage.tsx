@@ -186,7 +186,7 @@ export function AccountPage() {
     } catch (error) { fail(error) } finally { setBusy(null) }
   }
 
-  if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8"><div className="h-96 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-white/[0.035]" /></div>
+  if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8"><div className="h-96 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div>
   if (loadError || !account) return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8"><div className="rounded-lg border border-red-200 bg-red-50 p-5 text-red-900 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200"><p>{loadError || 'Account settings are unavailable.'}</p><button className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold dark:border-red-400/30" onClick={() => setReload((value) => value + 1)}><FaRotateRight />Try again</button></div></div>
 
   const initials = `${account.profile.first_name?.[0] ?? 'S'}${account.profile.last_name?.[0] ?? ''}`
@@ -251,12 +251,12 @@ export function AccountPage() {
         <h3 className="font-semibold" id="security-heading">Sign-in security</h3>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Two-factor authentication is not available yet. Current-password confirmation protects email and password edits for now.</p>
         <div className="mt-5 grid gap-6 lg:grid-cols-2">
-          <form className="rounded-lg border border-zinc-200 p-4 dark:border-white/10" onSubmit={saveEmail}>
+          <form className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-[#141416]" onSubmit={saveEmail}>
             <h4 className="font-medium">Email address</h4>
             <div className="mt-4 space-y-4"><TextField autoComplete="email" errors={errors} label="Email" name="email" onChange={setEmail} required type="email" value={email} /><TextField autoComplete="current-password" errors={errors} label="Current password" name="current_password" onChange={setEmailPassword} required type="password" value={emailPassword} /></div>
             <button className={`${primaryButtonClass} mt-5 w-full`} disabled={busy === 'email'}>{busy === 'email' ? 'Updating…' : 'Update email'}</button>
           </form>
-          <form className="rounded-lg border border-zinc-200 p-4 dark:border-white/10" onSubmit={savePassword}>
+          <form className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-[#141416]" onSubmit={savePassword}>
             <h4 className="font-medium">Password</h4>
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">At least 8 characters with uppercase, lowercase, and a number.</p>
             <div className="mt-4 space-y-4"><TextField autoComplete="current-password" errors={errors} label="Current password" name="current_password" onChange={(value) => setPasswords({ ...passwords, current_password: value })} required type="password" value={passwords.current_password} /><TextField autoComplete="new-password" errors={errors} label="New password" name="password" onChange={(value) => setPasswords({ ...passwords, password: value })} required type="password" value={passwords.password} /><TextField autoComplete="new-password" errors={errors} label="Confirm new password" name="password_confirmation" onChange={(value) => setPasswords({ ...passwords, password_confirmation: value })} required type="password" value={passwords.password_confirmation} /></div>
@@ -268,8 +268,8 @@ export function AccountPage() {
   )
 }
 
-const sectionClass = 'mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.035] sm:p-6'
-const sectionClassNoMargin = 'rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.035] sm:p-6'
+const sectionClass = 'mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6'
+const sectionClassNoMargin = 'rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6'
 const inputClass = 'mt-1.5 h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-pink-100 dark:border-white/15 dark:bg-[#171719] dark:focus:ring-pink-500/10'
 const primaryButtonClass = 'h-10 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white disabled:opacity-50'
 
