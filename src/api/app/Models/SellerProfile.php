@@ -23,6 +23,11 @@ class SellerProfile extends Model
         'sex',
         'birth_date',
         'profile_photo_path',
+        'profile_photo_disk',
+        'profile_photo_mime',
+        'profile_photo_size',
+        'profile_photo_width',
+        'profile_photo_height',
     ];
 
     /**
@@ -49,6 +54,9 @@ class SellerProfile extends Model
         return [
             'sex' => UserSex::class,
             'birth_date' => 'date',
+            'profile_photo_size' => 'integer',
+            'profile_photo_width' => 'integer',
+            'profile_photo_height' => 'integer',
         ];
     }
 }

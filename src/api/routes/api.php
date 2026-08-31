@@ -15,6 +15,7 @@ use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\PlatformContentController;
+use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
@@ -117,6 +118,14 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active'])->group(function () {
+    Route::get('/account', [SellerAccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::patch('/account/storefront', [SellerAccountController::class, 'updateStorefront'])->name('account.storefront.update');
+    Route::patch('/account/email', [SellerAccountController::class, 'updateEmail'])->name('account.email.update');
+    Route::put('/account/password', [SellerAccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::post('/account/profile-photo', [SellerAccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
+    Route::get('/account/profile-photo', [SellerAccountController::class, 'profilePhoto'])->name('account.photo.show');
+    Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::get('/products', [SellerProductController::class, 'index'])->name('products.index');

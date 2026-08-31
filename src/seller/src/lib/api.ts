@@ -71,6 +71,19 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   return payload
 }
 
+export async function apiBlobRequest(path: string): Promise<Blob> {
+  const response = await fetch(url(path), {
+    credentials: 'include',
+    headers: { Accept: 'image/jpeg,image/png,image/webp' },
+  })
+
+  if (!response.ok) {
+    throw new ApiError(response.status, { message: 'Unable to load the image.' })
+  }
+
+  return response.blob()
+}
+
 export function readableAuthError(error: ApiError): string {
   if (error.code === 'ACCOUNT_PENDING_APPROVAL') {
     return 'Your Seller application is still waiting for Admin approval.'

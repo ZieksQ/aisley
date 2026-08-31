@@ -5,9 +5,8 @@ namespace App\Http\Resources\Seller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class SellerUserResource extends JsonResource
+class SellerAccountResource extends JsonResource
 {
-    /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
         return [
@@ -15,28 +14,33 @@ class SellerUserResource extends JsonResource
             'email' => $this->email,
             'role' => $this->role->value,
             'status' => $this->status->value,
-            'profile' => $this->whenLoaded('sellerProfile', fn () => [
+            'profile' => [
                 'first_name' => $this->sellerProfile?->first_name,
                 'last_name' => $this->sellerProfile?->last_name,
                 'middle_name' => $this->sellerProfile?->middle_name,
                 'contact_number' => $this->sellerProfile?->contact_number,
                 'sex' => $this->sellerProfile?->sex?->value,
                 'birth_date' => $this->sellerProfile?->birth_date?->toDateString(),
-                'age' => $this->sellerProfile?->age,
                 'profile_photo_url' => $this->sellerProfile?->profile_photo_path
                     ? '/api/v1/seller/account/profile-photo?v='.$this->sellerProfile->updated_at?->getTimestamp()
                     : null,
-            ]),
-            'shop' => $this->whenLoaded('shop', fn () => $this->shop ? [
+            ],
+            'shop' => $this->shop ? [
                 'id' => $this->shop->id,
                 'name' => $this->shop->name,
+                'slug' => $this->shop->slug,
                 'status' => $this->shop->status->value,
-                'category' => $this->shop->shopCategory ? [
-                    'id' => $this->shop->shopCategory->id,
-                    'name' => $this->shop->shopCategory->name,
-                ] : null,
+                'description' => $this->shop->description,
+                'contact_email' => $this->shop->contact_email,
+                'contact_number' => $this->shop->contact_number,
+                'website' => $this->shop->website,
                 'is_on_vacation' => $this->shop->is_on_vacation,
-            ] : null),
+                'vacation_message' => $this->shop->vacation_message,
+            ] : null,
+            'security' => [
+                'two_factor_available' => false,
+                'sensitive_edits_require_current_password' => true,
+            ],
         ];
     }
 }

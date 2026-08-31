@@ -18,7 +18,7 @@ scope: Seller Web Application
 - Existing foundation: `SellerProfile` stores name, contact number, sex, birth date, and optional photo path; the Seller owns exactly one `Shop` with name, description, contact details, logo/banner paths, and vacation fields.
 - Seller Auth owns sessions and recovery. Admin approval/compliance owns account status and decisions. Product Management owns catalog data. Payment integration owns provider-specific payout tokenization.
 - This feature does not let a Seller change role, account/compliance status, commission, permissions, Admin decisions, another Seller’s data, or arbitrary model columns.
-- It does not invent Seller MFA, a payout provider, self-account closure, email-change behavior, or mandatory moderation for every ordinary update.
+- It does not invent Seller MFA, a payout provider, self-account closure, or mandatory moderation for every ordinary update. Until an approved MFA mechanism exists, email and password changes use server-verified current-password confirmation and apply immediately.
 
 ## MUST
 
@@ -45,6 +45,7 @@ scope: Seller Web Application
 - Lifecycle is `PENDING_REVIEW → APPROVED | REJECTED`; only approval applies the proposed value. Duplicate or stale review/submission actions return `409`.
 - Sensitive changes require server-enforced re-authentication before submission. The Seller must see a safe summary of the change being confirmed.
 - Re-auth freshness, additional factors, and whether a sensitive change needs human review are server policy decisions; React timestamps or flags are never proof.
+- Current temporary policy: changing the Seller login email requires the current password and updates the Seller role-account immediately without 2FA or a controlled-change record. Replace this bypass when Seller MFA and sensitive-change review policy are approved.
 
 ### Password and session security
 
@@ -81,7 +82,11 @@ scope: Seller Web Application
 GET   /account
 PATCH /account/profile
 PATCH /account/storefront
+PATCH /account/email
 PUT   /account/password
+POST  /account/profile-photo
+GET   /account/profile-photo
+DELETE /account/profile-photo
 PUT   /account/notification-preferences
 POST  /account/controlled-changes
 POST  /account/payout-change
@@ -97,12 +102,13 @@ POST  /account/verification-documents
 - [x] A Seller can read and modify only their own allowed profile/Shop fields.
 - [x] Platform-controlled role, status, commission, permissions, and Admin decisions cannot be self-edited.
 - [x] Ordinary active storefront values are validated and are the only values exposed to Buyers.
-- [x] A controlled change preserves the active value until approved; rejection leaves it unchanged.
+- [ ] A controlled change preserves the active value until approved; rejection leaves it unchanged.
 - [x] Password change verifies current credentials and persists only a Laravel hash.
-- [x] Payout data is re-authenticated, masked/tokenized, and never returned in full.
-- [x] Document/image replacement is private, authorized, validated, and cannot overwrite approved evidence in place.
-- [x] Sensitive changes are audited without secrets and handle stale state safely.
-- [x] Required security notices run only after committed mutations.
+- [ ] Payout data is re-authenticated, masked/tokenized, and never returned in full.
+- [x] Seller profile-photo replacement is private, authorized, validated, and does not expose storage paths.
+- [ ] Verification-document replacement creates a controlled pending change instead of overwriting approved evidence.
+- [x] Implemented account mutations emit safe operational security logs without secrets; the Admin-only audit ledger remains restricted to Admin actions.
+- [ ] Required security notices run only after committed mutations.
 
 ## HOW
 
