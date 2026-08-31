@@ -88,6 +88,7 @@ class ProductController extends Controller
     public function publish(Request $request, Product $product, SellerShopService $shops): JsonResponse
     {
         $this->assertOwned($request, $product, $shops);
+        abort_if($product->isComplianceRestricted(), 409, 'This product is restricted by Admin compliance review and cannot be published.');
         abort_unless($product->status === ProductStatus::Draft, 409, 'Only draft products can be published.');
         if (! $product->name || ! $product->category_id || (float) $product->price <= 0) {
             throw ValidationException::withMessages(['product' => 'Complete the name, category, and price before publishing.']);
@@ -112,6 +113,7 @@ class ProductController extends Controller
     public function unarchive(Request $request, Product $product, SellerShopService $shops): JsonResponse
     {
         $this->assertOwned($request, $product, $shops);
+        abort_if($product->isComplianceRestricted(), 409, 'This product is restricted by Admin compliance review and cannot be unarchived.');
         abort_unless($product->status === ProductStatus::Archived, 409, 'Only archived products can be restored.');
 
         DB::transaction(function () use ($product) {
@@ -144,7 +146,7 @@ class ProductController extends Controller
 
     private function payload(Product $product): array
     {
-        $product->load(['category:id,name', 'inventorySkus.balance']);
+        $product->load(['category:id,name', 'inventorySkus.balance', 'activeComplianceRestriction:id,product_id,reason,imposed_at']);
 
         return [
             'id' => $product->id, 'name' => $product->name, 'slug' => $product->slug,
@@ -152,6 +154,11 @@ class ProductController extends Controller
             'short_description' => $product->short_description, 'description_markdown' => $product->description_markdown,
             'price' => $product->price, 'original_price' => $product->original_price,
             'status' => $product->status->value, 'published_at' => $product->published_at,
+            'compliance' => [
+                'is_restricted' => $product->activeComplianceRestriction !== null,
+                'reason' => $product->activeComplianceRestriction?->reason,
+                'restricted_at' => $product->activeComplianceRestriction?->imposed_at,
+            ],
             'skus' => $product->inventorySkus->map(fn ($sku) => [
                 'id' => $sku->id, 'code' => $sku->code, 'on_hand' => $sku->balance?->on_hand ?? 0,
                 'reserved' => $sku->balance?->reserved ?? 0, 'available' => $sku->balance?->available() ?? 0,

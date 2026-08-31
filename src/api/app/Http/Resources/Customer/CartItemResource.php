@@ -81,7 +81,8 @@ class CartItemResource extends JsonResource
             && $product->shop?->status === ShopStatus::Active
             && ! $product->shop->is_on_vacation
             && $product->shop->seller?->role === UserRole::Seller
-            && $product->shop->seller?->status === UserStatus::Active;
+            && $product->shop->seller?->status === UserStatus::Active
+            && ! $product->isComplianceRestricted();
 
         if (! $visible) {
             return $this->availabilityResult(false, 'product_unavailable', 0);

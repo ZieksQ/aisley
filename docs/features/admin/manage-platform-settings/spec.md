@@ -3,7 +3,7 @@ feature: manage-platform-settings
 title: Admin Manage Platform Settings
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -12,487 +12,122 @@ scope: Admin Web Application
 # Admin Manage Platform Settings
 
 ## WHAT
-- **Purpose:** Let authorized Admins manage platform-wide announcements and platform policy content used across AISLEY.
-- **Primary actor:** Authenticated `ADMIN`.
-- **Source-defined capabilities:**
-  - post platform announcements
-  - add/update platform policies
-  - manage Terms of Service, Privacy Policy, and internal platform rules
-  - surface announcements in user dashboard/feed experiences
-  - optionally require active users to re-consent after material policy updates
-- **Architecture:**
-  - Next.js/React owns settings pages, announcement/policy editors, preview, validation feedback, publishing controls, and history presentation.
-  - Laravel owns authentication, authorization, validation, versioning, publishing state, persistence, re-consent decisions, events, cache invalidation, and audit records.
-  - Laravel/database state is authoritative.
-- **Feature areas:**
-```text
-Manage Platform Settings
-├── Announcements
-└── Policies
-    ├── Terms of Service
-    ├── Privacy Policy
-    └── Internal Platform Rules
-```
-- **Recommended Admin routes:**
-```text
-/platform-settings/announcements
-/platform-settings/policies
-/platform-settings/policies/{policy}
-```
-or repository-equivalent routes.
-- **Feature boundary:**
-  - Dashboard/user feeds consume published announcements.
-  - Push Notification Management owns targeted push/SMS campaigns; posting an announcement does not automatically mean sending a push/SMS blast.
-  - Authentication may enforce required policy re-consent at login/session entry when a published policy version requires it.
-  - System Audit Logs records Admin configuration mutations.
-- **Non-goals:**
-  - arbitrary runtime editing of `.env`, secrets, database credentials, mail settings, payment keys, or infrastructure configuration
-  - feature flags unless separately specified
-  - targeted marketing campaigns
-  - legal interpretation of policy wording
-  - automatic generation of policies
-  - forcing re-consent for every typo/edit
-  - editing source-code configuration from the Admin UI
+
+- Authorized Admins manage platform announcements and the allow-listed policies: Terms of Service, Privacy Policy, and Internal Platform Rules.
+- The Admin React dashboard owns the editor, preview, confirmation, history, and error states. Laravel owns authorization, validation, versioning, persistence, cache invalidation, and audit records.
+- Policy content is versioned. A published version is immutable; Admins may still choose Edit, which creates a copied successor Draft rather than changing the published record.
+- Ordinary user policy views show only the current published version. A separate history view lets an authorized user read prior published/superseded versions.
+- Announcements are separate from Push Notification Management. Publishing an announcement does not imply push, SMS, or email delivery.
+- This feature does not manage secrets, `.env`, infrastructure, arbitrary key/value settings, feature flags, policy-writing/legal advice, or targeted campaigns.
 
 ## MUST
 
-### Access control
-- Every Platform Settings endpoint requires:
-  - authenticated session
-  - persisted role = `ADMIN`
-  - Manage Platform Settings permission when custom Admin permissions exist
-- Laravel authorization is authoritative.
-- Frontend visibility is not authorization.
-- Direct API calls cannot bypass permission checks.
-- Use project-standard responses:
-  - `401` unauthenticated
-  - `403` forbidden
-  - `404` setting/resource not found
-  - `422` validation failure
-  - `409` stale/conflicting publish/update state when applicable
+### Access and boundaries
 
-### Settings scope
-- Admin-editable settings are allow-listed domain records.
-- Do not expose a generic key/value editor that can modify arbitrary server configuration.
-- Secrets and deployment configuration must never be editable through this feature.
-- New setting categories require explicit schema/domain support.
+- Every Admin endpoint requires `auth:sanctum`, persisted `ADMIN` role, and `platform-settings.manage` permission where custom permissions apply.
+- Laravel is authoritative; hiding an Admin control in React is never authorization.
+- Return `401`, `403`, `404`, `409`, or `422` consistently for authentication, permission, missing resource, stale state, and validation failures.
+- Platform Settings may modify only supported domain records; no API may expose arbitrary runtime configuration or secrets.
 
 ### Announcements
-- Admin must be able to:
-  - create an announcement
-  - edit a non-final/draft announcement when draft behavior is supported
-  - publish an announcement
-  - view announcement history
-  - retire/unpublish an announcement when policy allows
-- Minimum announcement data:
-  - immutable server ID
-  - title
-  - body/content
-  - status
-  - creating/updating Admin metadata
-  - created/updated timestamps
-- Recommended optional fields:
-  - publish timestamp
-  - expiration timestamp
-  - audience/scope when explicitly defined
-- Exact announcement status names are not source-defined.
-- Recommended lifecycle:
-```text
-DRAFT → PUBLISHED → ARCHIVED
+
+- Support `DRAFT → PUBLISHED → ARCHIVED`; only a Draft can be updated or published, and only a Published announcement can be archived.
+- Store UUID, title, body, status, revision, creator/updater, timestamps, optional publication and expiry times.
+- Validate and safely render content. Use plain text/Markdown unless an approved server-side rich-content sanitizer exists.
+- User-facing reads return only currently active Published announcements; drafts, archives, and expired records are excluded by Laravel.
+- Publish/archive must invalidate the active-announcement cache after the transaction commits and emit an audit record.
+
+### Policy identities and versions
+
+- Policy types are server allow-listed: `terms_of_service`, `privacy_policy`, and `internal_rules`.
+- Maintain one stable policy identity per type and ordered version records with UUID, integer version, title, content, status, revision, creator, publisher, timestamps, and `requires_reconsent`.
+- A policy version lifecycle is `DRAFT → PUBLISHED → SUPERSEDED`. Exactly one current Published version may exist for a policy type.
+- Published and Superseded content is immutable. It must never be overwritten, deleted, or relabeled as a correction.
+- A new Draft receives the next version number. Optional `source_policy_version_id` records which published version it copied; optional user-safe `change_summary` may be shown in history.
+
+### Editing a published policy
+
+- The Admin UI may show **Edit** on the current Published version.
+- Edit calls a successor-Draft action; it must lock the policy and selected published version, copy title/content/re-consent settings, assign the next version number, and record the source/version creator.
+- The source Published version, its exact content, acceptance records, publication metadata, and audit history remain unchanged.
+- The response returns the new Draft ID; all ordinary editing uses that Draft ID. Saving the Draft does not change user-facing policy content.
+- If a successor Draft already exists for the same policy/source lineage, return that Draft or `409`; do not create competing successor copies.
+- Only Draft versions accept `PATCH`; updates require the submitted revision and increment it atomically.
+- Audit successor creation, Draft update, and publication as distinct actions.
+
+### Publishing and concurrency
+
+- Publishing requires an explicit confirmation and submitted Draft revision.
+- In one database transaction, lock the Draft and policy, reject stale/non-Draft state, publish the Draft, supersede the former current version, set `current_version_id`, and persist publisher/time/re-consent choice.
+- Concurrent create-successor, update, or publish attempts must not create two current versions or overwrite newer content; return `409` and refetch current state.
+- Invalidate the current-policy cache only after a successful commit. Any notification/broadcast is queued after commit and cannot roll back publication.
+
+### User policy views and consent
+
+- The default policy endpoint/page returns only the current Published version; it must not render all versions inline.
+- A separate history endpoint/page lists and renders exact Published/Superseded versions only, with version, title, publication/effective date, current/superseded state, and optional safe change summary.
+- History never exposes Drafts, Admin-only metadata, internal notes, or audit data. Internal Rules remain limited to their authorized audience.
+- Terms and Privacy may be public if the product visibility decision permits; otherwise use the project’s authenticated policy route.
+- `requires_reconsent` belongs to a specific Published version. A user acceptance must store `user_id`, `policy_version_id`, and server `accepted_at` with a unique user/version constraint.
+- Never silently mark a user accepted or synchronously update every user row on policy publication. Determine outstanding consent by comparing the current required version with exact acceptances.
+- The blocking point for required consent (login, session restoration, or protected feature entry) remains an explicit integration decision; Platform Settings does not fabricate acceptance.
+
+### APIs and UI
+
+- Admin APIs follow `/api/v1/admin/platform-settings` conventions:
+
+```http
+GET   /announcements
+POST  /announcements
+PATCH /announcements/{announcement}
+POST  /announcements/{announcement}/publish
+POST  /announcements/{announcement}/archive
+GET   /policies
+POST  /policies/{type}/versions
+POST  /policy-versions/{version}/successor
+PATCH /policy-versions/{version}
+POST  /policy-versions/{version}/publish
 ```
-- If drafts are not needed for MVP, direct publish is acceptable.
-- The client must not assign arbitrary status values.
 
-### Announcement visibility
-- Only published, currently active announcements may appear in user-facing feeds.
-- Draft/archived announcements must not appear to normal users.
-- If expiration exists, expired announcements must stop appearing without destructive deletion.
-- User-facing announcement queries must return only safe published content.
-- Announcement visibility must be determined by Laravel, not by hiding drafts in React.
-- Exact role/audience targeting is an Open Question.
-- Unless targeting is explicitly defined, treat announcements as platform-wide.
-
-### Announcement integration
-- Published announcements should integrate with user dashboard/feed surfaces as the Admin source requires.
-- Do not create duplicate copies per user unless the notification architecture specifically needs them.
-- Prefer one announcement record plus read/dismiss state only if those behaviors are required.
-- Announcement publication may emit an event/broadcast after commit so connected clients can refresh.
-- Push/SMS/email fan-out is not implied by ordinary announcement publication.
-
-### Announcement content
-- Validate title/body server-side.
-- Define maximum lengths.
-- Treat content as untrusted input.
-- If rich text/HTML is supported:
-  - sanitize with an approved server-side strategy
-  - allow-list supported formatting
-  - block executable/script content
-- Plain text/Markdown is preferable if the project has no approved rich-text sanitizer.
-- Exact editor/format is an Open Question.
-
-### Policies
-- Admin must be able to manage supported platform policy types.
-- Source-supported examples:
-  - Terms of Service
-  - Privacy Policy
-  - internal platform rules
-- Policy types must be allow-listed.
-- Do not let the browser invent arbitrary privileged system-setting types.
-- Each published policy must have a stable policy identity/type plus a version/revision record.
-
-### Policy versioning
-- Do not overwrite the only copy of an already-published policy.
-- Preserve policy history.
-- Recommended model:
-```text
-policy
-→ version 1
-→ version 2
-→ version 3 (current)
-```
-- A new material update creates a new policy version.
-- Minimum policy-version data:
-  - immutable ID
-  - policy type
-  - version/revision identifier
-  - title
-  - content
-  - status
-  - author/publishing Admin
-  - created timestamp
-  - published timestamp
-  - `requires_reconsent` or equivalent decision
-- Exact version numbering format is an Open Question.
-- Published historical versions remain read-only through normal editing.
-- Corrections after publication should create a new version rather than silently rewriting history.
-
-### Policy publishing
-- Publishing must be an explicit server-side transition.
-- Recommended lifecycle:
-```text
-DRAFT → PUBLISHED → SUPERSEDED
-```
-- Only one current published version per policy type should be effective at a time unless the product explicitly supports multiple concurrent policies.
-- Publishing a new version must atomically:
-  - verify authorization
-  - validate draft/version state
-  - mark the new version current/published
-  - supersede the prior current version when one exists
-  - persist the re-consent requirement decision
-  - record audit/history
-- Concurrent publish attempts must not produce two unintended current versions.
-- Use transaction + locking/unique constraint/atomic check as appropriate.
-
-### Policy re-consent
-- `Admin.md` says policy updates **might** require a `requires re-consent` flag for active users.
-- Therefore re-consent must be an explicit property of the published version, not automatic for every edit.
-- When `requires_reconsent = true`:
-  - affected active users must be identifiable as not yet accepting the new version
-  - the relevant app/auth flow must require acceptance according to the chosen enforcement policy
-  - acceptance must record the exact policy version
-- Do not represent consent as a single boolean detached from policy version.
-- Recommended acceptance record:
-```text
-user_id
-policy_version_id
-accepted_at
-```
-- If multiple policy types require consent, track acceptance independently per policy/version.
-- Do not silently mark users as accepted.
-- Exact enforcement point is an Open Question:
-  - at next login
-  - before accessing protected application features
-  - via blocking consent screen after session restoration
-
-### Re-consent fan-out
-- Publishing a policy version requiring re-consent must not synchronously update every active user row during the request.
-- Prefer version-based comparison:
-  - current required version
-  - latest accepted version per user
-- This avoids massive write fan-out when policy versions change.
-- If the existing account schema already uses a re-consent flag, preserve repository conventions unless they create correctness/performance problems.
-- Any queued notification announcing the change must run after publish commit.
-
-### Policy acceptance boundary
-- Platform Settings owns:
-  - policy content
-  - version
-  - whether re-consent is required
-- User-facing apps/auth flows own:
-  - presenting the policy
-  - collecting explicit acceptance
-  - blocking/allowing access according to the chosen policy
-- The Admin UI must not fabricate acceptance on behalf of users.
-- Whether Admin accounts themselves must re-consent is an Open Question.
-
-### Read APIs for users
-- User-facing applications need a safe way to retrieve:
-  - current published announcements
-  - current published policy content
-  - outstanding required-consent versions when applicable
-- These endpoints must never expose drafts, internal notes, or Admin-only metadata.
-- Public-vs-authenticated visibility for Terms/Privacy is an Open Question; many systems expose current legal policies publicly, but the source does not require it.
-
-### Caching
-- Published announcements/policies are strong cache candidates because reads may greatly exceed writes.
-- Cache is an optimization; database state is authoritative.
-- Publish/archive/supersede operations must invalidate affected cache keys after commit.
-- Do not cache drafts into user-facing keys.
-- Laravel cache may be used with the configured backend.
-- Exact TTL is an implementation choice based on freshness requirements.
-- HTTP cache headers/ETags may be used for public policy pages when their visibility model permits it.
-
-### Notifications
-- Announcement publication may update user dashboards through the shared notification/feed/broadcast architecture.
-- Policy publication may notify affected users when product policy requires it.
-- Push Notification Management remains the feature for targeted push/SMS blasts.
-- Do not automatically turn every announcement into SMS/push.
-- Queue notification/broadcast work after commit.
-- Notification failure must not roll back a published announcement/policy.
-
-### Audit trail
-- Platform-setting mutations are administrative actions and must be auditable.
-- Record safe metadata:
-  - Admin ID
-  - action
-  - resource type
-  - resource/version ID
-  - previous/new status
-  - timestamp
-- Policy history itself preserves content revisions.
-- Audit log should not need to duplicate entire policy/announcement bodies unless policy requires snapshots there.
-- Draft/publish/archive/supersede/re-consent-setting changes should be attributable to an Admin.
-
-### Concurrency
-- Multiple Admins may edit/publish settings concurrently.
-- Publishing a policy/announcement must detect stale state.
-- A stale publish must not overwrite a newer publication.
-- Use:
-  - transactions
-  - row locks
-  - version fields
-  - conditional updates
-  - unique current-version constraints
-  as appropriate.
-- Return `409` for stale/conflicting publish attempts.
-
-### Frontend states
-- Announcements:
-  - list loading/empty/error
-  - editor validation
-  - draft/publish/archive confirmation
-  - submitting/success/conflict/failure
-- Policies:
-  - policy-type list
-  - current version
-  - version history
-  - draft editor
-  - publish confirmation
-  - re-consent decision
-  - validation/conflict/success/failure
-- Do not optimistically display content as published before Laravel confirms it.
-- On `409`, refetch current publication state.
-
-### Accessibility
-- Editors/forms require semantic labels and keyboard navigation.
-- Publish/archive status must not rely on color alone.
-- Re-consent choice must have explicit explanatory text.
-- Validation and conflict messages must be programmatically associated.
-- Policy/announcement preview should remain readable without relying solely on visual formatting.
+- User APIs expose current policy content and, when authorized, version history and an exact history entry. They return published-safe DTOs only.
+- The Admin policy screen shows the current version, a New version action, Edit-to-successor action, Draft editor, Publish confirmation, re-consent checkbox, and version history.
+- The user experience distinguishes “Edit published policy — creates a new draft” from editing a Draft.
+- Forms require labels, keyboard operation, visible focus, associated validation messages, non-color-only status, loading/error/retry states, and no optimistic publish result.
 
 ### Acceptance criteria
-- [ ] Guest cannot access Platform Settings Admin APIs.
-- [ ] Non-Admin cannot manage Platform Settings.
-- [ ] Custom Admin permission is enforced server-side.
-- [ ] Admin can create and publish a valid announcement.
-- [ ] Draft/archived announcements do not appear in user feeds.
-- [ ] Published active announcement can appear in the configured user feed.
-- [ ] Announcement content is server-validated and safely rendered.
-- [ ] Admin can create a new version of a supported policy.
-- [ ] Published policy versions are preserved historically.
-- [ ] Publishing a new policy does not silently overwrite old content.
-- [ ] Only one intended current version per policy type is effective.
-- [ ] Concurrent publish cannot create conflicting current versions.
-- [ ] Re-consent is explicit per policy version.
-- [ ] User acceptance, when required, references the exact policy version.
-- [ ] Users are never silently marked as having accepted a new version.
-- [ ] Publishing does not require synchronous per-user row updates when version comparison can enforce consent.
-- [ ] Cache is invalidated after publication/status changes.
-- [ ] Notification/broadcast failure does not roll back publication.
-- [ ] Draft/internal metadata is absent from user-facing DTOs.
-- [ ] Platform-setting mutations are auditable.
-- [ ] Admin UI cannot edit `.env`, secrets, or arbitrary server configuration.
-- [ ] UI handles validation, forbidden, conflict, success, and failure states.
+
+- [x] Guests, non-Admins, and Admins without permission cannot mutate Platform Settings.
+- [x] Admin can create, edit, publish, archive, and safely render an announcement; only active Published announcements reach users.
+- [x] Admin can create a policy Draft and publish it as the sole current version.
+- [x] Edit on a Published policy creates a copied successor Draft; the source row remains byte-for-byte unchanged.
+- [x] Updating or abandoning a successor Draft does not change the current user-facing policy.
+- [x] Publishing a successor supersedes the former current version atomically and preserves exact historical content.
+- [x] Stale/concurrent successor, Draft-update, and publish attempts return `409` without corrupting version state.
+- [x] User default view returns only the current policy; history excludes Drafts and renders a selected historical version exactly.
+- [x] Re-consent and acceptance reference the exact policy version; users are never auto-accepted.
+- [x] Administrative mutations create safe audit entries and invalidate relevant caches after commit.
 
 ## HOW
 
-### Project findings
-- `Admin.md` defines Platform Settings as announcement publishing plus adding/updating platform policies such as Terms of Service, Privacy Policy, and internal rules. fileciteturn11file0
-- It says announcements should integrate with user dashboard feeds and policy updates may require a re-consent flag on next login. fileciteturn11file0
-- Admin Authentication requires Platform Settings to remain behind authenticated Admin access and custom permissions. fileciteturn11file1
-- `README.md` requires Laravel-owned authorization/validation, transactional mutations, after-commit notifications/events, audit history, and shared frontend API access. fileciteturn11file15L1-L26
-- Exact policy schema, announcement audience rules, user consent flow, notification model, and rich-text/editor choice are not defined by available project sources.
-
-### Laravel data model
-Recommended conceptual schema:
-```text
-announcements
-- id
-- title
-- body
-- status
-- published_at nullable
-- expires_at nullable
-- created_by_admin_id
-- updated_by_admin_id
-- created_at
-- updated_at
-
-policies
-- id
-- type
-- current_version_id nullable
-
-policy_versions
-- id
-- policy_id
-- version
-- title
-- content
-- status
-- requires_reconsent
-- created_by_admin_id
-- published_by_admin_id nullable
-- published_at nullable
-- created_at
-
-policy_acceptances
-- id
-- user_id
-- policy_version_id
-- accepted_at
-```
-- Use real repository names/types.
-- Keep historical published policy versions immutable.
-- Add uniqueness/indexes for policy type/current version and user+policy-version acceptance.
-
-### Laravel API
-Conceptual Admin endpoints:
-```http
-GET  /api/admin/platform-settings/announcements
-POST /api/admin/platform-settings/announcements
-PATCH /api/admin/platform-settings/announcements/{announcement}
-POST /api/admin/platform-settings/announcements/{announcement}/publish
-POST /api/admin/platform-settings/announcements/{announcement}/archive
-
-GET  /api/admin/platform-settings/policies
-GET  /api/admin/platform-settings/policies/{policy}
-POST /api/admin/platform-settings/policies/{policy}/versions
-POST /api/admin/platform-settings/policy-versions/{version}/publish
-```
-Conceptual user endpoints:
-```http
-GET  /api/announcements
-GET  /api/policies/{type}/current
-GET  /api/me/policy-consents/pending
-POST /api/me/policy-consents/{policyVersion}
-```
-- Exact URLs follow repository conventions.
-- Use Form Requests, Policies/Gates, domain actions, and API Resources.
-- Suggested actions:
-  - `CreateAnnouncement`
-  - `PublishAnnouncement`
-  - `ArchiveAnnouncement`
-  - `CreatePolicyVersion`
-  - `PublishPolicyVersion`
-  - `AcceptPolicyVersion`
-
-### Publish transaction
-- Wrap policy publication in a database transaction.
-- Lock/re-check current policy/version state.
-- Supersede prior current version and publish new version atomically.
-- Record Admin/audit metadata.
-- Commit before:
-  - cache invalidation dependent events
-  - dashboard/feed broadcasts
-  - user notifications
-- Laravel supports after-commit jobs/notifications so workers do not observe uncommitted state. citeturn540778search1turn540778search2
-
-### Re-consent implementation
-- Prefer version comparison over setting `requires_reconsent = true` on every user row.
-- Determine pending consent from:
-  - current published version requiring consent
-  - absence of matching `policy_acceptances` record
-- Auth/application middleware may query a compact consent service to decide whether the user must enter a consent screen.
-- Acceptance endpoint must:
-  - authenticate user
-  - validate that the policy version is current/acceptable
-  - create an idempotent acceptance record with server timestamp
-- OWASP privacy guidance recommends keeping policy/T&C version history and tracking which version each user accepted. citeturn540778search46
-
-### Announcements and notifications
-- Use shared Laravel notification/broadcast infrastructure when announcements need live feed refresh.
-- Persist the announcement once; do not duplicate content per user unless unread/dismiss state requires a separate relation.
-- Laravel queued notifications can explicitly dispatch after transaction commit. citeturn540778search1
-- Keep targeted push/SMS behavior in Push Notification Management.
-
-### Cache
-- Cache current published policies and active announcements where useful.
-- Laravel supports cache storage/retrieval/invalidation through its cache abstraction. citeturn540778search0
-- Suggested keys:
-```text
-platform:announcements:active
-platform:policy:{type}:current
-```
-- Invalidate after publish/archive/supersede.
-- Public legal-policy pages may use HTTP cache headers/ETags if allowed; Laravel provides cache-header middleware. citeturn540778search3
-
-### Next.js / React
-- Build:
-  - announcement list/editor/preview
-  - policy type list
-  - policy version history
-  - policy editor/preview
-  - explicit publish confirmation
-  - explicit re-consent toggle/choice when publishing
-- Use shared Laravel API client.
-- Treat server validation as authoritative.
-- Refetch current state after mutations.
-- On conflict, show current published state and require Admin review before retry.
-- User-facing apps consume published-only endpoints and pending-consent state.
-
-### Tests
-- **Laravel:** guest/non-Admin/permission denial; announcement create/update/publish/archive; draft visibility and expiration; safe content serialization; policy version creation/publication/history; one-current-version invariant; concurrent publish conflict; re-consent persistence; exact-version acceptance; idempotent acceptance; user DTO privacy; cache invalidation; audit creation; after-commit notification behavior.
-- **Frontend:** announcement list/editor states; publish/archive confirmation; policy history/editor validation; re-consent selection; conflict refresh; forbidden state; safe preview rendering; accessibility.
-
-### Research-backed recommendations
-- Preserve published policy versions instead of overwriting them.
-- Track consent against a specific version, not a generic boolean. citeturn540778search46
-- Require re-consent only for versions explicitly marked as requiring it.
-- Cache high-read published content and invalidate after publication changes. citeturn540778search0
-- Queue notification/broadcast work after commit. citeturn540778search1turn540778search2
-- Keep runtime secrets/environment configuration outside this Admin feature.
-
-### Risks
-- **Policy history loss:** editing published content in place destroys the record users accepted.
-- **Fake consent:** one global boolean cannot establish accepted policy version.
-- **Mass fan-out:** updating every user row during publication is unnecessarily expensive.
-- **Stale cache:** missed invalidation can serve old policy/announcement content.
-- **Permission leakage:** generic settings editors can expose dangerous configuration.
-- **XSS:** unsanitized rich content can execute in user-facing pages.
-- **Notification coupling:** synchronous fan-out can slow/fail publication.
-- **Scope overlap:** announcements must not silently become push/SMS campaigns.
+- Reuse `PlatformPolicy`, `PlatformPolicyVersion`, `PolicyAcceptance`, `Announcement`, their enum casts, UUID migrations, `PlatformSettingsService`, Admin Form Requests/Resources, and the shared Admin API client.
+- Add an additive migration for successor lineage/change summary only if those fields are adopted; keep enum-like database columns as strings and Eloquent enum casts.
+- Implement successor creation in `PlatformSettingsService` with `DB::transaction()` and `lockForUpdate()` on the policy/version. Add a service/controller route, authorization, request validation, resource projection, and audit action.
+- Keep existing Draft-only update and publish paths, but update the Admin page so Published Edit creates/opens a successor Draft. Do not change a Published version through `PATCH`.
+- Add current/history user resources and routes that enforce policy-type visibility and exclude Draft/Admin data. Cache only current Published policy payloads.
+- Test Laravel authorization, allow-listing, immutable source, copied successor data, single-current invariant, stale revision conflicts, history visibility, exact acceptance, cache invalidation, and audit records.
+- Test the Admin UI’s successor-edit flow, Draft/publish states, conflict recovery, latest-only user view, history selection, and keyboard/error accessibility.
+- Roll out only after the user-facing policy/consent integration identifies who may see Internal Rules and where required re-consent blocks access.
 
 ### Open questions
-- Announcements: lifecycle, targeting, expiration, read/dismiss behavior, and content format.
-- Policies: allowed types, version naming, material-change/re-consent decision owner, and whether publication requires second-Admin approval.
-- Consent: affected roles, Admin participation, enforcement point, withdrawal behavior, and public visibility of Terms/Privacy.
-- Operations: policy-change notification channel, cache backend/TTL, and scheduled future publication.
+
+- Are Terms and Privacy public, authenticated-only, or role-specific?
+- Should a successor Draft be returned or rejected when another Admin already created one?
+- Who decides whether a change requires re-consent, and is second-Admin approval required before publication?
+- What user-facing change-summary format and policy notification channel are desired?
 
 ### Sources
-- Project feature-spec rules: `SKILL.md`
-- AISLEY architecture/system-flow contract: `README.md`
-- Admin feature model: `Admin.md`
-- Admin Authentication integration
-- Laravel docs: Notifications, Queues, Cache, and HTTP Responses (`laravel.com/docs/12.x/...`)
-- OWASP Privacy Risks Countermeasures: https://owasp.org/www-project-top-10-privacy-risks/
+
+- Project: `docs/requirements.md`, `docs/architecture.md`, existing Platform Settings models/service/routes/tests.
+- [Laravel database locking and transactions](https://laravel.com/framework/docs/13.x/queries)
+- [Laravel queued work after database commit](https://laravel.com/framework/docs/12.x/queues)
+- [OWASP policy change-history guidance](https://owasp.org/www-project-top-10-privacy-risks/OWASP_Top_10_Privacy_Risks_Countermeasures_v2.0.pdf)

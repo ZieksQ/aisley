@@ -23,7 +23,9 @@ class SellerUserResource extends JsonResource
                 'sex' => $this->sellerProfile?->sex?->value,
                 'birth_date' => $this->sellerProfile?->birth_date?->toDateString(),
                 'age' => $this->sellerProfile?->age,
-                'profile_photo_path' => $this->sellerProfile?->profile_photo_path,
+                'profile_photo_url' => $this->sellerProfile?->profile_photo_path
+                    ? '/api/v1/seller/account/profile-photo?v='.$this->sellerProfile->updated_at?->getTimestamp()
+                    : null,
             ]),
             'shop' => $this->whenLoaded('shop', fn () => $this->shop ? [
                 'id' => $this->shop->id,

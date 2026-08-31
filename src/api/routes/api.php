@@ -4,7 +4,11 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
+use App\Http\Controllers\Admin\SellerComplianceController;
+use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
@@ -13,10 +17,13 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\PlatformContentController;
+use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
@@ -29,6 +36,35 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+    Route::prefix('seller-compliance')->name('seller-compliance.')->middleware('admin.permission:seller_compliance.manage')->group(function () {
+        Route::get('/cases', [SellerComplianceController::class, 'index'])->name('index');
+        Route::get('/options', [SellerComplianceController::class, 'options'])->name('options');
+        Route::post('/cases', [SellerComplianceController::class, 'store'])->name('store');
+        Route::get('/cases/{case}', [SellerComplianceController::class, 'show'])->whereUuid('case')->name('show');
+        Route::post('/cases/{case}/dismiss', [SellerComplianceController::class, 'dismiss'])->whereUuid('case')->name('dismiss');
+        Route::post('/cases/{case}/warn', [SellerComplianceController::class, 'warn'])->whereUuid('case')->name('warn');
+        Route::post('/cases/{case}/restrict-product', [SellerComplianceController::class, 'restrictProduct'])->whereUuid('case')->name('restrict-product');
+        Route::post('/cases/{case}/revoke-product-restriction', [SellerComplianceController::class, 'revokeProductRestriction'])->whereUuid('case')->name('revoke-product-restriction');
+        Route::post('/cases/{case}/suspend-seller', [SellerComplianceController::class, 'suspendSeller'])->whereUuid('case')->name('suspend');
+        Route::post('/cases/{case}/close', [SellerComplianceController::class, 'close'])->whereUuid('case')->name('close');
+    });
+
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserAccountController::class, 'index'])->middleware('admin.permission:users.view')->name('index');
+        Route::get('/{user}', [UserAccountController::class, 'show'])->middleware('admin.permission:users.view')->whereUuid('user')->name('show');
+        Route::get('/{user}/history', [UserAccountController::class, 'history'])->middleware('admin.permission:users.view')->whereUuid('user')->name('history');
+        Route::post('/{user}/suspend', [UserAccountController::class, 'suspend'])->middleware('admin.permission:users.manage')->whereUuid('user')->name('suspend');
+        Route::post('/{user}/restore', [UserAccountController::class, 'restore'])->middleware('admin.permission:users.manage')->whereUuid('user')->name('restore');
+        Route::post('/{user}/deactivate', [UserAccountController::class, 'deactivate'])->middleware('admin.permission:users.manage')->whereUuid('user')->name('deactivate');
+    });
+
+    Route::prefix('notifications')->name('notifications.')->middleware('admin.permission:notifications.view')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
+        Route::post('/{notification}/read', [NotificationController::class, 'markRead'])->whereUuid('notification')->name('read');
+    });
+
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/email', [AccountController::class, 'updateEmail'])->name('account.email.update');
@@ -36,6 +72,19 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::post('/account/profile-photo', [AccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
     Route::get('/account/profile-photo', [AccountController::class, 'profilePhoto'])->name('account.photo.show');
     Route::delete('/account/profile-photo', [AccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
+
+    Route::prefix('platform-settings')->name('platform-settings.')->group(function () {
+        Route::get('/announcements', [PlatformSettingsController::class, 'announcements'])->middleware('admin.permission:platform-settings.view')->name('announcements.index');
+        Route::post('/announcements', [PlatformSettingsController::class, 'storeAnnouncement'])->middleware('admin.permission:platform-settings.manage')->name('announcements.store');
+        Route::patch('/announcements/{announcement}', [PlatformSettingsController::class, 'updateAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.update');
+        Route::post('/announcements/{announcement}/publish', [PlatformSettingsController::class, 'publishAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.publish');
+        Route::post('/announcements/{announcement}/archive', [PlatformSettingsController::class, 'archiveAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.archive');
+        Route::get('/policies', [PlatformSettingsController::class, 'policies'])->middleware('admin.permission:platform-settings.view')->name('policies.index');
+        Route::post('/policies/{type}/versions', [PlatformSettingsController::class, 'storePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->name('policies.versions.store');
+        Route::post('/policy-versions/{version}/successor', [PlatformSettingsController::class, 'createPolicySuccessor'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.successor');
+        Route::patch('/policy-versions/{version}', [PlatformSettingsController::class, 'updatePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.update');
+        Route::post('/policy-versions/{version}/publish', [PlatformSettingsController::class, 'publishPolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.publish');
+    });
 
     Route::get('/dashboard', [DashboardController::class, 'show'])
         ->name('dashboard.show');
@@ -80,6 +129,12 @@ Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
+    Route::prefix('address-options')->name('address-options.')->middleware('throttle:60,1')->group(function () {
+        Route::get('/regions', [SellerRegistrationAddressController::class, 'regions'])->name('regions');
+        Route::get('/provinces', [SellerRegistrationAddressController::class, 'provinces'])->name('provinces');
+        Route::get('/municipalities', [SellerRegistrationAddressController::class, 'municipalities'])->name('municipalities');
+        Route::get('/barangays', [SellerRegistrationAddressController::class, 'barangays'])->name('barangays');
+    });
     Route::get('/registration-options', [SellerAuthController::class, 'registrationOptions'])
         ->middleware('throttle:60,1')
         ->name('registration-options');
@@ -95,6 +150,14 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active'])->group(function () {
+    Route::get('/account', [SellerAccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::patch('/account/storefront', [SellerAccountController::class, 'updateStorefront'])->name('account.storefront.update');
+    Route::patch('/account/email', [SellerAccountController::class, 'updateEmail'])->name('account.email.update');
+    Route::put('/account/password', [SellerAccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::post('/account/profile-photo', [SellerAccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
+    Route::get('/account/profile-photo', [SellerAccountController::class, 'profilePhoto'])->name('account.photo.show');
+    Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::get('/products', [SellerProductController::class, 'index'])->name('products.index');
@@ -153,3 +216,10 @@ Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
     ->whereUuid('id')
     ->middleware('throttle:120,1')
     ->name('products.show');
+
+Route::prefix('v1/platform')->name('platform.')->middleware('throttle:120,1')->group(function () {
+    Route::get('/announcements', [PlatformContentController::class, 'announcements'])->name('announcements.index');
+    Route::get('/policies/{type}/history/{version}', [PlatformContentController::class, 'policyHistoryVersion'])->whereNumber('version')->name('policies.history.show');
+    Route::get('/policies/{type}/history', [PlatformContentController::class, 'policyHistory'])->name('policies.history.index');
+    Route::get('/policies/{type}', [PlatformContentController::class, 'policy'])->name('policies.show');
+});

@@ -2,18 +2,22 @@ import { useState } from 'react'
 import {
   FaArrowRightFromBracket,
   FaBars,
-  FaBell,
   FaClipboardCheck,
   FaClockRotateLeft,
   FaGaugeHigh,
+  FaInbox,
   FaShieldHalved,
   FaUserGear,
+  FaUsers,
+  FaSliders,
+  FaScaleBalanced,
   FaXmark,
 } from 'react-icons/fa6'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { AdminAvatar } from '../components/AdminAvatar'
+import { AdminNotificationBell } from '../components/AdminNotificationBell'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${
@@ -33,18 +37,23 @@ export function AdminLayout() {
   const initials = `${admin?.profile?.first_name?.[0] ?? 'A'}${admin?.profile?.last_name?.[0] ?? ''}`
   const canViewRegistrations = admin?.permissions.includes('registrations.view') ?? false
   const canViewAuditLogs = admin?.permissions.includes('audit-logs.view') ?? false
+  const canViewPlatformSettings = admin?.permissions.includes('platform-settings.view') ?? false
+  const canViewNotifications = admin?.permissions.includes('notifications.view') ?? false
+  const canViewUsers = admin?.permissions.includes('users.view') ?? false
+  const canManageSellerCompliance = admin?.permissions.includes('seller_compliance.manage') ?? false
+  const isUserDetail = /^\/users\/[^/]+$/.test(location.pathname)
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
   const pageTitle = location.pathname.startsWith('/registrations')
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'
+      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : location.pathname.startsWith('/account') ? 'Administrator account' : 'Admin workspace'
+      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? 'Announcements and policies' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -92,10 +101,34 @@ export function AdminLayout() {
                 Account registrations
               </NavLink>
             )}
+            {canViewUsers && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/users">
+                <FaUsers aria-hidden="true" />
+                User accounts
+              </NavLink>
+            )}
+            {canManageSellerCompliance && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/seller-compliance">
+                <FaScaleBalanced aria-hidden="true" />
+                Seller compliance
+              </NavLink>
+            )}
             {canViewAuditLogs && (
               <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/audit-logs">
                 <FaClockRotateLeft aria-hidden="true" />
                 System audit logs
+              </NavLink>
+            )}
+            {canViewPlatformSettings && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/platform-settings">
+                <FaSliders aria-hidden="true" />
+                Platform settings
+              </NavLink>
+            )}
+            {canViewNotifications && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/notifications">
+                <FaInbox aria-hidden="true" />
+                Notifications
               </NavLink>
             )}
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
@@ -156,15 +189,7 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              aria-label="Notifications"
-              className="grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm disabled:cursor-default dark:border-white/10 dark:bg-white/5 dark:text-slate-500"
-              disabled
-              title="Notifications coming soon"
-              type="button"
-            >
-              <FaBell aria-hidden="true" />
-            </button>
+            {canViewNotifications && <AdminNotificationBell />}
             <ThemeToggle />
           </div>
         </header>

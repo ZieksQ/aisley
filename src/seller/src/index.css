@@ -50,6 +50,30 @@ button:disabled {
   cursor: not-allowed;
 }
 
+html.dark .seller-security-panel {
+  color: #fafafa;
+  background-color: #18181b;
+}
+
+html.dark .seller-security-card {
+  color: #fafafa;
+  background-color: #141416;
+}
+
+html.dark .seller-security-card input {
+  color: #fafafa;
+  background-color: #171719;
+  border-color: rgb(255 255 255 / 0.15);
+}
+
+html.dark .seller-security-card input:-webkit-autofill,
+html.dark .seller-security-card input:-webkit-autofill:hover,
+html.dark .seller-security-card input:-webkit-autofill:focus {
+  caret-color: #fafafa;
+  -webkit-text-fill-color: #fafafa;
+  box-shadow: 0 0 0 1000px #171719 inset;
+}
+
 ::selection {
   color: white;
   background: #e6007a;

@@ -6,6 +6,7 @@ import { useAuth } from '../auth/useAuth'
 import { AuthShell } from '../components/AuthShell'
 import { FormField, SelectField } from '../components/FormField'
 import { LoadingScreen } from '../components/LoadingScreen'
+import { PsgcAddressFields } from '../components/PsgcAddressFields'
 import { ApiError, apiRequest, initializeCsrf } from '../lib/api'
 import type { AuthResponse, RegistrationOptionsResponse, ShopCategoryOption } from '../types/auth'
 
@@ -142,17 +143,11 @@ export function RegisterPage() {
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-1 font-semibold">Business address</legend>
-          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Enter the address manually. Province, municipality, and barangay lookup services are not used.</p>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Select the administrative address in order. Postal code and street details remain manual because they are not included in the address dataset.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField error={errors['address.address_line_1']?.[0]} id="address_line_1" label="Street and house/building number *" name="address[address_line_1]" required />
-            <FormField error={errors['address.address_line_2']?.[0]} id="address_line_2" label="Unit, floor, or landmark (optional)" name="address[address_line_2]" />
-            <FormField error={errors['address.barangay']?.[0]} id="barangay" label="Barangay *" name="address[barangay]" required />
-            <FormField error={errors['address.city_municipality']?.[0]} id="city_municipality" label="City or municipality *" name="address[city_municipality]" required />
-            <FormField error={errors['address.province']?.[0]} id="province" label="Province *" name="address[province]" required />
-            <FormField error={errors['address.region']?.[0]} id="region" label="Region *" name="address[region]" required />
-            <FormField error={errors['address.postal_code']?.[0]} id="postal_code" label="Postal code *" maxLength={10} name="address[postal_code]" required />
-            <FormField disabled id="country" label="Country" name="country_display" value="Philippines" />
+            <PsgcAddressFields errors={errors} />
           </div>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Administrative options are served from Aisley’s bundled Q2 2026 PSGC dataset.</p>
         </fieldset>
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">

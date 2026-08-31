@@ -41,7 +41,17 @@ class InitialAdminSeeder extends Seeder
 
         $admin->permissions()->syncWithoutDetaching(
             Permission::query()
-                ->whereIn('slug', ['registrations.view', 'registrations.review', 'audit-logs.view'])
+                ->whereIn('slug', [
+                    'registrations.view',
+                    'registrations.review',
+                    'audit-logs.view',
+                    'platform-settings.view',
+                    'platform-settings.manage',
+                    'notifications.view',
+                    'users.view',
+                    'users.manage',
+                    'seller_compliance.manage',
+                ])
                 ->pluck('id'),
         );
     }

@@ -10,11 +10,12 @@ use App\Http\Requests\Customer\ForgotPasswordRequest;
 use App\Http\Requests\Customer\LoginRequest;
 use App\Http\Requests\Customer\RegisterRequest;
 use App\Http\Requests\Customer\ResetPasswordRequest;
-use App\Http\Resources\Customer\CustomerUserResource;
 use App\Http\Resources\Customer\CustomerNavigationResource;
+use App\Http\Resources\Customer\CustomerUserResource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Notifications\Customer\ResetPasswordNotification;
+use App\Services\Notifications\AdminNotificationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,8 @@ class AuthController extends Controller
     private const MAX_LOGIN_ATTEMPTS = 5;
 
     private const MAX_PASSWORD_RESET_ATTEMPTS = 5;
+
+    public function __construct(private readonly AdminNotificationService $adminNotifications) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -71,6 +74,13 @@ class AuthController extends Controller
             }
 
             throw $exception;
+        }
+
+        $application = $user->registrationApplications()->latest('submitted_at')->firstOrFail();
+        try {
+            $this->adminNotifications->registrationSubmitted($application);
+        } catch (\Throwable $exception) {
+            report($exception);
         }
 
         return response()->json([

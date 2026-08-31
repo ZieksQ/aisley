@@ -6,11 +6,13 @@ import {
   FaBoxesStacked,
   FaBoxOpen,
   FaStore,
+  FaUserGear,
   FaXmark,
 } from 'react-icons/fa6'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { SellerAvatar } from '../components/SellerAvatar'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
@@ -77,6 +79,10 @@ export function SellerLayout() {
             <FaBoxesStacked aria-hidden="true" />
             Inventory
           </NavLink>
+          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
+            <FaUserGear aria-hidden="true" />
+            Account settings
+          </NavLink>
         </nav>
 
         <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
@@ -85,9 +91,7 @@ export function SellerLayout() {
 
         <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-white/10">
           <div className="flex items-center gap-3 px-2">
-            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-purple-100 text-sm font-semibold text-[#4C1268] dark:bg-purple-400/15 dark:text-purple-200">
-              {initials}
-            </div>
+            <SellerAvatar initials={initials} photoUrl={seller?.profile?.profile_photo_url} />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{firstName}</p>
               <p className="truncate text-xs text-zinc-500">{seller?.email}</p>
@@ -125,7 +129,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/inventory') ? 'Inventory' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
           </div>
           <ThemeToggle />
         </header>
