@@ -54,14 +54,17 @@ function coordinates(result: GeoapifyResult) {
 }
 
 function addressLine1(result: GeoapifyResult) {
-  if (result.address_line1) return result.address_line1;
-
   const streetAddress = [result.housenumber, result.street].filter(Boolean).join(" ");
   if (streetAddress) return streetAddress;
 
-  return ["amenity", "building", "street"].includes(result.result_type ?? "")
-    ? result.name
-    : undefined;
+  // Geoapify can include an address_line1 value for broad place results such as
+  // cities. Only copy that value into the street/building field when the result
+  // is actually address-like; a city such as Manila belongs in the city field.
+  if (["address", "amenity", "building", "street"].includes(result.result_type ?? "")) {
+    return result.address_line1 ?? result.name;
+  }
+
+  return undefined;
 }
 
 export function GeoapifyAddressAutocomplete({
