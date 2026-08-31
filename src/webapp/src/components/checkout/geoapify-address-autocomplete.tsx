@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { FiMapPin } from "react-icons/fi";
 
+import { canonicalPhilippineHierarchy } from "@/lib/locations/philippine-regions";
+
 export type GeoapifyAddressSelection = {
   addressLine1?: string;
   barangay?: string;
@@ -17,12 +19,19 @@ export type GeoapifyAddressSelection = {
 
 type GeoapifyResult = {
   place_id?: string;
+  result_type?: string;
   formatted?: string;
+  name?: string;
   address_line1?: string;
   housenumber?: string;
   street?: string;
   suburb?: string;
   district?: string;
+  neighbourhood?: string;
+  neighborhood?: string;
+  quarter?: string;
+  village?: string;
+  city_district?: string;
   city?: string;
   municipality?: string;
   county?: string;
@@ -33,13 +42,59 @@ type GeoapifyResult = {
   lon?: number;
 };
 
-type GeoapifyResponse = {
-  results?: GeoapifyResult[];
-};
+type GeoapifyResponse = { results?: GeoapifyResult[] };
+
+function coordinates(result: GeoapifyResult) {
+  const { lat: latitude, lon: longitude } = result;
+
+  return typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180
+    ? { latitude, longitude }
+    : null;
+}
 
 function addressLine1(result: GeoapifyResult) {
-  const composed = [result.housenumber, result.street].filter(Boolean).join(" ");
-  return result.address_line1 || composed || undefined;
+  const streetAddress = [result.housenumber, result.street].filter(Boolean).join(" ");
+  if (streetAddress) return streetAddress;
+
+  // Geoapify can include an address_line1 value for broad place results such as
+  // cities. Only copy that value into the street/building field when the result
+  // is actually address-like; a city such as Manila belongs in the city field.
+  if (["address", "amenity", "building", "street"].includes(result.result_type ?? "")) {
+    return result.address_line1 ?? result.name;
+  }
+
+  return undefined;
+}
+
+function valueAtResultLevel(
+  result: GeoapifyResult,
+  level: "suburb" | "city" | "county" | "state",
+  structuredValue?: string,
+) {
+  return structuredValue ?? (result.result_type === level ? result.name : undefined);
+}
+
+function barangay(result: GeoapifyResult) {
+  const structured = result.suburb ??
+    result.village ??
+    result.neighbourhood ??
+    result.neighborhood ??
+    result.quarter ??
+    result.city_district ??
+    result.district;
+
+  if (structured) return structured;
+
+  return ["suburb", "district"].includes(result.result_type ?? "")
+    ? result.name
+    : undefined;
 }
 
 export function GeoapifyAddressAutocomplete({
@@ -69,11 +124,11 @@ export function GeoapifyAddressAutocomplete({
       setStatus("loading");
       const params = new URLSearchParams({
         text,
+        apiKey,
         format: "json",
         filter: "countrycode:ph",
         lang: "en",
         limit: "6",
-        apiKey,
       });
 
       try {
@@ -85,11 +140,7 @@ export function GeoapifyAddressAutocomplete({
 
         const payload = (await response.json()) as GeoapifyResponse;
         const nextResults = (payload.results ?? []).filter(
-          (result) =>
-            result.place_id &&
-            result.formatted &&
-            typeof result.lat === "number" &&
-            typeof result.lon === "number",
+          (result) => Boolean(result.place_id && result.formatted) && coordinates(result) !== null,
         );
         setResults(nextResults);
         setActiveIndex(-1);
@@ -117,23 +168,35 @@ export function GeoapifyAddressAutocomplete({
   );
 
   function select(result: GeoapifyResult) {
-    if (typeof result.lat !== "number" || typeof result.lon !== "number") return;
+    const point = coordinates(result);
+    if (!point) return;
 
-    const formatted = result.formatted ?? "";
+    const formatted = result.formatted ?? result.name ?? "";
+    const cityMunicipality = valueAtResultLevel(
+      result,
+      "city",
+      result.city ?? result.municipality,
+    );
+    const hierarchy = canonicalPhilippineHierarchy({
+      city: cityMunicipality,
+      province: result.county,
+      region: result.state,
+    });
     selectedQuery.current = formatted;
     setQuery(formatted);
     setResults([]);
     setIsOpen(false);
     onSelect({
-      addressLine1: addressLine1(result) || undefined,
-      barangay: result.suburb ?? result.district,
-      cityMunicipality: result.city ?? result.municipality ?? result.county,
-      province: result.county ?? result.state,
-      region: result.state,
+      addressLine1: addressLine1(result),
+      barangay: barangay(result),
+      cityMunicipality,
+      province: hierarchy
+        ? hierarchy.province
+        : valueAtResultLevel(result, "county", result.county),
+      region: hierarchy?.region ?? valueAtResultLevel(result, "state", result.state),
       postalCode: result.postcode,
       country: result.country,
-      latitude: result.lat,
-      longitude: result.lon,
+      ...point,
     });
   }
 
@@ -179,9 +242,7 @@ export function GeoapifyAddressAutocomplete({
               setActiveIndex((current) => (current + 1) % results.length);
             } else if (event.key === "ArrowUp") {
               event.preventDefault();
-              setActiveIndex((current) =>
-                current <= 0 ? results.length - 1 : current - 1,
-              );
+              setActiveIndex((current) => current <= 0 ? results.length - 1 : current - 1);
             } else if (event.key === "Enter" && activeIndex >= 0) {
               event.preventDefault();
               select(results[activeIndex]);
@@ -194,11 +255,7 @@ export function GeoapifyAddressAutocomplete({
         />
 
         {isOpen && results.length > 0 ? (
-          <ul
-            id={listboxId}
-            role="listbox"
-            className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-[#D9D3DE] bg-white py-1 shadow-[0_2px_8px_rgba(45,34,49,0.12)]"
-          >
+          <ul id={listboxId} role="listbox" className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-[#D9D3DE] bg-white py-1 shadow-[0_2px_8px_rgba(45,34,49,0.12)]">
             {results.map((result, index) => (
               <li
                 id={`${listboxId}-${index}`}
@@ -208,11 +265,7 @@ export function GeoapifyAddressAutocomplete({
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => select(result)}
-                className={`cursor-pointer px-3 py-2.5 text-sm leading-5 ${
-                  activeIndex === index
-                    ? "bg-[#F6F0F8] text-[#31123F]"
-                    : "text-[#514656]"
-                }`}
+                className={`cursor-pointer px-3 py-2.5 text-sm leading-5 ${activeIndex === index ? "bg-[#F6F0F8] text-[#31123F]" : "text-[#514656]"}`}
               >
                 {result.formatted}
               </li>
@@ -229,7 +282,7 @@ export function GeoapifyAddressAutocomplete({
               ? "Address suggestions are unavailable. Enter the address manually below."
               : status === "ready" && results.length === 0
                 ? "No matching address found. You can enter it manually below."
-                : "Choose a suggestion, then review every address field."}
+                : "Choose a suggestion, then review every address field and map pin."}
         </span>
         <span className="shrink-0">
           Powered by{" "}

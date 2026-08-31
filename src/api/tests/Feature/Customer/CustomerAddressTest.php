@@ -97,6 +97,77 @@ class CustomerAddressTest extends TestCase
         $this->assertDatabaseHas('addresses', ['id' => $createdId, 'is_default' => true]);
     }
 
+    public function test_customer_can_update_an_owned_address_and_its_coordinates(): void
+    {
+        $customer = User::factory()->create([
+            'role' => UserRole::Customer,
+            'status' => UserStatus::Active,
+        ]);
+        $previous = $customer->addresses()->create($this->addressPayload([
+            'label' => 'Previous home',
+            'is_default' => true,
+        ]));
+        $address = $customer->addresses()->create($this->addressPayload());
+        Sanctum::actingAs($customer);
+
+        $this->patchJson("/api/v1/customer/addresses/{$address->id}", $this->addressPayload([
+            'label' => 'Parents',
+            'latitude' => 10.3156992,
+            'longitude' => 123.8854366,
+            'is_default' => true,
+        ]))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.label', 'Parents')
+            ->assertJsonPath('data.latitude', '10.3156992')
+            ->assertJsonPath('data.longitude', '123.8854366')
+            ->assertJsonPath('data.isDefault', true);
+
+        $this->assertDatabaseHas('addresses', [
+            'id' => $address->id,
+            'label' => 'Parents',
+            'is_default' => true,
+        ]);
+        $this->assertFalse($previous->fresh()->is_default);
+    }
+
+    public function test_customer_can_delete_an_owned_address_without_deleting_order_history(): void
+    {
+        $customer = User::factory()->create([
+            'role' => UserRole::Customer,
+            'status' => UserStatus::Active,
+        ]);
+        $address = $customer->addresses()->create($this->addressPayload());
+        Sanctum::actingAs($customer);
+
+        $this->deleteJson("/api/v1/customer/addresses/{$address->id}")
+            ->assertNoContent()
+            ->assertHeader('Cache-Control', 'no-store, private');
+
+        $this->assertDatabaseMissing('addresses', ['id' => $address->id]);
+    }
+
+    public function test_customer_cannot_update_or_delete_another_customers_address(): void
+    {
+        $customer = User::factory()->create([
+            'role' => UserRole::Customer,
+            'status' => UserStatus::Active,
+        ]);
+        $other = User::factory()->create([
+            'role' => UserRole::Customer,
+            'status' => UserStatus::Active,
+        ]);
+        $address = $other->addresses()->create($this->addressPayload());
+        Sanctum::actingAs($customer);
+
+        $this->patchJson("/api/v1/customer/addresses/{$address->id}", $this->addressPayload())
+            ->assertNotFound();
+        $this->deleteJson("/api/v1/customer/addresses/{$address->id}")
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('addresses', ['id' => $address->id]);
+    }
+
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
     private function addressPayload(array $overrides = []): array
     {

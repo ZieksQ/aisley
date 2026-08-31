@@ -28,8 +28,8 @@ export type CustomerAddress = {
   isDefault: boolean;
 };
 
-export type CreateAddressPayload = {
-  type: "shipping" | "both";
+export type AddressPayload = {
+  type: "shipping" | "billing" | "both";
   label: string | null;
   recipient_name: string;
   contact_number: string;
@@ -45,6 +45,8 @@ export type CreateAddressPayload = {
   longitude: number | null;
   is_default: boolean;
 };
+
+export type CreateAddressPayload = AddressPayload;
 
 export type VoucherSelection = {
   voucher_id: string;

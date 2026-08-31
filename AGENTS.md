@@ -35,6 +35,7 @@ Database: Postgres (containerized)
 13. **Read applicable reference policies before implementation.** For any file/image upload work, read `docs/references/file-upload-requirements.md`. For Customer, Seller, or Courier registration/approval work, read `docs/references/user-registration-requirements.md`. Apply both when registration includes document/image uploads.
 14. Run all commands from within this directory. Do not run commands that modify files, directories, packages, services, or system settings outside this directory, including commands requiring sudo, unless explicitly instructed to do so.
 15. **Database Migrations**: Never modify existing or previously executed migration files. Always create a new migration file to apply schema changes, table updates, or data alterations.
+16. **Location and maps policy:** Before implementing or changing address autocomplete, geocoding, GPS/geolocation, coordinates, map rendering, map pins, delivery maps, or a location-provider integration, read `docs/maps-location-api.md`. Its provider boundaries are mandatory, including the prohibition on Mapbox Permanent Geocoding API usage.
 
 ## Where to look
 
@@ -47,5 +48,6 @@ Database: Postgres (containerized)
 | domain design, context about users role                                           | `docs/domains/*`       |
 | frontend desgin rules and color scheme                                            | `docs/design.md`       |
 | Role feature implementation or change                                              | Matching `docs/features/<role>/<feature>/spec.md` |
+| Address, location, geocoding, GPS, coordinates, maps, or map pins                  | `docs/maps-location-api.md` |
 | File or image upload                                                              | `docs/references/file-upload-requirements.md` |
 | Customer, Seller, or Courier registration/approval                                | `docs/references/user-registration-requirements.md` |

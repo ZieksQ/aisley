@@ -13,7 +13,7 @@ class SellerRegistrationAddressOptionsTest extends TestCase
         parent::setUp();
 
         config()->set('cache.default', 'array');
-        config()->set('seller.registration.addresses_path', base_path('addresses'));
+        config()->set('addresses.path', base_path('addresses'));
         Cache::clear();
         Http::fake();
     }
@@ -71,7 +71,7 @@ class SellerRegistrationAddressOptionsTest extends TestCase
             ->assertStatus(503)
             ->assertJsonPath('code', 'ADDRESS_DATA_UNAVAILABLE');
 
-        config()->set('seller.registration.addresses_path', base_path('addresses-not-present'));
+        config()->set('addresses.path', base_path('addresses-not-present'));
 
         $this->getJson('/api/v1/seller/auth/address-options/regions')
             ->assertStatus(503)
