@@ -128,6 +128,6 @@ intent → server resolution → group by shop → quote/choose vouchers
 ### Current storefront implementation (2026-08-30)
 
 - Product Detail Buy Now and selected Cart lines now hand off a server-authoritative intent to the authenticated `/checkout` route.
-- Checkout lists and creates shipping-capable Customer addresses, always uses COD, quotes each Shop group, displays per-Shop products/fees/vouchers/totals, requires explicit App-voucher targeting, and requotes after address or voucher changes.
+- Checkout shows one selected shipping-capable Customer address and links to the separate Address Book for adding, editing, deleting, or choosing another address. It always uses COD, quotes each Shop group, displays per-Shop products/fees/vouchers/totals, requires explicit App-voucher targeting, and requotes after address or voucher changes.
 - Placement uses a UUID idempotency key, preserves the key for safe retry, refreshes stale quotes for Customer review, refreshes Cart state after success, and redirects to a private batch confirmation with every created Shop Order reference, initial status, address snapshot, items, savings, and COD total.
 - The frontend does not calculate authoritative price, stock, voucher savings, shipping fees, or totals. Logistics provider/method selection remains intentionally absent.

@@ -4,6 +4,7 @@ import type {
   CheckoutBatch,
   CheckoutQuote,
   CheckoutRequestPayload,
+  AddressPayload,
   CreateAddressPayload,
   CustomerAddress,
 } from "./types";
@@ -25,6 +26,23 @@ export async function createAddress(payload: CreateAddressPayload) {
     { method: "POST", body: JSON.stringify(payload) },
   );
   return response.data;
+}
+
+export async function updateAddress(addressId: string, payload: AddressPayload) {
+  await initializeCsrf();
+  const response = await apiRequest<DataResponse<CustomerAddress>>(
+    `/api/v1/customer/addresses/${encodeURIComponent(addressId)}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+  return response.data;
+}
+
+export async function deleteAddress(addressId: string) {
+  await initializeCsrf();
+  await apiRequest<null>(
+    `/api/v1/customer/addresses/${encodeURIComponent(addressId)}`,
+    { method: "DELETE" },
+  );
 }
 
 export async function quoteCheckout(payload: CheckoutRequestPayload) {

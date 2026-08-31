@@ -7,7 +7,6 @@ import {
   FiCheck,
   FiChevronDown,
   FiMapPin,
-  FiPlus,
   FiRefreshCw,
   FiShield,
 } from "react-icons/fi";
@@ -33,8 +32,6 @@ import type {
   CustomerAddress,
   VoucherSelection,
 } from "@/lib/checkout/types";
-
-import { AddressForm } from "./address-form";
 
 const money = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -80,11 +77,7 @@ function payload(
   return { ...checkoutPayloadForIntent(intent, addressId), vouchers };
 }
 
-export function CheckoutPageContent({
-  geoapifyApiKey,
-}: {
-  geoapifyApiKey: string;
-}) {
+export function CheckoutPageContent() {
   const router = useRouter();
   const { auth } = useAuth();
   const { refresh: refreshCart } = useCart();
@@ -97,7 +90,6 @@ export function CheckoutPageContent({
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "quoting" | "placing" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
-  const [showAddressForm, setShowAddressForm] = useState(false);
 
   async function loadQuote(
     nextIntent: CheckoutIntent,
@@ -137,21 +129,26 @@ export function CheckoutPageContent({
 
     const nextIntent = readCheckoutIntent();
     if (!nextIntent) {
-      setStatus("error");
-      setMessage("Your checkout selection is missing or expired. Return to your cart or a product page to start again.");
-      return;
+      let active = true;
+      queueMicrotask(() => {
+        if (!active) return;
+        setStatus("error");
+        setMessage("Your checkout selection is missing or expired. Return to your cart or a product page to start again.");
+      });
+      return () => {
+        active = false;
+      };
     }
 
     const controller = new AbortController();
-    setIntent(nextIntent);
     fetchAddresses(controller.signal)
       .then(async (items) => {
+        setIntent(nextIntent);
         const shippingAddresses = items.filter((item) => item.type !== "billing");
         setAddresses(shippingAddresses);
         const selected =
           shippingAddresses.find((item) => item.isDefault) ?? shippingAddresses[0];
         if (!selected) {
-          setShowAddressForm(true);
           setStatus("ready");
           return;
         }
@@ -165,8 +162,6 @@ export function CheckoutPageContent({
       });
 
     return () => controller.abort();
-    // This initialization intentionally runs only when the authenticated customer changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.status, router]);
 
   if (auth.status !== "authenticated" || status === "loading") {
@@ -175,14 +170,6 @@ export function CheckoutPageContent({
 
   if (!intent) {
     return <MissingIntent message={message} />;
-  }
-
-  async function chooseAddress(addressId: string) {
-    if (!intent || addressId === selectedAddressId) return;
-    setSelectedAddressId(addressId);
-    setSelectedVouchers([]);
-    setQuote(null);
-    await loadQuote(intent, addressId, []);
   }
 
   function findVoucher(voucherId: string) {
@@ -270,49 +257,26 @@ export function CheckoutPageContent({
         <section className="border border-[#DED7E1] bg-white p-4 sm:p-5" aria-labelledby="delivery-heading">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="delivery-heading" className="text-base font-semibold text-[#2D2231]">Delivery address</h2>
-            {!showAddressForm ? (
-              <button type="button" onClick={() => setShowAddressForm(true)} className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
-                <FiPlus aria-hidden="true" className="size-4" /> Add address
-              </button>
-            ) : null}
+            <Link href="/account/addresses?returnTo=%2Fcheckout" className="inline-flex min-h-9 items-center rounded-md px-2 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
+              {selectedAddress ? "Change address" : "Add address"}
+            </Link>
           </div>
 
-          {addresses.length > 0 ? (
-            <fieldset className="mt-4 grid gap-3">
-              <legend className="sr-only">Choose a delivery address</legend>
-              {addresses.map((address) => (
-                <label key={address.id} className={`flex cursor-pointer gap-3 border p-3.5 ${selectedAddressId === address.id ? "border-[#E6007A] bg-[#FFF7FB]" : "border-[#DDD5E0] hover:border-[#A897AE]"}`}>
-                  <input type="radio" name="delivery-address" checked={selectedAddressId === address.id} onChange={() => void chooseAddress(address.id)} className="mt-1 size-4 accent-[#E6007A]" />
-                  <span className="min-w-0 text-sm">
-                    <span className="flex flex-wrap items-center gap-2 font-semibold text-[#302534]">
-                      {address.label || "Delivery address"}
-                      {address.isDefault ? <span className="text-xs font-medium text-[#6D1748]">Default</span> : null}
-                    </span>
-                    <span className="mt-1 block text-[#514656]">{address.recipientName} · {address.contactNumber}</span>
-                    <span className="mt-1 block leading-5 text-[#746978]">{addressSummary(address)}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          ) : !showAddressForm ? (
-            <p className="mt-4 text-sm text-[#665A6A]">Add a delivery address to continue.</p>
-          ) : null}
-
-          {showAddressForm ? (
-            <div className="mt-4">
-              <AddressForm
-                geoapifyApiKey={geoapifyApiKey}
-                onCancel={addresses.length > 0 ? () => setShowAddressForm(false) : undefined}
-                onCreated={(address) => {
-                  setAddresses((current) => [address, ...current.map((item) => address.isDefault ? { ...item, isDefault: false } : item)]);
-                  setSelectedAddressId(address.id);
-                  setShowAddressForm(false);
-                  setSelectedVouchers([]);
-                  void loadQuote(intent, address.id, []);
-                }}
-              />
+          {selectedAddress ? (
+            <div className="mt-4 flex gap-3 border border-[#DDD5E0] p-3.5">
+              <FiMapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-[#E6007A]" />
+              <div className="min-w-0 text-sm">
+                <p className="font-semibold text-[#302534]">
+                  {selectedAddress.label || "Delivery address"}
+                  {selectedAddress.isDefault ? <span className="ml-2 text-xs font-medium text-[#6D1748]">Default</span> : null}
+                </p>
+                <p className="mt-1 text-[#514656]">{selectedAddress.recipientName} · {selectedAddress.contactNumber}</p>
+                <p className="mt-1 leading-5 text-[#746978]">{addressSummary(selectedAddress)}</p>
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <p className="mt-4 text-sm leading-6 text-[#665A6A]">No shipping address is saved. Add one from your Address Book to continue.</p>
+          )}
         </section>
 
         <section className="border border-[#DED7E1] bg-white p-4 sm:p-5" aria-labelledby="payment-heading">

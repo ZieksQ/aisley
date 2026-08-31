@@ -24,7 +24,7 @@ export default async function CheckoutPage() {
       <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-12 pt-5 sm:px-5 lg:px-8 lg:pb-16 lg:pt-7">
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-xs text-[#746978]"><Link href="/" className="hover:text-[#E6007A]">Home</Link><HiChevronRight aria-hidden="true" className="size-3.5" /><Link href="/cart" className="hover:text-[#E6007A]">Cart</Link><HiChevronRight aria-hidden="true" className="size-3.5" /><span aria-current="page" className="text-[#4F4453]">Checkout</span></nav>
         <h1 className="mb-5 text-2xl font-semibold text-[#281E2C] sm:text-3xl">Checkout</h1>
-        <CheckoutPageContent geoapifyApiKey={process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY ?? ""} />
+        <CheckoutPageContent />
       </main>
     </HomeDataProvider>
   );

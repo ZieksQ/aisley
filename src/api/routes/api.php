@@ -120,6 +120,12 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::middleware(['auth:sanctum', 'customer.active'])->group(function () {
         Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [CustomerAddressController::class, 'store'])->name('addresses.store');
+        Route::patch('/addresses/{address}', [CustomerAddressController::class, 'update'])
+            ->whereUuid('address')
+            ->name('addresses.update');
+        Route::delete('/addresses/{address}', [CustomerAddressController::class, 'destroy'])
+            ->whereUuid('address')
+            ->name('addresses.destroy');
         Route::get('/cart', [CartController::class, 'show'])->name('cart.show');
         Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
         Route::patch('/cart/items/{item}', [CartController::class, 'update'])

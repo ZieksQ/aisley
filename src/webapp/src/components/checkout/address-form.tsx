@@ -4,15 +4,17 @@ import { type FormEvent, useCallback, useState } from "react";
 import { FiMapPin, FiX } from "react-icons/fi";
 
 import { ApiError, firstFieldError } from "@/lib/api";
-import { createAddress } from "@/lib/checkout/client";
-import type { CreateAddressPayload, CustomerAddress } from "@/lib/checkout/types";
+import { createAddress, updateAddress } from "@/lib/checkout/client";
+import type { AddressPayload, CustomerAddress } from "@/lib/checkout/types";
 
 import {
-  GeoapifyAddressAutocomplete,
-  type GeoapifyAddressSelection,
-} from "./geoapify-address-autocomplete";
+  MapboxAddressAutocomplete,
+  type MapboxAddressSelection,
+} from "./mapbox-address-autocomplete";
+import { MapboxLocationPicker } from "./mapbox-location-picker";
 
 type AddressFormValues = {
+  type: "shipping" | "billing" | "both";
   label: string;
   recipient_name: string;
   contact_number: string;
@@ -29,7 +31,8 @@ type AddressFormValues = {
   is_default: boolean;
 };
 
-const initialValues: AddressFormValues = {
+const emptyValues: AddressFormValues = {
+  type: "shipping",
   label: "Home",
   recipient_name: "",
   contact_number: "",
@@ -43,7 +46,7 @@ const initialValues: AddressFormValues = {
   country: "Philippines",
   latitude: null,
   longitude: null,
-  is_default: true,
+  is_default: false,
 };
 
 const locationFields = new Set<keyof AddressFormValues>([
@@ -57,27 +60,56 @@ const locationFields = new Set<keyof AddressFormValues>([
   "country",
 ]);
 
+function numberOrNull(value: string | null) {
+  if (value === null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function initialValues(address?: CustomerAddress): AddressFormValues {
+  if (!address) return emptyValues;
+
+  return {
+    type: address.type,
+    label: address.label ?? "",
+    recipient_name: address.recipientName,
+    contact_number: address.contactNumber,
+    address_line_1: address.addressLine1,
+    address_line_2: address.addressLine2 ?? "",
+    barangay: address.barangay,
+    city_municipality: address.cityMunicipality,
+    province: address.province,
+    region: address.region,
+    postal_code: address.postalCode,
+    country: address.country,
+    latitude: numberOrNull(address.latitude),
+    longitude: numberOrNull(address.longitude),
+    is_default: address.isDefault,
+  };
+}
+
 export function AddressForm({
-  geoapifyApiKey,
+  address,
+  mapboxAccessToken,
   onCancel,
-  onCreated,
+  onSaved,
 }: {
-  geoapifyApiKey: string;
+  address?: CustomerAddress;
+  mapboxAccessToken: string;
   onCancel?: () => void;
-  onCreated: (address: CustomerAddress) => void;
+  onSaved: (address: CustomerAddress) => void;
 }) {
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState(() => initialValues(address));
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
-  const applyGeoapifyAddress = useCallback((selection: GeoapifyAddressSelection) => {
+  const applyMapboxAddress = useCallback((selection: MapboxAddressSelection) => {
     setValues((current) => ({
       ...current,
       address_line_1: selection.addressLine1 || current.address_line_1,
       barangay: selection.barangay || current.barangay,
-      city_municipality:
-        selection.cityMunicipality || current.city_municipality,
+      city_municipality: selection.cityMunicipality || current.city_municipality,
       province: selection.province || current.province,
       region: selection.region || current.region,
       postal_code: selection.postalCode || current.postal_code,
@@ -86,7 +118,7 @@ export function AddressForm({
       longitude: selection.longitude,
     }));
     setLocationMessage(
-      "Location found. Review the barangay, city, province, region, and postal code before saving.",
+      "Location found. Review the address fields and adjust the map pin to the exact entrance.",
     );
   }, []);
 
@@ -97,9 +129,7 @@ export function AddressForm({
     setValues((current) => ({
       ...current,
       [field]: value,
-      ...(locationFields.has(field)
-        ? { latitude: null, longitude: null }
-        : {}),
+      ...(locationFields.has(field) ? { latitude: null, longitude: null } : {}),
     }));
     if (locationFields.has(field)) setLocationMessage(null);
   }
@@ -109,8 +139,8 @@ export function AddressForm({
     setError(null);
     setSubmitting(true);
 
-    const payload: CreateAddressPayload = {
-      type: "shipping",
+    const payload: AddressPayload = {
+      type: values.type,
       label: values.label.trim() || null,
       recipient_name: values.recipient_name,
       contact_number: values.contact_number,
@@ -128,7 +158,7 @@ export function AddressForm({
     };
 
     try {
-      onCreated(await createAddress(payload));
+      onSaved(address ? await updateAddress(address.id, payload) : await createAddress(payload));
     } catch (caught) {
       setError(
         caught instanceof ApiError
@@ -144,50 +174,43 @@ export function AddressForm({
     <form onSubmit={(event) => void submit(event)} className="border border-[#DCD4DF] bg-[#FCFAFC] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold text-[#2D2231]">Add delivery address</h3>
+          <h2 className="text-lg font-semibold text-[#2D2231]">
+            {address ? "Edit address" : "Add address"}
+          </h2>
           <p className="mt-1 text-xs leading-5 text-[#746978]">
-            All fields marked required are checked again before an order is placed.
+            Search with Mapbox or enter the address manually. Required fields are checked again at checkout.
           </p>
         </div>
         {onCancel ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            aria-label="Close address form"
-            className="grid size-9 shrink-0 place-items-center rounded-md text-[#665A6A] hover:bg-[#F0EBF1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-          >
+          <button type="button" onClick={onCancel} aria-label="Close address form" className="grid size-9 shrink-0 place-items-center rounded-md text-[#665A6A] hover:bg-[#F0EBF1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
             <FiX aria-hidden="true" className="size-5" />
           </button>
         ) : null}
       </div>
 
-      {geoapifyApiKey ? (
+      {mapboxAccessToken ? (
         <div className="mt-5">
-          <GeoapifyAddressAutocomplete
-            apiKey={geoapifyApiKey}
-            onSelect={applyGeoapifyAddress}
-          />
+          <MapboxAddressAutocomplete accessToken={mapboxAccessToken} onSelect={applyMapboxAddress} />
         </div>
       ) : (
         <div className="mt-5 flex gap-2 border-l-2 border-[#A897AE] pl-3 text-xs leading-5 text-[#665A6A]">
           <FiMapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          Address suggestions are not configured. You can still enter and save your address manually.
+          Mapbox is not configured. You can still enter and save the address manually.
         </div>
       )}
 
-      {locationMessage ? (
-        <p role="status" className="mt-3 text-xs leading-5 text-[#3F6846]">
-          {locationMessage}
-        </p>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="mt-4 border-l-2 border-[#FF3B30] pl-3 text-sm text-[#B42318]">
-          {error.message}
-        </p>
-      ) : null}
+      {locationMessage ? <p role="status" className="mt-3 text-xs leading-5 text-[#3F6846]">{locationMessage}</p> : null}
+      {error ? <p role="alert" className="mt-4 border-l-2 border-[#FF3B30] pl-3 text-sm text-[#B42318]">{error.message}</p> : null}
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="address-type" className="block text-sm font-semibold text-[#3A2E3E]">Address use *</label>
+          <select id="address-type" value={values.type} onChange={(event) => update("type", event.target.value as AddressFormValues["type"])} className="mt-2 min-h-11 w-full rounded-md border border-[#CFC6D2] bg-white px-3 text-sm text-[#2D2231] outline-none focus:border-[#4C1268] focus:ring-3 focus:ring-[#4C1268]/10">
+            <option value="shipping">Shipping</option>
+            <option value="billing">Billing</option>
+            <option value="both">Shipping and billing</option>
+          </select>
+        </div>
         <Field label="Address label" name="label" value={values.label} onChange={(value) => update("label", value)} error={firstFieldError(error, "label")} placeholder="Home or Office" />
         <Field label="Recipient name" name="recipient_name" required value={values.recipient_name} onChange={(value) => update("recipient_name", value)} error={firstFieldError(error, "recipient_name")} autoComplete="name" />
         <Field label="Contact number" name="contact_number" required value={values.contact_number} onChange={(value) => update("contact_number", value)} error={firstFieldError(error, "contact_number")} autoComplete="tel" inputMode="tel" />
@@ -201,41 +224,37 @@ export function AddressForm({
         <Field label="Country" name="country" required value={values.country} onChange={(value) => update("country", value)} error={firstFieldError(error, "country")} autoComplete="country-name" />
       </div>
 
+      {mapboxAccessToken ? (
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-semibold text-[#3A2E3E]">Pin the delivery location</p>
+          <MapboxLocationPicker
+            accessToken={mapboxAccessToken}
+            latitude={values.latitude}
+            longitude={values.longitude}
+            onChange={({ latitude, longitude }) => {
+              setValues((current) => ({ ...current, latitude, longitude }));
+              setLocationMessage("Map pin updated. Review the coordinates before saving.");
+            }}
+          />
+        </div>
+      ) : null}
+
       <label className="mt-5 flex items-start gap-3 text-sm text-[#514656]">
-        <input
-          type="checkbox"
-          checked={values.is_default}
-          onChange={(event) => update("is_default", event.target.checked)}
-          className="mt-0.5 size-4 rounded border-[#BFB5C3] accent-[#E6007A]"
-        />
-        Use as my default delivery address
+        <input type="checkbox" checked={values.is_default} onChange={(event) => update("is_default", event.target.checked)} className="mt-0.5 size-4 rounded border-[#BFB5C3] accent-[#E6007A]" />
+        Use as my default for the selected address use
       </label>
 
       <div className="mt-5 flex justify-end gap-3">
-        {onCancel ? (
-          <button type="button" onClick={onCancel} className="min-h-10 rounded-md border border-[#CFC6D2] bg-white px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8]">
-            Cancel
-          </button>
-        ) : null}
+        {onCancel ? <button type="button" onClick={onCancel} className="min-h-10 rounded-md border border-[#CFC6D2] bg-white px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8]">Cancel</button> : null}
         <button type="submit" disabled={submitting} className="min-h-10 rounded-md bg-[#E6007A] px-5 text-sm font-semibold text-white hover:bg-[#C8006B] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60">
-          {submitting ? "Saving…" : "Save and use address"}
+          {submitting ? "Saving…" : address ? "Save changes" : "Save address"}
         </button>
       </div>
     </form>
   );
 }
 
-function Field({
-  autoComplete,
-  error,
-  inputMode,
-  label,
-  name,
-  onChange,
-  placeholder,
-  required,
-  value,
-}: {
+function Field({ autoComplete, error, inputMode, label, name, onChange, placeholder, required, value }: {
   autoComplete?: string;
   error?: string;
   inputMode?: "numeric" | "tel";
@@ -249,26 +268,8 @@ function Field({
   const errorId = `${name}-error`;
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-semibold text-[#3A2E3E]">
-        {label}{required ? " *" : ""}
-      </label>
-      <input
-        id={name}
-        name={name}
-        required={required}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
-        className={`mt-2 min-h-11 w-full rounded-md border bg-white px-3 text-sm text-[#2D2231] outline-none focus:ring-3 ${
-          error
-            ? "border-[#FF3B30] focus:ring-[#FF3B30]/10"
-            : "border-[#CFC6D2] focus:border-[#4C1268] focus:ring-[#4C1268]/10"
-        }`}
-      />
+      <label htmlFor={name} className="block text-sm font-semibold text-[#3A2E3E]">{label}{required ? " *" : ""}</label>
+      <input id={name} name={name} required={required} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} inputMode={inputMode} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} className={`mt-2 min-h-11 w-full rounded-md border bg-white px-3 text-sm text-[#2D2231] outline-none focus:ring-3 ${error ? "border-[#FF3B30] focus:ring-[#FF3B30]/10" : "border-[#CFC6D2] focus:border-[#4C1268] focus:ring-[#4C1268]/10"}`} />
       {error ? <p id={errorId} role="alert" className="mt-1.5 text-xs text-[#B42318]">{error}</p> : null}
     </div>
   );
