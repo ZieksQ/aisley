@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { FiCrosshair } from "react-icons/fi";
 
 type Coordinates = { latitude: number; longitude: number };
 
@@ -21,11 +22,18 @@ export function MapboxLocationPicker({
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
   const markerRef = useRef<import("mapbox-gl").Marker | null>(null);
   const onChangeRef = useRef(onChange);
+  const coordinatesRef = useRef({ latitude, longitude });
   const [mapUnavailable, setMapUnavailable] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  useEffect(() => {
+    coordinatesRef.current = { latitude, longitude };
+  }, [latitude, longitude]);
 
   useEffect(() => {
     if (!containerRef.current || !accessToken) return;
@@ -42,14 +50,16 @@ export function MapboxLocationPicker({
         }
 
         mapboxgl.accessToken = accessToken;
-        const hasLocation = latitude !== null && longitude !== null;
+        const currentLatitude = coordinatesRef.current.latitude;
+        const currentLongitude = coordinatesRef.current.longitude;
+        const hasLocation = currentLatitude !== null && currentLongitude !== null;
         let map: import("mapbox-gl").Map;
 
         try {
           map = new mapboxgl.Map({
             container: containerRef.current,
             style: "mapbox://styles/mapbox/streets-v12",
-            center: hasLocation ? [longitude, latitude] : PHILIPPINES_CENTER,
+            center: hasLocation ? [currentLongitude, currentLatitude] : PHILIPPINES_CENTER,
             zoom: hasLocation ? 16 : 4.8,
           });
         } catch {
@@ -84,7 +94,7 @@ export function MapboxLocationPicker({
           if (notify) onChangeRef.current(point);
         }
 
-        if (hasLocation) placePin({ latitude, longitude }, false);
+        if (hasLocation) placePin({ latitude: currentLatitude, longitude: currentLongitude }, false);
 
         map.on("click", (event) => {
           placePin({ latitude: event.lngLat.lat, longitude: event.lngLat.lng }, true);
@@ -101,8 +111,6 @@ export function MapboxLocationPicker({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-    // Initial map setup is intentionally independent from later pin changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   useEffect(() => {
@@ -131,8 +139,59 @@ export function MapboxLocationPicker({
     });
   }, [latitude, longitude]);
 
+  function useCurrentLocation() {
+    setLocationError(null);
+
+    if (!("geolocation" in navigator)) {
+      setLocationError("Location access is not supported by this browser.");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        onChangeRef.current({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        setLocating(false);
+
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Location permission was denied. Allow location access in your browser and try again.");
+          return;
+        }
+
+        if (error.code === error.TIMEOUT) {
+          setLocationError("Your location took too long to detect. Try again or place the pin manually.");
+          return;
+        }
+
+        setLocationError("Your current location could not be detected. Try again or place the pin manually.");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 30_000,
+        timeout: 15_000,
+      },
+    );
+  }
+
   return (
     <div>
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          onClick={useCurrentLocation}
+          disabled={locating}
+          className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:cursor-wait disabled:opacity-60"
+        >
+          <FiCrosshair aria-hidden="true" className={locating ? "size-4 animate-spin" : "size-4"} />
+          {locating ? "Finding your location…" : "Use my location"}
+        </button>
+      </div>
       {mapUnavailable ? (
         <div role="status" className="border-l-2 border-[#FF8800] bg-[#FFF8EF] px-3 py-2 text-sm leading-5 text-[#6B4516]">
           The interactive map is unavailable in this browser. You can still use an address suggestion or enter the address manually.
@@ -155,6 +214,11 @@ export function MapboxLocationPicker({
           ? `Pinned at ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           : "No location pinned yet."}
       </p>
+      {locationError ? (
+        <p role="alert" className="mt-2 border-l-2 border-[#FF3B30] pl-3 text-xs leading-5 text-[#B42318]">
+          {locationError}
+        </p>
+      ) : null}
     </div>
   );
 }
