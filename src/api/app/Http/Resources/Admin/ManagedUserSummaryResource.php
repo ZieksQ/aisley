@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin;
 use App\Enums\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 
 class ManagedUserSummaryResource extends JsonResource
 {
@@ -18,7 +19,7 @@ class ManagedUserSummaryResource extends JsonResource
             'role' => $this->role->value,
             'status' => $this->status->value,
             'created_at' => $this->created_at?->toIso8601String(),
-            'status_changed_at' => $this->latestLifecycleEvent?->occurred_at?->toIso8601String(),
+            'status_changed_at' => $this->statusChangedAt(),
         ];
     }
 
@@ -37,5 +38,12 @@ class ManagedUserSummaryResource extends JsonResource
         ])));
 
         return $name !== '' ? $name : $this->email;
+    }
+
+    private function statusChangedAt(): ?string
+    {
+        $value = $this->getAttribute('status_changed_at');
+
+        return $value ? Carbon::parse($value)->toIso8601String() : null;
     }
 }

@@ -79,11 +79,6 @@ class User extends Authenticatable
         return $this->hasMany(AccountLifecycleEvent::class);
     }
 
-    public function latestLifecycleEvent(): HasOne
-    {
-        return $this->hasOne(AccountLifecycleEvent::class)->latestOfMany('occurred_at');
-    }
-
     public function performedLifecycleEvents(): HasMany
     {
         return $this->hasMany(AccountLifecycleEvent::class, 'acted_by_admin_id');

@@ -104,7 +104,8 @@ class UserAccountManagementTest extends TestCase
                 'reason' => 'Repeated marketplace policy violations.',
             ])
             ->assertOk()
-            ->assertJsonPath('data.status', 'suspended');
+            ->assertJsonPath('data.status', 'suspended')
+            ->assertJsonPath('data.status_changed_at', fn ($value) => is_string($value));
 
         $this->assertSame(UserStatus::Suspended, $customer->fresh()->status);
         $this->assertDatabaseHas('account_lifecycle_events', [

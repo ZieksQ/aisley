@@ -27,7 +27,8 @@ class UserAccountController extends Controller
     {
         $query = User::query()
             ->where('role', '!=', UserRole::Admin)
-            ->with(['customerProfile', 'sellerProfile', 'courierProfile', 'latestLifecycleEvent']);
+            ->with(['customerProfile', 'sellerProfile', 'courierProfile'])
+            ->withMax('lifecycleEvents as status_changed_at', 'occurred_at');
 
         $query
             ->when($request->filled('role'), fn (Builder $query) => $query->where('role', $request->input('role')))
@@ -67,7 +68,6 @@ class UserAccountController extends Controller
             'courierProfile' => fn ($query) => $query->withCount('vehicles'),
             'registrationApplications',
             'shop',
-            'latestLifecycleEvent',
         ]);
 
         return new ManagedUserDetailResource($account);
@@ -121,14 +121,15 @@ class UserAccountController extends Controller
             requestId: $request->header('X-Request-ID'),
         );
 
-        return new ManagedUserDetailResource($account->load([
+        $account = $this->managedUser($account->id)->load([
             'customerProfile',
             'sellerProfile',
             'courierProfile' => fn ($query) => $query->withCount('vehicles'),
             'registrationApplications',
             'shop',
-            'latestLifecycleEvent',
-        ]));
+        ]);
+
+        return new ManagedUserDetailResource($account);
     }
 
     private function managedUser(string $id): User
@@ -136,6 +137,7 @@ class UserAccountController extends Controller
         return User::query()
             ->whereKey($id)
             ->where('role', '!=', UserRole::Admin)
+            ->withMax('lifecycleEvents as status_changed_at', 'occurred_at')
             ->firstOrFail();
     }
 }
