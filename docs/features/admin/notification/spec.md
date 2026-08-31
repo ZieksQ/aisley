@@ -308,29 +308,29 @@ CRITICAL
 - Time labels must be rendered accessibly in the user's locale.
 
 ### Acceptance criteria
-- [ ] Guest cannot access Admin Notifications.
-- [ ] Non-Admin cannot access Admin notification APIs.
-- [ ] Custom Admin notification permission is enforced when configured.
-- [ ] Admin sees only notifications addressed/authorized to them.
-- [ ] Notifications persist across reloads.
-- [ ] New persisted notifications default to unread where applicable.
-- [ ] Admin can mark their notification read.
-- [ ] Admin cannot mark another account's notification read.
-- [ ] Mark-read is idempotent.
-- [ ] Unread count is backend-backed/reconciled.
-- [ ] Notification list is paginated and newest-first.
-- [ ] Payload contains safe summary/reference data only.
-- [ ] Destination URLs are internal/server-controlled.
-- [ ] Destination feature re-authorizes access.
-- [ ] Source transaction commits before dependent notification dispatch.
-- [ ] Notification failure does not roll back source-domain success.
+- [x] Guest cannot access Admin Notifications.
+- [x] Non-Admin cannot access Admin notification APIs.
+- [x] Custom Admin notification permission is enforced when configured.
+- [x] Admin sees only notifications addressed/authorized to them.
+- [x] Notifications persist across reloads.
+- [x] New persisted notifications default to unread where applicable.
+- [x] Admin can mark their notification read.
+- [x] Admin cannot mark another account's notification read.
+- [x] Mark-read is idempotent.
+- [x] Unread count is backend-backed/reconciled.
+- [x] Notification list is paginated and newest-first.
+- [x] Payload contains safe summary/reference data only.
+- [x] Destination URLs are internal/server-controlled.
+- [x] Destination feature re-authorizes access.
+- [x] Source transaction commits before dependent notification dispatch.
+- [x] Notification failure does not roll back source-domain success.
 - [ ] Private real-time channel authorization prevents cross-account access.
-- [ ] Reconnect/refetch recovers missed notifications.
+- [x] Reconnect/refetch recovers missed notifications.
 - [ ] Replayed broadcasts do not duplicate UI entries.
-- [ ] Dashboard and notification center share the same notification domain.
-- [ ] Admin Notifications remains separate from Push Notification Management.
-- [ ] Normal login errors do not create Admin Notifications.
-- [ ] UI handles empty, error, forbidden, read-mutation, and disconnected states.
+- [x] Dashboard and notification center share the same notification domain.
+- [x] Admin Notifications remains separate from Push Notification Management.
+- [x] Normal login errors do not create Admin Notifications.
+- [x] UI handles empty, error, forbidden, and read-mutation states; polling is used while broadcasting is unconfigured.
 
 ## HOW
 

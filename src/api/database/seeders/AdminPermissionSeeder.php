@@ -34,6 +34,11 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'platform-settings.manage',
             'description' => 'Create, edit, publish, archive, and version platform content.',
         ],
+        [
+            'name' => 'View Admin notifications',
+            'slug' => 'notifications.view',
+            'description' => 'View and manage the authenticated administrator notification inbox.',
+        ],
     ];
 
     public function run(): void

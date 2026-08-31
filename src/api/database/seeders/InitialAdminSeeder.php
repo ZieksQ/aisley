@@ -47,6 +47,7 @@ class InitialAdminSeeder extends Seeder
                     'audit-logs.view',
                     'platform-settings.view',
                     'platform-settings.manage',
+                    'notifications.view',
                 ])
                 ->pluck('id'),
         );

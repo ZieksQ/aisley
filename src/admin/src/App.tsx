@@ -9,6 +9,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegistrationDetailPage } from './pages/RegistrationDetailPage'
 import { PlatformSettingsPage } from './pages/PlatformSettingsPage'
 import { RegistrationsPage } from './pages/RegistrationsPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route element={<RegistrationDetailPage />} path="/registrations/:registrationId" />
           <Route element={<AuditLogsPage />} path="/audit-logs" />
           <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
+          <Route element={<NotificationsPage />} path="/notifications" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

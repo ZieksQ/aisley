@@ -18,6 +18,7 @@ use App\Http\Resources\Seller\SellerUserResource;
 use App\Models\ShopCategory;
 use App\Models\User;
 use App\Notifications\Seller\ResetPasswordNotification;
+use App\Services\Notifications\AdminNotificationService;
 use App\Services\Seller\RegistrationEvidenceService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -37,7 +38,10 @@ class AuthController extends Controller
 
     private const MAX_PASSWORD_RESET_ATTEMPTS = 5;
 
-    public function __construct(private readonly RegistrationEvidenceService $registrationEvidence) {}
+    public function __construct(
+        private readonly RegistrationEvidenceService $registrationEvidence,
+        private readonly AdminNotificationService $adminNotifications,
+    ) {}
 
     public function registrationOptions(): JsonResponse
     {
@@ -156,6 +160,13 @@ class AuthController extends Controller
             }
 
             throw $exception;
+        }
+
+        $application = $user->registrationApplications()->latest('submitted_at')->firstOrFail();
+        try {
+            $this->adminNotifications->registrationSubmitted($application);
+        } catch (Throwable $exception) {
+            report($exception);
         }
 
         return response()->json([
