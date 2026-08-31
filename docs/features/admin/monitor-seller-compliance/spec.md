@@ -83,13 +83,13 @@ Admin opens or creates a case → OPEN
 - Admin routes are `/seller-compliance`, `/seller-compliance/cases/{case}`, and linked Seller/Product detail views.
 - Queue/detail/action screens provide loading, empty, forbidden, validation, conflict, retry, and success states; high-impact actions name the Seller/Product and consequence.
 - Forms and dialogs require labels, keyboard operation, focus management, visible focus, and text—not color alone—for status.
-- [ ] An unauthorized user cannot list, view, create, or act on compliance cases.
-- [ ] A case cannot link a Product owned by another Seller.
-- [ ] Dismissal, warning, restriction, revocation, and suspension referral preserve immutable actor/time/reason history.
-- [ ] A restricted Product cannot be purchased or republished by its Seller, while historical Orders remain intact.
-- [ ] A suspended Seller's Products are unavailable through every Buyer purchase path.
-- [ ] Concurrent/retried actions do not overwrite state or duplicate restrictions, messages, or audit events.
-- [ ] Communication failure does not undo a committed compliance decision.
+- [x] An unauthorized user cannot list, view, create, or act on compliance cases.
+- [x] A case cannot link a Product owned by another Seller.
+- [x] Dismissal, warning, restriction, revocation, and suspension referral preserve immutable actor/time/reason history.
+- [x] A restricted Product cannot be purchased or republished by its Seller, while historical Orders remain intact.
+- [x] A suspended Seller's Products are unavailable through every Buyer purchase path.
+- [x] Concurrent/retried actions do not overwrite state or duplicate restrictions, messages, or audit events.
+- [x] Communication failure does not undo a committed compliance decision.
 
 ## HOW
 
