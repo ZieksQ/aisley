@@ -16,6 +16,8 @@ class ChangeUserLifecycleRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $isDeactivation = $this->route()?->getName() === 'admin.users.deactivate';
+
         return [
             'expected_status' => ['required', Rule::enum(UserStatus::class)],
             'reason' => [
@@ -28,6 +30,9 @@ class ChangeUserLifecycleRequest extends FormRequest
                 'min:3',
                 'max:1000',
             ],
+            'confirmation' => $isDeactivation
+                ? ['required', 'string', 'max:320']
+                : ['prohibited'],
             'role' => ['prohibited'],
             'status' => ['prohibited'],
             'email' => ['prohibited'],

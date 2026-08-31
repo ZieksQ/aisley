@@ -25,10 +25,11 @@ export function changeManagedUserStatus(
   action: 'suspend' | 'restore' | 'deactivate',
   expectedStatus: ManagedUserStatus,
   reason: string | null,
+  confirmation: string | null = null,
 ) {
   return apiRequest<ManagedUserDetailResponse>(`/api/v1/admin/users/${id}/${action}`, {
     method: 'POST',
-    body: JSON.stringify({ expected_status: expectedStatus, reason }),
+    body: JSON.stringify({ expected_status: expectedStatus, reason, ...(action === 'deactivate' ? { confirmation } : {}) }),
   })
 }
 

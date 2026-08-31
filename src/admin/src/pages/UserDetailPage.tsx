@@ -60,13 +60,13 @@ export function UserDetailPage() {
     return () => controller.abort()
   }, [load, reloadKey])
 
-  async function confirmAction(reason: string | null) {
+  async function confirmAction(reason: string | null, confirmation: string | null) {
     if (!user || !action) return
     setIsSubmitting(true)
     setActionError(null)
     setNotice(null)
     try {
-      const response = await changeManagedUserStatus(user.id, action, user.status, reason)
+      const response = await changeManagedUserStatus(user.id, action, user.status, reason, confirmation)
       setUser(response.data)
       setAction(null)
       setHistoryPage(1)
@@ -78,8 +78,10 @@ export function UserDetailPage() {
         setNotice('The account changed while you were reviewing it. The latest status has been loaded.')
         setReloadKey((value) => value + 1)
       } else {
-        setActionError(requestError instanceof ApiError && requestError.errors.reason?.[0]
-          ? requestError.errors.reason[0]
+        setActionError(requestError instanceof ApiError && requestError.errors.confirmation?.[0]
+          ? requestError.errors.confirmation[0]
+          : requestError instanceof ApiError && requestError.errors.reason?.[0]
+            ? requestError.errors.reason[0]
           : requestError instanceof Error ? requestError.message : 'Unable to update this account.')
       }
     } finally {
@@ -146,7 +148,7 @@ export function UserDetailPage() {
 
       {!canManage && <p className="mt-5 text-sm text-slate-500 dark:text-slate-400">You can view this account, but you do not have permission to change its lifecycle status.</p>}
 
-      <LifecycleActionDialog action={action} currentStatus={user.status} error={actionError} isSubmitting={isSubmitting} onClose={() => { if (!isSubmitting) setAction(null) }} onConfirm={(reason) => void confirmAction(reason)} userName={user.display_name} />
+      <LifecycleActionDialog action={action} currentStatus={user.status} error={actionError} isSubmitting={isSubmitting} onClose={() => { if (!isSubmitting) setAction(null) }} onConfirm={(reason, confirmation) => void confirmAction(reason, confirmation)} userEmail={user.email} userName={user.display_name} userRole={user.role} />
     </div>
   )
 }

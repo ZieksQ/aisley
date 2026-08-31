@@ -132,6 +132,7 @@ class UserAccountManagementTest extends TestCase
             ->postJson("/api/v1/admin/users/{$customer->id}/deactivate", [
                 'expected_status' => 'active',
                 'reason' => 'Account closure was confirmed.',
+                'confirmation' => 'customer@example.com/customer',
             ])
             ->assertOk()
             ->assertJsonPath('data.status', 'deactivated');
@@ -205,8 +206,47 @@ class UserAccountManagementTest extends TestCase
             ->postJson("/api/v1/admin/users/{$otherAdmin->id}/deactivate", [
                 'expected_status' => 'active',
                 'reason' => 'Admin accounts are not managed here.',
+                'confirmation' => $otherAdmin->email.'/admin',
             ])
             ->assertNotFound();
+    }
+
+    public function test_deactivation_requires_the_exact_role_aware_account_confirmation(): void
+    {
+        $admin = $this->adminWithPermissions('users.manage');
+        $customer = $this->customer('shared@example.com');
+        $this->seller('shared@example.com');
+
+        $this->actingAs($admin)
+            ->postJson("/api/v1/admin/users/{$customer->id}/deactivate", [
+                'expected_status' => 'active',
+                'reason' => 'Account closure was confirmed.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('confirmation');
+
+        $this->actingAs($admin)
+            ->postJson("/api/v1/admin/users/{$customer->id}/deactivate", [
+                'expected_status' => 'active',
+                'reason' => 'Account closure was confirmed.',
+                'confirmation' => 'shared@example.com/seller',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('confirmation');
+
+        $this->assertSame(UserStatus::Active, $customer->fresh()->status);
+        $this->assertDatabaseCount('account_lifecycle_events', 0);
+
+        $this->actingAs($admin)
+            ->postJson("/api/v1/admin/users/{$customer->id}/deactivate", [
+                'expected_status' => 'active',
+                'reason' => 'Account closure was confirmed.',
+                'confirmation' => 'shared@example.com/customer',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'deactivated');
+
+        $this->assertDatabaseCount('account_lifecycle_events', 1);
     }
 
     public function test_suspended_or_deactivated_user_is_denied_on_the_next_protected_request(): void

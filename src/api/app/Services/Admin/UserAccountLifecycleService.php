@@ -11,6 +11,7 @@ use App\Models\AccountLifecycleEvent;
 use App\Models\User;
 use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -24,6 +25,7 @@ class UserAccountLifecycleService
         AccountLifecycleAction $action,
         UserStatus $expectedStatus,
         ?string $reason,
+        ?string $confirmation,
         ?string $ipAddress,
         ?string $userAgent,
         ?string $requestId = null,
@@ -37,6 +39,7 @@ class UserAccountLifecycleService
             $action,
             $expectedStatus,
             $reason,
+            $confirmation,
             $ipAddress,
             $userAgent,
             $requestId,
@@ -52,6 +55,16 @@ class UserAccountLifecycleService
 
             if ($account->status !== $expectedStatus) {
                 throw new ConflictHttpException('The account status changed. Refresh and try again.');
+            }
+
+            if ($action === AccountLifecycleAction::Deactivated) {
+                $expectedConfirmation = $account->email.'/'.$account->role->value;
+
+                if ($confirmation === null || ! hash_equals($expectedConfirmation, $confirmation)) {
+                    throw ValidationException::withMessages([
+                        'confirmation' => ['The confirmation does not exactly match this account.'],
+                    ]);
+                }
             }
 
             $nextStatus = $this->nextStatus($action, $account->status);

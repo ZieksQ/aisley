@@ -176,7 +176,9 @@ DEACTIVATED
 - Deactivation must:
   - authorize Admin
   - validate current status
-  - require confirmation
+  - show an initial consequence warning and a separate final confirmation step
+  - require the Admin to type the exact role-aware account identity in `email/role` form (for example, `seller@test.com/seller`)
+  - revalidate that confirmation against the locked, authoritative account row in the API; the confirmation value must not be persisted in lifecycle history or audit metadata
   - preserve historical relationships needed for orders, payments, disputes, deliveries, reviews, and auditability
   - record actor/timestamp/reason as required
 - A deactivated account must not retain normal protected access.
@@ -322,6 +324,7 @@ DEACTIVATED
 - [x] Eligible active account can be suspended.
 - [x] Eligible suspended account can be restored.
 - [x] Eligible account can be deactivated without destroying required history.
+- [x] Deactivation requires a two-stage warning and an exact role-aware identity confirmation enforced by the API.
 - [x] Invalid/stale transitions return conflict instead of overwriting state.
 - [x] Lifecycle actions preserve actor, timestamp, and history.
 - [x] Lifecycle actions are audited.

@@ -116,6 +116,7 @@ class UserAccountController extends Controller
             action: $action,
             expectedStatus: UserStatus::from((string) $request->input('expected_status')),
             reason: $request->filled('reason') ? (string) $request->input('reason') : null,
+            confirmation: $request->filled('confirmation') ? (string) $request->input('confirmation') : null,
             ipAddress: $request->ip(),
             userAgent: $request->userAgent(),
             requestId: $request->header('X-Request-ID'),
