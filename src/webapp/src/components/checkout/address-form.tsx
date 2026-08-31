@@ -109,18 +109,18 @@ export function AddressForm({
   const applyGeoapifyAddress = useCallback((selection: GeoapifyAddressSelection) => {
     setValues((current) => ({
       ...current,
-      address_line_1: selection.addressLine1 || current.address_line_1,
-      barangay: selection.barangay || current.barangay,
-      city_municipality: selection.cityMunicipality || current.city_municipality,
-      province: selection.province || current.province,
-      region: selection.region || current.region,
-      postal_code: selection.postalCode || current.postal_code,
-      country: selection.country || current.country,
+      address_line_1: selection.addressLine1 ?? "",
+      barangay: selection.barangay ?? "",
+      city_municipality: selection.cityMunicipality ?? "",
+      province: selection.province ?? "",
+      region: selection.region ?? "",
+      postal_code: selection.postalCode ?? "",
+      country: selection.country ?? "Philippines",
       latitude: selection.latitude,
       longitude: selection.longitude,
     }));
     setLocationMessage(
-      "Location found. Review the address fields and adjust the map pin to the exact entrance.",
+      "Location found. Complete any blank fields, review the address, and adjust the map pin to the exact entrance.",
     );
   }, []);
 

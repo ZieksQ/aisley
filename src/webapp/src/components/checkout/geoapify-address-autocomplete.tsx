@@ -24,11 +24,9 @@ type GeoapifyResult = {
   housenumber?: string;
   street?: string;
   suburb?: string;
-  district?: string;
   city?: string;
   municipality?: string;
   county?: string;
-  state_district?: string;
   state?: string;
   postcode?: string;
   country?: string;
@@ -65,6 +63,14 @@ function addressLine1(result: GeoapifyResult) {
   }
 
   return undefined;
+}
+
+function valueAtResultLevel(
+  result: GeoapifyResult,
+  level: "suburb" | "city" | "county" | "state",
+  structuredValue?: string,
+) {
+  return structuredValue ?? (result.result_type === level ? result.name : undefined);
 }
 
 export function GeoapifyAddressAutocomplete({
@@ -148,10 +154,14 @@ export function GeoapifyAddressAutocomplete({
     setIsOpen(false);
     onSelect({
       addressLine1: addressLine1(result),
-      barangay: result.suburb ?? result.district,
-      cityMunicipality: result.city ?? result.municipality ?? result.county,
-      province: result.county ?? result.state_district ?? result.state,
-      region: result.state,
+      barangay: valueAtResultLevel(result, "suburb", result.suburb),
+      cityMunicipality: valueAtResultLevel(
+        result,
+        "city",
+        result.city ?? result.municipality,
+      ),
+      province: valueAtResultLevel(result, "county", result.county),
+      region: valueAtResultLevel(result, "state", result.state),
       postalCode: result.postcode,
       country: result.country,
       ...point,
