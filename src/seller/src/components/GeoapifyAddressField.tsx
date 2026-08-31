@@ -1,14 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 
-export type GeoapifyAddressKind = 'province' | 'municipality' | 'barangay'
-
 export type GeoapifySuggestion = {
   id: string
   label: string
-  value: string
-  placeId: string | null
-  city: string | null
+  barangay: string | null
+  municipality: string | null
   province: string | null
   region: string | null
   postcode: string | null
@@ -16,12 +13,13 @@ export type GeoapifySuggestion = {
 
 type GeoapifyProperties = {
   place_id?: string
-  formatted?: string
   name?: string
   suburb?: string
   district?: string
   quarter?: string
   neighbourhood?: string
+  village?: string
+  town?: string
   city?: string
   municipality?: string
   county?: string
@@ -36,40 +34,30 @@ type GeoapifyResponse = {
 
 type Props = {
   apiKey: string
-  boundaryPlaceId?: string | null
-  context?: string
-  error?: string
-  id: string
-  kind: GeoapifyAddressKind
-  label: string
-  name: string
-  onChange: (value: string) => void
   onSelect: (suggestion: GeoapifySuggestion) => void
-  required?: boolean
-  value: string
 }
 
 const inputClass = 'h-11 w-full rounded-lg border border-zinc-300 bg-white px-3.5 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-[#E6007A] focus:ring-2 focus:ring-pink-500/15 dark:border-white/15 dark:bg-[#111113] dark:text-white dark:placeholder:text-zinc-600'
 
-export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, id, kind, label, name, onChange, onSelect, required, value }: Props) {
+export function GeoapifyAddressField({ apiKey, onSelect }: Props) {
   const listboxId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
-  const selectedValueRef = useRef('')
+  const selectedLabelRef = useRef('')
+  const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<GeoapifySuggestion[]>([])
   const [activeIndex, setActiveIndex] = useState(-1)
   const [isLoading, setIsLoading] = useState(false)
   const [lookupUnavailable, setLookupUnavailable] = useState(false)
   const [noSuggestions, setNoSuggestions] = useState(false)
   const [hasFocus, setHasFocus] = useState(false)
-  const normalizedQuery = value.trim()
+  const normalizedQuery = query.trim()
   const isOpen = hasFocus && (isLoading || suggestions.length > 0 || lookupUnavailable || noSuggestions)
-  const errorId = error ? `${id}-error` : undefined
-  const helpId = `${id}-help`
+  const helpId = `${listboxId}-help`
 
   useEffect(() => {
     setActiveIndex(-1)
 
-    if (normalizedQuery === selectedValueRef.current) {
+    if (normalizedQuery === selectedLabelRef.current) {
       setSuggestions([])
       setNoSuggestions(false)
       return
@@ -89,15 +77,14 @@ export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, 
       setLookupUnavailable(false)
       setNoSuggestions(false)
 
-      const query = context ? `${normalizedQuery}, ${context}, Philippines` : `${normalizedQuery}, Philippines`
       const params = new URLSearchParams({
         apiKey,
-        filter: boundaryPlaceId ? `place:${boundaryPlaceId}|countrycode:ph` : 'countrycode:ph',
+        filter: 'countrycode:ph',
         format: 'geojson',
         lang: 'en',
         limit: '8',
-        text: query,
-        type: kind === 'province' ? 'state' : kind === 'municipality' ? 'city' : 'locality',
+        text: `${normalizedQuery}, Philippines`,
+        type: 'locality',
       })
 
       try {
@@ -105,9 +92,9 @@ export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, 
         if (!response.ok) throw new Error('Geoapify lookup failed')
         const payload = await response.json() as GeoapifyResponse
         const mapped = (payload.features ?? [])
-          .map((feature) => toSuggestion(feature.properties, kind))
+          .map((feature) => toSuggestion(feature.properties))
           .filter((suggestion): suggestion is GeoapifySuggestion => suggestion !== null)
-          .filter((suggestion, index, all) => all.findIndex((candidate) => candidate.value.toLocaleLowerCase() === suggestion.value.toLocaleLowerCase()) === index)
+          .filter((suggestion, index, all) => all.findIndex((candidate) => candidate.label.toLocaleLowerCase() === suggestion.label.toLocaleLowerCase()) === index)
         setSuggestions(mapped)
         setNoSuggestions(mapped.length === 0)
       } catch (caught) {
@@ -125,10 +112,11 @@ export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, 
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [apiKey, boundaryPlaceId, context, kind, normalizedQuery])
+  }, [apiKey, normalizedQuery])
 
   function choose(suggestion: GeoapifySuggestion) {
-    selectedValueRef.current = suggestion.value.trim()
+    selectedLabelRef.current = suggestion.label
+    setQuery(suggestion.label)
     onSelect(suggestion)
     setSuggestions([])
     setActiveIndex(-1)
@@ -138,8 +126,8 @@ export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, 
   }
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    selectedValueRef.current = ''
-    onChange(event.target.value)
+    selectedLabelRef.current = ''
+    setQuery(event.target.value)
     setLookupUnavailable(false)
   }
 
@@ -166,28 +154,26 @@ export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, 
 
   return (
     <div ref={containerRef}>
-      <label className="mb-1.5 block text-sm font-medium" htmlFor={id}>{label}</label>
+      <label className="mb-1.5 block text-sm font-medium" htmlFor="administrative_address_lookup">Find Province, Municipality, Barangay</label>
       <div className="relative">
         <input
           aria-autocomplete="list"
           aria-controls={isOpen ? listboxId : undefined}
-          aria-describedby={[helpId, errorId].filter(Boolean).join(' ')}
+          aria-describedby={helpId}
           aria-expanded={isOpen}
-          aria-invalid={Boolean(error)}
           aria-activedescendant={activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
           autoComplete="off"
-          className={`${inputClass} ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/15' : ''}`}
-          id={id}
-          name={name}
+          className={inputClass}
+          id="administrative_address_lookup"
           onBlur={(event) => {
             if (!containerRef.current?.contains(event.relatedTarget)) setHasFocus(false)
           }}
           onChange={handleChange}
           onFocus={() => setHasFocus(true)}
           onKeyDown={handleKeyDown}
-          required={required}
+          placeholder="Start typing a province, municipality, or barangay"
           role="combobox"
-          value={value}
+          value={query}
         />
         {isOpen ? (
           <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-md dark:border-white/10 dark:bg-[#171719]" id={listboxId} role="listbox">
@@ -206,39 +192,39 @@ export function GeoapifyAddressField({ apiKey, boundaryPlaceId, context, error, 
                 {suggestion.label}
               </button>
             ))}
-            {!isLoading && lookupUnavailable ? <p className="px-3 py-2 text-sm text-amber-700 dark:text-amber-300" role="status">Suggestions are unavailable. Continue by entering this field manually.</p> : null}
-            {!isLoading && noSuggestions ? <p className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300" role="status">No matching suggestion found. Continue by entering this field manually.</p> : null}
+            {!isLoading && lookupUnavailable ? <p className="px-3 py-2 text-sm text-amber-700 dark:text-amber-300" role="status">Suggestions are unavailable. Enter the address manually below.</p> : null}
+            {!isLoading && noSuggestions ? <p className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300" role="status">No matching suggestion found. Enter the address manually below.</p> : null}
           </div>
         ) : null}
       </div>
-      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400" id={helpId}>Type at least 2 characters, then choose a suggestion or keep your manual entry.</p>
-      {error ? <p className="mt-1.5 text-sm text-red-600 dark:text-red-400" id={errorId} role="alert">{error}</p> : null}
+      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400" id={helpId}>Optional. Selecting a result copies its administrative address into the editable fields below.</p>
     </div>
   )
 }
 
-function toSuggestion(properties: GeoapifyProperties | undefined, kind: GeoapifyAddressKind): GeoapifySuggestion | null {
+function toSuggestion(properties: GeoapifyProperties | undefined): GeoapifySuggestion | null {
   if (!properties || properties.country_code?.toLocaleLowerCase() !== 'ph') return null
 
+  const municipality = properties.city ?? properties.municipality ?? properties.town ?? properties.village ?? null
   const province = properties.county ?? properties.state ?? null
   const region = properties.county && properties.state && properties.county !== properties.state ? properties.state : null
-  const city = properties.city ?? properties.municipality ?? null
-  const value = kind === 'province'
-    ? province ?? properties.name
-    : kind === 'municipality'
-      ? city ?? properties.name
-      : properties.suburb ?? properties.district ?? properties.quarter ?? properties.neighbourhood ?? properties.name
+  const namedLocality = properties.name && !samePlace(properties.name, municipality) && !samePlace(properties.name, province) ? properties.name : null
+  const barangay = properties.suburb ?? properties.district ?? properties.quarter ?? properties.neighbourhood ?? namedLocality
+  const parts = [province, municipality, barangay].filter((part): part is string => Boolean(part))
 
-  if (!value) return null
+  if (parts.length === 0) return null
 
   return {
-    id: properties.place_id ?? `${kind}-${value}-${properties.formatted ?? ''}`,
-    label: properties.formatted ?? [value, city, province, properties.state, 'Philippines'].filter(Boolean).join(', '),
-    value,
-    placeId: properties.place_id ?? null,
-    city,
+    id: properties.place_id ?? parts.join('-'),
+    label: parts.join(', '),
+    barangay,
+    municipality,
     province,
     region,
     postcode: properties.postcode ?? null,
   }
+}
+
+function samePlace(left: string, right: string | null): boolean {
+  return right !== null && left.toLocaleLowerCase() === right.toLocaleLowerCase()
 }

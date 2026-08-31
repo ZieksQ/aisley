@@ -35,8 +35,6 @@ export function RegisterPage() {
   const [optionsError, setOptionsError] = useState<string | null>(null)
   const [isLoadingOptions, setIsLoadingOptions] = useState(true)
   const [address, setAddress] = useState({ barangay: '', cityMunicipality: '', province: '', region: '', postalCode: '' })
-  const [provincePlaceId, setProvincePlaceId] = useState<string | null>(null)
-  const [municipalityPlaceId, setMunicipalityPlaceId] = useState<string | null>(null)
   const age = useMemo(() => ageFromBirthDate(birthDate), [birthDate])
   const geoapifyApiKey = (import.meta.env.VITE_GEOAPIFY_API_KEY ?? '').trim()
 
@@ -86,36 +84,11 @@ export function RegisterPage() {
     }
   }
 
-  function selectProvince(suggestion: GeoapifySuggestion) {
-    setProvincePlaceId(suggestion.placeId)
-    setMunicipalityPlaceId(null)
+  function selectAdministrativeAddress(suggestion: GeoapifySuggestion) {
     setAddress((current) => ({
       ...current,
-      province: suggestion.value,
-      region: suggestion.region ?? current.region,
-      postalCode: suggestion.postcode ?? current.postalCode,
-      cityMunicipality: '',
-      barangay: '',
-    }))
-  }
-
-  function selectMunicipality(suggestion: GeoapifySuggestion) {
-    setMunicipalityPlaceId(suggestion.placeId)
-    setAddress((current) => ({
-      ...current,
-      cityMunicipality: suggestion.value,
-      province: suggestion.province ?? current.province,
-      region: suggestion.region ?? current.region,
-      postalCode: suggestion.postcode ?? current.postalCode,
-      barangay: '',
-    }))
-  }
-
-  function selectBarangay(suggestion: GeoapifySuggestion) {
-    setAddress((current) => ({
-      ...current,
-      barangay: suggestion.value,
-      cityMunicipality: suggestion.city ?? current.cityMunicipality,
+      barangay: suggestion.barangay ?? current.barangay,
+      cityMunicipality: suggestion.municipality ?? current.cityMunicipality,
       province: suggestion.province ?? current.province,
       region: suggestion.region ?? current.region,
       postalCode: suggestion.postcode ?? current.postalCode,
@@ -184,13 +157,17 @@ export function RegisterPage() {
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-1 font-semibold">Business address</legend>
-          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Choose a suggested Province, Municipality, and Barangay when available. Street and building details remain manual, and every address field stays editable.</p>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Use the optional address dropdown to copy a Province, Municipality, and Barangay suggestion, then review or complete the separate manual address fields.</p>
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <GeoapifyAddressField apiKey={geoapifyApiKey} onSelect={selectAdministrativeAddress} />
+            </div>
+            <p className="border-t border-zinc-200 pt-4 text-sm font-semibold dark:border-white/10 sm:col-span-2">Manual address</p>
             <FormField error={errors['address.address_line_1']?.[0]} id="address_line_1" label="Street and house/building number *" name="address[address_line_1]" required />
             <FormField error={errors['address.address_line_2']?.[0]} id="address_line_2" label="Unit, floor, or landmark (optional)" name="address[address_line_2]" />
-            <GeoapifyAddressField apiKey={geoapifyApiKey} error={errors['address.province']?.[0]} id="province" kind="province" label="Province *" name="address[province]" onChange={(value) => { setProvincePlaceId(null); setMunicipalityPlaceId(null); setAddress((current) => ({ ...current, province: value, cityMunicipality: '', barangay: '' })) }} onSelect={selectProvince} required value={address.province} />
-            <GeoapifyAddressField apiKey={geoapifyApiKey} boundaryPlaceId={provincePlaceId} context={address.province} error={errors['address.city_municipality']?.[0]} id="city_municipality" kind="municipality" label="City or municipality *" name="address[city_municipality]" onChange={(value) => { setMunicipalityPlaceId(null); setAddress((current) => ({ ...current, cityMunicipality: value, barangay: '' })) }} onSelect={selectMunicipality} required value={address.cityMunicipality} />
-            <GeoapifyAddressField apiKey={geoapifyApiKey} boundaryPlaceId={municipalityPlaceId ?? provincePlaceId} context={[address.cityMunicipality, address.province].filter(Boolean).join(', ')} error={errors['address.barangay']?.[0]} id="barangay" kind="barangay" label="Barangay *" name="address[barangay]" onChange={(value) => setAddress((current) => ({ ...current, barangay: value }))} onSelect={selectBarangay} required value={address.barangay} />
+            <FormField error={errors['address.province']?.[0]} id="province" label="Province *" name="address[province]" onChange={(event) => setAddress((current) => ({ ...current, province: event.target.value }))} required value={address.province} />
+            <FormField error={errors['address.city_municipality']?.[0]} id="city_municipality" label="City or municipality *" name="address[city_municipality]" onChange={(event) => setAddress((current) => ({ ...current, cityMunicipality: event.target.value }))} required value={address.cityMunicipality} />
+            <FormField error={errors['address.barangay']?.[0]} id="barangay" label="Barangay *" name="address[barangay]" onChange={(event) => setAddress((current) => ({ ...current, barangay: event.target.value }))} required value={address.barangay} />
             <FormField error={errors['address.region']?.[0]} id="region" label="Region *" name="address[region]" onChange={(event) => setAddress((current) => ({ ...current, region: event.target.value }))} required value={address.region} />
             <FormField error={errors['address.postal_code']?.[0]} id="postal_code" label="Postal code *" maxLength={10} name="address[postal_code]" onChange={(event) => setAddress((current) => ({ ...current, postalCode: event.target.value }))} required value={address.postalCode} />
             <FormField disabled id="country" label="Country" name="country_display" value="Philippines" />
