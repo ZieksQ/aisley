@@ -12,6 +12,8 @@ import { RegistrationsPage } from './pages/RegistrationsPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { UsersPage } from './pages/UsersPage'
 import { UserDetailPage } from './pages/UserDetailPage'
+import { SellerCompliancePage } from './pages/SellerCompliancePage'
+import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
           <Route element={<NotificationsPage />} path="/notifications" />
           <Route element={<UsersPage />} path="/users" />
           <Route element={<UserDetailPage />} path="/users/:userId" />
+          <Route element={<SellerCompliancePage />} path="/seller-compliance" />
+          <Route element={<SellerComplianceCasePage />} path="/seller-compliance/cases/:caseId" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

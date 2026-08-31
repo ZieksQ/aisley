@@ -79,6 +79,16 @@ class User extends Authenticatable
         return $this->hasMany(AccountLifecycleEvent::class);
     }
 
+    public function sellerComplianceCases(): HasMany
+    {
+        return $this->hasMany(SellerComplianceCase::class, 'seller_id');
+    }
+
+    public function createdSellerComplianceCases(): HasMany
+    {
+        return $this->hasMany(SellerComplianceCase::class, 'created_by_admin_id');
+    }
+
     public function performedLifecycleEvents(): HasMany
     {
         return $this->hasMany(AccountLifecycleEvent::class, 'acted_by_admin_id');

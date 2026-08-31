@@ -10,6 +10,7 @@ import {
   FaUserGear,
   FaUsers,
   FaSliders,
+  FaScaleBalanced,
   FaXmark,
 } from 'react-icons/fa6'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -39,6 +40,7 @@ export function AdminLayout() {
   const canViewPlatformSettings = admin?.permissions.includes('platform-settings.view') ?? false
   const canViewNotifications = admin?.permissions.includes('notifications.view') ?? false
   const canViewUsers = admin?.permissions.includes('users.view') ?? false
+  const canManageSellerCompliance = admin?.permissions.includes('seller_compliance.manage') ?? false
   const isUserDetail = /^\/users\/[^/]+$/.test(location.pathname)
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
@@ -46,12 +48,12 @@ export function AdminLayout() {
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? 'Platform settings' : 'Dashboard'
+      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? 'Announcements and policies' : 'Admin workspace'
+      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? 'Announcements and policies' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -103,6 +105,12 @@ export function AdminLayout() {
               <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/users">
                 <FaUsers aria-hidden="true" />
                 User accounts
+              </NavLink>
+            )}
+            {canManageSellerCompliance && (
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/seller-compliance">
+                <FaScaleBalanced aria-hidden="true" />
+                Seller compliance
               </NavLink>
             )}
             {canViewAuditLogs && (

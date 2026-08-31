@@ -23,6 +23,13 @@ enum AdminAuditAction: string
     case UserAccountSuspended = 'user_account.suspended';
     case UserAccountRestored = 'user_account.restored';
     case UserAccountDeactivated = 'user_account.deactivated';
+    case SellerComplianceCaseCreated = 'seller_compliance.case_created';
+    case SellerComplianceCaseDismissed = 'seller_compliance.case_dismissed';
+    case SellerComplianceCaseClosed = 'seller_compliance.case_closed';
+    case SellerComplianceWarningIssued = 'seller_compliance.warning_issued';
+    case SellerComplianceProductRestricted = 'seller_compliance.product_restricted';
+    case SellerComplianceProductRestrictionRevoked = 'seller_compliance.product_restriction_revoked';
+    case SellerComplianceSuspensionReferred = 'seller_compliance.suspension_referred';
 
     public function label(): string
     {
@@ -46,6 +53,13 @@ enum AdminAuditAction: string
             self::UserAccountSuspended => 'User account suspended',
             self::UserAccountRestored => 'User account restored',
             self::UserAccountDeactivated => 'User account deactivated',
+            self::SellerComplianceCaseCreated => 'Seller compliance case created',
+            self::SellerComplianceCaseDismissed => 'Seller compliance case dismissed',
+            self::SellerComplianceCaseClosed => 'Seller compliance case closed',
+            self::SellerComplianceWarningIssued => 'Seller compliance warning issued',
+            self::SellerComplianceProductRestricted => 'Product restricted for compliance',
+            self::SellerComplianceProductRestrictionRevoked => 'Product compliance restriction revoked',
+            self::SellerComplianceSuspensionReferred => 'Seller suspension referred from compliance',
         };
     }
 }

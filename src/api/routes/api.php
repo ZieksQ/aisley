@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
+use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -35,6 +36,19 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+    Route::prefix('seller-compliance')->name('seller-compliance.')->middleware('admin.permission:seller_compliance.manage')->group(function () {
+        Route::get('/cases', [SellerComplianceController::class, 'index'])->name('index');
+        Route::get('/options', [SellerComplianceController::class, 'options'])->name('options');
+        Route::post('/cases', [SellerComplianceController::class, 'store'])->name('store');
+        Route::get('/cases/{case}', [SellerComplianceController::class, 'show'])->whereUuid('case')->name('show');
+        Route::post('/cases/{case}/dismiss', [SellerComplianceController::class, 'dismiss'])->whereUuid('case')->name('dismiss');
+        Route::post('/cases/{case}/warn', [SellerComplianceController::class, 'warn'])->whereUuid('case')->name('warn');
+        Route::post('/cases/{case}/restrict-product', [SellerComplianceController::class, 'restrictProduct'])->whereUuid('case')->name('restrict-product');
+        Route::post('/cases/{case}/revoke-product-restriction', [SellerComplianceController::class, 'revokeProductRestriction'])->whereUuid('case')->name('revoke-product-restriction');
+        Route::post('/cases/{case}/suspend-seller', [SellerComplianceController::class, 'suspendSeller'])->whereUuid('case')->name('suspend');
+        Route::post('/cases/{case}/close', [SellerComplianceController::class, 'close'])->whereUuid('case')->name('close');
+    });
+
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [UserAccountController::class, 'index'])->middleware('admin.permission:users.view')->name('index');
         Route::get('/{user}', [UserAccountController::class, 'show'])->middleware('admin.permission:users.view')->whereUuid('user')->name('show');

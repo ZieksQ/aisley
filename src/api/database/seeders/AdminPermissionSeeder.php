@@ -49,6 +49,11 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'users.manage',
             'description' => 'Suspend, restore, and deactivate eligible non-Admin user accounts.',
         ],
+        [
+            'name' => 'Manage Seller compliance',
+            'slug' => 'seller_compliance.manage',
+            'description' => 'Review Seller and Product compliance cases and apply authorized actions.',
+        ],
     ];
 
     public function run(): void

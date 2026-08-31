@@ -50,6 +50,7 @@ class InitialAdminSeeder extends Seeder
                     'notifications.view',
                     'users.view',
                     'users.manage',
+                    'seller_compliance.manage',
                 ])
                 ->pluck('id'),
         );

@@ -3,8 +3,8 @@ feature: monitor-seller-compliance
 title: Admin Monitor Seller Compliance
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft
+version: 1.2
+status: Implemented MVP
 role: Admin
 scope: Admin Web Application
 ---
@@ -105,6 +105,7 @@ POST /api/v1/admin/seller-compliance/cases/{case}/warn
 POST /api/v1/admin/seller-compliance/cases/{case}/restrict-product
 POST /api/v1/admin/seller-compliance/cases/{case}/revoke-product-restriction
 POST /api/v1/admin/seller-compliance/cases/{case}/suspend-seller
+POST /api/v1/admin/seller-compliance/cases/{case}/close
 ```
 
 - Reuse the Account Management lifecycle service for suspension. Add one reusable Buyer-visible Product query/availability policy that includes Product publication, active Seller status, vacation eligibility, and active compliance restriction; apply it to discovery, detail, Cart, and Checkout.

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
@@ -107,6 +108,27 @@ class Product extends Model
         return $this->hasMany(CartItem::class);
     }
 
+    public function complianceRestrictions(): HasMany
+    {
+        return $this->hasMany(ProductComplianceRestriction::class);
+    }
+
+    public function activeComplianceRestriction(): HasOne
+    {
+        return $this->hasOne(ProductComplianceRestriction::class)
+            ->where('active_marker', 'active')
+            ->whereNull('revoked_at');
+    }
+
+    public function isComplianceRestricted(): bool
+    {
+        if ($this->relationLoaded('activeComplianceRestriction')) {
+            return $this->activeComplianceRestriction !== null;
+        }
+
+        return $this->activeComplianceRestriction()->exists();
+    }
+
     /**
      * Limit products to records that may be exposed on the public storefront.
      *
@@ -119,6 +141,7 @@ class Product extends Model
             ->where('products.status', ProductStatus::Active)
             ->whereNotNull('products.published_at')
             ->where('products.published_at', '<=', now())
+            ->whereDoesntHave('activeComplianceRestriction')
             ->whereHas('shop', fn (Builder $shop) => $shop
                 ->where('status', ShopStatus::Active)
                 ->where('is_on_vacation', false)

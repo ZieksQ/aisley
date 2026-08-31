@@ -43,4 +43,14 @@ class PlatformPolicyVersion extends Model
     {
         return $this->hasMany(PolicyAcceptance::class);
     }
+
+    public function complianceCases(): HasMany
+    {
+        return $this->hasMany(SellerComplianceCase::class, 'policy_version_id');
+    }
+
+    public function productComplianceRestrictions(): HasMany
+    {
+        return $this->hasMany(ProductComplianceRestriction::class, 'policy_version_id');
+    }
 }
