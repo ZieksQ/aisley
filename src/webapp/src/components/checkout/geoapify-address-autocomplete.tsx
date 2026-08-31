@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { FiMapPin } from "react-icons/fi";
 
+import { canonicalPhilippineHierarchy } from "@/lib/locations/philippine-regions";
+
 export type GeoapifyAddressSelection = {
   addressLine1?: string;
   barangay?: string;
@@ -24,6 +26,12 @@ type GeoapifyResult = {
   housenumber?: string;
   street?: string;
   suburb?: string;
+  district?: string;
+  neighbourhood?: string;
+  neighborhood?: string;
+  quarter?: string;
+  village?: string;
+  city_district?: string;
   city?: string;
   municipality?: string;
   county?: string;
@@ -71,6 +79,22 @@ function valueAtResultLevel(
   structuredValue?: string,
 ) {
   return structuredValue ?? (result.result_type === level ? result.name : undefined);
+}
+
+function barangay(result: GeoapifyResult) {
+  const structured = result.suburb ??
+    result.village ??
+    result.neighbourhood ??
+    result.neighborhood ??
+    result.quarter ??
+    result.city_district ??
+    result.district;
+
+  if (structured) return structured;
+
+  return ["suburb", "district"].includes(result.result_type ?? "")
+    ? result.name
+    : undefined;
 }
 
 export function GeoapifyAddressAutocomplete({
@@ -148,20 +172,28 @@ export function GeoapifyAddressAutocomplete({
     if (!point) return;
 
     const formatted = result.formatted ?? result.name ?? "";
+    const cityMunicipality = valueAtResultLevel(
+      result,
+      "city",
+      result.city ?? result.municipality,
+    );
+    const hierarchy = canonicalPhilippineHierarchy({
+      city: cityMunicipality,
+      province: result.county,
+      region: result.state,
+    });
     selectedQuery.current = formatted;
     setQuery(formatted);
     setResults([]);
     setIsOpen(false);
     onSelect({
       addressLine1: addressLine1(result),
-      barangay: valueAtResultLevel(result, "suburb", result.suburb),
-      cityMunicipality: valueAtResultLevel(
-        result,
-        "city",
-        result.city ?? result.municipality,
-      ),
-      province: valueAtResultLevel(result, "county", result.county),
-      region: valueAtResultLevel(result, "state", result.state),
+      barangay: barangay(result),
+      cityMunicipality,
+      province: hierarchy
+        ? hierarchy.province
+        : valueAtResultLevel(result, "county", result.county),
+      region: hierarchy?.region ?? valueAtResultLevel(result, "state", result.state),
       postalCode: result.postcode,
       country: result.country,
       ...point,
