@@ -628,6 +628,7 @@ Products store both the storefront-card fields and the product-detail content. O
 | `category_id` | UUID | Yes | `NULL` | FK → `categories.id`; `ON DELETE SET NULL` |
 | `name` | VARCHAR | No | — | Searchable product/card title |
 | `slug` | VARCHAR | No | — | Globally unique product route key |
+| `base_sku` | VARCHAR | Yes | `NULL` for migration compatibility | Shop-scoped canonical Seller SKU; required for new Products |
 | `short_description` | TEXT | Yes | `NULL` | Summary copy; excluded from homepage DTOs |
 | `description_markdown` | TEXT | Yes | `NULL` | GFM product description for the detail page |
 | `specifications` | JSONB | Yes | `NULL` | Product specification key/value data |
@@ -635,6 +636,7 @@ Products store both the storefront-card fields and the product-detail content. O
 | `thumbnail_path` | TEXT | Yes | `NULL` | Primary product-card image path |
 | `price` | NUMERIC(12,2) | No | — | Current regular selling price |
 | `original_price` | NUMERIC(12,2) | Yes | `NULL` | Legitimate comparison price when higher than `price` |
+| `currency` | VARCHAR(3) | No | `PHP` | ISO currency for Product and inherited Variant pricing |
 | `stock_quantity` | BIGINT | No | `0` | Current aggregate stock for discovery eligibility |
 | `average_rating` | NUMERIC(3,2) | Yes | `NULL` | Derived rating summary |
 | `review_count` | BIGINT | No | `0` | Real persisted review count |
@@ -645,8 +647,10 @@ Products store both the storefront-card fields and the product-detail content. O
 | `published_at` | TIMESTAMP | Yes | `NULL` | Product is not publicly visible before this time |
 | `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 | `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| `deleted_at` | TIMESTAMP | Yes | `NULL` | Soft-delete marker |
+| `purge_after` | TIMESTAMP | Yes | `NULL` | Configured Product-blob retention boundary |
 
-Indexes: (`status`, `stock_quantity`, `published_at`), (`category_id`, `status`), (`shop_id`, `status`), and (`sold_count`, `average_rating`).
+Indexes: (`status`, `stock_quantity`, `published_at`), (`category_id`, `status`), (`shop_id`, `status`), (`sold_count`, `average_rating`), and unique (`shop_id`, `base_sku`).
 
 Public storefront queries centrally require an active/published product, an active approved Seller, an active Shop, and a Shop that is not in vacation mode. Primary discovery and deal queries additionally require positive product stock.
 
@@ -688,7 +692,8 @@ Unique (`option_group_id`, `value`) prevents duplicate values; unique (`option_g
 | --- | --- | --- | --- | --- |
 | `id` | UUID | No | Eloquent UUIDv7 | Primary key |
 | `product_id` | UUID | No | — | FK → `products.id`; `ON DELETE CASCADE` |
-| `sku` | VARCHAR | No | — | Globally unique Seller SKU |
+| `shop_id` | UUID | Yes | — | FK → `shops.id`; authoritative scope for additive migration compatibility |
+| `sku` | VARCHAR | No | — | Unique within the owning Shop |
 | `price` | NUMERIC(12,2) | Yes | `NULL` | Overrides the parent product price when supplied |
 | `original_price` | NUMERIC(12,2) | Yes | `NULL` | Overrides the parent comparison price when supplied |
 | `stock_quantity` | BIGINT | No | `0` | Variant availability quantity |
@@ -696,7 +701,7 @@ Unique (`option_group_id`, `value`) prevents duplicate values; unique (`option_g
 | `primary_media_id` | UUID | Yes | `NULL` | FK → `product_media.id`; `ON DELETE SET NULL` |
 | `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
-Indexes: (`product_id`, `status`) and `primary_media_id`.
+Indexes: (`product_id`, `status`), `primary_media_id`, and unique (`shop_id`, `sku`).
 
 #### `product_variant_option_values`
 
@@ -722,13 +727,24 @@ Composite primary key: (`product_variant_id`, `product_option_value_id`).
 | `path` | TEXT | No | — | Object/blob path |
 | `alt_text` | VARCHAR | Yes | `NULL` | Accessible image description |
 | `position` | INTEGER | No | — | Ordered media position within the product |
+| `mime_type`, `byte_size` | VARCHAR, BIGINT | Yes | `NULL` | Server-detected media metadata |
+| `width`, `height` | INTEGER | Yes | `NULL` | Decoded dimensions |
+| `checksum` | VARCHAR(64) | Yes | `NULL` | SHA-256 of rewritten bytes |
+| `scan_status` | VARCHAR | No | `approved` | String-backed processing state |
+| `deleted_at`, `purge_after` | TIMESTAMP | Yes | `NULL` | Soft replacement/deletion and blob purge schedule |
 | `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
 Unique (`product_id`, `position`) maintains the product gallery ordering; (`product_variant_id`, `position`) supports variant-media retrieval. The `product_variants.primary_media_id` foreign key is created after this table to resolve the circular reference.
 
 ### 9.5A Inventory SKUs, balances, and movements
 
-`inventory_skus` gives both base products and Product Variants one stable stock identity. A database check requires base SKUs to have no variant and variant SKUs to reference one. SKU codes and variant references are globally unique; records are retained when a product is archived.
+`inventory_skus` gives both base products and Product Variants one stable stock identity. A database check requires base SKUs to have no variant and variant SKUs to reference one. Variant references remain globally unique, while SKU codes are unique by (`shop_id`, `code`); records are retained when a product is archived.
+
+#### Product authoring assets
+
+`product_uploads` records Shop/Seller-owned, token-bound uploads stored under `product-assets/temp`. It keeps purpose, generated path, detected/re-written image metadata, checksum, processing status, alt text, and `expires_at`; the hourly cleanup command removes unclaimed rows and blobs after the environment-backed 24-hour default.
+
+`product_description_assets` stores Product-owned inline Markdown images separately from the gallery. Stable UUID routes are persisted in Markdown while disk/path remains private metadata. The table records Shop/Product ownership, MIME/size/dimensions/checksum, processing/reference state, soft deletion, and `purge_after`. Replaced assets default to a 24-hour grace period, while soft-deleted Product blobs default to 30 days and are clamped to the configured 7–30-day range.
 
 `inventory_balances` stores one current balance per SKU with unsigned `on_hand`, `reserved`, and nullable `alert_threshold` quantities. PostgreSQL checks enforce `0 <= reserved <= on_hand`; available stock is derived as `on_hand - reserved`.
 

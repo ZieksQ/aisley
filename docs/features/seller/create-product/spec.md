@@ -103,11 +103,15 @@
 - Observe upload success/failure, scan latency, rejected MIME/size reasons, product-save conflicts, publish failures, and Customer image-delivery failures using asset/product IDs only; never log Markdown, file contents, private URLs, or credentials.
 - Roll out additive schema/API changes first, then the Seller editor and variant matrix, then enable publish gating and Customer asset delivery. Existing base products must remain readable and retain their current summary behavior.
 
-### Open questions
+### Resolved implementation decisions (2026-09-02)
 
-- Confirm whether every variant must have an explicit price or may inherit the parent price (recommended: inheritance).
-- Confirm product/gallery image counts, pixel limits, scan provider, retention/garbage-collection policy, and category-specific specification keys.
-- Confirm whether variant SKU uniqueness is global (current schema) or only Shop-scoped, and which publish fields become mandatory once logistics is implemented.
+- Variant `price` and `original_price` are nullable overrides. A missing value inherits its Product parent value.
+- A Product gallery defaults to 10 images. Each Variant may have one separate primary image; Variant images do not consume the gallery allowance. The limit is environment-backed now so a future Admin global setting can become authoritative without changing the upload contract.
+- Accepted images remain under 10 MiB and are additionally limited to 8,000 pixels per edge and 40 megapixels. This follows OWASP's resource-limit guidance and stays below ImageMagick's documented 8,192-pixel security-policy example.
+- Pre-save MDXEditor/gallery/Variant uploads use a Shop-owned `product-assets/temp` prefix and expire after 24 hours. Saving the Product moves claimed blobs into the Product folder. Replaced gallery, Variant, or description revisions have a 24-hour grace period. Deleted Products retain image blobs for 30 days by default, configurable from 7 through 30 days.
+- `products:cleanup-assets` runs hourly through Laravel's scheduler and removes expired temporary uploads and retention-expired blobs. Product rows remain soft-deleted tombstones so Order/catalog history is not coupled to blob deletion.
+- Base and Variant SKUs are unique within a Shop, not across the marketplace.
+- Category-specific specification keys and an external malware-scan provider remain separate future decisions; the current synchronous approval step performs signature/type checks, bounded decoding, and image rewriting before an asset becomes usable.
 
 ### Sources
 
@@ -115,3 +119,5 @@
 - [MDXEditor getting started](https://mdxeditor.dev/editor/docs/getting-started) — client-only initialization and stylesheet setup.
 - [MDXEditor image plugin](https://mdxeditor.dev/editor/docs/images) — upload handler for inserted, pasted, and dropped images.
 - [Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components) — client boundary for browser-dependent third-party components.
+- [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) — allow-listing, generated filenames, bounded uploads, authorization, and safe storage.
+- [ImageMagick architecture and resource limits](https://imagemagick.org/architecture/) — decoded pixel-cache cost and the documented 8,192-pixel edge security-policy example.

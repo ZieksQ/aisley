@@ -8,6 +8,7 @@ use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,7 @@ class InventoryService
     public function createBaseSku(Product $product, string $code, int $openingStock, User $actor): InventorySku
     {
         $sku = $product->inventorySkus()->create([
+            'shop_id' => $product->shop_id,
             'code' => $code,
             'is_base' => true,
             'status' => InventorySkuStatus::Active,
@@ -26,6 +28,20 @@ class InventoryService
         if ($openingStock > 0) {
             $this->adjust($sku, $openingStock, InventoryMovementType::Restock, 'Opening stock', $actor);
         }
+
+        return $sku->load('balance');
+    }
+
+    public function createVariantSku(Product $product, ProductVariant $variant, string $code, User $actor): InventorySku
+    {
+        $sku = $product->inventorySkus()->create([
+            'shop_id' => $product->shop_id,
+            'product_variant_id' => $variant->id,
+            'code' => $code,
+            'is_base' => false,
+            'status' => InventorySkuStatus::Active,
+        ]);
+        $sku->balance()->create(['on_hand' => 0, 'reserved' => 0]);
 
         return $sku->load('balance');
     }

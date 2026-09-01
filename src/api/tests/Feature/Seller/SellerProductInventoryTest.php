@@ -12,6 +12,9 @@ use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class SellerProductInventoryTest extends TestCase
@@ -21,6 +24,12 @@ class SellerProductInventoryTest extends TestCase
     public function test_active_seller_can_create_publish_and_adjust_own_product_inventory(): void
     {
         [$seller, $shop, $category] = $this->sellerShop();
+        Storage::fake('local');
+        config(['seller.products.asset_disk' => 'local']);
+        $uploadToken = (string) Str::uuid();
+        $upload = $this->actingAs($seller)->post('/api/v1/seller/product-uploads', [
+            'image' => $this->image('gallery.png'), 'purpose' => 'gallery', 'upload_token' => $uploadToken,
+        ], ['Accept' => 'application/json'])->assertCreated();
 
         $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Canvas Backpack',
@@ -30,15 +39,22 @@ class SellerProductInventoryTest extends TestCase
             'description_markdown' => '## Details',
             'price' => 899.50,
             'opening_stock' => 10,
+            'upload_token' => $uploadToken,
+            'gallery_upload_ids' => [$upload->json('data.id')],
         ])->assertCreated()
             ->assertJsonPath('data.status', 'draft')
             ->assertJsonPath('data.skus.0.available', 10);
 
         $productId = $created->json('data.id');
         $skuId = $created->json('data.skus.0.id');
+        $mediaId = $created->json('data.gallery.0.id');
+
+        $this->get("/api/v1/seller/product-media/{$mediaId}")->assertOk();
+        $this->get("/api/v1/product-media/{$mediaId}")->assertNotFound();
 
         $this->postJson("/api/v1/seller/products/{$productId}/publish")
             ->assertOk()->assertJsonPath('data.status', 'active');
+        $this->get("/api/v1/product-media/{$mediaId}")->assertOk();
 
         $this->postJson("/api/v1/seller/inventory/{$skuId}/adjustments", [
             'movement_type' => 'manual_decrease',
@@ -113,5 +129,13 @@ class SellerProductInventoryTest extends TestCase
         $category = Category::create(['shop_category_id' => $shopCategory->id, 'name' => "Bags {$suffix}", 'slug' => "bags-{$suffix}", 'status' => CategoryStatus::Active]);
 
         return [$seller, $shop, $category];
+    }
+
+    private function image(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent(
+            $name,
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true),
+        );
     }
 }

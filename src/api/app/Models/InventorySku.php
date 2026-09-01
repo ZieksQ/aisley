@@ -14,6 +14,7 @@ class InventorySku extends Model
 
     protected $fillable = [
         'product_id',
+        'shop_id',
         'product_variant_id',
         'code',
         'is_base',

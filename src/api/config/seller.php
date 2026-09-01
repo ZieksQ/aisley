@@ -19,4 +19,16 @@ return [
     'registration' => [
         'evidence_disk' => env('SELLER_REGISTRATION_EVIDENCE_DISK') ?: env('FILESYSTEM_DISK', 'local'),
     ],
+
+    'products' => [
+        'asset_disk' => env('SELLER_PRODUCT_ASSET_DISK') ?: env('FILESYSTEM_DISK', 'local'),
+        'gallery_image_limit' => (int) env('PRODUCT_GALLERY_IMAGE_LIMIT', 10),
+        'description_image_limit' => (int) env('PRODUCT_DESCRIPTION_IMAGE_LIMIT', 20),
+        'image_max_bytes' => 10 * 1024 * 1024,
+        'image_max_edge' => (int) env('PRODUCT_IMAGE_MAX_EDGE', 8000),
+        'image_max_pixels' => (int) env('PRODUCT_IMAGE_MAX_PIXELS', 40000000),
+        'temp_retention_hours' => (int) env('PRODUCT_UPLOAD_TEMP_RETENTION_HOURS', 24),
+        'replacement_retention_hours' => (int) env('PRODUCT_ASSET_REPLACEMENT_RETENTION_HOURS', 24),
+        'deletion_retention_days' => min(30, max(7, (int) env('PRODUCT_DELETION_RETENTION_DAYS', 30))),
+    ],
 ];
