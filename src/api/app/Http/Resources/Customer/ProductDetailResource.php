@@ -132,7 +132,9 @@ class ProductDetailResource extends JsonResource
                 || in_array($item->product_variant_id, $variantIds, true))
             ->map(fn ($item) => [
                 'id' => $item->id,
-                'url' => MediaUrl::from($item->disk, $item->path),
+                'url' => $item->mime_type
+                    ? url('/api/v1/product-media/'.$item->id)
+                    : MediaUrl::from($item->disk, $item->path),
                 'altText' => $item->alt_text ?: $this->name,
                 'position' => $item->position,
                 'variantId' => $item->product_variant_id,

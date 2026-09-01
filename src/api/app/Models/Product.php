@@ -14,16 +14,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'shop_id',
         'category_id',
         'name',
         'slug',
+        'base_sku',
         'short_description',
         'description_markdown',
         'specifications',
@@ -31,6 +33,7 @@ class Product extends Model
         'thumbnail_path',
         'price',
         'original_price',
+        'currency',
         'stock_quantity',
         'average_rating',
         'review_count',
@@ -39,6 +42,7 @@ class Product extends Model
         'is_promoted',
         'status',
         'published_at',
+        'purge_after',
     ];
 
     /**
@@ -58,6 +62,7 @@ class Product extends Model
             'is_promoted' => 'boolean',
             'status' => ProductStatus::class,
             'published_at' => 'datetime',
+            'purge_after' => 'datetime',
         ];
     }
 
@@ -96,6 +101,11 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    public function descriptionAssets(): HasMany
+    {
+        return $this->hasMany(ProductDescriptionAsset::class);
     }
 
     public function inventorySkus(): HasMany

@@ -10,6 +10,9 @@ function safeMarkdownUrl(url: string) {
   return defaultUrlTransform(url);
 }
 
+const descriptionAssetPattern = /^\/api\/v1\/product-description-assets\/[0-9a-f-]{36}$/i;
+const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+
 export function ShopSummary({ shop }: { shop: ProductDetail["shop"] }) {
   return (
     <section aria-labelledby="shop-heading" className="flex flex-wrap items-center justify-between gap-4 border-y border-[#E3DDE5] py-5">
@@ -48,6 +51,11 @@ export function ProductDescription({ markdown }: { markdown: string | null }) {
             remarkPlugins={[remarkGfm]}
             urlTransform={safeMarkdownUrl}
             components={{
+              img: ({ src, alt }) => typeof src === "string" && descriptionAssetPattern.test(src) ? (
+                // Dimensions are seller-upload metadata; the Markdown renderer does not receive them.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="my-4 h-auto max-w-full rounded-md border border-[#E3DDE5]" src={`${apiBaseUrl}${src}`} alt={alt ?? "Product description image"} loading="lazy" />
+              ) : null,
               a: ({ href, children, ...props }) => {
                 const external = Boolean(href && /^(https?:)?\/\//i.test(href));
                 return (

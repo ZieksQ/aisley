@@ -1,0 +1,138 @@
+<?php
+
+namespace Tests\Feature\Seller;
+
+use App\Enums\CategoryStatus;
+use App\Enums\ShopStatus;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductUpload;
+use App\Models\Shop;
+use App\Models\ShopCategory;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+class SellerCreateProductTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('product-test');
+        config(['seller.products.asset_disk' => 'product-test']);
+    }
+
+    public function test_variant_prices_inherit_or_override_and_skus_are_shop_scoped(): void
+    {
+        [$seller, $shop, $category] = $this->sellerShop('first');
+        $token = (string) Str::uuid();
+        $gallery = $this->upload($seller, $token, 'gallery');
+
+        $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Everyday Shirt', 'category_id' => $category->id, 'sku' => 'SHIRT',
+            'price' => '500.00', 'original_price' => '600.00', 'upload_token' => $token,
+            'gallery_upload_ids' => [$gallery],
+            'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
+            'variants' => [
+                ['sku' => 'SHIRT-BLK', 'price' => null, 'original_price' => null, 'option_value_indexes' => [0]],
+                ['sku' => 'SHIRT-WHT', 'price' => '550.00', 'original_price' => '650.00', 'option_value_indexes' => [1]],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.variants.0.inherits_price', true)
+            ->assertJsonPath('data.variants.0.effective_price', '500.00')
+            ->assertJsonPath('data.variants.1.effective_price', '550.00');
+
+        $this->assertDatabaseHas('product_variants', ['shop_id' => $shop->id, 'sku' => 'SHIRT-WHT', 'price' => '550.00']);
+        $this->assertDatabaseHas('inventory_skus', ['shop_id' => $shop->id, 'code' => 'SHIRT-WHT']);
+
+        [$otherSeller, , $otherCategory] = $this->sellerShop('second');
+        $this->actingAs($otherSeller)->postJson('/api/v1/seller/products', [
+            'name' => 'Other Shirt', 'category_id' => $otherCategory->id, 'sku' => 'SHIRT-WHT',
+            'price' => '300.00', 'opening_stock' => 0,
+        ])->assertCreated();
+
+        $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Duplicate', 'category_id' => $category->id, 'sku' => 'SHIRT-WHT',
+            'price' => '300.00', 'opening_stock' => 0,
+        ])->assertUnprocessable()->assertJsonValidationErrors('sku');
+
+        $this->assertNotNull(Product::find($created->json('data.id')));
+    }
+
+    public function test_description_upload_is_temporary_then_claimed_and_moved_on_save(): void
+    {
+        [$seller, $shop, $category] = $this->sellerShop('description');
+        $token = (string) Str::uuid();
+        $assetId = $this->upload($seller, $token, 'description');
+        $temporaryPath = "product-assets/temp/{$shop->id}/{$token}/{$assetId}.png";
+        Storage::disk('product-test')->assertExists($temporaryPath);
+
+        $product = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Documented Product', 'category_id' => $category->id, 'sku' => 'DOC-1',
+            'price' => '120.00', 'opening_stock' => 1, 'upload_token' => $token,
+            'description_markdown' => "![Front view](/api/v1/product-description-assets/{$assetId})",
+            'description_asset_ids' => [$assetId],
+        ])->assertCreated();
+
+        Storage::disk('product-test')->assertMissing($temporaryPath);
+        Storage::disk('product-test')->assertExists("product-assets/{$shop->id}/{$product->json('data.id')}/description/{$assetId}.png");
+        $this->assertDatabaseHas('product_description_assets', ['id' => $assetId, 'product_id' => $product->json('data.id'), 'scan_status' => 'approved']);
+    }
+
+    public function test_gallery_limit_and_invalid_variant_price_receive_field_errors(): void
+    {
+        [$seller, , $category] = $this->sellerShop('validation');
+        $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Invalid Product', 'category_id' => $category->id, 'sku' => 'INVALID',
+            'price' => '100.00', 'upload_token' => (string) Str::uuid(),
+            'gallery_upload_ids' => collect(range(1, 11))->map(fn () => (string) Str::uuid())->all(),
+            'option_groups' => [['name' => 'Size', 'values' => ['Small']]],
+            'variants' => [['sku' => 'INVALID-S', 'price' => '150.00', 'original_price' => '120.00', 'option_value_indexes' => [0]]],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['gallery_upload_ids', 'variants.0.original_price']);
+    }
+
+    public function test_cleanup_command_removes_expired_uncommitted_upload(): void
+    {
+        [$seller, $shop] = $this->sellerShop('cleanup');
+        $token = (string) Str::uuid();
+        $assetId = $this->upload($seller, $token, 'gallery');
+        $path = "product-assets/temp/{$shop->id}/{$token}/{$assetId}.png";
+        ProductUpload::whereKey($assetId)->update(['expires_at' => now()->subMinute()]);
+
+        $this->artisan('products:cleanup-assets')->assertSuccessful();
+
+        Storage::disk('product-test')->assertMissing($path);
+        $this->assertDatabaseMissing('product_uploads', ['id' => $assetId]);
+    }
+
+    private function upload(User $seller, string $token, string $purpose): string
+    {
+        return $this->actingAs($seller)->post('/api/v1/seller/product-uploads', [
+            'image' => UploadedFile::fake()->createWithContent(
+                "{$purpose}.png",
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true),
+            ),
+            'purpose' => $purpose,
+            'upload_token' => $token,
+            'alt_text' => 'Product image',
+        ], ['Accept' => 'application/json'])->assertCreated()->json('data.id');
+    }
+
+    private function sellerShop(string $suffix): array
+    {
+        $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
+        $shopCategory = ShopCategory::create(['name' => "General {$suffix}", 'slug' => "general-{$suffix}", 'status' => CategoryStatus::Active]);
+        $shop = Shop::create(['seller_id' => $seller->id, 'shop_category_id' => $shopCategory->id, 'name' => "Shop {$suffix}", 'slug' => "shop-{$suffix}", 'status' => ShopStatus::Active]);
+        $category = Category::create(['shop_category_id' => $shopCategory->id, 'name' => "Products {$suffix}", 'slug' => "products-{$suffix}", 'status' => CategoryStatus::Active]);
+
+        return [$seller, $shop, $category];
+    }
+}

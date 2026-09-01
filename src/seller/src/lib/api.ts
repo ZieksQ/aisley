@@ -24,6 +24,10 @@ function url(path: string) {
   return `${apiBaseUrl}${path}`
 }
 
+export function apiAssetUrl(path: string) {
+  return url(path)
+}
+
 function csrfToken() {
   const cookie = document.cookie
     .split('; ')
@@ -69,6 +73,27 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   }
 
   return payload
+}
+
+export function uploadForm<T>(path: string, form: FormData, onProgress?: (percent: number) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open('POST', url(path))
+    request.withCredentials = true
+    request.setRequestHeader('Accept', 'application/json')
+    const token = csrfToken()
+    if (token) request.setRequestHeader('X-XSRF-TOKEN', token)
+    request.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+    })
+    request.addEventListener('load', () => {
+      const payload = (() => { try { return JSON.parse(request.responseText) as ErrorPayload & T } catch { return {} as ErrorPayload & T } })()
+      if (request.status >= 200 && request.status < 300) resolve(payload)
+      else reject(new ApiError(request.status, payload))
+    })
+    request.addEventListener('error', () => reject(new ApiError(0, { message: 'Unable to upload the image.' })))
+    request.send(form)
+  })
 }
 
 export async function apiBlobRequest(path: string): Promise<Blob> {

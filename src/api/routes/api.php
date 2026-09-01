@@ -19,11 +19,14 @@ use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\PlatformContentController;
+use App\Http\Controllers\ProductDescriptionAssetController;
+use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
 
@@ -168,6 +171,10 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
+    Route::post('/product-uploads', [SellerProductUploadController::class, 'store'])->middleware('throttle:30,1')->name('product-uploads.store');
+    Route::get('/product-uploads/{productUpload}', [SellerProductUploadController::class, 'show'])->whereUuid('productUpload')->name('product-uploads.show');
+    Route::get('/product-description-assets/{asset}', [SellerProductUploadController::class, 'description'])->whereUuid('asset')->name('product-description-assets.show');
+    Route::get('/product-media/{media}', [SellerProductUploadController::class, 'media'])->whereUuid('media')->name('product-media.show');
     Route::get('/products', [SellerProductController::class, 'index'])->name('products.index');
     Route::post('/products', [SellerProductController::class, 'store'])->name('products.store');
     Route::get('/products/{product}', [SellerProductController::class, 'show'])->whereUuid('product')->name('products.show');
@@ -175,12 +182,22 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/products/{product}/publish', [SellerProductController::class, 'publish'])->whereUuid('product')->name('products.publish');
     Route::post('/products/{product}/archive', [SellerProductController::class, 'archive'])->whereUuid('product')->name('products.archive');
     Route::post('/products/{product}/unarchive', [SellerProductController::class, 'unarchive'])->whereUuid('product')->name('products.unarchive');
+    Route::delete('/products/{product}', [SellerProductController::class, 'destroy'])->whereUuid('product')->name('products.destroy');
     Route::get('/inventory', [SellerInventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/{inventorySku}', [SellerInventoryController::class, 'show'])->whereUuid('inventorySku')->name('inventory.show');
     Route::get('/inventory/{inventorySku}/movements', [SellerInventoryController::class, 'movements'])->whereUuid('inventorySku')->name('inventory.movements');
     Route::post('/inventory/{inventorySku}/adjustments', [SellerInventoryController::class, 'adjust'])->whereUuid('inventorySku')->name('inventory.adjust');
     Route::patch('/inventory/{inventorySku}/threshold', [SellerInventoryController::class, 'threshold'])->whereUuid('inventorySku')->name('inventory.threshold');
 });
+
+Route::get('v1/product-description-assets/{asset}', ProductDescriptionAssetController::class)
+    ->whereUuid('asset')
+    ->middleware('throttle:120,1')
+    ->name('product-description-assets.show');
+Route::get('v1/product-media/{media}', ProductMediaController::class)
+    ->whereUuid('media')
+    ->middleware('throttle:120,1')
+    ->name('product-media.show');
 
 Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->group(function () {
     Route::get('/home', [HomepageController::class, 'show'])->name('home.show');

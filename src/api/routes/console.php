@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('audit:dispatch-pending')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('products:cleanup-assets')
+    ->hourly()
+    ->withoutOverlapping();
