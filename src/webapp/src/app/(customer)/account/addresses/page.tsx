@@ -26,7 +26,6 @@ export default async function CustomerAddressesPage({
   return (
     <AddressBookContent
       geoapifyApiKey={process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY ?? ""}
-      mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ""}
       returnTo={returnTo === "/checkout" ? "/checkout" : null}
     />
   );

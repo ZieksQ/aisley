@@ -13,7 +13,7 @@ class SellerRegistrationAddressOptionsTest extends TestCase
         parent::setUp();
 
         config()->set('cache.default', 'array');
-        config()->set('addresses.path', base_path('addresses'));
+        config()->set('addresses.path', dirname(base_path(), 2).'/packages/psgc-address-data/data');
         Cache::clear();
         Http::fake();
     }

@@ -1,5 +1,5 @@
 <?php
 
 return [
-    'path' => base_path('addresses'),
+    'path' => dirname(base_path(), 2).'/packages/psgc-address-data/data',
 ];

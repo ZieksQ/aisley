@@ -1,0 +1,8 @@
+{
+  "name": "@aisley/psgc-address-data",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "data"
+  ]
+}
