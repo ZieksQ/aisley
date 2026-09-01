@@ -187,6 +187,8 @@ class PhilippineAddressOptionsService
 
     private function basePath(): string
     {
-        return rtrim((string) config('addresses.path', base_path('addresses')), '/');
+        $sharedDataPath = dirname(base_path(), 2).'/packages/psgc-address-data/data';
+
+        return rtrim((string) config('addresses.path', $sharedDataPath), '/');
     }
 }

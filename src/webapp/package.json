@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aisley/ui": "workspace:*",
-    "mapbox-gl": "^3.29.0",
+    "leaflet": "^1.9.4",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

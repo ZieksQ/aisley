@@ -7,11 +7,7 @@ import { ApiError, firstFieldError } from "@/lib/api";
 import { createAddress, updateAddress } from "@/lib/checkout/client";
 import type { AddressPayload, CustomerAddress } from "@/lib/checkout/types";
 
-import {
-  GeoapifyAddressAutocomplete,
-  type GeoapifyAddressSelection,
-} from "./geoapify-address-autocomplete";
-import { MapboxLocationPicker } from "./mapbox-location-picker";
+import { GeoapifyLocationPicker } from "./geoapify-location-picker";
 import {
   PsgcAddressFields,
   type AdministrativeAddressField,
@@ -95,13 +91,11 @@ function initialValues(address?: CustomerAddress): AddressFormValues {
 export function AddressForm({
   address,
   geoapifyApiKey,
-  mapboxAccessToken,
   onCancel,
   onSaved,
 }: {
   address?: CustomerAddress;
   geoapifyApiKey: string;
-  mapboxAccessToken: string;
   onCancel?: () => void;
   onSaved: (address: CustomerAddress) => void;
 }) {
@@ -109,24 +103,6 @@ export function AddressForm({
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
-
-  const applyGeoapifyAddress = useCallback((selection: GeoapifyAddressSelection) => {
-    setValues((current) => ({
-      ...current,
-      address_line_1: selection.addressLine1 ?? "",
-      barangay: selection.barangay ?? "",
-      city_municipality: selection.cityMunicipality ?? "",
-      province: selection.province ?? "",
-      region: selection.region ?? "",
-      postal_code: selection.postalCode ?? "",
-      country: selection.country ?? "Philippines",
-      latitude: selection.latitude,
-      longitude: selection.longitude,
-    }));
-    setLocationMessage(
-      "Location found. Complete any blank fields, review the address, and adjust the map pin to the exact entrance.",
-    );
-  }, []);
 
   function update<K extends keyof AddressFormValues>(
     field: K,
@@ -207,7 +183,7 @@ export function AddressForm({
             {address ? "Edit address" : "Add address"}
           </h2>
           <p className="mt-1 text-xs leading-5 text-[#746978]">
-            Search with Geoapify or enter the address manually. Required fields are checked again at checkout.
+            Enter the address using the official PSGC fields, then pin its exact delivery location. Required fields are checked again at checkout.
           </p>
         </div>
         {onCancel ? (
@@ -216,17 +192,6 @@ export function AddressForm({
           </button>
         ) : null}
       </div>
-
-      {geoapifyApiKey ? (
-        <div className="mt-5">
-          <GeoapifyAddressAutocomplete apiKey={geoapifyApiKey} onSelect={applyGeoapifyAddress} />
-        </div>
-      ) : (
-        <div className="mt-5 flex gap-2 border-l-2 border-[#A897AE] pl-3 text-xs leading-5 text-[#665A6A]">
-          <FiMapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          Geoapify suggestions are not configured. You can still enter and save the address manually.
-        </div>
-      )}
 
       {locationMessage ? <p role="status" className="mt-3 text-xs leading-5 text-[#3F6846]">{locationMessage}</p> : null}
       {error ? <p role="alert" className="mt-4 border-l-2 border-[#FF3B30] pl-3 text-sm text-[#B42318]">{error.message}</p> : null}
@@ -265,23 +230,31 @@ export function AddressForm({
         <Field label="Country" name="country" required value={values.country} onChange={(value) => update("country", value)} error={firstFieldError(error, "country")} autoComplete="country-name" />
       </div>
 
-      {mapboxAccessToken ? (
+      {geoapifyApiKey ? (
         <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold text-[#3A2E3E]">Pin the delivery location</p>
-          <MapboxLocationPicker
-            accessToken={mapboxAccessToken}
+          <GeoapifyLocationPicker
+            apiKey={geoapifyApiKey}
+            address={{
+              addressLine1: values.address_line_1,
+              barangay: values.barangay,
+              cityMunicipality: values.city_municipality,
+              province: values.province,
+              region: values.region,
+              postalCode: values.postal_code,
+              country: values.country,
+            }}
             latitude={values.latitude}
             longitude={values.longitude}
             onChange={({ latitude, longitude }) => {
               setValues((current) => ({ ...current, latitude, longitude }));
-              setLocationMessage("Map pin updated. Review the coordinates before saving.");
+              setLocationMessage("Location pinned. Review the map position before saving.");
             }}
           />
         </div>
       ) : (
         <div className="mt-5 flex gap-2 border-l-2 border-[#A897AE] pl-3 text-xs leading-5 text-[#665A6A]">
           <FiMapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          The Mapbox location picker is not configured. Coordinates from a Geoapify suggestion can still be saved.
+          Geoapify location pinning is not configured. You can still save the textual address without coordinates.
         </div>
       )}
 

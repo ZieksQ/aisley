@@ -234,13 +234,13 @@ Address Book record
 - Delivery-zone eligibility belongs to logistics/shipping rules.
 
 ### Optional external address assistance
-- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1 The project implementation uses Geoapify for address autocomplete and Mapbox GL JS for map rendering.
-- Geoapify Address Autocomplete may suggest structured address components and coordinates from partial Customer input.
-- Use HTTPS, restrict the public Geoapify browser key by allowed storefront URLs, and filter suggestions to the supported country when known.
-- Treat suggestions as Customer-confirmable input, not proof that an address is complete, correct, deliverable, or inside a shipping zone.
+- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1 The project implementation uses Geoapify for intentional forward geocoding and map tiles rendered by Leaflet.
+- Geoapify forward geocoding may resolve a completed Customer-reviewed PSGC address to coordinates only after the Customer clicks `Pin location`.
+- Use HTTPS, restrict the public Geoapify browser key by allowed storefront URLs and required APIs, and filter geocoding to the supported country.
+- Treat returned coordinates as Customer-confirmable metadata, not proof that an address is complete, correct, deliverable, or inside a shipping zone.
 - Manual entry must remain available when Geoapify is unconfigured, unavailable, or has no suitable result.
-- Selected Geoapify results supply the stored address components and coordinate pair. The application must not call Mapbox Geocoding API or Search Box API for autocomplete, forward geocoding, or reverse geocoding.
-- Show Geoapify attribution in the search experience and retain the embedded map's required Mapbox/data-provider attribution controls.
+- A Geoapify result supplies only the coordinate pair; it must not silently rewrite the Customer-reviewed PSGC address fields.
+- Show required Geoapify and OpenStreetMap attribution with the geocoding and embedded map experience.
 
 ### Geolocation coordinates
 - Latitude/longitude is optional unless Logistics/zone mapping requires it.
@@ -285,7 +285,7 @@ Address Book record
   - validating
   - submitting
   - validation error
-  - external-validation suggestion/confirmation if enabled
+  - external-geocoding progress/result if enabled
   - success
   - failure
 - Delete/default change:
@@ -305,7 +305,7 @@ Address Book record
 - Saved-address cards must be keyboard navigable.
 - Default/type state cannot rely on color alone.
 - Delete confirmation must identify the address label/summary.
-- Address suggestions/validation corrections must be announced accessibly.
+- Geocoding progress, failures, and pinned coordinates must be announced accessibly.
 
 ### Acceptance criteria
 - [ ] Guest cannot manage Buyer Address Book.
@@ -404,15 +404,14 @@ rather than global lookup followed by client ownership checks.
   5. proceeds with the checkout transaction
 - This keeps Address Book reusable while preserving historical order destinations.
 
-### Optional Geoapify autocomplete and Mapbox map integration
-- The Address Book Client Component calls Geoapify Address Autocomplete over HTTPS after the Customer enters enough search text.
-- Use `filter=countrycode:ph` for the current Philippines address form, debounce requests, cancel stale requests, and keep result counts bounded.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` is a public browser key. Restrict it by allowed storefront URLs in the Geoapify dashboard.
-- Map the selected Geoapify result into the existing address fields and its `lat`/`lon` into latitude/longitude, then require the Customer to review the populated values.
-- `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` is a public browser token used only by Mapbox GL JS. Restrict it by allowed storefront URLs and only the required Maps APIs in the Mapbox dashboard.
-- The embedded Mapbox GL JS map provides a clickable and draggable pin; pin movement updates the coordinate pair without silently rewriting the Customer-reviewed address text.
-- Selecting a Geoapify result moves the Mapbox pin to the returned longitude/latitude. Mapbox receives the coordinate only for client-side map positioning; no Mapbox Geocoding API or Search Box API request is made.
-- Geoapify suggestions and Mapbox pins do not replace Laravel validation, Customer ownership checks, checkout revalidation, or future logistics serviceability rules.
+### Optional Geoapify geocoding and map integration
+- The Address Book Client Component does not call a provider while the Customer types or selects PSGC values.
+- After the Customer completes the address and clicks `Pin location`, call Geoapify forward geocoding once with `filter=countrycode:ph` and `limit=1`.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` is a public browser key for forward geocoding and map tiles. Restrict it by allowed storefront URLs and only the required Geoapify APIs.
+- Apply the returned `lat`/`lon` to the existing coordinate fields without rewriting the Customer-reviewed textual address.
+- Create the Leaflet map only after geocoding succeeds, using Geoapify raster tiles and a local HTML marker to avoid Marker Icon API credits.
+- The embedded map provides a clickable and draggable pin; pin movement updates the coordinate pair without silently rewriting the address text.
+- Geoapify geocoding and map pins do not replace Laravel validation, Customer ownership checks, checkout revalidation, or future logistics serviceability rules.
 
 ### Next.js / React
 - Build:
@@ -421,9 +420,9 @@ rather than global lookup followed by client ownership checks.
   - create/edit form
   - delete confirmation
   - optional default selectors
-  - optional validation-suggestion confirmation
+  - optional pin-location action and map
 - Use shared Laravel API client.
-- Address form may be a Client Component due to interactive form state/maps/autocomplete.
+- Address form may be a Client Component due to interactive form state, geocoding, and maps.
 - Keep authoritative validation and ownership in Laravel.
 - Checkout consumes the same address DTO/selector rather than duplicating address storage.
 
@@ -434,8 +433,8 @@ rather than global lookup followed by client ownership checks.
 ### Research-backed recommendations
 - Use the source-required Buyer `hasMany` Address relationship. Laravel natively supports one-to-many Eloquent relationships. citeturn875176search1turn875176search3
 - Keep an order-time address snapshot instead of treating the mutable Address Book row as historical delivery truth.
-- Treat external address assistance as optional. Geoapify autocomplete and Mapbox map rendering each add separate quotas, billing thresholds, latency, attribution, and provider-availability considerations.
-- Ask the Buyer to review populated address components rather than silently treating an external suggestion as authoritative.
+- Treat external address assistance as optional. Geoapify geocoding and map tiles share one daily credit pool and add latency, attribution, and provider-availability considerations.
+- Ask the Buyer to review the pinned coordinates rather than silently treating a geocoding result as authoritative.
 
 ### Risks
 - **Ownership leak:** global Address lookup can expose another Buyer's location.
@@ -455,7 +454,7 @@ rather than global lookup followed by client ownership checks.
 - Whether checkout can enter a one-time address without saving it.
 - Whether checkout can save a newly entered address automatically/optionally.
 - Whether billing address can differ from shipping address.
-- Whether Geoapify remains the long-term autocomplete provider and Mapbox remains the long-term map provider.
+- Whether Geoapify remains the long-term geocoding and map-tile provider.
 - Whether latitude/longitude is persisted.
 - Delivery-serviceability/zone validation ownership.
 - Address Book record limit.
@@ -470,14 +469,12 @@ rather than global lookup followed by client ownership checks.
 - Create/update accepts the existing `shipping`, `billing`, or `both` string-backed `AddressType`, validates all normalized address fields, prohibits owner assignment, and accepts latitude/longitude only as a complete valid pair.
 - Setting a new default is serialized transactionally and clears an overlapping shipping/billing default supported by the existing single `is_default` field.
 - Checkout displays only its currently selected shipping-capable default/first address and links to the separate Address Book for adding, editing, deleting, or selecting another address, preventing a large saved collection from crowding checkout.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` optionally enables Geoapify Address Autocomplete, while `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` independently enables only the embedded Mapbox GL JS pin picker on the Address Book form.
-- Geoapify autocomplete requests are debounced, stale requests are cancelled, results are limited and filtered to the Philippines, and the suggestion list supports keyboard selection.
-- A chosen Geoapify suggestion may populate the street, barangay/locality, city/municipality, province, region, postal code, country, latitude, and longitude already present in the schema. Customers must review the populated fields; manual entry remains available when Geoapify is unconfigured or unavailable.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` optionally enables one-click Geoapify forward geocoding and Geoapify map tiles on the Address Book form.
+- Provider-backed autosuggest has been removed. Customers set Region, Province, City/Municipality, and Barangay through the PSGC controls, then complete street and postal fields manually.
+- Geoapify is queried only after the Customer clicks `Pin location`; the request is limited to one Philippine result and only populates latitude and longitude.
 - Autofill maps only matching structured levels (`suburb` to Barangay, `city`/`municipality` to City or Municipality, `county` to Province, and `state` to Region). It does not substitute adjacent administrative levels, and a new selection clears unavailable location components so values from an older selection cannot remain mixed into the new address.
-- Because Geoapify may expose Philippine Barangays as `suburb`, `village`, neighborhood, quarter, city-district, or district values, the Customer mapper recognizes those locality variants. Province/region pairs are normalized against the repository's bundled PSA PSGC Q2 2026 hierarchy, so provider responses that repeat a province as the state (for example, Laguna) resolve to the canonical region (Region IV-A/CALABARZON).
-- Region, Province, City/Municipality, and Barangay remain independently editable searchable comboboxes backed by the bundled PSA PSGC Q2 2026 hierarchy through throttled `/api/v1/address-options/*` reference-data endpoints. Selecting a parent scopes the available child options; typing remains available as a manual fallback when a provider or official option is unavailable.
-- After a Geoapify suggestion fills the form, the PSGC controls match equivalent names (including `City of`/`Municipality of` naming differences), load the corresponding hierarchy, and replace matched values with their canonical PSA names without discarding Geoapify coordinates. Any unmatched field remains editable and searchable instead of being guessed.
-- Geoapify-provided coordinates center the embedded Mapbox map and position its pin. The storefront does not call Mapbox Geocoding API or Search Box API, so persisted coordinates are not Mapbox geocoding results.
+- Region, Province, City/Municipality, and Barangay remain independently editable searchable comboboxes backed by the bundled PSA PSGC Q2 2026 hierarchy in `packages/psgc-address-data/data` through throttled `/api/v1/address-options/*` reference-data endpoints. Selecting a parent scopes the available child options; typing remains available as a manual fallback when official data is unavailable.
+- Geoapify-provided coordinates center the embedded Geoapify map and position its local HTML pin.
 - The Customer may click the embedded map or drag its pin to refine longitude/latitude. Coordinates are cleared when a populated location component is manually changed, preventing stale coordinates from being saved with edited text.
 - No serviceability decision, shipping-zone rule, routing behavior, or logistics selection was added.
 
@@ -486,8 +483,7 @@ rather than global lookup followed by client ownership checks.
 - AISLEY architecture contract: `README.md`
 - Buyer feature model: `Buyer.md`
 - Laravel Eloquent relationships: https://api.laravel.com/docs/12.x/Illuminate/Database/Eloquent/Concerns/HasRelationships.html
-- Geoapify Address Autocomplete API: https://apidocs.geoapify.com/docs/geocoding/address-autocomplete/
+- Geoapify Geocoding API: https://apidocs.geoapify.com/docs/geocoding/
 - Geoapify pricing: https://www.geoapify.com/pricing/
-- Mapbox GL JS: https://docs.mapbox.com/mapbox-gl-js/guides/
-- Mapbox GL JS pricing: https://docs.mapbox.com/mapbox-gl-js/guides/pricing/
-- Mapbox attribution guidance: https://docs.mapbox.com/help/getting-started/attribution/
+- Geoapify pricing details: https://www.geoapify.com/pricing-details/
+- Geoapify map tiles: https://apidocs.geoapify.com/docs/maps/
