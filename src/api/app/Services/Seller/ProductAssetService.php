@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductDescriptionAsset;
 use App\Models\ProductMedia;
 use App\Models\ProductUpload;
+use App\Models\ProductVariant;
 use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -115,6 +116,12 @@ class ProductAssetService
         }
 
         $this->markDefaultGalleryMedia($product, $media);
+    }
+
+    public function retireVariantMedia(ProductVariant $variant): void
+    {
+        $variant->media()->get()->each(fn (ProductMedia $media) => $this->retire($media));
+        $variant->update(['primary_media_id' => null]);
     }
 
     private function markDefaultGalleryMedia(Product $product, ?ProductMedia $media): void

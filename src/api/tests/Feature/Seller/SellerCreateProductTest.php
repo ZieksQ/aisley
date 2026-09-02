@@ -165,6 +165,49 @@ class SellerCreateProductTest extends TestCase
         $this->assertDatabaseHas('inventory_skus', ['code' => 'MANUAL-BLACK']);
     }
 
+    public function test_variant_updates_retain_stock_and_soft_delete_removed_variants(): void
+    {
+        [$seller, , $category] = $this->sellerShop('variant-history');
+
+        $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Variant History Product', 'category_id' => $category->id, 'sku' => 'VARIANT-HISTORY',
+            'price' => '250.00', 'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
+            'variants' => [
+                ['sku' => 'HISTORY-BLACK', 'opening_stock' => 3, 'option_value_indexes' => [0]],
+                ['sku' => 'HISTORY-WHITE', 'opening_stock' => 5, 'option_value_indexes' => [1]],
+            ],
+        ])->assertCreated();
+        $originalVariants = $created->json('data.variants');
+
+        $updated = $this->actingAs($seller)->patchJson('/api/v1/seller/products/'.$created->json('data.id'), [
+            'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            'variants' => [
+                ['id' => $originalVariants[0]['id'], 'sku' => 'HISTORY-BLACK', 'option_value_indexes' => [0]],
+                ['id' => $originalVariants[1]['id'], 'sku' => 'HISTORY-WHITE', 'option_value_indexes' => [1]],
+                ['sku' => 'HISTORY-RED', 'opening_stock' => 2, 'option_value_indexes' => [2]],
+            ],
+        ])->assertOk();
+
+        $updatedVariants = $updated->json('data.variants');
+        $this->assertSame(3, collect($updatedVariants)->firstWhere('sku', 'HISTORY-BLACK')['on_hand']);
+        $this->assertSame(5, collect($updatedVariants)->firstWhere('sku', 'HISTORY-WHITE')['on_hand']);
+        $redVariantId = collect($updatedVariants)->firstWhere('sku', 'HISTORY-RED')['id'];
+
+        $this->actingAs($seller)->patchJson('/api/v1/seller/products/'.$created->json('data.id'), [
+            'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            'variants' => [
+                ['id' => $originalVariants[0]['id'], 'sku' => 'HISTORY-BLACK', 'option_value_indexes' => [0]],
+                ['id' => $redVariantId, 'sku' => 'HISTORY-RED', 'option_value_indexes' => [2]],
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('product_variants', ['id' => $originalVariants[0]['id'], 'deleted_at' => null, 'stock_quantity' => 3]);
+        $this->assertDatabaseHas('product_variants', ['id' => $originalVariants[1]['id']]);
+        $this->assertNotNull(Product::find($created->json('data.id'))->variants()->withTrashed()->find($originalVariants[1]['id'])->deleted_at);
+        $this->assertDatabaseHas('inventory_skus', ['product_variant_id' => $originalVariants[1]['id'], 'status' => 'inactive']);
+        $this->assertDatabaseHas('product_variants', ['id' => $redVariantId, 'deleted_at' => null, 'stock_quantity' => 2]);
+    }
+
     public function test_gallery_limit_and_invalid_variant_price_receive_field_errors(): void
     {
         [$seller, , $category] = $this->sellerShop('validation');

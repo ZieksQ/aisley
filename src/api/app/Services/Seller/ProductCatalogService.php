@@ -2,10 +2,11 @@
 
 namespace App\Services\Seller;
 
+use App\Enums\InventorySkuStatus;
 use App\Enums\ProductStatus;
 use App\Enums\ProductVariantStatus;
 use App\Models\Product;
-use App\Models\ProductMedia;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -71,28 +72,56 @@ class ProductCatalogService
 
     private function replaceVariants(Product $product, User $seller, array $groups, array $variants, string $uploadToken): void
     {
-        $skus = $product->inventorySkus()->with(['balance.movements'])->get();
-        if ($skus->contains(fn ($sku) => ($sku->balance?->on_hand ?? 0) > 0 || ($sku->balance?->reserved ?? 0) > 0 || ($sku->balance?->movements->isNotEmpty() ?? false))) {
-            throw ValidationException::withMessages(['variants' => 'Move existing SKU stock to zero in Inventory before changing the variant matrix.']);
+        $existingVariants = $product->variants()->with(['inventorySku.balance', 'media'])->get()->keyBy('id');
+        $submittedIds = collect($variants)->pluck('id')->filter()->values();
+        foreach ($submittedIds as $variantId) {
+            if (! $existingVariants->has($variantId)) {
+                throw ValidationException::withMessages(['variants' => 'Every existing variant must belong to this Product.']);
+            }
         }
-        $nextPosition = (int) ProductMedia::withTrashed()->where('product_id', $product->id)->max('position') + 1;
-        $product->media()->whereNotNull('product_variant_id')->orderBy('position')->get()->values()->each(function ($media, int $index) use ($nextPosition): void {
-            $media->update(['position' => $nextPosition + $index, 'purge_after' => now()->addHours((int) config('seller.products.replacement_retention_hours'))]);
-            $media->delete();
-        });
-        foreach ($skus as $sku) {
-            $sku->balance?->delete();
-            $sku->delete();
-        }
-        $product->variants()->delete();
+        $existingVariants
+            ->reject(fn (ProductVariant $variant) => $submittedIds->contains($variant->id))
+            ->each(function (ProductVariant $variant): void {
+                $this->assets->retireVariantMedia($variant);
+                $variant->inventorySku?->update(['status' => InventorySkuStatus::Inactive]);
+                $variant->delete();
+            });
         $product->optionGroups()->delete();
+        $valueIds = $this->createOptionGroups($product, $groups);
 
-        if ($variants !== []) {
-            $this->createVariants($product, $seller, $groups, $variants, $uploadToken);
+        foreach (array_values($variants) as $position => $variantData) {
+            $variant = ! empty($variantData['id']) ? $existingVariants->get($variantData['id']) : null;
+            if ($variant) {
+                $variant->update([
+                    'sku' => $variantData['sku'],
+                    'price' => $variantData['price'] ?? null,
+                    'original_price' => $variantData['original_price'] ?? null,
+                    'status' => $variantData['status'] ?? ProductVariantStatus::Active,
+                ]);
+                $variant->inventorySku?->update(['code' => $variantData['sku']]);
+            } else {
+                $variant = $product->variants()->create([
+                    'shop_id' => $product->shop_id,
+                    'sku' => $variantData['sku'],
+                    'price' => $variantData['price'] ?? null,
+                    'original_price' => $variantData['original_price'] ?? null,
+                    'stock_quantity' => 0,
+                    'status' => $variantData['status'] ?? ProductVariantStatus::Active,
+                ]);
+                $this->inventory->createVariantSku($product, $variant, $variantData['sku'], $seller, (int) ($variantData['opening_stock'] ?? 0));
+            }
+            $variant->optionValues()->sync(collect($variantData['option_value_indexes'])->map(fn ($valueIndex, $groupIndex) => $valueIds[$groupIndex][$valueIndex])->all());
+            if (! empty($variantData['image_upload_id'])) {
+                $this->assets->retireVariantMedia($variant);
+                $media = $this->assets->claimVariantImage($product, $uploadToken, $variantData['image_upload_id'], $variant->id, $position);
+                $variant->update(['primary_media_id' => $media->id]);
+            }
         }
+        $product->update(['stock_quantity' => (int) $product->variants()->sum('stock_quantity')]);
     }
 
-    private function createVariants(Product $product, User $seller, array $groups, array $variants, string $uploadToken): void
+    /** @return array<int, array<int, string>> */
+    private function createOptionGroups(Product $product, array $groups): array
     {
         $valueIds = [];
         foreach (array_values($groups) as $groupIndex => $groupData) {
@@ -102,6 +131,13 @@ class ProductCatalogService
                 $valueIds[$groupIndex][$valueIndex] = $value->id;
             }
         }
+
+        return $valueIds;
+    }
+
+    private function createVariants(Product $product, User $seller, array $groups, array $variants, string $uploadToken): void
+    {
+        $valueIds = $this->createOptionGroups($product, $groups);
 
         foreach (array_values($variants) as $position => $variantData) {
             $variant = $product->variants()->create([

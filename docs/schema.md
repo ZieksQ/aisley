@@ -699,9 +699,10 @@ Unique (`option_group_id`, `value`) prevents duplicate values; unique (`option_g
 | `stock_quantity` | BIGINT | No | `0` | Variant availability quantity |
 | `status` | VARCHAR | No | `active` | Cast to `ProductVariantStatus` |
 | `primary_media_id` | UUID | Yes | `NULL` | FK → `product_media.id`; `ON DELETE SET NULL` |
+| `deleted_at` | TIMESTAMP | Yes | `NULL` | Soft-deleted Seller variant; retained for order and inventory history |
 | `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
-Indexes: (`product_id`, `status`), `primary_media_id`, and unique (`shop_id`, `sku`).
+Indexes: (`product_id`, `status`), `primary_media_id`, and unique (`shop_id`, `sku`). Soft-deleted variants are excluded from normal catalog queries; their inventory SKU, balance, and movement history remain retained and are marked inactive.
 
 #### `product_variant_option_values`
 
@@ -1032,6 +1033,7 @@ Migrations currently run in this dependency order:
 40. `2026_08_31_000131_create_seller_compliance_tables.php` — manual cases, immutable decisions, idempotent action keys, and active/revocable Product restrictions.
 41. `2026_09_02_000132_add_seller_product_authoring.php` — Seller product authoring asset metadata, temporary uploads, product descriptions, and Product retention fields.
 42. `2026_09_02_000133_add_product_gallery_defaults.php` — Seller-selected default Product gallery cover marker.
+43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
 
 ## 14. Deferred schema
 
