@@ -43,6 +43,26 @@ export type InventorySku = {
   available: number
   alert_threshold: number | null
   stock_state: 'in_stock' | 'low' | 'out'
+  active_alert: { id: string; state: 'active'; triggered_at: string; destination: string } | null
 }
 
 export type Page<T> = { data: T[]; current_page: number; last_page: number; total: number }
+
+export type LowStockAlert = {
+  id: string
+  state: 'active' | 'resolved'
+  alert_type: 'low_stock' | 'out_of_stock'
+  product: { id: string; name: string; status: string }
+  sku: { id: string; code: string; variant: { id: string; sku: string } | null }
+  trigger_threshold: number
+  trigger_available: number
+  current_threshold: number
+  current_available: number
+  triggered_at: string
+  resolved_at: string | null
+  resolution_reason: 'stock_recovered' | 'threshold_disabled' | null
+  trigger_movement: { id: string; type: string; reference_type: string | null; reference_id: string | null } | null
+  inventory_destination: string
+}
+
+export type LowStockAlertPage = Page<LowStockAlert> & { configured_threshold_count: number }

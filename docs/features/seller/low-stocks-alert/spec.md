@@ -3,8 +3,8 @@ feature: low-stock-alerts
 title: Seller Low Stock Alerts
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft
+version: 1.2
+status: Implemented
 role: Seller
 scope: Seller Web Application
 ---
@@ -28,11 +28,11 @@ available > threshold again
 ```
 
 - **Scopes:** one Inventory SKU/variant, never a Product aggregate. A Product with one default SKU uses that SKU.
-- **Surfaces:** Inventory list/detail show current low/out state and threshold; `/low-stock-alerts` provides a paginated alert history. A future Seller notification bell may link to the alert.
+- **Surfaces:** Inventory list/detail show current low/out state and threshold; `/low-stock-alerts` provides paginated alert history. Each new alert cycle also creates a Seller database notification with a server-generated alert destination.
 - **Boundaries:**
   - Inventory owns balances, reservations, adjustments, and the committed availability value.
   - This feature owns threshold-trigger evaluation and alert lifecycle only; it never changes stock, Product visibility, pricing, or Orders.
-  - A future Seller Notifications feature owns shared inbox/read state and optional external channels; this feature is its producer, not a provider integration.
+  - The shared notification table owns inbox/read state and optional future external channels; this feature is a database-notification producer, not a provider integration.
 - **Non-goals:** supplier purchasing, automatic restocking, repeated alerts while stock remains low, global Product thresholds, buyer restock notifications, or a hard-coded email/push/SMS provider.
 
 ## MUST
@@ -112,9 +112,18 @@ GET /api/v1/seller/low-stock-alerts/{alert}
 - Do not expose unbounded alert history or unrestricted client-provided sort columns.
 - Rate-limit alert-list requests consistently with other Seller operational endpoints.
 - Keep route parameters UUID-constrained and generate all notification destinations server-side from the authenticated Seller's SKU/alert.
-- When the notification domain is added, send a safe `inventory.low-stock` database notification after commit; use a stable destination such as `/inventory/{skuId}` or `/low-stock-alerts/{alertId}`. Laravel supports queued after-commit events/listeners. [Laravel events](https://laravel.com/framework/docs/13.x/events#dispatching-events-after-database-transactions)
+- Send a safe `inventory.low-stock` database notification for each newly persisted alert cycle, with the stable `/low-stock-alerts/{alertId}` destination. Optional external delivery remains deferred. Laravel supports queued after-commit events/listeners. [Laravel events](https://laravel.com/framework/docs/13.x/events#dispatching-events-after-database-transactions)
 - Test Seller scope, threshold validation, every crossing/recovery/threshold-change path, reservation and checkout effects, duplicate/concurrent evaluation, history retention, notification failure, API filters/pagination, and Inventory UI accessibility.
 - Include migration tests for the active-alert uniqueness constraint on both supported databases.
 - Run API tests on SQLite and PostgreSQL, plus Seller lint, strict TypeScript, production build, and focused browser checks.
 - Roll out with existing thresholds treated as enabled configuration: evaluate them once through a bounded backfill/job and avoid sending a burst of external alerts until notification preferences are decided.
 - **Open questions:** maximum threshold, alert retention, whether resolved alerts may be dismissed/archived, Seller notification preferences/external channels, real-time transport, bulk-import notification summary policy, and whether threshold defaults are copied for new SKUs.
+
+## Implemented baseline (2026-09-02)
+
+- `low_stock_alerts` stores immutable trigger snapshots plus current cycle snapshots, resolution state, Shop/Seller/SKU ownership, and an optional triggering Inventory movement.
+- The active-marker uniqueness constraint permits at most one active alert per SKU while preserving unlimited resolved cycles on PostgreSQL and SQLite.
+- Manual Inventory adjustments, checkout reservations, and threshold updates schedule the same evaluator after the surrounding transaction commits. Future release, fulfillment, correction, return, and bulk-import writers must call that evaluator when those mutation paths are added.
+- Seller-scoped list/detail APIs, Inventory alert indicators, alert history/detail screens, and one database notification per new cycle are implemented.
+- `inventory:evaluate-low-stock-alerts` performs a bounded, notification-suppressed backfill for existing configured thresholds.
+- Optional email/push/SMS, notification preferences, real-time transport, dismissal/archive behavior, and Inventory mutation paths not yet present elsewhere in the system remain deferred.

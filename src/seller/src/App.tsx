@@ -11,6 +11,8 @@ import { ProductsPage } from './pages/ProductsPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AccountPage } from './pages/AccountPage'
+import { LowStockAlertDetailPage } from './pages/LowStockAlertDetailPage'
+import { LowStockAlertsPage } from './pages/LowStockAlertsPage'
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />
           <Route element={<InventoryPage />} path="/inventory" />
           <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
+          <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />
+          <Route element={<LowStockAlertDetailPage />} path="/low-stock-alerts/:alertId" />
           <Route element={<AccountPage />} path="/account" />
         </Route>
       </Route>

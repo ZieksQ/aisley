@@ -84,6 +84,11 @@ class User extends Authenticatable
         return $this->hasMany(SellerComplianceCase::class, 'seller_id');
     }
 
+    public function lowStockAlerts(): HasMany
+    {
+        return $this->hasMany(LowStockAlert::class, 'seller_id');
+    }
+
     public function createdSellerComplianceCases(): HasMany
     {
         return $this->hasMany(SellerComplianceCase::class, 'created_by_admin_id');

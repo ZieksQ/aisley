@@ -6,6 +6,7 @@ use App\Enums\InventorySkuStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class InventorySku extends Model
@@ -42,5 +43,15 @@ class InventorySku extends Model
     public function balance(): HasOne
     {
         return $this->hasOne(InventoryBalance::class);
+    }
+
+    public function lowStockAlerts(): HasMany
+    {
+        return $this->hasMany(LowStockAlert::class);
+    }
+
+    public function activeLowStockAlert(): HasOne
+    {
+        return $this->hasOne(LowStockAlert::class)->where('active_marker', 'active');
     }
 }

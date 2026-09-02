@@ -4,6 +4,7 @@ import {
   FaBars,
   FaGaugeHigh,
   FaBoxesStacked,
+  FaTriangleExclamation,
   FaBoxOpen,
   FaStore,
   FaUserGear,
@@ -79,6 +80,10 @@ export function SellerLayout() {
             <FaBoxesStacked aria-hidden="true" />
             Inventory
           </NavLink>
+          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/low-stock-alerts">
+            <FaTriangleExclamation aria-hidden="true" />
+            Low-stock alerts
+          </NavLink>
           <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
             <FaUserGear aria-hidden="true" />
             Account settings
@@ -129,7 +134,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
           </div>
           <ThemeToggle />
         </header>
