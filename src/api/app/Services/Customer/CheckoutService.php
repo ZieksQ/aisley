@@ -31,6 +31,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
+use App\Services\Seller\LowStockAlertService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,8 @@ use Illuminate\Support\Str;
 
 class CheckoutService
 {
+    public function __construct(private readonly LowStockAlertService $lowStockAlerts) {}
+
     /** @param array<string, mixed> $data */
     public function quote(User $customer, array $data): array
     {
@@ -557,13 +560,14 @@ class CheckoutService
             $balance = $line['balance'];
             $nextReserved = $balance->reserved + $line['quantity'];
             $balance->update(['reserved' => $nextReserved]);
-            InventoryMovement::create([
+            $movement = InventoryMovement::create([
                 'inventory_balance_id' => $balance->id, 'movement_type' => InventoryMovementType::Reserve,
                 'on_hand_delta' => 0, 'reserved_delta' => $line['quantity'], 'resulting_on_hand' => $balance->on_hand,
                 'resulting_reserved' => $nextReserved, 'reference_type' => 'order', 'reference_id' => $order->id,
                 'idempotency_key' => 'checkout-'.$batch->id.'-'.$line['sku']->id, 'actor_id' => null,
                 'reason' => 'Reserved by Customer checkout placement.',
             ]);
+            $this->lowStockAlerts->schedule($balance->id, $movement->id);
             $available = $balance->on_hand - $nextReserved;
             if ($line['sku']->is_base) {
                 $line['product']->update(['stock_quantity' => $available]);

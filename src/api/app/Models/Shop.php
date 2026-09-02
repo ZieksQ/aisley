@@ -64,4 +64,9 @@ class Shop extends Model
     {
         return $this->hasMany(Voucher::class);
     }
+
+    public function lowStockAlerts(): HasMany
+    {
+        return $this->hasMany(LowStockAlert::class);
+    }
 }

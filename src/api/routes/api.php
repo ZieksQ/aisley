@@ -18,6 +18,7 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
+use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
@@ -188,6 +190,8 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::get('/inventory/{inventorySku}/movements', [SellerInventoryController::class, 'movements'])->whereUuid('inventorySku')->name('inventory.movements');
     Route::post('/inventory/{inventorySku}/adjustments', [SellerInventoryController::class, 'adjust'])->whereUuid('inventorySku')->name('inventory.adjust');
     Route::patch('/inventory/{inventorySku}/threshold', [SellerInventoryController::class, 'threshold'])->whereUuid('inventorySku')->name('inventory.threshold');
+    Route::get('/low-stock-alerts', [SellerLowStockAlertController::class, 'index'])->middleware('throttle:120,1')->name('low-stock-alerts.index');
+    Route::get('/low-stock-alerts/{alert}', [SellerLowStockAlertController::class, 'show'])->middleware('throttle:120,1')->whereUuid('alert')->name('low-stock-alerts.show');
 });
 
 Route::get('v1/product-description-assets/{asset}', ProductDescriptionAssetController::class)
@@ -222,6 +226,10 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
             ->whereUuid('item')
             ->name('cart.items.destroy');
+        Route::get('/wishlist/status', [WishlistController::class, 'status'])->name('wishlist.status');
+        Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+        Route::put('/wishlist/{product}', [WishlistController::class, 'store'])->whereUuid('product')->name('wishlist.store');
+        Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy'])->whereUuid('product')->name('wishlist.destroy');
         Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');
         Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
         Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])

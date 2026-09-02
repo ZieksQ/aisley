@@ -15,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
+    public function __construct(private readonly LowStockAlertService $lowStockAlerts) {}
+
     public function createBaseSku(Product $product, string $code, int $openingStock, User $actor): InventorySku
     {
         $sku = $product->inventorySkus()->create([
@@ -83,7 +85,7 @@ class InventoryService
             $balance->update(['on_hand' => $nextOnHand]);
             $this->syncLegacyQuantity($sku, $nextOnHand - $balance->reserved);
 
-            return $balance->movements()->create([
+            $movement = $balance->movements()->create([
                 'movement_type' => $type,
                 'on_hand_delta' => $delta,
                 'reserved_delta' => 0,
@@ -93,6 +95,23 @@ class InventoryService
                 'actor_id' => $actor->id,
                 'reason' => $reason,
             ]);
+            $this->lowStockAlerts->schedule($balance->id, $movement->id);
+
+            return $movement;
+        });
+    }
+
+    public function updateThreshold(InventorySku $sku, ?int $threshold): InventoryBalance
+    {
+        return DB::transaction(function () use ($sku, $threshold): InventoryBalance {
+            $balance = InventoryBalance::query()
+                ->where('inventory_sku_id', $sku->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $balance->update(['alert_threshold' => $threshold]);
+            $this->lowStockAlerts->schedule($balance->id);
+
+            return $balance;
         });
     }
 

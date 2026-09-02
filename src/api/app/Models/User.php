@@ -69,6 +69,11 @@ class User extends Authenticatable
         return $this->hasMany(VoucherRedemption::class, 'customer_id');
     }
 
+    public function wishlistItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class);
+    }
+
     public function registrationApplications(): HasMany
     {
         return $this->hasMany(RegistrationApplication::class);
@@ -82,6 +87,11 @@ class User extends Authenticatable
     public function sellerComplianceCases(): HasMany
     {
         return $this->hasMany(SellerComplianceCase::class, 'seller_id');
+    }
+
+    public function lowStockAlerts(): HasMany
+    {
+        return $this->hasMany(LowStockAlert::class, 'seller_id');
     }
 
     public function createdSellerComplianceCases(): HasMany

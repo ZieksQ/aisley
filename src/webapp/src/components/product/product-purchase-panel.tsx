@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { ApiError } from "@/lib/api";
 import { saveCheckoutIntent } from "@/lib/checkout/intent";
+import { WishlistToggle } from "@/components/wishlist/wishlist-toggle";
 import type {
   ProductDetail,
   ProductVariant,
@@ -307,6 +308,7 @@ export function ProductPurchasePanel({
       <h1 className="mt-3 text-2xl font-semibold leading-tight text-[#241A28] sm:text-3xl">
         {product.title}
       </h1>
+      <WishlistToggle productId={product.id} />
       {product.shortDescription ? (
         <p className="mt-3 text-sm leading-6 text-[#645969]">{product.shortDescription}</p>
       ) : null}
