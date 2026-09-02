@@ -731,10 +731,13 @@ Composite primary key: (`product_variant_id`, `product_option_value_id`).
 | `width`, `height` | INTEGER | Yes | `NULL` | Decoded dimensions |
 | `checksum` | VARCHAR(64) | Yes | `NULL` | SHA-256 of rewritten bytes |
 | `scan_status` | VARCHAR | No | `approved` | String-backed processing state |
+| `is_default` | BOOLEAN | No | `false` | Seller-selected product-level gallery cover; variant media must remain `false` |
 | `deleted_at`, `purge_after` | TIMESTAMP | Yes | `NULL` | Soft replacement/deletion and blob purge schedule |
 | `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
 Unique (`product_id`, `position`) maintains the product gallery ordering; (`product_variant_id`, `position`) supports variant-media retrieval. The `product_variants.primary_media_id` foreign key is created after this table to resolve the circular reference.
+
+At most one active product-level gallery media row is marked `is_default` by the Seller-scoped asset service. Customer summary DTOs use it as the card thumbnail and fall back to the first approved product-level gallery image for legacy products without a selected default.
 
 ### 9.5A Inventory SKUs, balances, and movements
 
@@ -1027,6 +1030,8 @@ Migrations currently run in this dependency order:
 38. `2026_08_31_000129_create_notifications_table.php` — Laravel database notification inbox with UUID recipients/read state.
 39. `2026_08_31_000130_create_account_lifecycle_events_table.php` — durable non-Admin account lifecycle history and actor/source attribution.
 40. `2026_08_31_000131_create_seller_compliance_tables.php` — manual cases, immutable decisions, idempotent action keys, and active/revocable Product restrictions.
+41. `2026_09_02_000132_add_seller_product_authoring.php` — Seller product authoring asset metadata, temporary uploads, product descriptions, and Product retention fields.
+42. `2026_09_02_000133_add_product_gallery_defaults.php` — Seller-selected default Product gallery cover marker.
 
 ## 14. Deferred schema
 

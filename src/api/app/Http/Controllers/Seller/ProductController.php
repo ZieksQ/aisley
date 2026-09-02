@@ -187,6 +187,7 @@ class ProductController extends Controller
                     ? url('/api/v1/seller/product-media/'.$media->id)
                     : MediaUrl::from($media->disk, $media->path),
                 'alt_text' => $media->alt_text, 'position' => $media->position,
+                'is_default' => (bool) $media->is_default,
             ]),
             'description_asset_ids' => $product->descriptionAssets->pluck('id')->values(),
             'option_groups' => $product->optionGroups->map(fn ($group) => [

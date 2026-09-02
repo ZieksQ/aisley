@@ -108,7 +108,7 @@ class ProductSummaryResource extends JsonResource
     {
         /** @var ProductMedia|null $media */
         $media = $this->relationLoaded('galleryMedia')
-            ? $this->galleryMedia->first()
+            ? ($this->galleryMedia->first(fn (ProductMedia $item) => $item->is_default) ?? $this->galleryMedia->first())
             : null;
 
         if ($media) {

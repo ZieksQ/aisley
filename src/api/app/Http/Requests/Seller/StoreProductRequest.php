@@ -37,6 +37,7 @@ class StoreProductRequest extends FormRequest
             'description_asset_ids.*' => ['uuid', 'distinct'],
             'gallery_upload_ids' => ['array', 'max:'.config('seller.products.gallery_image_limit')],
             'gallery_upload_ids.*' => ['uuid', 'distinct'],
+            'default_gallery_upload_id' => ['nullable', 'uuid'],
             'upload_token' => ['nullable', 'uuid'],
             'price' => ['required', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'original_price' => ['nullable', 'decimal:0,2', 'gte:price', 'max:99999999.99'],
@@ -64,6 +65,7 @@ class StoreProductRequest extends FormRequest
             $this->validateSkuScope($validator);
             $this->validateOptionsAndVariants($validator);
             $this->validateMarkdown($validator);
+            $this->validateDefaultGallery($validator);
         }];
     }
 
@@ -158,6 +160,14 @@ class StoreProductRequest extends FormRequest
             } elseif (! preg_match('~^(https?://|/|#)~i', $url)) {
                 $validator->errors()->add('description_markdown', 'Links must use HTTP, HTTPS, an internal path, or a page anchor.');
             }
+        }
+    }
+
+    private function validateDefaultGallery(Validator $validator): void
+    {
+        $defaultId = $this->input('default_gallery_upload_id');
+        if ($defaultId !== null && ! in_array($defaultId, $this->input('gallery_upload_ids', []), true)) {
+            $validator->errors()->add('default_gallery_upload_id', 'The default image must be one of the Product gallery images.');
         }
     }
 }

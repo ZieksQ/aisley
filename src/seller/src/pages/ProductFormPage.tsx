@@ -11,6 +11,7 @@ type OptionGroup = { name: string; values: string[] }
 type Variant = { key: string; option_value_indexes: number[]; labels: string[]; sku: string; opening_stock: string; price: string; original_price: string; status: 'active' | 'inactive'; image_upload_id?: string; image_preview?: string; inventory_sku_id?: string | null; on_hand?: number; reserved?: number; available?: number }
 type UploadedAsset = { id: string; preview_url: string }
 type ProductLimits = { gallery_images: number; variant_images_per_variant: number; image_max_bytes: number; image_max_edge: number; image_max_pixels: number }
+type GalleryUpload = { id: string; name: string }
 const empty = { name: '', category_id: '', sku: '', short_description: '', description_markdown: '', price: '', original_price: '', opening_stock: '0' }
 
 function combinations(groups: OptionGroup[]): { indexes: number[]; labels: string[] }[] {
@@ -29,8 +30,9 @@ export function ProductFormPage() {
   const [limits, setLimits] = useState<ProductLimits>({ gallery_images: 10, variant_images_per_variant: 1, image_max_bytes: 10 * 1024 * 1024, image_max_edge: 8000, image_max_pixels: 40000000 })
   const [groups, setGroups] = useState<OptionGroup[]>([])
   const [variants, setVariants] = useState<Variant[]>([])
-  const [galleryUploads, setGalleryUploads] = useState<{ id: string; preview: string }[]>([])
+  const [galleryUploads, setGalleryUploads] = useState<GalleryUpload[]>([])
   const [existingGallery, setExistingGallery] = useState<Product['gallery']>([])
+  const [defaultGalleryId, setDefaultGalleryId] = useState<string | null>(null)
   const [variantsDirty, setVariantsDirty] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [loading, setLoading] = useState(Boolean(productId))
@@ -45,6 +47,7 @@ export function ProductFormPage() {
     apiRequest<{ data: Product }>(`/api/v1/seller/products/${productId}`).then(({ data }) => {
       setForm({ ...empty, name: data.name, category_id: data.category_id, short_description: data.short_description ?? '', description_markdown: data.description_markdown ?? '', price: data.price, original_price: data.original_price ?? '', sku: data.base_sku, opening_stock: String(data.skus[0]?.on_hand ?? 0) })
       setExistingGallery(data.gallery)
+      setDefaultGalleryId(data.gallery.find((item) => item.is_default)?.id ?? data.gallery[0]?.id ?? null)
       setGroups(data.option_groups.map((group) => ({ name: group.name, values: group.values.map((value) => value.value) })))
       setVariants(data.variants.map((variant) => ({
         key: variant.option_value_ids.join(':'),
@@ -93,7 +96,10 @@ export function ProductFormPage() {
     const body = new FormData(); body.append('image', file); body.append('purpose', purpose); body.append('upload_token', uploadToken); body.append('alt_text', form.name || 'Product image')
     try {
       const result = await uploadForm<{ data: UploadedAsset }>('/api/v1/seller/product-uploads', body, (progress) => setUploadStatus(`Uploading ${purpose} image… ${progress}%`))
-      if (purpose === 'gallery') setGalleryUploads((current) => [...current, { id: result.data.id, preview: apiAssetUrl(result.data.preview_url) }])
+      if (purpose === 'gallery') {
+        setGalleryUploads((current) => [...current, { id: result.data.id, name: file.name }])
+        setDefaultGalleryId((current) => galleryUploads.length === 0 ? result.data.id : current)
+      }
       else if (variantIndex !== undefined) setVariants((current) => current.map((variant, index) => index === variantIndex ? { ...variant, image_upload_id: result.data.id, image_preview: apiAssetUrl(result.data.preview_url) } : variant))
       setUploadStatus('Image uploaded and waiting for Product save.'); setDirty(true)
     } catch (cause) { setUploadStatus(cause instanceof ApiError ? Object.values(cause.errors)[0]?.[0] ?? cause.message : 'Image upload failed. Try again.') }
@@ -111,13 +117,15 @@ export function ProductFormPage() {
       sku, price: price || null, original_price: original_price || null, status, option_value_indexes, image_upload_id: image_upload_id || null,
       ...(productId ? {} : { opening_stock: Number(opening_stock) }),
     }))
+    const selectedUploadId = galleryUploads.some(({ id }) => id === defaultGalleryId) ? defaultGalleryId : galleryUploads[0]?.id ?? null
     const payload = productId ? {
       ...common,
-      ...(galleryUploads.length ? { gallery_upload_ids: galleryUploads.map(({ id }) => id) } : {}),
+      ...(galleryUploads.length ? { gallery_upload_ids: galleryUploads.map(({ id }) => id), default_gallery_upload_id: selectedUploadId } : {}),
+      ...(!galleryUploads.length && defaultGalleryId ? { default_gallery_media_id: defaultGalleryId } : {}),
       ...(variantsDirty ? { option_groups: groups, variants: matrix } : {}),
     } : {
       ...common, sku: form.sku, opening_stock: Number(form.opening_stock), option_groups: groups,
-      variants: matrix, gallery_upload_ids: galleryUploads.map(({ id }) => id),
+      variants: matrix, gallery_upload_ids: galleryUploads.map(({ id }) => id), default_gallery_upload_id: selectedUploadId,
     }
     try {
       await apiRequest<{ data: Product }>(productId ? `/api/v1/seller/products/${productId}` : '/api/v1/seller/products', { method: productId ? 'PATCH' : 'POST', body: JSON.stringify(payload) })
@@ -142,8 +150,8 @@ export function ProductFormPage() {
         <label className="block text-sm font-medium">Short description<textarea className="mt-1.5 min-h-20 w-full rounded-lg border border-zinc-300 bg-white p-3 dark:border-white/15 dark:bg-[#18181b]" maxLength={500} onChange={(e) => updateField('short_description', e.target.value)} value={form.short_description} /></label>
       </section>
 
-      <section className="space-y-4 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="gallery-heading"><div><h3 className="text-lg font-semibold" id="gallery-heading">Product gallery</h3><p className="mt-1 text-sm text-zinc-500">Up to {limits.gallery_images} gallery images. The first image becomes the default cover shown on Customer product cards. Variant images are separate and do not use this limit.</p></div>
-        <div className="flex flex-wrap gap-3">{(galleryUploads.length ? galleryUploads : existingGallery.map((item) => ({ id: item.id, preview: item.url }))).map((image, index) => <div className="relative size-24 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50" key={image.id}><img alt={`${form.name || 'Product'} gallery ${index + 1}`} className="size-full object-cover" src={image.preview} />{galleryUploads.length ? <button aria-label={`Remove gallery image ${index + 1}`} className="absolute right-1 top-1 rounded bg-white/90 p-1 text-zinc-700" onClick={() => setGalleryUploads((current) => current.filter((item) => item.id !== image.id))} type="button"><FaTrash /></button> : null}</div>)}</div>
+      <section className="space-y-4 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="gallery-heading"><div><h3 className="text-lg font-semibold" id="gallery-heading">Product gallery</h3><p className="mt-1 text-sm text-zinc-500">Up to {limits.gallery_images} gallery images. Choose one as the default cover shown on Customer product cards. Variant images are separate and do not use this limit.</p></div>
+        <div className="space-y-2">{(galleryUploads.length ? galleryUploads.map((image) => ({ ...image, isDefault: image.id === defaultGalleryId, temporary: true })) : existingGallery.map((image, index) => ({ id: image.id, name: `Gallery image ${index + 1}`, isDefault: image.is_default || image.id === defaultGalleryId, temporary: false }))).map((image, index) => <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2 dark:border-white/10" key={image.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{image.name}</p><p className="text-xs text-zinc-500">{image.isDefault ? 'Default cover' : `Gallery image ${index + 1}`}</p></div><div className="flex shrink-0 items-center gap-2">{image.temporary ? <button aria-label={`Delete ${image.name}`} className="inline-flex h-8 items-center gap-1 rounded-md border border-zinc-300 px-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/15 dark:text-zinc-200 dark:hover:bg-white/5" onClick={() => { setGalleryUploads((current) => current.filter((item) => item.id !== image.id)); setDefaultGalleryId((current) => current === image.id ? null : current) }} type="button"><FaTrash /> Delete</button> : null}{image.isDefault ? <span className="text-xs font-semibold text-[#4C1268] dark:text-purple-300">Default</span> : <button className="text-xs font-semibold text-[#4C1268] hover:underline dark:text-purple-300" onClick={() => setDefaultGalleryId(image.id)} type="button">Set as default</button>}</div></div>)}</div>
         <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 dark:border-white/15 dark:hover:bg-white/5"><FaImage /> Add gallery images<input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={galleryUploads.length >= limits.gallery_images} multiple onChange={(event) => Array.from(event.target.files ?? []).slice(0, limits.gallery_images - galleryUploads.length).forEach((file) => void uploadImage(file, 'gallery'))} type="file" /></label>
         <p aria-live="polite" className="text-xs text-zinc-500">{uploadStatus || 'JPEG, PNG, or WebP; under 10 MiB each; maximum 8,000 px per edge and 40 MP.'}</p>
       </section>

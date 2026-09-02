@@ -21,6 +21,7 @@ class ProductMedia extends Model
         'path',
         'alt_text',
         'position',
+        'is_default',
         'mime_type',
         'byte_size',
         'width',
@@ -34,6 +35,7 @@ class ProductMedia extends Model
     {
         return [
             'position' => 'integer',
+            'is_default' => 'boolean',
             'byte_size' => 'integer',
             'width' => 'integer',
             'height' => 'integer',

@@ -57,6 +57,7 @@
 - Customer discovery/detail must require an active published Product, active approved Seller, active Shop, non-vacation Shop, and positive availability where the existing listing contract requires it.
 - Never expose draft form state, Seller-only costs, private asset paths, inactive variants, or unapproved description images in Customer responses.
 - A product with variants must not advertise a misleading single price: the DTO may expose the configured base/range presentation, while a selected variant exposes its authoritative effective price.
+- Show gallery files as an ordered filename list with per-file removal and a Seller-controlled `Set as default` action. The selected approved product-level gallery image is the Customer card thumbnail; if no selection is supplied, the first gallery image becomes the default.
 - Product and variant price changes are authoritative at read/cart/checkout time; the form must not promise that a displayed price reserves stock.
 
 ### Data contract and validation edges
@@ -107,6 +108,7 @@
 
 - Variant `price` and `original_price` are nullable overrides. A missing value inherits its Product parent value.
 - A Product gallery defaults to 10 images. Each Variant may have one separate primary image; Variant images do not consume the gallery allowance. The limit is environment-backed now so a future Admin global setting can become authoritative without changing the upload contract.
+- The Seller gallery renders filenames rather than image previews. Sellers may remove temporary gallery uploads and select one product-level gallery image as the default cover; new Products default to the first gallery image when no selection is made.
 - Accepted images remain under 10 MiB and are additionally limited to 8,000 pixels per edge and 40 megapixels. This follows OWASP's resource-limit guidance and stays below ImageMagick's documented 8,192-pixel security-policy example.
 - Pre-save MDXEditor/gallery/Variant uploads use a Shop-owned `product-assets/temp` prefix and expire after 24 hours. Saving the Product moves claimed blobs into the Product folder. Replaced gallery, Variant, or description revisions have a 24-hour grace period. Deleted Products retain image blobs for 30 days by default, configurable from 7 through 30 days.
 - `products:cleanup-assets` runs hourly through Laravel's scheduler and removes expired temporary uploads and retention-expired blobs. Product rows remain soft-deleted tombstones so Order/catalog history is not coupled to blob deletion.

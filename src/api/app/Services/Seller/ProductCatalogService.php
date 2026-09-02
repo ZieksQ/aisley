@@ -39,7 +39,7 @@ class ProductCatalogService
             } else {
                 $this->createVariants($product, $seller, $data['option_groups'], $variants, $data['upload_token']);
             }
-            $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'] ?? []);
+            $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'] ?? [], $data['default_gallery_upload_id'] ?? null);
             $this->assets->claimDescription($product, $data['upload_token'], $data['description_asset_ids'] ?? [], (string) ($data['description_markdown'] ?? ''));
 
             return $product;
@@ -56,7 +56,9 @@ class ProductCatalogService
                 $this->replaceVariants($product, $seller, $data['option_groups'] ?? [], $data['variants'], $data['upload_token']);
             }
             if (array_key_exists('gallery_upload_ids', $data)) {
-                $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids']);
+                $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'], $data['default_gallery_upload_id'] ?? null);
+            } elseif (array_key_exists('default_gallery_media_id', $data)) {
+                $this->assets->setDefaultGalleryMedia($product, $data['default_gallery_media_id']);
             }
             if (array_key_exists('description_markdown', $data)) {
                 $this->assets->claimDescription($product, $data['upload_token'], $data['description_asset_ids'] ?? [], (string) ($data['description_markdown'] ?? ''));

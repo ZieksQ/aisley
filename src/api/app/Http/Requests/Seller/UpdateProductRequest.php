@@ -20,6 +20,7 @@ class UpdateProductRequest extends StoreProductRequest
     {
         $rules = parent::rules();
         unset($rules['sku'], $rules['opening_stock']);
+        $rules['default_gallery_media_id'] = ['nullable', 'uuid'];
 
         return array_map(fn (array $rule) => array_merge(['sometimes'], array_values(array_filter($rule, fn ($value) => $value !== 'required'))), $rules);
     }

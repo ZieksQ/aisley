@@ -11,7 +11,7 @@ export type Product = {
   currency: 'PHP'
   status: 'draft' | 'active' | 'archived'
   skus: { id: string; code: string; on_hand: number; reserved: number; available: number }[]
-  gallery: { id: string; url: string; alt_text: string; position: number }[]
+  gallery: { id: string; url: string; alt_text: string; position: number; is_default: boolean }[]
   description_asset_ids: string[]
   option_groups: { id: string; name: string; values: { id: string; value: string }[] }[]
   variants: {

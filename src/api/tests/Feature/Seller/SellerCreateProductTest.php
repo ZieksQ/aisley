@@ -90,17 +90,28 @@ class SellerCreateProductTest extends TestCase
         $this->assertDatabaseHas('product_description_assets', ['id' => $assetId, 'product_id' => $product->json('data.id'), 'scan_status' => 'approved']);
     }
 
-    public function test_first_product_gallery_image_is_the_customer_default_thumbnail(): void
+    public function test_selected_product_gallery_image_is_the_customer_default_thumbnail(): void
     {
         [$seller, , $category] = $this->sellerShop('cover');
         $token = (string) Str::uuid();
-        $gallery = $this->upload($seller, $token, 'gallery');
+        $firstGallery = $this->upload($seller, $token, 'gallery');
+        $defaultGallery = $this->upload($seller, $token, 'gallery');
 
         $productId = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Gallery Cover Product', 'category_id' => $category->id, 'sku' => 'COVER-1',
             'price' => '250.00', 'opening_stock' => 5, 'upload_token' => $token,
-            'gallery_upload_ids' => [$gallery],
+            'gallery_upload_ids' => [$firstGallery, $defaultGallery],
+            'default_gallery_upload_id' => $defaultGallery,
         ])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('product_media', ['id' => $firstGallery, 'product_id' => $productId, 'is_default' => false]);
+        $this->assertDatabaseHas('product_media', ['id' => $defaultGallery, 'product_id' => $productId, 'is_default' => true]);
+
+        $this->actingAs($seller)->patchJson("/api/v1/seller/products/{$productId}", [
+            'default_gallery_media_id' => $firstGallery,
+        ])->assertOk()
+            ->assertJsonPath('data.gallery.0.is_default', true)
+            ->assertJsonPath('data.gallery.1.is_default', false);
 
         $this->actingAs($seller)->postJson("/api/v1/seller/products/{$productId}/publish")
             ->assertOk();
@@ -108,9 +119,9 @@ class SellerCreateProductTest extends TestCase
         $this->getJson('/api/v1/customer/home')
             ->assertOk()
             ->assertJsonPath('topProducts.0.id', $productId)
-            ->assertJsonPath('topProducts.0.thumbnailUrl', url("/api/v1/product-media/{$gallery}"))
+            ->assertJsonPath('topProducts.0.thumbnailUrl', url("/api/v1/product-media/{$firstGallery}"))
             ->assertJsonPath('recommendations.items.0.id', $productId)
-            ->assertJsonPath('recommendations.items.0.thumbnailUrl', url("/api/v1/product-media/{$gallery}"));
+            ->assertJsonPath('recommendations.items.0.thumbnailUrl', url("/api/v1/product-media/{$firstGallery}"));
     }
 
     public function test_gallery_limit_and_invalid_variant_price_receive_field_errors(): void
