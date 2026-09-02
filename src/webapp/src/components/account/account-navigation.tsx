@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiMapPin, FiPackage, FiUser } from "react-icons/fi";
+import { FiHeart, FiMapPin, FiPackage, FiUser } from "react-icons/fi";
 
 const entries = [
   { href: "/account/profile", label: "Profile", icon: FiUser },
   { href: "/account/addresses", label: "Addresses", icon: FiMapPin },
+  { href: "/account/wishlist", label: "Wishlist", icon: FiHeart },
   { href: "/orders", label: "Orders", icon: FiPackage },
 ];
 

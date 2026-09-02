@@ -69,6 +69,11 @@ class User extends Authenticatable
         return $this->hasMany(VoucherRedemption::class, 'customer_id');
     }
 
+    public function wishlistItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class);
+    }
+
     public function registrationApplications(): HasMany
     {
         return $this->hasMany(RegistrationApplication::class);

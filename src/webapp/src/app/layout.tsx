@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { getServerAuthState } from "@/lib/auth/server";
+import { WishlistProvider } from "@/components/wishlist/wishlist-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,7 +53,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <AuthProvider initialAuth={initialAuth}>
-          <CartProvider>{children}</CartProvider>
+          <WishlistProvider>
+            <CartProvider>{children}</CartProvider>
+          </WishlistProvider>
         </AuthProvider>
       </body>
     </html>

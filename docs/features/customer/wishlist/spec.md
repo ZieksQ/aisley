@@ -3,8 +3,8 @@ feature: wishlist
 title: Customer Wishlist
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Revised draft
+version: 2.1
+status: Implemented (Phase 1)
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -109,3 +109,12 @@ GET    /api/v1/customer/wishlist/status?product_ids[]=...
 - Does “price drop” use base Product price, selected Variant price, promotion-effective price, or a saved-price baseline?
 - Does “restock” mean any purchasable Variant, a previously selected Variant, or Product-level availability?
 - Should deleting/deactivating a Customer cascade/delete wishlist rows or retain them under the existing privacy-retention policy?
+
+## Implemented baseline (2026-09-02)
+
+- Phase 1 save/remove/list/status behavior is implemented with the UUID-backed `wishlist_items` table. User and Product hard deletion cascade the relation; Product soft deletion and every other storefront-visibility failure omit it without exposing the reason.
+- Customer list and mutation APIs are protected by the existing active-Customer middleware, reject client-owned mutation fields, return private no-store responses, and use authenticated ownership plus the canonical `storefrontVisible()` scope.
+- Saves and removals serialize on the Customer row, remain idempotent, and use unique (`user_id`, `product_id`) as the database concurrency backstop.
+- Product Cards and Product Detail share a batched, focus-reconciled Wishlist provider with explicit text labels, optimistic rollback, pending controls, and guest login return paths. `/account/wishlist` provides cursor loading, empty/error/retry states, removal, and current Cart handoff.
+- Variant Products route to Product Detail for option selection; simple Products call the existing Cart API, which revalidates current visibility, availability, and price.
+- Restock/price-drop alerts, Customer notification preferences/inbox, external delivery, folders, sharing, and guest-list merge remain deferred Phase 2 work.

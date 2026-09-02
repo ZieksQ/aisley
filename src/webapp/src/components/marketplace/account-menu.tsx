@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   FiChevronDown,
+  FiHeart,
   FiLogOut,
   FiMapPin,
   FiPackage,
@@ -124,7 +125,7 @@ export function AccountMenu() {
             <FiPackage aria-hidden="true" className="size-4" /> Orders
           </Link>
           <Link role="menuitem" href="/account/wishlist" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
-            <FiUser aria-hidden="true" className="size-4" /> Wishlist
+            <FiHeart aria-hidden="true" className="size-4" /> Wishlist
           </Link>
           <Link role="menuitem" href="/account/settings" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
             <FiSettings aria-hidden="true" className="size-4" /> Settings

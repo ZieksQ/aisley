@@ -18,6 +18,7 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
@@ -225,6 +226,10 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
             ->whereUuid('item')
             ->name('cart.items.destroy');
+        Route::get('/wishlist/status', [WishlistController::class, 'status'])->name('wishlist.status');
+        Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+        Route::put('/wishlist/{product}', [WishlistController::class, 'store'])->whereUuid('product')->name('wishlist.store');
+        Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy'])->whereUuid('product')->name('wishlist.destroy');
         Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');
         Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
         Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])

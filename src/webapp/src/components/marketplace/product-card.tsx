@@ -4,6 +4,7 @@ import { HiStar } from "react-icons/hi2";
 import type { ProductSummary } from "@/lib/marketplace/types";
 
 import { ProductImage } from "./product-image";
+import { WishlistToggle } from "@/components/wishlist/wishlist-toggle";
 
 const moneyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -29,11 +30,13 @@ export function ProductCard({
   priority = false,
   product,
   section,
+  onWishlistChange,
 }: {
   position: number;
   priority?: boolean;
   product: ProductSummary;
   section: string;
+  onWishlistChange?: (saved: boolean) => void;
 }) {
   const badge = product.badges
     .map((value) => badgeLabels[value])
@@ -41,16 +44,20 @@ export function ProductCard({
   const unavailable = product.stockStatus === "out_of_stock";
 
   return (
-    <Link
-      href={`/products/${product.id}`}
-      aria-label={`${product.title}, ${moneyFormatter.format(product.price)}`}
-      data-analytics-event="homepage_product_click"
-      data-analytics-product-id={product.id}
-      data-analytics-shop-id={product.shop.id}
-      data-analytics-section={section}
-      data-analytics-position={position}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-lg border border-[#E4DEE6] bg-white transition-[border-color,box-shadow] duration-150 hover:border-[#BDAFC2] hover:shadow-[0_2px_8px_rgba(49,18,63,0.08)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-    >
+    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-[#E4DEE6] bg-white transition-[border-color,box-shadow] duration-150 hover:border-[#BDAFC2] hover:shadow-[0_2px_8px_rgba(49,18,63,0.08)]">
+      <div className="absolute right-2 top-2 z-10">
+        <WishlistToggle compact onChange={onWishlistChange} productId={product.id} />
+      </div>
+      <Link
+        href={`/products/${product.id}`}
+        aria-label={`${product.title}, ${moneyFormatter.format(product.price)}`}
+        data-analytics-event="homepage_product_click"
+        data-analytics-product-id={product.id}
+        data-analytics-shop-id={product.shop.id}
+        data-analytics-section={section}
+        data-analytics-position={position}
+        className="flex min-w-0 flex-1 flex-col focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-[#E6007A]"
+      >
       <div className="relative aspect-square overflow-hidden bg-[#F4F1F5]">
         <ProductImage
           src={product.thumbnailUrl}
@@ -125,6 +132,7 @@ export function ProductCard({
           </div>
         ) : null}
       </div>
-    </Link>
+      </Link>
+    </article>
   );
 }
