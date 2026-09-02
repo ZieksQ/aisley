@@ -2,16 +2,16 @@ name: aisley-production
 
 x-api-environment: &api-environment
   env_file:
-    - ./src/api/.env.production
+    - ./.env.production
 
 services:
   postgres:
     image: postgres:18.3-alpine3.23
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE:?Set DB_DATABASE in src/api/.env.production}
-      POSTGRES_USER: ${DB_USERNAME:?Set DB_USERNAME in src/api/.env.production}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in src/api/.env.production}
+      POSTGRES_DB: ${DB_DATABASE:?Set DB_DATABASE in docker/.env.production}
+      POSTGRES_USER: ${DB_USERNAME:?Set DB_USERNAME in docker/.env.production}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in docker/.env.production}
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
@@ -26,8 +26,8 @@ services:
   migrate:
     <<: *api-environment
     build:
-      context: ./src/api
-      dockerfile: docker/php/Dockerfile
+      context: ..
+      dockerfile: docker/api/Dockerfile
     image: aisley-api:production
     restart: "no"
     command: ["php", "artisan", "migrate", "--force"]
@@ -55,7 +55,7 @@ services:
 
   nginx:
     build:
-      context: ./src/api
+      context: ..
       dockerfile: docker/nginx/Dockerfile
     image: aisley-api-nginx:production
     restart: unless-stopped
@@ -98,7 +98,7 @@ services:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in src/api/.env.production}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in docker/.env.production}
     command: ["tunnel", "--no-autoupdate", "--protocol", "http2", "run"]
     depends_on:
       nginx:

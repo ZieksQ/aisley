@@ -2,7 +2,7 @@ FROM composer:2.8 AS vendor
 
 WORKDIR /var/www/html
 
-COPY composer.json composer.lock ./
+COPY src/api/composer.json src/api/composer.lock ./
 RUN composer install \
     --no-dev \
     --no-interaction \
@@ -37,9 +37,9 @@ RUN apk add --no-cache \
     && addgroup -g 1000 -S aisley \
     && adduser -u 1000 -S -D -G aisley aisley
 
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-aisley.ini
+COPY docker/api/php.ini /usr/local/etc/php/conf.d/99-aisley.ini
 COPY --from=vendor /var/www/html/vendor ./vendor
-COPY --chown=aisley:aisley . .
+COPY --chown=aisley:aisley src/api/ .
 
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R aisley:aisley storage bootstrap/cache
