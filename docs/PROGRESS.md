@@ -233,6 +233,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 - Added the optional initial-admin, initial-seller, and approved-customer bootstrap variables to the production Docker environment template, with explicit one-time seeding commands documented for Azure deployment. Bootstrap seeding remains opt-in and is not run automatically during every container restart.
 
 - Fixed production Compose image startup by sharing the local API build definition across the API, migration, queue, and scheduler services, preventing Compose from attempting to pull the private `aisley-api:production` image from a registry.
+- Updated the production API image from PHP 8.3 to PHP 8.4 to satisfy the Composer lockfile platform requirement of PHP `>=8.4.1` during migrations and runtime startup.
 
 ## 2026-09-02
 
