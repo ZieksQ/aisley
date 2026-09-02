@@ -92,7 +92,7 @@ class ProductController extends Controller
         abort_if($product->isComplianceRestricted(), 409, 'This product is restricted by Admin compliance review and cannot be published.');
         abort_unless($product->status === ProductStatus::Draft, 409, 'Only draft products can be published.');
         $product->load(['media', 'inventorySkus.balance', 'variants.inventorySku.balance', 'optionGroups.values', 'descriptionAssets']);
-        $purchasable = $product->variants->isEmpty()
+        $purchasable = $product->optionGroups->isEmpty() && $product->variants->isEmpty()
             ? ($product->inventorySkus->first()?->balance?->available() ?? 0) > 0
             : $product->variants->contains(fn ($variant) => $variant->status->value === 'active' && ($variant->inventorySku?->balance?->available() ?? 0) > 0);
         if (! $product->name || ! $product->category_id || (float) $product->price <= 0 || $product->media->whereNull('product_variant_id')->isEmpty() || ! $purchasable) {

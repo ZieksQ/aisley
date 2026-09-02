@@ -37,6 +37,8 @@ class StoreProductRequest extends FormRequest
             'description_asset_ids.*' => ['uuid', 'distinct'],
             'gallery_upload_ids' => ['array', 'max:'.config('seller.products.gallery_image_limit')],
             'gallery_upload_ids.*' => ['uuid', 'distinct'],
+            'gallery_media_ids' => ['array', 'max:'.config('seller.products.gallery_image_limit')],
+            'gallery_media_ids.*' => ['uuid', 'distinct'],
             'default_gallery_upload_id' => ['nullable', 'uuid'],
             'upload_token' => ['nullable', 'uuid'],
             'price' => ['required', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
@@ -107,12 +109,6 @@ class StoreProductRequest extends FormRequest
             $validator->errors()->add('variants', 'Variants require at least one option group.');
 
             return;
-        }
-        if ($groups->isNotEmpty()) {
-            $expected = $groups->reduce(fn (int $count, array $group) => $count * count($group['values'] ?? []), 1);
-            if ($variants->count() !== $expected) {
-                $validator->errors()->add('variants', "Provide all {$expected} option combinations.");
-            }
         }
         $combinations = [];
         foreach ($variants as $index => $variant) {

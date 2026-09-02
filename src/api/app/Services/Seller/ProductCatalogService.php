@@ -25,6 +25,7 @@ class ProductCatalogService
 
         return DB::transaction(function () use ($shop, $seller, $data): Product {
             $variants = $data['variants'] ?? [];
+            $hasOptionGroups = ! empty($data['option_groups'] ?? []);
             $product = $shop->products()->create([
                 ...Arr::only($data, ['category_id', 'name', 'short_description', 'description_markdown', 'price', 'original_price', 'currency']),
                 'slug' => Str::slug($data['name']).'-'.Str::lower(Str::random(6)),
@@ -34,12 +35,12 @@ class ProductCatalogService
                 'currency' => $data['currency'] ?? 'PHP',
             ]);
 
-            if ($variants === []) {
+            if ($variants === [] && ! $hasOptionGroups) {
                 $this->inventory->createBaseSku($product, $data['sku'], (int) ($data['opening_stock'] ?? 0), $seller);
-            } else {
+            } elseif ($variants !== []) {
                 $this->createVariants($product, $seller, $data['option_groups'], $variants, $data['upload_token']);
             }
-            $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'] ?? [], $data['default_gallery_upload_id'] ?? null);
+            $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'] ?? [], $data['default_gallery_upload_id'] ?? null, $data['gallery_media_ids'] ?? [], $data['default_gallery_media_id'] ?? null);
             $this->assets->claimDescription($product, $data['upload_token'], $data['description_asset_ids'] ?? [], (string) ($data['description_markdown'] ?? ''));
 
             return $product;
@@ -55,8 +56,8 @@ class ProductCatalogService
             if (array_key_exists('variants', $data)) {
                 $this->replaceVariants($product, $seller, $data['option_groups'] ?? [], $data['variants'], $data['upload_token']);
             }
-            if (array_key_exists('gallery_upload_ids', $data)) {
-                $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'], $data['default_gallery_upload_id'] ?? null);
+            if (array_key_exists('gallery_upload_ids', $data) || array_key_exists('gallery_media_ids', $data)) {
+                $this->assets->claimGallery($product, $data['upload_token'], $data['gallery_upload_ids'] ?? [], $data['default_gallery_upload_id'] ?? null, $data['gallery_media_ids'] ?? [], $data['default_gallery_media_id'] ?? null);
             } elseif (array_key_exists('default_gallery_media_id', $data)) {
                 $this->assets->setDefaultGalleryMedia($product, $data['default_gallery_media_id']);
             }

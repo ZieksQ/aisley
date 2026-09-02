@@ -6,7 +6,7 @@
 - Capture the catalog data consumed by Customer product cards and the `/products/{id}` detail page:
   - name, category, short description, Markdown description, specifications, media, and pricing;
   - zero or more option groups and values;
-  - one SKU-backed variant for each valid option combination, with stock and optional price overrides.
+  - manually selected SKU-backed variants, with stock and optional price overrides; a Seller may list only the combinations they actually sell.
 - Save incomplete work as a draft, then allow a separate publish action after catalog and compliance checks pass.
 - Product prices are seller-entered regular selling prices. A variant may override the parent price and original price; when omitted, it inherits the parent value.
 - The form lives in `src/seller` (React/Vite). `src/webapp` remains the Customer read-only renderer and must not expose Seller creation controls.
@@ -27,7 +27,7 @@
 - Require a product name, active category belonging to the Shop's canonical Shop Category, base SKU, and positive base price; short description is optional and bounded.
 - Store fixed-precision monetary values with an explicit currency. `original_price`, including a variant override, is optional but cannot be lower than its effective selling price.
 - Support no variants (the base SKU is purchasable) or ordered option groups such as Color and Size.
-- Require each variant to select exactly one value from every option group; reject duplicates, partial combinations, duplicate combinations, and SKUs reused anywhere the API forbids them.
+- Require each submitted variant to select exactly one value from every option group; reject duplicates, partial selections, duplicate combinations, and SKUs reused anywhere the API forbids them. Option groups may contain values that do not yet have a Seller-created variant.
 - Each variant has an SKU, active/inactive state, and authoritative inventory SKU. Opening stock may be supplied once while creating each SKU through the Inventory service; persisted stock is read-only in Product UI and is adjusted only through Inventory.
 - Expose effective variant price/original price as `variant value ?? product value`; the Customer detail contract must show the selected variant's price, SKU, and availability.
 - Prevent publishing when required product data, valid combinations, required media, compliance state, or any later configured shipping/dimension requirement is incomplete.
@@ -49,7 +49,7 @@
 - If an MDXEditor component is ever imported into the Next.js `src/webapp`, wrap it in a client-only boundary and `next/dynamic(..., { ssr: false })`, and initialize its plugins in that client-only module. Do not put the editor in the server-rendered Customer product page.
 - The Seller form must expose labeled controls, keyboard-operable toolbar/dialog/drop zone, visible focus, non-color upload states, unsaved-change protection, loading/error/empty states, and mobile-safe layout.
 - Disable description-image upload until the draft has a persisted UUID; explain that the Seller must save the draft first.
-- Generate variant rows from option selections, show each option group/value context, show inherited versus overridden prices, collect opening stock per new SKU, prevent duplicate combinations, and make persisted stock read-only except through Inventory management.
+- Add and delete variant rows manually, let each row select one value per option group, preserve existing rows when option values are added, show inherited versus overridden prices, collect opening stock per new SKU, prevent duplicate combinations, and make persisted stock read-only except through Inventory management.
 
 ### Customer listing compatibility
 
@@ -67,7 +67,7 @@
 - Normalize SKU input consistently with current Seller behavior, preserve the canonical product slug policy, and keep category IDs as UUIDs.
 - Validate option names/values after trimming, reject blank labels and duplicate case-insensitive labels where the product contract requires uniqueness, and preserve display positions deterministically.
 - A zero-stock variant may remain in the Seller draft matrix but cannot satisfy Customer purchase availability or publish requirements if the product has no purchasable combination.
-- Deleting an option group or value must either regenerate and validate the complete variant matrix in one transaction or be rejected with a repairable error; it must not silently orphan variants.
+- Deleting an option group or value must update each existing row's selections or leave it visibly invalid for server validation; it must not silently remove unrelated variant rows.
 - Retrying a request must not create duplicate products, variants, assets, or inventory movements; use idempotency where an upload or multi-row mutation can be retried.
 - Server validation is authoritative even when the UI has already generated a valid-looking matrix or accepted a browser-side image preview.
 

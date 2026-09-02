@@ -124,6 +124,47 @@ class SellerCreateProductTest extends TestCase
             ->assertJsonPath('recommendations.items.0.thumbnailUrl', url("/api/v1/product-media/{$firstGallery}"));
     }
 
+    public function test_gallery_update_keeps_existing_images_when_adding_a_new_upload(): void
+    {
+        [$seller, , $category] = $this->sellerShop('gallery-append');
+        $token = (string) Str::uuid();
+        $firstGallery = $this->upload($seller, $token, 'gallery');
+        $secondGallery = $this->upload($seller, $token, 'gallery');
+
+        $productId = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Gallery Append Product', 'category_id' => $category->id, 'sku' => 'GALLERY-APPEND',
+            'price' => '250.00', 'opening_stock' => 5, 'upload_token' => $token,
+            'gallery_upload_ids' => [$firstGallery, $secondGallery],
+        ])->assertCreated()->json('data.id');
+
+        $thirdGallery = $this->upload($seller, $token, 'gallery');
+        $this->actingAs($seller)->patchJson("/api/v1/seller/products/{$productId}", [
+            'upload_token' => $token,
+            'gallery_media_ids' => [$firstGallery, $secondGallery],
+            'gallery_upload_ids' => [$thirdGallery],
+            'default_gallery_upload_id' => $thirdGallery,
+        ])->assertOk()->assertJsonCount(3, 'data.gallery');
+
+        $this->assertDatabaseHas('product_media', ['id' => $firstGallery, 'product_id' => $productId]);
+        $this->assertDatabaseHas('product_media', ['id' => $secondGallery, 'product_id' => $productId]);
+        $this->assertDatabaseHas('product_media', ['id' => $thirdGallery, 'product_id' => $productId, 'is_default' => true]);
+    }
+
+    public function test_manual_variant_rows_can_save_a_subset_of_option_combinations(): void
+    {
+        [$seller, , $category] = $this->sellerShop('manual-variants');
+
+        $product = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Manual Variant Product', 'category_id' => $category->id, 'sku' => 'MANUAL-VARIANTS',
+            'price' => '250.00', 'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            'variants' => [['sku' => 'MANUAL-BLACK', 'opening_stock' => 2, 'option_value_indexes' => [0]]],
+        ])->assertCreated();
+
+        $this->assertDatabaseCount('product_variants', 1);
+        $product->assertJsonCount(1, 'data.variants');
+        $this->assertDatabaseHas('inventory_skus', ['code' => 'MANUAL-BLACK']);
+    }
+
     public function test_gallery_limit_and_invalid_variant_price_receive_field_errors(): void
     {
         [$seller, , $category] = $this->sellerShop('validation');
