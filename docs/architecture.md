@@ -68,8 +68,9 @@ Due to native enum column type errors in PostgreSQL migrations, database columns
 ### Production Strategy
 
 * **Frontend Hosting (Vercel):** All frontend applications (`webapp`, `seller`, `admin`, `logistics`) are deployed to Vercel.
-* **Backend Hosting (Azure VM):** The API is hosted on an Azure Virtual Machine using `docker-compose.prod.yml`.
-* **Container Stack:** PHP, Nginx, PostgreSQL, Certbot.
+* **Backend Hosting (Azure VM):** The API is hosted on an Azure Virtual Machine using `docker/docker-compose.prod.yml`.
+* **Container Stack:** PHP-FPM, Nginx, PostgreSQL, Laravel queue worker/scheduler, Cloudflare Tunnel.
+* **Ingress:** Cloudflare Tunnel is the only public ingress. Nginx, PHP-FPM, and PostgreSQL have no host-published ports; Cloudflare terminates public HTTPS for the configured API hostname.
 
 * **Domain Routing:**
 * Storefront (`webapp`) uses the root domain.

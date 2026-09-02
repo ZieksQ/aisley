@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Nginx is private to the Cloudflare Tunnel Docker network. Trust its
+        // forwarded HTTPS and client-IP headers for the public API hostname.
+        $middleware->trustProxies(at: '*');
+
         $middleware->statefulApi();
 
         $middleware->alias([

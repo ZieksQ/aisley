@@ -1,0 +1,8 @@
+**
+!src/
+!src/api/
+!src/api/public/
+!src/api/public/**
+!docker/
+!docker/nginx/
+!docker/nginx/**
