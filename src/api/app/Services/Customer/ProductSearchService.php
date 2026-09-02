@@ -22,7 +22,7 @@ class ProductSearchService
         return Product::query()
             ->select('products.*')
             ->storefrontVisible()
-            ->with('shop:id,name,slug')
+            ->with(['shop:id,name,slug', 'galleryMedia'])
             ->where(function (Builder $builder) use ($contains): void {
                 $builder
                     ->whereRaw("LOWER(products.name) LIKE ? ESCAPE '!'", [$contains])
