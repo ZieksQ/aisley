@@ -93,6 +93,14 @@ class Product extends Model
         return $this->hasMany(ProductMedia::class)->orderBy('position');
     }
 
+    public function galleryMedia(): HasMany
+    {
+        return $this->hasMany(ProductMedia::class)
+            ->whereNull('product_variant_id')
+            ->where('scan_status', 'approved')
+            ->orderBy('position');
+    }
+
     public function optionGroups(): HasMany
     {
         return $this->hasMany(ProductOptionGroup::class)->orderBy('position');

@@ -62,7 +62,7 @@ class HomepageService
         $categoryAffinity = $this->categoryAffinity($customer);
         $query = Product::query()
             ->storefrontPurchasable()
-            ->with('shop:id,name,slug')
+            ->with(['shop:id,name,slug', 'galleryMedia'])
             ->orderByDesc('products.is_promoted')
             ->orderByDesc('products.sold_count')
             ->orderByDesc('products.review_count')
@@ -180,7 +180,7 @@ class HomepageService
             ->storefrontPurchasable()
             ->whereColumn('flash_deal_products.sold_quantity', '<', 'flash_deal_products.deal_stock')
             ->whereColumn('flash_deal_products.deal_price', '<', 'products.price')
-            ->with('shop:id,name,slug')
+            ->with(['shop:id,name,slug', 'galleryMedia'])
             ->orderByDesc('flash_deal_products.sold_quantity')
             ->limit((int) config('homepage.flash_deals_limit', 12))
             ->get();
@@ -209,7 +209,7 @@ class HomepageService
         return ProductSummaryResource::collection(
             Product::query()
                 ->storefrontPurchasable()
-                ->with('shop:id,name,slug')
+                ->with(['shop:id,name,slug', 'galleryMedia'])
                 ->orderByDesc('sold_count')
                 ->orderByDesc('review_count')
                 ->orderByDesc('average_rating')
@@ -228,7 +228,7 @@ class HomepageService
         $views = RecentlyViewedProduct::query()
             ->where('user_id', $customer->id)
             ->whereHas('product', fn (Builder $query) => $query->storefrontVisible())
-            ->with(['product.shop:id,name,slug'])
+            ->with(['product.shop:id,name,slug', 'product.galleryMedia'])
             ->orderByDesc('last_viewed_at')
             ->limit((int) config('homepage.recently_viewed_limit', 12))
             ->get();

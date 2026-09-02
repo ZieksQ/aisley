@@ -92,7 +92,7 @@ class ProductController extends Controller
         abort_if($product->isComplianceRestricted(), 409, 'This product is restricted by Admin compliance review and cannot be published.');
         abort_unless($product->status === ProductStatus::Draft, 409, 'Only draft products can be published.');
         $product->load(['media', 'inventorySkus.balance', 'variants.inventorySku.balance', 'optionGroups.values', 'descriptionAssets']);
-        $purchasable = $product->variants->isEmpty()
+        $purchasable = $product->optionGroups->isEmpty() && $product->variants->isEmpty()
             ? ($product->inventorySkus->first()?->balance?->available() ?? 0) > 0
             : $product->variants->contains(fn ($variant) => $variant->status->value === 'active' && ($variant->inventorySku?->balance?->available() ?? 0) > 0);
         if (! $product->name || ! $product->category_id || (float) $product->price <= 0 || $product->media->whereNull('product_variant_id')->isEmpty() || ! $purchasable) {
@@ -187,6 +187,7 @@ class ProductController extends Controller
                     ? url('/api/v1/seller/product-media/'.$media->id)
                     : MediaUrl::from($media->disk, $media->path),
                 'alt_text' => $media->alt_text, 'position' => $media->position,
+                'is_default' => (bool) $media->is_default,
             ]),
             'description_asset_ids' => $product->descriptionAssets->pluck('id')->values(),
             'option_groups' => $product->optionGroups->map(fn ($group) => [
@@ -199,6 +200,9 @@ class ProductController extends Controller
                 'effective_original_price' => $variant->original_price ?? $product->original_price,
                 'inherits_price' => $variant->price === null, 'status' => $variant->status->value,
                 'option_value_ids' => $variant->optionValues->pluck('id')->values(),
+                'inventory_sku_id' => $variant->inventorySku?->id,
+                'on_hand' => $variant->inventorySku?->balance?->on_hand ?? 0,
+                'reserved' => $variant->inventorySku?->balance?->reserved ?? 0,
                 'available' => $variant->inventorySku?->balance?->available() ?? 0,
                 'primary_media_id' => $variant->primary_media_id,
             ])->values(),

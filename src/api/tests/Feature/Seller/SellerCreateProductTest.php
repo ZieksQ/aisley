@@ -14,6 +14,7 @@ use App\Models\ShopCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -27,6 +28,7 @@ class SellerCreateProductTest extends TestCase
         parent::setUp();
         Storage::fake('product-test');
         config(['seller.products.asset_disk' => 'product-test']);
+        Cache::flush();
     }
 
     public function test_variant_prices_inherit_or_override_and_skus_are_shop_scoped(): void
@@ -41,13 +43,15 @@ class SellerCreateProductTest extends TestCase
             'gallery_upload_ids' => [$gallery],
             'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
             'variants' => [
-                ['sku' => 'SHIRT-BLK', 'price' => null, 'original_price' => null, 'option_value_indexes' => [0]],
-                ['sku' => 'SHIRT-WHT', 'price' => '550.00', 'original_price' => '650.00', 'option_value_indexes' => [1]],
+                ['sku' => 'SHIRT-BLK', 'price' => null, 'original_price' => null, 'opening_stock' => 3, 'option_value_indexes' => [0]],
+                ['sku' => 'SHIRT-WHT', 'price' => '550.00', 'original_price' => '650.00', 'opening_stock' => 5, 'option_value_indexes' => [1]],
             ],
         ])->assertCreated()
             ->assertJsonPath('data.variants.0.inherits_price', true)
             ->assertJsonPath('data.variants.0.effective_price', '500.00')
-            ->assertJsonPath('data.variants.1.effective_price', '550.00');
+            ->assertJsonPath('data.variants.1.effective_price', '550.00')
+            ->assertJsonPath('data.variants.0.available', 3)
+            ->assertJsonPath('data.variants.1.available', 5);
 
         $this->assertDatabaseHas('product_variants', ['shop_id' => $shop->id, 'sku' => 'SHIRT-WHT', 'price' => '550.00']);
         $this->assertDatabaseHas('inventory_skus', ['shop_id' => $shop->id, 'code' => 'SHIRT-WHT']);
@@ -84,6 +88,124 @@ class SellerCreateProductTest extends TestCase
         Storage::disk('product-test')->assertMissing($temporaryPath);
         Storage::disk('product-test')->assertExists("product-assets/{$shop->id}/{$product->json('data.id')}/description/{$assetId}.png");
         $this->assertDatabaseHas('product_description_assets', ['id' => $assetId, 'product_id' => $product->json('data.id'), 'scan_status' => 'approved']);
+    }
+
+    public function test_selected_product_gallery_image_is_the_customer_default_thumbnail(): void
+    {
+        [$seller, , $category] = $this->sellerShop('cover');
+        $token = (string) Str::uuid();
+        $firstGallery = $this->upload($seller, $token, 'gallery');
+        $defaultGallery = $this->upload($seller, $token, 'gallery');
+
+        $productId = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Gallery Cover Product', 'category_id' => $category->id, 'sku' => 'COVER-1',
+            'price' => '250.00', 'opening_stock' => 5, 'upload_token' => $token,
+            'gallery_upload_ids' => [$firstGallery, $defaultGallery],
+            'default_gallery_upload_id' => $defaultGallery,
+        ])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('product_media', ['id' => $firstGallery, 'product_id' => $productId, 'is_default' => false]);
+        $this->assertDatabaseHas('product_media', ['id' => $defaultGallery, 'product_id' => $productId, 'is_default' => true]);
+
+        $this->actingAs($seller)->patchJson("/api/v1/seller/products/{$productId}", [
+            'default_gallery_media_id' => $firstGallery,
+        ])->assertOk()
+            ->assertJsonPath('data.gallery.0.is_default', true)
+            ->assertJsonPath('data.gallery.1.is_default', false);
+
+        $this->actingAs($seller)->postJson("/api/v1/seller/products/{$productId}/publish")
+            ->assertOk();
+
+        $this->getJson('/api/v1/customer/home')
+            ->assertOk()
+            ->assertJsonPath('topProducts.0.id', $productId)
+            ->assertJsonPath('topProducts.0.thumbnailUrl', url("/api/v1/product-media/{$firstGallery}"))
+            ->assertJsonPath('recommendations.items.0.id', $productId)
+            ->assertJsonPath('recommendations.items.0.thumbnailUrl', url("/api/v1/product-media/{$firstGallery}"));
+    }
+
+    public function test_gallery_update_keeps_existing_images_when_adding_a_new_upload(): void
+    {
+        [$seller, , $category] = $this->sellerShop('gallery-append');
+        $token = (string) Str::uuid();
+        $firstGallery = $this->upload($seller, $token, 'gallery');
+        $secondGallery = $this->upload($seller, $token, 'gallery');
+
+        $productId = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Gallery Append Product', 'category_id' => $category->id, 'sku' => 'GALLERY-APPEND',
+            'price' => '250.00', 'opening_stock' => 5, 'upload_token' => $token,
+            'gallery_upload_ids' => [$firstGallery, $secondGallery],
+        ])->assertCreated()->json('data.id');
+
+        $thirdGallery = $this->upload($seller, $token, 'gallery');
+        $this->actingAs($seller)->patchJson("/api/v1/seller/products/{$productId}", [
+            'upload_token' => $token,
+            'gallery_media_ids' => [$firstGallery, $secondGallery],
+            'gallery_upload_ids' => [$thirdGallery],
+            'default_gallery_upload_id' => $thirdGallery,
+        ])->assertOk()->assertJsonCount(3, 'data.gallery');
+
+        $this->assertDatabaseHas('product_media', ['id' => $firstGallery, 'product_id' => $productId]);
+        $this->assertDatabaseHas('product_media', ['id' => $secondGallery, 'product_id' => $productId]);
+        $this->assertDatabaseHas('product_media', ['id' => $thirdGallery, 'product_id' => $productId, 'is_default' => true]);
+    }
+
+    public function test_manual_variant_rows_can_save_a_subset_of_option_combinations(): void
+    {
+        [$seller, , $category] = $this->sellerShop('manual-variants');
+
+        $product = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Manual Variant Product', 'category_id' => $category->id, 'sku' => 'MANUAL-VARIANTS',
+            'price' => '250.00', 'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            'variants' => [['sku' => 'MANUAL-BLACK', 'opening_stock' => 2, 'option_value_indexes' => [0]]],
+        ])->assertCreated();
+
+        $this->assertDatabaseCount('product_variants', 1);
+        $product->assertJsonCount(1, 'data.variants');
+        $this->assertDatabaseHas('inventory_skus', ['code' => 'MANUAL-BLACK']);
+    }
+
+    public function test_variant_updates_retain_stock_and_soft_delete_removed_variants(): void
+    {
+        [$seller, , $category] = $this->sellerShop('variant-history');
+
+        $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Variant History Product', 'category_id' => $category->id, 'sku' => 'VARIANT-HISTORY',
+            'price' => '250.00', 'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
+            'variants' => [
+                ['sku' => 'HISTORY-BLACK', 'opening_stock' => 3, 'option_value_indexes' => [0]],
+                ['sku' => 'HISTORY-WHITE', 'opening_stock' => 5, 'option_value_indexes' => [1]],
+            ],
+        ])->assertCreated();
+        $originalVariants = $created->json('data.variants');
+
+        $updated = $this->actingAs($seller)->patchJson('/api/v1/seller/products/'.$created->json('data.id'), [
+            'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            'variants' => [
+                ['id' => $originalVariants[0]['id'], 'sku' => 'HISTORY-BLACK', 'option_value_indexes' => [0]],
+                ['id' => $originalVariants[1]['id'], 'sku' => 'HISTORY-WHITE', 'option_value_indexes' => [1]],
+                ['sku' => 'HISTORY-RED', 'opening_stock' => 2, 'option_value_indexes' => [2]],
+            ],
+        ])->assertOk();
+
+        $updatedVariants = $updated->json('data.variants');
+        $this->assertSame(3, collect($updatedVariants)->firstWhere('sku', 'HISTORY-BLACK')['on_hand']);
+        $this->assertSame(5, collect($updatedVariants)->firstWhere('sku', 'HISTORY-WHITE')['on_hand']);
+        $redVariantId = collect($updatedVariants)->firstWhere('sku', 'HISTORY-RED')['id'];
+
+        $this->actingAs($seller)->patchJson('/api/v1/seller/products/'.$created->json('data.id'), [
+            'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            'variants' => [
+                ['id' => $originalVariants[0]['id'], 'sku' => 'HISTORY-BLACK', 'option_value_indexes' => [0]],
+                ['id' => $redVariantId, 'sku' => 'HISTORY-RED', 'option_value_indexes' => [2]],
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('product_variants', ['id' => $originalVariants[0]['id'], 'deleted_at' => null, 'stock_quantity' => 3]);
+        $this->assertDatabaseHas('product_variants', ['id' => $originalVariants[1]['id']]);
+        $this->assertNotNull(Product::find($created->json('data.id'))->variants()->withTrashed()->find($originalVariants[1]['id'])->deleted_at);
+        $this->assertDatabaseHas('inventory_skus', ['product_variant_id' => $originalVariants[1]['id'], 'status' => 'inactive']);
+        $this->assertDatabaseHas('product_variants', ['id' => $redVariantId, 'deleted_at' => null, 'stock_quantity' => 2]);
     }
 
     public function test_gallery_limit_and_invalid_variant_price_receive_field_errors(): void

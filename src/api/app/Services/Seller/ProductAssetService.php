@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductDescriptionAsset;
 use App\Models\ProductMedia;
 use App\Models\ProductUpload;
+use App\Models\ProductVariant;
 use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -48,25 +49,85 @@ class ProductAssetService
         ]);
     }
 
-    /** @param list<string> $ids */
-    public function claimGallery(Product $product, string $uploadToken, array $ids): void
+    /**
+     * @param  list<string>  $uploadIds
+     * @param  list<string>  $mediaIds
+     */
+    public function claimGallery(Product $product, string $uploadToken, array $uploadIds, ?string $defaultUploadId = null, array $mediaIds = [], ?string $defaultMediaId = null): void
     {
         $limit = (int) config('seller.products.gallery_image_limit');
-        if (count($ids) > $limit) {
+        if (count($uploadIds) + count($mediaIds) > $limit) {
             throw ValidationException::withMessages(['gallery_upload_ids' => "A Product gallery may contain at most {$limit} images."]);
+        }
+        if ($defaultUploadId !== null && ! in_array($defaultUploadId, $uploadIds, true)) {
+            throw ValidationException::withMessages(['default_gallery_upload_id' => 'The default image must be one of the Product gallery images.']);
+        }
+        if ($defaultMediaId !== null && ! in_array($defaultMediaId, $mediaIds, true)) {
+            throw ValidationException::withMessages(['default_gallery_media_id' => 'The default image must be one of the Product gallery images.']);
         }
 
         $variantMedia = $product->media()->whereNotNull('product_variant_id')->orderBy('position')->get()->values();
         $temporaryPosition = (int) ProductMedia::withTrashed()->where('product_id', $product->id)->max('position') + 1;
         $variantMedia->each(fn (ProductMedia $media, int $index) => $media->update(['position' => $temporaryPosition + $index]));
         $variantMedia->each(fn (ProductMedia $media, int $index) => $media->update(['position' => 1000 + $index]));
-        $this->retireMedia($product->media()->whereNull('product_variant_id')->get());
-        foreach (array_values($ids) as $position => $id) {
+        $existingGallery = $product->media()->whereNull('product_variant_id')->orderBy('position')->get();
+        $selectedMedia = $product->media()
+            ->whereNull('product_variant_id')
+            ->where('scan_status', 'approved')
+            ->whereIn('id', $mediaIds)
+            ->get()
+            ->keyBy('id');
+        if ($selectedMedia->count() !== count($mediaIds)) {
+            throw ValidationException::withMessages(['gallery_media_ids' => 'Every existing gallery image must belong to this Product and be approved.']);
+        }
+        $temporaryGalleryPosition = max(100000, (int) ProductMedia::withTrashed()->where('product_id', $product->id)->max('position') + count($existingGallery) + count($uploadIds) + 1);
+        $existingGallery->values()->each(fn (ProductMedia $media, int $index) => $media->update(['position' => $temporaryGalleryPosition + $index]));
+        $selectedIds = $selectedMedia->keys()->all();
+        $existingGallery->reject(fn (ProductMedia $media) => in_array($media->id, $selectedIds, true))->each(fn (ProductMedia $media) => $this->retire($media));
+        $orderedMedia = collect();
+        foreach (array_values($mediaIds) as $position => $id) {
+            $media = $selectedMedia->get($id);
+            $media->update(['position' => $position, 'is_default' => false]);
+            $orderedMedia->push($media);
+        }
+        $gallery = collect();
+        foreach (array_values($uploadIds) as $position => $id) {
             $upload = $this->ownedUpload($product, $uploadToken, $id, 'gallery');
             $path = $this->move($upload, $product, 'gallery');
-            ProductMedia::create($this->mediaAttributes($upload, $product, $path, $position));
+            $gallery->push(ProductMedia::create($this->mediaAttributes($upload, $product, $path, count($mediaIds) + $position)));
             $upload->delete();
         }
+        $defaultMedia = $defaultMediaId !== null ? $selectedMedia->get($defaultMediaId) : null;
+        $this->markDefaultGalleryMedia($product, $defaultMedia ?? $gallery->firstWhere('id', $defaultUploadId) ?? $orderedMedia->first() ?? $gallery->first());
+    }
+
+    public function setDefaultGalleryMedia(Product $product, ?string $mediaId): void
+    {
+        $media = $mediaId === null
+            ? null
+            : $product->media()
+                ->whereNull('product_variant_id')
+                ->where('scan_status', 'approved')
+                ->whereKey($mediaId)
+                ->first();
+
+        if ($mediaId !== null && $media === null) {
+            throw ValidationException::withMessages(['default_gallery_media_id' => 'Select an approved Product gallery image owned by this Product.']);
+        }
+
+        $this->markDefaultGalleryMedia($product, $media);
+    }
+
+    public function retireVariantMedia(ProductVariant $variant): void
+    {
+        $variant->media()->get()->each(fn (ProductMedia $media) => $this->retire($media));
+        $variant->update(['primary_media_id' => null]);
+    }
+
+    private function markDefaultGalleryMedia(Product $product, ?ProductMedia $media): void
+    {
+        $product->media()->whereNull('product_variant_id')->update(['is_default' => false]);
+        $media?->update(['is_default' => true]);
     }
 
     public function claimVariantImage(Product $product, string $uploadToken, string $id, string $variantId, int $position): ProductMedia

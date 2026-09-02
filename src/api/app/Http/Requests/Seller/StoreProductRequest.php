@@ -37,6 +37,9 @@ class StoreProductRequest extends FormRequest
             'description_asset_ids.*' => ['uuid', 'distinct'],
             'gallery_upload_ids' => ['array', 'max:'.config('seller.products.gallery_image_limit')],
             'gallery_upload_ids.*' => ['uuid', 'distinct'],
+            'gallery_media_ids' => ['array', 'max:'.config('seller.products.gallery_image_limit')],
+            'gallery_media_ids.*' => ['uuid', 'distinct'],
+            'default_gallery_upload_id' => ['nullable', 'uuid'],
             'upload_token' => ['nullable', 'uuid'],
             'price' => ['required', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'original_price' => ['nullable', 'decimal:0,2', 'gte:price', 'max:99999999.99'],
@@ -47,7 +50,9 @@ class StoreProductRequest extends FormRequest
             'option_groups.*.values' => ['required', 'array', 'min:1', 'max:20'],
             'option_groups.*.values.*' => ['required', 'string', 'max:80'],
             'variants' => ['array', 'max:500'],
+            'variants.*.id' => ['nullable', 'uuid', 'distinct'],
             'variants.*.sku' => ['required', 'string', 'max:80', 'alpha_dash'],
+            'variants.*.opening_stock' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:999999999'],
             'variants.*.price' => ['nullable', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'variants.*.original_price' => ['nullable', 'decimal:0,2', 'max:99999999.99'],
             'variants.*.status' => ['sometimes', Rule::in(['active', 'inactive'])],
@@ -63,6 +68,7 @@ class StoreProductRequest extends FormRequest
             $this->validateSkuScope($validator);
             $this->validateOptionsAndVariants($validator);
             $this->validateMarkdown($validator);
+            $this->validateDefaultGallery($validator);
         }];
     }
 
@@ -104,12 +110,6 @@ class StoreProductRequest extends FormRequest
             $validator->errors()->add('variants', 'Variants require at least one option group.');
 
             return;
-        }
-        if ($groups->isNotEmpty()) {
-            $expected = $groups->reduce(fn (int $count, array $group) => $count * count($group['values'] ?? []), 1);
-            if ($variants->count() !== $expected) {
-                $validator->errors()->add('variants', "Provide all {$expected} option combinations.");
-            }
         }
         $combinations = [];
         foreach ($variants as $index => $variant) {
@@ -157,6 +157,14 @@ class StoreProductRequest extends FormRequest
             } elseif (! preg_match('~^(https?://|/|#)~i', $url)) {
                 $validator->errors()->add('description_markdown', 'Links must use HTTP, HTTPS, an internal path, or a page anchor.');
             }
+        }
+    }
+
+    private function validateDefaultGallery(Validator $validator): void
+    {
+        $defaultId = $this->input('default_gallery_upload_id');
+        if ($defaultId !== null && ! in_array($defaultId, $this->input('gallery_upload_ids', []), true)) {
+            $validator->errors()->add('default_gallery_upload_id', 'The default image must be one of the Product gallery images.');
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Customer;
 
+use App\Models\ProductMedia;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -61,7 +62,7 @@ class ProductSummaryResource extends JsonResource
             'id' => $this->id,
             'slug' => $this->slug,
             'title' => $this->name,
-            'thumbnailUrl' => MediaUrl::from($this->thumbnail_disk, $this->thumbnail_path),
+            'thumbnailUrl' => $this->thumbnailUrl(),
             'price' => (float) $price,
             'originalPrice' => $validOriginalPrice,
             'minPrice' => null,
@@ -101,5 +102,21 @@ class ProductSummaryResource extends JsonResource
         return $this->stock_quantity <= (int) config('homepage.low_stock_threshold', 5)
             ? 'low_stock'
             : 'in_stock';
+    }
+
+    private function thumbnailUrl(): ?string
+    {
+        /** @var ProductMedia|null $media */
+        $media = $this->relationLoaded('galleryMedia')
+            ? ($this->galleryMedia->first(fn (ProductMedia $item) => $item->is_default) ?? $this->galleryMedia->first())
+            : null;
+
+        if ($media) {
+            return $media->mime_type !== null
+                ? url('/api/v1/product-media/'.$media->id)
+                : MediaUrl::from($media->disk, $media->path);
+        }
+
+        return MediaUrl::from($this->thumbnail_disk, $this->thumbnail_path);
     }
 }
