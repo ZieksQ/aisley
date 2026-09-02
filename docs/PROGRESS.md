@@ -18,6 +18,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-03
 
 - Removed the redundant Seller `package-lock.json`; Seller dependencies are now managed by the root pnpm workspace and authoritative root `pnpm-lock.yaml`.
+- Fixed the deployed Seller white screen caused by MDXEditor/Lexical Prism language modules executing before Prism initialization. The Seller Vite pipeline now binds Prism explicitly while transforming its language components and rejects production chunks containing unbound `Prism.languages` registrations; Seller lint, TypeScript, and production build pass.
 
 ## 2026-09-02
 
