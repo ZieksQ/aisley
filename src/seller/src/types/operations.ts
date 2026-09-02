@@ -24,6 +24,9 @@ export type Product = {
     inherits_price: boolean
     status: 'active' | 'inactive'
     option_value_ids: string[]
+    inventory_sku_id: string | null
+    on_hand: number
+    reserved: number
     available: number
     primary_media_id: string | null
   }[]
@@ -34,7 +37,7 @@ export type InventorySku = {
   code: string
   status: 'active' | 'inactive'
   product: { id: string; name: string; status: string }
-  variant: { id: string; sku: string } | null
+  variant: { id: string; sku: string; option_values: { group: string | null; value: string }[] } | null
   on_hand: number
   reserved: number
   available: number

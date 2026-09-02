@@ -48,6 +48,7 @@ class StoreProductRequest extends FormRequest
             'option_groups.*.values.*' => ['required', 'string', 'max:80'],
             'variants' => ['array', 'max:500'],
             'variants.*.sku' => ['required', 'string', 'max:80', 'alpha_dash'],
+            'variants.*.opening_stock' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:999999999'],
             'variants.*.price' => ['nullable', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'variants.*.original_price' => ['nullable', 'decimal:0,2', 'max:99999999.99'],
             'variants.*.status' => ['sometimes', Rule::in(['active', 'inactive'])],

@@ -41,13 +41,15 @@ class SellerCreateProductTest extends TestCase
             'gallery_upload_ids' => [$gallery],
             'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
             'variants' => [
-                ['sku' => 'SHIRT-BLK', 'price' => null, 'original_price' => null, 'option_value_indexes' => [0]],
-                ['sku' => 'SHIRT-WHT', 'price' => '550.00', 'original_price' => '650.00', 'option_value_indexes' => [1]],
+                ['sku' => 'SHIRT-BLK', 'price' => null, 'original_price' => null, 'opening_stock' => 3, 'option_value_indexes' => [0]],
+                ['sku' => 'SHIRT-WHT', 'price' => '550.00', 'original_price' => '650.00', 'opening_stock' => 5, 'option_value_indexes' => [1]],
             ],
         ])->assertCreated()
             ->assertJsonPath('data.variants.0.inherits_price', true)
             ->assertJsonPath('data.variants.0.effective_price', '500.00')
-            ->assertJsonPath('data.variants.1.effective_price', '550.00');
+            ->assertJsonPath('data.variants.1.effective_price', '550.00')
+            ->assertJsonPath('data.variants.0.available', 3)
+            ->assertJsonPath('data.variants.1.available', 5);
 
         $this->assertDatabaseHas('product_variants', ['shop_id' => $shop->id, 'sku' => 'SHIRT-WHT', 'price' => '550.00']);
         $this->assertDatabaseHas('inventory_skus', ['shop_id' => $shop->id, 'code' => 'SHIRT-WHT']);

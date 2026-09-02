@@ -32,7 +32,7 @@ class InventoryService
         return $sku->load('balance');
     }
 
-    public function createVariantSku(Product $product, ProductVariant $variant, string $code, User $actor): InventorySku
+    public function createVariantSku(Product $product, ProductVariant $variant, string $code, User $actor, int $openingStock = 0): InventorySku
     {
         $sku = $product->inventorySkus()->create([
             'shop_id' => $product->shop_id,
@@ -42,6 +42,10 @@ class InventoryService
             'status' => InventorySkuStatus::Active,
         ]);
         $sku->balance()->create(['on_hand' => 0, 'reserved' => 0]);
+
+        if ($openingStock > 0) {
+            $this->adjust($sku, $openingStock, InventoryMovementType::Restock, 'Opening stock', $actor);
+        }
 
         return $sku->load('balance');
     }

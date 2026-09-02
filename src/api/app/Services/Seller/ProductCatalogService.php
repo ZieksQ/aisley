@@ -110,7 +110,7 @@ class ProductCatalogService
                 'status' => $variantData['status'] ?? ProductVariantStatus::Active,
             ]);
             $variant->optionValues()->sync(collect($variantData['option_value_indexes'])->map(fn ($valueIndex, $groupIndex) => $valueIds[$groupIndex][$valueIndex])->all());
-            $this->inventory->createVariantSku($product, $variant, $variantData['sku'], $seller);
+            $this->inventory->createVariantSku($product, $variant, $variantData['sku'], $seller, (int) ($variantData['opening_stock'] ?? 0));
             if (! empty($variantData['image_upload_id'])) {
                 $media = $this->assets->claimVariantImage($product, $uploadToken, $variantData['image_upload_id'], $variant->id, $position);
                 $variant->update(['primary_media_id' => $media->id]);

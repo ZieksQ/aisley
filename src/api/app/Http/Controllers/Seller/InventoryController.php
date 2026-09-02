@@ -19,7 +19,7 @@ class InventoryController extends Controller
         /** @var User $seller */ $seller = $request->user();
         $shop = $shops->for($seller);
         $skus = InventorySku::query()->whereHas('product', fn ($q) => $q->where('shop_id', $shop->id))
-            ->with(['product:id,name,status', 'variant:id,product_id,sku', 'balance'])
+            ->with(['product:id,name,status', 'variant:id,product_id,sku', 'variant.optionValues.optionGroup', 'balance'])
             ->when($request->string('search')->toString(), fn ($q, $search) => $q->where(fn ($inner) => $inner->whereRaw('LOWER(code) LIKE ?', ['%'.strtolower($search).'%'])->orWhereHas('product', fn ($products) => $products->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($search).'%']))))
             ->when($request->string('stock')->toString() === 'out', fn ($q) => $q->whereHas('balance', fn ($b) => $b->whereColumn('on_hand', '<=', 'reserved')))
             ->when($request->string('stock')->toString() === 'low', fn ($q) => $q->whereHas('balance', fn ($b) => $b->whereNotNull('alert_threshold')->whereRaw('(on_hand - reserved) <= alert_threshold')->whereColumn('on_hand', '>', 'reserved')))
@@ -32,7 +32,7 @@ class InventoryController extends Controller
     public function show(Request $request, InventorySku $inventorySku, SellerShopService $shops): JsonResponse
     {
         $this->assertOwned($request, $inventorySku, $shops);
-        $inventorySku->load(['product:id,name,status', 'variant:id,product_id,sku', 'balance']);
+        $inventorySku->load(['product:id,name,status', 'variant:id,product_id,sku', 'variant.optionValues.optionGroup', 'balance']);
 
         return response()->json(['data' => $this->payload($inventorySku)]);
     }
@@ -77,7 +77,14 @@ class InventoryController extends Controller
         return [
             'id' => $sku->id, 'code' => $sku->code, 'status' => $sku->status->value,
             'product' => ['id' => $sku->product->id, 'name' => $sku->product->name, 'status' => $sku->product->status->value],
-            'variant' => $sku->variant ? ['id' => $sku->variant->id, 'sku' => $sku->variant->sku] : null,
+            'variant' => $sku->variant ? [
+                'id' => $sku->variant->id,
+                'sku' => $sku->variant->sku,
+                'option_values' => $sku->variant->optionValues->map(fn ($value) => [
+                    'group' => $value->optionGroup?->name,
+                    'value' => $value->value,
+                ])->values(),
+            ] : null,
             'on_hand' => $balance->on_hand, 'reserved' => $balance->reserved, 'available' => $available,
             'alert_threshold' => $balance->alert_threshold,
             'stock_state' => $available <= 0 ? 'out' : ($balance->alert_threshold !== null && $available <= $balance->alert_threshold ? 'low' : 'in_stock'),

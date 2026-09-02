@@ -28,7 +28,7 @@
 - Store fixed-precision monetary values with an explicit currency. `original_price`, including a variant override, is optional but cannot be lower than its effective selling price.
 - Support no variants (the base SKU is purchasable) or ordered option groups such as Color and Size.
 - Require each variant to select exactly one value from every option group; reject duplicates, partial combinations, duplicate combinations, and SKUs reused anywhere the API forbids them.
-- Each variant has an SKU, active/inactive state, and authoritative inventory SKU. Variant stock is created/updated through Inventory APIs and is never a second mutable stock balance in Product UI.
+- Each variant has an SKU, active/inactive state, and authoritative inventory SKU. Opening stock may be supplied once while creating each SKU through the Inventory service; persisted stock is read-only in Product UI and is adjusted only through Inventory.
 - Expose effective variant price/original price as `variant value ?? product value`; the Customer detail contract must show the selected variant's price, SKU, and availability.
 - Prevent publishing when required product data, valid combinations, required media, compliance state, or any later configured shipping/dimension requirement is incomplete.
 
@@ -49,7 +49,7 @@
 - If an MDXEditor component is ever imported into the Next.js `src/webapp`, wrap it in a client-only boundary and `next/dynamic(..., { ssr: false })`, and initialize its plugins in that client-only module. Do not put the editor in the server-rendered Customer product page.
 - The Seller form must expose labeled controls, keyboard-operable toolbar/dialog/drop zone, visible focus, non-color upload states, unsaved-change protection, loading/error/empty states, and mobile-safe layout.
 - Disable description-image upload until the draft has a persisted UUID; explain that the Seller must save the draft first.
-- Generate variant rows from option selections, show inherited versus overridden prices, prevent duplicate combinations, and make stock read-only except through Inventory management.
+- Generate variant rows from option selections, show each option group/value context, show inherited versus overridden prices, collect opening stock per new SKU, prevent duplicate combinations, and make persisted stock read-only except through Inventory management.
 
 ### Customer listing compatibility
 
