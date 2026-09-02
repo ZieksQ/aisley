@@ -15,6 +15,10 @@ Format:
 
 Project is in active implementation across the API, Customer storefront, and Admin dashboard.
 
+## 2026-09-03
+
+- Removed the redundant Seller `package-lock.json`; Seller dependencies are now managed by the root pnpm workspace and authoritative root `pnpm-lock.yaml`.
+
 ## 2026-09-02
 
 - Researched and added the implementation-ready Seller Create Product specification, covering Shop-scoped draft creation, variant-specific price overrides, MDXEditor image insertion to blob-backed description assets, and correct Seller/Vite and Customer/Next.js frontend initialization. No application behavior was changed.
