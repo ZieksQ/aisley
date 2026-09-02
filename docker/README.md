@@ -43,6 +43,18 @@ and scheduler start. Follow startup and tunnel health with:
 docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml logs -f
 ```
 
+Bootstrap accounts are not seeded automatically on every deployment. If you set
+the optional `INITIAL_*` and `APPROVED_CUSTOMER_*` values, run the seeders once
+after the stack is healthy:
+
+```sh
+compose='docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml'
+$compose exec api php artisan db:seed --class=Database\\Seeders\\AdminPermissionSeeder --force
+$compose exec api php artisan db:seed --class=Database\\Seeders\\InitialAdminSeeder --force
+$compose exec api php artisan db:seed --class=Database\\Seeders\\InitialSellerSeeder --force
+$compose exec api php artisan db:seed --class=Database\\Seeders\\InitialCustomerSeeder --force
+```
+
 ## Operations
 
 The Postgres volume is `aisley-production_postgres-data`; back it up before VM or
