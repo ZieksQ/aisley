@@ -18,7 +18,6 @@ return [
 
     'registration' => [
         'evidence_disk' => env('SELLER_REGISTRATION_EVIDENCE_DISK') ?: env('FILESYSTEM_DISK', 'local'),
-        'addresses_path' => base_path('addresses'),
     ],
 
     'products' => [
