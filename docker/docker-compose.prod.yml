@@ -4,6 +4,12 @@ x-api-environment: &api-environment
   env_file:
     - ./.env.production
 
+x-api-build: &api-build
+  build:
+    context: ..
+    dockerfile: docker/api/Dockerfile
+  image: aisley-api:production
+
 services:
   postgres:
     image: postgres:18.3-alpine3.23
@@ -24,11 +30,7 @@ services:
       - backend
 
   migrate:
-    <<: *api-environment
-    build:
-      context: ..
-      dockerfile: docker/api/Dockerfile
-    image: aisley-api:production
+    <<: [*api-environment, *api-build]
     restart: "no"
     command: ["php", "artisan", "migrate", "--force"]
     depends_on:
@@ -38,8 +40,7 @@ services:
       - backend
 
   api:
-    <<: *api-environment
-    image: aisley-api:production
+    <<: [*api-environment, *api-build]
     restart: unless-stopped
     depends_on:
       migrate:
@@ -73,8 +74,7 @@ services:
       - backend
 
   queue:
-    <<: *api-environment
-    image: aisley-api:production
+    <<: [*api-environment, *api-build]
     restart: unless-stopped
     command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
     depends_on:
@@ -84,8 +84,7 @@ services:
       - backend
 
   scheduler:
-    <<: *api-environment
-    image: aisley-api:production
+    <<: [*api-environment, *api-build]
     restart: unless-stopped
     command: ["php", "artisan", "schedule:work"]
     depends_on:

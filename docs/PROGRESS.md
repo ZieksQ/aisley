@@ -232,6 +232,8 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Added the optional initial-admin, initial-seller, and approved-customer bootstrap variables to the production Docker environment template, with explicit one-time seeding commands documented for Azure deployment. Bootstrap seeding remains opt-in and is not run automatically during every container restart.
 
+- Fixed production Compose image startup by sharing the local API build definition across the API, migration, queue, and scheduler services, preventing Compose from attempting to pull the private `aisley-api:production` image from a registry.
+
 ## 2026-09-02
 
 - Reorganized the API production deployment into a root `docker/` directory: independent PHP-FPM and Nginx Dockerfiles/configuration, Dockerfile-specific build exclusions, production environment template, operations guide, and service-only Compose definition. Removed the scattered API Docker directory and root production Compose file; the production command is now `docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml up -d --build`.
