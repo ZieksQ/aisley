@@ -19,6 +19,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Researched and added the implementation-ready Seller Create Product specification, covering Shop-scoped draft creation, variant-specific price overrides, MDXEditor image insertion to blob-backed description assets, and correct Seller/Vite and Customer/Next.js frontend initialization. No application behavior was changed.
 - Implemented Seller low-stock alerts with Shop-scoped UUID persistence, one active cycle per SKU, threshold/recovery lifecycle evaluation after manual adjustments, checkout reservations, and threshold changes, safe movement references, database notifications, bounded notification-free backfill, and Seller alert history/detail plus Inventory indicators. Focused SQLite and PostgreSQL suites pass with 6 tests/28 assertions; Seller lint passes, while the production build remains blocked by the pre-existing merge-damaged workspace lockfile and missing local `@mdxeditor/editor` install used by Product Description Editor.
+- Revised the Customer Wishlist specification into a concise implementation-ready Phase 1 save/remove/list contract. It reuses Customer auth, Product visibility, Cart handoff, UUID schema, and the existing Account-menu entry while explicitly deferring restock/price-drop alerts until a Customer notification inbox, preferences, and durable alert deduplication are approved. No application behavior was changed.
 
 ## 2026-08-27
 
