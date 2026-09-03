@@ -73,14 +73,14 @@ scope: Customer web application and public Laravel read APIs
 
 ### Acceptance criteria
 
-- [ ] Guests and authenticated Customers can paginate the public Shop directory and open an active Shop by its slug.
-- [ ] A non-existent, inactive, suspended, or vacation Shop has no public browse response.
-- [ ] Every Shop Product belongs to the resolved Shop; query manipulation cannot reveal another Shop's Product or category.
-- [ ] The directory and Shop list exclude every Product excluded by `storefrontVisible()`, including active compliance restrictions.
-- [ ] Only active, visible Product Categories appear as Shop filters, and a selected filter remains Seller/Shop-scoped.
-- [ ] Product pagination is bounded, deterministic, and retains valid URL state.
-- [ ] Public DTOs contain no private Seller, Admin, or Customer information and do not expose raw media paths.
-- [ ] The Customer UI has responsive, keyboard-accessible loading, empty, not-found, validation, and retry states.
+- [x] Guests and authenticated Customers can paginate the public Shop directory and open an active Shop by its slug.
+- [x] A non-existent, inactive, suspended, or vacation Shop has no public browse response.
+- [x] Every Shop Product belongs to the resolved Shop; query manipulation cannot reveal another Shop's Product or category.
+- [x] The directory and Shop list exclude every Product excluded by `storefrontVisible()`, including active compliance restrictions.
+- [x] Only active, visible Product Categories appear as Shop filters, and a selected filter remains Seller/Shop-scoped.
+- [x] Product pagination is bounded, deterministic, and retains valid URL state.
+- [x] Public DTOs contain no private Seller, Admin, or Customer information and do not expose raw media paths.
+- [x] The Customer UI has responsive, keyboard-accessible loading, empty, not-found, validation, and retry states.
 
 ## HOW
 

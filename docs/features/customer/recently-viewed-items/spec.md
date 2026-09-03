@@ -70,14 +70,14 @@ scope: Customer web application and Laravel API
 
 ### Acceptance criteria
 
-- [ ] Opening a visible Product Detail records one recency entry; cards, searches, rails, hovers, and variants do not.
-- [ ] Repeated visits update `last_viewed_at`, keep one Customer/Product record, and put that Product first.
+- [x] Opening a visible Product Detail records one recency entry; cards, searches, rails, hovers, and variants do not.
+- [x] Repeated visits update `last_viewed_at`, keep one Customer/Product record, and put that Product first.
 - [ ] An unauthenticated visitor stores only a bounded minimal local history and continues shopping when browser storage fails.
 - [ ] Login/session merge validates, deduplicates, bounds, and retries safely without delaying authentication.
-- [ ] Authenticated history is Customer-scoped, persistent across normal-device refreshes, and never exposes `user_id` control to the client.
-- [ ] Guest and Customer displays omit every Product excluded by `storefrontVisible()` and use current safe Product card data.
-- [ ] Homepage and Account page use the owning history API/data model; personalized data is never shared-cached.
-- [ ] Remove-one and clear-all affect only the current Customer or current guest browser as applicable.
+- [x] Authenticated history is Customer-scoped, persistent across normal-device refreshes, and never exposes `user_id` control to the client.
+- [x] Guest and Customer displays omit every Product excluded by `storefrontVisible()` and use current safe Product card data.
+- [x] Homepage and Account page use the owning history API/data model; personalized data is never shared-cached.
+- [x] Remove-one and clear-all affect only the current Customer or current guest browser as applicable.
 
 ## HOW
 
