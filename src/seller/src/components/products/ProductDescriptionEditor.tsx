@@ -70,13 +70,13 @@ export function ProductDescriptionEditor({
         return match ? apiAssetUrl(`/api/v1/seller/product-description-assets/${match[1]}`) : source
       },
     }),
-    toolbarPlugin({ toolbarContents: () => <><UndoRedo /><BlockTypeSelect /><BoldItalicUnderlineToggles /><ListsToggle /><CreateLink /><InsertThematicBreak /><InsertImage /></> }),
+    toolbarPlugin({ toolbarClassName: 'seller-product-toolbar', toolbarContents: () => <><UndoRedo /><BlockTypeSelect /><BoldItalicUnderlineToggles /><ListsToggle /><CreateLink /><InsertThematicBreak /><InsertImage /></> }),
   ], [onAsset, previewUrls, uploadToken])
 
   return <div>
     <div className="overflow-hidden rounded-lg border border-zinc-300 bg-white focus-within:ring-2 focus-within:ring-[#4C1268]/30 dark:border-white/15 dark:bg-[#18181b]">
       <MDXEditor
-        className="dark-theme"
+        className="seller-product-editor"
         contentEditableClassName="min-h-56 px-4 py-3 text-sm leading-6"
         markdown={markdown}
         onChange={(value, normalized) => { if (!normalized) onChange(value) }}
