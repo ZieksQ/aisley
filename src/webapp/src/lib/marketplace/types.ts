@@ -105,6 +105,44 @@ export type ProductSearchResponse = {
   };
 };
 
+export type Pagination = {
+  currentPage: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
+};
+
+export type ShopCategorySummary = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+export type ShopSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  category: ShopCategorySummary | null;
+};
+
+export type ShopDetail = ShopSummary;
+
+export type ShopDirectoryResponse = {
+  items: ShopSummary[];
+  categories: ShopCategorySummary[];
+  pagination: Pagination;
+};
+
+export type ShopBrowseResponse = {
+  shop: ShopDetail;
+  categories: ShopCategorySummary[];
+  items: ProductSummary[];
+  pagination: Pagination;
+};
+
 export type ProductMedia = {
   id: string | null;
   url: string;

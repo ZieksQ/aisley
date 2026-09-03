@@ -18,6 +18,7 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
@@ -208,6 +209,9 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/home/recommendations', [HomepageController::class, 'recommendations'])
         ->name('home.recommendations');
     Route::get('/products/search', ProductSearchController::class)->name('products.search');
+    Route::get('/shops', [ShopBrowseController::class, 'index'])->name('shops.index');
+    Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');
+    Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active'])->group(function () {
         Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
