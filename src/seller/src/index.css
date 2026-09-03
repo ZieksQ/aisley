@@ -78,3 +78,350 @@ html.dark .seller-security-card input:-webkit-autofill:focus {
   color: white;
   background: #e6007a;
 }
+
+/* Keep MDXEditor aligned with the Seller workspace instead of its default
+   blue/dark theme. The same class is copied to MDXEditor's popup container,
+   so menus and dialogs receive the same tokens as the editor surface. */
+html .seller-product-editor {
+  --accentBase: #fff7fb;
+  --accentBgSubtle: #fce7f3;
+  --accentBg: #fbcfe8;
+  --accentBgHover: #f9a8d4;
+  --accentBgActive: #f472b6;
+  --accentLine: #f9a8d4;
+  --accentBorder: #ec4899;
+  --accentBorderHover: #db2777;
+  --accentSolid: #4c1268;
+  --accentSolidHover: #3d0e54;
+  --accentText: #9d174d;
+  --accentTextContrast: #ffffff;
+
+  --basePageBg: #ffffff;
+  --baseBase: #ffffff;
+  --baseBgSubtle: #fafafa;
+  --baseBg: #f4f4f5;
+  --baseBgHover: #e4e4e7;
+  --baseBgActive: #d4d4d8;
+  --baseLine: #e4e4e7;
+  --baseBorder: #d4d4d8;
+  --baseBorderHover: #a1a1aa;
+  --baseSolid: #71717a;
+  --baseSolidHover: #52525b;
+  --baseText: #52525b;
+  --baseTextContrast: #18181b;
+  color: var(--baseTextContrast);
+  color-scheme: light;
+}
+
+html.dark .seller-product-editor {
+  --accentBase: #2a1828;
+  --accentBgSubtle: #3a1d37;
+  --accentBg: #552649;
+  --accentBgHover: #71305e;
+  --accentBgActive: #8b3c71;
+  --accentLine: #71305e;
+  --accentBorder: #c05a9b;
+  --accentBorderHover: #e184ba;
+  --accentSolid: #e6007a;
+  --accentSolidHover: #c9006b;
+  --accentText: #f9a8d4;
+  --accentTextContrast: #ffffff;
+
+  --basePageBg: #18181b;
+  --baseBase: #111113;
+  --baseBgSubtle: #1f1f23;
+  --baseBg: #242428;
+  --baseBgHover: #2d2d33;
+  --baseBgActive: #3a303e;
+  --baseLine: #303036;
+  --baseBorder: #45454d;
+  --baseBorderHover: #6b6b75;
+  --baseSolid: #a1a1aa;
+  --baseSolidHover: #d4d4d8;
+  --baseText: #a1a1aa;
+  --baseTextContrast: #fafafa;
+  color-scheme: dark;
+}
+
+html .seller-product-editor .seller-product-toolbar {
+  border-bottom: 1px solid var(--baseLine);
+  border-radius: 0;
+  background-color: var(--baseBg);
+  color: var(--baseTextContrast);
+  padding: 0.5rem;
+}
+
+html .seller-product-editor .seller-product-toolbar [data-toolbar-item],
+html .seller-product-editor .seller-product-toolbar button {
+  color: var(--baseTextContrast);
+  cursor: pointer;
+}
+
+html .seller-product-editor .seller-product-toolbar [data-toolbar-item] {
+  min-height: 2rem;
+  border-radius: 0.375rem;
+}
+
+html .seller-product-editor .seller-product-toolbar button:not([aria-label='Block type']) {
+  min-width: 2rem;
+}
+
+html .seller-product-editor .seller-product-toolbar [data-toolbar-item]:hover,
+html .seller-product-editor .seller-product-toolbar [data-toolbar-item][data-state='on'] {
+  background-color: var(--baseBgActive);
+  color: var(--baseTextContrast);
+}
+
+html .seller-product-editor .seller-product-toolbar [data-toolbar-item]:focus-visible,
+html .seller-product-editor .seller-product-toolbar button:focus-visible {
+  outline: 2px solid var(--accentBorder);
+  outline-offset: 2px;
+}
+
+html .seller-product-editor .seller-product-toolbar svg {
+  color: currentColor;
+}
+
+html .seller-product-editor .seller-product-toolbar button[aria-label='Block type'] {
+  width: 9rem;
+  justify-content: space-between;
+  border: 1px solid var(--baseBorder);
+  background-color: var(--basePageBg);
+  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+}
+
+html .seller-product-editor .seller-product-toolbar button[aria-label='Block type']:hover,
+html .seller-product-editor .seller-product-toolbar button[aria-label='Block type'][data-state='open'] {
+  background-color: var(--baseBgSubtle);
+  border-color: var(--baseBorderHover);
+}
+
+html .seller-product-editor .mdxeditor-select-content {
+  overflow: hidden;
+  border: 1px solid var(--baseBorder);
+  border-radius: 0.5rem;
+  background-color: var(--basePageBg);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
+  color: var(--baseTextContrast);
+  padding: 0.25rem;
+}
+
+html .seller-product-editor .mdxeditor-select-content [role='option'] {
+  min-height: 2.25rem;
+  align-items: center;
+  border-radius: 0.375rem;
+  color: var(--baseTextContrast);
+  cursor: pointer;
+  padding: 0.5rem 0.625rem;
+}
+
+html .seller-product-editor .mdxeditor-select-content [role='option'][data-highlighted],
+html .seller-product-editor .mdxeditor-select-content [role='option'][data-state='checked'] {
+  background-color: var(--accentBgSubtle);
+  color: var(--baseTextContrast);
+}
+
+html .seller-product-editor .mdxeditor-select-content [role='option']:focus-visible {
+  outline: 2px solid var(--accentBorder);
+  outline-offset: -2px;
+}
+
+html .seller-product-editor .mdxeditor-root-contenteditable,
+html .seller-product-editor [contenteditable='true'] {
+  background-color: var(--basePageBg);
+  color: var(--baseTextContrast);
+  caret-color: var(--accentSolid);
+}
+
+html .seller-product-editor [contenteditable='true'] a {
+  color: var(--accentText);
+}
+
+html .seller-product-editor [class*='_placeholder_'] {
+  color: var(--baseSolid);
+}
+
+/* MDXEditor's built-in link popover and image dialog use the same accessible
+   dialog surface. These overrides give both flows one compact, responsive
+   Seller modal treatment while preserving the plugin's behavior and focus
+   management. */
+html .seller-product-editor [role='dialog'],
+html .seller-product-editor [class*='_linkDialogPopoverContent_'] {
+  box-sizing: border-box;
+  border: 1px solid var(--baseBorder);
+  border-radius: 0.75rem;
+  background-color: var(--basePageBg);
+  color: var(--baseTextContrast);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 0.2);
+}
+
+html .seller-product-editor [class*='_linkDialogPopoverContent_'] {
+  display: block;
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 1rem;
+}
+
+/* Radix positions Popover.Content beside its text selection by default. Turn
+   only the link dialog's popper wrapper into a viewport-sized centering frame;
+   the block-type select continues to use its anchored dropdown wrapper. */
+html .seller-product-editor [data-radix-popper-content-wrapper]:has([class*='_linkDialogPopoverContent_']) {
+  position: fixed !important;
+  inset: 0 !important;
+  display: grid;
+  width: 100vw !important;
+  min-width: 0 !important;
+  height: 100vh;
+  transform: none !important;
+  place-items: center;
+  pointer-events: none;
+}
+
+html .seller-product-editor [data-radix-popper-content-wrapper]:has([class*='_linkDialogPopoverContent_']) [class*='_linkDialogPopoverContent_'] {
+  pointer-events: auto;
+}
+
+html .seller-product-editor [class*='_dialogContent_'] {
+  display: block;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+html .seller-product-editor [class*='_dialogOverlay_'] {
+  background-color: #111113;
+  opacity: 0.64;
+}
+
+html .seller-product-editor [role='dialog'] > h2 {
+  margin: 0 0 1rem;
+  color: var(--baseTextContrast);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+html .seller-product-editor [role='dialog'] form {
+  gap: 0.875rem;
+  padding: 0;
+}
+
+html .seller-product-editor [role='dialog'] form > div[class*='_formField_'] {
+  gap: 0.375rem;
+}
+
+html .seller-product-editor [role='dialog'] form > div[class*='_formField_'] > label {
+  color: var(--baseText);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html .seller-product-editor [role='dialog'] input:not([type='file']) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.5rem;
+  border: 1px solid var(--baseBorder);
+  border-radius: 0.5rem;
+  background-color: var(--baseBase);
+  color: var(--baseTextContrast);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+html .seller-product-editor [role='dialog'] input:not([type='file']):focus {
+  border-color: var(--accentBorder);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accentBorder) 20%, transparent);
+}
+
+html .seller-product-editor [role='dialog'] input::placeholder {
+  color: var(--baseSolid);
+}
+
+html .seller-product-editor [role='dialog'] input[type='file'] {
+  box-sizing: border-box;
+  width: 100%;
+  color: var(--baseText);
+  font-size: 0.8125rem;
+}
+
+html .seller-product-editor [role='dialog'] input[type='file']::file-selector-button {
+  margin-right: 0.625rem;
+  border: 1px solid var(--baseBorder);
+  border-radius: 0.375rem;
+  background-color: var(--baseBgSubtle);
+  color: var(--baseTextContrast);
+  padding: 0.5rem 0.625rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html .seller-product-editor [role='dialog'] [class*='_downshiftInputWrapper_'],
+html .seller-product-editor [role='dialog'] [class*='_linkDialogInputWrapper_'] {
+  border-color: var(--baseBorder);
+  border-radius: 0.5rem;
+  background-color: var(--baseBase);
+}
+
+html .seller-product-editor [role='dialog'] [class*='_downshiftInputWrapper_'] input,
+html .seller-product-editor [role='dialog'] [class*='_linkDialogInputWrapper_'] input {
+  border: 0;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+html .seller-product-editor [role='dialog'] [class*='_downshiftInputWrapper_'] button,
+html .seller-product-editor [role='dialog'] [class*='_linkDialogInputWrapper_'] button {
+  color: var(--baseText);
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child button {
+  min-height: 2.375rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child button[type='submit'] {
+  border: 1px solid var(--accentSolid);
+  background-color: var(--accentSolid);
+  color: #ffffff;
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child button[type='submit']:hover {
+  background-color: var(--accentSolidHover);
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child button[type='reset'] {
+  border: 1px solid var(--baseBorder);
+  background-color: transparent;
+  color: var(--baseTextContrast);
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child button[type='reset']:hover {
+  background-color: var(--baseBgHover);
+}
+
+html .seller-product-editor [role='dialog'] form > div:last-child button:focus-visible {
+  outline: 2px solid var(--accentBorder);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  html .seller-product-editor [class*='_linkDialogPopoverContent_'],
+  html .seller-product-editor [class*='_dialogContent_'] {
+    width: calc(100vw - 1.5rem);
+    padding: 1rem;
+  }
+}
