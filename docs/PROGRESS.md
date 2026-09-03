@@ -266,3 +266,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-04
 
 - Centered the Seller Create Product MDXEditor link dialog in a viewport-level modal frame without changing the anchored block-type dropdown or image dialog behavior. Seller lint and production build pass.
+
+## 2026-09-04
+
+- Replaced the obsolete 1,476-line Customer Account Management draft with a concise phased contract. It accurately records the protected read-only profile and separate Account destinations already available, defines the deferred Phase 1 allow-listed profile/password API and UI work, and keeps address, wishlist, orders, recently viewed, email change, uploads, preferences, MFA, and account deletion within their correct feature boundaries. No application behavior was changed.
