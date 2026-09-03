@@ -71,11 +71,11 @@ scope: Customer web application and Laravel API
 
 - [x] An active Customer can open the read-only `/account/profile` page; guests are redirected to sign in.
 - [x] Address, Wishlist, Orders, and Recently Viewed remain distinct Customer Account navigation destinations.
-- [ ] The account API and Phase 1 forms expose and update only the authenticated active Customer's allow-listed profile fields.
-- [ ] A forged Customer ID, another role, inactive account, forbidden field, or cross-role same-email record cannot read or change the Customer profile.
-- [ ] Password change requires the correct current password, confirmed policy-compliant replacement password, throttling, and safe session/token handling.
-- [ ] Private account responses and errors never expose tokens, hashes, raw media paths, registration evidence, or another Customer's data.
-- [ ] UI loading, validation, retry, success, and keyboard/focus states work without falsely reporting a saved change.
+- [x] The account API and Phase 1 forms expose and update only the authenticated active Customer's allow-listed profile fields.
+- [x] A forged Customer ID, another role, inactive account, forbidden field, or cross-role same-email record cannot read or change the Customer profile.
+- [x] Password change requires the correct current password, confirmed policy-compliant replacement password, throttling, and safe session/token handling.
+- [x] Private account responses and errors never expose tokens, hashes, raw media paths, registration evidence, or another Customer's data.
+- [x] UI loading, validation, retry, success, and keyboard/focus states work without falsely reporting a saved change.
 
 ## HOW
 
