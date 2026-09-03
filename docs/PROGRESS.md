@@ -247,3 +247,5 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-03
 
 - Revised the Customer Browse Seller Shops specification into a concise implementation-ready contract. It uses the implemented unique Shop slug, `storefrontVisible()` Product boundary, canonical Shop/Product category taxonomies, safe shared Product card resource, bounded pagination, public/private cache separation, and focused Customer/API acceptance coverage. No application behavior was changed.
+
+- Revised the Customer Recently Viewed Items specification around the existing UUID history table and homepage rail. The implementation contract now defines Product Detail-only recording, bounded guest local history, retry-safe Customer merge and retention, private history APIs, public stale-ID resolution, Account history controls, visibility revalidation, and no shared-cache leakage. No application behavior was changed.
