@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
     remotePatterns,
     unoptimized: true,
   },
-  transpilePackages: ["@aisley/ui"],
+  transpilePackages: ["@aisley/psgc-address-data", "@aisley/ui"],
   turbopack: {
     // root: "../../",
     root: path.resolve(process.cwd(), "../.."),

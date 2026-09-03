@@ -257,3 +257,4 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-04
 
 - Declared the shared `@aisley/psgc-address-data` workspace package in all frontend apps and `@aisley/ui` in Seller/Admin, with concise AGENTS.md rules for shared UI reuse and PSGC address flows. Admin, Seller, and Customer webpack/TypeScript production checks pass.
+- Replaced Customer Webapp PSGC dropdown API requests with local bundled `@aisley/psgc-address-data` loading. The region index is bundled immediately and region hierarchies are lazy-loaded on demand, preserving cascading options, validation, abort handling, and manual fallback; the Customer address specification now documents the frontend-local source.
