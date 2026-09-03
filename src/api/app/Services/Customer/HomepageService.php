@@ -15,13 +15,14 @@ use App\Models\Product;
 use App\Models\RecentlyViewedProduct;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\CursorPaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class HomepageService
 {
+    public function __construct(private readonly RecentlyViewedService $recentlyViewedService) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -225,16 +226,11 @@ class HomepageService
             return collect();
         }
 
-        $views = RecentlyViewedProduct::query()
-            ->where('user_id', $customer->id)
-            ->whereHas('product', fn (Builder $query) => $query->storefrontVisible())
-            ->with(['product.shop:id,name,slug', 'product.galleryMedia'])
-            ->orderByDesc('last_viewed_at')
-            ->limit((int) config('homepage.recently_viewed_limit', 12))
-            ->get();
-
         return ProductSummaryResource::collection(
-            $views->pluck('product')->filter()->values(),
+            $this->recentlyViewedService->homepageProducts(
+                $customer,
+                (int) config('homepage.recently_viewed_limit', 12),
+            ),
         )->collection;
     }
 

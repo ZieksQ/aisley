@@ -6,6 +6,7 @@ import { HiChevronRight } from "react-icons/hi2";
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { ProductConfigurator } from "@/components/product/product-configurator";
+import { ProductViewRecorder } from "@/components/recently-viewed/product-view-recorder";
 import {
   ProductDescription,
   ProductSpecifications,
@@ -85,6 +86,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <HomeDataProvider initialData={homepage} trackView={false}>
+      <ProductViewRecorder productId={product.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
