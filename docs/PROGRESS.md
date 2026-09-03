@@ -262,3 +262,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-04
 
 - Fixed Seller Create Product MDXEditor light/dark theming, toolbar and block-type dropdown contrast, and responsive link/image dialog styling while preserving the existing Markdown image upload flow. Seller lint and production build pass.
+
+## 2026-09-04
+
+- Centered the Seller Create Product MDXEditor link dialog in a viewport-level modal frame without changing the anchored block-type dropdown or image dialog behavior. Seller lint and production build pass.

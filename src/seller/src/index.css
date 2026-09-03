@@ -261,6 +261,25 @@ html .seller-product-editor [class*='_linkDialogPopoverContent_'] {
   padding: 1rem;
 }
 
+/* Radix positions Popover.Content beside its text selection by default. Turn
+   only the link dialog's popper wrapper into a viewport-sized centering frame;
+   the block-type select continues to use its anchored dropdown wrapper. */
+html .seller-product-editor [data-radix-popper-content-wrapper]:has([class*='_linkDialogPopoverContent_']) {
+  position: fixed !important;
+  inset: 0 !important;
+  display: grid;
+  width: 100vw !important;
+  min-width: 0 !important;
+  height: 100vh;
+  transform: none !important;
+  place-items: center;
+  pointer-events: none;
+}
+
+html .seller-product-editor [data-radix-popper-content-wrapper]:has([class*='_linkDialogPopoverContent_']) [class*='_linkDialogPopoverContent_'] {
+  pointer-events: auto;
+}
+
 html .seller-product-editor [class*='_dialogContent_'] {
   display: block;
   width: min(32rem, calc(100vw - 2rem));
