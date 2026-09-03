@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aisley/psgc-address-data": "workspace:*",
     "@aisley/ui": "workspace:*",
     "leaflet": "^1.9.4",
     "next": "16.3.0",

@@ -35,6 +35,8 @@ Database: Postgres (containerized)
 13. **Read applicable reference policies before implementation.** For any file/image upload work, read `docs/references/file-upload-requirements.md`. For Customer, Seller, or Courier registration/approval work, read `docs/references/user-registration-requirements.md`. Apply both when registration includes document/image uploads.
 14. Run all commands from within this directory. Do not run commands that modify files, directories, packages, services, or system settings outside this directory, including commands requiring sudo, unless explicitly instructed to do so.
 15. **Database Migrations**: Never modify existing or previously executed migration files. Always create a new migration file to apply schema changes, table updates, or data alterations.
+16. **Shared frontend packages.** Declare workspace packages explicitly and reuse `@aisley/ui` components when compatible; avoid duplicate UI primitives.
+17. **PSGC addresses.** For Philippine address fields, use `@aisley/psgc-address-data` and follow the webapp's cascading Region → Province → City/Municipality → Barangay flow.
 
 ## Where to look
 
