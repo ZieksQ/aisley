@@ -18,6 +18,7 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\PlatformContentController;
@@ -209,6 +210,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/home/recommendations', [HomepageController::class, 'recommendations'])
         ->name('home.recommendations');
     Route::get('/products/search', ProductSearchController::class)->name('products.search');
+    Route::post('/products/resolve', [RecentlyViewedController::class, 'resolve'])->name('products.resolve');
     Route::get('/shops', [ShopBrowseController::class, 'index'])->name('shops.index');
     Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
@@ -234,6 +236,11 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
         Route::put('/wishlist/{product}', [WishlistController::class, 'store'])->whereUuid('product')->name('wishlist.store');
         Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy'])->whereUuid('product')->name('wishlist.destroy');
+        Route::get('/recently-viewed', [RecentlyViewedController::class, 'index'])->name('recently-viewed.index');
+        Route::put('/recently-viewed/{product}', [RecentlyViewedController::class, 'store'])->whereUuid('product')->name('recently-viewed.store');
+        Route::post('/recently-viewed/merge', [RecentlyViewedController::class, 'merge'])->name('recently-viewed.merge');
+        Route::delete('/recently-viewed/{product}', [RecentlyViewedController::class, 'destroy'])->whereUuid('product')->name('recently-viewed.destroy');
+        Route::delete('/recently-viewed', [RecentlyViewedController::class, 'clear'])->name('recently-viewed.clear');
         Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');
         Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
         Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])

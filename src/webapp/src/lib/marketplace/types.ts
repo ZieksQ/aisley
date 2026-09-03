@@ -143,6 +143,28 @@ export type ShopBrowseResponse = {
   pagination: Pagination;
 };
 
+export type RecentlyViewedItem = {
+  id: string;
+  lastViewedAt: string;
+  product: ProductSummary;
+};
+
+export type RecentlyViewedPage = {
+  data: RecentlyViewedItem[];
+  links: { next: string | null; prev: string | null };
+  meta: {
+    next_cursor: string | null;
+    path: string;
+    per_page: number;
+    prev_cursor: string | null;
+  };
+};
+
+export type GuestRecentlyViewedEntry = {
+  productId: string;
+  viewedAt: string;
+};
+
 export type ProductMedia = {
   id: string | null;
   url: string;
