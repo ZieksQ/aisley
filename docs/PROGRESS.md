@@ -243,3 +243,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-02
 
 - Reorganized the API production deployment into a root `docker/` directory: independent PHP-FPM and Nginx Dockerfiles/configuration, Dockerfile-specific build exclusions, production environment template, operations guide, and service-only Compose definition. Removed the scattered API Docker directory and root production Compose file; the production command is now `docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml up -d --build`.
+
+## 2026-09-03
+
+- Revised the Customer Browse Seller Shops specification into a concise implementation-ready contract. It uses the implemented unique Shop slug, `storefrontVisible()` Product boundary, canonical Shop/Product category taxonomies, safe shared Product card resource, bounded pagination, public/private cache separation, and focused Customer/API acceptance coverage. No application behavior was changed.
