@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Enums\ShopStatus;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -68,5 +71,21 @@ class Shop extends Model
     public function lowStockAlerts(): HasMany
     {
         return $this->hasMany(LowStockAlert::class);
+    }
+
+    /**
+     * Limit shops to records that may be exposed on the public storefront.
+     *
+     * @param  Builder<Shop>  $query
+     * @return Builder<Shop>
+     */
+    public function scopeStorefrontVisible(Builder $query): Builder
+    {
+        return $query
+            ->where('shops.status', ShopStatus::Active)
+            ->where('shops.is_on_vacation', false)
+            ->whereHas('seller', fn (Builder $seller) => $seller
+                ->where('role', UserRole::Seller)
+                ->where('status', UserStatus::Active));
     }
 }
