@@ -101,6 +101,7 @@ export default async function Home() {
           <HeroCampaignWindow
             heroCampaigns={homepage.campaigns.hero}
             sideCampaigns={homepage.campaigns.side}
+            advertisementLayer={homepage.advertisementLayer}
           />
         </div>
 

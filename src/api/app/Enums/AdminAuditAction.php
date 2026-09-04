@@ -20,6 +20,10 @@ enum AdminAuditAction: string
     case PolicySuccessorCreated = 'platform_settings.policy_successor_created';
     case PolicyVersionUpdated = 'platform_settings.policy_version_updated';
     case PolicyVersionPublished = 'platform_settings.policy_version_published';
+    case HomepageAdvertisementDraftCreated = 'platform_settings.homepage_advertisement_draft_created';
+    case HomepageAdvertisementDraftUpdated = 'platform_settings.homepage_advertisement_draft_updated';
+    case HomepageAdvertisementPublished = 'platform_settings.homepage_advertisement_published';
+    case HomepageAdvertisementArchived = 'platform_settings.homepage_advertisement_archived';
     case UserAccountSuspended = 'user_account.suspended';
     case UserAccountRestored = 'user_account.restored';
     case UserAccountDeactivated = 'user_account.deactivated';
@@ -50,6 +54,10 @@ enum AdminAuditAction: string
             self::PolicySuccessorCreated => 'Policy successor draft created',
             self::PolicyVersionUpdated => 'Policy version updated',
             self::PolicyVersionPublished => 'Policy version published',
+            self::HomepageAdvertisementDraftCreated => 'Homepage advertisement draft created',
+            self::HomepageAdvertisementDraftUpdated => 'Homepage advertisement draft updated',
+            self::HomepageAdvertisementPublished => 'Homepage advertisement published',
+            self::HomepageAdvertisementArchived => 'Homepage advertisement archived',
             self::UserAccountSuspended => 'User account suspended',
             self::UserAccountRestored => 'User account restored',
             self::UserAccountDeactivated => 'User account deactivated',

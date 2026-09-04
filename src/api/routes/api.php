@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
@@ -90,6 +91,11 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::delete('/account/profile-photo', [AccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
 
     Route::prefix('platform-settings')->name('platform-settings.')->group(function () {
+        Route::get('/homepage-advertisements', [HomepageAdvertisementController::class, 'index'])->middleware('admin.permission:platform-settings.view')->name('homepage-advertisements.index');
+        Route::post('/homepage-advertisements', [HomepageAdvertisementController::class, 'store'])->middleware('admin.permission:platform-settings.manage')->name('homepage-advertisements.store');
+        Route::patch('/homepage-advertisements/{configuration}', [HomepageAdvertisementController::class, 'update'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.update');
+        Route::post('/homepage-advertisements/{configuration}/publish', [HomepageAdvertisementController::class, 'publish'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.publish');
+        Route::post('/homepage-advertisements/{configuration}/successor', [HomepageAdvertisementController::class, 'successor'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.successor');
         Route::get('/announcements', [PlatformSettingsController::class, 'announcements'])->middleware('admin.permission:platform-settings.view')->name('announcements.index');
         Route::post('/announcements', [PlatformSettingsController::class, 'storeAnnouncement'])->middleware('admin.permission:platform-settings.manage')->name('announcements.store');
         Route::patch('/announcements/{announcement}', [PlatformSettingsController::class, 'updateAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.update');

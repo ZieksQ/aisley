@@ -35,7 +35,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 ### Access, lifecycle, and isolation
 
-- Every Admin mutation/read requires Sanctum authentication, an active persisted `ADMIN` role, and an explicit advertisement-content permission. React visibility is not authorization.
+- Every Admin mutation/read requires Sanctum authentication, an active persisted `ADMIN` role, and the existing `platform-settings.view` or `platform-settings.manage` permission as appropriate. React visibility is not authorization.
 - Use project-standard `401`, `403`, `404`, `409`, `422`, and upload `429` responses for authentication, permission, scope, concurrency, validation, and throttling failures.
 - Keep draft editing separate from the published configuration. Recommended lifecycle: `DRAFT → PUBLISHED → ARCHIVED`.
 - A publish operation must atomically persist layout, rotation interval, slot assignments, and all referenced advertisement content. It must never expose a half-configured layout.
@@ -47,16 +47,16 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 - Title and description are required, trimmed, plain text, bounded by server validation, and rendered without raw HTML/script execution. Recommended MVP bounds are 160 title characters and 500 description characters.
 - Alt text is required for informative images. Decorative treatment must be an explicit server/UI decision; an ad image must not rely on text embedded only inside the bitmap.
-- Destination links are required for MVP and must be relative Customer routes or configured same-origin/allow-listed hosts. Reject `javascript:`, data URLs, phishing destinations, and arbitrary unapproved hosts; never trust a client-supplied sanitized URL.
+- Destination links may be Customer-relative or external `http`/`https` URLs. Reject control characters, protocol-relative URLs, `javascript:`, `data:`, and other non-web schemes; never trust a client-supplied sanitized URL.
 - A desktop image is required. A mobile image is optional; when absent, the desktop asset is used with a responsive crop. The API returns delivery URLs, never disk paths.
 - `single` publishes exactly one eligible advertisement.
 - `carousel` publishes at least two eligible advertisements in explicit order.
 - `multi_block` publishes exactly three unique advertisements: `primary`, `secondary_top`, and `secondary_bottom`.
 - `multi_block_carousel` publishes at least two unique primary slides plus exactly one advertisement in each secondary slot.
 - An advertisement may occupy only one slot in a published configuration. Reordering changes presentation order, not content ownership.
-- `rotation_interval_seconds` is server-validated; use the existing six-second behavior as the default and a bounded MVP range such as 5–60 seconds. The Customer client must use the returned value rather than a hard-coded timer.
+- `rotation_interval_seconds` is server-validated; use six seconds by default with a bounded 3–20 second MVP range. The Customer client must use the returned value rather than a hard-coded timer.
 - Only published, active, non-expired, eligible advertisements are returned to Customers. Draft, archived, invalid, missing-media, and future/expired content is excluded by Laravel.
-- If a published configuration becomes incomplete at read time, use the last valid published configuration; if none exists, return an empty advertisement layer and keep the rest of the homepage usable. The fallback must be observable and deterministic.
+- Scheduling applies independently to each advertisement. Expired carousel slides are omitted. An expired or inactive single slot, or any missing/expired multi-block slot, is replaced with a deterministic default Aisley advertisement; the rest of the homepage remains usable.
 
 ### Customer interaction and accessibility
 
@@ -103,9 +103,12 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 - Observe publish failures, incomplete-layer fallbacks, upload rejection categories, and advertisement impressions/clicks using safe ad/configuration IDs and slot/layout metadata; do not record Customer PII.
 - The Customer homepage must continue using one authoritative API projection for this layer so Admin preview, public SSR, client refresh, and cache invalidation cannot drift into separate advertisement rules.
 
-### Open questions
+### Resolved decisions
 
-- Should this use dedicated `homepage-advertisements.view/manage` permissions or the existing `platform-settings.view/manage` permissions?
+- Advertisement access uses the existing `platform-settings.view/manage` permissions.
+- Admins may publish a complete draft immediately; scheduling is per advertisement.
+- External `http`/`https` destinations are allowed.
+- Use a mobile-first 2:3 primary crop, transitioning to 4:3 at tablet and 16:9 at desktop.
 - Is the required lifecycle/versioned publish flow part of MVP, or may an authorized Admin save directly to the live layer?
 - Are external links ever allowed beyond configured hosts, and should they open in the same tab?
 - Should scheduling apply to each advertisement or to the whole published configuration, and what happens when only one required slot expires?

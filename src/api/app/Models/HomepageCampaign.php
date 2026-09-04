@@ -15,8 +15,11 @@ class HomepageCampaign extends Model
     public const CACHE_KEY = 'customer:homepage:campaigns';
 
     protected $fillable = [
+        'homepage_advertisement_configuration_id',
         'placement',
+        'slot',
         'title',
+        'description',
         'image_disk',
         'image_desktop_path',
         'image_mobile_path',
@@ -25,6 +28,7 @@ class HomepageCampaign extends Model
         'starts_at',
         'ends_at',
         'priority',
+        'position',
         'is_active',
     ];
 
@@ -38,8 +42,14 @@ class HomepageCampaign extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'priority' => 'integer',
+            'position' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function advertisementConfiguration(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(HomepageAdvertisementConfiguration::class, 'homepage_advertisement_configuration_id');
     }
 
     protected static function booted(): void

@@ -23,6 +23,17 @@ export type HomepageCampaign = {
   endsAt: string;
   priority: number;
   isActive: boolean;
+  description?: string | null;
+  slot?: string | null;
+  position?: number;
+};
+
+export type HomepageAdvertisementLayer = {
+  layout: "single" | "carousel" | "multi_block" | "multi_block_carousel";
+  rotationIntervalSeconds: number;
+  primary: HomepageCampaign[];
+  secondaryTop: HomepageCampaign | null;
+  secondaryBottom: HomepageCampaign | null;
 };
 
 export type HomepageQuickAction = {
@@ -86,6 +97,7 @@ export type HomepageData = {
     hero: HomepageCampaign[];
     side: HomepageCampaign[];
   };
+  advertisementLayer: HomepageAdvertisementLayer | null;
   quickActions: HomepageQuickAction[];
   categories: HomepageCategory[];
   flashDeals: FlashDeals | null;

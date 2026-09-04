@@ -28,6 +28,7 @@ const emptyHomepage: HomepageData = {
     cartItemCount: 0,
   },
   campaigns: { hero: [], side: [] },
+  advertisementLayer: null,
   quickActions: [],
   categories: [],
   flashDeals: null,

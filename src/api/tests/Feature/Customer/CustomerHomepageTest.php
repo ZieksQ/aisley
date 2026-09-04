@@ -136,7 +136,7 @@ class CustomerHomepageTest extends TestCase
             ->assertJsonPath('viewer.deliveryLocation', null)
             ->assertJsonPath('campaigns.hero.0.id', $campaign->id)
             ->assertJsonCount(1, 'campaigns.hero')
-            ->assertJsonPath('campaigns.side.0.destinationUrl', null)
+            ->assertJsonPath('campaigns.side.0.destinationUrl', 'https://malicious.example/phishing')
             ->assertJsonCount(1, 'categories')
             ->assertJsonPath('categories.0.slug', 'electronics')
             ->assertJsonPath('flashDeals.id', $deal->id)
