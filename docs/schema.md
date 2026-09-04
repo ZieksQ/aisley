@@ -211,6 +211,8 @@ Additional relationships:
 - `CourierProfile.vehicles` returns the Courier's registered vehicles.
 - Age is calculated from `birth_date`; it is not stored as a column.
 
+A Customer profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). `customer_profiles` additionally stores nullable `profile_photo_disk`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height` metadata alongside the generated relative `profile_photo_path`. The API never exposes these storage fields; authenticated delivery uses the current-Customer profile-photo endpoint with private, no-store response headers.
+
 #### `admin_profiles`
 
 **Model:** `AdminProfile`
@@ -1034,6 +1036,7 @@ Migrations currently run in this dependency order:
 41. `2026_09_02_000132_add_seller_product_authoring.php` — Seller product authoring asset metadata, temporary uploads, product descriptions, and Product retention fields.
 42. `2026_09_02_000133_add_product_gallery_defaults.php` — Seller-selected default Product gallery cover marker.
 43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
+44. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
 
 ## 14. Deferred schema
 
