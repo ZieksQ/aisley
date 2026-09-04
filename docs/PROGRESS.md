@@ -281,6 +281,10 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Added a draft Logistics Authentication specification grounded in the Logistics registration requirements, shared upload policy, Sanctum session flow, Admin approval boundary, and unresolved Logistics role, organization, hub, and subscription decisions. No application behavior was changed.
 
+## 2026-09-04
+
+- Added a draft Courier Authentication specification grounded in the Courier registration requirements, external mobile bearer-token flow, Logistics relationship, repository approval-gating rule, current Courier schema foundation, and shared private evidence policy. No application behavior was changed.
+
 ## 2026-09-05
 
 - Fixed production Nginx API upstream resolution by using Docker's embedded DNS with a dynamically resolved `api:9000` upstream, so recreated API containers do not leave Nginx pinned to an old IP. Added an Nginx-only health endpoint and switched the Compose healthcheck to it while preserving Laravel `/up` and Cloudflare forwarded headers.
