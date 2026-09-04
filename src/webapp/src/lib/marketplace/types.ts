@@ -14,13 +14,13 @@ export type HomepageViewer = {
 export type HomepageCampaign = {
   id: string;
   placement: "hero" | "hero_side";
-  title: string;
+  title: string | null;
   imageDesktopUrl: string | null;
   imageMobileUrl: string | null;
-  altText: string;
+  altText: string | null;
   destinationUrl: string | null;
-  startsAt: string;
-  endsAt: string;
+  startsAt: string | null;
+  endsAt: string | null;
   priority: number;
   isActive: boolean;
   description?: string | null;

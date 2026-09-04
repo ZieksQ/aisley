@@ -7,6 +7,7 @@ import { FiChevronLeft, FiChevronRight, FiPause, FiPlay } from "react-icons/fi";
 import type { HomepageAdvertisementLayer, HomepageCampaign } from "@/lib/marketplace/types";
 
 import { CampaignImage } from "./campaign-image";
+import { useHomeData } from "./home-data-provider";
 
 function campaignContent(
   campaign: HomepageCampaign,
@@ -24,12 +25,23 @@ function campaignContent(
       {!campaign.imageDesktopUrl ? (
         <div className="relative z-10 flex h-full items-end bg-[#4C1268] p-6 text-white">
           <p className={compact ? "text-lg font-bold" : "max-w-lg text-3xl font-bold"}>
-            {campaign.title}
+            {campaign.title ?? "Discover more on Aisley"}
           </p>
         </div>
-      ) : (
-        <span className="sr-only">{campaign.title}</span>
-      )}
+      ) : campaign.title || campaign.description ? (
+        <div className="absolute inset-x-0 bottom-0 z-10 bg-black/55 px-4 py-3 text-white sm:px-6 sm:py-4">
+          {campaign.title ? (
+            <p className={compact ? "text-base font-semibold" : "text-xl font-bold sm:text-2xl"}>
+              {campaign.title}
+            </p>
+          ) : null}
+          {campaign.description ? (
+            <p className={`mt-1 leading-5 text-white/90 ${compact ? "line-clamp-2 text-xs" : "max-w-xl text-sm sm:text-base"}`}>
+              {campaign.description}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -62,27 +74,21 @@ function CampaignLink({
   );
 }
 
-export function HeroCampaignWindow({
-  heroCampaigns,
-  sideCampaigns,
-  advertisementLayer,
-}: {
-  heroCampaigns: HomepageCampaign[];
-  sideCampaigns: HomepageCampaign[];
-  advertisementLayer: HomepageAdvertisementLayer | null;
-}) {
-  const layer = advertisementLayer;
+export function HeroCampaignWindow() {
+  const { data } = useHomeData();
+  const layer: HomepageAdvertisementLayer | null = data.advertisementLayer;
+  const heroCampaigns = data.campaigns.hero;
+  const sideCampaigns = data.campaigns.side;
   const campaigns = (layer?.primary ?? heroCampaigns).filter((campaign) => campaign.isActive);
   const visibleSideCampaigns = layer ? [layer.secondaryTop, layer.secondaryBottom].filter((campaign): campaign is HomepageCampaign => Boolean(campaign)) : sideCampaigns.filter((campaign) => campaign.isActive);
   const hasSideCampaigns = layer ? layer.layout === "multi_block" || layer.layout === "multi_block_carousel" : visibleSideCampaigns.length > 0;
   const isCarousel = layer ? layer.layout === "carousel" || layer.layout === "multi_block_carousel" : true;
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
   const visibleIndex = campaigns.length > 0 ? activeIndex % campaigns.length : 0;
 
   useEffect(() => {
-    if (!isCarousel || campaigns.length < 2 || isPaused || isHovering) {
+    if (!isCarousel || campaigns.length < 2 || isPaused) {
       return;
     }
 
@@ -98,7 +104,7 @@ export function HeroCampaignWindow({
     }, (layer?.rotationIntervalSeconds ?? 6) * 1000);
 
     return () => window.clearInterval(interval);
-  }, [campaigns.length, isCarousel, isHovering, isPaused, layer?.rotationIntervalSeconds]);
+  }, [campaigns.length, isCarousel, isPaused, layer?.rotationIntervalSeconds]);
 
   const activeCampaign = campaigns[visibleIndex];
 
@@ -115,8 +121,8 @@ export function HeroCampaignWindow({
         className={`relative aspect-[2/3] min-h-[220px] overflow-hidden rounded-[10px] bg-[#4C1268] sm:aspect-[4/3] sm:min-h-[280px] lg:aspect-video lg:min-h-0 ${
           hasSideCampaigns ? "" : "lg:aspect-[16/5]"
         }`}
-        onPointerEnter={() => setIsHovering(true)}
-        onPointerLeave={() => setIsHovering(false)}
+        onFocusCapture={() => setIsPaused(true)}
+        onPointerEnter={() => setIsPaused(true)}
       >
         {activeCampaign ? (
           <CampaignLink
@@ -171,7 +177,7 @@ export function HeroCampaignWindow({
                 <button
                   key={campaign.id}
                   type="button"
-                  aria-label={`Show campaign ${index + 1}: ${campaign.title}`}
+                  aria-label={`Show campaign ${index + 1}: ${campaign.title ?? campaign.altText ?? "Advertisement"}`}
                   aria-current={index === visibleIndex ? "true" : undefined}
                   onClick={() => setActiveIndex(index)}
                   className={`h-1 rounded-sm transition-[width,background-color] ${
@@ -197,7 +203,7 @@ export function HeroCampaignWindow({
       </div>
 
       {hasSideCampaigns ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:grid-rows-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-rows-2">
           {visibleSideCampaigns
             .slice(0, 2)
             .map((campaign, index) => (

@@ -36,15 +36,132 @@ type HomepageAd = { id?: string; slot: 'primary' | 'secondary_top' | 'secondary_
 type HomepageConfiguration = { id: string; layout: 'single' | 'carousel' | 'multi_block' | 'multi_block_carousel'; rotation_interval_seconds: number; status: string; revision: number; ads: HomepageAd[] }
 const blankAd = (slot: HomepageAd['slot'] = 'primary', position = 0): HomepageAd => ({ slot, position, title: '', description: '', image_desktop_path: '', image_mobile_path: '', alt_text: '', destination_url: '', starts_at: '', ends_at: '', is_active: true })
 
+function dateTimeInput(value: string | null | undefined) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+
+function adsForLayout(layout: HomepageConfiguration['layout'], current: HomepageAd[]) {
+  const primary = current.filter((ad) => ad.slot === 'primary')
+  const top = current.find((ad) => ad.slot === 'secondary_top') ?? blankAd('secondary_top')
+  const bottom = current.find((ad) => ad.slot === 'secondary_bottom') ?? blankAd('secondary_bottom')
+  const withMinimumPrimary = [...primary]
+  const minimum = layout === 'carousel' || layout === 'multi_block_carousel' ? 2 : 1
+  while (withMinimumPrimary.length < minimum) withMinimumPrimary.push(blankAd('primary'))
+  const selected = layout === 'single'
+    ? [withMinimumPrimary[0]]
+    : layout === 'carousel'
+      ? withMinimumPrimary
+      : layout === 'multi_block'
+        ? [withMinimumPrimary[0], top, bottom]
+        : [...withMinimumPrimary, top, bottom]
+  return selected.map((ad, position) => ({ ...ad, position }))
+}
+
 function HomepageAdvertisements({ canManage }: { canManage: boolean }) {
-  const [items, setItems] = useState<HomepageConfiguration[]>([]); const [editing, setEditing] = useState<HomepageConfiguration | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
+  const [items, setItems] = useState<HomepageConfiguration[]>([])
+  const [editing, setEditing] = useState<HomepageConfiguration | null>(null)
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [busy, setBusy] = useState(false)
   const load = () => apiRequest<Paginated<HomepageConfiguration>>('/api/v1/admin/platform-settings/homepage-advertisements').then((response) => setItems(response.data)).catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load homepage advertisements.'))
   useEffect(() => { void load() }, [])
-  const open = (item?: HomepageConfiguration) => setEditing(item ?? { id: '', layout: 'single', rotation_interval_seconds: 6, status: 'draft', revision: 1, ads: [blankAd()] })
-  const save = async (event: FormEvent) => { event.preventDefault(); if (!editing) return; setBusy(true); setError(''); try { const payload = { ...editing, ads: editing.ads.map((ad) => ({ ...ad, id: ad.id || undefined, description: ad.description || null, image_mobile_path: ad.image_mobile_path || null, destination_url: ad.destination_url || null, starts_at: ad.starts_at || null, ends_at: ad.ends_at || null })) }; await apiRequest(editing.id ? `/api/v1/admin/platform-settings/homepage-advertisements/${editing.id}` : '/api/v1/admin/platform-settings/homepage-advertisements', { method: editing.id ? 'PATCH' : 'POST', body: JSON.stringify(editing.id ? { ...payload, revision: editing.revision } : payload) }); setEditing(null); void load() } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to save advertisement draft.') } finally { setBusy(false) } }
+  const open = (item?: HomepageConfiguration) => {
+    setFieldErrors({})
+    setError('')
+    setEditing(item ? { ...item, ads: item.ads.map((ad) => ({ ...ad, title: ad.title ?? '', description: ad.description ?? '', alt_text: ad.alt_text ?? '', destination_url: ad.destination_url ?? '', starts_at: dateTimeInput(ad.starts_at), ends_at: dateTimeInput(ad.ends_at) })) } : { id: '', layout: 'single', rotation_interval_seconds: 6, status: 'draft', revision: 1, ads: [blankAd()] })
+  }
+  const editItem = async (item: HomepageConfiguration) => {
+    if (item.status === 'draft') return open(item)
+    if (item.status !== 'published') return
+    setBusy(true)
+    try {
+      const response = await apiRequest<{ data: HomepageConfiguration }>(`/api/v1/admin/platform-settings/homepage-advertisements/${item.id}/successor`, { method: 'POST', body: '{}' })
+      open(response.data)
+      void load()
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to create an editable draft.') } finally { setBusy(false) }
+  }
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!editing) return
+    setBusy(true); setError(''); setFieldErrors({})
+    try {
+      const payload = { ...editing, ads: editing.ads.map((ad, position) => ({ ...ad, position, id: ad.id || undefined, title: ad.title || null, description: ad.description || null, image_mobile_path: ad.image_mobile_path || null, alt_text: ad.alt_text || null, destination_url: ad.destination_url || null, starts_at: ad.starts_at || null, ends_at: ad.ends_at || null })) }
+      await apiRequest(editing.id ? `/api/v1/admin/platform-settings/homepage-advertisements/${editing.id}` : '/api/v1/admin/platform-settings/homepage-advertisements', { method: editing.id ? 'PATCH' : 'POST', body: JSON.stringify(editing.id ? { ...payload, revision: editing.revision } : payload) })
+      setEditing(null); void load()
+    } catch (caught) {
+      if (caught instanceof ApiError) setFieldErrors(caught.errors)
+      setError(caught instanceof Error ? caught.message : 'Unable to save advertisement draft.')
+    } finally { setBusy(false) }
+  }
   const publish = async (item: HomepageConfiguration) => { if (!window.confirm('Publish this homepage advertisement layout now?')) return; try { await apiRequest(`/api/v1/admin/platform-settings/homepage-advertisements/${item.id}/publish`, { method: 'POST', body: JSON.stringify({ revision: item.revision }) }); void load() } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to publish.') } }
-  const upload = async (file: File, index: number) => { if (!editing) return; setBusy(true); setError(''); try { const body = new FormData(); body.append('image', file); const response = await apiRequest<{ data: { url: string } }>('/api/v1/admin/platform-settings/homepage-advertisement-images', { method: 'POST', body }); const ads = [...editing.ads]; ads[index] = { ...ads[index], image_desktop_path: response.data.url }; setEditing({ ...editing, ads }) } catch (caught) { setError(caught instanceof Error ? caught.message : 'Image upload failed.') } finally { setBusy(false) } }
-  return <section className="mt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="font-semibold">Homepage advertisements</h3><p className="mt-1 text-sm text-slate-500">Draft a layout, schedule each ad, then publish it immediately.</p></div>{canManage ? <PrimaryButton onClick={() => open()}><FaPlus />New layout</PrimaryButton> : null}</div>{error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}<div className="mt-5 space-y-3">{items.map((item) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 dark:border-white/10" key={item.id}><div><p className="font-medium capitalize">{item.layout.replaceAll('_', ' ')}</p><p className="text-sm text-slate-500">{item.ads.length} ads · {item.status}</p></div>{canManage ? <div className="flex gap-2"><button className="text-sm text-[#A50059]" onClick={() => open(item)} type="button">Edit</button>{item.status === 'draft' ? <button className="text-sm font-medium text-[#A50059]" onClick={() => void publish(item)} type="button">Publish now</button> : null}</div> : null}</div>)}</div>{editing ? <form className="mt-6 space-y-4 rounded-xl border border-slate-200 p-4 dark:border-white/10" onSubmit={save}><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">Layout<select className={inputClass} value={editing.layout} onChange={(event) => setEditing({ ...editing, layout: event.target.value as HomepageConfiguration['layout'] })}><option value="single">Single</option><option value="carousel">Carousel</option><option value="multi_block">Multi block</option><option value="multi_block_carousel">Multi block carousel</option></select></label><label className="text-sm">Rotation seconds<input className={inputClass} min="3" max="20" type="number" value={editing.rotation_interval_seconds} onChange={(event) => setEditing({ ...editing, rotation_interval_seconds: Number(event.target.value) })} /></label></div>{editing.ads.map((ad, index) => <div className="grid gap-2 border-t pt-3 sm:grid-cols-2" key={`${ad.id ?? 'new'}-${index}`}><input className={inputClass} placeholder="Title" value={ad.title} onChange={(event) => { const ads = [...editing.ads]; ads[index] = { ...ad, title: event.target.value }; setEditing({ ...editing, ads }) }} /><input className={inputClass} placeholder="Desktop image URL" value={ad.image_desktop_path} onChange={(event) => { const ads = [...editing.ads]; ads[index] = { ...ad, image_desktop_path: event.target.value }; setEditing({ ...editing, ads }) }} /><input className={inputClass} placeholder="Alt text" value={ad.alt_text} onChange={(event) => { const ads = [...editing.ads]; ads[index] = { ...ad, alt_text: event.target.value }; setEditing({ ...editing, ads }) }} /><input className={inputClass} placeholder="Destination URL (optional)" value={ad.destination_url} onChange={(event) => { const ads = [...editing.ads]; ads[index] = { ...ad, destination_url: event.target.value }; setEditing({ ...editing, ads }) }} /></div>)}<div className="flex gap-3"><PrimaryButton disabled={busy} type="submit">Save draft</PrimaryButton><button className="text-sm" onClick={() => setEditing(null)} type="button">Cancel</button></div></form> : null}</section>
+  const updateAd = (index: number, patch: Partial<HomepageAd>) => { if (!editing) return; const ads = [...editing.ads]; ads[index] = { ...ads[index], ...patch }; setEditing({ ...editing, ads }) }
+  const assignSlot = (index: number, slot: HomepageAd['slot']) => {
+    if (!editing || editing.ads[index].slot === slot) return
+    const ads = [...editing.ads]
+    const previousSlot = ads[index].slot
+    const swapIndex = slot === 'primary'
+      ? ads.findIndex((ad, adIndex) => adIndex !== index && ad.slot === 'primary')
+      : ads.findIndex((ad, adIndex) => adIndex !== index && ad.slot === slot)
+    ads[index] = { ...ads[index], slot }
+    if (swapIndex >= 0) ads[swapIndex] = { ...ads[swapIndex], slot: previousSlot }
+    setEditing({ ...editing, ads })
+  }
+  const upload = async (file: File, index: number, mobile = false) => {
+    if (!editing) return
+    setBusy(true); setError('')
+    try {
+      const body = new FormData(); body.append('image', file)
+      const response = await apiRequest<{ data: { url: string } }>('/api/v1/admin/platform-settings/homepage-advertisement-images', { method: 'POST', body })
+      updateAd(index, mobile ? { image_mobile_path: response.data.url } : { image_desktop_path: response.data.url })
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Image upload failed.') } finally { setBusy(false) }
+  }
+  const addSlide = () => { if (!editing) return; setEditing({ ...editing, ads: [...editing.ads, blankAd('primary', editing.ads.length)] }) }
+  const removeAd = (index: number) => { if (!editing) return; setEditing({ ...editing, ads: editing.ads.filter((_, adIndex) => adIndex !== index).map((ad, position) => ({ ...ad, position })) }) }
+
+  return (
+    <section className="mt-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h3 className="font-semibold">Homepage advertisements</h3><p className="mt-1 text-sm text-slate-500">Upload images, assign placements, schedule each ad, and publish the complete layout.</p></div>
+        {canManage ? <PrimaryButton onClick={() => open()}><FaPlus />New layout</PrimaryButton> : null}
+      </div>
+      {error ? <p className="mt-4 text-sm text-red-600" role="alert">{error}</p> : null}
+      <div className="mt-5 space-y-3">
+        {items.map((item) => <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-4 dark:border-white/10" key={item.id}><div><p className="font-medium capitalize">{item.layout.replaceAll('_', ' ')}</p><p className="text-sm text-slate-500">{item.ads.length} ads · {item.status}</p></div>{canManage ? <div className="flex gap-3">{item.status === 'draft' || item.status === 'published' ? <button className="text-sm text-[#A50059] disabled:opacity-50" disabled={busy} onClick={() => void editItem(item)} type="button">{item.status === 'draft' ? 'Edit' : 'Create draft copy'}</button> : null}{item.status === 'draft' ? <button className="text-sm font-medium text-[#A50059]" onClick={() => void publish(item)} type="button">Publish now</button> : null}</div> : null}</div>)}
+      </div>
+      {editing ? <form className="mt-6 space-y-5 border-t border-slate-200 pt-5 dark:border-white/10" onSubmit={save}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-medium">Layout<select className={inputClass} value={editing.layout} onChange={(event) => { const layout = event.target.value as HomepageConfiguration['layout']; setEditing({ ...editing, layout, ads: adsForLayout(layout, editing.ads) }) }}><option value="single">Single</option><option value="carousel">Carousel</option><option value="multi_block">Multi block</option><option value="multi_block_carousel">Multi block carousel</option></select></label>
+          <label className="text-sm font-medium">Rotation interval (seconds)<input className={inputClass} min="3" max="20" type="number" value={editing.rotation_interval_seconds} onChange={(event) => setEditing({ ...editing, rotation_interval_seconds: Number(event.target.value) })} /></label>
+        </div>
+        {editing.ads.map((ad, index) => {
+          const primaryCount = editing.ads.filter((item) => item.slot === 'primary').length
+          const canRemove = ad.slot === 'primary' && (editing.layout === 'carousel' || editing.layout === 'multi_block_carousel') && primaryCount > 2
+          return <fieldset className="space-y-4 border-t border-slate-200 pt-5 dark:border-white/10" key={`${ad.id ?? 'new'}-${index}`}><legend className="px-1 text-sm font-semibold">Advertisement {index + 1}</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium">Placement<select className={inputClass} disabled={editing.layout === 'single' || editing.layout === 'carousel'} value={ad.slot} onChange={(event) => assignSlot(index, event.target.value as HomepageAd['slot'])}><option value="primary">{editing.layout.includes('carousel') ? 'Primary carousel' : 'Primary block'}</option>{editing.layout.startsWith('multi_block') ? <><option value="secondary_top">Secondary top block</option><option value="secondary_bottom">Secondary bottom block</option></> : null}</select></label>
+              <label className="flex items-center gap-2 self-end pb-3 text-sm"><input checked={ad.is_active} onChange={(event) => updateAd(index, { is_active: event.target.checked })} type="checkbox" />Active</label>
+              <label className="text-sm font-medium">Title (optional)<input className={inputClass} maxLength={160} value={ad.title} onChange={(event) => updateAd(index, { title: event.target.value })} /></label>
+              <label className="text-sm font-medium">Alt text (optional)<input className={inputClass} maxLength={160} value={ad.alt_text} onChange={(event) => updateAd(index, { alt_text: event.target.value })} /></label>
+              <label className="text-sm font-medium sm:col-span-2">Description (optional)<textarea className={`${inputClass} min-h-20 resize-y`} maxLength={320} value={ad.description} onChange={(event) => updateAd(index, { description: event.target.value })} /></label>
+              <label className="text-sm font-medium sm:col-span-2">Destination URL (optional)<input className={inputClass} placeholder="/search or https://example.com" value={ad.destination_url} onChange={(event) => updateAd(index, { destination_url: event.target.value })} /></label>
+              <div className="text-sm font-medium"><span>Desktop image</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:font-medium`} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file, index) }} required={!ad.image_desktop_path} type="file" /><p className="mt-1 text-xs font-normal text-slate-500">JPEG, PNG, or WebP under 10 MiB.</p>{ad.image_desktop_path ? <img alt="Desktop advertisement preview" className="mt-2 aspect-video w-full rounded-md border border-slate-200 object-cover dark:border-white/10" src={ad.image_desktop_path} /> : null}</div>
+              <div className="text-sm font-medium"><span>Mobile image (optional)</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:font-medium`} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file, index, true) }} type="file" />{ad.image_mobile_path ? <img alt="Mobile advertisement preview" className="mt-2 aspect-[2/3] max-h-56 w-full rounded-md border border-slate-200 object-cover dark:border-white/10" src={ad.image_mobile_path} /> : <p className="mt-1 text-xs font-normal text-slate-500">Desktop image is used when omitted.</p>}</div>
+              <label className="text-sm font-medium">Starts at (optional)<input className={inputClass} type="datetime-local" value={ad.starts_at} onChange={(event) => updateAd(index, { starts_at: event.target.value })} /></label>
+              <label className="text-sm font-medium">Ends at (optional)<input className={inputClass} min={ad.starts_at || undefined} type="datetime-local" value={ad.ends_at} onChange={(event) => updateAd(index, { ends_at: event.target.value })} /></label>
+            </div>
+            {Object.entries(fieldErrors).filter(([key]) => key.startsWith(`ads.${index}.`)).flatMap(([, messages]) => messages).map((message) => <p className="text-sm text-red-600" key={message}>{message}</p>)}
+            {canRemove ? <button className="inline-flex items-center gap-2 text-sm text-red-600" onClick={() => removeAd(index)} type="button"><FaXmark />Remove slide</button> : null}
+          </fieldset>
+        })}
+        {editing.layout === 'carousel' || editing.layout === 'multi_block_carousel' ? <button className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-white/15 dark:hover:bg-white/5" onClick={addSlide} type="button"><FaPlus />Add carousel slide</button> : null}
+        <div className="flex gap-3"><PrimaryButton disabled={busy} type="submit">{busy ? 'Saving…' : 'Save draft'}</PrimaryButton><button className="text-sm" onClick={() => setEditing(null)} type="button">Cancel</button></div>
+      </form> : null}
+    </section>
+  )
 }
 
 function Announcements({ canManage }: { canManage: boolean }) {

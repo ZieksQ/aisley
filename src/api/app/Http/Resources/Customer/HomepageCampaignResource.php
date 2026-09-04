@@ -25,8 +25,8 @@ class HomepageCampaignResource extends JsonResource
             'imageMobileUrl' => MediaUrl::from($this->image_disk, $this->image_mobile_path),
             'altText' => $this->alt_text,
             'destinationUrl' => SafeHomepageDestination::sanitize($this->destination_url),
-            'startsAt' => $this->starts_at->toISOString(),
-            'endsAt' => $this->ends_at->toISOString(),
+            'startsAt' => $this->starts_at?->toISOString(),
+            'endsAt' => $this->ends_at?->toISOString(),
             'priority' => $this->priority,
             'isActive' => true,
         ];

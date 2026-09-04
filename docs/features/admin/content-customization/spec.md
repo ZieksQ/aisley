@@ -15,10 +15,10 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 - Authorized Admins manage the public advertisement layer at the top of the Customer homepage.
 - Admins can create, edit, order, preview, schedule, activate, archive, and publish advertisements with:
-  - title
+  - optional title
   - plain-text description
   - desktop image and optional mobile art-directed image
-  - accessible image alternative text
+  - optional image alternative text
   - safe destination link
 - The layout is selected for the advertisement layer only:
   - `single`: one advertisement in one full-width block.
@@ -45,10 +45,9 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 ### Content and layout rules
 
-- Title and description are required, trimmed, plain text, bounded by server validation, and rendered without raw HTML/script execution. Recommended MVP bounds are 160 title characters and 500 description characters.
-- Alt text is required for informative images. Decorative treatment must be an explicit server/UI decision; an ad image must not rely on text embedded only inside the bitmap.
+- Title, description, and alt text are optional, trimmed, plain text, bounded by server validation, and rendered without raw HTML/script execution. This supports artwork that already contains its display text; linked ads still receive a safe generic accessible name when no text alternative is supplied.
 - Destination links may be Customer-relative or external `http`/`https` URLs. Reject control characters, protocol-relative URLs, `javascript:`, `data:`, and other non-web schemes; never trust a client-supplied sanitized URL.
-- A desktop image is required. A mobile image is optional; when absent, the desktop asset is used with a responsive crop. The API returns delivery URLs, never disk paths.
+- An uploaded desktop image is required. A mobile upload is optional; when absent, the desktop asset is used with a responsive crop. The Admin form does not accept manually entered image URLs, and the API returns delivery URLs, never disk paths.
 - `single` publishes exactly one eligible advertisement.
 - `carousel` publishes at least two eligible advertisements in explicit order.
 - `multi_block` publishes exactly three unique advertisements: `primary`, `secondary_top`, and `secondary_bottom`.
@@ -78,7 +77,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 ### Acceptance criteria
 
-- [ ] An authorized Admin can create a draft advertisement, upload valid desktop/mobile images, enter title/description/alt text/link, preview it, and save field-addressable validation errors.
+- [ ] An authorized Admin can create a draft advertisement, upload a required desktop image and optional mobile image, optionally enter title/description/alt text/link, preview it, and save field-addressable validation errors.
 - [ ] Admin can choose each of the four layouts, assign valid unique slots/order, set the rotation interval, and receive a publish-blocking error for incomplete layouts.
 - [ ] Publish atomically changes the Customer advertisement layer; drafts and stale/conflicting requests never reach Customers.
 - [ ] Customer API returns only the current valid published layer and preserves every non-ad homepage field when the layout changes.
@@ -109,10 +108,10 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 - Admins may publish a complete draft immediately; scheduling is per advertisement.
 - External `http`/`https` destinations are allowed.
 - Use a mobile-first 2:3 primary crop, transitioning to 4:3 at tablet and 16:9 at desktop.
-- Is the required lifecycle/versioned publish flow part of MVP, or may an authorized Admin save directly to the live layer?
-- Are external links ever allowed beyond configured hosts, and should they open in the same tab?
-- Should scheduling apply to each advertisement or to the whole published configuration, and what happens when only one required slot expires?
-- What exact image aspect ratios/crop rules and per-purpose dimensions should be enforced for desktop, mobile, primary, and secondary placements?
+- Published layouts use the versioned draft/publish lifecycle, with an explicit Publish now action.
+- External `http`/`https` links are allowed and open in the same tab.
+- Scheduling applies independently to every advertisement; missing carousel slides are removed, while missing single or multi-block slots receive deterministic defaults.
+- Title, description, alt text, and destination URL are optional because advertisement artwork may already contain display text and may be non-clickable.
 
 ### Sources
 

@@ -37,14 +37,14 @@ const emptyHomepage: HomepageData = {
   recommendations: { items: [], nextCursor: null, pageSize: 20 },
 };
 
-async function publicApiRequest<T>(path: string): Promise<T | null> {
+async function publicApiRequest<T>(path: string, noStore = false): Promise<T | null> {
   try {
     const response = await fetch(`${apiBaseUrl}${path}`, {
       headers: {
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest",
       },
-      next: { revalidate: 60 },
+      ...(noStore ? { cache: "no-store" as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -102,6 +102,7 @@ async function publicApiResult<T>(
 export async function getPublicHomepage(pageSize: number) {
   const homepage = await publicApiRequest<HomepageData>(
     `/api/v1/customer/home?limit=${pageSize}`,
+    true,
   );
 
   if (homepage) {

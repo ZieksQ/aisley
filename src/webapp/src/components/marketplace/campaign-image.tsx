@@ -9,7 +9,7 @@ export function CampaignImage({
   mobileSrc,
   priority = false,
 }: {
-  alt: string;
+  alt: string | null;
   desktopSrc: string | null;
   mobileSrc: string | null;
   priority?: boolean;
@@ -22,7 +22,7 @@ export function CampaignImage({
   }
 
   const desktop = getImageProps({
-    alt,
+    alt: alt ?? "",
     fill: true,
     priority,
     sizes: "(max-width: 1023px) 100vw, 900px",
@@ -30,7 +30,7 @@ export function CampaignImage({
   });
   const mobile = mobileSrc
     ? getImageProps({
-        alt,
+        alt: alt ?? "",
         fill: true,
         priority,
         sizes: "100vw",
@@ -46,7 +46,7 @@ export function CampaignImage({
       {/* next/image supplies the optimized srcset; picture selects the mobile asset. */}
       <img
         {...desktop.props}
-        alt={alt}
+        alt={alt ?? ""}
         onError={() => setFailedSourceKey(sourceKey)}
         className="absolute inset-0 size-full object-cover"
       />

@@ -98,11 +98,7 @@ export default async function Home() {
         </h1>
 
         <div className="mx-auto max-w-[1400px] px-4 pb-5 pt-4 sm:px-5 sm:pt-5 lg:px-8">
-          <HeroCampaignWindow
-            heroCampaigns={homepage.campaigns.hero}
-            sideCampaigns={homepage.campaigns.side}
-            advertisementLayer={homepage.advertisementLayer}
-          />
+          <HeroCampaignWindow />
         </div>
 
         <QuickActions actions={homepage.quickActions} />
