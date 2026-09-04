@@ -78,16 +78,17 @@ role: Seller, Customer, Courier
 
 - Last name\*
 - First name\*
-- Middle ini0al
+- Middle initial
 - Sex\*
 - E-mail\*
 - Contact No.\*
 - Birthday\*
 - Age (autogen)\*
-- Address (API) (Dropdown: Province, Municipality, Barangay) (Manual entry: Street, House number, etc.)
+- Address (API)
   - Dropdown: Province, Municipality, Barangay
   - Manual entry: Street, House number, etc.
 - Business name
 - Upload ID
 - Upload business/DTI permit
-- After submiting your registration, please wait for the administrator's approval, which will be sent to your email.
+
+> Note: After submiting your registration, please wait for the administrator's approval, which will be sent to your email.
