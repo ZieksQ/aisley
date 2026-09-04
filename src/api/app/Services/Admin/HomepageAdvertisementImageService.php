@@ -51,6 +51,8 @@ class HomepageAdvertisementImageService
             throw ValidationException::withMessages(['image' => 'The image could not be stored.']);
         }
 
-        return Storage::disk('public')->url($path);
+        $url = Storage::disk('public')->url($path);
+
+        return str_starts_with($url, '/') ? url($url) : $url;
     }
 }

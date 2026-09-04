@@ -107,7 +107,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 - Advertisement access uses the existing `platform-settings.view/manage` permissions.
 - Admins may publish a complete draft immediately; scheduling is per advertisement.
 - External `http`/`https` destinations are allowed.
-- Use a mobile-first 2:3 primary crop, transitioning to 4:3 at tablet and 16:9 at desktop.
+- Use responsive `object-cover` art direction within a banner height of roughly 30–40% of the viewport, capped near 280px on phones and 420px on desktop, so the advertisement and following homepage section are visible together on initial load.
 - Published layouts use the versioned draft/publish lifecycle, with an explicit Publish now action.
 - External `http`/`https` links are allowed and open in the same tab.
 - Scheduling applies independently to every advertisement; missing carousel slides are removed, while missing single or multi-block slots receive deterministic defaults.

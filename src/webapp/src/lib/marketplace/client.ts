@@ -13,7 +13,7 @@ import type {
 export function fetchHomepage(signal?: AbortSignal) {
   return apiRequest<HomepageData>(
     `/api/v1/customer/home?limit=${marketplaceConfig.discoveryPageSize}`,
-    { signal, cache: "no-store" },
+    { signal },
   );
 }
 

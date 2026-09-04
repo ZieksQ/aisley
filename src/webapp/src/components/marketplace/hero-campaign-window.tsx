@@ -74,11 +74,17 @@ function CampaignLink({
   );
 }
 
-export function HeroCampaignWindow() {
+export function HeroCampaignWindow({
+  heroCampaigns,
+  sideCampaigns,
+  advertisementLayer,
+}: {
+  heroCampaigns: HomepageCampaign[];
+  sideCampaigns: HomepageCampaign[];
+  advertisementLayer: HomepageAdvertisementLayer | null;
+}) {
   const { data } = useHomeData();
-  const layer: HomepageAdvertisementLayer | null = data.advertisementLayer;
-  const heroCampaigns = data.campaigns.hero;
-  const sideCampaigns = data.campaigns.side;
+  const layer: HomepageAdvertisementLayer | null = data.advertisementLayer ?? advertisementLayer;
   const campaigns = (layer?.primary ?? heroCampaigns).filter((campaign) => campaign.isActive);
   const visibleSideCampaigns = layer ? [layer.secondaryTop, layer.secondaryBottom].filter((campaign): campaign is HomepageCampaign => Boolean(campaign)) : sideCampaigns.filter((campaign) => campaign.isActive);
   const hasSideCampaigns = layer ? layer.layout === "multi_block" || layer.layout === "multi_block_carousel" : visibleSideCampaigns.length > 0;
@@ -118,9 +124,7 @@ export function HeroCampaignWindow() {
       }`}
     >
       <div
-        className={`relative aspect-[2/3] min-h-[220px] overflow-hidden rounded-[10px] bg-[#4C1268] sm:aspect-[4/3] sm:min-h-[280px] lg:aspect-video lg:min-h-0 ${
-          hasSideCampaigns ? "" : "lg:aspect-[16/5]"
-        }`}
+        className="relative h-[clamp(190px,38vh,280px)] min-h-0 overflow-hidden rounded-[10px] bg-[#4C1268] sm:h-[clamp(240px,38vh,340px)] lg:h-[clamp(300px,38vh,420px)]"
         onFocusCapture={() => setIsPaused(true)}
         onPointerEnter={() => setIsPaused(true)}
       >
@@ -203,7 +207,7 @@ export function HeroCampaignWindow() {
       </div>
 
       {hasSideCampaigns ? (
-        <div className="grid grid-cols-1 gap-3 lg:grid-rows-2">
+        <div className="grid grid-cols-1 gap-3 lg:h-[clamp(300px,38vh,420px)] lg:grid-rows-2">
           {visibleSideCampaigns
             .slice(0, 2)
             .map((campaign, index) => (

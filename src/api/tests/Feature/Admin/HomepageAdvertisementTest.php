@@ -26,6 +26,10 @@ class HomepageAdvertisementTest extends TestCase
             ->assertJsonPath('data.ads.0.starts_at', null)
             ->assertJsonPath('data.ads.0.ends_at', null);
 
+        $this->getJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id'))
+            ->assertOk()
+            ->assertJsonPath('data.layout', 'single');
+
         $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id').'/publish', [
             'revision' => 1,
         ])->assertOk();
