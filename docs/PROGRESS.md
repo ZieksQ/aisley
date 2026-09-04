@@ -276,3 +276,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 - Updated the Customer Account Management contract so Phase 1 includes a private Customer profile photo. It requires the shared JPEG/PNG/WebP-under-10-MiB upload policy, decoded-image validation, server-generated Azure Blob/configured-disk storage, additive metadata, owner-only delivery, safe replacement/removal cleanup, and no raw blob-path exposure. No application behavior was changed.
 
 - Added a native OpenSSH GitHub Actions deployment for pushes to `main`. The workflow pins the Azure VM host key, rejects dirty VM checkouts, fast-forwards the VM's `main` branch, and runs the existing production Docker Compose build; the Azure VM setup, repository pull credentials, workflow secrets, and troubleshooting steps are documented in `docker/README.md`.
+
+## 2026-09-05
+
+- Fixed production Nginx API upstream resolution by using Docker's embedded DNS with a dynamically resolved `api:9000` upstream, so recreated API containers do not leave Nginx pinned to an old IP. Added an Nginx-only health endpoint and switched the Compose healthcheck to it while preserving Laravel `/up` and Cloudflare forwarded headers.
