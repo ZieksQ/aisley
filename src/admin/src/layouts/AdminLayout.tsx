@@ -88,7 +88,7 @@ export function AdminLayout() {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+        <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
           <nav className="mt-10" aria-label="Admin navigation">
             <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-purple-200/40">Workspace</p>
             <div className="mt-3 space-y-1.5">

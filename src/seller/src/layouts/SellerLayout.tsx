@@ -67,7 +67,7 @@ export function SellerLayout() {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+        <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
           <nav aria-label="Seller navigation" className="mt-8">
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
               <FaGaugeHigh aria-hidden="true" />
