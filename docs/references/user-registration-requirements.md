@@ -30,8 +30,6 @@ role: Seller, Customer, Courier
 
 ## Seller - Registration
 
-### Registration
-
 - **Last name\***
 - **First name\***
 - **Middle initial**
@@ -58,8 +56,6 @@ role: Seller, Customer, Courier
 
 ## Courier - Registration
 
-### Registration
-
 - **Last name\***
 - **First name\***
 - **Middle initial**
@@ -76,4 +72,22 @@ role: Seller, Customer, Courier
 - **Upload OR/CR**
 - **Upload ID/driver’s license**
 
-> **Note:** After submitting your registration, please wait for the administrator's approval, which will be sent to your email.
+> **Note:** After submitting your registration, please wait for the Logistic's approval, which will be sent to your email.
+
+## Logistics - Registration
+
+- Last name\*
+- First name\*
+- Middle ini0al
+- Sex\*
+- E-mail\*
+- Contact No.\*
+- Birthday\*
+- Age (autogen)\*
+- Address (API) (Dropdown: Province, Municipality, Barangay) (Manual entry: Street, House number, etc.)
+  - Dropdown: Province, Municipality, Barangay
+  - Manual entry: Street, House number, etc.
+- Business name
+- Upload ID
+- Upload business/DTI permit
+- After submiting your registration, please wait for the administrator's approval, which will be sent to your email.
