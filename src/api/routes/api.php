@@ -222,6 +222,13 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::patch('/account/password', [CustomerAccountController::class, 'updatePassword'])
             ->middleware('throttle:customer-account-password')
             ->name('account.password.update');
+        Route::post('/account/profile-photo', [CustomerAccountController::class, 'uploadProfilePhoto'])
+            ->middleware('throttle:customer-profile-photo')
+            ->name('account.photo.store');
+        Route::get('/account/profile-photo', [CustomerAccountController::class, 'profilePhoto'])
+            ->name('account.photo.show');
+        Route::delete('/account/profile-photo', [CustomerAccountController::class, 'removeProfilePhoto'])
+            ->name('account.photo.destroy');
         Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [CustomerAddressController::class, 'store'])->name('addresses.store');
         Route::patch('/addresses/{address}', [CustomerAddressController::class, 'update'])

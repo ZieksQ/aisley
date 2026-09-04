@@ -21,9 +21,9 @@ class CustomerNavigationResource extends JsonResource
         return [
             'id' => $this->id,
             'displayName' => $displayName !== '' ? $displayName : null,
-            // Profile image delivery belongs to the account feature. The navbar
-            // deliberately falls back to initials until it has a safe public URL.
-            'avatarUrl' => null,
+            'avatarUrl' => $profile?->profile_photo_disk && $profile->profile_photo_path
+                ? '/api/v1/customer/account/profile-photo?v='.$profile->updated_at?->getTimestamp()
+                : null,
             'role' => $this->role->value,
             'status' => $this->status->value,
         ];

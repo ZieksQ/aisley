@@ -16,6 +16,7 @@ export type CustomerAccount = {
     firstName: string;
     lastName: string;
     middleName: string | null;
+    profilePhotoUrl: string | null;
     sex: CustomerSex;
   };
   role: "customer";
@@ -32,6 +33,8 @@ export type CustomerProfileMutationResponse = CustomerAccountResponse & {
   customer: AuthenticatedCustomer;
   message: string;
 };
+
+export type CustomerPhotoMutationResponse = CustomerProfileMutationResponse;
 
 export type CustomerProfilePayload = {
   birth_date: string;

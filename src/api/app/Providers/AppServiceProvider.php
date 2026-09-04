@@ -33,5 +33,13 @@ class AppServiceProvider extends ServiceProvider
                 $request->ip(),
             ]));
         });
+
+        RateLimiter::for('customer-profile-photo', function (Request $request): Limit {
+            return Limit::perMinute(10)->by(implode('|', [
+                'customer-profile-photo',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
     }
 }

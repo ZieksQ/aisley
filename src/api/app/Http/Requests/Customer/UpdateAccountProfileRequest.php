@@ -33,6 +33,11 @@ class UpdateAccountProfileRequest extends FormRequest
             'status' => ['prohibited'],
             'profile_photo_path' => ['prohibited'],
             'profile_photo_url' => ['prohibited'],
+            'profile_photo_disk' => ['prohibited'],
+            'profile_photo_mime' => ['prohibited'],
+            'profile_photo_size' => ['prohibited'],
+            'profile_photo_width' => ['prohibited'],
+            'profile_photo_height' => ['prohibited'],
         ];
     }
 

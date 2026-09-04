@@ -25,6 +25,9 @@ class CustomerAccountResource extends JsonResource
                 'sex' => $profile?->sex?->value,
                 'birthDate' => $profile?->birth_date?->toDateString(),
                 'age' => $profile?->age,
+                'profilePhotoUrl' => $profile?->profile_photo_disk && $profile->profile_photo_path
+                    ? '/api/v1/customer/account/profile-photo?v='.$profile->updated_at?->getTimestamp()
+                    : null,
             ],
             'security' => [
                 'emailEditable' => false,

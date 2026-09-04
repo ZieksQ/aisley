@@ -11,6 +11,7 @@ import {
 import { FiCheckCircle, FiLock, FiRefreshCw } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { ProfilePhotoSection } from "@/components/account/profile-photo-section";
 import {
   fetchCustomerAccount,
   updateCustomerPassword,
@@ -19,6 +20,7 @@ import {
 import type {
   CustomerAccount,
   CustomerPasswordPayload,
+  CustomerProfileMutationResponse,
   CustomerProfilePayload,
 } from "@/lib/account/types";
 import { ApiError, firstFieldError } from "@/lib/api";
@@ -155,6 +157,11 @@ export function CustomerAccountContent() {
     }
   }
 
+  function applyPhotoUpdate(response: CustomerProfileMutationResponse) {
+    setAccount(response.account);
+    setAuthenticatedCustomer(response.customer);
+  }
+
   if (status === "loading") {
     return (
       <div aria-label="Loading account settings" className="space-y-4">
@@ -190,6 +197,8 @@ export function CustomerAccountContent() {
       <p className="mt-1 text-sm leading-6 text-[#675B6B]">
         Update the personal details used for your customer account and orders.
       </p>
+
+      <ProfilePhotoSection account={account} onUpdated={applyPhotoUpdate} />
 
       <section aria-labelledby="account-identity-heading" className="mt-5 border border-[#DED7E1] bg-white p-5 sm:p-6">
         <h2 id="account-identity-heading" className="text-base font-semibold text-[#302534]">Account identity</h2>

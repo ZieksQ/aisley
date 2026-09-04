@@ -1,7 +1,8 @@
-import { apiRequest, initializeCsrf } from "@/lib/api";
+import { apiRequest, apiUploadRequest, initializeCsrf } from "@/lib/api";
 import type {
   CustomerAccountResponse,
   CustomerPasswordPayload,
+  CustomerPhotoMutationResponse,
   CustomerProfileMutationResponse,
   CustomerProfilePayload,
 } from "@/lib/account/types";
@@ -30,5 +31,27 @@ export async function updateCustomerPassword(payload: CustomerPasswordPayload) {
   return apiRequest<{ message: string }>(`${accountPath}/password`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export function uploadCustomerProfilePhoto(
+  photo: File,
+  onProgress?: (percent: number) => void,
+) {
+  const body = new FormData();
+  body.append("photo", photo);
+
+  return apiUploadRequest<CustomerPhotoMutationResponse>(
+    `${accountPath}/profile-photo`,
+    body,
+    onProgress,
+  );
+}
+
+export async function removeCustomerProfilePhoto() {
+  await initializeCsrf();
+
+  return apiRequest<CustomerPhotoMutationResponse>(`${accountPath}/profile-photo`, {
+    method: "DELETE",
   });
 }

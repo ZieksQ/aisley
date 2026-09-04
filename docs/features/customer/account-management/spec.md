@@ -3,8 +3,8 @@ feature: account-management
 title: Customer Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Ready for phased implementation
+version: 2.1
+status: Phase 1 implemented
 role: Customer
 scope: Customer web application and Laravel API
 ---
@@ -14,7 +14,7 @@ scope: Customer web application and Laravel API
 ## WHAT
 
 - Provide an active Customer a private self-service Account area for profile identity and account security, without mixing in marketplace data owned by other features.
-- The current foundation is intentionally read-only: `/account/profile` shows the authenticated Customer's display name and active status; the account navigation links to Profile, Addresses, Wishlist, Orders, and Recently Viewed.
+- The implemented `/account/profile` area supports private profile-photo, personal-detail, and password management; the account navigation links to Profile, Addresses, Wishlist, Orders, and Recently Viewed.
 - Address Book, Wishlist, Orders, and Recently Viewed remain separate owning features. This specification owns only Customer profile/account changes and security settings.
 - The Customer role uses the existing Sanctum web session and `customer.active` boundary. Guests, inactive accounts, other roles, and arbitrary Customer IDs cannot read or mutate an account.
 
@@ -25,7 +25,7 @@ scope: Customer web application and Laravel API
 
 ### Current foundation and ownership
 
-- Preserve the protected `/account/profile` read-only page until Phase 1 APIs and UI are complete. Do not present profile editing as available before a successful authoritative update exists.
+- Keep `/account/profile` protected and make every displayed mutation state follow the authoritative Phase 1 API response.
 - Keep account navigation links as links to their respective features; Account Management must not reimplement Address Book CRUD, Wishlist, Order history, or Recently Viewed history.
 - Every API operation derives the Customer from the authenticated Sanctum principal and confirms role `customer` plus active status. Never accept `user_id`, role, status, approval state, or another account identifier in the request body.
 - Same-email records in another role remain isolated because the API resolves the authenticated User record, not an email match.
@@ -81,22 +81,22 @@ scope: Customer web application and Laravel API
 
 ### Acceptance criteria
 
-- [x] An active Customer can open the read-only `/account/profile` page; guests are redirected to sign in.
+- [x] An active Customer can open the protected `/account/profile` page; guests are redirected to sign in.
 - [x] Address, Wishlist, Orders, and Recently Viewed remain distinct Customer Account navigation destinations.
-- [ ] The account API and Phase 1 forms expose and update only the authenticated active Customer's allow-listed profile fields.
-- [ ] A forged Customer ID, another role, inactive account, forbidden field, or cross-role same-email record cannot read or change the Customer profile.
-- [ ] Password change requires the correct current password, confirmed policy-compliant replacement password, throttling, and safe session/token handling.
-- [ ] A Customer can upload, replace, view, and remove only their own JPEG/PNG/WebP profile photo under 10 MiB through the configured Azure Blob/local disk.
-- [ ] Spoofed, corrupt, oversized, multiple-extension, cross-account, and unauthenticated photo requests are rejected; raw blob paths/credentials are never returned.
-- [ ] Private account responses and errors never expose tokens, hashes, raw media paths, registration evidence, or another Customer's data.
-- [ ] UI loading, validation, retry, success, upload progress, and keyboard/focus states work without falsely reporting a saved change.
+- [x] The account API and Phase 1 forms expose and update only the authenticated active Customer's allow-listed profile fields.
+- [x] A forged Customer ID, another role, inactive account, forbidden field, or cross-role same-email record cannot read or change the Customer profile.
+- [x] Password change requires the correct current password, confirmed policy-compliant replacement password, throttling, and safe session/token handling.
+- [x] A Customer can upload, replace, view, and remove only their own JPEG/PNG/WebP profile photo under 10 MiB through the configured Azure Blob/local disk.
+- [x] Spoofed, corrupt, oversized, multiple-extension, cross-account, and unauthenticated photo requests are rejected; raw blob paths/credentials are never returned.
+- [x] Private account responses and errors never expose tokens, hashes, raw media paths, registration evidence, or another Customer's data.
+- [x] UI loading, validation, retry, success, upload progress, and keyboard/focus states work without falsely reporting a saved change.
 
 ## HOW
 
 ### Existing project integration
 
 - Reuse `CustomerProfile`, the shared `User` identity, existing Customer Auth session restoration, `customer.active` middleware, Customer protected-route shell, and Account navigation.
-- Current `CustomerUserResource` is not a public Account DTO: it exposes raw `profile_photo_path` when loaded. Introduce a dedicated allow-listed account resource before serving editable account data.
+- Use the dedicated allow-listed `CustomerAccountResource` for account data; `CustomerUserResource` remains limited to its registration/authentication contexts and must not serve Account Management.
 - Keep `CustomerAddressController`, Wishlist, Orders, and Recently Viewed endpoints untouched except for normal navigation/auth refresh integration.
 - Phase 1 profile fields need no schema change; profile photo uses the required additive metadata migration. Do not modify previous migrations.
 
@@ -125,7 +125,7 @@ scope: Customer web application and Laravel API
 
 ### Open implementation choices
 
-- Decide whether a successful password change revokes every other device token/session or only the current web session; document the final policy before coding.
+- Decided: a successful password change rotates and preserves the current web session or current bearer token, while revoking the Customer's other Sanctum personal-access tokens. Other cookie sessions follow the configured session lifetime because the platform does not yet expose a durable session registry.
 - Confirm which existing personal fields remain editable after registration and whether changing birth date requires an age/verification review rule.
 - Decide email-change verification, notification, and collision policy as its own approved sub-feature.
 - Decide whether Customer security/profile changes need a Customer-visible history or an internal redacted audit event.

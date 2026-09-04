@@ -13,17 +13,8 @@ import {
   FiUser,
 } from "react-icons/fi";
 
+import { CustomerAvatar } from "@/components/account/customer-avatar";
 import { useAuth } from "@/components/auth/auth-provider";
-
-function initials(name: string | null) {
-  return (name ?? "A")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toLocaleUpperCase();
-}
 
 export function AccountMenu() {
   const { auth, logout } = useAuth();
@@ -101,9 +92,7 @@ export function AccountMenu() {
         className="flex min-w-11 max-w-28 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
       >
         <span className="flex items-center gap-1">
-          <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full bg-[#4C1268] text-[9px] font-bold text-white">
-            {initials(name)}
-          </span>
+          <CustomerAvatar className="size-5 text-[9px]" displayName={name} photoUrl={customer.avatarUrl} decorative />
           <FiChevronDown aria-hidden="true" className="hidden size-3 lg:block" />
         </span>
         <span className="mt-0.5 hidden max-w-24 truncate lg:block">{name}</span>
