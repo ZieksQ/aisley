@@ -30,7 +30,7 @@ Database: Postgres (containerized)
 8. **Approval gating.** Sellers and Couriers cannot use their dashboards/apps until Admin approves them. Enforce this at the API level, not just the UI.
 9. **Update `PROGRESS.md`** with a short, dated summary after finishing a feature or meaningful change. This is mandatory. `PROGRESS.md` is a single running log for the **whole app**, not a per-prompt file — always **append** a new dated entry, never rewrite or delete existing entries. Skim existing entries first so you don't log a duplicate of something already recorded.
 10. **Stay in scope.** Only touch files relevant to the current task. Don't refactor, rename, reformat, or "clean up" unrelated code/files without being explicitly asked — this includes files outside `src/` and other docs. If a task seems to need out-of-scope changes, flag it and ask before doing it.
-11. **Read the relevant docs file** before writing code, per the table below.
+11. **Read the relevant docs file** before writing code, per the table below. For every frontend task — including UI, styling, layout, accessibility, and client-side behavior — read `docs/design.md` before making changes.
 12. **Read the matching feature specification before implementation.** Before implementing or changing a role feature, read its applicable `docs/features/<role>/<feature>/spec.md`. If the work spans multiple features, read every affected spec. When no matching spec exists, flag the gap before inventing feature behavior.
 13. **Read applicable reference policies before implementation.** For any file/image upload work, read `docs/references/file-upload-requirements.md`. For Customer, Seller, or Courier registration/approval work, read `docs/references/user-registration-requirements.md`. Apply both when registration includes document/image uploads.
 14. Run all commands from within this directory. Do not run commands that modify files, directories, packages, services, or system settings outside this directory, including commands requiring sudo, unless explicitly instructed to do so.
@@ -48,6 +48,7 @@ Database: Postgres (containerized)
 | What's already built, to avoid re-doing or conflicting work                       | `docs/PROGRESS.md`     |
 | domain design, context about users role                                           | `docs/domains/*`       |
 | frontend desgin rules and color scheme                                            | `docs/design.md`       |
+| Frontend UI, styling, layout, accessibility, or client-side behavior               | `docs/design.md`       |
 | Role feature implementation or change                                              | Matching `docs/features/<role>/<feature>/spec.md` |
 | Address, location, geocoding, GPS, coordinates, maps, or map pins                  | `docs/maps-location-api.md` |
 | File or image upload                                                              | `docs/references/file-upload-requirements.md` |

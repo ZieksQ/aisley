@@ -280,3 +280,4 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-05
 
 - Fixed production Nginx API upstream resolution by using Docker's embedded DNS with a dynamically resolved `api:9000` upstream, so recreated API containers do not leave Nginx pinned to an old IP. Added an Nginx-only health endpoint and switched the Compose healthcheck to it while preserving Laravel `/up` and Cloudflare forwarded headers.
+- Clarified the design system's mobile-first workflow: start with the smallest supported viewport, then progressively enhance for larger responsive breakpoints. Updated `AGENTS.md` to require reading `docs/design.md` before every frontend task.
