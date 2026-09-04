@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { FaArrowLeft, FaPlus, FaXmark } from 'react-icons/fa6'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { ApiError, apiRequest } from '../lib/api'
+import { ApiError, apiRequest, apiUrl } from '../lib/api'
 import type { HomepageAd, HomepageConfiguration } from '../types/homepageAdvertisements'
 
 const inputClass = 'mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#E6007A] focus:ring-3 focus:ring-pink-100 dark:border-white/15 dark:bg-[#171921] dark:focus:ring-pink-500/10'
@@ -17,6 +17,13 @@ function dateTimeInput(value: string | null | undefined) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
+
+function storedImageUrl(path: string | undefined) {
+  if (!path) return undefined
+  if (/^https?:\/\//i.test(path)) return path
+  if (path.startsWith('/')) return apiUrl(path)
+  return apiUrl(`/storage/${path.replace(/^storage\//, '')}`)
 }
 
 function adsForLayout(layout: HomepageConfiguration['layout'], current: HomepageAd[]) {
@@ -140,6 +147,6 @@ export function HomepageAdvertisementEditorPage() {
 
 function ImageUpload({ ad, index, label, loading, mobile, onUpload, preview, required = false }: { ad: HomepageAd; index: number; label: string; loading: boolean; mobile: boolean; onUpload: (file: File, index: number, mobile: boolean) => Promise<void>; preview?: string; required?: boolean }) {
   const path = mobile ? ad.image_mobile_path : ad.image_desktop_path
-  const source = preview ?? path
+  const source = preview ?? storedImageUrl(path)
   return <div className="text-sm font-medium"><span>{label}</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:font-medium`} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file, index, mobile) }} required={required && !path} type="file" /><p className="mt-1 text-xs font-normal text-slate-500">{loading ? 'Uploading…' : mobile && !path ? 'Desktop image is used when omitted.' : 'JPEG, PNG, or WebP under 10 MiB.'}</p>{source ? <img alt={`${label} preview`} className={`mt-2 w-full rounded-md border border-slate-200 object-cover dark:border-white/10 ${mobile ? 'aspect-[2/3] max-h-64' : 'aspect-video'}`} src={source} /> : null}</div>
 }

@@ -93,6 +93,32 @@ class HomepageAdvertisementTest extends TestCase
         ])->assertUnprocessable();
     }
 
+    public function test_admin_can_delete_a_current_draft_but_not_a_published_layout(): void
+    {
+        $admin = $this->admin();
+        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'layout' => 'single',
+            'rotation_interval_seconds' => 6,
+            'ads' => [$this->ad()],
+        ])->assertCreated();
+
+        $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id'), ['revision' => 1])
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('homepage_advertisement_configurations', ['id' => $draft->json('data.id')]);
+        $this->assertDatabaseMissing('homepage_campaigns', ['homepage_advertisement_configuration_id' => $draft->json('data.id')]);
+
+        $published = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'layout' => 'single',
+            'rotation_interval_seconds' => 6,
+            'ads' => [$this->ad()],
+        ])->assertCreated();
+        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$published->json('data.id').'/publish', ['revision' => 1])->assertOk();
+
+        $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$published->json('data.id'), ['revision' => 2])
+            ->assertConflict();
+    }
+
     private function ad(array $overrides = []): array
     {
         return [...[

@@ -61,6 +61,17 @@ class HomepageAdvertisementService
         return $result;
     }
 
+    public function destroy(User $admin, HomepageAdvertisementConfiguration $configuration, int $revision, array $context): void
+    {
+        DB::transaction(function () use ($admin, $configuration, $revision, $context): void {
+            $locked = HomepageAdvertisementConfiguration::query()->with('campaigns')->lockForUpdate()->findOrFail($configuration->id);
+            $this->editable($locked, $revision);
+            $this->record($admin, AdminAuditAction::HomepageAdvertisementDraftDeleted, $locked, $context);
+            $locked->campaigns()->delete();
+            $locked->delete();
+        });
+    }
+
     public function successor(User $admin, HomepageAdvertisementConfiguration $configuration, array $context): HomepageAdvertisementConfiguration
     {
         return DB::transaction(function () use ($admin, $configuration, $context) {

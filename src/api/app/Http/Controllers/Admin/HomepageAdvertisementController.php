@@ -39,6 +39,13 @@ class HomepageAdvertisementController extends Controller
         return new HomepageAdvertisementConfigurationResource($this->advertisements->update($this->admin($request), $configuration, $request->validated(), $this->context($request))->load('campaigns'));
     }
 
+    public function destroy(PublishPlatformContentRequest $request, HomepageAdvertisementConfiguration $configuration): JsonResponse
+    {
+        $this->advertisements->destroy($this->admin($request), $configuration, (int) $request->input('revision'), $this->context($request));
+
+        return response()->json([], 204);
+    }
+
     public function publish(PublishPlatformContentRequest $request, HomepageAdvertisementConfiguration $configuration): HomepageAdvertisementConfigurationResource
     {
         return new HomepageAdvertisementConfigurationResource($this->advertisements->publish($this->admin($request), $configuration, (int) $request->input('revision'), $this->context($request))->load('campaigns'));
