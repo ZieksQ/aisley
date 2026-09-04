@@ -147,6 +147,7 @@ export function HomepageAdvertisementEditorPage() {
 
 function ImageUpload({ ad, index, label, loading, mobile, onUpload, preview, required = false }: { ad: HomepageAd; index: number; label: string; loading: boolean; mobile: boolean; onUpload: (file: File, index: number, mobile: boolean) => Promise<void>; preview?: string; required?: boolean }) {
   const path = mobile ? ad.image_mobile_path : ad.image_desktop_path
-  const source = preview ?? storedImageUrl(path)
+  const storedUrl = mobile ? ad.image_mobile_url : ad.image_desktop_url
+  const source = preview ?? storedUrl ?? storedImageUrl(path)
   return <div className="text-sm font-medium"><span>{label}</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:font-medium`} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file, index, mobile) }} required={required && !path} type="file" /><p className="mt-1 text-xs font-normal text-slate-500">{loading ? 'Uploading…' : mobile && !path ? 'Desktop image is used when omitted.' : 'JPEG, PNG, or WebP under 10 MiB.'}</p>{source ? <img alt={`${label} preview`} className={`mt-2 w-full rounded-md border border-slate-200 object-cover dark:border-white/10 ${mobile ? 'aspect-[2/3] max-h-64' : 'aspect-video'}`} src={source} /> : null}</div>
 }

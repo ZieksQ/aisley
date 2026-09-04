@@ -8,6 +8,7 @@ use App\Models\AdminProfile;
 use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class HomepageAdvertisementTest extends TestCase
@@ -117,6 +118,25 @@ class HomepageAdvertisementTest extends TestCase
 
         $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$published->json('data.id'), ['revision' => 2])
             ->assertConflict();
+    }
+
+    public function test_admin_can_render_a_saved_advertisement_image_through_the_authorized_delivery_url(): void
+    {
+        Storage::fake('azure');
+        $path = 'homepage-advertisements/saved-ad.jpg';
+        Storage::disk('azure')->put($path, base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAH/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAEFAqf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AYf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AYf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAY/Ap//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/If/Z'));
+
+        $admin = $this->admin();
+        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'layout' => 'single',
+            'rotation_interval_seconds' => 6,
+            'ads' => [$this->ad(['image_desktop_path' => url('/storage/'.$path)])],
+        ])->assertCreated();
+
+        $this->actingAs($admin)->get('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id'))->assertOk();
+        $this->actingAs($admin)->get(parse_url($draft->json('data.ads.0.image_desktop_url'), PHP_URL_PATH))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private');
     }
 
     private function ad(array $overrides = []): array

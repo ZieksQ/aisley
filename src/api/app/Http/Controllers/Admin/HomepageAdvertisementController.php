@@ -8,12 +8,15 @@ use App\Http\Requests\Admin\StoreHomepageAdvertisementRequest;
 use App\Http\Requests\Admin\UpdateHomepageAdvertisementRequest;
 use App\Http\Resources\Admin\HomepageAdvertisementConfigurationResource;
 use App\Models\HomepageAdvertisementConfiguration;
+use App\Models\HomepageCampaign;
 use App\Models\User;
 use App\Services\Admin\HomepageAdvertisementImageService;
 use App\Services\Admin\HomepageAdvertisementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 
 class HomepageAdvertisementController extends Controller
 {
@@ -61,6 +64,29 @@ class HomepageAdvertisementController extends Controller
         $request->validate(['image' => ['required', 'file', 'max:10239']]);
 
         return response()->json(['data' => ['url' => $images->store($request->file('image'))]], 201);
+    }
+
+    public function image(HomepageCampaign $campaign, string $variant): Response
+    {
+        abort_unless($campaign->homepage_advertisement_configuration_id !== null, 404);
+        $path = HomepageAdvertisementImageService::storagePath(
+            $campaign->image_disk,
+            $variant === 'desktop' ? $campaign->image_desktop_path : $campaign->image_mobile_path,
+        );
+        abort_if($path === null, 404);
+
+        $storage = Storage::disk($campaign->image_disk ?: 'public');
+        abort_unless($storage->exists($path), 404);
+
+        return response($storage->get($path), 200, [
+            'Content-Type' => match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'webp' => 'image/webp',
+                default => 'application/octet-stream',
+            },
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     private function admin(Request $request): User

@@ -47,12 +47,36 @@ class HomepageAdvertisementImageService
             throw ValidationException::withMessages(['image' => 'The uploaded image could not be safely rewritten.']);
         }
         $path = 'homepage-advertisements/'.Str::uuid7().'.'.$extension;
-        if (! Storage::disk('public')->put($path, $bytes)) {
+        if (! Storage::disk(self::disk())->put($path, $bytes)) {
             throw ValidationException::withMessages(['image' => 'The image could not be stored.']);
         }
 
-        $url = Storage::disk('public')->url($path);
+        return $path;
+    }
 
-        return str_starts_with($url, '/') ? url($url) : $url;
+    public static function disk(): string
+    {
+        return config('filesystems.default') === 'azure' ? 'azure' : 'public';
+    }
+
+    public static function storagePath(?string $disk, ?string $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $value = trim($value);
+        if (! filter_var($value, FILTER_VALIDATE_URL)) {
+            return ltrim($value, '/');
+        }
+
+        $applicationStorageUrl = rtrim((string) config('app.url'), '/').'/storage/';
+        if (str_starts_with($value, $applicationStorageUrl)) {
+            return substr($value, strlen($applicationStorageUrl));
+        }
+
+        $baseUrl = rtrim(Storage::disk($disk ?: 'public')->url(''), '/').'/';
+
+        return str_starts_with($value, $baseUrl) ? substr($value, strlen($baseUrl)) : null;
     }
 }

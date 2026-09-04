@@ -5,7 +5,9 @@ export type HomepageAd = {
   title: string
   description: string
   image_desktop_path: string
+  image_desktop_url?: string | null
   image_mobile_path: string
+  image_mobile_url?: string | null
   alt_text: string
   destination_url: string
   starts_at: string

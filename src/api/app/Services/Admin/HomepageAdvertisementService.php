@@ -94,7 +94,7 @@ class HomepageAdvertisementService
         $ids = [];
         foreach ($ads as $ad) {
             $model = ! empty($ad['id']) ? $configuration->campaigns()->findOrFail($ad['id']) : new HomepageCampaign(['homepage_advertisement_configuration_id' => $configuration->id]);
-            $model->fill([...$ad, 'placement' => $ad['slot'] === 'primary' ? HomepageCampaignPlacement::Hero : HomepageCampaignPlacement::HeroSide, 'image_disk' => 'public', 'priority' => 0]);
+            $model->fill([...$ad, 'placement' => $ad['slot'] === 'primary' ? HomepageCampaignPlacement::Hero : HomepageCampaignPlacement::HeroSide, 'image_disk' => $model->exists ? $model->image_disk : HomepageAdvertisementImageService::disk(), 'priority' => 0]);
             $model->title = $ad['title'] ?? null;
             $model->description = $ad['description'] ?? null;
             $model->alt_text = $ad['alt_text'] ?? null;
