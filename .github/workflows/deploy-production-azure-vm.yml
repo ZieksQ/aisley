@@ -1,0 +1,101 @@
+name: Deploy production API to Azure VM
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-azure-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy production API
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Configure deployment SSH
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AZURE_VM_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.AZURE_VM_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          : "${SSH_PRIVATE_KEY:?AZURE_VM_SSH_PRIVATE_KEY is not configured}"
+          : "${SSH_KNOWN_HOSTS:?AZURE_VM_SSH_KNOWN_HOSTS is not configured}"
+
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/aisley-azure-vm"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/aisley-azure-vm-known-hosts"
+          chmod 600 "$HOME/.ssh/aisley-azure-vm"
+          chmod 600 "$HOME/.ssh/aisley-azure-vm-known-hosts"
+
+      - name: Pull main and rebuild the production stack
+        shell: bash
+        env:
+          AZURE_VM_HOST: ${{ secrets.AZURE_VM_HOST }}
+          AZURE_VM_USER: ${{ secrets.AZURE_VM_USER }}
+          AZURE_VM_SSH_PORT: ${{ secrets.AZURE_VM_SSH_PORT }}
+          AZURE_VM_APP_DIR: ${{ secrets.AZURE_VM_APP_DIR }}
+        run: |
+          set -euo pipefail
+
+          : "${AZURE_VM_HOST:?AZURE_VM_HOST is not configured}"
+          : "${AZURE_VM_USER:?AZURE_VM_USER is not configured}"
+          : "${AZURE_VM_APP_DIR:?AZURE_VM_APP_DIR is not configured}"
+
+          ssh_args=(
+            -i "$HOME/.ssh/aisley-azure-vm"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/aisley-azure-vm-known-hosts"
+            -o ConnectTimeout=30
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=3
+            -p "${AZURE_VM_SSH_PORT:-22}"
+          )
+
+          # The quoted argument is evaluated by the VM's login shell and keeps
+          # the deployment directory an argument to the remote script.
+          remote_app_dir=$(printf '%q' "$AZURE_VM_APP_DIR")
+
+          ssh "${ssh_args[@]}" "$AZURE_VM_USER@$AZURE_VM_HOST" \
+            "bash -se -- $remote_app_dir" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+
+          deployment_dir=$1
+          compose=(docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml)
+
+          cd "$deployment_dir"
+
+          if [ ! -d .git ]; then
+            echo "Deployment directory is not a Git checkout: $deployment_dir" >&2
+            exit 1
+          fi
+
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Refusing to deploy because the VM checkout has local changes." >&2
+            git status --short >&2
+            exit 1
+          fi
+
+          git fetch --prune origin main
+          if git show-ref --verify --quiet refs/heads/main; then
+            git switch main
+          else
+            git switch --track -c main origin/main
+          fi
+          git pull --ff-only origin main
+
+          "${compose[@]}" up -d --build
+          "${compose[@]}" ps
+          REMOTE_SCRIPT
