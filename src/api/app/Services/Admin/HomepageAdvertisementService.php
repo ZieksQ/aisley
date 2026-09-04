@@ -67,7 +67,11 @@ class HomepageAdvertisementService
         foreach ($ads as $ad) {
             $model = !empty($ad['id']) ? $configuration->campaigns()->findOrFail($ad['id']) : new HomepageCampaign(['homepage_advertisement_configuration_id' => $configuration->id]);
             $model->fill([...$ad, 'placement' => $ad['slot'] === 'primary' ? HomepageCampaignPlacement::Hero : HomepageCampaignPlacement::HeroSide, 'image_disk' => 'public', 'priority' => 0]);
-            $model->image_mobile_path = $ad['image_mobile_path'] ?: $ad['image_desktop_path']; $model->save(); $ids[] = $model->id;
+            $model->image_mobile_path = $ad['image_mobile_path'] ?: $ad['image_desktop_path'];
+            // The legacy campaign table requires a window; blank schedule fields mean live now with no practical expiry.
+            $model->starts_at = $ad['starts_at'] ?? now();
+            $model->ends_at = $ad['ends_at'] ?? now()->addYears(20);
+            $model->save(); $ids[] = $model->id;
         }
         $configuration->campaigns()->whereNotIn('id', $ids)->delete();
     }

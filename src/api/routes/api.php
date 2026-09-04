@@ -92,6 +92,7 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
 
     Route::prefix('platform-settings')->name('platform-settings.')->group(function () {
         Route::get('/homepage-advertisements', [HomepageAdvertisementController::class, 'index'])->middleware('admin.permission:platform-settings.view')->name('homepage-advertisements.index');
+        Route::post('/homepage-advertisement-images', [HomepageAdvertisementController::class, 'upload'])->middleware(['admin.permission:platform-settings.manage', 'throttle:10,1'])->name('homepage-advertisements.images.store');
         Route::post('/homepage-advertisements', [HomepageAdvertisementController::class, 'store'])->middleware('admin.permission:platform-settings.manage')->name('homepage-advertisements.store');
         Route::patch('/homepage-advertisements/{configuration}', [HomepageAdvertisementController::class, 'update'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.update');
         Route::post('/homepage-advertisements/{configuration}/publish', [HomepageAdvertisementController::class, 'publish'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.publish');
