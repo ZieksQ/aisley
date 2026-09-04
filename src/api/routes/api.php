@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
+use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
@@ -216,6 +217,11 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active'])->group(function () {
+        Route::get('/account', [CustomerAccountController::class, 'show'])->name('account.show');
+        Route::patch('/account/profile', [CustomerAccountController::class, 'updateProfile'])->name('account.profile.update');
+        Route::patch('/account/password', [CustomerAccountController::class, 'updatePassword'])
+            ->middleware('throttle:customer-account-password')
+            ->name('account.password.update');
         Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [CustomerAddressController::class, 'store'])->name('addresses.store');
         Route::patch('/addresses/{address}', [CustomerAddressController::class, 'update'])
