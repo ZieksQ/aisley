@@ -87,6 +87,8 @@ MVP responsibilities:
 
 - Register and wait for admin approval.
 - Sign in after approval.
+- Own exactly one operational hub/sorting center per Logistics organization for the MVP. Sub-hubs, additional hubs, and multi-hub operations are out of scope as a deliberate simplification of the real-world model.
+- For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
 - Maintain required logistics subscription status.
 - View seller-confirmed orders.
 - Receive parcels into the logistics workflow.
@@ -106,7 +108,7 @@ Courier accounts are registered under a selected Logistics company and approved 
 
 MVP responsibilities:
 
-- Search/select a logistics hub/company during registration.
+- Search/select an eligible Logistics company during registration. Its single operational hub is associated automatically; selecting a sub-hub is not supported.
 - Register under that Logistics account.
 - Sign in after Logistics approval.
 - View delivery notifications and available pickup requests.

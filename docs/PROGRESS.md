@@ -313,3 +313,11 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-05
 
 - Fixed Customer homepage advertisement carousel overflow that could show a blank slide after repeated loops by bounding the track index and safely wrapping at both ends. Desktop carousel arrows now appear on image hover or keyboard focus, while mobile users can swipe between ads without accidentally opening a destination link.
+
+## 2026-09-05
+
+- Clarified that the Logistics registration address is the organization's sole operational hub/sorting-center address, operated through the Logistics dashboard, with no separate hub or sub-hub address in the MVP. Updated requirements, workflow, schema guidance, and registration reference; feature specs and application behavior were unchanged.
+
+## 2026-09-05
+
+- Documented the MVP cardinality decision that each Logistics organization owns exactly one operational hub/sorting center, with no sub-hubs or additional hubs. Updated requirements, workflow, and deferred-schema guidance; no feature specs or application behavior changed.

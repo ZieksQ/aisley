@@ -84,7 +84,8 @@ role: Seller, Customer, Courier
 - Contact No.\*
 - Birthday\*
 - Age (autogen)\*
-- Address (API)
+- Operational hub/sorting-center address (API)
+  - For the MVP, this address represents the organization's sole operational hub/sorting center.
   - Dropdown: Province, Municipality, Barangay
   - Manual entry: Street, House number, etc.
 - Business name

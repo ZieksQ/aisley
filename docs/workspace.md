@@ -1,4 +1,5 @@
 # Workflows
+
 Defines **HOW** the system behaves: step-by-step flows and state transitions per role.
 
 # Authentication and Account Rules
@@ -29,7 +30,7 @@ register → admin approval → email notification → sign in → subscription
 
 Courier
 
-search logistics hub → register under logistics → logistics approval → sign in
+search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
 
 Admin
 
@@ -84,6 +85,19 @@ A Seller must not access another Seller's shop, products, inventory, or seller-s
 A Logistics account must not manage another Logistics company's couriers.
 
 A Courier must only operate jobs that are available or assigned within their authorized Logistics relationship.
+
+## 5.6 Logistics Organization and Hub Scope
+
+For the MVP, each Logistics organization/company owns exactly one operational hub/sorting center. This is a deliberate scale-down of the real-world model, where a Logistics company may operate multiple hubs and sub-hubs.
+
+- Sub-hubs, additional hubs, and multi-hub operations are out of scope for the MVP.
+- For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
+- Courier registration selects the Logistics company; its sole hub is associated automatically. A separate hub/sub-hub selector is not needed.
+- Parcels, waybills, sorting, transfer, dispatch, Couriers, fleet records, zones, and capacity views are scoped to that Logistics organization's single hub.
+- The transfer step does not represent movement between multiple hubs owned by the same Logistics organization. Any future multi-hub or inter-organization handoff requires a separate approved workflow.
+- This cardinality rule does not by itself decide whether the Logistics organization may have multiple staff or dispatcher accounts; that is a separate account/authorization decision.
+  - Supersede: The logistics should have one account.
+  - Note: Sub account for staffs will be handled on a later date.
 
 6. Buyer MVP Requirements
 
@@ -287,6 +301,10 @@ Seller shall be able to update basic account information.
 
 8. Logistics MVP Requirements
 
+### Logistics organization and hub scope
+
+The MVP uses one operational hub/sorting center per Logistics organization. The single-hub rule is intentional for project scale and does not claim that real-world Logistics companies are limited to one hub. Logistics features must not expose creation or selection of sub-hubs or additional hubs.
+
 8.1 Logistics Dashboard
 
 Logistics shall be able to view Seller-confirmed orders that are ready to enter logistics processing.
@@ -385,7 +403,7 @@ Logistics shall be able to update basic account information.
 
 Courier registration shall follow:
 
-search logistics hub → select logistics → register → logistics approval → sign in
+search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
 
 9.2 Courier Dashboard
 
@@ -572,32 +590,34 @@ Timestamp.
 11.1 Core Order Flow
 
 Buyer places order
-        ↓
+↓
 Seller approves/processes order
-        ↓
+↓
 Seller packs order
-        ↓
+↓
 Courier door-to-door pickup from Seller
-        ↓
+↓
 Logistics receives parcel
-        ↓
+↓
 Waybill identified/generated
-        ↓
+↓
 Parcel sorted
-        ↓
+↓
 Transfer by waybill scan/manual reference
-        ↓
+↓
 Dispatch by waybill scan/manual reference
-        ↓
+↓
 Logistics assigns Courier for final delivery
-        ↓
+↓
 Courier picks parcel up for delivery
-        ↓
+↓
 Courier delivers to Buyer
-        ↓
+↓
 Order marked delivered
-        ↓
+↓
 Buyer may rate/review
+
+All Logistics processing in this MVP is performed within the owning Logistics organization's single hub/sorting center. There is no alternate sub-hub or multi-hub branch in this flow.
 
 11.2 Recommended MVP State Model
 
