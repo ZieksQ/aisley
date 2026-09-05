@@ -321,3 +321,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-05
 
 - Documented the MVP cardinality decision that each Logistics organization owns exactly one operational hub/sorting center, with no sub-hubs or additional hubs. Updated requirements, workflow, and deferred-schema guidance; no feature specs or application behavior changed.
+
+## 2026-09-05
+
+- Revised the Logistics Authentication specification to align with the settled one-account/one-operational-hub MVP, label the registration address as the hub address, use bundled PSGC JSON and the existing Aisley address contract, preserve the Admin approval and subscription boundaries, and remove those settled items from open decisions. No application behavior changed.
