@@ -11,6 +11,7 @@ use App\Models\HomepageAdvertisementConfiguration;
 use App\Models\HomepageCampaign;
 use App\Models\User;
 use App\Services\Audit\AuditService;
+use App\Support\SafeHomepageDestination;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -65,8 +66,8 @@ class HomepageAdvertisementService
     {
         DB::transaction(function () use ($admin, $configuration, $revision, $context): void {
             $locked = HomepageAdvertisementConfiguration::query()->with('campaigns')->lockForUpdate()->findOrFail($configuration->id);
-            $this->editable($locked, $revision);
-            $this->record($admin, AdminAuditAction::HomepageAdvertisementDraftDeleted, $locked, $context);
+            $this->deletable($locked, $revision);
+            $this->record($admin, $locked->status === HomepageAdvertisementStatus::Archived ? AdminAuditAction::HomepageAdvertisementArchivedDeleted : AdminAuditAction::HomepageAdvertisementDraftDeleted, $locked, $context);
             $locked->campaigns()->delete();
             $locked->delete();
         });
@@ -79,7 +80,7 @@ class HomepageAdvertisementService
             if ($source->status !== HomepageAdvertisementStatus::Published) {
                 throw new ConflictHttpException('Only published configurations can be copied into a draft.');
             }
-            $draft = HomepageAdvertisementConfiguration::create(['source_configuration_id' => $source->id, 'layout' => $source->layout, 'rotation_interval_seconds' => $source->rotation_interval_seconds, 'status' => HomepageAdvertisementStatus::Draft, 'created_by_admin_id' => $admin->id]);
+            $draft = HomepageAdvertisementConfiguration::create(['source_configuration_id' => $source->id, 'tag_title' => $source->tag_title, 'layout' => $source->layout, 'rotation_interval_seconds' => $source->rotation_interval_seconds, 'starts_at' => $source->starts_at, 'ends_at' => $source->ends_at, 'status' => HomepageAdvertisementStatus::Draft, 'created_by_admin_id' => $admin->id]);
             foreach ($source->campaigns as $ad) {
                 $draft->campaigns()->create(collect($ad->getAttributes())->except(['id', 'homepage_advertisement_configuration_id', 'created_at', 'updated_at'])->all());
             }
@@ -92,16 +93,36 @@ class HomepageAdvertisementService
     private function sync(HomepageAdvertisementConfiguration $configuration, array $ads): void
     {
         $ids = [];
-        foreach ($ads as $ad) {
+        foreach ($ads as $index => $ad) {
             $model = ! empty($ad['id']) ? $configuration->campaigns()->findOrFail($ad['id']) : new HomepageCampaign(['homepage_advertisement_configuration_id' => $configuration->id]);
-            $model->fill([...$ad, 'placement' => $ad['slot'] === 'primary' ? HomepageCampaignPlacement::Hero : HomepageCampaignPlacement::HeroSide, 'image_disk' => $model->exists ? $model->image_disk : HomepageAdvertisementImageService::disk(), 'priority' => 0]);
-            $model->title = $ad['title'] ?? null;
-            $model->description = $ad['description'] ?? null;
-            $model->alt_text = $ad['alt_text'] ?? null;
-            $model->destination_url = $ad['destination_url'] ?? null;
-            $model->image_mobile_path = ($ad['image_mobile_path'] ?? null) ?: $ad['image_desktop_path'];
-            $model->starts_at = $ad['starts_at'] ?? null;
-            $model->ends_at = $ad['ends_at'] ?? null;
+            $disk = $model->exists ? $model->image_disk : HomepageAdvertisementImageService::disk();
+            $desktopPath = HomepageAdvertisementImageService::assertStoredPath($ad['image_desktop_path'], $disk, "ads.{$index}.image_desktop_path");
+            $mobilePath = ($ad['image_mobile_path'] ?? null) ?: $desktopPath;
+            HomepageAdvertisementImageService::assertStoredPath($mobilePath, $disk, "ads.{$index}.image_mobile_path");
+            $desktopFilename = HomepageAdvertisementImageService::displayFilename((string) ($ad['image_desktop_filename'] ?? basename($desktopPath)));
+            $mobileFilename = ($ad['image_mobile_path'] ?? null)
+                ? HomepageAdvertisementImageService::displayFilename((string) ($ad['image_mobile_filename'] ?? basename($mobilePath)))
+                : $desktopFilename;
+
+            $model->fill([
+                'placement' => $ad['slot'] === 'primary' ? HomepageCampaignPlacement::Hero : HomepageCampaignPlacement::HeroSide,
+                'slot' => $ad['slot'],
+                'position' => $ad['position'],
+                'image_disk' => $disk,
+                'image_desktop_path' => $desktopPath,
+                'image_desktop_filename' => $desktopFilename,
+                'image_mobile_path' => $mobilePath,
+                'image_mobile_filename' => $mobileFilename,
+                'destination_url' => SafeHomepageDestination::sanitize($ad['destination_url'] ?? null),
+                'is_active' => $ad['is_active'],
+                'priority' => 0,
+            ]);
+            // These shared legacy Campaign columns are not part of image-only advertisement authoring.
+            $model->title = null;
+            $model->description = null;
+            $model->alt_text = null;
+            $model->starts_at = null;
+            $model->ends_at = null;
             $model->save();
             $ids[] = $model->id;
         }
@@ -114,6 +135,17 @@ class HomepageAdvertisementService
             throw new ConflictHttpException('This advertisement changed in another session. Refresh and review the latest version.');
         } if ($configuration->status !== HomepageAdvertisementStatus::Draft) {
             throw new ConflictHttpException('Published advertisements are immutable. Create a draft copy to edit.');
+        }
+    }
+
+    private function deletable(HomepageAdvertisementConfiguration $configuration, int $revision): void
+    {
+        if ($configuration->revision !== $revision) {
+            throw new ConflictHttpException('This advertisement changed in another session. Refresh and review the latest version.');
+        }
+
+        if (! in_array($configuration->status, [HomepageAdvertisementStatus::Draft, HomepageAdvertisementStatus::Archived], true)) {
+            throw new ConflictHttpException('Published advertisements cannot be removed. Publish a replacement first.');
         }
     }
 

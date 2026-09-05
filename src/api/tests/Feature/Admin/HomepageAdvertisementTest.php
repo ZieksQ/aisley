@@ -8,6 +8,7 @@ use App\Models\AdminProfile;
 use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -15,21 +16,37 @@ class HomepageAdvertisementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_publish_optional_content_and_unscheduled_single_ad(): void
+    protected function setUp(): void
     {
+        parent::setUp();
+
+        config(['filesystems.default' => 'public']);
+    }
+
+    public function test_admin_can_upload_a_storage_backed_image_and_publish_an_image_only_tagged_advertisement(): void
+    {
+        Storage::fake('public');
         $admin = $this->admin();
+        $image = $this->upload($admin, 'September sale.jpg');
+
+        $this->assertSame('September sale.jpg', $image['filename']);
+        Storage::disk('public')->assertExists($image['path']);
+
         $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'tag_title' => 'September homepage sale',
             'layout' => 'single',
             'rotation_interval_seconds' => 6,
-            'ads' => [$this->ad(['title' => null, 'alt_text' => null, 'destination_url' => null])],
+            'starts_at' => null,
+            'ends_at' => null,
+            'ads' => [$this->ad($image)],
         ])->assertCreated()
-            ->assertJsonPath('data.ads.0.title', null)
-            ->assertJsonPath('data.ads.0.starts_at', null)
-            ->assertJsonPath('data.ads.0.ends_at', null);
+            ->assertJsonPath('data.tag_title', 'September homepage sale')
+            ->assertJsonPath('data.ads.0.image_desktop_filename', 'September sale.jpg');
 
-        $this->getJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id'))
-            ->assertOk()
-            ->assertJsonPath('data.layout', 'single');
+        $this->assertArrayNotHasKey('title', $draft->json('data.ads.0'));
+        $this->assertArrayNotHasKey('description', $draft->json('data.ads.0'));
+        $this->assertArrayNotHasKey('alt_text', $draft->json('data.ads.0'));
+        $this->assertArrayNotHasKey('starts_at', $draft->json('data.ads.0'));
 
         $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id').'/publish', [
             'revision' => 1,
@@ -38,122 +55,145 @@ class HomepageAdvertisementTest extends TestCase
         $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
             ->assertJsonPath('advertisementLayer.layout', 'single')
             ->assertJsonPath('advertisementLayer.primary.0.title', null)
-            ->assertJsonPath('advertisementLayer.primary.0.destinationUrl', null);
+            ->assertJsonPath('advertisementLayer.primary.0.description', null)
+            ->assertJsonPath('advertisementLayer.primary.0.altText', null)
+            ->assertJsonPath('advertisementLayer.primary.0.imageDesktopUrl', Storage::disk('public')->url($image['path']));
 
         $this->assertDatabaseHas('homepage_campaigns', [
+            'image_desktop_path' => $image['path'],
+            'image_desktop_filename' => 'September sale.jpg',
             'title' => null,
             'alt_text' => null,
-            'destination_url' => null,
             'starts_at' => null,
             'ends_at' => null,
         ]);
     }
 
-    public function test_multi_block_carousel_uses_order_and_per_ad_schedule_fallbacks(): void
+    public function test_advertisement_schedule_controls_the_complete_layout(): void
     {
+        Storage::fake('public');
         $admin = $this->admin();
-        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
-            'layout' => 'multi_block_carousel',
-            'rotation_interval_seconds' => 9,
-            'ads' => [
-                $this->ad(['title' => 'First slide', 'position' => 0]),
-                $this->ad(['title' => 'Future slide', 'position' => 1, 'starts_at' => now()->addDay()->toIso8601String()]),
-                $this->ad(['title' => 'Top block', 'slot' => 'secondary_top', 'position' => 2]),
-                $this->ad(['title' => 'Expired bottom', 'slot' => 'secondary_bottom', 'position' => 3, 'ends_at' => now()->subMinute()->toIso8601String()]),
-            ],
-        ])->assertCreated();
+        $image = $this->upload($admin, 'scheduled.png');
+        $startsAt = now()->addHour()->startOfMinute();
+        $endsAt = now()->addDay()->startOfMinute();
 
-        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id').'/publish', [
-            'revision' => 1,
-        ])->assertOk();
+        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'tag_title' => 'Tomorrow promotion',
+            'layout' => 'carousel',
+            'rotation_interval_seconds' => 9,
+            'starts_at' => $startsAt->toIso8601String(),
+            'ends_at' => $endsAt->toIso8601String(),
+            'ads' => [
+                $this->ad($image),
+                $this->ad($image, ['position' => 1]),
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.tag_title', 'Tomorrow promotion');
+
+        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id').'/publish', ['revision' => 1])->assertOk();
 
         $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
-            ->assertJsonPath('advertisementLayer.layout', 'multi_block_carousel')
+            ->assertJsonPath('advertisementLayer', null);
+
+        $this->travelTo($startsAt->copy()->addMinute());
+        $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
+            ->assertJsonPath('advertisementLayer.layout', 'carousel')
             ->assertJsonPath('advertisementLayer.rotationIntervalSeconds', 9)
-            ->assertJsonCount(1, 'advertisementLayer.primary')
-            ->assertJsonPath('advertisementLayer.primary.0.title', 'First slide')
-            ->assertJsonPath('advertisementLayer.secondaryTop.title', 'Top block')
-            ->assertJsonPath('advertisementLayer.secondaryBottom.id', 'default-secondary_bottom');
+            ->assertJsonCount(2, 'advertisementLayer.primary');
     }
 
-    public function test_publish_rejects_duplicate_or_missing_multi_block_slots(): void
+    public function test_advertisement_creation_rejects_an_image_url_not_saved_in_advertisement_storage(): void
     {
         $admin = $this->admin();
-        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
-            'layout' => 'multi_block',
-            'rotation_interval_seconds' => 6,
-            'ads' => [
-                $this->ad(),
-                $this->ad(['slot' => 'secondary_top', 'position' => 1]),
-                $this->ad(['slot' => 'secondary_top', 'position' => 2]),
-            ],
-        ])->assertCreated();
 
-        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id').'/publish', [
-            'revision' => 1,
-        ])->assertUnprocessable();
+        $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'tag_title' => 'Invalid image source',
+            'layout' => 'single',
+            'rotation_interval_seconds' => 6,
+            'ads' => [$this->ad(['path' => 'https://cdn.example.test/homepage-ad.jpg', 'filename' => 'homepage-ad.jpg'])],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['ads.0.image_desktop_path']);
     }
 
-    public function test_admin_can_delete_a_current_draft_but_not_a_published_layout(): void
+    public function test_archived_advertisements_can_be_removed_after_a_replacement_is_published(): void
     {
+        Storage::fake('public');
         $admin = $this->admin();
-        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
-            'layout' => 'single',
-            'rotation_interval_seconds' => 6,
-            'ads' => [$this->ad()],
-        ])->assertCreated();
+        $image = $this->upload($admin, 'archive.jpg');
+        $first = $this->createDraft($admin, 'Original sale', $image);
+        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$first.'/publish', ['revision' => 1])->assertOk();
 
-        $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id'), ['revision' => 1])
-            ->assertNoContent();
+        $second = $this->createDraft($admin, 'Replacement sale', $image);
+        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$second.'/publish', ['revision' => 1])->assertOk();
 
-        $this->assertDatabaseMissing('homepage_advertisement_configurations', ['id' => $draft->json('data.id')]);
-        $this->assertDatabaseMissing('homepage_campaigns', ['homepage_advertisement_configuration_id' => $draft->json('data.id')]);
-
-        $published = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
-            'layout' => 'single',
-            'rotation_interval_seconds' => 6,
-            'ads' => [$this->ad()],
-        ])->assertCreated();
-        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$published->json('data.id').'/publish', ['revision' => 1])->assertOk();
-
-        $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$published->json('data.id'), ['revision' => 2])
-            ->assertConflict();
+        $this->assertDatabaseHas('homepage_advertisement_configurations', ['id' => $first, 'status' => 'archived']);
+        $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$first, ['revision' => 2])->assertNoContent();
+        $this->assertDatabaseMissing('homepage_advertisement_configurations', ['id' => $first]);
+        $this->assertDatabaseMissing('homepage_campaigns', ['homepage_advertisement_configuration_id' => $first]);
     }
 
-    public function test_admin_can_render_a_saved_advertisement_image_through_the_authorized_delivery_url(): void
+    public function test_upload_accepts_valid_jpeg_and_uses_azure_when_configured(): void
     {
+        config(['filesystems.default' => 'azure']);
         Storage::fake('azure');
-        $path = 'homepage-advertisements/saved-ad.jpg';
-        Storage::disk('azure')->put($path, base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAH/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAEFAqf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/AYf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/AYf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAY/Ap//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/If/Z'));
-
         $admin = $this->admin();
-        $draft = $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
-            'layout' => 'single',
-            'rotation_interval_seconds' => 6,
-            'ads' => [$this->ad(['image_desktop_path' => url('/storage/'.$path)])],
-        ])->assertCreated();
 
-        $this->actingAs($admin)->get('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id'))->assertOk();
-        $this->actingAs($admin)->get(parse_url($draft->json('data.ads.0.image_desktop_url'), PHP_URL_PATH))
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'no-store, private');
+        $image = $this->upload($admin, 'azure-banner.jpeg');
+
+        $this->assertSame('azure-banner.jpeg', $image['filename']);
+        Storage::disk('azure')->assertExists($image['path']);
     }
 
-    private function ad(array $overrides = []): array
+    public function test_upload_rejects_an_image_at_the_ten_mebibyte_limit(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post('/api/v1/admin/platform-settings/homepage-advertisement-images', [
+            'image' => UploadedFile::fake()->image('too-large.jpg')->size(10_240),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['image']);
+    }
+
+    /** @return array{path: string, filename: string} */
+    private function upload(User $admin, string $filename): array
+    {
+        /** @var array{path: string, filename: string} $image */
+        $image = $this->actingAs($admin)->post('/api/v1/admin/platform-settings/homepage-advertisement-images', [
+            'image' => UploadedFile::fake()->image($filename, 2, 2),
+        ])->assertCreated()->json('data');
+
+        return $image;
+    }
+
+    /**
+     * @param  array{path: string, filename: string}|array{path: string, filename: string, position?: int}  $image
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function ad(array $image, array $overrides = []): array
     {
         return [...[
             'slot' => 'primary',
             'position' => 0,
-            'title' => 'Advertisement',
-            'description' => null,
-            'image_desktop_path' => 'https://cdn.example.test/homepage-ad.jpg',
+            'image_desktop_path' => $image['path'],
+            'image_desktop_filename' => $image['filename'],
             'image_mobile_path' => null,
-            'alt_text' => 'Advertisement',
+            'image_mobile_filename' => null,
             'destination_url' => null,
-            'starts_at' => null,
-            'ends_at' => null,
             'is_active' => true,
         ], ...$overrides];
+    }
+
+    /** @param array{path: string, filename: string} $image */
+    private function createDraft(User $admin, string $tagTitle, array $image): string
+    {
+        return $this->actingAs($admin)->postJson('/api/v1/admin/platform-settings/homepage-advertisements', [
+            'tag_title' => $tagTitle,
+            'layout' => 'single',
+            'rotation_interval_seconds' => 6,
+            'ads' => [$this->ad($image)],
+        ])->assertCreated()->json('data.id');
     }
 
     private function admin(): User

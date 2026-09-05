@@ -11,7 +11,10 @@ class HomepageAdvertisementImageService
 {
     private const EXTENSIONS = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 
-    public function store(UploadedFile $file): string
+    /**
+     * @return array{path: string, filename: string}
+     */
+    public function store(UploadedFile $file): array
     {
         if (($file->getSize() ?? 0) >= 10_485_760) {
             throw ValidationException::withMessages(['image' => 'The image must be smaller than 10 MiB.']);
@@ -51,7 +54,10 @@ class HomepageAdvertisementImageService
             throw ValidationException::withMessages(['image' => 'The image could not be stored.']);
         }
 
-        return $path;
+        return [
+            'path' => $path,
+            'filename' => self::displayFilename($file->getClientOriginalName()),
+        ];
     }
 
     public static function disk(): string
@@ -78,5 +84,27 @@ class HomepageAdvertisementImageService
         $baseUrl = rtrim(Storage::disk($disk ?: 'public')->url(''), '/').'/';
 
         return str_starts_with($value, $baseUrl) ? substr($value, strlen($baseUrl)) : null;
+    }
+
+    public static function looksLikeStoredPath(mixed $value): bool
+    {
+        return is_string($value)
+            && (bool) preg_match('#^homepage-advertisements/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpg|png|webp)$#i', $value);
+    }
+
+    public static function assertStoredPath(mixed $value, string $disk, string $attribute): string
+    {
+        if (! self::looksLikeStoredPath($value) || ! Storage::disk($disk)->exists($value)) {
+            throw ValidationException::withMessages([$attribute => 'Insert a JPEG, PNG, or WebP image that was uploaded to advertisement storage.']);
+        }
+
+        return $value;
+    }
+
+    public static function displayFilename(string $filename): string
+    {
+        $filename = trim((string) preg_replace('/[[:cntrl:]]/', '', basename(str_replace('\\', '/', $filename))));
+
+        return Str::limit($filename !== '' ? $filename : 'advertisement-image', 255, '');
     }
 }

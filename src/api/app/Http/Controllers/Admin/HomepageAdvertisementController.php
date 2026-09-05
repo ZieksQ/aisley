@@ -63,7 +63,7 @@ class HomepageAdvertisementController extends Controller
     {
         $request->validate(['image' => ['required', 'file', 'max:10239']]);
 
-        return response()->json(['data' => ['url' => $images->store($request->file('image'))]], 201);
+        return response()->json(['data' => $images->store($request->file('image'))], 201);
     }
 
     public function image(HomepageCampaign $campaign, string $variant): Response

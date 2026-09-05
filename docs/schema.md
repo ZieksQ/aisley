@@ -143,6 +143,8 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `SellerComplianceCaseStatus` | `open`, `confirmed`, `dismissed`, `closed` | `seller_compliance_cases.status` |
 | `SellerComplianceActionType` | `case_dismissed`, `case_closed`, `warning_issued`, `product_restricted`, `product_restriction_revoked`, `seller_suspension_referred` | `seller_compliance_actions.action` |
 | `HomepageCampaignPlacement` | `hero`, `hero_side` | `homepage_campaigns.placement` |
+| `HomepageAdvertisementLayout` | `single`, `carousel`, `multi_block`, `multi_block_carousel` | `homepage_advertisement_configurations.layout` |
+| `HomepageAdvertisementStatus` | `draft`, `published`, `archived` | `homepage_advertisement_configurations.status` |
 | `AdminAuditAction` | Registration, Admin authentication/account, Platform Settings, and user-account lifecycle action strings defined by the PHP enum | `audit_logs.action`, `audit_outbox.action` |
 | `AuditSourceFeature` | `account_approval`, `admin_authentication`, `admin_account_management`, `platform_settings`, `user_account_management`, `seller_compliance` | `audit_logs.source_feature`, `audit_outbox.source_feature` |
 
@@ -764,20 +766,43 @@ At most one active product-level gallery media row is marked `is_default` by the
 | --- | --- | --- | --- | --- |
 | `id` | UUID | No | Eloquent UUIDv7 | Primary key |
 | `placement` | VARCHAR(32) | No | — | Cast to `HomepageCampaignPlacement` |
-| `title` | VARCHAR | No | — | Internal/display campaign title |
+| `title` | VARCHAR | Yes | `NULL` | Legacy campaign display title; image-only Admin advertisements clear it |
 | `image_disk` | VARCHAR | No | `public` | Filesystem disk for banner media |
 | `image_desktop_path` | TEXT | No | — | Desktop banner image path |
+| `image_desktop_filename` | VARCHAR | Yes | `NULL` | Safe original filename shown only to Admin after upload |
 | `image_mobile_path` | TEXT | No | — | Mobile banner image path |
-| `alt_text` | VARCHAR | No | — | Accessible image alternative |
+| `image_mobile_filename` | VARCHAR | Yes | `NULL` | Safe original mobile filename shown only to Admin after upload |
+| `alt_text` | VARCHAR | Yes | `NULL` | Legacy campaign alternative; image-only Admin advertisements clear it |
 | `destination_url` | TEXT | No | — | Sanitized against internal/allowed storefront hosts at output |
-| `starts_at` | TIMESTAMP | No | — | Inclusive campaign start |
-| `ends_at` | TIMESTAMP | No | — | Exclusive campaign end |
+| `starts_at` | TIMESTAMP | Yes | `NULL` | Legacy campaign window; advertisement configuration owns the whole-layout schedule |
+| `ends_at` | TIMESTAMP | Yes | `NULL` | Legacy campaign window; advertisement configuration owns the whole-layout schedule |
 | `priority` | INTEGER | No | `0` | Higher values render first |
 | `is_active` | BOOLEAN | No | `true` | Developer/admin operational switch |
 | `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 | `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
 
-Only active records satisfying `starts_at <= now < ends_at` are exposed. Homepage caching is invalidated on normal model saves/deletes, and expiry is rechecked after cache retrieval.
+Legacy standalone campaigns are exposed only while active and within their own window. Image-only Admin advertisements instead use the parent configuration's active whole-layout window. Homepage caching is invalidated on normal model saves/deletes, and expiry is rechecked after cache retrieval.
+
+### 9.6.1 `homepage_advertisement_configurations`
+
+**Model:** `HomepageAdvertisementConfiguration`
+
+| Column | PostgreSQL type | Nullable | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
+| `source_configuration_id` | UUID | Yes | `NULL` | Published configuration copied to make a successor draft |
+| `tag_title` | VARCHAR(120) | Yes | `NULL` | Required for new Admin drafts; internal-only and never returned to Customers |
+| `layout` | VARCHAR(32) | No | — | Cast to `HomepageAdvertisementLayout` |
+| `rotation_interval_seconds` | SMALLINT | No | `6` | Validated 3–20 seconds |
+| `starts_at`, `ends_at` | TIMESTAMPTZ | Yes | `NULL` | One optional inclusive/exclusive schedule for the whole layout |
+| `status` | VARCHAR(16) | No | `draft` | Cast to `HomepageAdvertisementStatus` |
+| `revision` | INTEGER | No | `1` | Optimistic-concurrency counter |
+| `created_by_admin_id` | UUID | No | — | FK → `users.id`; restrictive delete |
+| `published_by_admin_id` | UUID | Yes | `NULL` | FK → `users.id`; `NULL` when its Admin is removed |
+| `published_at` | TIMESTAMPTZ | Yes | `NULL` | Publication timestamp |
+| `created_at`, `updated_at` | TIMESTAMPTZ | Yes | `NULL` | Managed by Eloquent |
+
+Each configuration owns its `homepage_campaigns` ad assignments. It is published atomically and the previous published configuration becomes archived. Draft and archived configurations can be permanently removed with revision checks; published configurations cannot. Uploaded image bytes are stored on the configured `public` local disk or Azure disk, while the database retains only generated keys, disk, and safe display filenames.
 
 ### 9.7 `flash_deals` and `flash_deal_products`
 
@@ -1037,6 +1062,9 @@ Migrations currently run in this dependency order:
 42. `2026_09_02_000133_add_product_gallery_defaults.php` — Seller-selected default Product gallery cover marker.
 43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
 44. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
+45. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
+46. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
+47. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
 
 ## 14. Deferred schema
 
