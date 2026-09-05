@@ -16,6 +16,7 @@ Structure under `src/`:
 Database: Postgres (containerized)
 
 ## Git commit & branch rules
+
 **Feature Branching & Commits**: When implementing a new feature, always create and switch to a new branch derived from the current active branch before making changes. Once the task is completed, automatically commit the changes using a descriptive conventional commit message formatted as feat: concise summary of changes, branch names formatted as ex. `feature/short-commit-title.
 
 ## Rules for every prompt
@@ -27,7 +28,7 @@ Database: Postgres (containerized)
 5. **Courier is mobile-only.** Do not build a web UI for couriers inside `src/`. Courier functionality = API endpoints only, meant for consumption by an external mobile app.
 6. **Multi-tenancy.** Sellers only ever operate on data scoped to their own store. Enforce store-level data isolation at the API layer, not just in the UI.
 7. **Auth.** Use Sanctum tokens across all API consumers. Enforce role-based access control (RBAC) on every endpoint — check role before executing role-specific logic.
-8. **Approval gating.** Sellers and Couriers cannot use their dashboards/apps until Admin approves them. Enforce this at the API level, not just the UI.
+8. **Approval gating.** Sellers may use the Seller dashboard only after Admin approval. Couriers may use the Courier mobile app only after approval by their associated Logistics organization. Enforce this at the API level, not just the UI.
 9. **Update `PROGRESS.md`** with a short, dated summary after finishing a feature or meaningful change. This is mandatory. `PROGRESS.md` is a single running log for the **whole app**, not a per-prompt file — always **append** a new dated entry, never rewrite or delete existing entries. Skim existing entries first so you don't log a duplicate of something already recorded.
 10. **Stay in scope.** Only touch files relevant to the current task. Don't refactor, rename, reformat, or "clean up" unrelated code/files without being explicitly asked — this includes files outside `src/` and other docs. If a task seems to need out-of-scope changes, flag it and ask before doing it.
 11. **Read the relevant docs file** before writing code, per the table below. For every frontend task — including UI, styling, layout, accessibility, and client-side behavior — read `docs/design.md` before making changes.
