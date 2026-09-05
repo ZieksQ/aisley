@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
+use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -24,6 +25,9 @@ use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\HomepageAdvertisementImageController;
+use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
+use App\Http\Controllers\Logistics\CourierApprovalController;
+use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
@@ -206,6 +210,34 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/inventory/{inventorySku}/threshold', [SellerInventoryController::class, 'threshold'])->whereUuid('inventorySku')->name('inventory.threshold');
     Route::get('/low-stock-alerts', [SellerLowStockAlertController::class, 'index'])->middleware('throttle:120,1')->name('low-stock-alerts.index');
     Route::get('/low-stock-alerts/{alert}', [SellerLowStockAlertController::class, 'show'])->middleware('throttle:120,1')->whereUuid('alert')->name('low-stock-alerts.show');
+});
+
+Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
+    Route::post('/register', [LogisticsAuthController::class, 'register'])->name('register');
+    Route::post('/login', [LogisticsAuthController::class, 'login'])->name('login');
+    Route::post('/forgot-password', [LogisticsAuthController::class, 'forgotPassword'])->name('password.email');
+    Route::post('/reset-password', [LogisticsAuthController::class, 'resetPassword'])->name('password.update');
+    Route::middleware(['auth:sanctum', 'logistics.active'])->group(function () {
+        Route::get('/me', [LogisticsAuthController::class, 'show'])->name('me');
+        Route::post('/logout', [LogisticsAuthController::class, 'logout'])->name('logout');
+    });
+});
+
+Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active'])->group(function () {
+    Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
+    Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
+});
+
+Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
+    Route::get('/logistics-options', [CourierAuthController::class, 'options'])->middleware('throttle:60,1')->name('logistics-options');
+    Route::post('/register', [CourierAuthController::class, 'register'])->middleware('throttle:10,1')->name('register');
+    Route::post('/login', [CourierAuthController::class, 'login'])->name('login');
+    Route::post('/forgot-password', [CourierAuthController::class, 'forgotPassword'])->name('password.email');
+    Route::middleware(['auth:sanctum', 'courier.active'])->group(function () {
+        Route::get('/me', [CourierAuthController::class, 'show'])->name('me');
+        Route::post('/logout', [CourierAuthController::class, 'logout'])->name('logout');
+    });
 });
 
 Route::get('v1/product-description-assets/{asset}', ProductDescriptionAssetController::class)

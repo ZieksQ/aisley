@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, catalog/inventory, Cart, and Customer checkout/order schema
+> **Status:** Implemented foundation, catalog/inventory, Cart, Customer checkout/order schema, and Logistics/Courier authentication foundation
 >
-> **Last synchronized:** 2026-08-30
+> **Last synchronized:** 2026-09-05
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -12,33 +12,47 @@ This document describes the schema that is currently implemented in `src/api`. I
 
 ## 1. Scope and role boundary
 
-The implemented authentication schema follows the repository-level `AGENTS.md` contract and supports four roles:
+The implemented authentication schema follows the repository-level `AGENTS.md` contract and supports five roles:
 
 - `customer` — called Buyer in some product documents.
 - `seller` — owns at most one shop.
 - `admin` — reviews registrations and may receive custom permissions.
+- `logistics` — operates one organization and its sole operational hub through the Logistics dashboard.
 - `courier` — consumes API endpoints from an external mobile application.
 
-`docs/requirements.md`, `docs/architecture.md`, and `docs/workspace.md` also describe Logistics as a fifth authenticating role and disagree about who approves Couriers. That conflict is unresolved. Consequently, the current schema has:
+The current authentication and Logistics foundation includes:
 
-- no `logistics` value in `users.role`;
-- no Logistics profile, company, hub, or subscription table; and
-- a generic reviewer relationship intended for Admin use but not role-constrained by the database.
+- `logistics` in `users.role` and `registration_applications.application_type`;
+- one `logistics_profiles` row per Logistics user;
+- one `logistics_organizations` row per Logistics user;
+- one `logistics_hubs` row per Logistics organization, with a unique organization foreign key; and
+- one `courier_logistics_affiliations` row per Courier, linking it to the selected organization and derived sole hub.
 
-The role documents must be reconciled before introducing Logistics authentication or ownership relationships.
+Admin approves Logistics registration applications. The associated Logistics organization approves or rejects its Courier affiliations. Admin account lifecycle actions such as suspension, restoration, and deactivation remain separate from Courier affiliation approval.
+
+The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Shipment, waybill, scan, pickup, delivery-task, assignment, and proof-of-delivery tables remain deferred.
+
+### Implemented Logistics cardinality and deferred operations
+
+- A Logistics organization has exactly one operational hub/sorting center.
+- A hub belongs to one Logistics organization, and the unique organization foreign key prevents a second hub or sub-hub in the MVP.
+- The Logistics registration address is the organization's sole operational hub/sorting-center address. The Logistics account operates that hub through the Logistics dashboard; no separate hub or sub-hub address is collected.
+- Courier registration selects the Logistics organization; the sole hub is derived server-side rather than supplied as a client-controlled ID.
+- Current foundation cardinality is one Logistics user per organization. Staff/sub-account support is a later authorization decision and is not part of this foundation.
+- Deferred parcel, waybill, scan, pickup, delivery-task, assignment, fleet, zone, capacity, subscription, and proof-of-delivery records must resolve through the organization's sole hub when introduced.
 
 ## 2. Database conventions
 
-| Concern | Implemented convention |
-| --- | --- |
-| Application primary keys | PostgreSQL `UUID`, generated as UUIDv7 by Eloquent's `HasUuids` trait |
-| Application foreign keys | `UUID` via Laravel `foreignUuid` |
-| Sanctum tokens | UUID primary key and UUID polymorphic owner key |
-| Enum-like values | PostgreSQL `VARCHAR`; strict values are PHP backed enums cast by Eloquent |
-| Timestamps | Laravel `created_at` and `updated_at` columns unless noted otherwise |
-| File storage | Database stores disk/path and metadata only; file bytes belong in configured blob storage |
-| User deletion | Owned profile data generally cascades; reviewer/grantor references become `NULL`; a shop restricts seller deletion |
-| Seller tenancy | A shop is linked directly to one seller user through `shops.seller_id`; seller-owned queries must derive tenant scope from the authenticated user |
+| Concern                  | Implemented convention                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Application primary keys | PostgreSQL `UUID`, generated as UUIDv7 by Eloquent's `HasUuids` trait                                                                             |
+| Application foreign keys | `UUID` via Laravel `foreignUuid`                                                                                                                  |
+| Sanctum tokens           | UUID primary key and UUID polymorphic owner key                                                                                                   |
+| Enum-like values         | PostgreSQL `VARCHAR`; strict values are PHP backed enums cast by Eloquent                                                                         |
+| Timestamps               | Laravel `created_at` and `updated_at` columns unless noted otherwise                                                                              |
+| File storage             | Database stores disk/path and metadata only; file bytes belong in configured blob storage                                                         |
+| User deletion            | Owned profile data generally cascades; reviewer/grantor references become `NULL`; a shop restricts seller deletion                                |
+| Seller tenancy           | A shop is linked directly to one seller user through `shops.seller_id`; seller-owned queries must derive tenant scope from the authenticated user |
 
 Framework infrastructure tables retain the key types required by Laravel:
 
@@ -54,6 +68,13 @@ erDiagram
     USERS ||--o| SELLER_PROFILES : has
     USERS ||--o| COURIER_PROFILES : has
     USERS ||--o| ADMIN_PROFILES : has
+    USERS ||--o| LOGISTICS_PROFILES : has
+    USERS ||--o| LOGISTICS_ORGANIZATIONS : operates
+    LOGISTICS_ORGANIZATIONS ||--|| LOGISTICS_HUBS : owns_sole
+    ADDRESSES ||--o| LOGISTICS_HUBS : locates
+    LOGISTICS_ORGANIZATIONS ||--o{ COURIER_LOGISTICS_AFFILIATIONS : approves
+    LOGISTICS_HUBS ||--o{ COURIER_LOGISTICS_AFFILIATIONS : scopes
+    USERS ||--o| COURIER_LOGISTICS_AFFILIATIONS : joins
 
     USERS ||--o{ REGISTRATION_APPLICATIONS : submits
     USERS o|--o{ REGISTRATION_APPLICATIONS : reviews
@@ -116,7 +137,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 
 | PHP enum | Values | Used by |
 | --- | --- | --- |
-| `UserRole` | `customer`, `seller`, `admin`, `courier` | `users.role`, `registration_applications.application_type`, `password_reset_tokens.role` |
+| `UserRole` | `customer`, `seller`, `admin`, `logistics`, `courier` | `users.role`, `registration_applications.application_type`, `password_reset_tokens.role` |
 | `UserStatus` | `pending`, `active`, `rejected`, `suspended`, `deactivated` | `users.status` |
 | `AccountLifecycleAction` | `suspended`, `restored`, `deactivated` | `account_lifecycle_events.action` |
 | `UserSex` | `male`, `female`, `non_binary`, `prefer_not_to_say` | Role-profile `sex` columns |
@@ -126,6 +147,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `AddressType` | `shipping`, `billing`, `both` | `addresses.type` |
 | `VehicleType` | `motorcycle`, `car`, `van` | `vehicles.type` |
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
+| `CourierAffiliationStatus` | `pending`, `approved`, `rejected`, `revoked` | `courier_logistics_affiliations.status` |
 | `ShopStatus` | `pending`, `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
@@ -150,6 +172,29 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
 
+### Planned Shipment/Delivery Task status vocabulary
+
+Shipment and Delivery Task tables are deferred, but their status values must use explicit lowercase `snake_case` names when introduced. They must not be added to `orders.status` without an approved migration and transition contract.
+
+```text
+awaiting_seller_pickup
+seller_pickup_assigned
+seller_pickup_accepted
+picked_up_from_seller
+received_at_hub
+sorted_at_hub
+in_transfer
+dispatched_from_hub
+delivery_assigned
+delivery_accepted
+picked_up_from_hub
+in_transit
+out_for_delivery
+delivered
+```
+
+`picked_up_from_seller` records the first-mile Seller handoff. `picked_up_from_hub` records the final-mile handoff from the Logistics hub. `waybill_created`, scan, sort, transfer, and dispatch records are events/document operations unless a future shipment contract explicitly makes one of them a current state.
+
 ## 5. Identity and authentication
 
 ### 5.1 `users`
@@ -158,17 +203,17 @@ The database does not currently add `CHECK` constraints for these values. Reques
 
 All authenticating people share this table. Role-specific personal data lives in a separate profile table.
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `email` | VARCHAR | No | — | Login identifier within a role |
-| `email_verified_at` | TIMESTAMP | Yes | `NULL` | Email verification time |
-| `password` | VARCHAR | No | — | Hashed by the Eloquent cast |
-| `role` | VARCHAR | No | `customer` | Cast to `UserRole` |
-| `status` | VARCHAR | No | `pending` | Cast to `UserStatus`; used for approval gating |
-| `remember_token` | VARCHAR(100) | Yes | `NULL` | Laravel remember token |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column              | PostgreSQL type | Nullable | Default         | Notes                                          |
+| ------------------- | --------------- | -------- | --------------- | ---------------------------------------------- |
+| `id`                | UUID            | No       | Eloquent UUIDv7 | Primary key                                    |
+| `email`             | VARCHAR         | No       | —               | Login identifier within a role                 |
+| `email_verified_at` | TIMESTAMP       | Yes      | `NULL`          | Email verification time                        |
+| `password`          | VARCHAR         | No       | —               | Hashed by the Eloquent cast                    |
+| `role`              | VARCHAR         | No       | `customer`      | Cast to `UserRole`                             |
+| `status`            | VARCHAR         | No       | `pending`       | Cast to `UserStatus`; used for approval gating |
+| `remember_token`    | VARCHAR(100)    | Yes      | `NULL`          | Laravel remember token                         |
+| `created_at`        | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                            |
+| `updated_at`        | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                            |
 
 Constraints and indexes:
 
@@ -178,9 +223,11 @@ Constraints and indexes:
 
 Model relationships:
 
-- Zero or one `CustomerProfile`, `SellerProfile`, `CourierProfile`, and `AdminProfile` row.
+- Zero or one `CustomerProfile`, `SellerProfile`, `CourierProfile`, `AdminProfile`, and `LogisticsProfile` row.
 - Many addresses, registration applications, and documents.
 - Zero or one seller-owned shop.
+- Zero or one Logistics-owned organization and its sole hub.
+- Zero or one Courier affiliation to a Logistics organization.
 - Many reviewed applications/documents.
 - Many permissions through `admin_permissions`.
 - Many Sanctum personal access tokens.
@@ -193,19 +240,19 @@ Each profile has a UUID primary key and a unique UUID `user_id`, enforcing at mo
 
 **Models:** `CustomerProfile`, `SellerProfile`, `CourierProfile`
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary key |
-| `user_id` | UUID | No | Unique FK → `users.id`; `ON DELETE CASCADE` |
-| `first_name` | VARCHAR | No | Personal name |
-| `last_name` | VARCHAR | No | Personal name |
-| `middle_name` | VARCHAR | Yes | Optional middle name |
-| `contact_number` | VARCHAR(32) | No | Contact number |
-| `sex` | VARCHAR(32) | No | Cast to `UserSex` |
-| `birth_date` | DATE | No | Source for the computed `age` accessor |
-| `profile_photo_path` | VARCHAR(2048) | Yes | Blob-storage path |
-| `created_at` | TIMESTAMP | Yes | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column               | PostgreSQL type | Nullable | Notes                                       |
+| -------------------- | --------------- | -------- | ------------------------------------------- |
+| `id`                 | UUID            | No       | Primary key                                 |
+| `user_id`            | UUID            | No       | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `first_name`         | VARCHAR         | No       | Personal name                               |
+| `last_name`          | VARCHAR         | No       | Personal name                               |
+| `middle_name`        | VARCHAR         | Yes      | Optional middle name                        |
+| `contact_number`     | VARCHAR(32)     | No       | Contact number                              |
+| `sex`                | VARCHAR(32)     | No       | Cast to `UserSex`                           |
+| `birth_date`         | DATE            | No       | Source for the computed `age` accessor      |
+| `profile_photo_path` | VARCHAR(2048)   | Yes      | Blob-storage path                           |
+| `created_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+| `updated_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 
 Additional relationships:
 
@@ -223,24 +270,72 @@ The identity columns match the other role profiles except `contact_number`, `sex
 
 An Admin profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). The database stores only the generated object path and validated metadata: `profile_photo_disk`, `profile_photo_path`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height`. These fields are nullable. The raw path is never returned to the Admin SPA; authenticated delivery uses the current-Admin profile-photo endpoint.
 
+#### `logistics_profiles`
+
+**Model:** `LogisticsProfile`
+
+The Logistics personal profile uses the same UUID-backed identity fields as the other non-Admin role profiles. `user_id` is unique and cascades on user deletion. The computed age is derived from `birth_date` and is not stored.
+
+| Column          | PostgreSQL type | Nullable | Notes                                       |
+| --------------- | --------------- | -------- | ------------------------------------------- |
+| `id`            | UUID            | No       | Primary key                                 |
+| `user_id`       | UUID            | No       | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `first_name`    | VARCHAR         | No       | Personal name                               |
+| `last_name`     | VARCHAR         | No       | Personal name                               |
+| `middle_name`   | VARCHAR         | Yes      | Optional middle name                        |
+| `contact_number` | VARCHAR(32)     | No       | Contact number                              |
+| `sex`            | VARCHAR(32)     | No       | Cast to `UserSex`                           |
+| `birth_date`     | DATE            | No       | Source for the computed `age` accessor      |
+| `created_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+| `updated_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+
+#### `logistics_organizations` and `logistics_hubs`
+
+**Models:** `LogisticsOrganization`, `LogisticsHub`
+
+Each approved Logistics user owns one organization. That organization owns exactly one operational hub/sorting center for the MVP. The hub's address is the operational-hub address collected during Logistics registration.
+
+`logistics_organizations`:
+
+| Column         | PostgreSQL type | Nullable | Notes                                       |
+| -------------- | --------------- | -------- | ------------------------------------------- |
+| `id`           | UUID            | No       | Primary key                                 |
+| `user_id`      | UUID            | No       | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `business_name` | VARCHAR         | No       | Organization display name                  |
+| `created_at`    | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+| `updated_at`    | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+
+`logistics_hubs`:
+
+| Column                     | PostgreSQL type | Nullable | Notes                                                          |
+| -------------------------- | --------------- | -------- | -------------------------------------------------------------- |
+| `id`                       | UUID            | No       | Primary key                                                    |
+| `logistics_organization_id` | UUID            | No       | Unique FK → `logistics_organizations.id`; `ON DELETE CASCADE` |
+| `address_id`                | UUID            | No       | Unique FK → the Logistics user's `addresses.id`; `ON DELETE RESTRICT` |
+| `name`                      | VARCHAR         | No       | Operational hub display name                                  |
+| `created_at`                | TIMESTAMP       | Yes      | Managed by Eloquent                                           |
+| `updated_at`                | TIMESTAMP       | Yes      | Managed by Eloquent                                           |
+
+The database unique constraints enforce at-most-one organization per Logistics user and at-most-one hub per organization. Active operational access additionally requires the authenticated Logistics account, active organization, and existing sole hub.
+
 ### 5.3 `personal_access_tokens`
 
 **Model:** `App\Models\PersonalAccessToken`
 
 This is a customized Laravel Sanctum table so both the token row and the polymorphic owner key are UUID-compatible.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary key; generated as UUIDv7 |
-| `tokenable_type` | VARCHAR | No | Polymorphic model class |
-| `tokenable_id` | UUID | No | Polymorphic owner identifier |
-| `name` | TEXT | No | Device/token label |
-| `token` | VARCHAR(64) | No | Unique hashed token |
-| `abilities` | TEXT | Yes | Sanctum ability list |
-| `last_used_at` | TIMESTAMP | Yes | Last token use |
-| `expires_at` | TIMESTAMP | Yes | Optional expiry; indexed |
-| `created_at` | TIMESTAMP | Yes | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column           | PostgreSQL type | Nullable | Notes                            |
+| ---------------- | --------------- | -------- | -------------------------------- |
+| `id`             | UUID            | No       | Primary key; generated as UUIDv7 |
+| `tokenable_type` | VARCHAR         | No       | Polymorphic model class          |
+| `tokenable_id`   | UUID            | No       | Polymorphic owner identifier     |
+| `name`           | TEXT            | No       | Device/token label               |
+| `token`          | VARCHAR(64)     | No       | Unique hashed token              |
+| `abilities`      | TEXT            | Yes      | Sanctum ability list             |
+| `last_used_at`   | TIMESTAMP       | Yes      | Last token use                   |
+| `expires_at`     | TIMESTAMP       | Yes      | Optional expiry; indexed         |
+| `created_at`     | TIMESTAMP       | Yes      | Managed by Eloquent              |
+| `updated_at`     | TIMESTAMP       | Yes      | Managed by Eloquent              |
 
 Indexes:
 
@@ -254,23 +349,23 @@ There is no foreign key on `tokenable_id` because the relationship is polymorphi
 
 Laravel's database-session table uses a string session ID rather than a UUID model primary key.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | VARCHAR | No | Primary key |
-| `user_id` | UUID | Yes | FK → `users.id`; `ON DELETE SET NULL`; indexed |
-| `ip_address` | VARCHAR(45) | Yes | IPv4/IPv6 address |
-| `user_agent` | TEXT | Yes | Client user agent |
-| `payload` | TEXT | No | Serialized session payload |
-| `last_activity` | INTEGER | No | Indexed Unix timestamp |
+| Column          | PostgreSQL type | Nullable | Notes                                          |
+| --------------- | --------------- | -------- | ---------------------------------------------- |
+| `id`            | VARCHAR         | No       | Primary key                                    |
+| `user_id`       | UUID            | Yes      | FK → `users.id`; `ON DELETE SET NULL`; indexed |
+| `ip_address`    | VARCHAR(45)     | Yes      | IPv4/IPv6 address                              |
+| `user_agent`    | TEXT            | Yes      | Client user agent                              |
+| `payload`       | TEXT            | No       | Serialized session payload                     |
+| `last_activity` | INTEGER         | No       | Indexed Unix timestamp                         |
 
 ### 5.5 `password_reset_tokens`
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `email` | VARCHAR | No | Login email within the reset's role/domain |
-| `role` | VARCHAR(32) | No | Role/domain discriminator; part of the composite primary key |
-| `token` | VARCHAR | No | Hashed reset token |
-| `created_at` | TIMESTAMP | Yes | Creation time |
+| Column       | PostgreSQL type | Nullable | Notes                                                        |
+| ------------ | --------------- | -------- | ------------------------------------------------------------ |
+| `email`      | VARCHAR         | No       | Login email within the reset's role/domain                   |
+| `role`       | VARCHAR(32)     | No       | Role/domain discriminator; part of the composite primary key |
+| `token`      | VARCHAR         | No       | Hashed reset token                                           |
+| `created_at` | TIMESTAMP       | Yes      | Creation time                                                |
 
 The composite primary key is (`email`, `role`). This keeps password recovery isolated by application domain when the same normalized email belongs to more than one role.
 
@@ -280,18 +375,18 @@ The composite primary key is (`email`, `role`). This keeps password recovery iso
 
 **Model:** `RegistrationApplication`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `user_id` | UUID | No | — | FK → `users.id`; `ON DELETE CASCADE` |
-| `application_type` | VARCHAR(32) | No | — | Cast to `UserRole` |
-| `status` | VARCHAR(32) | No | `pending` | Cast to `ApplicationStatus` |
-| `submitted_at` | TIMESTAMP | No | — | Submission time |
-| `reviewer_id` | UUID | Yes | `NULL` | FK → `users.id`; `ON DELETE SET NULL` |
-| `reviewed_at` | TIMESTAMP | Yes | `NULL` | Decision time |
-| `rejection_reason` | TEXT | Yes | `NULL` | Populated for rejection |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column             | PostgreSQL type | Nullable | Default         | Notes                                 |
+| ------------------ | --------------- | -------- | --------------- | ------------------------------------- |
+| `id`               | UUID            | No       | Eloquent UUIDv7 | Primary key                           |
+| `user_id`          | UUID            | No       | —               | FK → `users.id`; `ON DELETE CASCADE`  |
+| `application_type` | VARCHAR(32)     | No       | —               | Cast to `UserRole`                    |
+| `status`           | VARCHAR(32)     | No       | `pending`       | Cast to `ApplicationStatus`           |
+| `submitted_at`     | TIMESTAMP       | No       | —               | Submission time                       |
+| `reviewer_id`      | UUID            | Yes      | `NULL`          | FK → `users.id`; `ON DELETE SET NULL` |
+| `reviewed_at`      | TIMESTAMP       | Yes      | `NULL`          | Decision time                         |
+| `rejection_reason` | TEXT            | Yes      | `NULL`          | Populated for rejection               |
+| `created_at`       | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                   |
+| `updated_at`       | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                   |
 
 Constraints and indexes:
 
@@ -304,24 +399,24 @@ A registration application may have many uploaded documents. The reviewer relati
 
 **Model:** `Document`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `user_id` | UUID | No | — | FK → `users.id`; `ON DELETE CASCADE` |
-| `registration_application_id` | UUID | Yes | `NULL` | FK → `registration_applications.id`; `ON DELETE CASCADE` |
-| `reviewer_id` | UUID | Yes | `NULL` | FK → `users.id`; `ON DELETE SET NULL` |
-| `type` | VARCHAR(64) | No | — | Cast to `DocumentType` |
-| `status` | VARCHAR(32) | No | `pending` | Cast to `DocumentStatus` |
-| `disk` | VARCHAR | No | — | Laravel filesystem disk name |
-| `path` | TEXT | No | — | Object/blob path |
-| `original_name` | VARCHAR | No | — | Client filename metadata |
-| `mime_type` | VARCHAR(127) | No | — | Media type metadata |
-| `size_bytes` | BIGINT | No | — | File size |
-| `checksum` | VARCHAR(128) | Yes | `NULL` | Optional integrity hash |
-| `reviewed_at` | TIMESTAMP | Yes | `NULL` | Verification/rejection time |
-| `rejection_reason` | TEXT | Yes | `NULL` | Populated for rejection |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column                        | PostgreSQL type | Nullable | Default         | Notes                                                    |
+| ----------------------------- | --------------- | -------- | --------------- | -------------------------------------------------------- |
+| `id`                          | UUID            | No       | Eloquent UUIDv7 | Primary key                                              |
+| `user_id`                     | UUID            | No       | —               | FK → `users.id`; `ON DELETE CASCADE`                     |
+| `registration_application_id` | UUID            | Yes      | `NULL`          | FK → `registration_applications.id`; `ON DELETE CASCADE` |
+| `reviewer_id`                 | UUID            | Yes      | `NULL`          | FK → `users.id`; `ON DELETE SET NULL`                    |
+| `type`                        | VARCHAR(64)     | No       | —               | Cast to `DocumentType`                                   |
+| `status`                      | VARCHAR(32)     | No       | `pending`       | Cast to `DocumentStatus`                                 |
+| `disk`                        | VARCHAR         | No       | —               | Laravel filesystem disk name                             |
+| `path`                        | TEXT            | No       | —               | Object/blob path                                         |
+| `original_name`               | VARCHAR         | No       | —               | Client filename metadata                                 |
+| `mime_type`                   | VARCHAR(127)    | No       | —               | Media type metadata                                      |
+| `size_bytes`                  | BIGINT          | No       | —               | File size                                                |
+| `checksum`                    | VARCHAR(128)    | Yes      | `NULL`          | Optional integrity hash                                  |
+| `reviewed_at`                 | TIMESTAMP       | Yes      | `NULL`          | Verification/rejection time                              |
+| `rejection_reason`            | TEXT            | Yes      | `NULL`          | Populated for rejection                                  |
+| `created_at`                  | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                      |
+| `updated_at`                  | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                      |
 
 Indexes:
 
@@ -334,27 +429,27 @@ Deleting a registration application deletes its attached document metadata. Dele
 
 **Model:** `Address`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `user_id` | UUID | No | — | FK → `users.id`; `ON DELETE CASCADE` |
-| `type` | VARCHAR(32) | No | `shipping` | Cast to `AddressType` |
-| `label` | VARCHAR | Yes | `NULL` | Examples: Home, Office |
-| `recipient_name` | VARCHAR | No | — | Delivery/billing recipient |
-| `contact_number` | VARCHAR(32) | No | — | Recipient contact |
-| `address_line_1` | VARCHAR | No | — | Primary street/building line |
-| `address_line_2` | VARCHAR | Yes | `NULL` | Optional secondary line |
-| `barangay` | VARCHAR | No | — | Philippine locality |
-| `city_municipality` | VARCHAR | No | — | City or municipality |
-| `province` | VARCHAR | No | — | Province |
-| `region` | VARCHAR | No | — | Region |
-| `postal_code` | VARCHAR(10) | No | — | Postal code |
-| `country` | VARCHAR | No | `Philippines` | Country name |
-| `latitude` | NUMERIC(10,7) | Yes | `NULL` | Optional map coordinate |
-| `longitude` | NUMERIC(10,7) | Yes | `NULL` | Optional map coordinate |
-| `is_default` | BOOLEAN | No | `false` | Default-address marker |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column              | PostgreSQL type | Nullable | Default         | Notes                                |
+| ------------------- | --------------- | -------- | --------------- | ------------------------------------ |
+| `id`                | UUID            | No       | Eloquent UUIDv7 | Primary key                          |
+| `user_id`           | UUID            | No       | —               | FK → `users.id`; `ON DELETE CASCADE` |
+| `type`              | VARCHAR(32)     | No       | `shipping`      | Cast to `AddressType`                |
+| `label`             | VARCHAR         | Yes      | `NULL`          | Examples: Home, Office               |
+| `recipient_name`    | VARCHAR         | No       | —               | Delivery/billing recipient           |
+| `contact_number`    | VARCHAR(32)     | No       | —               | Recipient contact                    |
+| `address_line_1`    | VARCHAR         | No       | —               | Primary street/building line         |
+| `address_line_2`    | VARCHAR         | Yes      | `NULL`          | Optional secondary line              |
+| `barangay`          | VARCHAR         | No       | —               | Philippine locality                  |
+| `city_municipality` | VARCHAR         | No       | —               | City or municipality                 |
+| `province`          | VARCHAR         | No       | —               | Province                             |
+| `region`            | VARCHAR         | No       | —               | Region                               |
+| `postal_code`       | VARCHAR(10)     | No       | —               | Postal code                          |
+| `country`           | VARCHAR         | No       | `Philippines`   | Country name                         |
+| `latitude`          | NUMERIC(10,7)   | Yes      | `NULL`          | Optional map coordinate              |
+| `longitude`         | NUMERIC(10,7)   | Yes      | `NULL`          | Optional map coordinate              |
+| `is_default`        | BOOLEAN         | No       | `false`         | Default-address marker               |
+| `created_at`        | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                  |
+| `updated_at`        | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                  |
 
 Indexes:
 
@@ -369,27 +464,27 @@ The database does not yet enforce one default address per user/type. That invari
 
 **Model:** `Permission`
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary key |
-| `name` | VARCHAR | No | Display name |
-| `slug` | VARCHAR | No | Unique machine identifier |
-| `description` | TEXT | Yes | Optional explanation |
-| `created_at` | TIMESTAMP | Yes | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column        | PostgreSQL type | Nullable | Notes                     |
+| ------------- | --------------- | -------- | ------------------------- |
+| `id`          | UUID            | No       | Primary key               |
+| `name`        | VARCHAR         | No       | Display name              |
+| `slug`        | VARCHAR         | No       | Unique machine identifier |
+| `description` | TEXT            | Yes      | Optional explanation      |
+| `created_at`  | TIMESTAMP       | Yes      | Managed by Eloquent       |
+| `updated_at`  | TIMESTAMP       | Yes      | Managed by Eloquent       |
 
 ### 7.2 `admin_permissions`
 
 **Model:** `AdminPermission` custom Eloquent pivot
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary key generated as UUIDv7 |
-| `admin_id` | UUID | No | FK → `users.id`; `ON DELETE CASCADE` |
-| `permission_id` | UUID | No | FK → `permissions.id`; `ON DELETE CASCADE` |
-| `granted_by` | UUID | Yes | FK → `users.id`; `ON DELETE SET NULL` |
-| `created_at` | TIMESTAMP | Yes | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column          | PostgreSQL type | Nullable | Notes                                      |
+| --------------- | --------------- | -------- | ------------------------------------------ |
+| `id`            | UUID            | No       | Primary key generated as UUIDv7            |
+| `admin_id`      | UUID            | No       | FK → `users.id`; `ON DELETE CASCADE`       |
+| `permission_id` | UUID            | No       | FK → `permissions.id`; `ON DELETE CASCADE` |
+| `granted_by`    | UUID            | Yes      | FK → `users.id`; `ON DELETE SET NULL`      |
+| `created_at`    | TIMESTAMP       | Yes      | Managed by Eloquent                        |
+| `updated_at`    | TIMESTAMP       | Yes      | Managed by Eloquent                        |
 
 Unique constraint: (`admin_id`, `permission_id`).
 
@@ -401,26 +496,26 @@ The UUID custom pivot ensures `belongsToMany()->attach()` generates the required
 
 This append-only table records security-relevant Admin decisions. The audited resource uses a polymorphic type/UUID pair so future Admin workflows can share the same ledger without adding nullable foreign keys for every resource type.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary key generated as UUIDv7 |
-| `actor_id` | UUID | Yes | Historical Admin identifier; intentionally not a database FK |
-| `actor_name` | VARCHAR | Yes | Immutable display-name snapshot for deleted/deactivated actors |
-| `action` | VARCHAR(128) | No | Write paths use `AdminAuditAction`; readers tolerate historical values |
-| `source_feature` | VARCHAR(64) | No | Event source; defaults to `account_approval` for pre-viewer rows |
-| `auditable_type` | VARCHAR | No | Audited Eloquent model class |
-| `auditable_id` | UUID | No | Audited resource identifier; no database FK because the relation is polymorphic |
-| `target_snapshot` | JSON | Yes | Minimal target identity/context retained after target changes or deletion |
-| `old_values` | JSON | Yes | Relevant state immediately before the action |
-| `new_values` | JSON | Yes | Relevant state immediately after the action |
-| `changed_fields` | JSON | Yes | Stable list of fields represented by the before/after values |
-| `metadata` | JSON | Yes | Sanitized non-secret action context |
-| `request_id` | VARCHAR(64) | Yes | Request/correlation identifier |
-| `schema_version` | SMALLINT | No | Audit payload version; defaults to `1` |
-| `occurred_at` | TIMESTAMP | Yes | Original business-event time, preserved across delayed persistence |
-| `ip_address` | VARCHAR(45) | Yes | Request IP when available |
-| `user_agent` | TEXT | Yes | Request user-agent when available |
-| `created_at` | TIMESTAMP | No | Ledger persistence time; no `updated_at` column |
+| Column            | PostgreSQL type | Nullable | Notes                                                                           |
+| ----------------- | --------------- | -------- | ------------------------------------------------------------------------------- |
+| `id`              | UUID            | No       | Primary key generated as UUIDv7                                                 |
+| `actor_id`        | UUID            | Yes      | Historical Admin identifier; intentionally not a database FK                    |
+| `actor_name`      | VARCHAR         | Yes      | Immutable display-name snapshot for deleted/deactivated actors                  |
+| `action`          | VARCHAR(128)    | No       | Write paths use `AdminAuditAction`; readers tolerate historical values          |
+| `source_feature`  | VARCHAR(64)     | No       | Event source; defaults to `account_approval` for pre-viewer rows                |
+| `auditable_type`  | VARCHAR         | No       | Audited Eloquent model class                                                    |
+| `auditable_id`    | UUID            | No       | Audited resource identifier; no database FK because the relation is polymorphic |
+| `target_snapshot` | JSON            | Yes      | Minimal target identity/context retained after target changes or deletion       |
+| `old_values`      | JSON            | Yes      | Relevant state immediately before the action                                    |
+| `new_values`      | JSON            | Yes      | Relevant state immediately after the action                                     |
+| `changed_fields`  | JSON            | Yes      | Stable list of fields represented by the before/after values                    |
+| `metadata`        | JSON            | Yes      | Sanitized non-secret action context                                             |
+| `request_id`      | VARCHAR(64)     | Yes      | Request/correlation identifier                                                  |
+| `schema_version`  | SMALLINT        | No       | Audit payload version; defaults to `1`                                          |
+| `occurred_at`     | TIMESTAMP       | Yes      | Original business-event time, preserved across delayed persistence              |
+| `ip_address`      | VARCHAR(45)     | Yes      | Request IP when available                                                       |
+| `user_agent`      | TEXT            | Yes      | Request user-agent when available                                               |
+| `created_at`      | TIMESTAMP       | No       | Ledger persistence time; no `updated_at` column                                 |
 
 Indexes:
 
@@ -439,29 +534,29 @@ The Eloquent model rejects update and delete operations. PostgreSQL and SQLite t
 
 Account-registration decisions write one outbox event inside the same transaction as the application and user-status transition. Successful active-Admin logins write an Admin-authentication event after the secure session is established; the authenticated Admin is both actor and target. A queued, idempotent writer copies sanitized events into `audit_logs` after commit. A scheduled recovery command redispatches due unprocessed rows if queue dispatch or processing is interrupted.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary/event ID; reused as `audit_logs.id` to prevent duplicate ledger rows |
-| `actor_id` | UUID | Yes | FK → `users.id`; `ON DELETE SET NULL` |
-| `actor_name` | VARCHAR | Yes | Actor display-name snapshot |
-| `action` | VARCHAR(128) | No | Audit action value |
-| `source_feature` | VARCHAR(64) | No | Audit source feature |
-| `auditable_type` | VARCHAR | No | Target Eloquent model class |
-| `auditable_id` | UUID | No | Target identifier; no polymorphic database FK |
-| `target_snapshot` | JSON | Yes | Sanitized target identity/context |
-| `old_values`, `new_values` | JSON | Yes | Sanitized before/after state |
-| `changed_fields` | JSON | Yes | Fields included in the state comparison |
-| `metadata` | JSON | Yes | Sanitized non-secret action context |
-| `request_id` | VARCHAR(64) | Yes | Request/correlation identifier |
-| `schema_version` | SMALLINT | No | Payload version; defaults to `1` |
-| `ip_address` | VARCHAR(45) | Yes | Request IP when available |
-| `user_agent` | TEXT | Yes | Truncated request user agent |
-| `occurred_at` | TIMESTAMP | No | Original business-event time |
-| `attempts` | INTEGER | No | Persistence attempt count; defaults to `0` |
-| `available_at` | TIMESTAMP | Yes | Earliest retry/dispatch time |
-| `processed_at` | TIMESTAMP | Yes | Successful ledger persistence time |
-| `last_error` | TEXT | Yes | Truncated latest processing error for recovery diagnostics |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column                     | PostgreSQL type | Nullable | Notes                                                                        |
+| -------------------------- | --------------- | -------- | ---------------------------------------------------------------------------- |
+| `id`                       | UUID            | No       | Primary/event ID; reused as `audit_logs.id` to prevent duplicate ledger rows |
+| `actor_id`                 | UUID            | Yes      | FK → `users.id`; `ON DELETE SET NULL`                                        |
+| `actor_name`               | VARCHAR         | Yes      | Actor display-name snapshot                                                  |
+| `action`                   | VARCHAR(128)    | No       | Audit action value                                                           |
+| `source_feature`           | VARCHAR(64)     | No       | Audit source feature                                                         |
+| `auditable_type`           | VARCHAR         | No       | Target Eloquent model class                                                  |
+| `auditable_id`             | UUID            | No       | Target identifier; no polymorphic database FK                                |
+| `target_snapshot`          | JSON            | Yes      | Sanitized target identity/context                                            |
+| `old_values`, `new_values` | JSON            | Yes      | Sanitized before/after state                                                 |
+| `changed_fields`           | JSON            | Yes      | Fields included in the state comparison                                      |
+| `metadata`                 | JSON            | Yes      | Sanitized non-secret action context                                          |
+| `request_id`               | VARCHAR(64)     | Yes      | Request/correlation identifier                                               |
+| `schema_version`           | SMALLINT        | No       | Payload version; defaults to `1`                                             |
+| `ip_address`               | VARCHAR(45)     | Yes      | Request IP when available                                                    |
+| `user_agent`               | TEXT            | Yes      | Truncated request user agent                                                 |
+| `occurred_at`              | TIMESTAMP       | No       | Original business-event time                                                 |
+| `attempts`                 | INTEGER         | No       | Persistence attempt count; defaults to `0`                                   |
+| `available_at`             | TIMESTAMP       | Yes      | Earliest retry/dispatch time                                                 |
+| `processed_at`             | TIMESTAMP       | Yes      | Successful ledger persistence time                                           |
+| `last_error`               | TEXT            | Yes      | Truncated latest processing error for recovery diagnostics                   |
+| `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Eloquent                                                          |
 
 Indexes: (`processed_at`, `available_at`) for recovery scans and (`auditable_type`, `auditable_id`) for target diagnostics.
 
@@ -469,15 +564,15 @@ Indexes: (`processed_at`, `available_at`) for recovery scans and (`auditable_typ
 
 Laravel's database notification table stores role-scoped per-user inbox records. Current producers record pending Customer/Seller registration summaries for authorized Admin recipients and committed compliance-warning/restriction/suspension summaries for the affected Seller; payloads contain only safe summary and internal destination data.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary notification identifier |
-| `type` | VARCHAR | No | Stable application type such as `account-registration.pending` |
-| `notifiable_type` | VARCHAR | No | Polymorphic recipient model class |
-| `notifiable_id` | UUID | No | Recipient identifier |
-| `data` | TEXT | No | Laravel-encoded compact JSON payload |
-| `read_at` | TIMESTAMP | Yes | `NULL` while unread |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Laravel |
+| Column                     | PostgreSQL type | Nullable | Notes                                                          |
+| -------------------------- | --------------- | -------- | -------------------------------------------------------------- |
+| `id`                       | UUID            | No       | Primary notification identifier                                |
+| `type`                     | VARCHAR         | No       | Stable application type such as `account-registration.pending` |
+| `notifiable_type`          | VARCHAR         | No       | Polymorphic recipient model class                              |
+| `notifiable_id`            | UUID            | No       | Recipient identifier                                           |
+| `data`                     | TEXT            | No       | Laravel-encoded compact JSON payload                           |
+| `read_at`                  | TIMESTAMP       | Yes      | `NULL` while unread                                            |
+| `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Laravel                                             |
 
 Indexes cover the polymorphic recipient and recipient/read/time inbox query. Notification destinations are generated and allow-listed by the API; database payloads are never accepted directly from an Admin client.
 
@@ -487,19 +582,19 @@ Indexes cover the polymorphic recipient and recipient/read/time inbox query. Not
 
 This append-preserving history records non-Admin account suspension, restoration, and deactivation independently from the current `users.status` value.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Primary key |
-| `user_id` | UUID | No | Managed account FK → `users.id`; `ON DELETE RESTRICT` |
-| `action` | VARCHAR | No | Cast to `AccountLifecycleAction` |
-| `previous_status`, `new_status` | VARCHAR | No | Cast to `UserStatus` |
-| `reason` | TEXT | Yes | Safe administrative lifecycle reason |
-| `acted_by_admin_id` | UUID | No | Acting Admin FK → `users.id`; `ON DELETE RESTRICT` |
-| `source_feature` | VARCHAR | No | Defaults to `user_account_management` for future cross-feature reuse |
-| `source_reference_type` | VARCHAR | Yes | Optional owning-feature reference type |
-| `source_reference_id` | UUID | Yes | Optional owning-feature reference UUID |
-| `occurred_at` | TIMESTAMP | No | Authoritative transition time |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column                          | PostgreSQL type | Nullable | Notes                                                                |
+| ------------------------------- | --------------- | -------- | -------------------------------------------------------------------- |
+| `id`                            | UUID            | No       | Primary key                                                          |
+| `user_id`                       | UUID            | No       | Managed account FK → `users.id`; `ON DELETE RESTRICT`                |
+| `action`                        | VARCHAR         | No       | Cast to `AccountLifecycleAction`                                     |
+| `previous_status`, `new_status` | VARCHAR         | No       | Cast to `UserStatus`                                                 |
+| `reason`                        | TEXT            | Yes      | Safe administrative lifecycle reason                                 |
+| `acted_by_admin_id`             | UUID            | No       | Acting Admin FK → `users.id`; `ON DELETE RESTRICT`                   |
+| `source_feature`                | VARCHAR         | No       | Defaults to `user_account_management` for future cross-feature reuse |
+| `source_reference_type`         | VARCHAR         | Yes      | Optional owning-feature reference type                               |
+| `source_reference_id`           | UUID            | Yes      | Optional owning-feature reference UUID                               |
+| `occurred_at`                   | TIMESTAMP       | No       | Authoritative transition time                                        |
+| `created_at`, `updated_at`      | TIMESTAMP       | Yes      | Managed by Eloquent                                                  |
 
 Indexes support account history, actor history, and optional source-reference lookup. Transitions lock the User row, require the client's expected current status, write this history and the audit outbox atomically, and never hard-delete the User.
 
@@ -519,25 +614,50 @@ Indexes support account history, actor history, and optional source-reference lo
 
 **Model:** `Vehicle`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `courier_profile_id` | UUID | No | — | FK → `courier_profiles.id`; `ON DELETE CASCADE` |
-| `plate_number` | VARCHAR | No | — | Unique vehicle plate |
-| `type` | VARCHAR | No | `motorcycle` | Cast to `VehicleType` |
-| `status` | VARCHAR | No | `active` | Cast to `VehicleStatus` |
-| `make` | VARCHAR | Yes | `NULL` | Vehicle make |
-| `model` | VARCHAR | Yes | `NULL` | Vehicle model |
-| `capacity` | NUMERIC(10,2) | Yes | `NULL` | Capacity value; unit must be defined by API validation |
-| `registration_document_path` | TEXT | Yes | `NULL` | Vehicle-registration object path |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column                       | PostgreSQL type | Nullable | Default         | Notes                                                  |
+| ---------------------------- | --------------- | -------- | --------------- | ------------------------------------------------------ |
+| `id`                         | UUID            | No       | Eloquent UUIDv7 | Primary key                                            |
+| `courier_profile_id`         | UUID            | No       | —               | FK → `courier_profiles.id`; `ON DELETE CASCADE`        |
+| `plate_number`               | VARCHAR         | No       | —               | Unique vehicle plate                                   |
+| `type`                       | VARCHAR         | No       | `motorcycle`    | Cast to `VehicleType`                                  |
+| `status`                     | VARCHAR         | No       | `active`        | Cast to `VehicleStatus`                                |
+| `make`                       | VARCHAR         | Yes      | `NULL`          | Vehicle make                                           |
+| `model`                      | VARCHAR         | Yes      | `NULL`          | Vehicle model                                          |
+| `capacity`                   | NUMERIC(10,2)   | Yes      | `NULL`          | Capacity value; unit must be defined by API validation |
+| `registration_document_path` | TEXT            | Yes      | `NULL`          | Vehicle-registration object path                       |
+| `created_at`                 | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                    |
+| `updated_at`                 | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                    |
 
 Constraints and indexes:
 
 - Unique: `plate_number`.
 - Index: (`courier_profile_id`, `status`).
 - Index: `type`.
+
+### 8.2 `courier_logistics_affiliations`
+
+**Model:** `CourierLogisticsAffiliation`
+
+This table records the Courier's selected Logistics organization and the organization's sole hub. A Courier has at most one current affiliation in the MVP. The associated Logistics organization, not Admin, approves or rejects the affiliation.
+
+| Column                       | PostgreSQL type | Nullable | Default   | Notes                                                          |
+| ---------------------------- | --------------- | -------- | --------- | -------------------------------------------------------------- |
+| `id`                         | UUID            | No       | —         | Primary key                                                    |
+| `courier_id`                 | UUID            | No       | —         | Unique FK → `users.id`; `ON DELETE CASCADE`                   |
+| `logistics_organization_id`  | UUID            | No       | —         | FK → `logistics_organizations.id`; `ON DELETE RESTRICT`       |
+| `logistics_hub_id`           | UUID            | No       | —         | FK → `logistics_hubs.id`; `ON DELETE RESTRICT`                |
+| `status`                     | VARCHAR(32)     | No       | `pending` | Cast to `CourierAffiliationStatus`                             |
+| `reviewer_id`                | UUID            | Yes      | `NULL`    | FK → `users.id`; Logistics reviewer; `ON DELETE SET NULL`      |
+| `reviewed_at`                | TIMESTAMP       | Yes      | `NULL`    | Affiliation decision time                                       |
+| `rejection_reason`           | TEXT            | Yes      | `NULL`    | Safe reason when rejected                                       |
+| `created_at`, `updated_at`   | TIMESTAMP       | Yes      | —         | Managed by Eloquent                                             |
+
+Constraints and indexes:
+
+- Unique: `courier_id`.
+- Index: (`logistics_organization_id`, `status`).
+- Application validation must ensure `logistics_hub_id` belongs to the selected organization and is that organization's sole hub.
+- Courier operational API access requires an approved affiliation, an active Logistics organization, an active Courier account, and a valid current hub.
 
 ## 9. Seller and catalog foundation
 
@@ -547,39 +667,39 @@ Constraints and indexes:
 
 This table classifies the Seller's business/shop. Each canonical Shop Category owns the allowed Product Categories through `categories.shop_category_id`.
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `name` | VARCHAR | No | — | Display name |
-| `slug` | VARCHAR | No | — | Unique route/filter key |
-| `description` | TEXT | Yes | `NULL` | Optional description |
-| `status` | VARCHAR | No | `active` | Cast to `CategoryStatus`; indexed |
-| `position` | SMALLINT | No | `0` | Canonical Shop Category display order |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column        | PostgreSQL type | Nullable | Default         | Notes                                 |
+| ------------- | --------------- | -------- | --------------- | ------------------------------------- |
+| `id`          | UUID            | No       | Eloquent UUIDv7 | Primary key                           |
+| `name`        | VARCHAR         | No       | —               | Display name                          |
+| `slug`        | VARCHAR         | No       | —               | Unique route/filter key               |
+| `description` | TEXT            | Yes      | `NULL`          | Optional description                  |
+| `status`      | VARCHAR         | No       | `active`        | Cast to `CategoryStatus`; indexed     |
+| `position`    | SMALLINT        | No       | `0`             | Canonical Shop Category display order |
+| `created_at`  | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                   |
+| `updated_at`  | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                   |
 
 ### 9.2 `shops`
 
 **Model:** `Shop`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `seller_id` | UUID | No | — | Unique FK → `users.id`; `ON DELETE RESTRICT` |
-| `shop_category_id` | UUID | Yes | `NULL` | FK → `shop_categories.id`; `ON DELETE SET NULL` |
-| `name` | VARCHAR | No | — | Shop name |
-| `slug` | VARCHAR | No | — | Globally unique route key |
-| `description` | TEXT | Yes | `NULL` | Shop description |
-| `status` | VARCHAR | No | `active` | Cast to `ShopStatus` |
-| `contact_email` | VARCHAR | Yes | `NULL` | Public/business contact |
-| `contact_number` | VARCHAR | Yes | `NULL` | Public/business contact |
-| `website` | VARCHAR | Yes | `NULL` | External site |
-| `logo_path` | TEXT | Yes | `NULL` | Blob-storage path |
-| `banner_path` | TEXT | Yes | `NULL` | Blob-storage path |
-| `is_on_vacation` | BOOLEAN | No | `false` | Disables fulfillment in API rules |
-| `vacation_message` | TEXT | Yes | `NULL` | Optional storefront message |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column             | PostgreSQL type | Nullable | Default         | Notes                                           |
+| ------------------ | --------------- | -------- | --------------- | ----------------------------------------------- |
+| `id`               | UUID            | No       | Eloquent UUIDv7 | Primary key                                     |
+| `seller_id`        | UUID            | No       | —               | Unique FK → `users.id`; `ON DELETE RESTRICT`    |
+| `shop_category_id` | UUID            | Yes      | `NULL`          | FK → `shop_categories.id`; `ON DELETE SET NULL` |
+| `name`             | VARCHAR         | No       | —               | Shop name                                       |
+| `slug`             | VARCHAR         | No       | —               | Globally unique route key                       |
+| `description`      | TEXT            | Yes      | `NULL`          | Shop description                                |
+| `status`           | VARCHAR         | No       | `active`        | Cast to `ShopStatus`                            |
+| `contact_email`    | VARCHAR         | Yes      | `NULL`          | Public/business contact                         |
+| `contact_number`   | VARCHAR         | Yes      | `NULL`          | Public/business contact                         |
+| `website`          | VARCHAR         | Yes      | `NULL`          | External site                                   |
+| `logo_path`        | TEXT            | Yes      | `NULL`          | Blob-storage path                               |
+| `banner_path`      | TEXT            | Yes      | `NULL`          | Blob-storage path                               |
+| `is_on_vacation`   | BOOLEAN         | No       | `false`         | Disables fulfillment in API rules               |
+| `vacation_message` | TEXT            | Yes      | `NULL`          | Optional storefront message                     |
+| `created_at`       | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                             |
+| `updated_at`       | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                             |
 
 Constraints and indexes:
 
@@ -596,20 +716,20 @@ The foreign key cannot verify that `seller_id` has the Seller role. The API must
 
 This is the hierarchical catalog taxonomy used by storefront product discovery.
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `parent_id` | UUID | Yes | `NULL` | Self-FK → `categories.id`; `ON DELETE SET NULL` |
-| `shop_category_id` | UUID | Yes | `NULL` | FK → `shop_categories.id`; `ON DELETE SET NULL` |
-| `name` | VARCHAR | No | — | Display name |
-| `slug` | VARCHAR | No | — | Globally unique route/filter key |
-| `description` | TEXT | Yes | `NULL` | Optional description |
-| `image_disk` | VARCHAR | No | `public` | Filesystem disk containing the homepage image |
-| `image_path` | TEXT | Yes | `NULL` | Category-card image path |
-| `status` | VARCHAR | No | `active` | Cast to `CategoryStatus` |
-| `position` | SMALLINT | No | `0` | Display order within the Shop Category |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column             | PostgreSQL type | Nullable | Default         | Notes                                           |
+| ------------------ | --------------- | -------- | --------------- | ----------------------------------------------- |
+| `id`               | UUID            | No       | Eloquent UUIDv7 | Primary key                                     |
+| `parent_id`        | UUID            | Yes      | `NULL`          | Self-FK → `categories.id`; `ON DELETE SET NULL` |
+| `shop_category_id` | UUID            | Yes      | `NULL`          | FK → `shop_categories.id`; `ON DELETE SET NULL` |
+| `name`             | VARCHAR         | No       | —               | Display name                                    |
+| `slug`             | VARCHAR         | No       | —               | Globally unique route/filter key                |
+| `description`      | TEXT            | Yes      | `NULL`          | Optional description                            |
+| `image_disk`       | VARCHAR         | No       | `public`        | Filesystem disk containing the homepage image   |
+| `image_path`       | TEXT            | Yes      | `NULL`          | Category-card image path                        |
+| `status`           | VARCHAR         | No       | `active`        | Cast to `CategoryStatus`                        |
+| `position`         | SMALLINT        | No       | `0`             | Display order within the Shop Category          |
+| `created_at`       | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                             |
+| `updated_at`       | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                             |
 
 Constraints and indexes:
 
@@ -625,34 +745,34 @@ Deleting a parent preserves its children and sets their `parent_id` to `NULL`. D
 
 Products store both the storefront-card fields and the product-detail content. Options, variants, ordered media, and inventory records are normalized into the related tables below; order-time snapshots remain deferred.
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `shop_id` | UUID | No | — | FK → `shops.id`; `ON DELETE RESTRICT` |
-| `category_id` | UUID | Yes | `NULL` | FK → `categories.id`; `ON DELETE SET NULL` |
-| `name` | VARCHAR | No | — | Searchable product/card title |
-| `slug` | VARCHAR | No | — | Globally unique product route key |
-| `base_sku` | VARCHAR | Yes | `NULL` for migration compatibility | Shop-scoped canonical Seller SKU; required for new Products |
-| `short_description` | TEXT | Yes | `NULL` | Summary copy; excluded from homepage DTOs |
-| `description_markdown` | TEXT | Yes | `NULL` | GFM product description for the detail page |
-| `specifications` | JSONB | Yes | `NULL` | Product specification key/value data |
-| `thumbnail_disk` | VARCHAR | No | `public` | Filesystem disk for the primary card image |
-| `thumbnail_path` | TEXT | Yes | `NULL` | Primary product-card image path |
-| `price` | NUMERIC(12,2) | No | — | Current regular selling price |
-| `original_price` | NUMERIC(12,2) | Yes | `NULL` | Legitimate comparison price when higher than `price` |
-| `currency` | VARCHAR(3) | No | `PHP` | ISO currency for Product and inherited Variant pricing |
-| `stock_quantity` | BIGINT | No | `0` | Current aggregate stock for discovery eligibility |
-| `average_rating` | NUMERIC(3,2) | Yes | `NULL` | Derived rating summary |
-| `review_count` | BIGINT | No | `0` | Real persisted review count |
-| `sold_count` | BIGINT | No | `0` | Real persisted completed-sale count used for MVP ranking |
-| `badges` | JSON | Yes | `NULL` | Storefront-safe promotional badge identifiers |
-| `is_promoted` | BOOLEAN | No | `false` | Rule-based discovery signal |
-| `status` | VARCHAR | No | `draft` | Cast to `ProductStatus` |
-| `published_at` | TIMESTAMP | Yes | `NULL` | Product is not publicly visible before this time |
-| `created_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
-| `deleted_at` | TIMESTAMP | Yes | `NULL` | Soft-delete marker |
-| `purge_after` | TIMESTAMP | Yes | `NULL` | Configured Product-blob retention boundary |
+| Column                 | PostgreSQL type | Nullable | Default                            | Notes                                                       |
+| ---------------------- | --------------- | -------- | ---------------------------------- | ----------------------------------------------------------- |
+| `id`                   | UUID            | No       | Eloquent UUIDv7                    | Primary key                                                 |
+| `shop_id`              | UUID            | No       | —                                  | FK → `shops.id`; `ON DELETE RESTRICT`                       |
+| `category_id`          | UUID            | Yes      | `NULL`                             | FK → `categories.id`; `ON DELETE SET NULL`                  |
+| `name`                 | VARCHAR         | No       | —                                  | Searchable product/card title                               |
+| `slug`                 | VARCHAR         | No       | —                                  | Globally unique product route key                           |
+| `base_sku`             | VARCHAR         | Yes      | `NULL` for migration compatibility | Shop-scoped canonical Seller SKU; required for new Products |
+| `short_description`    | TEXT            | Yes      | `NULL`                             | Summary copy; excluded from homepage DTOs                   |
+| `description_markdown` | TEXT            | Yes      | `NULL`                             | GFM product description for the detail page                 |
+| `specifications`       | JSONB           | Yes      | `NULL`                             | Product specification key/value data                        |
+| `thumbnail_disk`       | VARCHAR         | No       | `public`                           | Filesystem disk for the primary card image                  |
+| `thumbnail_path`       | TEXT            | Yes      | `NULL`                             | Primary product-card image path                             |
+| `price`                | NUMERIC(12,2)   | No       | —                                  | Current regular selling price                               |
+| `original_price`       | NUMERIC(12,2)   | Yes      | `NULL`                             | Legitimate comparison price when higher than `price`        |
+| `currency`             | VARCHAR(3)      | No       | `PHP`                              | ISO currency for Product and inherited Variant pricing      |
+| `stock_quantity`       | BIGINT          | No       | `0`                                | Current aggregate stock for discovery eligibility           |
+| `average_rating`       | NUMERIC(3,2)    | Yes      | `NULL`                             | Derived rating summary                                      |
+| `review_count`         | BIGINT          | No       | `0`                                | Real persisted review count                                 |
+| `sold_count`           | BIGINT          | No       | `0`                                | Real persisted completed-sale count used for MVP ranking    |
+| `badges`               | JSON            | Yes      | `NULL`                             | Storefront-safe promotional badge identifiers               |
+| `is_promoted`          | BOOLEAN         | No       | `false`                            | Rule-based discovery signal                                 |
+| `status`               | VARCHAR         | No       | `draft`                            | Cast to `ProductStatus`                                     |
+| `published_at`         | TIMESTAMP       | Yes      | `NULL`                             | Product is not publicly visible before this time            |
+| `created_at`           | TIMESTAMP       | Yes      | `NULL`                             | Managed by Eloquent                                         |
+| `updated_at`           | TIMESTAMP       | Yes      | `NULL`                             | Managed by Eloquent                                         |
+| `deleted_at`           | TIMESTAMP       | Yes      | `NULL`                             | Soft-delete marker                                          |
+| `purge_after`          | TIMESTAMP       | Yes      | `NULL`                             | Configured Product-blob retention boundary                  |
 
 Indexes: (`status`, `stock_quantity`, `published_at`), (`category_id`, `status`), (`shop_id`, `status`), (`sold_count`, `average_rating`), and unique (`shop_id`, `base_sku`).
 
@@ -664,12 +784,12 @@ Public storefront queries centrally require an active/published product, an acti
 
 **Model:** `ProductOptionGroup`
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 primary key |
-| `product_id` | UUID | No | FK → `products.id`; `ON DELETE CASCADE` |
-| `name` | VARCHAR | No | Option label, such as Color or Size |
-| `position` | INTEGER | No | Display order within the product |
+| Column       | PostgreSQL type | Nullable | Notes                                   |
+| ------------ | --------------- | -------- | --------------------------------------- |
+| `id`         | UUID            | No       | Eloquent UUIDv7 primary key             |
+| `product_id` | UUID            | No       | FK → `products.id`; `ON DELETE CASCADE` |
+| `name`       | VARCHAR         | No       | Option label, such as Color or Size     |
+| `position`   | INTEGER         | No       | Display order within the product        |
 
 Unique (`product_id`, `position`) maintains a stable group ordering. This model has no timestamps.
 
@@ -677,14 +797,14 @@ Unique (`product_id`, `position`) maintains a stable group ordering. This model 
 
 **Model:** `ProductOptionValue`
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 primary key |
-| `option_group_id` | UUID | No | FK → `product_option_groups.id`; `ON DELETE CASCADE` |
-| `value` | VARCHAR | No | Human-readable option value |
-| `swatch_color` | VARCHAR(32) | Yes | Optional color swatch token |
-| `swatch_image_path` | TEXT | Yes | Optional image swatch object path |
-| `position` | INTEGER | No | Display order within the group |
+| Column              | PostgreSQL type | Nullable | Notes                                                |
+| ------------------- | --------------- | -------- | ---------------------------------------------------- |
+| `id`                | UUID            | No       | Eloquent UUIDv7 primary key                          |
+| `option_group_id`   | UUID            | No       | FK → `product_option_groups.id`; `ON DELETE CASCADE` |
+| `value`             | VARCHAR         | No       | Human-readable option value                          |
+| `swatch_color`      | VARCHAR(32)     | Yes      | Optional color swatch token                          |
+| `swatch_image_path` | TEXT            | Yes      | Optional image swatch object path                    |
+| `position`          | INTEGER         | No       | Display order within the group                       |
 
 Unique (`option_group_id`, `value`) prevents duplicate values; unique (`option_group_id`, `position`) maintains stable ordering. This model has no timestamps.
 
@@ -692,19 +812,19 @@ Unique (`option_group_id`, `value`) prevents duplicate values; unique (`option_g
 
 **Model:** `ProductVariant`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `product_id` | UUID | No | — | FK → `products.id`; `ON DELETE CASCADE` |
-| `shop_id` | UUID | Yes | — | FK → `shops.id`; authoritative scope for additive migration compatibility |
-| `sku` | VARCHAR | No | — | Unique within the owning Shop |
-| `price` | NUMERIC(12,2) | Yes | `NULL` | Overrides the parent product price when supplied |
-| `original_price` | NUMERIC(12,2) | Yes | `NULL` | Overrides the parent comparison price when supplied |
-| `stock_quantity` | BIGINT | No | `0` | Variant availability quantity |
-| `status` | VARCHAR | No | `active` | Cast to `ProductVariantStatus` |
-| `primary_media_id` | UUID | Yes | `NULL` | FK → `product_media.id`; `ON DELETE SET NULL` |
-| `deleted_at` | TIMESTAMP | Yes | `NULL` | Soft-deleted Seller variant; retained for order and inventory history |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column                     | PostgreSQL type | Nullable | Default         | Notes                                                                     |
+| -------------------------- | --------------- | -------- | --------------- | ------------------------------------------------------------------------- |
+| `id`                       | UUID            | No       | Eloquent UUIDv7 | Primary key                                                               |
+| `product_id`               | UUID            | No       | —               | FK → `products.id`; `ON DELETE CASCADE`                                   |
+| `shop_id`                  | UUID            | Yes      | —               | FK → `shops.id`; authoritative scope for additive migration compatibility |
+| `sku`                      | VARCHAR         | No       | —               | Unique within the owning Shop                                             |
+| `price`                    | NUMERIC(12,2)   | Yes      | `NULL`          | Overrides the parent product price when supplied                          |
+| `original_price`           | NUMERIC(12,2)   | Yes      | `NULL`          | Overrides the parent comparison price when supplied                       |
+| `stock_quantity`           | BIGINT          | No       | `0`             | Variant availability quantity                                             |
+| `status`                   | VARCHAR         | No       | `active`        | Cast to `ProductVariantStatus`                                            |
+| `primary_media_id`         | UUID            | Yes      | `NULL`          | FK → `product_media.id`; `ON DELETE SET NULL`                             |
+| `deleted_at`               | TIMESTAMP       | Yes      | `NULL`          | Soft-deleted Seller variant; retained for order and inventory history     |
+| `created_at`, `updated_at` | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                                       |
 
 Indexes: (`product_id`, `status`), `primary_media_id`, and unique (`shop_id`, `sku`). Soft-deleted variants are excluded from normal catalog queries; their inventory SKU, balance, and movement history remain retained and are marked inactive.
 
@@ -712,10 +832,10 @@ Indexes: (`product_id`, `status`), `primary_media_id`, and unique (`shop_id`, `s
 
 This timestamp-free pivot represents the option-value combination selected by a variant.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `product_variant_id` | UUID | No | FK → `product_variants.id`; `ON DELETE CASCADE` |
-| `product_option_value_id` | UUID | No | FK → `product_option_values.id`; `ON DELETE CASCADE` |
+| Column                    | PostgreSQL type | Nullable | Notes                                                |
+| ------------------------- | --------------- | -------- | ---------------------------------------------------- |
+| `product_variant_id`      | UUID            | No       | FK → `product_variants.id`; `ON DELETE CASCADE`      |
+| `product_option_value_id` | UUID            | No       | FK → `product_option_values.id`; `ON DELETE CASCADE` |
 
 Composite primary key: (`product_variant_id`, `product_option_value_id`).
 
@@ -723,22 +843,22 @@ Composite primary key: (`product_variant_id`, `product_option_value_id`).
 
 **Model:** `ProductMedia`
 
-| Column | PostgreSQL type | Nullable | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 | Primary key |
-| `product_id` | UUID | No | — | FK → `products.id`; `ON DELETE CASCADE` |
-| `product_variant_id` | UUID | Yes | `NULL` | FK → `product_variants.id`; `ON DELETE SET NULL` |
-| `disk` | VARCHAR | No | `public` | Laravel filesystem disk name |
-| `path` | TEXT | No | — | Object/blob path |
-| `alt_text` | VARCHAR | Yes | `NULL` | Accessible image description |
-| `position` | INTEGER | No | — | Ordered media position within the product |
-| `mime_type`, `byte_size` | VARCHAR, BIGINT | Yes | `NULL` | Server-detected media metadata |
-| `width`, `height` | INTEGER | Yes | `NULL` | Decoded dimensions |
-| `checksum` | VARCHAR(64) | Yes | `NULL` | SHA-256 of rewritten bytes |
-| `scan_status` | VARCHAR | No | `approved` | String-backed processing state |
-| `is_default` | BOOLEAN | No | `false` | Seller-selected product-level gallery cover; variant media must remain `false` |
-| `deleted_at`, `purge_after` | TIMESTAMP | Yes | `NULL` | Soft replacement/deletion and blob purge schedule |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | `NULL` | Managed by Eloquent |
+| Column                      | PostgreSQL type | Nullable | Default         | Notes                                                                          |
+| --------------------------- | --------------- | -------- | --------------- | ------------------------------------------------------------------------------ |
+| `id`                        | UUID            | No       | Eloquent UUIDv7 | Primary key                                                                    |
+| `product_id`                | UUID            | No       | —               | FK → `products.id`; `ON DELETE CASCADE`                                        |
+| `product_variant_id`        | UUID            | Yes      | `NULL`          | FK → `product_variants.id`; `ON DELETE SET NULL`                               |
+| `disk`                      | VARCHAR         | No       | `public`        | Laravel filesystem disk name                                                   |
+| `path`                      | TEXT            | No       | —               | Object/blob path                                                               |
+| `alt_text`                  | VARCHAR         | Yes      | `NULL`          | Accessible image description                                                   |
+| `position`                  | INTEGER         | No       | —               | Ordered media position within the product                                      |
+| `mime_type`, `byte_size`    | VARCHAR, BIGINT | Yes      | `NULL`          | Server-detected media metadata                                                 |
+| `width`, `height`           | INTEGER         | Yes      | `NULL`          | Decoded dimensions                                                             |
+| `checksum`                  | VARCHAR(64)     | Yes      | `NULL`          | SHA-256 of rewritten bytes                                                     |
+| `scan_status`               | VARCHAR         | No       | `approved`      | String-backed processing state                                                 |
+| `is_default`                | BOOLEAN         | No       | `false`         | Seller-selected product-level gallery cover; variant media must remain `false` |
+| `deleted_at`, `purge_after` | TIMESTAMP       | Yes      | `NULL`          | Soft replacement/deletion and blob purge schedule                              |
+| `created_at`, `updated_at`  | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                                            |
 
 Unique (`product_id`, `position`) maintains the product gallery ordering; (`product_variant_id`, `position`) supports variant-media retrieval. The `product_variants.primary_media_id` foreign key is created after this table to resolve the circular reference.
 
@@ -816,14 +936,14 @@ Both foreign keys cascade on delete. The homepage exposes a deal only during its
 
 **Model:** `RecentlyViewedProduct`
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 primary key |
-| `user_id` | UUID | No | FK → `users.id`; `ON DELETE CASCADE` |
-| `product_id` | UUID | No | FK → `products.id`; `ON DELETE CASCADE` |
-| `last_viewed_at` | TIMESTAMP | No | Most recent authenticated view time |
-| `created_at` | TIMESTAMP | Yes | Managed by Eloquent |
-| `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column           | PostgreSQL type | Nullable | Notes                                   |
+| ---------------- | --------------- | -------- | --------------------------------------- |
+| `id`             | UUID            | No       | Eloquent UUIDv7 primary key             |
+| `user_id`        | UUID            | No       | FK → `users.id`; `ON DELETE CASCADE`    |
+| `product_id`     | UUID            | No       | FK → `products.id`; `ON DELETE CASCADE` |
+| `last_viewed_at` | TIMESTAMP       | No       | Most recent authenticated view time     |
+| `created_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                     |
+| `updated_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                     |
 
 Unique (`user_id`, `product_id`) deduplicates repeated views. Index (`user_id`, `last_viewed_at`) supports most-recent-first retrieval. The API only personalizes with this data when the authenticated identity is an active Customer.
 
@@ -833,22 +953,22 @@ Unique (`user_id`, `product_id`) deduplicates repeated views. Index (`user_id`, 
 
 `carts` provides one persistent active Cart per Customer.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 primary key |
-| `customer_id` | UUID | No | Unique FK → `users.id`; `ON DELETE CASCADE` |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column                     | PostgreSQL type | Nullable | Notes                                       |
+| -------------------------- | --------------- | -------- | ------------------------------------------- |
+| `id`                       | UUID            | No       | Eloquent UUIDv7 primary key                 |
+| `customer_id`              | UUID            | No       | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 
 `cart_items` stores one Product configuration per line. Prices, option labels, and availability are deliberately not snapshotted; the Customer Cart API resolves their current authoritative values from the catalog on every response.
 
-| Column | PostgreSQL type | Nullable | Notes |
-| --- | --- | --- | --- |
-| `id` | UUID | No | Eloquent UUIDv7 primary key |
-| `cart_id` | UUID | No | FK → `carts.id`; `ON DELETE CASCADE` |
-| `product_id` | UUID | No | FK → `products.id`; `ON DELETE CASCADE` |
-| `variant_id` | UUID | Yes | FK → `product_variants.id`; `ON DELETE CASCADE`; `NULL` only for products without variants |
-| `quantity` | INTEGER | No | Positive requested quantity, enforced by the API |
-| `created_at`, `updated_at` | TIMESTAMP | Yes | Managed by Eloquent |
+| Column                     | PostgreSQL type | Nullable | Notes                                                                                      |
+| -------------------------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `id`                       | UUID            | No       | Eloquent UUIDv7 primary key                                                                |
+| `cart_id`                  | UUID            | No       | FK → `carts.id`; `ON DELETE CASCADE`                                                       |
+| `product_id`               | UUID            | No       | FK → `products.id`; `ON DELETE CASCADE`                                                    |
+| `variant_id`               | UUID            | Yes      | FK → `product_variants.id`; `ON DELETE CASCADE`; `NULL` only for products without variants |
+| `quantity`                 | INTEGER         | No       | Positive requested quantity, enforced by the API                                           |
+| `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Eloquent                                                                        |
 
 PostgreSQL/SQLite partial unique indexes enforce one line per purchasable configuration: (`cart_id`, `product_id`, `variant_id`) where `variant_id IS NOT NULL`, and (`cart_id`, `product_id`) where `variant_id IS NULL`. Indexes on (`cart_id`, `created_at`) and (`product_id`, `variant_id`) support ordered Customer projection and catalog-reference lookups.
 
@@ -878,6 +998,8 @@ Every Order has one `order_addresses` delivery snapshot. It retains a nullable `
 
 `order_status_events` is the UUID-backed status history. It stores nullable `from_status`, `to_status`, source, optional safe public JSON metadata, and server `occurred_at`. Placement creates the first `placed` event. Future fulfillment features must append validated transitions rather than rewrite history.
 
+`orders.status` remains the current high-level commercial/Customer-facing status. Until the deferred Shipment/Delivery Task schema exists, its Logistics-facing values have these meanings: `ready_for_pickup` means the Seller has completed preparation; `assigned` means Logistics has received and accepted the parcel at its sole hub; `picked_up` means the final-mile Courier has taken the parcel from that hub; `in_transit` and `out_for_delivery` describe the final-mile movement. Detailed first-mile and hub milestones must be stored in the future shipment/task records and must not be inferred from the current Order status alone.
+
 ### 9.14 `order_vouchers` and `voucher_redemptions`
 
 `order_vouchers` is the immutable applied-benefit snapshot: nullable source definition, code, issuer/benefit type, qualifying basis, discount amount, currency, rule version, terms summary, and redemption time. Unique (`order_id`, `voucher_id`) prevents one definition being applied twice to an Order.
@@ -906,63 +1028,63 @@ Logistics provider/method selection is not stored or accepted. Until the later l
 
 These tables are created by the Laravel foundation migrations and do not have application-domain Eloquent models.
 
-| Table | Primary/key strategy | Purpose |
-| --- | --- | --- |
-| `cache` | String `key` primary key | Database cache entries; `expiration` indexed |
-| `cache_locks` | String `key` primary key | Atomic cache locks; `expiration` indexed |
-| `jobs` | Auto-incrementing BIGINT `id` | Database queue; `queue` indexed |
-| `job_batches` | String `id` primary key | Batch queue state |
+| Table         | Primary/key strategy                                | Purpose                                                             |
+| ------------- | --------------------------------------------------- | ------------------------------------------------------------------- |
+| `cache`       | String `key` primary key                            | Database cache entries; `expiration` indexed                        |
+| `cache_locks` | String `key` primary key                            | Atomic cache locks; `expiration` indexed                            |
+| `jobs`        | Auto-incrementing BIGINT `id`                       | Database queue; `queue` indexed                                     |
+| `job_batches` | String `id` primary key                             | Batch queue state                                                   |
 | `failed_jobs` | Auto-incrementing BIGINT `id`; unique string `uuid` | Failed queue payloads; (`connection`, `queue`, `failed_at`) indexed |
-| `migrations` | Laravel-managed numeric ID | Records applied migrations and batches |
+| `migrations`  | Laravel-managed numeric ID                          | Records applied migrations and batches                              |
 
 Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intentional framework exceptions to the application UUID rule.
 
 ## 11. Foreign-key delete behavior
 
-| Child relationship | On parent delete | Reason |
-| --- | --- | --- |
-| Role profile → User | `CASCADE` | Profile has no meaning without its authenticating user |
-| Registration application → applicant User | `CASCADE` | Application belongs to applicant |
-| Registration application → reviewer User | `SET NULL` | Preserve review history if reviewer is removed |
-| Document → User | `CASCADE` | Document metadata belongs to user |
-| Document → registration application | `CASCADE` | Attached application documents follow the application |
-| Document → reviewer User | `SET NULL` | Preserve verification metadata |
-| Address → User | `CASCADE` | Address belongs to user |
-| Admin permission → admin/permission | `CASCADE` | Grant is invalid without either side |
-| Admin permission → grantor User | `SET NULL` | Preserve the grant after grantor removal |
-| Audit log → actor User | No database FK | Preserve immutable actor ID/name snapshots without an FK-triggered ledger update |
-| Audit outbox → actor User | `SET NULL` | Pending/recoverable event remains valid after actor removal |
-| Notification → recipient | Polymorphic, no database FK | Laravel scopes persisted inbox rows through the authenticated recipient |
-| Lifecycle event → managed User/Admin actor | `RESTRICT` | Preserve account lifecycle and actor attribution; hard deletion is not an account-management action |
-| Compliance case → Seller/Product/policy/Admin actors | `RESTRICT` | Preserve the reviewed subject, governing version, and decision attribution |
-| Compliance action → case/Admin/restriction/lifecycle event | `RESTRICT` | Immutable decisions must retain their owning case and linked enforcement records |
-| Product compliance restriction → Product/case/policy/Admin actors | `RESTRICT` | Listing moderation is revoked by append-preserving state, not deletion |
-| Vehicle → Courier profile | `CASCADE` | Vehicle registration belongs to Courier profile |
-| Shop → Seller User | `RESTRICT` | Prevent a hard delete from orphaning the tenant |
-| Shop → shop category | `SET NULL` | Preserve shop if classification is removed |
-| Category → parent category | `SET NULL` | Preserve child categories if parent is removed |
-| Product → Shop | `RESTRICT` | Products must be archived/removed before hard-deleting their tenant Shop |
-| Product → Category | `SET NULL` | Preserve product if taxonomy is reorganized |
-| Product option group → Product | `CASCADE` | Options have no meaning without their product |
-| Product option value → Option group | `CASCADE` | Values have no meaning without their option group |
-| Product variant → Product | `CASCADE` | Variants have no meaning without their product |
-| Variant option value → Variant/option value | `CASCADE` | A selection cannot survive either side's removal |
-| Product media → Product | `CASCADE` | Gallery media belongs to its product |
-| Product media → Variant | `SET NULL` | Preserve product-gallery media if a variant is removed |
-| Variant primary media → Product media | `SET NULL` | Keep the variant if its selected media is removed |
-| Flash deal item → Flash deal/Product | `CASCADE` | Deal membership has no meaning without either side |
-| Recently viewed item → User/Product | `CASCADE` | History has no meaning without either side |
-| Cart → Customer User | `CASCADE` | A Cart belongs exclusively to its authenticating Customer |
-| Cart item → Cart/Product/Variant | `CASCADE` | A Cart line cannot survive its Cart or selected catalog configuration |
-| Checkout quote → Customer User | `CASCADE` | An unplaced temporary intent has no purpose without its Customer |
-| Checkout batch/Order → Customer, Shop, quote/batch | `RESTRICT` | Preserve placed marketplace and idempotency history |
-| Order item → Product/Variant | `SET NULL` | Preserve immutable line history if catalog references are removed |
-| Order address → source Address | `SET NULL` | Preserve delivery snapshot after Address Book deletion |
-| Order children → Order | `RESTRICT` | Prevent accidental removal of financial, delivery, voucher, and status history |
-| Voucher → Shop | `RESTRICT` | Preserve Shop issuer scope while the definition exists |
-| Voucher snapshot → Voucher | `SET NULL` | Preserve applied terms after a definition is removed |
-| Voucher redemption → Voucher/Customer/Order/batch | `RESTRICT` | Preserve usage-limit and financial history |
-| Session → User | `SET NULL` | Session record may outlive user cleanup briefly |
+| Child relationship                                                | On parent delete            | Reason                                                                                              |
+| ----------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| Role profile → User                                               | `CASCADE`                   | Profile has no meaning without its authenticating user                                              |
+| Registration application → applicant User                         | `CASCADE`                   | Application belongs to applicant                                                                    |
+| Registration application → reviewer User                          | `SET NULL`                  | Preserve review history if reviewer is removed                                                      |
+| Document → User                                                   | `CASCADE`                   | Document metadata belongs to user                                                                   |
+| Document → registration application                               | `CASCADE`                   | Attached application documents follow the application                                               |
+| Document → reviewer User                                          | `SET NULL`                  | Preserve verification metadata                                                                      |
+| Address → User                                                    | `CASCADE`                   | Address belongs to user                                                                             |
+| Admin permission → admin/permission                               | `CASCADE`                   | Grant is invalid without either side                                                                |
+| Admin permission → grantor User                                   | `SET NULL`                  | Preserve the grant after grantor removal                                                            |
+| Audit log → actor User                                            | No database FK              | Preserve immutable actor ID/name snapshots without an FK-triggered ledger update                    |
+| Audit outbox → actor User                                         | `SET NULL`                  | Pending/recoverable event remains valid after actor removal                                         |
+| Notification → recipient                                          | Polymorphic, no database FK | Laravel scopes persisted inbox rows through the authenticated recipient                             |
+| Lifecycle event → managed User/Admin actor                        | `RESTRICT`                  | Preserve account lifecycle and actor attribution; hard deletion is not an account-management action |
+| Compliance case → Seller/Product/policy/Admin actors              | `RESTRICT`                  | Preserve the reviewed subject, governing version, and decision attribution                          |
+| Compliance action → case/Admin/restriction/lifecycle event        | `RESTRICT`                  | Immutable decisions must retain their owning case and linked enforcement records                    |
+| Product compliance restriction → Product/case/policy/Admin actors | `RESTRICT`                  | Listing moderation is revoked by append-preserving state, not deletion                              |
+| Vehicle → Courier profile                                         | `CASCADE`                   | Vehicle registration belongs to Courier profile                                                     |
+| Shop → Seller User                                                | `RESTRICT`                  | Prevent a hard delete from orphaning the tenant                                                     |
+| Shop → shop category                                              | `SET NULL`                  | Preserve shop if classification is removed                                                          |
+| Category → parent category                                        | `SET NULL`                  | Preserve child categories if parent is removed                                                      |
+| Product → Shop                                                    | `RESTRICT`                  | Products must be archived/removed before hard-deleting their tenant Shop                            |
+| Product → Category                                                | `SET NULL`                  | Preserve product if taxonomy is reorganized                                                         |
+| Product option group → Product                                    | `CASCADE`                   | Options have no meaning without their product                                                       |
+| Product option value → Option group                               | `CASCADE`                   | Values have no meaning without their option group                                                   |
+| Product variant → Product                                         | `CASCADE`                   | Variants have no meaning without their product                                                      |
+| Variant option value → Variant/option value                       | `CASCADE`                   | A selection cannot survive either side's removal                                                    |
+| Product media → Product                                           | `CASCADE`                   | Gallery media belongs to its product                                                                |
+| Product media → Variant                                           | `SET NULL`                  | Preserve product-gallery media if a variant is removed                                              |
+| Variant primary media → Product media                             | `SET NULL`                  | Keep the variant if its selected media is removed                                                   |
+| Flash deal item → Flash deal/Product                              | `CASCADE`                   | Deal membership has no meaning without either side                                                  |
+| Recently viewed item → User/Product                               | `CASCADE`                   | History has no meaning without either side                                                          |
+| Cart → Customer User                                              | `CASCADE`                   | A Cart belongs exclusively to its authenticating Customer                                           |
+| Cart item → Cart/Product/Variant                                  | `CASCADE`                   | A Cart line cannot survive its Cart or selected catalog configuration                               |
+| Checkout quote → Customer User                                    | `CASCADE`                   | An unplaced temporary intent has no purpose without its Customer                                    |
+| Checkout batch/Order → Customer, Shop, quote/batch                | `RESTRICT`                  | Preserve placed marketplace and idempotency history                                                 |
+| Order item → Product/Variant                                      | `SET NULL`                  | Preserve immutable line history if catalog references are removed                                   |
+| Order address → source Address                                    | `SET NULL`                  | Preserve delivery snapshot after Address Book deletion                                              |
+| Order children → Order                                            | `RESTRICT`                  | Prevent accidental removal of financial, delivery, voucher, and status history                      |
+| Voucher → Shop                                                    | `RESTRICT`                  | Preserve Shop issuer scope while the definition exists                                              |
+| Voucher snapshot → Voucher                                        | `SET NULL`                  | Preserve applied terms after a definition is removed                                                |
+| Voucher redemption → Voucher/Customer/Order/batch                 | `RESTRICT`                  | Preserve usage-limit and financial history                                                          |
+| Session → User                                                    | `SET NULL`                  | Session record may outlive user cleanup briefly                                                     |
 
 ## 12. Application-enforced invariants
 
@@ -1063,28 +1185,30 @@ Migrations currently run in this dependency order:
 43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
 44. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
 45. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
-46. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
-47. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
+46. `2026_09_05_000001_create_logistics_foundation_tables.php` — Logistics personal profiles, one organization per Logistics account, and one sole operational hub per organization.
+47. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
+48. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
+49. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
 
 ## 14. Deferred schema
 
 The following capabilities appear in requirements but have no migrations or models yet. Their names below are capability groupings, not approved table definitions.
 
-| Capability | Deferred data design |
-| --- | --- |
-| Catalog and inventory | Reservation release and conversion to fulfillment for cancellation/Seller processing beyond implemented checkout reservation |
-| Promotions | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented |
-| Payments and finance | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers |
-| First-party logistics | Organization/hub decision, shipments/parcels, waybills, scan events, pickup/final-delivery tasks, assignments, proof of delivery, and Courier earnings |
-| Reviews | Verified-purchase ratings, review media, and Seller responses |
-| Support and compliance | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
-| Messaging | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately |
-| Policy consent integration | User-facing consent presentation, acceptance endpoints, and login/application enforcement against the implemented version-specific acceptance schema |
-| Reporting | Derived Seller/Admin aggregates; avoid report tables until query performance requires them |
+| Capability                 | Deferred data design                                                                                                                                                                         |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catalog and inventory      | Reservation release and conversion to fulfillment for cancellation/Seller processing beyond implemented checkout reservation                                                                 |
+| Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
+| Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
+| First-party logistics      | Shipments/parcels, waybills, scan events, first-mile pickup/final-delivery tasks, assignments, proof of delivery, Courier availability, and Courier earnings; Logistics identity, organization, sole hub, and Courier affiliation are implemented |
+| Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
+| Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
+| Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
+| Policy consent integration | User-facing consent presentation, acceptance endpoints, and login/application enforcement against the implemented version-specific acceptance schema                                         |
+| Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 
 Before adding these tables:
 
-- resolve the four-role versus five-role Logistics conflict;
+- preserve the implemented five-role model and the decided one-Logistics-organization-to-one-hub MVP cardinality when adding deferred operational tables;
 - keep every application model primary key and relationship key UUID-based;
 - keep enum-like columns as strings with PHP enum casts;
 - preserve mutable product, price, and address data as order-time snapshots;

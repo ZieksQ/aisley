@@ -1,75 +1,217 @@
 ---
 model: Buyer
-type: Feature Specification
-purpose: AI Vibe Coding Context
-version: 1.0
+type: Domain Context
+purpose: Shared Customer/Buyer workflow and implementation context
+version: 1.1
+status: Revised — aligned with the implemented Customer storefront and first-party order flow
 ---
 
 # Buyer Model Context
 
 ## Overview
-This document provides a highly structured, hierarchical explanation of the Buyer model features. It is designed to be ingested by AI agents for code generation and system architecture planning. Each feature is broken down from its core value into an expanded functional definition and implementation context.
 
----
+Buyer is Aisley's marketplace customer role. **Customer** is the canonical API and authorization term (`customer`); Buyer is the product and documentation term used for the person purchasing from a Shop. The Customer experience lives in the separate Next.js storefront at `src/webapp`; Laravel and PostgreSQL remain authoritative for identity, catalog visibility, cart, checkout, orders, and personal data.
 
-## Core Features
+Guests may browse public storefront content. An active, approved Customer is required for account data, Cart, Wishlist, Recently Viewed synchronization, checkout, order history, and other protected actions. The Buyer app never decides ownership, price, stock, eligibility, or fulfillment status from client-provided values.
 
-### 1. Search
-* **Core Value**: Able to search products and displays a summaryDTO; once an item has been chosen; Select Quantity, Choose Variations: color, size, etc, Buy or Add to cart[cite: 4].
-* **Expanded Definition**: A robust discovery and selection engine. Buyers can query the platform's product database using keywords, retrieving a lightweight summary data transfer object (DTO) for fast rendering. Upon selecting a specific item, the system transitions to a detailed configuration interface where the buyer dictates purchase parameters (quantity, size, color) before committing the item to their cart or initiating an immediate checkout.
-* **System Context**: Requires full-text search indexing (e.g., Elasticsearch or Postgres tsvector) on the `Products` database. The frontend needs dynamic state management to handle variant selection matrices and validate live stock availability before firing the 'Add to Cart' mutation.
+Aisley uses its first-party Logistics organization and sole operational hub for fulfillment. Customer tracking consumes safe read-only projections of the shared Order and future Shipment/Delivery Task contracts; it is not a third-party-carrier or customer-controlled status flow.
 
-### 2. View Cart
-* **Core Value**: select order, finalize order details, apply vouchers and discounts; choose mode of payment; place order[cite: 4].
-* **Expanded Definition**: The pre-checkout staging environment. It aggregates all selected items, allowing the buyer to review their intended purchases, apply promotional logic (vouchers/discounts), and calculate final totals including shipping. It serves as the gateway to the final checkout phase where the payment method is selected and the formal order entity is generated.
-* **System Context**: Interacts heavily with the `Cart`, `Promotions`, and `PaymentGateways` modules. Must handle race conditions for inventory locking at the exact moment the order is officially placed to prevent overselling.
+## Account and access boundary
 
-### 3. View Orders' Status
-* **Core Value**: View orders’ status (to ship, in transit, out for delivery, rate/feedback, etc)[cite: 4].
-* **Expanded Definition**: A post-purchase tracking interface providing transparency on fulfillment progress. Buyers can monitor the real-time lifecycle state of their purchases, moving from initial seller processing, through third-party logistics transit, culminating in delivery and a prompt for product review.
-* **System Context**: Subscribes to state changes within the `Orders` table. Requires API integration with 3PL (Third-Party Logistics) partners to fetch live tracking webhooks and map them to internal platform statuses.
+- Customer registration, approval, authentication, and password recovery follow `docs/references/user-registration-requirements.md` and the Customer Auth feature contracts.
+- A Customer registers and waits for the required Admin approval before sign-in and protected access. Pending, rejected, suspended, deactivated, unauthenticated, or non-Customer identities receive no Customer data.
+- The API derives the authenticated Customer from Sanctum session/token context and normalized `email + role`. Clients cannot submit a replacement `user_id`, role, approval state, age, or account status.
+- Age is calculated server-side from the stored `birth_date`; a client-supplied age is never authoritative.
+- Customer account/profile data is allow-listed and Customer-scoped. Profile photos use the configured private disk/Azure Blob path and the shared upload policy; raw object paths and credentials are never returned.
+- Guests can be sent to sign-in with a same-origin return path for protected pages, then must intentionally retry the protected action after authentication.
 
-### 4. Chat/Messaging
-* **Core Value**: Communicate with the users[cite: 4].
-* **Expanded Definition**: An integrated communication channel allowing direct, secure interaction between buyers and sellers. It facilitates pre-purchase inquiries regarding product specifics, or post-purchase support and minor issue resolution without leaving the platform ecosystem.
-* **System Context**: Requires a real-time messaging architecture (e.g., WebSockets or Server-Sent Events) linking `Buyer` and `Seller` entities. Needs robust database schema design for chat threads, message payloads, and unread notification counts.
+The Customer storefront uses the existing stateful Sanctum cookie flow. Any future external/mobile Customer client must use the documented bearer-token contract and the same role/status gates; no UI or API may bypass those gates.
 
-### 5. Account Management
-* **Core Value**: Update Buyer information. Basically account settings[cite: 4].
-* **Expanded Definition**: The central hub for the buyer's personal identity and system preferences on the platform. It enables the modification of core profile details, secure authentication credentials (like passwords and 2FA), and global notification preferences.
-* **System Context**: Standard CRUD (Create, Read, Update, Delete) operations on the `Users` or `Buyers` database table. Must enforce strict security middleware for authentication verification and data sanitization.
+## Public storefront and visibility contract
 
-### 6. Browse Shop
-* **Core Value**: able to view a sellers shop and its product; can filter out through categories the seller has[cite: 4].
-* **Expanded Definition**: A dedicated storefront viewing mode. Buyers can isolate their discovery experience to a single merchant's catalog, utilizing localized, seller-defined category filters to seamlessly navigate that specific merchant's inventory offerings.
-* **System Context**: Requires querying the `Products` table filtered strictly by the associated `seller_id`. The frontend requires dynamic routing to render unique shop profile pages and aggregate the seller's custom categorization tree.
+The public discovery chain is:
 
-### 7. Wishlist/Favorites
-* **Core Value**: Save items for future purchase or monitor them for restocks and price drops.[cite: 4].
-* **Expanded Definition**: A persistent saving mechanism for deferred purchasing intent. Buyers can bookmark products they are interested in but not ready to buy immediately, creating a curated list that can automatically trigger alerts for inventory restocks or promotional price reductions.
-* **System Context**: Requires a many-to-many relationship table (e.g., `Wishlists`) linking `Buyer` and `Products`. Should be hooked into background workers to dispatch notifications when linked product records undergo price updates or stock replenishments.
+```text
+public request
+→ active approved Seller
+→ active Shop not on vacation
+→ published active Product
+→ approved Product media and safe Product-card/detail projection
+```
 
-### 8. Product Reviews & Ratings
-* **Core Value**: Leave feedback, rate products, and upload photos/videos of received items.[cite: 4].
-* **Expanded Definition**: A user-generated content system designed to drive social proof and platform trust. Post-delivery, buyers are prompted to evaluate their purchase via a quantitative scoring system (e.g., 1-5 stars) and qualitative text, supported by rich media uploads of the physical product received.
-* **System Context**: Interacts with the `Reviews` and `Orders` tables, containing logic to ensure reviews are restricted strictly to verified purchases. Requires cloud storage integration (e.g., AWS S3) for processing and serving user-uploaded image and video assets.
+- Guests and Customers may browse the public homepage, search, Product Detail, Shop directory, and Shop storefront.
+- `Product::storefrontVisible()` is the shared visibility boundary. Draft, archived, deleted, hidden, compliance-restricted, inactive-Seller, inactive-Shop, suspended-Shop, and vacation-Shop listings are excluded from public responses.
+- Storefront visibility is distinct from purchasability: Cart and Checkout recheck current Variant, SKU, stock, Shop, price, voucher, and address eligibility at the point of mutation.
+- Public DTOs contain only safe catalog, Shop, media, and pricing presentation fields. They do not expose Seller registration evidence, Admin data, Customer data, private notes, payment secrets, or raw storage paths.
+- A public or ISR/shared cache must never contain Customer-specific Wishlist, Recently Viewed, address, Cart, order, or account data.
 
-### 9. Address Book
-* **Core Value**: Save and manage multiple shipping and billing addresses for faster checkout.[cite: 4].
-* **Expanded Definition**: A localized logistics profile for the buyer. It allows the storage, categorization (e.g., Home, Office), and rapid selection of various geographical destinations, streamlining the checkout process by eliminating redundant manual data entry for returning users.
-* **System Context**: Requires an `Addresses` table with a one-to-many relationship to the `Buyer` entity. Highly recommended to implement geospatial validation or API integration (like Google Maps) to ensure accurate logistical routing.
+## Canonical order and fulfillment contract
 
-### 10. Product Q&A
-* **Core Value**: Submit specific questions directly on a product's listing page for the seller to answer publicly, helping other buyers make informed decisions.[cite: 4].
-* **Expanded Definition**: A public knowledge base tied directly to specific product SKUs. Buyers can crowdsource product clarification directly from the merchant, generating publicly visible Q&A threads that reduce future support overhead and aid conversion for subsequent page visitors.
-* **System Context**: Requires a `Product_QA` schema linked directly to `Products`. Needs an event-driven notification system to alert the seller of new questions, and subsequent alerts to the querying buyer when an official answer is posted.
+Persisted and API status values use lowercase `snake_case`. PHP enum case names and UI labels are separate from database values. The current high-level `OrderStatus` contract is:
+
+```text
+pending_payment
+→ placed
+→ seller_processing
+→ ready_for_pickup
+→ assigned
+→ picked_up
+→ in_transit
+→ out_for_delivery
+→ delivered
+```
+
+Exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
+
+COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains an available shared status for a future payment-state decision. `assigned` means Logistics received and accepted the Seller-ready parcel at its sole hub. `picked_up` means the final-mile Courier took the parcel from that hub. A Customer can read these states but cannot advance or rewrite them.
+
+The physical flow is:
+
+```text
+Customer places Order (`placed`)
+→ Seller processes and confirms `ready_for_pickup`
+→ first-mile Courier accepts and picks up from Seller
+→ Logistics receives, sorts, transfers, and dispatches at its sole hub
+→ Logistics assigns a final-mile Courier
+→ final-mile Courier picks up from hub and delivers to Customer
+→ Order becomes `delivered`
+→ Customer may review an eligible delivered Product
+```
+
+Detailed physical milestones belong to Shipment/Delivery Task records, not to invented `orders.status` values:
+
+```text
+seller_pickup_assigned
+→ seller_pickup_accepted
+→ picked_up_from_seller
+→ received_at_hub
+→ sorted_at_hub
+→ in_transfer
+→ dispatched_from_hub
+→ delivery_assigned
+→ delivery_accepted
+→ picked_up_from_hub
+→ in_transit
+→ out_for_delivery
+→ delivered
+```
+
+First-mile and final-mile assignments are independent. Completing Seller pickup does not automatically grant final-mile assignment; Logistics may assign the same or a different eligible Courier. The Customer receives only safe, chronological events and authorized tracking projections.
+
+## Buyer capabilities
+
+### 1. Customer Authentication and Account
+
+- **Purpose:** Register, wait for approval, sign in, recover credentials, and maintain the Customer profile.
+- **Current state:** Customer Auth, approval-aware sessions, password recovery, account profile/password management, and private Customer profile photos are implemented.
+- **Boundary:** Account settings cannot change role, approval/status, another user's record, registration evidence, order snapshots, or authoritative catalog values.
+
+### 2. Homepage, Search, and Discovery
+
+- **Purpose:** Help guests and Customers find public Products, Shops, categories, campaigns, and deals.
+- **Current state:** Public homepage aggregation, bounded Product/Shop/category search, safe Product cards, responsive storefront sections, and authenticated context are implemented.
+- **Boundary:** Search and homepage are read projections. They do not create Recently Viewed entries, reserve stock, add Wishlist rows, or promise a price/availability that Checkout has not revalidated.
+
+### 3. Product Detail
+
+- **Purpose:** Show one currently visible Product, its Shop, media, specifications, Markdown description, valid option combinations, price, and stock state.
+- **Current state:** UUID Product Detail routing, ordered gallery/variant media, safe GFM Markdown rendering, variant selection, quantity limits, Add to Cart, and Buy Now intents are implemented.
+- **Boundary:** Product description images are Product-owned approved assets; the Customer renderer uses safe Markdown/GFM and does not execute raw HTML or arbitrary external image paths. Product Detail does not itself place an Order.
+
+### 4. Browse Shops
+
+- **Purpose:** Let guests and Customers open the public Shop directory and a Shop by slug, then filter that Shop's visible Products by the canonical Product Category taxonomy.
+- **Current state:** Paginated directory, Shop-scoped category filtering, deterministic Product pagination, safe Shop summaries, metadata, and accessible loading/empty/not-found/retry states are implemented.
+- **Boundary:** A Shop page can return only Products belonging to the resolved active Shop and never bypasses `storefrontVisible()`.
+
+### 5. Cart
+
+- **Purpose:** Hold Customer-selected Product/SKU configurations before checkout.
+- **Current state:** One UUID Cart per active Customer, SKU/Variant-level line identity, authenticated add/update/delete, current price/availability projections, selected-line checkout, and unavailable-intent preservation are implemented.
+- **Boundary:** Cart contents are not an inventory reservation and do not snapshot authoritative price, stock, shipping, or totals. Every mutation revalidates Product, Variant, Shop, and quantity ownership.
+
+### 6. Checkout and Order Creation
+
+- **Purpose:** Convert Buy Now or selected Cart intent into one or more valid Shop Orders.
+- **Current state:** Server-authoritative quote/place APIs and storefront flow are implemented for COD. Lines are grouped by Shop; one Shop group creates one Order, while a multi-Shop submission is one atomic checkout batch with separate Orders.
+- **Rules:** The Customer selects a Customer-owned address, the API rechecks catalog/inventory/vouchers and creates immutable item, financial, payment, and delivery-address snapshots. Placement uses a Customer-scoped idempotency key and does not accept client prices, totals, status, ownership, or payment secrets.
+- **Boundary:** Payment gateways, returns/refunds, Seller preparation, Shipment/Delivery Task persistence, and Logistics/Courier assignment are separate features.
+
+### 7. Order History and Status Monitoring
+
+- **Purpose:** Let an authenticated Customer view their own purchase history, status tabs, Order details, immutable snapshots, and safe tracking timeline.
+- **Current state:** `/orders` and `/orders/{order}` APIs/pages are implemented with **All** as the default list, server-side status-group filters, pagination, chronological status events, private no-store responses, and ownership-safe not-found behavior.
+- **Rules:** The status mapper is server-owned. Tracking is read-only; a Customer cannot cancel by changing a status or submit a Courier/Logistics update. Detailed hub/task milestones and any active map data are consumed only when the owning Logistics contracts provide them.
+- **Boundary:** Customer views omit private Courier GPS history, employee IDs, full hub addresses, internal notes, payment credentials, and Admin/Seller operational data. Map/provider failure leaves the timeline intact and never fabricates an ETA or location.
+
+### 8. Address Book and Delivery Location
+
+- **Purpose:** Save reusable shipping/billing addresses and select one during checkout.
+- **Current state:** Customer-scoped address list/create/edit/delete/default/checkout-selection flows are implemented.
+- **Location flow:** Philippine Region → Province → City/Municipality → Barangay options come from the bundled `@aisley/psgc-address-data` package. The Customer may use a Philippines-scoped Geoapify forward-geocoding request after selecting **Pin location**, then refine a local draggable pin on Leaflet-rendered Geoapify tiles; manual entry remains available when a provider or map is unavailable.
+- **Rules:** Coordinates are optional mutable Address Book data. Checkout validates the selected Customer-owned address and copies normalized fields/coordinates into an immutable `order_addresses` snapshot. Editing or deleting the saved address cannot rewrite a placed Order.
+- **Boundary:** The Buyer address flow does not choose a Logistics hub, calculate courier routes, or expose another Customer's address.
+
+### 9. Order Modification and Cancellation
+
+- **Purpose:** Allow limited correction or cancellation of a newly placed Order.
+- **Contract:** Eligibility is server-calculated and must be rechecked under the shared Order transition rules. The current MVP boundary allows changes only while the Order remains `placed`, before Seller processing begins; `seller_processing`, `ready_for_pickup`, and every downstream state close the normal modification window.
+- **Boundary:** This feature does not mutate immutable item/price/payment history or alter an Order's Address Book source record. A later approved policy may add specific actions without granting generic Customer status control.
+
+### 10. Wishlist
+
+- **Purpose:** Save or remove currently buyer-visible Products for later.
+- **Current state:** Phase 1 Customer-scoped save/remove/list/status APIs and Product Card/Detail controls are implemented, with a protected `/account/wishlist` page and Cart handoff.
+- **Rules:** Wishlist is not Cart, reservation, price guarantee, public list, or Seller analytics. Hidden or restricted Products are omitted and Cart revalidates current state. Guest clicks redirect to sign-in and are not silently persisted.
+- **Deferred:** Restock/price-drop alerts require a separate Customer notification inbox, preferences, durable deduplication, and delivery contract; no alert is claimed yet.
 
 ### 11. Recently Viewed Items
-* **Core Value**: Automatically track and display a history of products the user has clicked on to make it easier to find them again.[cite: 4].
-* **Expanded Definition**: A passive tracking mechanism that enhances platform navigation and user retention. It logs a buyer's session footprint, creating a localized carousel or trail of recently visited product pages to facilitate easy back-tracking and impulse additions to the cart.
-* **System Context**: Often implemented using fast-access, in-memory storage like Redis, or local browser storage (localStorage/cookies) for unregistered sessions, which is then synced to the database upon authentication to maintain a cross-device history.
 
-### 12. Order Modification/Cancellation
-* **Core Value**: Allow users to cancel or change details (like shipping address) within a strict time window before the seller processes the order.[cite: 4].
-* **Expanded Definition**: A grace-period intervention utility. It grants buyers temporary autonomy to rectify checkout mistakes (e.g., wrong variant, incorrect address) or completely abort the purchase before the seller commits to physical fulfillment or incurs shipping label generation costs.
-* **System Context**: Relies on complex state machine logic within the `Orders` domain. Modification capabilities must be strictly gated by time-based triggers or specific status flags (e.g., operations only allowed if `order.status == PENDING`).
+- **Purpose:** Help a Customer or guest find Products whose canonical Product Detail page they opened.
+- **Current state:** Product-detail-only recording, bounded guest local history, non-blocking login/session merge, Customer-scoped persistent history, visibility filtering, homepage rail, and protected Account history page are implemented.
+- **Rules:** A Product is recorded once per valid detail visit; cards, searches, rails, hovers, and variant changes do not create entries. Guest storage contains only bounded Product IDs/timestamps and remains best effort when browser storage fails. Authenticated history is private and never shared-cached.
+
+### 12. Reviews and Ratings
+
+- **Purpose:** Let a Customer rate and describe a purchased Product after delivery, optionally with approved media.
+- **Status:** The requirement and feature boundary exist, but review persistence, verified-purchase enforcement, moderation, and Customer media submission are deferred from the current implemented foundation.
+- **Rules when implemented:** Only the purchasing Customer may review an eligible delivered line; review media must follow `docs/references/file-upload-requirements.md`; Seller replies and moderation remain separate concerns.
+
+### 13. Product Q&A and Chat/Messaging
+
+- **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
+- **Status:** These are documented/deferred capabilities, not current Customer storefront implementations.
+- **Boundary:** Future threads, questions, notifications, and unread counts must be Customer/Shop or relationship scoped. They must not expose registration evidence, private addresses, payment secrets, or unrelated users, and must not duplicate the order-status or Admin notification contracts.
+
+## Data, privacy, and consistency invariants
+
+- Every protected Customer query derives ownership from the authenticated Customer and applies the correct role/status middleware. Forged IDs, cross-role same-email records, and another Customer's UUIDs return an ownership-safe denial.
+- `storefrontVisible()` is applied to every public Product projection and again at Wishlist, Recently Viewed, Cart, and Checkout boundaries. Public cache entries contain no Customer-specific state.
+- Cart and Checkout use server prices, voucher eligibility, address validation, and inventory locks. Order placement is atomic and idempotent: failed validation creates no partial Orders, reservations, voucher redemption, or notifications.
+- Placed Order items, money, payment method/status, delivery address, and voucher data are immutable snapshots. Mutable Address Book, Product, Shop, or Seller changes cannot rewrite historical Orders.
+- Order status transitions and status events are owned by the relevant Seller, Logistics, or Courier contract and are validated, transactional, idempotent, and append-only. Notification or map delivery failure cannot roll back a committed business decision.
+- Customer-specific APIs and pages use private/no-store semantics where required. Logs and DTOs omit tokens, password hashes, full addresses, raw GPS history, private media paths, and payment credentials.
+- File/image work follows `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with server-side signature, MIME, decode, ownership, and private-delivery checks. Profile-photo storage is configured-disk/Azure Blob; Product description/gallery assets are separate Product-owned records.
+
+## Current and deferred data boundary
+
+Implemented Customer foundation:
+
+- Customer registration/authentication, Admin approval gating, session restoration/logout, password recovery, account profile/password management, and private profile photos.
+- Public homepage/search, Product Detail, Browse Shop, shared visibility filtering, catalog media/Markdown projections, Cart, COD checkout, vouchers, inventory reservation, Shop Orders, immutable snapshots, and Customer order-status monitoring.
+- Customer Address Book with bundled PSGC options, Geoapify pin assistance, Leaflet/Geoapify map rendering, manual fallback, order-address snapshots, Wishlist Phase 1, and Recently Viewed history.
+
+Deferred or dependent Customer operations:
+
+- Seller order preparation, first-mile pickup, Logistics hub processing, Shipment/Delivery Task records, final-mile assignment, Courier delivery, proof of delivery, route/ETA display, payment gateways, returns/refunds, reviews, Product Q&A, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts.
+
+Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
+
+## Shared contracts
+
+- `docs/requirements.md` — Buyer responsibilities, approval boundary, address/order requirements, and first-party fulfillment flow.
+- `docs/workspace.md` — Customer journeys, canonical Order status meanings, and the sole-hub Logistics flow.
+- `docs/schema.md` — Users, addresses, catalog, Cart, checkout, Order snapshots/status history, and deferred fulfillment schema boundary.
+- `docs/references/user-registration-requirements.md` — Customer registration and approval requirements.
+- `docs/references/file-upload-requirements.md` — Profile, Product, and future Customer media upload rules.
+- `docs/features/customer/*/spec.md` — Feature-specific Customer implementation contracts.

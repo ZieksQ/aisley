@@ -39,6 +39,21 @@ class User extends Authenticatable
         return $this->hasOne(CourierProfile::class);
     }
 
+    public function logisticsProfile(): HasOne
+    {
+        return $this->hasOne(LogisticsProfile::class);
+    }
+
+    public function logisticsOrganization(): HasOne
+    {
+        return $this->hasOne(LogisticsOrganization::class);
+    }
+
+    public function courierLogisticsAffiliation(): HasOne
+    {
+        return $this->hasOne(CourierLogisticsAffiliation::class, 'courier_id');
+    }
+
     public function adminProfile(): HasOne
     {
         return $this->hasOne(AdminProfile::class);

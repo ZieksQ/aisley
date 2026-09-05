@@ -218,9 +218,15 @@ export function RegistrationDetailPage() {
                   <DetailField label="Shop status" value={formatFieldLabel(registration.application.business.status)} />
                 </>
               )}
+              {registration.application.logistics_organization && (
+                <>
+                  <DetailField label="Business name" value={registration.application.logistics_organization.business_name} />
+                  <DetailField label="Operational hub" value={registration.application.logistics_organization.hub_name} />
+                </>
+              )}
               {registration.application.address && (
                 <DetailField
-                  label="Business address"
+                  label={registration.applicant.role === 'logistics' ? 'Operational hub address' : 'Business address'}
                   value={[
                     registration.application.address.address_line_1,
                     registration.application.address.address_line_2,

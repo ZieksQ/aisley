@@ -1,4 +1,5 @@
 # Workflows
+
 Defines **HOW** the system behaves: step-by-step flows and state transitions per role.
 
 # Authentication and Account Rules
@@ -29,7 +30,7 @@ register → admin approval → email notification → sign in → subscription
 
 Courier
 
-search logistics hub → register under logistics → logistics approval → sign in
+search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
 
 Admin
 
@@ -84,6 +85,19 @@ A Seller must not access another Seller's shop, products, inventory, or seller-s
 A Logistics account must not manage another Logistics company's couriers.
 
 A Courier must only operate jobs that are available or assigned within their authorized Logistics relationship.
+
+## 5.6 Logistics Organization and Hub Scope
+
+For the MVP, each Logistics organization/company owns exactly one operational hub/sorting center. This is a deliberate scale-down of the real-world model, where a Logistics company may operate multiple hubs and sub-hubs.
+
+- Sub-hubs, additional hubs, and multi-hub operations are out of scope for the MVP.
+- For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
+- Courier registration selects the Logistics company; its sole hub is associated automatically. A separate hub/sub-hub selector is not needed.
+- Parcels, waybills, sorting, transfer, dispatch, Couriers, fleet records, zones, and capacity views are scoped to that Logistics organization's single hub.
+- The transfer step does not represent movement between multiple hubs owned by the same Logistics organization. Any future multi-hub or inter-organization handoff requires a separate approved workflow.
+- This cardinality rule does not by itself decide whether the Logistics organization may have multiple staff or dispatcher accounts; that is a separate account/authorization decision.
+  - Supersede: The logistics should have one account.
+  - Note: Sub account for staffs will be handled on a later date.
 
 6. Buyer MVP Requirements
 
@@ -155,37 +169,23 @@ The address experience shall support the specified Maps JavaScript Places integr
 
 6.6 Order Status
 
-Buyer shall be able to view the lifecycle of an order, including user-facing states corresponding to:
+Buyer shall be able to view the lifecycle of an order through a server-owned status mapper. Persisted/API values use lowercase `snake_case`; display labels are separate from machine values.
 
-Pending / placed.
+The current high-level `OrderStatus` values are:
 
-Seller processing.
+`pending_payment` → `placed` → `seller_processing` → `ready_for_pickup` → `assigned` → `picked_up` → `in_transit` → `out_for_delivery` → `delivered`.
 
-Packed / ready for pickup.
+The exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
 
-Picked up.
+`assigned` means Logistics has received and accepted the Seller-ready parcel. It does not mean that a final-mile Courier has merely been proposed. `picked_up` represents the final-mile Courier taking the parcel from the Logistics hub. Detailed first-mile, hub, and assignment milestones belong to the Shipment/Delivery Task state described in section 11.2.
 
-In logistics processing.
-
-In transfer.
-
-Dispatched.
-
-Out for delivery.
-
-Delivered.
-
-Cancelled, when applicable.
-
-Ready for rating/feedback after delivery.
-
-Internal enum names may differ, but status transitions must follow the controlled order/logistics workflow.
+Only the owning domain may advance a status, and every transition must be validated and recorded in status history. A Customer can read these states but cannot mutate them.
 
 6.7 Order Modification and Cancellation
 
 Buyer shall be able to cancel or change eligible order details only before the Seller processes the order.
 
-The MVP shall at minimum enforce this using order status, such as allowing changes only while the order is still PENDING.
+The MVP shall at minimum enforce this using canonical order status, allowing changes only while the Order remains `placed` and before Seller processing begins.
 
 6.8 Reviews and Ratings
 
@@ -287,6 +287,10 @@ Seller shall be able to update basic account information.
 
 8. Logistics MVP Requirements
 
+### Logistics organization and hub scope
+
+The MVP uses one operational hub/sorting center per Logistics organization. The single-hub rule is intentional for project scale and does not claim that real-world Logistics companies are limited to one hub. Logistics features must not expose creation or selection of sub-hubs or additional hubs.
+
 8.1 Logistics Dashboard
 
 Logistics shall be able to view Seller-confirmed orders that are ready to enter logistics processing.
@@ -305,9 +309,9 @@ MVP decision required: subscription billing/payment provider is not specified in
 
 8.3 Door-to-Door Seller Pickup
 
-A Courier shall pick up orders from Sellers as part of the first-party logistics flow.
+A first-mile Courier shall pick up prepared parcels from Sellers as part of the first-party logistics flow.
 
-The system shall connect pickup tasks to the corresponding order/parcel.
+The system shall connect the `seller_pickup_assigned`, `seller_pickup_accepted`, and `picked_up_from_seller` task states to the corresponding Order/parcel.
 
 8.4 Waybill
 
@@ -325,7 +329,7 @@ The logistics workflow shall support:
 
 receive order → waybill → sort
 
-The system shall persist the parcel's current logistics state.
+The system shall persist the parcel's current Shipment/Delivery Task state, including `received_at_hub` and `sorted_at_hub`.
 
 8.6 Transfer
 
@@ -337,6 +341,8 @@ Manually entering its QR/reference value.
 
 A successful operation shall update the associated order/shipment status.
 
+For the MVP, transfer does not mean movement between multiple hubs. It represents a controlled Logistics handoff or movement within the sole operational hub workflow and must use an explicit state such as `in_transfer`.
+
 8.7 Dispatch
 
 Logistics shall be able to dispatch a parcel by:
@@ -347,9 +353,13 @@ Manually entering its QR/reference value.
 
 A successful dispatch shall update the associated order/shipment status.
 
+The canonical dispatched state is `dispatched_from_hub`; it must not be confused with Courier acceptance or physical pickup.
+
 8.8 Deploy Rider
 
 Logistics shall be able to select a rider for an order based on operational suitability and distance.
+
+Successful final-mile assignment records `delivery_assigned`; it is distinct from `delivery_accepted` and `picked_up_from_hub`.
 
 Mapbox Matrix and Optimization are the specified APIs for route/distance optimization.
 
@@ -357,7 +367,7 @@ The P0 MVP may use route-assisted/manual rider selection rather than a fully aut
 
 8.9 Update Status
 
-Logistics shall be able to update an order/shipment status after rider pickup.
+Logistics shall be able to update an allowed Shipment/Delivery Task state after a validated scan or operational recovery action.
 
 Scanning should automate state updates where possible.
 
@@ -385,7 +395,7 @@ Logistics shall be able to update basic account information.
 
 Courier registration shall follow:
 
-search logistics hub → select logistics → register → logistics approval → sign in
+search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
 
 9.2 Courier Dashboard
 
@@ -393,7 +403,7 @@ Courier shall be able to:
 
 View delivery notifications.
 
-View available pickup requests.
+View available first-mile pickup and final-mile delivery requests.
 
 View active delivery jobs.
 
@@ -401,7 +411,7 @@ View active delivery jobs.
 
 Courier shall be able to:
 
-Review pickup details.
+Review the task type and pickup details.
 
 Review delivery details.
 
@@ -413,7 +423,7 @@ Acceptance shall associate the task with the Courier.
 
 Courier shall be able to:
 
-Proceed to the Seller or sorting center.
+Proceed to the Seller for a first-mile pickup or the Logistics hub for a final-mile pickup.
 
 Verify order/parcel information.
 
@@ -421,7 +431,7 @@ Scan the parcel/order identifier.
 
 Confirm pickup.
 
-Pickup confirmation shall update the shipment/order state.
+Pickup confirmation shall update the Shipment/Delivery Task to `picked_up_from_seller` or `picked_up_from_hub`, depending on the task leg.
 
 9.5 Deliver Order
 
@@ -437,7 +447,7 @@ Deliver the parcel to the Buyer.
 
 Courier shall be able to mark a delivery complete.
 
-Completion shall update the order to DELIVERED and notify the Buyer and Seller.
+Completion shall update the Order to `delivered` and notify the Buyer and Seller.
 
 9.7 Proof of Delivery
 
@@ -572,55 +582,83 @@ Timestamp.
 11.1 Core Order Flow
 
 Buyer places order
-        ↓
-Seller approves/processes order
-        ↓
-Seller packs order
-        ↓
-Courier door-to-door pickup from Seller
-        ↓
-Logistics receives parcel
-        ↓
-Waybill identified/generated
-        ↓
-Parcel sorted
-        ↓
-Transfer by waybill scan/manual reference
-        ↓
-Dispatch by waybill scan/manual reference
-        ↓
-Logistics assigns Courier for final delivery
-        ↓
-Courier picks parcel up for delivery
-        ↓
-Courier delivers to Buyer
-        ↓
-Order marked delivered
-        ↓
+↓
+Seller begins processing and prepares the order
+↓
+Seller confirms `ready_for_pickup`
+↓
+First-mile Courier accepts the Seller pickup task
+↓
+Courier picks up the parcel from the Seller (`picked_up_from_seller`)
+↓
+Courier transfers the parcel to the Logistics organization's sole hub
+↓
+Logistics receives and validates the parcel (`received_at_hub`)
+↓
+Logistics identifies or generates the canonical waybill/reference
+↓
+Logistics sorts the parcel (`sorted_at_hub`)
+↓
+Logistics transfers and dispatches the parcel (`in_transfer` → `dispatched_from_hub`)
+↓
+Logistics assigns a final-mile Courier (`delivery_assigned`)
+↓
+Final-mile Courier accepts the task (`delivery_accepted`)
+↓
+Courier picks the parcel up from the hub (`picked_up_from_hub`)
+↓
+Courier transports and delivers the parcel (`in_transit` → `out_for_delivery`)
+↓
+Courier submits proof of delivery and completes the task (`delivered`)
+↓
 Buyer may rate/review
 
-11.2 Recommended MVP State Model
+All Logistics processing in this MVP is performed within the owning Logistics organization's single hub/sorting center. There is no alternate sub-hub or multi-hub branch in this flow.
 
-The source does not define exact enum names. The implementation should therefore use a controlled state machine equivalent to:
+11.2 Canonical Order and Shipment State Model
 
-PENDING
-SELLER_CONFIRMED
-PACKED
-READY_FOR_PICKUP
-PICKED_UP
-AT_LOGISTICS
-SORTED
-IN_TRANSFER
-DISPATCHED
-OUT_FOR_DELIVERY
-DELIVERED
-CANCELLED
+Use lowercase `snake_case` for persisted and API values, PascalCase for PHP enum cases, and human-readable labels only in the UI. Do not persist source-only uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER`.
 
-This list is an implementation normalization of the source workflow, not a verbatim source enum.
+`OrderStatus` is the current high-level Order lifecycle and remains the Customer-facing source of truth:
+
+```text
+pending_payment
+→ placed
+→ seller_processing
+→ ready_for_pickup
+→ assigned
+→ picked_up
+→ in_transit
+→ out_for_delivery
+→ delivered
+```
+
+The existing `assigned` value means `received_at_hub` at the Logistics boundary, while the existing `picked_up` value means `picked_up_from_hub` for the final-mile movement. This preserves the current OrderStatus contract while making the physical handoffs explicit in the shipment/task record and timeline.
+
+The deferred `ShipmentStatus` / Delivery Task vocabulary should use explicit physical states:
+
+```text
+awaiting_seller_pickup
+seller_pickup_assigned
+seller_pickup_accepted
+picked_up_from_seller
+received_at_hub
+sorted_at_hub
+in_transfer
+dispatched_from_hub
+delivery_assigned
+delivery_accepted
+picked_up_from_hub
+in_transit
+out_for_delivery
+delivered
+```
+
+Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules.
 
 11.3 Status History
 
-Every important transition should record:
+Every important Order or Shipment/Delivery Task transition should record:
 
 Previous status.
 
@@ -631,6 +669,8 @@ Actor.
 Timestamp.
 
 Optional waybill/scan reference.
+
+Order history records customer-visible high-level `OrderStatus` changes. Shipment/Delivery Task history records first-mile, hub, and final-mile states such as `picked_up_from_seller`, `received_at_hub`, `delivery_assigned`, and `picked_up_from_hub`. A scan, waybill print, or notification must not silently overwrite either history.
 
 12. Waybill and Scanning Requirements
 
@@ -656,7 +696,9 @@ Updating the shipment/order status.
 
 Preventing duplicate or invalid transitions.
 
-Scanning or manual reference entry should automate status changes through transfer and dispatch.
+Scanning or manual reference entry should automate the applicable Shipment/Delivery Task transition: first-mile pickup records `picked_up_from_seller`, hub receipt/sort/transfer/dispatch use `received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub`, and final-mile hub pickup records `picked_up_from_hub`.
+
+Do not infer either physical pickup from the generic high-level Order value `picked_up`; the detailed task/scan event is authoritative for the handoff.
 
 13. Fees and Commission Rules
 

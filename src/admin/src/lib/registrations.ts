@@ -1,7 +1,7 @@
 import type { RegistrationRole, RegistrationStatus } from '../types/registrations'
 
 export function roleLabel(role: RegistrationRole) {
-  return role === 'customer' ? 'Customer' : 'Seller'
+  return role === 'customer' ? 'Customer' : role === 'seller' ? 'Seller' : 'Logistics'
 }
 
 export function statusLabel(status: RegistrationStatus) {

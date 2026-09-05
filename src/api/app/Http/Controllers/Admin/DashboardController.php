@@ -46,6 +46,7 @@ class DashboardController extends Controller
 
         $customerCount = (int) $counts->get(UserRole::Customer->value, 0);
         $sellerCount = (int) $counts->get(UserRole::Seller->value, 0);
+        $logisticsCount = (int) $counts->get(UserRole::Logistics->value, 0);
 
         $actionItems = (clone $pending)
             ->oldest('submitted_at')
@@ -61,10 +62,11 @@ class DashboardController extends Controller
 
         return [
             'pending' => [
-                'total' => $customerCount + $sellerCount,
+                'total' => $customerCount + $sellerCount + $logisticsCount,
                 'by_role' => [
                     UserRole::Customer->value => $customerCount,
                     UserRole::Seller->value => $sellerCount,
+                    UserRole::Logistics->value => $logisticsCount,
                 ],
             ],
             'action_items' => $actionItems,
@@ -76,6 +78,6 @@ class DashboardController extends Controller
     {
         return RegistrationApplication::query()
             ->where('status', ApplicationStatus::Pending)
-            ->whereIn('application_type', [UserRole::Customer, UserRole::Seller]);
+            ->whereIn('application_type', [UserRole::Customer, UserRole::Seller, UserRole::Logistics]);
     }
 }

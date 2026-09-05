@@ -1,0 +1,6 @@
+import type { InputHTMLAttributes, SelectHTMLAttributes } from 'react'
+const styles = 'h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-pink-500/15 dark:border-white/15 dark:bg-[#171719] dark:text-white'
+type InputProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }
+export function Field({ label, error, id, ...props }: InputProps) { return <div><label className="mb-1.5 block text-sm font-medium" htmlFor={id}>{label}</label><input {...props} aria-invalid={Boolean(error)} className={`${styles} ${error ? 'border-red-500' : ''}`} id={id} />{error ? <p className="mt-1 text-sm text-red-600" role="alert">{error}</p> : null}</div> }
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label: string; error?: string }
+export function SelectField({ label, error, id, children, ...props }: SelectProps) { return <div><label className="mb-1.5 block text-sm font-medium" htmlFor={id}>{label}</label><select {...props} aria-invalid={Boolean(error)} className={`${styles} ${error ? 'border-red-500' : ''}`} id={id}>{children}</select>{error ? <p className="mt-1 text-sm text-red-600" role="alert">{error}</p> : null}</div> }

@@ -142,7 +142,7 @@ export function DashboardPage() {
                     ? 'No pending registrations.'
                     : `${registrationOverview.pending.total === 1 ? 'Application' : 'Applications'} waiting for review.`}
                 </p>
-                <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 dark:border-white/10">
+                <dl className="mt-6 grid grid-cols-3 gap-3 border-t border-slate-100 pt-5 dark:border-white/10">
                   <div>
                     <dt className="text-xs text-slate-400">Customers</dt>
                     <dd className="mt-1 text-lg font-semibold">{registrationOverview.pending.by_role.customer}</dd>
@@ -150,6 +150,10 @@ export function DashboardPage() {
                   <div>
                     <dt className="text-xs text-slate-400">Sellers</dt>
                     <dd className="mt-1 text-lg font-semibold">{registrationOverview.pending.by_role.seller}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-400">Logistics</dt>
+                    <dd className="mt-1 text-lg font-semibold">{registrationOverview.pending.by_role.logistics}</dd>
                   </div>
                 </dl>
               </Link>
