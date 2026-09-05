@@ -97,14 +97,14 @@ ACTIVE → SUSPENDED/DEACTIVATED → token/API access denied
 
 ### Acceptance criteria
 
-- [ ] A valid submission creates one pending Courier User/Profile/Application with server-derived age and one selected Logistics relationship.
-- [ ] Personal, PSGC/manual address, vehicle, and approved evidence rules reject invalid or unauthorized input without partial records or orphaned blobs.
-- [ ] Duplicate/retried registration cannot create duplicate role accounts, applications, vehicles, or evidence.
-- [ ] Every required approval is recorded and only an approved active Courier can obtain a token.
-- [ ] Same-email accounts under other roles cannot authenticate as Courier.
-- [ ] Token abilities, secure mobile storage guidance, role/status/relationship middleware, `me`, logout, and revocation are enforced.
-- [ ] Password recovery is generic, Courier-scoped, expiring, single-use, throttled, and token-revoking.
-- [ ] Private registration evidence is never returned in auth DTOs or fetched without authorization.
+- [x] A valid submission creates one pending Courier User/Profile/Application with server-derived age and one selected Logistics relationship.
+- [x] Personal, PSGC/manual address, vehicle, and approved evidence rules reject invalid or unauthorized input without partial records or orphaned blobs.
+- [x] Duplicate/retried registration cannot create duplicate role accounts, applications, vehicles, or evidence.
+- [x] Every required approval is recorded and only an approved active Courier can obtain a token.
+- [x] Same-email accounts under other roles cannot authenticate as Courier.
+- [x] Token abilities, secure mobile storage guidance, role/status/relationship middleware, `me`, logout, and revocation are enforced.
+- [x] Password recovery is generic, Courier-scoped, expiring, single-use, throttled, and token-revoking.
+- [x] Private registration evidence is never returned in auth DTOs or fetched without authorization.
 
 ## HOW
 
