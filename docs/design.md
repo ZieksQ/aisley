@@ -63,7 +63,7 @@ Avoid creating duplicate components when an appropriate shared component already
 ## General Rules
 
 - Maintain consistent spacing, typography, radius, and component behavior.
-- Design responsive layouts by default.
+- Use a mobile-first process: design and build for the smallest supported viewport first, then progressively enhance the layout, spacing, navigation, and interactions for larger responsive breakpoints.
 - Use color for hierarchy and meaning, not decoration alone.
 - Maintain sufficient contrast and accessible focus/hover states.
 - Keep customer UI and professional dashboards visually distinct while sharing the same design system.

@@ -46,8 +46,8 @@ export function SellerLayout() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-zinc-950 dark:bg-[#101012] dark:text-white">
-      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-64 flex-col border-r border-zinc-200 bg-white px-4 py-5 dark:border-white/10 dark:bg-[#171719] lg:flex`}>
-        <div className="flex items-center justify-between px-1">
+      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-64 flex-col overflow-hidden border-r border-zinc-200 bg-white px-4 py-5 dark:border-white/10 dark:bg-[#171719] lg:flex`}>
+        <div className="flex shrink-0 items-center justify-between px-1">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-lg bg-[#4C1268] text-white">
               <FaStore aria-hidden="true" />
@@ -67,34 +67,36 @@ export function SellerLayout() {
           </button>
         </div>
 
-        <nav aria-label="Seller navigation" className="mt-8">
-          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
-            <FaGaugeHigh aria-hidden="true" />
-            Dashboard
-          </NavLink>
-          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/products">
-            <FaBoxOpen aria-hidden="true" />
-            Products
-          </NavLink>
-          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/inventory">
-            <FaBoxesStacked aria-hidden="true" />
-            Inventory
-          </NavLink>
-          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/low-stock-alerts">
-            <FaTriangleExclamation aria-hidden="true" />
-            Low-stock alerts
-          </NavLink>
-          <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
-            <FaUserGear aria-hidden="true" />
-            Account settings
-          </NavLink>
-        </nav>
+        <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
+          <nav aria-label="Seller navigation" className="mt-8">
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
+              <FaGaugeHigh aria-hidden="true" />
+              Dashboard
+            </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/products">
+              <FaBoxOpen aria-hidden="true" />
+              Products
+            </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/inventory">
+              <FaBoxesStacked aria-hidden="true" />
+              Inventory
+            </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/low-stock-alerts">
+              <FaTriangleExclamation aria-hidden="true" />
+              Low-stock alerts
+            </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
+              <FaUserGear aria-hidden="true" />
+              Account settings
+            </NavLink>
+          </nav>
 
-        <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
-          Purchased-order fulfillment and reporting will appear when their source domains become available.
-        </p>
+          <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
+            Purchased-order fulfillment and reporting will appear when their source domains become available.
+          </p>
+        </div>
 
-        <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-white/10">
+        <div className="mt-5 shrink-0 border-t border-zinc-200 pt-4 dark:border-white/10">
           <div className="flex items-center gap-3 px-2">
             <SellerAvatar initials={initials} photoUrl={seller?.profile?.profile_photo_url} />
             <div className="min-w-0">

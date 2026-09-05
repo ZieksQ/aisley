@@ -6,6 +6,7 @@ use App\Enums\HomepageCampaignPlacement;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
 
 class HomepageCampaign extends Model
@@ -15,16 +16,22 @@ class HomepageCampaign extends Model
     public const CACHE_KEY = 'customer:homepage:campaigns';
 
     protected $fillable = [
+        'homepage_advertisement_configuration_id',
         'placement',
+        'slot',
         'title',
+        'description',
         'image_disk',
         'image_desktop_path',
+        'image_desktop_filename',
         'image_mobile_path',
+        'image_mobile_filename',
         'alt_text',
         'destination_url',
         'starts_at',
         'ends_at',
         'priority',
+        'position',
         'is_active',
     ];
 
@@ -38,8 +45,14 @@ class HomepageCampaign extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'priority' => 'integer',
+            'position' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function advertisementConfiguration(): BelongsTo
+    {
+        return $this->belongsTo(HomepageAdvertisementConfiguration::class, 'homepage_advertisement_configuration_id');
     }
 
     protected static function booted(): void

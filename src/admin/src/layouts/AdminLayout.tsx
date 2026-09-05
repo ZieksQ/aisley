@@ -44,16 +44,17 @@ export function AdminLayout() {
   const isUserDetail = /^\/users\/[^/]+$/.test(location.pathname)
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
+  const isHomepageAdEditor = location.pathname.startsWith('/platform-settings/homepage-ads/')
   const pageTitle = location.pathname.startsWith('/registrations')
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? 'Platform settings' : 'Dashboard'
+      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? 'Announcements and policies' : 'Admin workspace'
+      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Advertisement content' : 'Announcements, policies, and homepage ads' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -67,8 +68,8 @@ export function AdminLayout() {
 
   return (
     <main className="min-h-screen bg-[#f7f8fb] text-slate-950 dark:bg-[#0b0d13] dark:text-white">
-      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 text-slate-950 shadow-2xl dark:border-white/10 dark:bg-[#180b20] dark:text-white lg:flex lg:shadow-none`}>
-        <div className="flex items-center justify-between">
+      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-72 flex-col overflow-hidden border-r border-slate-200 bg-white px-5 py-6 text-slate-950 shadow-2xl dark:border-white/10 dark:bg-[#180b20] dark:text-white lg:flex lg:shadow-none`}>
+        <div className="flex shrink-0 items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-xl bg-[#E6007A]">
               <FaShieldHalved aria-hidden="true" />
@@ -88,61 +89,63 @@ export function AdminLayout() {
           </button>
         </div>
 
-        <nav className="mt-10" aria-label="Admin navigation">
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-purple-200/40">Workspace</p>
-          <div className="mt-3 space-y-1.5">
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
-              <FaGaugeHigh aria-hidden="true" />
-              Dashboard
-            </NavLink>
-            {canViewRegistrations && (
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/registrations">
-                <FaClipboardCheck aria-hidden="true" />
-                Account registrations
+        <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
+          <nav className="mt-10" aria-label="Admin navigation">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-purple-200/40">Workspace</p>
+            <div className="mt-3 space-y-1.5">
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
+                <FaGaugeHigh aria-hidden="true" />
+                Dashboard
               </NavLink>
-            )}
-            {canViewUsers && (
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/users">
-                <FaUsers aria-hidden="true" />
-                User accounts
+              {canViewRegistrations && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/registrations">
+                  <FaClipboardCheck aria-hidden="true" />
+                  Account registrations
+                </NavLink>
+              )}
+              {canViewUsers && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/users">
+                  <FaUsers aria-hidden="true" />
+                  User accounts
+                </NavLink>
+              )}
+              {canManageSellerCompliance && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/seller-compliance">
+                  <FaScaleBalanced aria-hidden="true" />
+                  Seller compliance
+                </NavLink>
+              )}
+              {canViewAuditLogs && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/audit-logs">
+                  <FaClockRotateLeft aria-hidden="true" />
+                  System audit logs
+                </NavLink>
+              )}
+              {canViewPlatformSettings && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/platform-settings">
+                  <FaSliders aria-hidden="true" />
+                  Platform settings
+                </NavLink>
+              )}
+              {canViewNotifications && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/notifications">
+                  <FaInbox aria-hidden="true" />
+                  Notifications
+                </NavLink>
+              )}
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
+                <FaUserGear aria-hidden="true" />
+                Account settings
               </NavLink>
-            )}
-            {canManageSellerCompliance && (
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/seller-compliance">
-                <FaScaleBalanced aria-hidden="true" />
-                Seller compliance
-              </NavLink>
-            )}
-            {canViewAuditLogs && (
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/audit-logs">
-                <FaClockRotateLeft aria-hidden="true" />
-                System audit logs
-              </NavLink>
-            )}
-            {canViewPlatformSettings && (
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/platform-settings">
-                <FaSliders aria-hidden="true" />
-                Platform settings
-              </NavLink>
-            )}
-            {canViewNotifications && (
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/notifications">
-                <FaInbox aria-hidden="true" />
-                Notifications
-              </NavLink>
-            )}
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
-              <FaUserGear aria-hidden="true" />
-              Account settings
-            </NavLink>
-          </div>
-        </nav>
+            </div>
+          </nav>
 
-        <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-4 text-xs leading-5 text-slate-400 dark:border-white/15 dark:text-purple-100/50">
-          Additional admin tools will be added as their workflows are implemented.
+          <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-4 text-xs leading-5 text-slate-400 dark:border-white/15 dark:text-purple-100/50">
+            Additional admin tools will be added as their workflows are implemented.
+          </div>
         </div>
 
-        <div className="mt-auto border-t border-slate-200 pt-5 dark:border-white/10">
+        <div className="mt-6 shrink-0 border-t border-slate-200 pt-5 dark:border-white/10">
           <div className="flex items-center gap-3 px-2">
             <AdminAvatar initials={initials} photoUrl={admin?.profile?.profile_photo_url} />
             <div className="min-w-0">

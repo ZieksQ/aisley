@@ -4,12 +4,14 @@ namespace App\Services\Customer;
 
 use App\Enums\AddressType;
 use App\Enums\CategoryStatus;
+use App\Enums\HomepageAdvertisementStatus;
 use App\Enums\HomepageCampaignPlacement;
 use App\Http\Resources\Customer\HomepageCampaignResource;
 use App\Http\Resources\Customer\HomepageCategoryResource;
 use App\Http\Resources\Customer\ProductSummaryResource;
 use App\Models\Category;
 use App\Models\FlashDeal;
+use App\Models\HomepageAdvertisementConfiguration;
 use App\Models\HomepageCampaign;
 use App\Models\Product;
 use App\Models\RecentlyViewedProduct;
@@ -32,6 +34,7 @@ class HomepageService
 
         return [
             'viewer' => $this->viewer($customer),
+            'advertisementLayer' => $this->advertisementLayer(),
             'campaigns' => [
                 'hero' => HomepageCampaignResource::collection(
                     $campaigns
@@ -53,6 +56,30 @@ class HomepageService
             'recentlyViewed' => $this->recentlyViewed($customer),
             'recommendations' => $this->recommendations($customer, $recommendationLimit),
         ];
+    }
+
+    private function advertisementLayer(): ?array
+    {
+        $configuration = Cache::remember(HomepageAdvertisementConfiguration::ACTIVE_CACHE_KEY, max(1, (int) config('homepage.public_cache_seconds', 300)), fn () => HomepageAdvertisementConfiguration::query()->with('campaigns')->where('status', HomepageAdvertisementStatus::Published)->latest('published_at')->first());
+        if (! $configuration) {
+            return null;
+        }
+        if (($configuration->starts_at && $configuration->starts_at->isFuture()) || ($configuration->ends_at && $configuration->ends_at->lte(now()))) {
+            return null;
+        }
+        $active = $configuration->campaigns->filter(fn (HomepageCampaign $ad) => $ad->is_active)->sortBy('position')->values();
+        $item = fn (HomepageCampaign $ad) => (new HomepageCampaignResource($ad))->resolve();
+        $fallback = fn (string $slot) => ['id' => "default-{$slot}", 'title' => 'Discover more on Aisley', 'description' => 'Browse everyday essentials and fresh finds from marketplace sellers.', 'imageDesktopUrl' => null, 'imageMobileUrl' => null, 'altText' => 'Discover more on Aisley', 'destinationUrl' => '/search', 'isActive' => true, 'slot' => $slot, 'position' => 0];
+        $primary = $active->where('slot', 'primary')->map($item)->values();
+        $layout = $configuration->layout->value;
+        if (in_array($layout, ['single', 'multi_block'], true) && $primary->isEmpty()) {
+            $primary = collect([$fallback('primary')]);
+        }
+        if ($layout === 'multi_block_carousel' && $primary->isEmpty()) {
+            $primary = collect([$fallback('primary')]);
+        }
+
+        return ['layout' => $layout, 'rotationIntervalSeconds' => $configuration->rotation_interval_seconds, 'primary' => $primary, 'secondaryTop' => ($top = $active->firstWhere('slot', 'secondary_top')) ? $item($top) : (str_starts_with($layout, 'multi_block') ? $fallback('secondary_top') : null), 'secondaryBottom' => ($bottom = $active->firstWhere('slot', 'secondary_bottom')) ? $item($bottom) : (str_starts_with($layout, 'multi_block') ? $fallback('secondary_bottom') : null)];
     }
 
     /**

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
+use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
@@ -90,6 +92,15 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::delete('/account/profile-photo', [AccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
 
     Route::prefix('platform-settings')->name('platform-settings.')->group(function () {
+        Route::get('/homepage-advertisements', [HomepageAdvertisementController::class, 'index'])->middleware('admin.permission:platform-settings.view')->name('homepage-advertisements.index');
+        Route::get('/homepage-advertisements/{configuration}', [HomepageAdvertisementController::class, 'show'])->middleware('admin.permission:platform-settings.view')->whereUuid('configuration')->name('homepage-advertisements.show');
+        Route::get('/homepage-advertisement-images/{campaign}/{variant}', [HomepageAdvertisementController::class, 'image'])->middleware('admin.permission:platform-settings.view')->whereUuid('campaign')->where('variant', 'desktop|mobile')->name('homepage-advertisements.images.show');
+        Route::post('/homepage-advertisement-images', [HomepageAdvertisementController::class, 'upload'])->middleware(['admin.permission:platform-settings.manage', 'throttle:10,1'])->name('homepage-advertisements.images.store');
+        Route::post('/homepage-advertisements', [HomepageAdvertisementController::class, 'store'])->middleware('admin.permission:platform-settings.manage')->name('homepage-advertisements.store');
+        Route::patch('/homepage-advertisements/{configuration}', [HomepageAdvertisementController::class, 'update'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.update');
+        Route::delete('/homepage-advertisements/{configuration}', [HomepageAdvertisementController::class, 'destroy'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.destroy');
+        Route::post('/homepage-advertisements/{configuration}/publish', [HomepageAdvertisementController::class, 'publish'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.publish');
+        Route::post('/homepage-advertisements/{configuration}/successor', [HomepageAdvertisementController::class, 'successor'])->middleware('admin.permission:platform-settings.manage')->whereUuid('configuration')->name('homepage-advertisements.successor');
         Route::get('/announcements', [PlatformSettingsController::class, 'announcements'])->middleware('admin.permission:platform-settings.view')->name('announcements.index');
         Route::post('/announcements', [PlatformSettingsController::class, 'storeAnnouncement'])->middleware('admin.permission:platform-settings.manage')->name('announcements.store');
         Route::patch('/announcements/{announcement}', [PlatformSettingsController::class, 'updateAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.update');
@@ -205,6 +216,11 @@ Route::get('v1/product-media/{media}', ProductMediaController::class)
     ->whereUuid('media')
     ->middleware('throttle:120,1')
     ->name('product-media.show');
+Route::get('v1/homepage-advertisement-images/{campaign}/{variant}', HomepageAdvertisementImageController::class)
+    ->whereUuid('campaign')
+    ->where('variant', 'desktop|mobile')
+    ->middleware('throttle:120,1')
+    ->name('homepage-advertisement-images.show');
 
 Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->group(function () {
     Route::get('/home', [HomepageController::class, 'show'])->name('home.show');

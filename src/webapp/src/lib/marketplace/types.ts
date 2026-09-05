@@ -14,15 +14,26 @@ export type HomepageViewer = {
 export type HomepageCampaign = {
   id: string;
   placement: "hero" | "hero_side";
-  title: string;
+  title: string | null;
   imageDesktopUrl: string | null;
   imageMobileUrl: string | null;
-  altText: string;
+  altText: string | null;
   destinationUrl: string | null;
-  startsAt: string;
-  endsAt: string;
+  startsAt: string | null;
+  endsAt: string | null;
   priority: number;
   isActive: boolean;
+  description?: string | null;
+  slot?: string | null;
+  position?: number;
+};
+
+export type HomepageAdvertisementLayer = {
+  layout: "single" | "carousel" | "multi_block" | "multi_block_carousel";
+  rotationIntervalSeconds: number;
+  primary: HomepageCampaign[];
+  secondaryTop: HomepageCampaign | null;
+  secondaryBottom: HomepageCampaign | null;
 };
 
 export type HomepageQuickAction = {
@@ -86,6 +97,7 @@ export type HomepageData = {
     hero: HomepageCampaign[];
     side: HomepageCampaign[];
   };
+  advertisementLayer: HomepageAdvertisementLayer | null;
   quickActions: HomepageQuickAction[];
   categories: HomepageCategory[];
   flashDeals: FlashDeals | null;

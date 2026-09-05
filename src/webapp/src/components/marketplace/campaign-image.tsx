@@ -1,19 +1,21 @@
 "use client";
 
 import { getImageProps } from "next/image";
-import { useState } from "react";
+import { memo, useState } from "react";
 
-export function CampaignImage({
+type CampaignImageProps = {
+  alt: string | null;
+  desktopSrc: string | null;
+  mobileSrc: string | null;
+  priority?: boolean;
+};
+
+export const CampaignImage = memo(function CampaignImage({
   alt,
   desktopSrc,
   mobileSrc,
   priority = false,
-}: {
-  alt: string;
-  desktopSrc: string | null;
-  mobileSrc: string | null;
-  priority?: boolean;
-}) {
+}: CampaignImageProps) {
   const sourceKey = `${desktopSrc ?? ""}|${mobileSrc ?? ""}`;
   const [failedSourceKey, setFailedSourceKey] = useState<string | null>(null);
 
@@ -21,18 +23,22 @@ export function CampaignImage({
     return null;
   }
 
+  const loading = priority ? "eager" : "lazy";
+  const fetchPriority = priority ? "high" : "auto";
   const desktop = getImageProps({
-    alt,
+    alt: alt ?? "",
     fill: true,
-    priority,
+    fetchPriority,
+    loading,
     sizes: "(max-width: 1023px) 100vw, 900px",
     src: desktopSrc,
   });
   const mobile = mobileSrc
     ? getImageProps({
-        alt,
+        alt: alt ?? "",
         fill: true,
-        priority,
+        fetchPriority,
+        loading,
         sizes: "100vw",
         src: mobileSrc,
       })
@@ -46,10 +52,12 @@ export function CampaignImage({
       {/* next/image supplies the optimized srcset; picture selects the mobile asset. */}
       <img
         {...desktop.props}
-        alt={alt}
+        alt={alt ?? ""}
         onError={() => setFailedSourceKey(sourceKey)}
         className="absolute inset-0 size-full object-cover"
       />
     </picture>
   );
-}
+});
+
+CampaignImage.displayName = "CampaignImage";

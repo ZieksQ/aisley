@@ -27,8 +27,6 @@ class SafeHomepageDestination
             return null;
         }
 
-        $allowedHosts = config('homepage.allowed_destination_hosts', []);
-
-        return in_array(strtolower($host), $allowedHosts, true) ? $destination : null;
+        return $destination;
     }
 }

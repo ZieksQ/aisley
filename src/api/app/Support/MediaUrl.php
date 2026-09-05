@@ -21,6 +21,10 @@ class MediaUrl
             return in_array($scheme, ['http', 'https'], true) ? $path : null;
         }
 
+        if (str_starts_with($path, '/')) {
+            return url($path);
+        }
+
         try {
             return Storage::disk($disk ?: 'public')->url($path);
         } catch (Throwable) {

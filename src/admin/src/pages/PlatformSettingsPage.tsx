@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { FaBullhorn, FaEye, FaFileLines, FaPen, FaPlus, FaXmark } from 'react-icons/fa6'
-import { useSearchParams } from 'react-router-dom'
+import { FaBullhorn, FaEye, FaFileLines, FaImage, FaPen, FaPlus, FaTrash, FaTriangleExclamation, FaXmark } from 'react-icons/fa6'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ApiError, apiRequest } from '../lib/api'
 import type { Announcement, Paginated, Policy, PolicyType, PolicyVersion } from '../types/platformSettings'
+import type { HomepageConfiguration } from '../types/homepageAdvertisements'
 
 type PreviewContent = { title: string; body: string } | null
 
 export function PlatformSettingsPage() {
   const { admin } = useAuth()
   const [params, setParams] = useSearchParams()
-  const section = params.get('section') === 'policies' ? 'policies' : 'announcements'
+  const section = ['policies', 'advertisements'].includes(params.get('section') ?? '') ? params.get('section')! : 'announcements'
   const canManage = admin?.permissions.includes('platform-settings.manage') ?? false
 
   useEffect(() => { document.title = 'Platform settings | Aisley Admin' }, [])
@@ -20,15 +21,104 @@ export function PlatformSettingsPage() {
     <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
       <div className="border-b border-slate-200 pb-5 dark:border-white/10">
         <h2 className="text-2xl font-semibold tracking-tight">Platform settings</h2>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Publish platform announcements and maintain versioned policy content.</p>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Manage announcements, versioned policies, and homepage advertisements.</p>
       </div>
       <div className="mt-6 flex gap-5 border-b border-slate-200 dark:border-white/10" role="tablist" aria-label="Platform settings sections">
         <button aria-selected={section === 'announcements'} className={tabClass(section === 'announcements')} onClick={() => setParams({ section: 'announcements' })} role="tab"><span className="inline-flex items-center gap-2"><FaBullhorn />Announcements</span></button>
         <button aria-selected={section === 'policies'} className={tabClass(section === 'policies')} onClick={() => setParams({ section: 'policies' })} role="tab"><span className="inline-flex items-center gap-2"><FaFileLines />Policies</span></button>
+        <button aria-selected={section === 'advertisements'} className={tabClass(section === 'advertisements')} onClick={() => setParams({ section: 'advertisements' })} role="tab"><span className="inline-flex items-center gap-2"><FaImage />Homepage ads</span></button>
       </div>
-      {section === 'announcements' ? <Announcements canManage={canManage} /> : <Policies canManage={canManage} />}
+      {section === 'announcements' ? <Announcements canManage={canManage} /> : section === 'policies' ? <Policies canManage={canManage} /> : <HomepageAdvertisements canManage={canManage} />}
     </div>
   )
+}
+
+function HomepageAdvertisements({ canManage }: { canManage: boolean }) {
+  const [items, setItems] = useState<HomepageConfiguration[]>([])
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [publishTarget, setPublishTarget] = useState<HomepageConfiguration | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<HomepageConfiguration | null>(null)
+  const navigate = useNavigate()
+  const load = () => apiRequest<Paginated<HomepageConfiguration>>('/api/v1/admin/platform-settings/homepage-advertisements').then((response) => setItems(response.data)).catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load homepage advertisements.'))
+  useEffect(() => { void load() }, [])
+  const editItem = async (item: HomepageConfiguration) => {
+    if (item.status === 'draft') return navigate(`/platform-settings/homepage-ads/${item.id}/edit`)
+    if (item.status !== 'published') return
+    setBusyId(item.id)
+    setError('')
+    try {
+      const response = await apiRequest<{ data: HomepageConfiguration }>(`/api/v1/admin/platform-settings/homepage-advertisements/${item.id}/successor`, { method: 'POST', body: '{}' })
+      navigate(`/platform-settings/homepage-ads/${response.data.id}/edit`)
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to create an editable draft.') } finally { setBusyId(null) }
+  }
+  const publish = async (item: HomepageConfiguration) => {
+    setBusyId(item.id)
+    setError('')
+    try {
+      await apiRequest(`/api/v1/admin/platform-settings/homepage-advertisements/${item.id}/publish`, { method: 'POST', body: JSON.stringify({ revision: item.revision }) })
+      setPublishTarget(null)
+      void load()
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to publish.') } finally { setBusyId(null) }
+  }
+  const destroy = async (item: HomepageConfiguration) => {
+    setBusyId(item.id)
+    setError('')
+    try {
+      await apiRequest(`/api/v1/admin/platform-settings/homepage-advertisements/${item.id}`, { method: 'DELETE', body: JSON.stringify({ revision: item.revision }) })
+      setItems((current) => current.filter((currentItem) => currentItem.id !== item.id))
+      setDeleteTarget(null)
+    } catch (caught) {
+      setError(caught instanceof ApiError && caught.status === 409 ? 'This draft changed in another session. The list has been refreshed.' : caught instanceof Error ? caught.message : 'Unable to delete the draft.')
+      void load()
+    } finally { setBusyId(null) }
+  }
+
+  return (
+    <section className="mt-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h3 className="font-semibold">Homepage advertisements</h3><p className="mt-1 text-sm text-slate-500">Upload storage-backed images, assign placements, schedule the complete layout, and publish.</p></div>
+        {canManage ? <Link className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] focus:outline-none focus:ring-2 focus:ring-[#E6007A] focus:ring-offset-2" to="/platform-settings/homepage-ads/new"><FaPlus />New advertisement layout</Link> : null}
+      </div>
+      {error ? <p className="mt-4 text-sm text-red-600" role="alert">{error}</p> : null}
+      <div className="mt-5 space-y-3">
+        {items.map((item) => <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.035] sm:flex-row sm:items-center sm:justify-between" key={item.id}><div><p className="font-medium">{item.tag_title || 'Untitled advertisement'}</p><p className="mt-1 text-sm text-slate-500 capitalize">{item.layout.replaceAll('_', ' ')} · {item.ads.length} ads · {item.status}</p></div>{canManage ? <div className="flex flex-wrap gap-2">{item.status === 'draft' || item.status === 'published' ? <button className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#E6007A] disabled:opacity-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5" disabled={busyId !== null} onClick={() => void editItem(item)} type="button"><FaPen />{busyId === item.id && item.status === 'published' ? 'Preparing…' : 'Edit'}</button> : null}{item.status === 'draft' ? <><button className="h-9 rounded-lg bg-[#4C1268] px-3 text-sm font-semibold text-white hover:bg-[#3d0e54] focus:outline-none focus:ring-2 focus:ring-[#E6007A] disabled:opacity-50" disabled={busyId !== null} onClick={() => setPublishTarget(item)} type="button">Publish now</button><button aria-label={`Delete ${item.tag_title || item.layout} draft`} className="inline-flex h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-[#E6007A] disabled:opacity-50 dark:border-rose-400/30 dark:text-rose-300 dark:hover:bg-rose-400/10" disabled={busyId !== null} onClick={() => setDeleteTarget(item)} type="button"><FaTrash />Delete</button></> : null}{item.status === 'archived' ? <button aria-label={`Remove archived ${item.tag_title || item.layout}`} className="inline-flex h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-[#E6007A] disabled:opacity-50 dark:border-rose-400/30 dark:text-rose-300 dark:hover:bg-rose-400/10" disabled={busyId !== null} onClick={() => setDeleteTarget(item)} type="button"><FaTrash />Remove</button> : null}</div> : null}</div>)}
+      </div>
+      <HomepageAdvertisementActionDialog action="publish" busy={busyId === publishTarget?.id} item={publishTarget} onClose={() => setPublishTarget(null)} onConfirm={() => { if (publishTarget) void publish(publishTarget) }} />
+      <HomepageAdvertisementActionDialog action="delete" busy={busyId === deleteTarget?.id} item={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteTarget && void destroy(deleteTarget)} />
+    </section>
+  )
+}
+
+function HomepageAdvertisementActionDialog({ action, busy, item, onClose, onConfirm }: { action: 'publish' | 'delete'; busy: boolean; item: HomepageConfiguration | null; onClose: () => void; onConfirm: () => void }) {
+  const titleId = useId()
+  const descriptionId = useId()
+  const confirmRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!item) return
+    window.setTimeout(() => confirmRef.current?.focus(), 0)
+  }, [item])
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && item && !busy) onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [busy, item, onClose])
+
+  if (!item) return null
+
+  const deleting = action === 'delete'
+  const layout = item.layout.replaceAll('_', ' ')
+  const archived = item.status === 'archived'
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/65 p-4">
+    <div aria-describedby={descriptionId} aria-labelledby={titleId} aria-modal="true" className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-lg dark:border-white/10 dark:bg-[#17111d]" role="dialog">
+      <div className="flex items-start justify-between gap-4"><div className="flex gap-3"><FaTriangleExclamation aria-hidden="true" className={`mt-1 ${deleting ? 'text-rose-600' : 'text-amber-600'}`} /><div><h2 className="text-lg font-semibold" id={titleId}>{deleting ? (archived ? 'Remove archived advertisement?' : 'Delete advertisement draft?') : 'Publish homepage advertisements?'}</h2><p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400" id={descriptionId}>{deleting ? `This ${layout} ${archived ? 'archived advertisement' : 'draft'} and its ad assignments will be permanently removed. This cannot be undone.` : `The complete ${layout} layout will replace the current public homepage advertisements immediately.`}</p></div></div><button aria-label="Close confirmation" className="grid size-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-white/10" disabled={busy} onClick={onClose} type="button"><FaXmark aria-hidden="true" /></button></div>
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5" disabled={busy} onClick={onClose} type="button">Cancel</button><button ref={confirmRef} className={`rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${deleting ? 'bg-rose-700 hover:bg-rose-800' : 'bg-[#4C1268] hover:bg-[#37104b]'}`} disabled={busy} onClick={onConfirm} type="button">{busy ? (deleting ? 'Removing…' : 'Publishing…') : (deleting ? (archived ? 'Remove archived ad' : 'Delete draft') : 'Publish now')}</button></div>
+    </div>
+  </div>
 }
 
 function Announcements({ canManage }: { canManage: boolean }) {
@@ -242,7 +332,7 @@ function Policies({ canManage }: { canManage: boolean }) {
 function PolicySummary({ actions, version }: { actions: ReactNode; version: PolicyVersion }) { return <article className="py-4"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">Version {version.version}: {version.title}</p><Status value={version.status} />{version.requires_reconsent ? <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Re-consent required</span> : null}</div>{version.change_summary ? <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{version.change_summary}</p> : null}<p className="mt-2 text-xs text-slate-400">Created {formatDate(version.created_at)}{version.published_at ? ` · Published ${formatDate(version.published_at)}` : ''}</p></div>{actions ? <div className="flex shrink-0 flex-wrap gap-3 text-sm font-semibold">{actions}</div> : null}</div></article> }
 
 function PreviewDialog({ content, meta, onClose }: { content: NonNullable<PreviewContent>; meta?: string; onClose: () => void }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" onKeyDown={(event) => { if (event.key === 'Escape') onClose() }} role="presentation"><section aria-labelledby="preview-title" aria-modal="true" className="max-h-[85vh] w-full max-w-3xl overflow-auto rounded-xl border border-slate-200 bg-white p-5 text-slate-950 shadow-lg dark:border-white/10 dark:bg-[#171921] dark:text-white" role="dialog"><div className="flex items-start justify-between gap-4"><div><h4 className="text-lg font-semibold" id="preview-title">{content.title}</h4>{meta ? <p className="mt-1 text-xs text-slate-500">{meta}</p> : null}</div><button aria-label="Close preview" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#E6007A] dark:hover:bg-white/10" onClick={onClose}><FaXmark /></button></div><div className="mt-5 border-t border-slate-200 pt-5 dark:border-white/10"><p className="whitespace-pre-wrap text-sm leading-7 text-slate-700 dark:text-slate-200">{content.body || 'No content to preview.'}</p></div></section></div> }
-function PrimaryButton({ children, onClick }: { children: ReactNode; onClick: () => void }) { return <button className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] focus:outline-none focus:ring-2 focus:ring-[#E6007A] focus:ring-offset-2" onClick={onClick}>{children}</button> }
+function PrimaryButton({ children, onClick, disabled, type = 'button' }: { children: ReactNode; onClick?: () => void; disabled?: boolean; type?: 'button' | 'submit' }) { return <button className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] focus:outline-none focus:ring-2 focus:ring-[#E6007A] focus:ring-offset-2 disabled:opacity-60" disabled={disabled} onClick={onClick} type={type}>{children}</button> }
 function FormHeader({ onCancel, title }: { onCancel: () => void; title: string }) { return <div className="flex items-center justify-between gap-4"><h4 className="font-semibold">{title}</h4><button className="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" onClick={onCancel} type="button">Cancel</button></div> }
 function FormActions({ busy, onPreview }: { busy: boolean; onPreview: () => void }) { return <div className="mt-5 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10"><button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-semibold hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#E6007A] dark:border-white/15 dark:hover:bg-white/5" onClick={onPreview} type="button"><FaEye />Preview</button><button className="h-10 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy}>{busy ? 'Saving…' : 'Save draft'}</button></div> }
 function ErrorMessage({ message, onRetry }: { message: string; onRetry: () => void }) { return <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200" role="alert"><span>{message}</span><button className="font-semibold underline underline-offset-2" onClick={onRetry}>Retry</button></div> }

@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegistrationDetailPage } from './pages/RegistrationDetailPage'
 import { PlatformSettingsPage } from './pages/PlatformSettingsPage'
+import { HomepageAdvertisementEditorPage } from './pages/HomepageAdvertisementEditorPage'
 import { RegistrationsPage } from './pages/RegistrationsPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { UsersPage } from './pages/UsersPage'
@@ -25,6 +26,8 @@ function App() {
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<AccountPage />} path="/account" />
           <Route element={<PlatformSettingsPage />} path="/platform-settings" />
+          <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/new" />
+          <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/:configurationId/edit" />
           <Route element={<RegistrationsPage />} path="/registrations" />
           <Route element={<RegistrationDetailPage />} path="/registrations/:registrationId" />
           <Route element={<AuditLogsPage />} path="/audit-logs" />
