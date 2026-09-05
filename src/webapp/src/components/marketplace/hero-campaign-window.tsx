@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 import type { HomepageAdvertisementLayer, HomepageCampaign } from "@/lib/marketplace/types";
 
 import { CampaignImage } from "./campaign-image";
 import { useHomeData } from "./home-data-provider";
+
+const SWIPE_THRESHOLD_PX = 48;
 
 function campaignContent(
   campaign: HomepageCampaign,
@@ -93,6 +95,8 @@ export function HeroCampaignWindow({
   const canLoop = isCarousel && campaigns.length > 1;
   const [trackIndex, setTrackIndex] = useState(1);
   const [transitionDisabled, setTransitionDisabled] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const didSwipeRef = useRef(false);
   const visibleIndex = canLoop ? (trackIndex - 1 + campaigns.length) % campaigns.length : 0;
   const activeCampaign = campaigns[visibleIndex];
   const trackCampaigns = canLoop ? [campaigns[campaigns.length - 1], ...campaigns, campaigns[0]] : campaigns;
@@ -114,37 +118,110 @@ export function HeroCampaignWindow({
 
   useEffect(() => {
     if (!canLoop) return;
+    const lastTrackIndex = campaigns.length + 1;
     const interval = window.setInterval(() => {
-      setTrackIndex((index) => index + 1);
+      if (trackIndex >= lastTrackIndex) {
+        setTransitionDisabled(true);
+        setTrackIndex(1);
+        return;
+      }
+
+      setTransitionDisabled(false);
+      setTrackIndex((index) => Math.min(index + 1, lastTrackIndex));
     }, (layer?.rotationIntervalSeconds ?? 6) * 1000);
 
     return () => window.clearInterval(interval);
-  }, [canLoop, layer?.rotationIntervalSeconds]);
+  }, [canLoop, campaigns.length, layer?.rotationIntervalSeconds, trackIndex]);
 
   function onTrackTransitionEnd(event: React.TransitionEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget || !canLoop) return;
-    if (trackIndex === 0) {
+    if (trackIndex <= 0) {
       setTransitionDisabled(true);
       setTrackIndex(campaigns.length);
-    } else if (trackIndex === campaigns.length + 1) {
+    } else if (trackIndex >= campaigns.length + 1) {
       setTransitionDisabled(true);
       setTrackIndex(1);
     }
   }
 
   function showPrevious() {
+    if (!canLoop) return;
+    if (trackIndex <= 0) {
+      setTransitionDisabled(true);
+      setTrackIndex(campaigns.length);
+      return;
+    }
+
     setTransitionDisabled(false);
-    setTrackIndex((index) => index - 1);
+    setTrackIndex((index) => Math.max(index - 1, 0));
   }
 
   function showNext() {
+    if (!canLoop) return;
+    if (trackIndex >= campaigns.length + 1) {
+      setTransitionDisabled(true);
+      setTrackIndex(1);
+      return;
+    }
+
     setTransitionDisabled(false);
-    setTrackIndex((index) => index + 1);
+    setTrackIndex((index) => Math.min(index + 1, campaigns.length + 1));
   }
 
   function showSlide(index: number) {
+    if (!canLoop) return;
+
     setTransitionDisabled(false);
-    setTrackIndex(index + 1);
+    setTrackIndex(Math.min(Math.max(index, 0), campaigns.length - 1) + 1);
+  }
+
+  function onTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    if (!canLoop) return;
+    const touch = event.touches.item(0);
+    if (!touch) return;
+
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    didSwipeRef.current = false;
+  }
+
+  function onTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    if (!canLoop || !touchStartRef.current) return;
+    const touch = event.changedTouches.item(0);
+    if (!touch) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    if (
+      Math.abs(deltaX) < SWIPE_THRESHOLD_PX ||
+      Math.abs(deltaX) <= Math.abs(deltaY)
+    ) {
+      return;
+    }
+
+    didSwipeRef.current = true;
+    if (deltaX < 0) {
+      showNext();
+    } else {
+      showPrevious();
+    }
+  }
+
+  function onTouchCancel() {
+    touchStartRef.current = null;
+    didSwipeRef.current = false;
+  }
+
+  function onCarouselClickCapture(event: React.MouseEvent<HTMLDivElement>) {
+    if (!didSwipeRef.current) return;
+
+    didSwipeRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   return (
@@ -156,7 +233,13 @@ export function HeroCampaignWindow({
           : ""
       }`}
     >
-      <div className="relative h-[clamp(190px,38vh,280px)] min-h-0 overflow-hidden rounded-[10px] bg-[#4C1268] sm:h-[clamp(240px,38vh,340px)] lg:h-[clamp(300px,38vh,420px)]">
+      <div
+        className="group relative h-[clamp(190px,38vh,280px)] min-h-0 overflow-hidden rounded-[10px] bg-[#4C1268] touch-pan-y sm:h-[clamp(240px,38vh,340px)] lg:h-[clamp(300px,38vh,420px)]"
+        onClickCapture={onCarouselClickCapture}
+        onTouchCancel={onTouchCancel}
+        onTouchEnd={onTouchEnd}
+        onTouchStart={onTouchStart}
+      >
         {activeCampaign ? (
           <div
             className={`flex h-full ${transitionDisabled ? "" : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"}`}
@@ -203,7 +286,7 @@ export function HeroCampaignWindow({
               type="button"
               aria-label="Previous advertisement"
               onClick={showPrevious}
-              className="absolute left-3 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-md bg-white/95 text-[#3B2B40] shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+              className="pointer-events-none absolute left-3 top-1/2 z-20 hidden size-9 -translate-y-1/2 items-center justify-center rounded-md bg-white/95 text-[#3B2B40] opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-opacity duration-150 hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] md:flex md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
             >
               <FiChevronLeft aria-hidden="true" className="size-5" />
             </button>
@@ -211,7 +294,7 @@ export function HeroCampaignWindow({
               type="button"
               aria-label="Next advertisement"
               onClick={showNext}
-              className="absolute right-3 top-1/2 z-20 flex size-9 -translate-y-1/2 items-center justify-center rounded-md bg-white/95 text-[#3B2B40] shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+              className="pointer-events-none absolute right-3 top-1/2 z-20 hidden size-9 -translate-y-1/2 items-center justify-center rounded-md bg-white/95 text-[#3B2B40] opacity-0 shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-opacity duration-150 hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] md:flex md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"
             >
               <FiChevronRight aria-hidden="true" className="size-5" />
             </button>

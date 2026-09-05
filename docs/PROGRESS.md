@@ -309,3 +309,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 - Fixed Customer homepage advertisement image delivery to match Product media: public homepage responses now return a configured-API URL, and a public endpoint streams the image from its recorded local/Azure disk only while the advertisement is published, active, and in schedule. Draft and archived image links return `404`, removing the accidental Webapp-origin (`localhost:3000`) storage URLs. The focused advertisement suite passes 6 tests/59 assertions; PHP formatting and Admin/Webapp lint pass.
 - Stabilized Customer homepage advertisement carousel image rendering by memoizing image components across track transitions, avoiding priority loading for the looping clone, and deferring carousel resets to animation frames. Webapp lint and strict TypeScript checks pass; production build verification remains blocked by the environment's Google Fonts fetch.
 - Explicitly marks only the initial homepage advertisement artwork as eager/high priority while later carousel artwork remains lazy, including responsive desktop/mobile image sources.
+
+## 2026-09-05
+
+- Fixed Customer homepage advertisement carousel overflow that could show a blank slide after repeated loops by bounding the track index and safely wrapping at both ends. Desktop carousel arrows now appear on image hover or keyboard focus, while mobile users can swipe between ads without accidentally opening a destination link.
