@@ -98,15 +98,15 @@ Seller processes/packs Order
 
 - Provide loading/skeleton, loaded, empty, filtered-empty, partial, stale, unauthorized, whole-page error, and retry states without blocking the application shell.
 - Use responsive semantic table/list patterns, keyboard-accessible controls, visible focus, readable status text, and non-color-only indicators.
-- [ ] Only an approved active Logistics account can fetch the Dashboard.
-- [ ] Every returned count, row, identifier, cache entry, and event belongs to the account’s organization and sole hub.
-- [ ] Seller-confirmed `ready_for_pickup` Orders appear; pre-handoff, invalid, cancelled, completed, and out-of-scope Orders do not.
-- [ ] Source-only future statuses are not accepted until the approved shipment/state contract exists.
-- [ ] Counts match their queue filters, and failures are distinguishable from authoritative zero/empty results.
-- [ ] Search, filters, sorting, and pagination are bounded, deterministic, server-authoritative, and IDOR-safe.
-- [ ] Refresh/realtime/reconnect does not duplicate rows or lose committed state.
-- [ ] Linked Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, and Capacity actions re-authorize in their owning feature.
-- [ ] Buyer/Seller PII, payment secrets, private evidence, and raw storage paths are absent from Dashboard DTOs.
+- [x] Only an approved active Logistics account can fetch the Dashboard.
+- [x] Every returned count, row, identifier, cache entry, and event belongs to the account’s organization and sole hub.
+- [x] Seller-confirmed `ready_for_pickup` Orders appear; pre-handoff, invalid, cancelled, completed, and out-of-scope Orders do not.
+- [x] Source-only future statuses are not accepted until the approved shipment/state contract exists.
+- [x] Counts match their queue filters, and failures are distinguishable from authoritative zero/empty results.
+- [x] Search, filters, sorting, and pagination are bounded, deterministic, server-authoritative, and IDOR-safe.
+- [x] Refresh/realtime/reconnect does not duplicate rows or lose committed state.
+- [x] Linked Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, and Capacity actions re-authorize in their owning feature.
+- [x] Buyer/Seller PII, payment secrets, private evidence, and raw storage paths are absent from Dashboard DTOs.
 
 ## HOW
 
