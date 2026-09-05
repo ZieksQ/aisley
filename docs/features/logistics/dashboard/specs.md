@@ -4,7 +4,7 @@ title: Logistics Dashboard
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft — pending Logistics schema and shipment-state decisions
+status: Draft — pending operational shipment-state contract
 role: Logistics
 scope: Logistics Web Application and Laravel API
 source_coverage: Logistics.md, requirements.md, workspace.md, schema.md
@@ -18,7 +18,7 @@ source_coverage: Logistics.md, requirements.md, workspace.md, schema.md
 - **Primary actor:** An authenticated active `LOGISTICS` account using the React/TypeScript Logistics web application.
 - **Frontend route:** `/dashboard`, after the Logistics Auth session is restored.
 - **API endpoint:** `GET /api/v1/logistics/dashboard`.
-- **Current status:** Not implemented. The current schema has no Logistics role, organization, hub, shipment, or parcel tables, and the repository has no `src/logistics` application yet.
+- **Current status:** The protected Logistics authentication and `/dashboard` SPA scaffold are implemented. The operational queue is not implemented yet; the current schema has the Logistics role, organization, sole-hub, and Courier-affiliation foundation but no shipment, parcel, waybill, scan, or delivery-task tables.
 - **MVP organization scope:** Each Logistics organization has exactly one operational hub/sorting center and one operating Logistics account. The Dashboard has no hub selector, sub-hub view, or multi-hub branch.
 - **Core lifecycle:**
 
@@ -31,7 +31,7 @@ Seller processes/packs Order
 → external Courier mobile application
 ```
 
-- **Source status note:** The source names `READY_FOR_PICKUP` and `AT_SORTING_CENTER`. The current implemented Order enum contains `ready_for_pickup`; `at_sorting_center` remains a future Logistics-state value until an approved shipment/state schema exists.
+- **Status naming:** Persisted/API values use lowercase `snake_case`; PHP enum cases use PascalCase; UI labels are human-readable. The current Order enum contains `ready_for_pickup`. Source-only labels such as `READY_FOR_PICKUP` and `AT_SORTING_CENTER` are not persisted; the future shipment/task contract uses explicit values such as `received_at_hub` and `sorted_at_hub`.
 - **Dashboard responsibility:** Read, aggregate, filter, search, refresh, show freshness, and navigate to owning Logistics features. It does not own parcel/order mutations.
 - **Feature boundaries:** Seller Prepare Orders owns the handoff; Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, and Capacity features own their records and mutations.
 - **Non-goals:** Seller processing, parcel scanning/status mutation, waybill generation, rider assignment or routing, Courier UI, multi-hub/sub-hub management, fleet/zone editing, full capacity monitoring, billing, and financial reporting.
@@ -117,7 +117,7 @@ Seller processes/packs Order
 - Use a versioned status adapter so UI labels can evolve without changing historical Order events. Keep API DTOs free of provider credentials and private storage paths.
 - Test role/status denial, exact organization/hub isolation, Seller handoff inclusion, invalid-state exclusion, count consistency, search/pagination, IDOR, PII minimization, stale/reconnect behavior, duplicate-event handling, and linked-feature authorization on SQLite and PostgreSQL.
 - Roll out authentication/scope and the read-only queue first; enable realtime and later Logistics states only after their source events, shipment schema, and transition rules are implemented.
-- **Open decisions:** exact organization/hub-to-Order ownership relation; final Logistics shipment/state enum and mapping for `AT_SORTING_CENTER`; subscription gating; default sort/page size; date filters and aging display; polling interval versus broadcast driver/SLO; cache policy; visible destination/contact fields; and which summary previews are MVP.
+- **Open decisions:** exact organization/hub-to-Order ownership relation; which deferred shipment/task milestones become current-state fields versus scan/event records; subscription gating; default sort/page size; date filters and aging display; polling interval versus broadcast driver/SLO; cache policy; visible destination/contact fields; and which summary previews are MVP. `AT_SORTING_CENTER` is source shorthand, not an approved canonical value.
 
 ### References
 

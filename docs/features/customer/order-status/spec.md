@@ -57,6 +57,7 @@ scope: Customer storefront and Laravel API
 - Only the shared Logistics transition service may perform that handoff, after validating the parcel, current state, authorization, and idempotency.
 - Normal delivery may continue `assigned → picked_up → in_transit → out_for_delivery → delivered`; reject skipped or backward transitions with `409`.
 - A Customer tab must not be mistaken for a persisted status, and exceptional states must not appear as normal progress.
+- Detailed physical milestones use the deferred Shipment/Delivery Task vocabulary from `docs/workspace.md` and `docs/schema.md` (for example, `received_at_hub`, `sorted_at_hub`, `delivery_assigned`, and `picked_up_from_hub`). They must not be inferred from a generic `picked_up` label or persisted as unapproved source-only values.
 - Render tabs in this order: **All**, **To Pay**, **To Prepare**, **To Ship**, **Out for Delivery**, **Completed**, and **Cancelled / Issue**.
 - **All** is selected by default and lists every Customer-owned Order, newest activity first; it is not a status and has no status filter value.
 - Selecting a status tab filters the existing `/orders` collection server-side, resets pagination to page one, and preserves no results as an explicit filtered-empty state.
@@ -64,7 +65,7 @@ scope: Customer storefront and Laravel API
 ### Logistics timeline and embedded map
 
 - Logistics appends one immutable `order_status_events` row for every customer-visible transition, using the existing `from_status`, `to_status`, `source`, `public_metadata`, and `occurred_at` structure.
-- For **To Ship**, Logistics also appends safe transfer milestones such as received at hub, departed hub, arrived at hub, courier assigned, and pickup confirmed.
+- For **To Ship**, the future Shipment/Delivery Task record also appends safe physical milestones such as `received_at_hub`, `sorted_at_hub`, `dispatched_from_hub`, `delivery_assigned`, and `picked_up_from_hub`. These milestones are separate from the high-level Customer `orders.status` value.
 - Preserve the exact source timestamp in UTC; return ISO 8601 and render in the Customer locale. Do not manufacture past events from current status.
 - Persist shipment/transfer events separately from a current location when repeated location updates are required; an event is not a substitute for a live-position stream.
 - A safe Customer timeline event contains public label, occurred time, optional hub/city label, and optional event type; never expose internal notes, scans, employee IDs, or full hub addresses.
@@ -113,16 +114,18 @@ scope: Customer storefront and Laravel API
 ### Project alignment
 
 - Reuse the checkout-created `orders`, `order_status_events`, UUID models, `OrderStatus` enum, immutable Order snapshots, and `/api/v1/customer` convention.
-- No Logistics implementation currently exists, so add Logistics/Courier mutations and any shipment/location schema only in their dedicated feature work; never modify the executed checkout migration.
+- No Logistics operational shipment implementation currently exists. The protected Logistics authentication/dashboard foundation is present, so add Courier/Logistics mutations and any shipment/location schema only in their dedicated feature work; never modify the executed checkout migration.
 - If new enum-like shipment/location fields are needed, migrate them as PostgreSQL `string` columns and cast them to PHP enums.
 - Customer storefront remains Next.js/TypeScript/Tailwind; Logistics dashboard is isolated from the Customer app, and Courier remains mobile-only.
 
 ### Suggested contracts and flow
 
 ```text
-Seller ready → Logistics receives/scans waybill → `assigned` / To Ship
-→ hub transfer scans + safe position → `picked_up` / `in_transit`
-→ final courier run → `out_for_delivery` → `delivered`
+Seller confirms `ready_for_pickup`
+→ first-mile task (`seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`)
+→ Logistics (`received_at_hub` → `sorted_at_hub` → `in_transfer` → `dispatched_from_hub`)
+→ final-mile task (`delivery_assigned` → `delivery_accepted` → `picked_up_from_hub`)
+→ `in_transit` → `out_for_delivery` → `delivered`
 → commit → private update → Customer refetches timeline/map
 ```
 

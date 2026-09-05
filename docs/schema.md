@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, catalog/inventory, Cart, and Customer checkout/order schema
+> **Status:** Implemented foundation, catalog/inventory, Cart, Customer checkout/order schema, and Logistics/Courier authentication foundation
 >
-> **Last synchronized:** 2026-08-30
+> **Last synchronized:** 2026-09-05
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -12,35 +12,34 @@ This document describes the schema that is currently implemented in `src/api`. I
 
 ## 1. Scope and role boundary
 
-The implemented authentication schema follows the repository-level `AGENTS.md` contract and supports four roles:
+The implemented authentication schema follows the repository-level `AGENTS.md` contract and supports five roles:
 
 - `customer` — called Buyer in some product documents.
 - `seller` — owns at most one shop.
 - `admin` — reviews registrations and may receive custom permissions.
+- `logistics` — operates one organization and its sole operational hub through the Logistics dashboard.
 - `courier` — consumes API endpoints from an external mobile application.
 
-`docs/requirements.md`, `docs/architecture.md`, and `docs/workspace.md` also describe Logistics as a fifth authenticating role and disagree about who approves Couriers. That conflict is unresolved. Consequently, the current schema has:
+The current authentication and Logistics foundation includes:
 
-- no `logistics` value in `users.role`;
-- no Logistics profile, company, hub, or subscription table; and
-- a generic reviewer relationship intended for Admin use but not role-constrained by the database.
+- `logistics` in `users.role` and `registration_applications.application_type`;
+- one `logistics_profiles` row per Logistics user;
+- one `logistics_organizations` row per Logistics user;
+- one `logistics_hubs` row per Logistics organization, with a unique organization foreign key; and
+- one `courier_logistics_affiliations` row per Courier, linking it to the selected organization and derived sole hub.
 
-The role documents must be reconciled before introducing Logistics authentication or ownership relationships.
+Admin approves Logistics registration applications. The associated Logistics organization approves or rejects its Courier affiliations. Admin account lifecycle actions such as suspension, restoration, and deactivation remain separate from Courier affiliation approval.
 
-The MVP hub decision is separate from that unresolved role/approval implementation gap: when Logistics is introduced, each Logistics organization/company must own exactly one operational hub/sorting center. Sub-hubs, additional hubs, and multi-hub operations are out of scope for this version. This is a target invariant, not an implemented table or relationship in the current schema.
+The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Shipment, waybill, scan, pickup, delivery-task, assignment, and proof-of-delivery tables remain deferred.
 
-### Planned Logistics cardinality (not implemented)
+### Implemented Logistics cardinality and deferred operations
 
 - A Logistics organization has exactly one operational hub/sorting center.
-- A hub belongs to one Logistics organization, and an organization cannot create a second hub or sub-hub in the MVP.
-- For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
-- Courier affiliation, parcels, waybills, sorting, transfer, dispatch, fleet, zones, and capacity records resolve through that organization's sole hub.
+- A hub belongs to one Logistics organization, and the unique organization foreign key prevents a second hub or sub-hub in the MVP.
+- The Logistics registration address is the organization's sole operational hub/sorting-center address. The Logistics account operates that hub through the Logistics dashboard; no separate hub or sub-hub address is collected.
 - Courier registration selects the Logistics organization; the sole hub is derived server-side rather than supplied as a client-controlled ID.
-- If target tables are added later, the organization-to-hub relationship must enforce at-most-one ownership at the database boundary (for example, a unique organization foreign key) and create the required hub transactionally so the business invariant is exactly one.
-- This decision does not determine whether one Logistics organization has one user account or multiple staff/dispatcher accounts; account cardinality remains a separate authorization decision.
-  - Supersede: The logistics should have one account.
-  - Note: Sub account for staffs will be handled on a later date.
-  - Note: This parent bullet is kept for future reference in case for confusion as to why I haven't just outright said 'The logistics should have one account'
+- Current foundation cardinality is one Logistics user per organization. Staff/sub-account support is a later authorization decision and is not part of this foundation.
+- Deferred parcel, waybill, scan, pickup, delivery-task, assignment, fleet, zone, capacity, subscription, and proof-of-delivery records must resolve through the organization's sole hub when introduced.
 
 ## 2. Database conventions
 
@@ -69,6 +68,13 @@ erDiagram
     USERS ||--o| SELLER_PROFILES : has
     USERS ||--o| COURIER_PROFILES : has
     USERS ||--o| ADMIN_PROFILES : has
+    USERS ||--o| LOGISTICS_PROFILES : has
+    USERS ||--o| LOGISTICS_ORGANIZATIONS : operates
+    LOGISTICS_ORGANIZATIONS ||--|| LOGISTICS_HUBS : owns_sole
+    ADDRESSES ||--o| LOGISTICS_HUBS : locates
+    LOGISTICS_ORGANIZATIONS ||--o{ COURIER_LOGISTICS_AFFILIATIONS : approves
+    LOGISTICS_HUBS ||--o{ COURIER_LOGISTICS_AFFILIATIONS : scopes
+    USERS ||--o| COURIER_LOGISTICS_AFFILIATIONS : joins
 
     USERS ||--o{ REGISTRATION_APPLICATIONS : submits
     USERS o|--o{ REGISTRATION_APPLICATIONS : reviews
@@ -131,7 +137,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 
 | PHP enum | Values | Used by |
 | --- | --- | --- |
-| `UserRole` | `customer`, `seller`, `admin`, `courier` | `users.role`, `registration_applications.application_type`, `password_reset_tokens.role` |
+| `UserRole` | `customer`, `seller`, `admin`, `logistics`, `courier` | `users.role`, `registration_applications.application_type`, `password_reset_tokens.role` |
 | `UserStatus` | `pending`, `active`, `rejected`, `suspended`, `deactivated` | `users.status` |
 | `AccountLifecycleAction` | `suspended`, `restored`, `deactivated` | `account_lifecycle_events.action` |
 | `UserSex` | `male`, `female`, `non_binary`, `prefer_not_to_say` | Role-profile `sex` columns |
@@ -141,6 +147,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `AddressType` | `shipping`, `billing`, `both` | `addresses.type` |
 | `VehicleType` | `motorcycle`, `car`, `van` | `vehicles.type` |
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
+| `CourierAffiliationStatus` | `pending`, `approved`, `rejected`, `revoked` | `courier_logistics_affiliations.status` |
 | `ShopStatus` | `pending`, `active`, `suspended`, `deactivated` | `shops.status` |
 | `CategoryStatus` | `active`, `archived` | `shop_categories.status`, `categories.status` |
 | `ProductStatus` | `draft`, `active`, `archived` | `products.status` |
@@ -164,6 +171,29 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `AuditSourceFeature` | `account_approval`, `admin_authentication`, `admin_account_management`, `platform_settings`, `user_account_management`, `seller_compliance` | `audit_logs.source_feature`, `audit_outbox.source_feature` |
 
 The database does not currently add `CHECK` constraints for these values. Request validation, model enum casts, and service-layer transition rules are responsible for rejecting invalid values. Audit-log reads intentionally tolerate action and feature strings that are unknown to the current application so historical events remain renderable after taxonomy changes.
+
+### Planned Shipment/Delivery Task status vocabulary
+
+Shipment and Delivery Task tables are deferred, but their status values must use explicit lowercase `snake_case` names when introduced. They must not be added to `orders.status` without an approved migration and transition contract.
+
+```text
+awaiting_seller_pickup
+seller_pickup_assigned
+seller_pickup_accepted
+picked_up_from_seller
+received_at_hub
+sorted_at_hub
+in_transfer
+dispatched_from_hub
+delivery_assigned
+delivery_accepted
+picked_up_from_hub
+in_transit
+out_for_delivery
+delivered
+```
+
+`picked_up_from_seller` records the first-mile Seller handoff. `picked_up_from_hub` records the final-mile handoff from the Logistics hub. `waybill_created`, scan, sort, transfer, and dispatch records are events/document operations unless a future shipment contract explicitly makes one of them a current state.
 
 ## 5. Identity and authentication
 
@@ -193,9 +223,11 @@ Constraints and indexes:
 
 Model relationships:
 
-- Zero or one `CustomerProfile`, `SellerProfile`, `CourierProfile`, and `AdminProfile` row.
+- Zero or one `CustomerProfile`, `SellerProfile`, `CourierProfile`, `AdminProfile`, and `LogisticsProfile` row.
 - Many addresses, registration applications, and documents.
 - Zero or one seller-owned shop.
+- Zero or one Logistics-owned organization and its sole hub.
+- Zero or one Courier affiliation to a Logistics organization.
 - Many reviewed applications/documents.
 - Many permissions through `admin_permissions`.
 - Many Sanctum personal access tokens.
@@ -237,6 +269,54 @@ A Customer profile photo is stored on the configured Laravel filesystem (Azure B
 The identity columns match the other role profiles except `contact_number`, `sex`, and `birth_date` are nullable. `user_id` remains unique and cascades on user deletion.
 
 An Admin profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). The database stores only the generated object path and validated metadata: `profile_photo_disk`, `profile_photo_path`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height`. These fields are nullable. The raw path is never returned to the Admin SPA; authenticated delivery uses the current-Admin profile-photo endpoint.
+
+#### `logistics_profiles`
+
+**Model:** `LogisticsProfile`
+
+The Logistics personal profile uses the same UUID-backed identity fields as the other non-Admin role profiles. `user_id` is unique and cascades on user deletion. The computed age is derived from `birth_date` and is not stored.
+
+| Column          | PostgreSQL type | Nullable | Notes                                       |
+| --------------- | --------------- | -------- | ------------------------------------------- |
+| `id`            | UUID            | No       | Primary key                                 |
+| `user_id`       | UUID            | No       | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `first_name`    | VARCHAR         | No       | Personal name                               |
+| `last_name`     | VARCHAR         | No       | Personal name                               |
+| `middle_name`   | VARCHAR         | Yes      | Optional middle name                        |
+| `contact_number` | VARCHAR(32)     | No       | Contact number                              |
+| `sex`            | VARCHAR(32)     | No       | Cast to `UserSex`                           |
+| `birth_date`     | DATE            | No       | Source for the computed `age` accessor      |
+| `created_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+| `updated_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+
+#### `logistics_organizations` and `logistics_hubs`
+
+**Models:** `LogisticsOrganization`, `LogisticsHub`
+
+Each approved Logistics user owns one organization. That organization owns exactly one operational hub/sorting center for the MVP. The hub's address is the operational-hub address collected during Logistics registration.
+
+`logistics_organizations`:
+
+| Column         | PostgreSQL type | Nullable | Notes                                       |
+| -------------- | --------------- | -------- | ------------------------------------------- |
+| `id`           | UUID            | No       | Primary key                                 |
+| `user_id`      | UUID            | No       | Unique FK → `users.id`; `ON DELETE CASCADE` |
+| `business_name` | VARCHAR         | No       | Organization display name                  |
+| `created_at`    | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+| `updated_at`    | TIMESTAMP       | Yes      | Managed by Eloquent                         |
+
+`logistics_hubs`:
+
+| Column                     | PostgreSQL type | Nullable | Notes                                                          |
+| -------------------------- | --------------- | -------- | -------------------------------------------------------------- |
+| `id`                       | UUID            | No       | Primary key                                                    |
+| `logistics_organization_id` | UUID            | No       | Unique FK → `logistics_organizations.id`; `ON DELETE CASCADE` |
+| `address_id`                | UUID            | No       | Unique FK → the Logistics user's `addresses.id`; `ON DELETE RESTRICT` |
+| `name`                      | VARCHAR         | No       | Operational hub display name                                  |
+| `created_at`                | TIMESTAMP       | Yes      | Managed by Eloquent                                           |
+| `updated_at`                | TIMESTAMP       | Yes      | Managed by Eloquent                                           |
+
+The database unique constraints enforce at-most-one organization per Logistics user and at-most-one hub per organization. Active operational access additionally requires the authenticated Logistics account, active organization, and existing sole hub.
 
 ### 5.3 `personal_access_tokens`
 
@@ -553,6 +633,31 @@ Constraints and indexes:
 - Unique: `plate_number`.
 - Index: (`courier_profile_id`, `status`).
 - Index: `type`.
+
+### 8.2 `courier_logistics_affiliations`
+
+**Model:** `CourierLogisticsAffiliation`
+
+This table records the Courier's selected Logistics organization and the organization's sole hub. A Courier has at most one current affiliation in the MVP. The associated Logistics organization, not Admin, approves or rejects the affiliation.
+
+| Column                       | PostgreSQL type | Nullable | Default   | Notes                                                          |
+| ---------------------------- | --------------- | -------- | --------- | -------------------------------------------------------------- |
+| `id`                         | UUID            | No       | —         | Primary key                                                    |
+| `courier_id`                 | UUID            | No       | —         | Unique FK → `users.id`; `ON DELETE CASCADE`                   |
+| `logistics_organization_id`  | UUID            | No       | —         | FK → `logistics_organizations.id`; `ON DELETE RESTRICT`       |
+| `logistics_hub_id`           | UUID            | No       | —         | FK → `logistics_hubs.id`; `ON DELETE RESTRICT`                |
+| `status`                     | VARCHAR(32)     | No       | `pending` | Cast to `CourierAffiliationStatus`                             |
+| `reviewer_id`                | UUID            | Yes      | `NULL`    | FK → `users.id`; Logistics reviewer; `ON DELETE SET NULL`      |
+| `reviewed_at`                | TIMESTAMP       | Yes      | `NULL`    | Affiliation decision time                                       |
+| `rejection_reason`           | TEXT            | Yes      | `NULL`    | Safe reason when rejected                                       |
+| `created_at`, `updated_at`   | TIMESTAMP       | Yes      | —         | Managed by Eloquent                                             |
+
+Constraints and indexes:
+
+- Unique: `courier_id`.
+- Index: (`logistics_organization_id`, `status`).
+- Application validation must ensure `logistics_hub_id` belongs to the selected organization and is that organization's sole hub.
+- Courier operational API access requires an approved affiliation, an active Logistics organization, an active Courier account, and a valid current hub.
 
 ## 9. Seller and catalog foundation
 
@@ -893,6 +998,8 @@ Every Order has one `order_addresses` delivery snapshot. It retains a nullable `
 
 `order_status_events` is the UUID-backed status history. It stores nullable `from_status`, `to_status`, source, optional safe public JSON metadata, and server `occurred_at`. Placement creates the first `placed` event. Future fulfillment features must append validated transitions rather than rewrite history.
 
+`orders.status` remains the current high-level commercial/Customer-facing status. Until the deferred Shipment/Delivery Task schema exists, its Logistics-facing values have these meanings: `ready_for_pickup` means the Seller has completed preparation; `assigned` means Logistics has received and accepted the parcel at its sole hub; `picked_up` means the final-mile Courier has taken the parcel from that hub; `in_transit` and `out_for_delivery` describe the final-mile movement. Detailed first-mile and hub milestones must be stored in the future shipment/task records and must not be inferred from the current Order status alone.
+
 ### 9.14 `order_vouchers` and `voucher_redemptions`
 
 `order_vouchers` is the immutable applied-benefit snapshot: nullable source definition, code, issuer/benefit type, qualifying basis, discount amount, currency, rule version, terms summary, and redemption time. Unique (`order_id`, `voucher_id`) prevents one definition being applied twice to an Order.
@@ -1078,8 +1185,10 @@ Migrations currently run in this dependency order:
 43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
 44. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
 45. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
-46. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
-47. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
+46. `2026_09_05_000001_create_logistics_foundation_tables.php` — Logistics personal profiles, one organization per Logistics account, and one sole operational hub per organization.
+47. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
+48. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
+49. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
 
 ## 14. Deferred schema
 
@@ -1090,7 +1199,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Catalog and inventory      | Reservation release and conversion to fulfillment for cancellation/Seller processing beyond implemented checkout reservation                                                                 |
 | Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
 | Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
-| First-party logistics      | Logistics role/organization and exactly-one-hub model, shipments/parcels, waybills, scan events, pickup/final-delivery tasks, assignments, proof of delivery, and Courier earnings           |
+| First-party logistics      | Shipments/parcels, waybills, scan events, first-mile pickup/final-delivery tasks, assignments, proof of delivery, Courier availability, and Courier earnings; Logistics identity, organization, sole hub, and Courier affiliation are implemented |
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
 | Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
@@ -1099,8 +1208,7 @@ The following capabilities appear in requirements but have no migrations or mode
 
 Before adding these tables:
 
-- resolve the four-role versus five-role Logistics conflict;
-- preserve the decided one-Logistics-organization-to-one-hub MVP cardinality when adding the deferred Logistics tables;
+- preserve the implemented five-role model and the decided one-Logistics-organization-to-one-hub MVP cardinality when adding deferred operational tables;
 - keep every application model primary key and relationship key UUID-based;
 - keep enum-like columns as strings with PHP enum casts;
 - preserve mutable product, price, and address data as order-time snapshots;

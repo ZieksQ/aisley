@@ -13,15 +13,16 @@ scope: Seller Web Application
 ## WHAT
 - **Purpose:** Let a Seller verify purchased items, prepare the physical parcel, generate/print its shipping label, and mark the Order ready for Logistics pickup.
 - **Canonical role:** `SELLER`.
+- **Status naming:** Historical source excerpts may use uppercase status names as presentation shorthand. All status values defined by this contract use the canonical lowercase `snake_case` values from `docs/workspace.md` and `docs/schema.md` for persistence and API responses.
 - `Seller.md` defines Prepare Orders as the fulfillment module for printing waybill/shipping details and physically preparing goods. fileciteturn87file0
 - **Current AISLEY lifecycle boundary:**
 ```text
-PLACED
-→ SELLER_PROCESSING
-→ READY_FOR_PICKUP
+placed
+→ seller_processing
+→ ready_for_pickup
 → Logistics / downstream delivery flow
 ```
-- The shared lifecycle explicitly defines `SELLER_PROCESSING → READY_FOR_PICKUP`, and Logistics Dashboard consumes Seller-confirmed Orders such as `READY_FOR_PICKUP`. fileciteturn88file2turn88file3
+- The shared lifecycle explicitly defines `seller_processing → ready_for_pickup`, and the Logistics Dashboard consumes Seller-confirmed Orders in `ready_for_pickup`. fileciteturn88file2turn88file3
 - **Source-defined flow:**
 ```text
 Seller opens valid Order
@@ -34,7 +35,7 @@ Seller opens valid Order
 → attach label
 → Confirm Ready for Pickup
 → Laravel validates again
-→ Order becomes READY_FOR_PICKUP exactly once
+→ Order becomes `ready_for_pickup` exactly once
 → commit
 → Logistics/Buyer status update after commit
 ```
@@ -48,11 +49,11 @@ Seller opens valid Order
   - Eloquent/database remains authoritative.
 - **Feature boundaries:**
   - Order Notifications brings the Seller into the valid Order.
-  - Prepare Orders owns `SELLER_PROCESSING` preparation and `READY_FOR_PICKUP`.
+  - Prepare Orders owns `seller_processing` preparation and `ready_for_pickup`.
   - Inventory owns stock/reservation/fulfillment quantity effects.
   - Logistics owns the parcel after the ready-for-pickup handoff.
   - Courier pickup/delivery flows own later delivery states.
-  - Confirm Delivery is only the later Seller notification after `DELIVERED`.
+  - Confirm Delivery is only the later Seller notification after `delivered`.
 - **Current project interpretation of older 3PL wording:**
   - Seller source mentions generic 3PL shipping labels/carrier APIs. fileciteturn87file0
   - AISLEY currently has its own Logistics/Courier workflow.
@@ -62,7 +63,7 @@ Seller opens valid Order
   - assigning a Courier
   - choosing a sorting center
   - simulating Logistics transit
-  - marking `PICKED_UP`, `IN_TRANSIT`, or `DELIVERED`
+  - marking `picked_up`, `in_transit`, or `delivered`
   - changing Buyer shipping address
   - altering purchased Product/price snapshots
   - bypassing Inventory or payment validation
@@ -94,9 +95,9 @@ Seller opens valid Order
 - Dedicated Seller flow expects a paid/confirmed Order in Seller processing.
 - Exact payment condition remains defined by Checkout/payment architecture.
 ### Start processing
-- If a valid actionable Order is still `PLACED`, Seller may explicitly begin processing:
+- If a valid actionable Order is still `placed`, Seller may explicitly begin processing:
 ```text
-PLACED → SELLER_PROCESSING
+placed → seller_processing
 ```
 - Opening Order detail alone never triggers this.
 - Transition must:
@@ -107,8 +108,8 @@ PLACED → SELLER_PROCESSING
   - commit transactionally
 - Return `409` if Order changed before action.
 ### Seller-processing state
-- Physical preparation happens while Order is `SELLER_PROCESSING`.
-- Seller cannot skip directly from `PLACED` to later Logistics/Courier states.
+- Physical preparation happens while Order is `seller_processing`.
+- Seller cannot skip directly from `placed` to later Logistics/Courier states.
 - Client cannot submit arbitrary `status`.
 - Shared AISLEY rules require validated transition logic. fileciteturn88file3
 ### Purchased-item snapshots
@@ -251,8 +252,8 @@ action = PRINT | DOWNLOAD | REPRINT
 - This is the critical Seller completion action.
 - Conceptual transition:
 ```text
-SELLER_PROCESSING
-→ READY_FOR_PICKUP
+seller_processing
+→ ready_for_pickup
 ```
 - Laravel must revalidate:
   - Seller ownership
@@ -263,7 +264,7 @@ SELLER_PROCESSING
   - no cancellation/rejection
   - no already-picked-up state
   - any required Inventory/fulfillment precondition
-- React cannot force readiness by sending `status=READY_FOR_PICKUP`.
+- React cannot force readiness by sending `status=ready_for_pickup`.
 ### Transaction / locking
 - Readiness transition is transactional.
 - Use row lock or equivalent atomic transition if concurrent cancellation/readiness is possible.
@@ -273,13 +274,13 @@ SELLER_PROCESSING
 ### Idempotency
 - Ready-for-pickup confirmation must be idempotent.
 - Double click/retry cannot create duplicate:
-  - `READY_FOR_PICKUP` transitions
+  - `ready_for_pickup` transitions
   - Logistics tasks/events
   - Buyer status updates
   - Inventory fulfillment effects
 - Recommended stable source action/idempotency key.
-- Existing `READY_FOR_PICKUP` state should reconcile to committed result.
-### READY_FOR_PICKUP event
+- Existing `ready_for_pickup` state should reconcile to the committed result.
+### `ready_for_pickup` event
 - After successful transition emit a domain event such as:
 ```text
 OrderReadyForPickup
@@ -288,7 +289,7 @@ OrderReadyForPickup
 - Logistics derives the Order from authoritative records, not browser-supplied Logistics IDs.
 - Event is emitted only for committed state.
 ### Logistics handoff
-- Logistics Dashboard source explicitly consumes Seller-confirmed Orders such as `READY_FOR_PICKUP`. fileciteturn88file2
+- Logistics Dashboard source explicitly consumes Seller-confirmed Orders in `ready_for_pickup`. fileciteturn88file2
 - This event makes the parcel visible/actionable to Logistics.
 - Prepare Orders does not:
   - choose destination sorting center
@@ -305,7 +306,7 @@ OrderReadyForPickup
 - Do not create a separate Buyer-only `TO_SHIP` persisted state.
 - Presentation labels may map:
 ```text
-SELLER_PROCESSING / READY_FOR_PICKUP
+seller_processing / ready_for_pickup
 → "To Ship" / equivalent
 ```
 - Exact label is Buyer UI policy.
@@ -327,7 +328,7 @@ SELLER_PROCESSING / READY_FOR_PICKUP
 - Generic Seller source mentions carrier APIs for labels. fileciteturn87file0
 - Current AISLEY internal Logistics means this is optional.
 - If a carrier is later added:
-  - keep internal `READY_FOR_PICKUP` canonical
+  - keep internal `ready_for_pickup` canonical
   - translate carrier label/reference into the same package model
   - do not create carrier-specific Order statuses
 - External API failure must not partially commit invalid readiness.
@@ -342,23 +343,23 @@ SELLER_PROCESSING / READY_FOR_PICKUP
 - [ ] Seller can prepare only Seller-owned valid Orders.
 - [ ] Purchased Product/SKU/quantity data comes from immutable Order snapshots.
 - [ ] Opening preparation does not silently advance Order state.
-- [ ] Valid begin-processing action moves `PLACED → SELLER_PROCESSING`.
+- [ ] Valid begin-processing action moves `placed → seller_processing`.
 - [ ] Seller can record required package weight/dimensions/count.
 - [ ] System generates a versioned printable label with a scannable, non-sensitive package identifier.
 - [ ] Print/reprint does not change Order status and reprints are auditable.
 - [ ] Data changes requiring a new label create a new label version.
 - [ ] Missing/damaged or cancelled/payment-invalid Orders cannot be marked ready.
-- [ ] Ready confirmation transitions only `SELLER_PROCESSING → READY_FOR_PICKUP`.
+- [ ] Ready confirmation transitions only `seller_processing → ready_for_pickup`.
 - [ ] Concurrent/retried ready actions create one logical transition/event.
-- [ ] Logistics sees the committed ready parcel through the downstream event/read model.
+- [ ] Logistics sees the committed `ready_for_pickup` parcel through the downstream event/read model.
 - [ ] Buyer status uses the same committed Order state.
 - [ ] Seller cannot assign Courier or perform Logistics transport actions here.
 ## HOW
 ### Project findings
 - `Seller.md` requires printable waybill/shipping details and physical fulfillment preparation. fileciteturn87file0
-- Dedicated Prepare Orders flow adds immutable Order Item display, package measurements/count, versioned scannable label, audited reprints, and the `READY_FOR_PICKUP` transition.
-- Shared lifecycle defines `PLACED → SELLER_PROCESSING → READY_FOR_PICKUP`. fileciteturn88file3
-- Logistics Dashboard explicitly lists Seller-confirmed `READY_FOR_PICKUP` parcels. fileciteturn88file2
+- Dedicated Prepare Orders flow adds immutable Order Item display, package measurements/count, versioned scannable label, audited reprints, and the `ready_for_pickup` transition.
+- Shared lifecycle defines `placed → seller_processing → ready_for_pickup`. fileciteturn88file3
+- Logistics Dashboard explicitly lists Seller-confirmed `ready_for_pickup` parcels. fileciteturn88file2
 - Therefore AISLEY's internal Logistics flow supersedes the assumption that Prepare Orders requires an external 3PL.
 - Sources do not define label layout/library, barcode type, package units/limits, multi-package tracking, shortage resolution, or exact Inventory-consumption state.
 ### Recommended Laravel API
@@ -411,9 +412,9 @@ Seller confirms ready
 → load Seller-scoped Order
 → transaction
 → lock Order
-→ revalidate SELLER_PROCESSING/payment/package/label
+→ revalidate `seller_processing`/payment/package/label
 → validate Inventory/exception prerequisites
-→ transition READY_FOR_PICKUP
+→ transition `ready_for_pickup`
 → persist status event
 → commit
 → OrderReadyForPickup after commit
@@ -452,7 +453,7 @@ OrderReadyForPickup
 - Client validation is UX-only; Laravel decides eligibility/transitions.
 ### Tests
 - **Laravel:** Seller isolation; state/payment preconditions; start-processing; immutable snapshots; package validation; label generation/versioning; reprint audit; cancelled/payment-invalid/stale rejection; ready idempotency/concurrency; Logistics event after commit.
-- **Cross-role:** `READY_FOR_PICKUP` becomes visible to Logistics and Buyer status from the same committed Order state.
+- **Cross-role:** `ready_for_pickup` becomes visible to Logistics and Buyer status from the same committed Order state.
 - **Frontend:** checklist/package/label states; print/reprint; invalid package; stale `409`; readiness success; accessibility.
 ### Risks
 - **False/duplicate readiness:** weak state validation or idempotency can send invalid/duplicate work to Logistics.

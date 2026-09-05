@@ -6,7 +6,7 @@ Aisley is a vertically integrated multi-vendor e-commerce marketplace. Independe
 Unlike a marketplace that depends on third-party logistics APIs, Aisley controls its own logistics infrastructure. The MVP must therefore support the marketplace transaction and first-party logistics lifecycle as one connected system.
 
 The core MVP success path is:
-Buyer discovers a product → places an order → Seller processes and packs it → Courier picks it up → Logistics sorts/transfers/dispatches it → Courier delivers it → Buyer receives and rates it.
+Buyer discovers a product → places an order → Seller processes, packs, and marks it ready → a first-mile Courier picks it up from the Seller and transfers it to Logistics → Logistics receives, sorts, and dispatches it from its sole hub → Logistics assigns a final-mile Courier → that Courier picks it up from the hub and delivers it → Buyer receives and rates it.
 
 ## MVP Objectives
 
@@ -91,13 +91,13 @@ MVP responsibilities:
 - For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
 - Maintain required logistics subscription status.
 - View seller-confirmed orders.
-- Receive parcels into the logistics workflow.
+- Receive parcels transferred from Sellers by a first-mile Courier.
 - Generate/print waybills.
 - Sort parcels.
 - Transfer parcels by scanning or entering waybill QR/reference numbers.
 - Dispatch parcels by scanning or entering waybill QR/reference numbers.
 - View available couriers.
-- Assign riders based on delivery requirements and distance.
+- Assign a final-mile rider based on delivery requirements and distance.
 - Update shipment/order status.
 - Monitor courier availability and active capacity.
 - Communicate with users.
@@ -111,13 +111,13 @@ MVP responsibilities:
 - Search/select an eligible Logistics company during registration. Its single operational hub is associated automatically; selecting a sub-hub is not supported.
 - Register under that Logistics account.
 - Sign in after Logistics approval.
-- View delivery notifications and available pickup requests.
+- View delivery notifications and available first-mile pickup/final-mile delivery requests.
 - Review pickup and delivery details.
-- Accept a delivery request.
-- Navigate to the pickup point.
+- Accept an eligible pickup or delivery request.
+- Navigate to the Seller for first-mile pickup or the Logistics hub for final-mile pickup.
 - Verify parcel/order information.
 - Scan the parcel/order identifier.
-- Confirm item pickup.
+- Confirm `picked_up_from_seller` or `picked_up_from_hub`, depending on the task leg.
 - Deliver the order to the buyer.
 - Complete delivery.
 - Submit basic proof of delivery.
