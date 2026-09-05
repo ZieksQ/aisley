@@ -1,957 +1,432 @@
-# Customer / Buyer Authentication Specification
-
-**System:** Aisley  
-**Domain:** Customer / Buyer  
-**Artifact:** `spec.md`  
-**Scope:** Registration, approval-gated access, sign in, sign out, session handling, password recovery, and auth-related frontend states  
-**Status:** MVP implementation specification
-
+---
+feature: customer-auth
+title: Customer / Buyer Authentication
+system: AISLEY
+type: Feature Specification
+version: 1.0
+status: Draft
+role: Buyer
+scope: Customer / Buyer Web Application
 ---
 
-## 1. Purpose
+# Customer / Buyer Authentication
 
-This specification defines authentication behavior for the Aisley **Customer / Buyer** domain across the customer-facing storefront.
-
-The primary business rule is that a Buyer may register an account, but the account must be **approved by an Admin before the Buyer is allowed to sign in and access authenticated Buyer features**.
-
-Guest customers remain allowed to browse products without signing in.
-
----
-
-## 2. Source Basis
-
-This specification is grounded primarily in:
-
-- `app.md`
-  - Customer/Buyer is a core platform role.
-  - Guest customers can browse products without signing in.
-  - Customer auth flow is `register -> admin approval -> email -> sign in`.
-  - All roles share the same users table.
-  - Email uniqueness is scoped by role/domain using `unique(email, role)`.
-  - Web applications use Laravel Sanctum stateful session cookies.
-  - Mobile applications use Sanctum personal access tokens.
-  - Brevo is used for outbound email.
-- `Admin.md`
-  - Admins approve or disapprove account registrations.
-  - Registration/account status is modeled with states such as `PENDING`, `APPROVED`, and `REJECTED`.
-  - Status transitions should trigger notification email to the applicant.
-- `Buyer.md`
-  - Buyer Account Management includes profile information and secure authentication credentials.
-  - Buyer-facing functionality must be protected by authentication middleware where appropriate.
-
-### Derived implementation decisions
-
-The source documents do not explicitly define password-reset UX, exact API payloads, error codes, or detailed registration fields. This specification defines sensible MVP behavior for those gaps while preserving the documented approval workflow.
-
----
-
-## 3. Goals
-
-The Buyer auth system must:
-
-1. Allow a new Buyer to create an account.
-2. Create newly registered Buyer accounts in a **pending approval** state.
-3. Prevent pending or rejected Buyer accounts from entering authenticated Buyer areas.
-4. Show a clear frontend message when a registered account is still waiting for approval.
-5. Notify the Buyer by email when an Admin approves or rejects the registration.
-6. Allow approved Buyers to sign in securely.
-7. Allow guest users to continue browsing public storefront pages without authentication.
-8. Maintain role-aware identity rules so the same email may exist for different roles while remaining unique within the Buyer role.
-9. Support secure sign out and session invalidation.
-10. Provide a basic password recovery flow for approved Buyer accounts.
-
----
-
-## 4. Non-Goals
-
-The following are outside this auth MVP unless separately specified:
-
-- Social login / OAuth providers.
-- Passkeys.
-- Mandatory two-factor authentication.
-- Seller, Logistics, Courier, or Admin registration flows.
-- Buyer profile/account-settings implementation beyond auth-related identity fields.
-- Admin account-review UI implementation, except for the contract required by Buyer auth.
-- Full customer-service workflows for rejected or suspended accounts.
-
----
-
-## 5. Actors
-
-### 5.1 Guest Customer
-
-A visitor who has not authenticated.
-
-Can:
-
-- Browse public product/shop pages.
-- Search and inspect products.
-- Open Sign In.
-- Open Sign Up.
-
-Cannot:
-
-- Access Buyer-only account pages.
-- Perform protected Buyer actions that require an authenticated account.
-
-### 5.2 Pending Buyer
-
-A Buyer who successfully registered but whose application has not yet been reviewed by an Admin.
-
-Can:
-
-- View the registration-complete / waiting-for-approval state.
-- Attempt to sign in and receive the waiting-for-approval state.
-- Return to the public storefront.
-
-Cannot:
-
-- Establish an authenticated Buyer session.
-- Enter Buyer account pages.
-- Use protected Buyer capabilities.
-
-### 5.3 Approved Buyer
-
-A Buyer whose registration was approved by an Admin.
-
-Can:
-
-- Sign in.
-- Establish an authenticated Buyer session.
-- Access Buyer-only features.
-- Sign out.
-- Use password recovery.
-
-### 5.4 Rejected Buyer
-
-A Buyer whose registration was rejected by an Admin.
-
-Cannot establish a Buyer session. The frontend must show a rejection-specific state rather than treating the user as having invalid credentials.
-
-### 5.5 Admin
-
-Reviews Buyer registrations and changes account status to `APPROVED` or `REJECTED`.
-
----
-
-## 6. Account Status Model
-
-Minimum required registration statuses:
-
-```text
-PENDING
-APPROVED
-REJECTED
-```
-
-Recommended extensible account-state model:
-
-```text
-PENDING
-APPROVED
-REJECTED
-SUSPENDED   // future/admin account-management compatibility
-```
-
-### State transitions
+## WHAT
+- **Purpose:** Establish the authenticated `BUYER` identity used by the AISLEY customer/storefront web application and connect public Buyer registration to the Admin approval workflow.
+- **Canonical role:** `BUYER`.
+- **User-facing term:** Customer may be used in UI copy, but authorization, database role checks, API scopes, and feature directories use Buyer.
+- **Primary actors:** unauthenticated Customer/Buyer registering or logging in; approved authenticated `BUYER`.
+- **Source-backed responsibilities:**
+  - Customer/Buyer accounts use a public registration and Admin approval flow.
+  - AISLEY identity is role-aware, equivalent to `unique(email, role)`.
+  - web applications use the project's configured Laravel web-auth transport.
+  - protected Buyer features require authenticated/authorized Buyer access.
+- **Buyer source limitation:** `Buyer.md` defines Buyer features but does not define registration fields, login transport, password recovery, email verification, or exact approval-gating behavior.
+- **Existing architecture evidence:** the current AISLEY Auth source records a project-wide split where web clients use stateful Laravel session cookies and mobile clients use personal access tokens.
+- **Recommended Customer web flow:**
 
 ```text
 REGISTER
-   |
-   v
+Customer submits registration
+→ Laravel validates
+→ create BUYER registration/account in pending state
+→ Admin reviews through Manage Account Registrations
+→ APPROVED or REJECTED
+
+LOGIN
+GET /sanctum/csrf-cookie
+→ POST /login
+→ resolve email + BUYER
+→ verify password
+→ account approved/usable?
+   no  → deny normal Buyer access
+   yes → regenerate session
+       → HttpOnly session cookie
+       → Customer Homepage
+```
+
+- **Feature boundaries:**
+  - Customer Auth owns registration entry, login, session restoration, role enforcement, approval/access gating, and logout.
+  - Admin Manage Account Registrations owns approval/rejection decisions.
+  - Buyer Account Management owns profile changes, password changes, 2FA settings, and notification preferences.
+  - Buyer Address Book owns saved shipping/billing addresses unless registration explicitly requires an initial address.
+  - Global Ban/shared security middleware may independently block access.
+- **Recommended web routes:** `/register`, `/login`.
+- **Recommended post-login route:** Customer Homepage route selected by the storefront router.
+- **Non-goals:** Admin approval decisions, Buyer profile editing, password change, 2FA configuration, social login, SSO, passkeys, password recovery unless separately specified, inventing registration fields, or mobile Flutter token authentication unless explicitly added.
+
+## MUST
+### Canonical Buyer identity
+- Authentication must resolve the persisted `BUYER` role-account.
+- AISLEY role-aware identity is:
+```text
+email + role
+```
+- Equivalent uniqueness concept:
+```text
+unique(email, role)
+```
+- A same-email `SELLER`, `COURIER`, `LOGISTICS`, or `ADMIN` account must not satisfy Buyer authentication.
+- The frontend must not be trusted to prove `role = BUYER`, `is_buyer`, or permissions.
+- Laravel determines the expected role from the Customer/Buyer authentication context.
+- Protected Buyer APIs require persisted `role = BUYER`.
+
+### Registration boundary
+- Public Buyer registration is required by the existing AISLEY account-approval architecture.
+- Registration must create or submit a Buyer-specific account/application that can enter Admin review.
+- Exact registration fields are **not defined by the available Buyer source**.
+- Do not invent mandatory fields in this spec.
+- Registration fields must come from the implemented registration requirements/schema.
+- Registration must:
+  - validate supplied fields server-side
+  - normalize email
+  - create only a `BUYER` role-account/application
+  - hash passwords before persistence
+  - never accept a privileged role from the client
+  - prevent conflicting duplicate `email + BUYER` registration
+  - preserve the registration state required by Admin review
+- Multi-record registration mutations must be transactional.
+- Duplicate form submission must not create duplicate Buyer applications/accounts.
+
+### Registration uploads
+- The available Buyer model does not define specific registration documents.
+- If the implemented Buyer registration flow requires uploaded credentials/documents:
+  - upload through Laravel-authorized storage
+  - validate type/size
+  - malware scan according to project rules
+  - store asset references, not server paths
+  - keep documents private
+- Do not make an ID upload mandatory from this spec unless the registration requirements explicitly require it.
+
+### Registration state
+- Admin Manage Account Registrations establishes a lifecycle equivalent to:
+```text
 PENDING
-  /   \
- v     v
-APPROVED  REJECTED
+APPROVED
+REJECTED
 ```
-
-For MVP, a public Buyer registration must never directly create an `APPROVED` account.
-
----
-
-## 7. Identity and Role Rules
-
-All platform roles live in the shared users table.
-
-Required database uniqueness rule:
-
-```text
-UNIQUE(email, role)
-```
-
-For this domain:
-
-```text
-role = BUYER
-```
-
-Implications:
-
-- `buyer@example.com` may exist once as a Buyer and separately as another role such as Seller.
-- A second Buyer registration using the same normalized email must be rejected.
-- Auth lookup must include the Buyer role/domain and must not accidentally authenticate a Seller/Admin/Logistics identity into the Buyer storefront.
-
-Email addresses should be normalized before uniqueness checks, at minimum by trimming whitespace and applying consistent case normalization.
-
----
-
-## 8. Registration / Sign Up
-
-### 8.1 Route
-
-Suggested frontend route:
-
-```text
-/register
-```
-
-or
-
-```text
-/signup
-```
-
-Use one canonical route and redirect aliases if both are exposed.
-
-### 8.2 Required MVP fields
-
-Because the source files do not prescribe exact Buyer registration fields, use the minimum identity set below unless the broader user schema requires more:
-
-- First name
-- Last name
-- Email address
-- Password
-- Password confirmation
-- Acceptance of Terms / Privacy Policy, if required by the application
-
-Do not require shipping address during account creation; Buyer addresses belong to the Address Book / checkout flow.
-
-### 8.3 Registration validation
-
-At minimum:
-
-- First and last name are required.
-- Email is required and must be syntactically valid.
-- `(email, BUYER)` must be unique.
-- Password is required.
-- Password confirmation must match.
-- Password must satisfy the backend password policy.
-- Role must be assigned server-side as `BUYER`; the client must not be trusted to submit an arbitrary role.
-
-### 8.4 Successful registration behavior
-
-On successful registration:
-
-1. Create the user with `role = BUYER`.
-2. Set account/registration status to `PENDING`.
-3. Do **not** create an authenticated Buyer session.
-4. Place the registration into the Admin account-approval queue.
-5. Return a response indicating successful registration and pending approval.
-6. Route the frontend to the **Waiting for Approval** state.
-
-### 8.5 Required frontend success state
-
-Display a dedicated confirmation panel/page.
-
-**Primary message:**
-
-> **Waiting for approval**
->
-> Your account has been registered successfully and is waiting for admin approval. We’ll email you once your account has been reviewed.
-
-Recommended actions:
-
-- `Back to store`
-- `Go to sign in`
-
-Do not show a dashboard link and do not behave as though the user is authenticated.
-
-### 8.6 Duplicate Buyer email
-
-If `(email, BUYER)` already exists, the registration must fail.
-
-Suggested user-facing message:
-
-> An account with this email already exists. Sign in instead or reset your password.
-
-Do not reject the address merely because the same email exists under a different role.
-
----
-
-## 9. Waiting for Approval UX
-
-The **Waiting for Approval** state is mandatory.
-
-It must be reachable in both of these cases:
-
-### Case A — Immediately after registration
-
-After a successful Buyer registration, show the waiting state instead of signing the Buyer in.
-
-### Case B — Pending Buyer attempts to sign in
-
-When valid Buyer credentials belong to an account with status `PENDING`, authentication must not establish a session. The UI must show the waiting state.
-
-Required copy:
-
-> **Waiting for approval**
->
-> Your account is still waiting for admin approval. We’ll email you once your account has been reviewed.
-
-Optional supporting text:
-
-> You can continue browsing the store while you wait.
-
-Recommended action:
-
-- `Continue shopping`
-
-### UX constraints
-
-- Do not display the generic “Invalid email or password” error for a correctly authenticated pending account.
-- Do not redirect a pending Buyer to a dashboard/account page.
-- Do not persist authenticated Buyer state for pending users.
-- The public storefront remains accessible.
-
----
-
-## 10. Admin Approval Contract
-
-The Buyer frontend does not perform approval itself, but its auth behavior depends on the Admin workflow.
-
-### 10.1 Approval
-
-When Admin changes a Buyer account from `PENDING` to `APPROVED`:
-
-1. Persist the status change.
-2. Send an approval email to the Buyer.
-3. The Buyer may then sign in normally.
-
-Suggested email meaning:
-
-- The account has been approved.
-- The Buyer can now sign in.
-- Provide a link to the customer storefront Sign In page.
-
-### 10.2 Rejection
-
-When Admin changes a Buyer account from `PENDING` to `REJECTED`:
-
-1. Persist the status change.
-2. Send a rejection/status email to the Buyer.
-3. Subsequent sign-in attempts must not establish a session.
-
-Suggested frontend message:
-
-> **Account not approved**
->
-> Your account registration was not approved. Check your email for more information or contact support if you need assistance.
-
-Do not expose internal review notes unless the Admin workflow explicitly marks them safe for the applicant.
-
-### 10.3 Email provider
-
-Per project architecture, outbound auth/status emails should use **Brevo**.
-
----
-
-## 11. Sign In
-
-### 11.1 Route
-
-```text
-/login
-```
-
-### 11.2 Fields
-
-- Email
-- Password
-
-The Buyer role/domain must be implied by the Buyer application and enforced server-side.
-
-### 11.3 Sign-in decision table
-
-| Condition | Result |
-|---|---|
-| Buyer email does not exist | Generic credential error |
-| Password is incorrect | Generic credential error |
-| Status = `PENDING` | No session; show **Waiting for approval** |
-| Status = `REJECTED` | No session; show rejected-account state |
-| Status = `APPROVED` | Establish Buyer session and continue |
-| Non-Buyer account has same email | Do not authenticate it into Buyer domain |
-
-For ordinary invalid credentials, use a generic message such as:
-
-> The email or password is incorrect.
-
-This avoids revealing whether a Buyer account exists.
-
-### 11.4 Approved Buyer redirect
-
-After successful authentication:
-
-- If a valid safe `returnTo` path exists, redirect there.
-- Otherwise redirect to the customer storefront/home or Buyer account landing page defined by the frontend.
-
-Never accept an arbitrary external redirect URL.
-
----
-
-## 12. Web Authentication Mechanism
-
-For the React / Next.js customer web application, use Laravel Sanctum stateful authentication with `HttpOnly` session cookies.
-
-Required sequence:
-
-```text
-1. GET /sanctum/csrf-cookie
-2. POST /login
-3. Backend validates Buyer credentials + account status
-4. On APPROVED only, Laravel establishes encrypted session cookie
-5. Browser includes cookie automatically on authenticated requests
-```
-
-Requirements:
-
-- Use CSRF protection.
-- Do not store auth tokens in `localStorage`.
-- Cookies should use appropriate secure production settings.
-- Protected API routes must enforce authentication and Buyer role/domain authorization.
-
----
-
-## 13. Mobile Authentication Mechanism
-
-The customer storefront also has a mobile application according to `app.md`.
-
-For Flutter, use Laravel Sanctum personal access tokens.
-
-Approved Buyer flow:
-
-```text
-1. POST /login with email, password, and device_name
-2. Backend validates Buyer credentials + APPROVED status
-3. Backend creates personal access token
-4. Flutter stores token in flutter_secure_storage
-5. Future requests use Authorization: Bearer <token>
-```
-
-Pending or rejected accounts must not receive a personal access token.
-
----
-
-## 14. Suggested API Contract
-
-Exact endpoint naming may follow the backend's existing conventions. The behavioral contract is mandatory.
-
-### 14.1 Register Buyer
-
+- Customer Auth must respect authoritative registration/account state.
+- Registration submission enters the pending/reviewable state expected by Admin.
+- The browser cannot submit `APPROVED` or otherwise self-approve.
+- Admin remains the source of approval/rejection.
+
+### Approval gating
+- A valid password alone must not bypass required Admin approval.
+- A pending/rejected Buyer must not receive ordinary approved-Buyer access.
+- Exact pending/rejected login UX is an Open Question.
+- Credential verification and account-state checks remain server-side.
+- Do not expose internal Admin reasons or security notes.
+- Whether a pending Buyer may access a limited application-status page/session is Open.
+- Approval must activate the existing account/application rather than create a duplicate.
+
+### Rejected registration
+- `REJECTED` must not be treated as normal authenticated Buyer access.
+- Whether rejected applicants may edit/resubmit, create a new application, or appeal/contact support is Open.
+- Authentication must not silently convert `REJECTED` to active.
+
+### Web authentication transport
+- Current project auth source establishes:
+  - web → stateful HttpOnly Laravel session
+  - Flutter/mobile → personal access token
+- Customer/Buyer storefront web should reuse the project web mechanism.
+- For a first-party SPA using Laravel Sanctum:
+  - initialize CSRF through `/sanctum/csrf-cookie`
+  - login through the configured Laravel `/login`
+  - use Laravel cookie-based session authentication
+  - send cookies/CSRF through the shared API client
+- Do not store Customer web Bearer tokens in `localStorage`, `sessionStorage`, or IndexedDB.
+- If the repository establishes a different web mechanism, repository behavior wins.
+
+### CSRF
+- Stateful web login must initialize and respect CSRF protection.
+- Conceptual sequence:
 ```http
-POST /api/buyer/register
+GET /sanctum/csrf-cookie
+POST /login
 ```
+- Subsequent state-changing requests use project CSRF/session protections.
+- Do not bypass CSRF because frontend/API are separate applications.
 
-Example request:
-
+### Login request
+- Minimum conceptual credentials:
 ```json
 {
-  "first_name": "Aisley",
-  "last_name": "Buyer",
   "email": "buyer@example.com",
-  "password": "********",
-  "password_confirmation": "********"
+  "password": "..."
 }
 ```
+- Do not require trusted `role: BUYER` input.
+- Backend knows the Customer app expects `BUYER`.
+- Exact endpoint/response shape follows repository conventions.
 
-Example success response:
+### Login validation
+- Laravel must:
+  1. validate email/password
+  2. normalize email
+  3. resolve `email + BUYER`
+  4. verify password using framework mechanisms
+  5. check registration/account eligibility
+  6. create/regenerate the session only when access is allowed
+- Never compare plaintext passwords manually.
 
-```json
-{
-  "message": "Registration submitted for approval.",
-  "user": {
-    "email": "buyer@example.com",
-    "role": "BUYER",
-    "status": "PENDING"
-  }
-}
+### Generic login errors
+- Invalid-login responses must avoid user/role enumeration.
+- Do not reveal whether the email exists under another role or expose internal security state.
+- Recommended ordinary failure:
+```text
+Invalid email or password.
 ```
+- Approval-state messaging may differ only if product policy intentionally exposes the applicant's own registration state.
 
-The API must never accept a client-provided approval status.
+### Session fixation protection
+- Regenerate the authenticated session after successful login.
+- Do not continue using a pre-authentication session identifier unchanged after login.
 
-### 14.2 Sign In
-
-The project source specifies `/login` for Sanctum login. Keep that endpoint if already standardized.
-
-Pending response should be machine-readable, for example:
-
-```json
-{
-  "code": "ACCOUNT_PENDING_APPROVAL",
-  "message": "Your account is waiting for admin approval."
-}
+### Successful login
+- On successful Buyer login:
+```text
+valid BUYER credentials
++ approved/usable account
+→ authenticated Laravel session
+→ secure session cookie
+→ restore Buyer identity
+→ Customer Homepage
 ```
+- Frontend must not need to read the HttpOnly session cookie.
+- Login success must not expose password, hash, session ID, or tokens.
 
-Rejected response:
-
-```json
-{
-  "code": "ACCOUNT_REJECTED",
-  "message": "Your account registration was not approved."
-}
+### Current Buyer/session restoration
+- On Customer app startup:
+```text
+CHECKING
+→ request current authenticated user
+→ persisted BUYER + usable account?
+   yes → AUTHENTICATED
+   no  → UNAUTHENTICATED / restricted state
 ```
-
-The frontend should render UI based on `code`, not brittle matching of human-readable strings.
-
-### 14.3 Current User
-
-Suggested endpoint:
-
+- Conceptual endpoint:
 ```http
-GET /api/user
+GET /api/buyer/me
 ```
+or a shared current-user endpoint.
+- Safe response may include ID, display name, email when needed, role, and safe account/approval state.
+- Never include security secrets.
+- Protected Customer content must not flash before auth state resolves.
 
-Return only the authenticated Buyer identity/profile fields required by the frontend.
+### Protected Buyer routes
+- Protected Buyer features require backend authentication and role ownership.
+- Examples: cart/checkout, orders, wishlist, account management, address book, reviews, chat.
+- Public discovery/search/homepage sections may remain guest-accessible if their own specs allow it.
+- Authentication does not imply ownership of every Buyer record.
+- Laravel must scope Buyer-owned records by authenticated Buyer ID.
 
-The backend must verify both authenticated identity and Buyer role.
+### Authentication vs authorization
+- Authentication answers who the account is, whether it is `BUYER`, and whether it may authenticate.
+- Authorization answers whether that Buyer owns/accesses a cart/order/address/review/etc.
+- Authentication middleware is not a replacement for Buyer ownership Policies/query scoping.
 
-### 14.4 Sign Out
+### Account lifecycle integration
+- Buyer access must respect Admin Manage User Accounts status and applicable Global Ban rules.
+- A suspended/deactivated Buyer must not retain normal protected access indefinitely through an old session.
+- Exact revocation strategy is Open:
+  - invalidate active sessions immediately, or
+  - enforce account-state middleware on protected requests
+- Backend denial must become effective promptly.
+- Removing a Global Ban does not reactivate a separately suspended account.
 
-Suggested endpoint:
-
+### Logout
+- Conceptual endpoint:
 ```http
 POST /logout
 ```
+- Logout must invalidate the backend session, regenerate CSRF/session state as appropriate, and clear frontend auth state.
+- Frontend-only state clearing is not valid logout.
+- Previous authenticated session must not access protected Buyer APIs after logout.
 
-Web:
+### Session expiry
+- Expired/invalid sessions are unauthenticated.
+- Frontend clears stale local auth state.
+- Sanctum SPA failures may surface as `401` or `419` depending on context.
+- Session lifetime, idle timeout, remember-me, and concurrent-session policy are Open.
 
-- Invalidate server-side session.
-- Rotate/invalidate session state as appropriate.
-- Clear authenticated frontend state.
+### Password security
+- Registration passwords use Laravel configured hashing.
+- Password hashes never appear in JSON.
+- Exact password policy is not defined by current sources.
+- Buyer Account Management owns password changes.
+- Forgot-password/reset is not source-defined and not required here.
 
-Mobile:
+### Rate limiting
+- Login and registration should have tighter rate limits than normal browsing.
+- Reuse Laravel rate limiting.
+- Recommended defense-in-depth:
+  - per-account/email attempt control
+  - per-IP attempt control
+- Exact thresholds are Open.
+- Throttled requests use project-standard `429`.
 
-- Revoke the current device token.
-- Remove the token from secure storage.
+### Email verification
+- Current Buyer sources do not define email verification.
+- Do not require `MustVerifyEmail` or verification links unless another requirement establishes them.
+- Admin approval and email verification are different concepts.
 
----
-
-## 15. Password Recovery
-
-Password recovery is not explicitly described in the source files, but it is included here as standard MVP auth completeness.
-
-### 15.1 Forgot Password
-
-Suggested route:
-
+### 2FA
+- Buyer Account Management mentions 2FA as a possible security setting.
+- It does not define a concrete login challenge.
+- Do not invent TOTP, SMS OTP, email OTP, or passkeys.
+- If 2FA is later configured:
 ```text
-/forgot-password
+password valid
+→ account eligible
+→ 2FA enabled?
+   no  → session
+   yes → configured challenge
+         → session only after success
 ```
 
-Input:
+### Global Ban integration
+- Shared Global Ban middleware may block user/IP access.
+- Customer Auth should respect applicable block rules.
+- Do not duplicate Global Ban matching inside Auth.
+- Exact blocked-login message follows security/privacy policy.
 
-- Email address
+### Security logging
+- Never intentionally log plaintext passwords, password hashes, session values, CSRF secrets, access tokens, OTPs, or 2FA secrets.
+- Safe technical logging may include request/correlation ID, endpoint, result category, resolved Buyer ID after success, and timestamp.
+- Exact login/logout/failed-login security logging policy is Open.
 
-User-facing response should remain generic regardless of account existence:
+### Frontend states
+- Registration: idle, validating, submitting, submitted/pending review, validation failure, duplicate/conflict, server failure.
+- Login: idle, requesting CSRF, submitting, success, invalid credentials, restricted/pending state when exposed, server error.
+- App bootstrap: checking, authenticated, unauthenticated.
+- Logout: submitting, success, failure.
+- Disable duplicate registration/login submission while active.
 
-> If a Buyer account exists for that email, we’ll send password reset instructions.
+### Accessibility
+- Registration/login forms require semantic labels.
+- Use appropriate email/password autocomplete hints.
+- Errors must be associated with fields and announced accessibly.
+- Keyboard navigation must work.
+- Status/errors must not rely on color alone.
+- Password visibility controls need accessible labels.
 
-### 15.2 Reset Password
+### Acceptance criteria
+- [ ] Public Customer registration creates only a `BUYER` application/account.
+- [ ] Registration cannot self-assign `APPROVED`.
+- [ ] Registration password is hashed.
+- [ ] Duplicate submission does not create duplicate Buyer accounts/applications.
+- [ ] Same email remains role-isolated according to `unique(email, role)`.
+- [ ] Same-email Seller/Admin/etc. credentials do not authenticate as Buyer.
+- [ ] Buyer web initializes CSRF before stateful login where Sanctum SPA auth is configured.
+- [ ] Correct approved Buyer credentials establish a session.
+- [ ] Wrong password/unknown Buyer do not establish a session.
+- [ ] Pending/rejected Buyer cannot obtain ordinary approved-Buyer access.
+- [ ] Session is regenerated on successful authentication.
+- [ ] Customer web does not require JS-readable Bearer-token storage.
+- [ ] Current-user endpoint returns only safe Buyer identity.
+- [ ] Protected Buyer APIs reject guests and wrong-role accounts.
+- [ ] Buyer-owned records remain scoped to authenticated Buyer ID.
+- [ ] Suspended/deactivated/blocked state is enforced server-side.
+- [ ] Logout invalidates backend session.
+- [ ] Expired session becomes unauthenticated.
+- [ ] Auth errors do not disclose same-email accounts under other roles.
+- [ ] Auth secrets are absent from DTOs/logs.
+- [ ] UI handles registration pending, login error, auth checking, and logout states.
 
-Suggested route:
+## HOW
+### Project findings
+- `Buyer.md` establishes Buyer as the canonical customer role and requires authentication/security middleware for Buyer Account Management, but does not define Buyer Auth itself.
+- `README.md` requires protected role requests to be authenticated/authorized and scopes Buyer-owned data by `buyer_id`.
+- Existing AISLEY Auth source establishes role-aware identity using `unique(email, role)` and says Customer/Seller/Logistics accounts use registration and approval flows.
+- That same source records the project-wide web/mobile split: web uses stateful HttpOnly sessions; Flutter/mobile uses personal access tokens.
+- Exact Buyer registration fields, email verification, recovery, account-status schema, and session lifetime are not defined by current Buyer sources.
 
-```text
-/reset-password
+### Laravel registration action
+- Suggested action: `RegisterBuyer`.
+- Conceptual endpoint:
+```http
+POST /register
 ```
+or a Buyer-scoped equivalent.
+- Laravel should validate registration input, force `BUYER` role server-side, check role-aware uniqueness, hash password, persist the pending application/account, and dispatch any required acknowledgement after commit.
+- Do not authenticate normal Buyer access before approval.
 
-Requirements:
-
-- Time-limited, single-purpose reset token.
-- New password + confirmation.
-- Password policy validation.
-- Token invalidation after successful reset.
-
-Resetting the password must **not** change approval status. A `PENDING` Buyer remains pending and a `REJECTED` Buyer remains rejected.
-
----
-
-## 16. Session and Route Guards
-
-### Public routes
-
-Examples:
-
-```text
-/
-/search
-/products/*
-/shops/*
-/login
-/register
-/forgot-password
-/reset-password
+### Laravel login action
+- For the established first-party web/Sanctum pattern:
+```http
+GET  /sanctum/csrf-cookie
+POST /login
+GET  /api/buyer/me
+POST /logout
 ```
-
-These routes must remain usable by guests where appropriate.
-
-### Protected Buyer routes
-
-Examples:
-
-```text
-/account
-/account/settings
-/addresses
-/wishlist
-/orders
-/messages
-/checkout     // if checkout requires account authentication
-```
-
-A protected route must require:
-
-```text
-authenticated == true
-AND role == BUYER
-AND status == APPROVED
-```
-
-If an unauthenticated visitor opens a protected route:
-
-- Redirect to Sign In.
-- Preserve a safe internal return path where useful.
-
-If a pending/rejected user somehow has stale credentials/session state, the backend remains authoritative and must deny protected access.
-
----
-
-## 17. Frontend Screens and Components
-
-Minimum auth UI:
-
-### 17.1 Sign Up Page
-
-Contains:
-
-- Name fields
-- Email
-- Password
-- Confirm password
-- Submit button
-- Link to Sign In
-- Validation feedback
-
-Primary CTA:
-
-```text
-Create account
-```
-
-### 17.2 Waiting for Approval Page / State
-
-Required heading:
-
-```text
-Waiting for approval
-```
-
-Required message:
-
-```text
-Your account is still waiting for admin approval. We’ll email you once your account has been reviewed.
-```
-
-Recommended secondary copy:
-
-```text
-You can continue browsing the store while you wait.
-```
-
-CTA:
-
-```text
-Continue shopping
-```
-
-### 17.3 Sign In Page
-
-Contains:
-
-- Email
-- Password
-- Sign In button
-- Forgot password link
-- Link to Sign Up
-- Inline/global error area
-
-### 17.4 Rejected Account State
-
-Heading:
-
-```text
-Account not approved
-```
-
-Message:
-
-```text
-Your account registration was not approved. Check your email for more information or contact support if you need assistance.
-```
-
-### 17.5 Auth Loading State
-
-During session bootstrap or form submission:
-
-- Disable duplicate submissions.
-- Show a visible loading state.
-- Do not flash protected Buyer content before auth status has been resolved.
-
----
-
-## 18. Security Requirements
-
-- Hash passwords using Laravel's configured secure password hashing mechanism.
-- Never return password hashes or sensitive authentication secrets to the frontend.
-- Never trust role, approval status, or user ID supplied by the client.
-- Enforce Buyer role authorization server-side.
-- Enforce account approval server-side; frontend guards are not sufficient.
-- Rate-limit login and password-reset attempts.
-- Use generic errors for invalid username/password combinations.
-- Rotate/regenerate the web session after successful authentication to mitigate session fixation.
-- Revoke/invalidate credentials on logout.
-- Apply CSRF protection to stateful web authentication.
-- Use HTTPS in production.
-- Secure cookies appropriately in production (`HttpOnly`, `Secure`, suitable `SameSite`).
-- Validate redirect targets to prevent open redirects.
-- Audit approval status changes in the Admin domain if an audit mechanism is available.
-
----
-
-## 19. Error / Status Codes
-
-Recommended stable frontend-facing auth codes:
-
-```text
-VALIDATION_ERROR
-INVALID_CREDENTIALS
-ACCOUNT_PENDING_APPROVAL
-ACCOUNT_REJECTED
-ACCOUNT_SUSPENDED        // future compatibility
-EMAIL_ALREADY_REGISTERED
-UNAUTHENTICATED
-FORBIDDEN_ROLE
-RATE_LIMITED
-```
-
-The backend may choose HTTP status codes according to project conventions, but the semantic `code` should remain stable for frontend handling.
-
----
-
-## 20. Email Events
-
-Minimum account-approval emails required by the documented workflow:
-
-| Event | Recipient | Purpose |
-|---|---|---|
-| Buyer approved | Buyer email | Inform Buyer that sign in is now available |
-| Buyer rejected | Buyer email | Inform Buyer that registration was not approved |
-
-Optional registration acknowledgement:
-
-| Event | Recipient | Purpose |
-|---|---|---|
-| Registration submitted | Buyer email | Confirm application is pending review |
-
-Emails should be delivered through Brevo.
-
----
-
-## 21. End-to-End Flows
-
-### 21.1 New Buyer Registration
-
-```text
-Guest
-  -> Sign Up
-  -> Submit valid Buyer registration
-  -> User created with role=BUYER, status=PENDING
-  -> No auth session/token issued
-  -> Waiting for approval screen
-  -> Admin reviews registration
-  -> Admin approves
-  -> Approval email sent
-  -> Buyer opens Sign In
-  -> Valid credentials
-  -> Session/token issued
-  -> Buyer enters authenticated experience
-```
-
-### 21.2 Pending Buyer Attempts Sign In
-
-```text
-Buyer enters valid email/password
-  -> Credentials match BUYER account
-  -> status=PENDING
-  -> No session/token issued
-  -> UI shows "Waiting for approval"
-  -> Buyer may return to public storefront
-```
-
-### 21.3 Rejected Buyer Attempts Sign In
-
-```text
-Buyer enters valid email/password
-  -> Credentials match BUYER account
-  -> status=REJECTED
-  -> No session/token issued
-  -> UI shows "Account not approved"
-```
-
-### 21.4 Approved Buyer Sign In
-
-```text
-Buyer enters valid email/password
-  -> Credentials match BUYER account
-  -> status=APPROVED
-  -> Web: create stateful session cookie
-     OR
-     Mobile: create personal access token
-  -> Load Buyer identity
-  -> Redirect to safe intended page or storefront/account landing
-```
-
----
-
-## 22. Acceptance Criteria
-
-### Registration
-
-- [ ] A guest can open the Buyer Sign Up page.
-- [ ] A valid registration creates a user with `role = BUYER`.
-- [ ] A valid registration creates the account with `status = PENDING`.
-- [ ] Registration does not automatically authenticate the Buyer.
-- [ ] Duplicate `(email, BUYER)` registration is rejected.
-- [ ] The same email may still belong to a different role/domain.
-- [ ] The role and approval status cannot be chosen or overridden by the client.
-- [ ] Successful registration displays the waiting-for-approval UI.
-
-### Waiting for approval
-
-- [ ] The frontend displays the heading **“Waiting for approval”** for a pending Buyer.
-- [ ] The frontend explains that Admin approval is still pending.
-- [ ] The frontend states that the Buyer will be emailed after review.
-- [ ] A pending Buyer is not redirected to an authenticated dashboard/account area.
-- [ ] A pending Buyer cannot establish a web session or mobile access token.
-- [ ] A pending Buyer can return to guest storefront browsing.
-
-### Admin decision
-
-- [ ] Admin can transition a Buyer registration from `PENDING` to `APPROVED` or `REJECTED` through the Admin domain.
-- [ ] Approval triggers an email notification.
-- [ ] Rejection triggers an email/status notification.
-- [ ] Approval immediately makes the Buyer eligible to sign in.
-
-### Sign in
-
-- [ ] Only `APPROVED` Buyer accounts can establish authenticated Buyer access.
-- [ ] Pending credentials result in `ACCOUNT_PENDING_APPROVAL` or equivalent stable state.
-- [ ] Rejected credentials result in `ACCOUNT_REJECTED` or equivalent stable state.
-- [ ] Invalid credentials use a generic credential error.
-- [ ] A non-Buyer account cannot authenticate into the Buyer domain even when its email/password match.
-- [ ] Successful web sign in uses Sanctum stateful cookie authentication.
-- [ ] Successful mobile sign in uses a Sanctum personal access token stored securely on device.
-
-### Session
-
-- [ ] Protected Buyer endpoints require authentication, Buyer role, and approved status.
-- [ ] Guest browsing remains available without authentication.
-- [ ] Sign out invalidates the active session/token.
-- [ ] Authenticated frontend state is cleared after sign out.
-
-### Password recovery
-
-- [ ] Buyer can request a password reset without account-enumeration leakage.
-- [ ] Reset tokens expire and cannot be reused after success.
-- [ ] Password reset does not alter approval status.
-
----
-
-## 23. Suggested Test Cases
-
-### Registration tests
-
-1. Register a new Buyer with unused Buyer email -> `PENDING`.
-2. Register another Buyer with same email -> rejected as duplicate.
-3. Register a Buyer with an email already used by Seller only -> permitted if `(email, BUYER)` is unused.
-4. Attempt to submit `role=ADMIN` from Buyer frontend -> ignored/rejected; resulting role remains `BUYER`.
-5. Attempt to submit `status=APPROVED` -> ignored/rejected; resulting status remains `PENDING`.
-
-### Sign-in tests
-
-1. Approved Buyer + correct password -> authenticated.
-2. Pending Buyer + correct password -> no auth; waiting-for-approval state.
-3. Rejected Buyer + correct password -> no auth; rejected state.
-4. Buyer + wrong password -> generic invalid credentials.
-5. Seller credentials entered on Buyer login -> no Buyer authentication.
-
-### Authorization tests
-
-1. Guest calls protected Buyer endpoint -> unauthenticated.
-2. Pending user with stale/session artifact calls protected endpoint -> denied.
-3. Approved Seller calls Buyer-only endpoint -> forbidden.
-4. Approved Buyer calls Buyer-only endpoint -> allowed.
-
-### Frontend tests
-
-1. Successful registration renders `Waiting for approval`.
-2. Pending sign-in renders `Waiting for approval` rather than credential error.
-3. Waiting page includes email-review explanation.
-4. Waiting page has a route back to public storefront browsing.
-5. Approved sign-in never flashes pending UI.
-
----
-
-## 24. Implementation Notes
-
-### Backend
-
-Recommended separation of concerns:
-
-- Registration service creates Buyer in `PENDING` state.
-- Authentication service verifies credentials first, then evaluates role and status before issuing session/token.
-- Approval service belongs to Admin domain and owns status transitions.
-- Notification service sends Brevo email after approval/rejection transitions.
-- Authorization middleware/policies enforce `BUYER + APPROVED` for protected Buyer actions.
-
-### Frontend
-
-Model auth state explicitly instead of using only `authenticated: boolean`.
-
-Suggested state:
-
-```ts
-type BuyerAuthState =
-  | { status: 'loading' }
-  | { status: 'guest' }
-  | { status: 'pending_approval'; email?: string }
-  | { status: 'rejected'; email?: string }
-  | { status: 'authenticated'; user: BuyerUser };
-```
-
-This prevents pending/rejected states from being incorrectly collapsed into generic login errors.
-
----
-
-## 25. Definition of Done
-
-Buyer authentication is MVP-complete when:
-
-1. A guest can register as a Buyer.
-2. Registration produces a `PENDING` Buyer and does not sign them in.
-3. The frontend clearly shows **Waiting for approval** after registration and on pending sign-in attempts.
-4. Admin approval/rejection is reflected in Buyer auth behavior and sends email notification.
-5. Only approved Buyers can establish sessions/tokens.
-6. Guest storefront browsing remains available.
-7. Role-scoped email uniqueness is enforced with `(email, role)`.
-8. Buyer protected routes are secured by authentication, role, and approval status.
-9. Sign out works correctly.
-10. Basic password recovery works without bypassing approval state.
+- Laravel Sanctum SPA authentication uses Laravel cookie-based session services rather than API tokens for first-party SPAs.
+- Its documented flow initializes `/sanctum/csrf-cookie`, then posts credentials to `/login`.
+- Storefront/API deployment must satisfy Sanctum stateful-domain/CORS/cookie constraints.
+
+### Credential resolution
+- Prefer a Buyer-specific login action/service that resolves normalized email + persisted `BUYER`.
+- Do not accept a trusted role selector.
+- After password verification, enforce approval eligibility, account lifecycle status, and Global Ban rules.
+- Regenerate session after successful login.
+- Laravel standard session login guidance regenerates the session and invalidates it on logout.
+
+### Next.js / React
+- Build registration page, login page, auth provider/store (`CHECKING | AUTHENTICATED | UNAUTHENTICATED`), protected Buyer layout, logout action, and pending-review screen when product policy requires it.
+- Use the shared Laravel API client with credentials/CSRF support.
+- Do not create a Next.js API route that reimplements Laravel auth/business rules.
+- Public Customer Homepage/Search/Browse behavior remains owned by those specs.
+
+### Rate limiting/security
+- Apply Laravel rate limiting around registration/login.
+- Use generic credential errors to reduce account enumeration.
+- Use layered throttling for brute-force/credential-stuffing defense.
+- Regenerate session IDs after authentication.
+
+### Tests
+- **Laravel:** Buyer registration; forced BUYER role; role-aware duplicates; password hashing; pending state; invalid registration; same-email role isolation; approved login; pending/rejected denial; wrong password/role; session regeneration; safe current-user; protected ownership; suspended/deactivated/block enforcement; logout; rate limiting.
+- **Frontend:** registration states; login/CSRF flow; generic errors; pending-review state; redirect to Customer Homepage; auth-checking flash prevention; session expiry; logout; wrong-role denial; accessibility.
+
+### Research-backed recommendations
+- Reuse the project's first-party web session model rather than inventing a Buyer-only token scheme.
+- For Sanctum SPA auth, use stateful cookie authentication and CSRF initialization rather than JS-managed API tokens.
+- Regenerate the session after successful authentication.
+- Use generic credential errors and throttling.
+- Keep Admin approval as a separate authoritative transition rather than allowing registration/login to self-activate Buyer accounts.
+
+### Risks
+- **Role confusion:** email-only lookup could authenticate Seller/Admin into Customer.
+- **Approval bypass:** pending accounts could gain access if eligibility is checked only in frontend.
+- **Duplicate onboarding:** retries may create duplicate applications.
+- **Session fixation:** failing to regenerate session weakens security.
+- **Cross-domain misconfiguration:** Sanctum cookie/CORS failures can break storefront login.
+- **Account enumeration:** detailed errors may reveal Buyer existence/state.
+- **Source gap:** inventing registration fields/email verification/recovery would exceed current source.
+- **Stale access:** suspended/deactivated Buyers may remain active if state is checked only at login.
+
+### Open questions
+- Exact Customer registration fields/documents.
+- Whether registration creates the `users` row immediately or a separate application record first.
+- Exact approval/account-status schema.
+- Pending/rejected login UX and limited status-session behavior.
+- Rejected-customer resubmission/appeal behavior.
+- Exact Customer Homepage route.
+- Email verification requirement.
+- Forgot-password/password-reset flow.
+- Session lifetime, idle timeout, remember-me, concurrent-session policy.
+- Login/registration rate limits.
+- Buyer 2FA mechanism/login challenge.
+- Suspension/deactivation session invalidation.
+- Whether Customer mobile auth exists.
+- Storefront/API domain layout and Sanctum cookie/CORS settings.
+- Registration acknowledgement/approval email behavior and provider.
+
+### Sources
+- Project rules: `SKILL.md`
+- AISLEY architecture contract: `README.md`
+- Buyer feature model: `Buyer.md`
+- Existing AISLEY Admin Authentication source/spec for shared identity/auth architecture
+- Laravel Sanctum SPA Authentication: https://laravel.com/docs/12.x/sanctum
+- Laravel basic authentication/session guidance: https://laravel.com/learn/getting-started-with-laravel/basic-authentication-loginlogout
+- OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+- OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+- OWASP Bot Management / Anti-Automation: https://cheatsheetseries.owasp.org/cheatsheets/Bot_Management_and_Anti-Automation_Cheat_Sheet.html
