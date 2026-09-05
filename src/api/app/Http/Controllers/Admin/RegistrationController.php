@@ -31,9 +31,9 @@ class RegistrationController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $query = RegistrationApplication::query()
-            ->whereIn('application_type', [UserRole::Customer, UserRole::Seller])
+            ->whereIn('application_type', [UserRole::Customer, UserRole::Seller, UserRole::Logistics])
             ->where('status', $status)
-            ->with(['user.customerProfile', 'user.sellerProfile']);
+            ->with(['user.customerProfile', 'user.sellerProfile', 'user.logisticsProfile']);
 
         if ($request->filled('role')) {
             $query->where('application_type', (string) $request->input('role'));
@@ -48,6 +48,9 @@ class RegistrationController extends Controller
                         ->whereRaw('LOWER(first_name) LIKE ?', [$term])
                         ->orWhereRaw('LOWER(last_name) LIKE ?', [$term]))
                     ->orWhereHas('user.sellerProfile', fn (Builder $profiles) => $profiles
+                        ->whereRaw('LOWER(first_name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', [$term]))
+                    ->orWhereHas('user.logisticsProfile', fn (Builder $profiles) => $profiles
                         ->whereRaw('LOWER(first_name) LIKE ?', [$term])
                         ->orWhereRaw('LOWER(last_name) LIKE ?', [$term]));
             });
@@ -117,7 +120,7 @@ class RegistrationController extends Controller
     private function ensureManaged(RegistrationApplication $registration): void
     {
         abort_unless(
-            in_array($registration->application_type, [UserRole::Customer, UserRole::Seller], true),
+            in_array($registration->application_type, [UserRole::Customer, UserRole::Seller, UserRole::Logistics], true),
             404,
         );
     }
@@ -129,6 +132,8 @@ class RegistrationController extends Controller
         return $registration->load([
             'user.customerProfile',
             'user.sellerProfile',
+            'user.logisticsProfile',
+            'user.logisticsOrganization.hub.address',
             'user.addresses',
             'user.shop.shopCategory',
             'documents',

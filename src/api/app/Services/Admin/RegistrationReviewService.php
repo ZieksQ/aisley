@@ -47,7 +47,7 @@ class RegistrationReviewService
 
             $application->load('user');
 
-            if (! in_array($application->application_type, [UserRole::Customer, UserRole::Seller], true)
+            if (! in_array($application->application_type, [UserRole::Customer, UserRole::Seller, UserRole::Logistics], true)
                 || $application->user->role !== $application->application_type) {
                 throw new NotFoundHttpException('Registration application not found.');
             }
@@ -88,7 +88,7 @@ class RegistrationReviewService
                     : ShopStatus::Deactivated,
             ]);
 
-            if ($application->application_type === UserRole::Seller) {
+            if (in_array($application->application_type, [UserRole::Seller, UserRole::Logistics], true)) {
                 $application->documents()->update([
                     'status' => $decision === ApplicationStatus::Approved
                         ? DocumentStatus::Verified

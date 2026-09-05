@@ -1,4 +1,4 @@
-export type RegistrationRole = 'customer' | 'seller'
+export type RegistrationRole = 'customer' | 'seller' | 'logistics'
 export type RegistrationStatus = 'pending' | 'approved' | 'rejected'
 
 export type RegistrationSummary = {
@@ -37,6 +37,10 @@ export type RegistrationDetail = {
       name: string
       status: 'pending' | 'active' | 'suspended' | 'deactivated'
       category: { id: string; name: string } | null
+    } | null
+    logistics_organization: {
+      business_name: string
+      hub_name: string | null
     } | null
     address: {
       address_line_1: string

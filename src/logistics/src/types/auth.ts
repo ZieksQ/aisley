@@ -1,0 +1,3 @@
+export type LogisticsUser = { id: string; email: string; role: 'logistics'; status: 'pending' | 'active' | 'rejected' | 'suspended' | 'deactivated'; profile: { first_name: string | null; last_name: string | null; middle_name: string | null; contact_number: string | null; sex: string | null; birth_date: string | null; age: number | null } | null; organization: { id: string; business_name: string; hub: { id: string; name: string } | null } | null }
+export type AuthResponse = { message?: string; logistics: LogisticsUser }
+export type LoginCredentials = { email: string; password: string; remember: boolean }

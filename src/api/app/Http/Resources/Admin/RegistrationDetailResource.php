@@ -17,12 +17,15 @@ class RegistrationDetailResource extends JsonResource
         $profile = match ($this->application_type) {
             UserRole::Customer => $user->customerProfile,
             UserRole::Seller => $user->sellerProfile,
+            UserRole::Logistics => $user->logisticsProfile,
             default => null,
         };
         $address = $user->relationLoaded('addresses')
             ? ($user->addresses->firstWhere('is_default', true) ?? $user->addresses->first())
             : null;
         $shop = $this->application_type === UserRole::Seller ? $user->shop : null;
+        $organization = $this->application_type === UserRole::Logistics ? $user->logisticsOrganization : null;
+        $hubAddress = $organization?->hub?->address;
 
         return [
             'id' => $this->id,
@@ -51,15 +54,19 @@ class RegistrationDetailResource extends JsonResource
                         'name' => $shop->shopCategory->name,
                     ] : null,
                 ] : null,
-                'address' => $address ? [
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'barangay' => $address->barangay,
-                    'city_municipality' => $address->city_municipality,
-                    'province' => $address->province,
-                    'region' => $address->region,
-                    'postal_code' => $address->postal_code,
-                    'country' => $address->country,
+                'logistics_organization' => $organization ? [
+                    'business_name' => $organization->business_name,
+                    'hub_name' => $organization->hub?->name,
+                ] : null,
+                'address' => ($hubAddress ?? $address) ? [
+                    'address_line_1' => ($hubAddress ?? $address)->address_line_1,
+                    'address_line_2' => ($hubAddress ?? $address)->address_line_2,
+                    'barangay' => ($hubAddress ?? $address)->barangay,
+                    'city_municipality' => ($hubAddress ?? $address)->city_municipality,
+                    'province' => ($hubAddress ?? $address)->province,
+                    'region' => ($hubAddress ?? $address)->region,
+                    'postal_code' => ($hubAddress ?? $address)->postal_code,
+                    'country' => ($hubAddress ?? $address)->country,
                 ] : null,
             ],
             'documents' => $this->whenLoaded('documents', fn () => $this->documents->map(fn ($document) => [

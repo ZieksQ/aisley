@@ -22,6 +22,7 @@ class ListRegistrationsRequest extends FormRequest
             'role' => ['sometimes', Rule::in([
                 UserRole::Customer->value,
                 UserRole::Seller->value,
+                UserRole::Logistics->value,
             ])],
             'search' => ['sometimes', 'string', 'max:255'],
             'sort' => ['sometimes', Rule::in(['oldest', 'newest'])],

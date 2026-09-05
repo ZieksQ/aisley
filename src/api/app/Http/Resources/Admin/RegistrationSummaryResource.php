@@ -34,6 +34,7 @@ class RegistrationSummaryResource extends JsonResource
         $profile = match ($this->application_type) {
             UserRole::Customer => $user->customerProfile,
             UserRole::Seller => $user->sellerProfile,
+            UserRole::Logistics => $user->logisticsProfile,
             default => null,
         };
 

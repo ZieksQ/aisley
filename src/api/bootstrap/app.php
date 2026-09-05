@@ -3,6 +3,7 @@
 use App\Http\Middleware\Admin\EnsureActiveAdmin;
 use App\Http\Middleware\Admin\EnsureAdminPermission;
 use App\Http\Middleware\Customer\EnsureActiveCustomer;
+use App\Http\Middleware\Logistics\EnsureActiveLogistics;
 use App\Http\Middleware\Seller\EnsureActiveSeller;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.permission' => EnsureAdminPermission::class,
             'customer.active' => EnsureActiveCustomer::class,
             'seller.active' => EnsureActiveSeller::class,
+            'logistics.active' => EnsureActiveLogistics::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -1,0 +1,3 @@
+import { useEffect, useState } from 'react'
+import { FaMoon, FaSun } from 'react-icons/fa6'
+export function ThemeToggle() { const [dark, setDark] = useState(() => localStorage.getItem('logistics-theme') === 'dark'); useEffect(() => { document.documentElement.classList.toggle('dark', dark); localStorage.setItem('logistics-theme', dark ? 'dark' : 'light') }, [dark]); return <button aria-label={dark ? 'Use light theme' : 'Use dark theme'} className="grid size-9 place-items-center rounded-lg border border-zinc-300 text-zinc-600 dark:border-white/15 dark:text-zinc-300" onClick={() => setDark((value) => !value)} type="button">{dark ? <FaSun /> : <FaMoon />}</button> }

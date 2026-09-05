@@ -19,7 +19,7 @@ import type {
 } from '../types/registrations'
 
 const statuses: RegistrationStatus[] = ['pending', 'approved', 'rejected']
-const roles: RegistrationRole[] = ['customer', 'seller']
+const roles: RegistrationRole[] = ['customer', 'seller', 'logistics']
 
 function validStatus(value: string | null): RegistrationStatus {
   return statuses.includes(value as RegistrationStatus) ? (value as RegistrationStatus) : 'pending'
@@ -116,7 +116,7 @@ export function RegistrationsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#E6007A]">Review queue</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Manage account registrations</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Review Customer and Seller applications. Courier approvals remain outside the platform Admin workflow.
+            Review Customer, Seller, and Logistics applications. Courier approvals remain outside the platform Admin workflow.
           </p>
         </div>
         {response && !isLoading && (
@@ -171,6 +171,7 @@ export function RegistrationsPage() {
                 <option value="">All roles</option>
                 <option value="customer">Customer</option>
                 <option value="seller">Seller</option>
+                <option value="logistics">Logistics</option>
               </select>
             </label>
 
