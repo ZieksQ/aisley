@@ -1,19 +1,21 @@
 "use client";
 
 import { getImageProps } from "next/image";
-import { useState } from "react";
+import { memo, useState } from "react";
 
-export function CampaignImage({
-  alt,
-  desktopSrc,
-  mobileSrc,
-  priority = false,
-}: {
+type CampaignImageProps = {
   alt: string | null;
   desktopSrc: string | null;
   mobileSrc: string | null;
   priority?: boolean;
-}) {
+};
+
+export const CampaignImage = memo(function CampaignImage({
+  alt,
+  desktopSrc,
+  mobileSrc,
+  priority = false,
+}: CampaignImageProps) {
   const sourceKey = `${desktopSrc ?? ""}|${mobileSrc ?? ""}`;
   const [failedSourceKey, setFailedSourceKey] = useState<string | null>(null);
 
@@ -21,10 +23,13 @@ export function CampaignImage({
     return null;
   }
 
+  const loading = priority ? "eager" : "lazy";
+  const fetchPriority = priority ? "high" : "auto";
   const desktop = getImageProps({
     alt: alt ?? "",
     fill: true,
-    priority,
+    fetchPriority,
+    loading,
     sizes: "(max-width: 1023px) 100vw, 900px",
     src: desktopSrc,
   });
@@ -32,7 +37,8 @@ export function CampaignImage({
     ? getImageProps({
         alt: alt ?? "",
         fill: true,
-        priority,
+        fetchPriority,
+        loading,
         sizes: "100vw",
         src: mobileSrc,
       })
@@ -52,4 +58,6 @@ export function CampaignImage({
       />
     </picture>
   );
-}
+});
+
+CampaignImage.displayName = "CampaignImage";

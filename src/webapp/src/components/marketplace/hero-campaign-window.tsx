@@ -98,8 +98,12 @@ export function HeroCampaignWindow({
   const trackCampaigns = canLoop ? [campaigns[campaigns.length - 1], ...campaigns, campaigns[0]] : campaigns;
 
   useEffect(() => {
-    setTransitionDisabled(true);
-    setTrackIndex(1);
+    const frame = window.requestAnimationFrame(() => {
+      setTransitionDisabled(true);
+      setTrackIndex(1);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [campaigns.length, isCarousel]);
 
   useEffect(() => {
@@ -168,7 +172,7 @@ export function HeroCampaignWindow({
                   className="relative block h-full min-w-full shrink-0"
                   position={campaignIndex + 1}
                 >
-                  {campaignContent(campaign, campaignIndex === 0)}
+                  {campaignContent(campaign, canLoop ? index === 1 : campaignIndex === 0)}
                 </CampaignLink>
               );
             })}
