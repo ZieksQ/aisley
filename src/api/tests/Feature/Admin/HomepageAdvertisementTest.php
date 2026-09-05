@@ -47,17 +47,23 @@ class HomepageAdvertisementTest extends TestCase
         $this->assertArrayNotHasKey('description', $draft->json('data.ads.0'));
         $this->assertArrayNotHasKey('alt_text', $draft->json('data.ads.0'));
         $this->assertArrayNotHasKey('starts_at', $draft->json('data.ads.0'));
+        $this->get('/api/v1/homepage-advertisement-images/'.$draft->json('data.ads.0.id').'/desktop')->assertNotFound();
 
         $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft->json('data.id').'/publish', [
             'revision' => 1,
         ])->assertOk();
 
-        $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
+        $homepage = $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
             ->assertJsonPath('advertisementLayer.layout', 'single')
             ->assertJsonPath('advertisementLayer.primary.0.title', null)
             ->assertJsonPath('advertisementLayer.primary.0.description', null)
             ->assertJsonPath('advertisementLayer.primary.0.altText', null)
-            ->assertJsonPath('advertisementLayer.primary.0.imageDesktopUrl', Storage::disk('public')->url($image['path']));
+            ->assertJsonPath('advertisementLayer.primary.0.imageDesktopUrl', url('/api/v1/homepage-advertisement-images/'.$draft->json('data.ads.0.id').'/desktop'));
+
+        $imageResponse = $this->get(parse_url((string) $homepage->json('advertisementLayer.primary.0.imageDesktopUrl'), PHP_URL_PATH));
+        $imageResponse->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('public', (string) $imageResponse->headers->get('Cache-Control'));
+        $this->assertStringContainsString('max-age=86400', (string) $imageResponse->headers->get('Cache-Control'));
 
         $this->assertDatabaseHas('homepage_campaigns', [
             'image_desktop_path' => $image['path'],
@@ -127,6 +133,8 @@ class HomepageAdvertisementTest extends TestCase
         $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$second.'/publish', ['revision' => 1])->assertOk();
 
         $this->assertDatabaseHas('homepage_advertisement_configurations', ['id' => $first, 'status' => 'archived']);
+        $archivedCampaign = $this->getJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$first)->json('data.ads.0.id');
+        $this->get('/api/v1/homepage-advertisement-images/'.$archivedCampaign.'/desktop')->assertNotFound();
         $this->deleteJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$first, ['revision' => 2])->assertNoContent();
         $this->assertDatabaseMissing('homepage_advertisement_configurations', ['id' => $first]);
         $this->assertDatabaseMissing('homepage_campaigns', ['homepage_advertisement_configuration_id' => $first]);
@@ -142,6 +150,14 @@ class HomepageAdvertisementTest extends TestCase
 
         $this->assertSame('azure-banner.jpeg', $image['filename']);
         Storage::disk('azure')->assertExists($image['path']);
+
+        $draft = $this->createDraft($admin, 'Azure delivery', $image);
+        $this->postJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft.'/publish', ['revision' => 1])->assertOk();
+        $campaignId = $this->getJson('/api/v1/admin/platform-settings/homepage-advertisements/'.$draft)->json('data.ads.0.id');
+
+        $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
+            ->assertJsonPath('advertisementLayer.primary.0.imageDesktopUrl', url('/api/v1/homepage-advertisement-images/'.$campaignId.'/desktop'));
+        $this->get('/api/v1/homepage-advertisement-images/'.$campaignId.'/desktop')->assertOk();
     }
 
     public function test_upload_rejects_an_image_at_the_ten_mebibyte_limit(): void

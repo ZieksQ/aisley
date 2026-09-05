@@ -21,8 +21,8 @@ class HomepageCampaignResource extends JsonResource
             'description' => $this->description,
             'slot' => $this->slot,
             'position' => $this->position,
-            'imageDesktopUrl' => MediaUrl::from($this->image_disk, $this->image_desktop_path),
-            'imageMobileUrl' => MediaUrl::from($this->image_disk, $this->image_mobile_path),
+            'imageDesktopUrl' => $this->imageUrl('desktop'),
+            'imageMobileUrl' => $this->imageUrl('mobile'),
             'altText' => $this->alt_text,
             'destinationUrl' => SafeHomepageDestination::sanitize($this->destination_url),
             'startsAt' => $this->starts_at?->toISOString(),
@@ -30,5 +30,19 @@ class HomepageCampaignResource extends JsonResource
             'priority' => $this->priority,
             'isActive' => true,
         ];
+    }
+
+    private function imageUrl(string $variant): ?string
+    {
+        $path = $variant === 'desktop' ? $this->image_desktop_path : $this->image_mobile_path;
+        if (! $path) {
+            return null;
+        }
+
+        if ($this->homepage_advertisement_configuration_id !== null) {
+            return url("/api/v1/homepage-advertisement-images/{$this->id}/{$variant}");
+        }
+
+        return MediaUrl::from($this->image_disk, $path);
     }
 }

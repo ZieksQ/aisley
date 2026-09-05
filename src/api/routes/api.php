@@ -23,6 +23,7 @@ use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
+use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
@@ -215,6 +216,11 @@ Route::get('v1/product-media/{media}', ProductMediaController::class)
     ->whereUuid('media')
     ->middleware('throttle:120,1')
     ->name('product-media.show');
+Route::get('v1/homepage-advertisement-images/{campaign}/{variant}', HomepageAdvertisementImageController::class)
+    ->whereUuid('campaign')
+    ->where('variant', 'desktop|mobile')
+    ->middleware('throttle:120,1')
+    ->name('homepage-advertisement-images.show');
 
 Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->group(function () {
     Route::get('/home', [HomepageController::class, 'show'])->name('home.show');

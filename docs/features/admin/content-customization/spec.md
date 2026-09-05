@@ -17,7 +17,6 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 - Admins can create, edit, order, schedule, activate, archive, and publish advertisements with:
   - a required internal-only advertisement title used as an Admin tag
   - desktop image and optional mobile art-directed image
-  - optional image alternative text
   - safe destination link
 - The layout is selected for the advertisement layer only:
   - `single`: one advertisement in one full-width block.
@@ -96,6 +95,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
   - `POST/PATCH /api/v1/admin/homepage-advertisements...`
   - `POST /api/v1/admin/homepage-advertisements/uploads`
   - `POST /api/v1/admin/homepage-advertisements/configuration/publish`
+  - `GET /api/v1/homepage-advertisement-images/{campaign}/{variant}` for published Customer delivery through the configured storage disk
 - Extend `GET /api/v1/customer/home` with the `advertisementLayer` DTO while keeping other response keys and owning services intact. The webapp replaces only `HeroCampaignWindow` with a layout-dispatching advertisement component; its existing `HomeDataProvider`, analytics, SSR/CSR boundary, and API client remain the integration points.
 - Use Next.js responsive image/art-direction support with accurate `sizes`, prioritized loading for only the initial primary asset, lazy loading for later/lower-priority assets, and server delivery URLs. See the Next.js Image guidance below.
 - Backend tests cover permissions, storage-backed upload validation, slot cardinality, safe destinations, draft/publish transitions, whole-layout eligibility, archived deletion, cache invalidation, audit payloads, and unchanged non-ad homepage fields. Frontend tests cover all layouts, mobile order/overflow, filename feedback, loading/error/conflict states, links, keyboard controls, and carousel timing.
