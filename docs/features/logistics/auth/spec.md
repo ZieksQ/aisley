@@ -92,13 +92,13 @@ ACTIVE → SUSPENDED/DEACTIVATED → protected access denied
 
 ### Acceptance criteria
 
-- [ ] Valid registration creates one pending Logistics account, organization, sole hub address, application, and submitted evidence records with server-derived role and age.
-- [ ] The sole-hub address, local PSGC lookup/fallback, evidence policy, and ownership/status fields are enforced without trusting client authority.
-- [ ] Retries or concurrent requests cannot create duplicate organization accounts, hubs, applications, or evidence.
-- [ ] Admin approval/rejection updates the existing records and sends the configured notification.
-- [ ] Only an approved active Logistics account can establish a dashboard session; same-email accounts in other roles cannot authenticate into it.
-- [ ] CSRF, session regeneration, HttpOnly cookies, generic credential errors, login throttling, `me`, logout, and role-isolated password recovery work as specified.
-- [ ] Private registration evidence cannot be fetched without authorization or exposed through DTOs.
+- [x] Valid registration creates one pending Logistics account, organization, sole hub address, application, and submitted evidence records with server-derived role and age.
+- [x] The sole-hub address, local PSGC lookup/fallback, evidence policy, and ownership/status fields are enforced without trusting client authority.
+- [x] Retries or concurrent requests cannot create duplicate organization accounts, hubs, applications, or evidence.
+- [x] Admin approval/rejection updates the existing records and sends the configured notification.
+- [x] Only an approved active Logistics account can establish a dashboard session; same-email accounts in other roles cannot authenticate into it.
+- [x] CSRF, session regeneration, HttpOnly cookies, generic credential errors, login throttling, `me`, logout, and role-isolated password recovery work as specified.
+- [x] Private registration evidence cannot be fetched without authorization or exposed through DTOs.
 
 ## HOW
 
