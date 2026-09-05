@@ -335,3 +335,11 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-05
 
 - Replaced the 1,113-line Logistics Dashboard draft with a concise implementation-ready contract. It now scopes the read-only operational queue to the organization's sole hub, starts at the Seller `ready_for_pickup` handoff, distinguishes current and future shipment states, defines API/freshness/privacy behavior, and preserves handoffs to Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, and Capacity features. No application behavior changed.
+
+## 2026-09-05
+
+- Revised the Courier Authentication specification to make the selected Logistics organization the sole Courier registration approver, keep Admin suspend/restore/deactivate actions separate, derive the organization's sole hub server-side, and align the current Logistics foundation and external Flutter boundary. Synchronized the affected Logistics/Courier flow review so it no longer treats Courier approval authority as unresolved. No application behavior changed.
+
+## 2026-09-05
+
+- Revised the Courier Authentication specification to make the selected Logistics organization the sole Courier registration approver, keep Admin suspend/restore/deactivate actions separate, derive the organization's sole hub server-side, and align the current Logistics foundation and external Flutter boundary. No application behavior changed.

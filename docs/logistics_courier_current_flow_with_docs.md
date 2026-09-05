@@ -13,7 +13,7 @@ The Logistics and Courier documents are aligned in their overall intent and cove
 - **Implementation status: partial.** The repository now has the Logistics role, one-account/one-organization/one-hub foundation, auth flow, seeder, and protected Dashboard scaffold. It still has no shipment/parcel, waybill, scan, delivery-task, assignment, proof-of-delivery, or earnings workflow, and Courier remains an external mobile client.
 - **MVP scope: settled.** Each Logistics organization operates exactly one operational hub/sorting center through one Logistics account. The registration address is that sole hub address; no sub-hub, additional hub, or staff/sub-account branch is part of this flow.
 - **Duplicate features: mostly no.** Most apparent overlap is an integration boundary where two features touch the same workflow. Those boundaries need shared contracts, not duplicate implementations.
-- **Remaining conflicts: yes.** Approval authority, status/state ownership, the two Courier pickup legs, vehicle ownership, POD policy, mapping references, and route naming need resolution before the remaining operational features are coded.
+- **Remaining conflicts: yes.** Status/state ownership, the two Courier pickup legs, vehicle ownership, POD policy, mapping references, and route naming need resolution before the remaining operational features are coded. Courier approval authority is settled: the associated Logistics organization approves the Courier.
 
 The practical conclusion is: keep the individual feature specs, but revise the cross-feature contracts first. The specs should not be implemented independently until the decisions in this report are recorded in one authoritative shared document.
 
@@ -58,7 +58,7 @@ This is the flow implied by the combined requirements and workspace documents, w
 1. A Logistics applicant registers with personal/business details, a Philippine address, and registration evidence.
 2. An Admin reviews the Logistics application. Approval activates the Logistics account; rejection leaves it unable to sign in. The Logistics account then enters the subscription flow after sign-in.
 3. A Courier searches for and selects an eligible Logistics company or hub, submits personal/address/vehicle/evidence details, and waits for approval.
-4. The requirements and workspace documents say the associated Logistics company approves the Courier. The repository rule and the Courier auth spec also require Admin approval before a Courier may use the app. The number and order of required approvals are not currently authoritative.
+4. The associated Logistics organization reviews and approves the Courier. Admin account suspension, restoration, or deactivation remains a separate platform lifecycle action, not a second registration approval.
 5. After every required approval, the Courier signs in through the external mobile app and receives a Sanctum bearer token. Logistics uses the stateful Sanctum web-session pattern.
 
 ### 2. Buyer order and Seller handoff
@@ -107,7 +107,7 @@ Only specs that directly gate or consume the order-to-delivery path are listed h
 
 | Stage | Directly affected specs | Responsibility and current state |
 | --- | --- | --- |
-| Access gate | [`logistics/auth`](features/logistics/auth/spec.md); [`courier/auth`](features/courier/auth/spec.md) | Logistics Auth and its one-account/one-organization/one-hub foundation are implemented. Courier Auth is planned for the external Flutter app; approval authority remains unresolved. |
+| Access gate | [`logistics/auth`](features/logistics/auth/spec.md); [`courier/auth`](features/courier/auth/spec.md) | Logistics Auth and its one-account/one-organization/one-hub foundation are implemented. Courier Auth is planned for the external Flutter app; the associated Logistics organization is the settled Courier approver. |
 | Seller handoff | [`seller/prepare-orders`](features/seller/prepare-orders/spec.md) | Seller owns `SELLER_PROCESSING → READY_FOR_PICKUP` and the committed handoff event. The spec exists; the fulfillment implementation is deferred. |
 | Logistics intake | [`logistics/dashboard`](features/logistics/dashboard/specs.md); [`logistics/waybill`](features/logistics/waybill/specs.md); [`logistics/update-status`](features/logistics/update-status/specs.md) | Dashboard reads the Seller-ready queue; Waybill owns identity/printing; Update Status owns valid scan/manual transitions. Only the Dashboard scaffold is implemented. |
 | Dispatch inputs and decision | [`logistics/flexible-availability-and-capacity-monitoring`](features/logistics/flexible-availability-and-capacity-monitoring/specs.md); [`logistics/vehicle-fleet-management`](features/logistics/vehicle-fleet-management/specs.md); [`logistics/zone-territory-mapping`](features/logistics/zone-territory-mapping/specs.md); [`logistics/deploy-rider`](features/logistics/deploy-rider/specs.md) | Availability, fleet, and zones provide eligibility inputs; Deploy Rider creates the assignment/offer. These are draft contracts. |
@@ -145,13 +145,11 @@ The operational specs generally treat route providers as sources of distance/rou
 
 These are the items that are more than ordinary implementation detail.
 
-### 1. Courier approval authority
+### 1. Courier approval authority is settled
 
-- [`docs/requirements.md`](docs/requirements.md) and [`docs/workspace.md`](docs/workspace.md) say a Courier registers under and is approved by the associated Logistics company.
-- The repository rule in [`AGENTS.md`](AGENTS.md) says Sellers and Couriers cannot use their apps until Admin approval.
-- The Courier auth spec correctly fails closed and recommends Logistics affiliation approval followed by platform Admin approval, but that recommendation is not yet a project decision.
+The requirements, workspace rules, `AGENTS.md`, and revised Courier Auth spec agree that the associated Logistics organization is the sole Courier registration reviewer and approval authority for the MVP. Admin account-management actions may suspend, restore, or deactivate an account after or independently of registration, but Admin approval is not a second Courier-registration stage.
 
-Choose one authority or formally adopt two-stage approval. If two-stage approval is adopted, the schema needs separate decisions, actors, timestamps, reasons, and notification states; a single existing registration reviewer field is not sufficient.
+The remaining implementation gap is an auditable Courier-to-Logistics relationship and Logistics decision record with actor, reason, timestamp, and notification state; the authority itself is no longer an open decision.
 
 ### 2. Role/schema documentation lag
 
@@ -243,7 +241,7 @@ These dependencies do not require duplicate features. They require shared owners
 This order is a dependency recommendation, not a new product requirement.
 
 1. **Preserve the settled organization boundary:** one Logistics account, one organization, and one operational hub; synchronize the schema documentation with the implemented foundation before adding parcel ownership.
-2. **Resolve the approval decision:** Logistics-only or two-stage Logistics + Admin Courier approval, including status fields and notification ownership.
+2. **Implement the settled approval boundary:** Logistics-only Courier approval, including the relationship, decision fields, notification ownership, and separate Admin lifecycle actions.
 3. **Write the shared shipment contract:** Order, Parcel/Shipment, Delivery Task, Assignment/Offer, Scan, POD, and immutable history ownership.
 4. **Define the state machine:** separate state fields where necessary and map each state-changing action to one transition service.
 5. **Complete the Seller handoff:** implement Seller Prepare Orders so only a committed `READY_FOR_PICKUP` event can enter the Logistics flow.
@@ -257,7 +255,7 @@ This order is a dependency recommendation, not a new product requirement.
 
 - Replace every `app.md` source reference with an existing canonical document, or restore one authoritative `app.md`; do not leave provider and workflow decisions pointing to a missing file.
 - Add the deferred Logistics shared state-machine and scanner specs before revising status-heavy feature specs again.
-- Add the deferred Logistics Courier Approval/Management spec so the approval authority, relationship, and revocation cascade are not spread across auth and dispatch documents.
+- Add the deferred Logistics Courier Approval/Management spec so the settled Logistics authority, relationship, decision record, and revocation cascade are not spread across auth and dispatch documents.
 - Synchronize `docs/schema.md` with the implemented Logistics role/profile/organization/sole-hub migration; keep the one-account/one-hub MVP invariant consistent across Auth, Dashboard, Fleet, Zone, Availability, Deploy Rider, and Courier Auth.
 - Normalize conceptual API examples to `/api/v1/logistics/...` and `/api/v1/courier/...` (or explicitly label them as pseudoroutes).
 - Make the two Courier legs explicit in Dashboard, Accept, Pickup, Deploy Rider, Complete, History, and Profit.
@@ -269,4 +267,4 @@ This order is a dependency recommendation, not a new product requirement.
 
 The Logistics and Courier specs are directionally aligned with the existing requirements and domain documents. The feature list is coherent, and there is no large duplicate feature that needs to be removed. The one-account/one-hub MVP boundary is settled; the current blockers are the remaining shared design decisions and missing implementation foundations, not a fundamentally wrong flow.
 
-Before implementing the remaining operational features, resolve the approval authority, two Courier legs, shared state machine, vehicle ownership, POD policy, subscription gate, and provider/source-document inconsistencies. Keep every new resource scoped to the already-settled Logistics organization and sole hub, then revise the feature specs around the shared contracts and implement them in dependency order.
+Before implementing the remaining operational features, resolve the two Courier legs, shared state machine, vehicle ownership, POD policy, subscription gate, and provider/source-document inconsistencies. Keep every new resource scoped to the already-settled Logistics organization and sole hub and the settled Logistics-only Courier approval, then revise the feature specs around the shared contracts and implement them in dependency order.
