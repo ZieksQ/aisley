@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LogisticsOrganization extends Model
@@ -21,5 +22,10 @@ class LogisticsOrganization extends Model
     public function hub(): HasOne
     {
         return $this->hasOne(LogisticsHub::class, 'logistics_organization_id');
+    }
+
+    public function courierAffiliations(): HasMany
+    {
+        return $this->hasMany(CourierLogisticsAffiliation::class);
     }
 }
