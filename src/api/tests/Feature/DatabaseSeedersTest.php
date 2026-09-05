@@ -11,6 +11,7 @@ use App\Models\ProductOptionGroup;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Database\Seeders\InitialCustomerSeeder;
+use Database\Seeders\InitialLogisticsSeeder;
 use Database\Seeders\InitialSellerSeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -160,6 +161,47 @@ class DatabaseSeedersTest extends TestCase
             'email' => 'production-seller@example.com',
             'role' => UserRole::Seller->value,
         ]);
+    }
+
+    public function test_initial_logistics_seeder_creates_one_active_organization_and_sole_hub_from_configuration(): void
+    {
+        config()->set('logistics.initial', [
+            'email' => ' LOGISTICS@example.com ',
+            'password' => 'InitialLogistics123',
+            'first_name' => 'Logan',
+            'last_name' => 'Operator',
+            'contact_number' => '+639171111112',
+            'birth_date' => '1990-01-01',
+            'business_name' => 'Aisley Delivery Services',
+            'hub_name' => 'Aisley Makati Hub',
+            'address_line_1' => '1 Hub Road',
+            'address_line_2' => null,
+            'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City',
+            'province' => 'Metro Manila',
+            'region' => 'National Capital Region (NCR)',
+            'postal_code' => '1200',
+        ]);
+
+        $this->seed(InitialLogisticsSeeder::class);
+
+        $logistics = User::query()
+            ->where('email', 'logistics@example.com')
+            ->where('role', UserRole::Logistics)
+            ->firstOrFail();
+
+        $this->assertSame(UserStatus::Active, $logistics->status);
+        $this->assertTrue(Hash::check('InitialLogistics123', $logistics->password));
+        $this->assertSame('Logan', $logistics->logisticsProfile->first_name);
+        $this->assertSame('Aisley Delivery Services', $logistics->logisticsOrganization->business_name);
+        $this->assertSame('Aisley Makati Hub', $logistics->logisticsOrganization->hub->name);
+
+        config()->set('logistics.initial.password', 'ReplacementLogistics456');
+        $this->seed(InitialLogisticsSeeder::class);
+
+        $this->assertTrue(Hash::check('InitialLogistics123', $logistics->fresh()->password));
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('logistics_hubs', 1);
     }
 
     /** @param array<string, mixed> $overrides */
