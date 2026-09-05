@@ -82,7 +82,7 @@ Courier-owned task transitions are:
 - **First mile:** `seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`.
 - **Final mile:** `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → `in_transit` → `out_for_delivery` → `delivered`.
 
-`received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub` are Logistics-side milestones. The same Courier may perform both legs, but each leg still requires its own task, assignment, actor, timestamp, location, and scan/event history.
+`received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub` are Logistics-side milestones. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history.
 
 ## Physical delivery flow
 
