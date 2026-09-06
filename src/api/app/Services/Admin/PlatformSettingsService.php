@@ -7,6 +7,7 @@ use App\Enums\AdminAuditAction;
 use App\Enums\AnnouncementStatus;
 use App\Enums\PlatformPolicyType;
 use App\Enums\PlatformPolicyVersionStatus;
+use App\Jobs\Customer\DeliverAnnouncementNotifications;
 use App\Models\Announcement;
 use App\Models\PlatformPolicy;
 use App\Models\PlatformPolicyVersion;
@@ -60,6 +61,7 @@ class PlatformSettingsService
             return $locked;
         });
         Cache::forget(Announcement::ACTIVE_CACHE_KEY);
+        DeliverAnnouncementNotifications::dispatch($result->id)->afterCommit();
 
         return $result;
     }

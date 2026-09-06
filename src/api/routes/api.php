@@ -18,6 +18,7 @@ use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\HomepageController;
+use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductSearchController;
@@ -273,6 +274,9 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active'])->group(function () {
+        Route::get('/notifications', [CustomerNotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{notification}', [CustomerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
+        Route::post('/notifications/{notification}/read', [CustomerNotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
         Route::get('/account', [CustomerAccountController::class, 'show'])->name('account.show');
         Route::patch('/account/profile', [CustomerAccountController::class, 'updateProfile'])->name('account.profile.update');
         Route::patch('/account/password', [CustomerAccountController::class, 'updatePassword'])

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Events\CustomerOrderStatusChanged;
 use App\Events\SellerOrderBecameActionable;
+use App\Listeners\SendCustomerOrderStatusNotification;
 use App\Listeners\SendSellerOrderActionableNotification;
 use App\Models\PersonalAccessToken;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
         Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
+        Event::listen(CustomerOrderStatusChanged::class, SendCustomerOrderStatusNotification::class);
 
         RateLimiter::for('customer-account-password', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [

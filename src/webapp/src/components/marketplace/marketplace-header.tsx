@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { MarketplaceSearch } from "./marketplace-search";
 import {
-  DeliveryLocation,
   HeaderAccountControls,
   UtilityAccountControls,
 } from "./viewer-controls";
@@ -59,8 +58,6 @@ export function MarketplaceHeader({ initialQuery = "" }: { initialQuery?: string
               className="h-8 w-auto sm:h-9"
             />
           </Link>
-
-          <DeliveryLocation />
 
           <div className="hidden min-w-0 flex-1 md:block">
             <MarketplaceSearch

@@ -17,6 +17,7 @@ use App\Enums\UserStatus;
 use App\Enums\VoucherBenefitType;
 use App\Enums\VoucherIssuerType;
 use App\Enums\VoucherValueType;
+use App\Events\CustomerOrderStatusChanged;
 use App\Events\SellerOrderBecameActionable;
 use App\Exceptions\Customer\CheckoutException;
 use App\Models\Address;
@@ -126,11 +127,13 @@ class CheckoutService
             ]);
 
             $actionableOrderIds = [];
+            $customerOrderStatusEventIds = [];
             foreach ($calculation['groups'] as $group) {
                 $order = $this->createOrder($batch, $customer, $calculation['address'], $group, $placedAt);
                 $this->reserveInventory($batch, $order, $group['lines']);
                 $this->redeemVouchers($batch, $customer, $order, $group['applied_vouchers'], $placedAt);
                 $actionableOrderIds[] = $order->id;
+                $customerOrderStatusEventIds[] = $order->statusEvents()->latest('occurred_at')->value('id');
             }
 
             if ($input['mode'] === CheckoutMode::Cart->value) {
@@ -140,9 +143,12 @@ class CheckoutService
                     ->delete();
             }
 
-            DB::afterCommit(function () use ($actionableOrderIds): void {
+            DB::afterCommit(function () use ($actionableOrderIds, $customerOrderStatusEventIds): void {
                 foreach ($actionableOrderIds as $orderId) {
                     event(new SellerOrderBecameActionable($orderId));
+                }
+                foreach (array_filter($customerOrderStatusEventIds) as $eventId) {
+                    event(new CustomerOrderStatusChanged($eventId));
                 }
             });
 

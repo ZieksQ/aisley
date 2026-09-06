@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  FiMapPin,
   FiMessageCircle,
   FiShoppingCart,
 } from "react-icons/fi";
@@ -11,6 +10,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { AccountMenu } from "./account-menu";
 import { useHomeData } from "./home-data-provider";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 function authDestination(path: string, isAuthenticated: boolean) {
   return isAuthenticated ? path : `/login?next=${encodeURIComponent(path)}`;
@@ -44,31 +44,6 @@ export function UtilityAccountControls() {
   );
 }
 
-export function DeliveryLocation() {
-  const { data } = useHomeData();
-  const { viewer } = data;
-  const location = viewer.deliveryLocation;
-
-  return (
-    <Link
-      href={authDestination("/account/addresses", viewer.isAuthenticated)}
-      className="hidden max-w-36 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] lg:flex"
-    >
-      <FiMapPin aria-hidden="true" className="size-5 shrink-0" />
-      <span className="min-w-0 leading-tight">
-        <span className="block text-[11px] text-[#746778]">Deliver to</span>
-        <span className="block truncate text-xs font-semibold">
-          {location
-            ? `${location.cityMunicipality}, ${location.province}`
-            : viewer.isAuthenticated
-              ? "Add address"
-              : "Set location"}
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 export function HeaderAccountControls() {
   const { auth } = useAuth();
   const { cart } = useCart();
@@ -82,6 +57,7 @@ export function HeaderAccountControls() {
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+      <NotificationBell />
       <Link
         href={authDestination("/messages", viewer.isAuthenticated)}
         aria-label="Messages"
