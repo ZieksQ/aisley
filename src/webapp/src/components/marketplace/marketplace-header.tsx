@@ -16,6 +16,11 @@ const marketplaceLinks = [
   { label: "Shops", href: "/shops" },
 ];
 
+const upcomingLinks = [
+  { label: "Bazaar", href: "/bazaar" },
+  { label: "MoneyFest", href: "/moneyfest" },
+];
+
 export function UtilityBar() {
   return (
     <div className="hidden border-b border-[#E9E4EB] bg-white text-xs text-[#5E5262] md:block">
@@ -79,18 +84,29 @@ export function MarketplaceHeader({ initialQuery = "" }: { initialQuery?: string
 
       <nav
         aria-label="Marketplace"
-        className="hidden border-t border-[#4C1268] bg-[#4C1268] md:block"
+        className="border-t border-[#4C1268] bg-[#4C1268]"
       >
-        <div className="mx-auto flex h-9 max-w-[1400px] items-center gap-7 overflow-x-auto px-5 text-xs font-medium text-white lg:px-8">
+        <div className="mx-auto flex min-h-11 max-w-[1400px] items-center gap-7 overflow-x-auto px-4 text-xs font-medium text-white sm:px-5 lg:px-8">
           {marketplaceLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className="whitespace-nowrap transition-colors hover:text-[#E9D5F2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap transition-colors hover:text-[#E9D5F2] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
             >
               {link.label}
             </Link>
           ))}
+          <div className="ml-auto flex shrink-0 items-center gap-7">
+            {upcomingLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="inline-flex min-h-11 items-center whitespace-nowrap transition-colors hover:text-[#E9D5F2] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </nav>
     </header>

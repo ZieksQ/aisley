@@ -372,3 +372,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Changed the Customer logo/search navbar to dark purple with white icons and focus indicators. Added a light lavender default avatar for the navbar while preserving existing profile photos and avatar styling elsewhere.
+
+## 2026-09-07
+
+- Added Bazaar and MoneyFest links at the right of the Customer category navigation row, with horizontal scrolling and accessible tap targets on smaller screens. Added public coming-soon pages describing Bazaar's certified/verified shops and MoneyFest's planned cashback, monthly purchase retention requirement, and future credit redemption. Placeholder pages reuse the storefront header and include route metadata with indexing disabled until launch; store verification and cashback processing remain future work.
