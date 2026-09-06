@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   FiCheckCircle,
@@ -28,7 +27,6 @@ import type {
 } from "@/lib/orders/types";
 
 export function OrderDetailContent({ orderId }: { orderId: string }) {
-  const router = useRouter();
   const { auth } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,13 +35,6 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
   const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-  const returnPath = `/orders/${orderId}`;
-
-  useEffect(() => {
-    if (auth.status === "guest") {
-      router.replace(`/login?next=${encodeURIComponent(returnPath)}`);
-    }
-  }, [auth.status, returnPath, router]);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -63,13 +54,6 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
           setNotFound(true);
           return;
         }
-        if (
-          caught instanceof ApiError &&
-          (caught.status === 401 || caught.status === 403)
-        ) {
-          router.replace(`/login?next=${encodeURIComponent(returnPath)}`);
-          return;
-        }
         setError(
           caught instanceof ApiError
             ? caught.message
@@ -81,7 +65,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
       });
 
     return () => controller.abort();
-  }, [auth.status, orderId, retryKey, returnPath, router]);
+  }, [auth.status, orderId, retryKey]);
 
   const refreshQuietly = useCallback(async () => {
     if (auth.status !== "authenticated" || !navigator.onLine) {

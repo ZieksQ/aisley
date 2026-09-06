@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { HiChevronRight } from "react-icons/hi2";
 
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { OrdersPageContent } from "@/components/orders/orders-page-content";
-import { getServerAuthState } from "@/lib/auth/server";
 import { marketplaceConfig } from "@/lib/marketplace/config";
 import { getPublicHomepage } from "@/lib/marketplace/server";
 import {
@@ -25,15 +23,10 @@ export default async function OrdersPage({
 }: {
   searchParams: Promise<{ group?: string | string[]; page?: string | string[] }>;
 }) {
-  const [{ group, page }, auth, homepage] = await Promise.all([
+  const [{ group, page }, homepage] = await Promise.all([
     searchParams,
-    getServerAuthState(),
     getPublicHomepage(marketplaceConfig.discoveryPageSize),
   ]);
-
-  if (auth.status === "guest") {
-    redirect(`/login?next=${encodeURIComponent("/orders")}`);
-  }
 
   const groupValue = Array.isArray(group) ? group[0] : group;
   const selectedGroup: CustomerOrderGroup | null = isCustomerOrderGroup(groupValue)

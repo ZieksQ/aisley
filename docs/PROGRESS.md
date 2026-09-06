@@ -376,3 +376,8 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Added Bazaar and MoneyFest links at the right of the Customer category navigation row, with horizontal scrolling and accessible tap targets on smaller screens. Added public coming-soon pages describing Bazaar's certified/verified shops and MoneyFest's planned cashback, monthly purchase retention requirement, and future credit redemption. Placeholder pages reuse the storefront header and include route metadata with indexing disabled until launch; store verification and cashback processing remain future work.
+
+## 2026-09-07
+
+- Reworked Customer session restoration into one deduplicated browser `/me` check per app load, retaining in-memory identity across navigation and removing duplicate Next.js page/layout checks and focus revalidation. Centralized protected-route redirects and private API session-failure handling while preserving Laravel authentication, active-role checks, and ownership enforcement. Network/server failures now retain known identity or offer startup retry; ordinary resource `403` stays on the page, while `419` rechecks the session without replaying mutations. Added stale-response protection, same-origin cross-tab login/logout signals, safe query-preserving login returns, and auth regression coverage through `pnpm --filter webapp test:auth`.
+- Validation: all 11 auth regression tests and focused auth/client lint pass. Full Webapp lint remains blocked by the two existing `react-hooks/set-state-in-effect` errors in notification components.

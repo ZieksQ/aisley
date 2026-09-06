@@ -1,3 +1,5 @@
+import { reportSessionFailure, sessionRevision } from "./auth/session-events";
+
 const apiBaseUrl = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 ).replace(/\/$/, "");
@@ -69,6 +71,7 @@ export async function apiRequest<T>(
     headers.set("X-XSRF-TOKEN", token);
   }
 
+  const requestRevision = sessionRevision();
   const response = await fetch(apiUrl(path), {
     ...options,
     credentials: "include",
@@ -77,6 +80,7 @@ export async function apiRequest<T>(
   const payload = (await response.json().catch(() => ({}))) as ErrorPayload & T;
 
   if (!response.ok) {
+    reportSessionFailure(path, response.status, payload.code, requestRevision);
     throw new ApiError(response.status, payload);
   }
 
@@ -91,6 +95,7 @@ export async function apiUploadRequest<T>(
   await initializeCsrf();
 
   return new Promise((resolve, reject) => {
+    const requestRevision = sessionRevision();
     const request = new XMLHttpRequest();
     request.open("POST", apiUrl(path));
     request.withCredentials = true;
@@ -118,6 +123,7 @@ export async function apiUploadRequest<T>(
         onProgress?.(100);
         resolve(payload);
       } else {
+        reportSessionFailure(path, request.status, payload.code, requestRevision);
         reject(new ApiError(request.status, payload));
       }
     });
@@ -129,6 +135,7 @@ export async function apiUploadRequest<T>(
 }
 
 export async function apiBlobRequest(path: string): Promise<Blob> {
+  const requestRevision = sessionRevision();
   const response = await fetch(apiUrl(path), {
     cache: "no-store",
     credentials: "include",
@@ -139,6 +146,8 @@ export async function apiBlobRequest(path: string): Promise<Blob> {
   });
 
   if (!response.ok) {
+    const payload = await response.json().catch(() => ({})) as ErrorPayload;
+    reportSessionFailure(path, response.status, payload.code, requestRevision);
     throw new ApiError(response.status, { message: "We could not load the profile photo." });
   }
 

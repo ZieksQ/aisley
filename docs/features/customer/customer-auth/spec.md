@@ -430,3 +430,12 @@ POST /logout
 - OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
 - OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
 - OWASP Bot Management / Anti-Automation: https://cheatsheetseries.owasp.org/cheatsheets/Bot_Management_and_Anti-Automation_Cheat_Sheet.html
+
+### Storefront session-check policy (2026-09-07)
+
+- The persistent browser AuthProvider checks `/api/v1/customer/auth/me` once per app load, deduplicates concurrent checks, and keeps the result in memory across client navigation. A full reload starts a new check. Do not store session credentials or a trusted login flag in browser storage.
+- Next.js pages compose public shells; private Customer data is fetched through Laravel's `auth:sanctum` and `customer.active` APIs. The shared client route guard is a UX boundary, not API authorization. Future server-rendered private data must independently authorize at its data source.
+- Confirmed `401` or explicit Customer role/account-state denial clears the cached session. Protected routes redirect to login while preserving the local path and query; public browsing stays available. Ordinary resource `403`, network errors, `429`, and `5xx` do not mean logout.
+- A `419` triggers a deduplicated `/me` recheck because a CSRF mismatch alone does not prove an expired login. Do not replay commerce mutations automatically. Unknown startup state shows retry feedback and does not render private content or redirect to login.
+- Login/profile responses update cached identity, and successful logout clears it. Late responses from an older session cannot overwrite these transitions. Same-origin tabs exchange login/logout change signals through BroadcastChannel when supported; signals carry no Customer data or credentials and login changes are verified through `/me`.
+- No `/me` polling or page-change/window-focus checks. Explicit retry, network recovery from unresolved startup, a CSRF failure, or a session change in another tab may revalidate.

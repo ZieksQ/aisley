@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { HiChevronRight } from "react-icons/hi2";
 
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { OrderDetailContent } from "@/components/orders/order-detail-content";
-import { getServerAuthState } from "@/lib/auth/server";
 import { marketplaceConfig } from "@/lib/marketplace/config";
 import { getPublicHomepage } from "@/lib/marketplace/server";
 
@@ -21,16 +19,10 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ order: string }>;
 }) {
-  const [{ order }, auth, homepage] = await Promise.all([
+  const [{ order }, homepage] = await Promise.all([
     params,
-    getServerAuthState(),
     getPublicHomepage(marketplaceConfig.discoveryPageSize),
   ]);
-  const path = `/orders/${order}`;
-
-  if (auth.status === "guest") {
-    redirect(`/login?next=${encodeURIComponent(path)}`);
-  }
 
   return (
     <HomeDataProvider initialData={homepage} trackView={false}>

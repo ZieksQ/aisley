@@ -51,12 +51,6 @@ export function OrdersPageContent({
   const loading = loadedQuery !== queryKey;
 
   useEffect(() => {
-    if (auth.status === "guest") {
-      router.replace(`/login?next=${encodeURIComponent("/orders")}`);
-    }
-  }, [auth.status, router]);
-
-  useEffect(() => {
     if (auth.status !== "authenticated") {
       return;
     }
@@ -69,14 +63,6 @@ export function OrdersPageContent({
       })
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError") {
-          return;
-        }
-
-        if (
-          caught instanceof ApiError &&
-          (caught.status === 401 || caught.status === 403)
-        ) {
-          router.replace(`/login?next=${encodeURIComponent("/orders")}`);
           return;
         }
 

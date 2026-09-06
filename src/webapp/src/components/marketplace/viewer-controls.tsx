@@ -9,7 +9,6 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { AccountMenu } from "./account-menu";
-import { useHomeData } from "./home-data-provider";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 function authDestination(path: string, isAuthenticated: boolean) {
@@ -47,8 +46,6 @@ export function UtilityAccountControls() {
 export function HeaderAccountControls() {
   const { auth } = useAuth();
   const { cart } = useCart();
-  const { data } = useHomeData();
-  const { viewer } = data;
   const cartItemCount = cart?.itemCount ?? 0;
   const cartHref =
     auth.status === "guest"
@@ -58,7 +55,7 @@ export function HeaderAccountControls() {
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
       <Link
-        href={authDestination("/messages", viewer.isAuthenticated)}
+        href={authDestination("/messages", auth.status === "authenticated")}
         aria-label="Messages"
         className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >

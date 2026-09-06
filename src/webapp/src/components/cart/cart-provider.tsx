@@ -11,7 +11,6 @@ import {
 } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
-import { ApiError } from "@/lib/api";
 import {
   addCartItem,
   deleteCartItem,
@@ -40,15 +39,8 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function isAuthenticationError(error: unknown) {
-  return (
-    error instanceof ApiError &&
-    (error.status === 401 || error.status === 403 || error.status === 419)
-  );
-}
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { auth, refresh: refreshAuth } = useAuth();
+  const { auth } = useAuth();
   const customerId =
     auth.status === "authenticated" ? auth.customer.id : null;
   const [cart, setCart] = useState<CustomerCart | null>(null);
@@ -70,13 +62,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setStatus("ready");
       return nextCart;
     } catch (error) {
-      if (isAuthenticationError(error)) {
-        await refreshAuth();
-      }
       setStatus("error");
       throw error;
     }
-  }, [customerId, refreshAuth]);
+  }, [customerId]);
 
   useEffect(() => {
     if (!customerId) {
@@ -95,64 +84,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        if (isAuthenticationError(error)) {
-          void refreshAuth();
-          return;
-        }
-
         setCartCustomerId(customerId);
         setStatus("error");
       });
 
     return () => controller.abort();
-  }, [customerId, refreshAuth]);
+  }, [customerId]);
 
   const addItem = useCallback(
     async (payload: AddCartItemPayload) => {
-      try {
-        const nextCart = await addCartItem(payload);
-        setCart(nextCart);
-        setCartCustomerId(customerId);
-        setStatus("ready");
-        return nextCart;
-      } catch (error) {
-        if (isAuthenticationError(error)) await refreshAuth();
-        throw error;
-      }
+      const nextCart = await addCartItem(payload);
+      setCart(nextCart);
+      setCartCustomerId(customerId);
+      setStatus("ready");
+      return nextCart;
     },
-    [customerId, refreshAuth],
+    [customerId],
   );
 
   const updateItem = useCallback(
     async (itemId: string, payload: UpdateCartItemPayload) => {
-      try {
-        const nextCart = await updateCartItem(itemId, payload);
-        setCart(nextCart);
-        setCartCustomerId(customerId);
-        setStatus("ready");
-        return nextCart;
-      } catch (error) {
-        if (isAuthenticationError(error)) await refreshAuth();
-        throw error;
-      }
+      const nextCart = await updateCartItem(itemId, payload);
+      setCart(nextCart);
+      setCartCustomerId(customerId);
+      setStatus("ready");
+      return nextCart;
     },
-    [customerId, refreshAuth],
+    [customerId],
   );
 
   const removeItem = useCallback(
     async (itemId: string) => {
-      try {
-        const nextCart = await deleteCartItem(itemId);
-        setCart(nextCart);
-        setCartCustomerId(customerId);
-        setStatus("ready");
-        return nextCart;
-      } catch (error) {
-        if (isAuthenticationError(error)) await refreshAuth();
-        throw error;
-      }
+      const nextCart = await deleteCartItem(itemId);
+      setCart(nextCart);
+      setCartCustomerId(customerId);
+      setStatus("ready");
+      return nextCart;
     },
-    [customerId, refreshAuth],
+    [customerId],
   );
 
   const visibleCart =

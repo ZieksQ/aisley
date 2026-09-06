@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import { AddressBookContent } from "@/components/account/address-book-content";
-import { getServerAuthState } from "@/lib/auth/server";
 
 export const metadata: Metadata = {
   title: "Addresses",
@@ -15,13 +13,7 @@ export default async function CustomerAddressesPage({
 }: {
   searchParams: Promise<{ returnTo?: string }>;
 }) {
-  const [{ returnTo }, auth] = await Promise.all([searchParams, getServerAuthState()]);
-  if (auth.status !== "authenticated") {
-    const next = returnTo === "/checkout"
-      ? "/account/addresses?returnTo=%2Fcheckout"
-      : "/account/addresses";
-    redirect(`/login?next=${encodeURIComponent(next)}`);
-  }
+  const { returnTo } = await searchParams;
 
   return (
     <AddressBookContent
