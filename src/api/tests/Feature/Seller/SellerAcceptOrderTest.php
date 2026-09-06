@@ -128,6 +128,34 @@ class SellerAcceptOrderTest extends TestCase
         $this->assertNotNull($seller->notifications()->findOrFail($notificationId)->read_at);
     }
 
+    public function test_order_inbox_filters_history_and_notifications_with_bounded_pagination(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        [, $foreignShop] = $this->sellerShop('foreign');
+        $cancelled = $this->order($shop, 'CANCELLED');
+        $cancelled->update(['status' => OrderStatus::Cancelled]);
+        $placed = $this->order($shop, 'PLACED');
+        $foreign = $this->order($foreignShop, 'FOREIGN');
+        foreach ([$placed, $foreign] as $order) {
+            $seller->notifications()->create([
+                'id' => (string) Str::uuid(), 'type' => 'seller-order.actionable',
+                'data' => ['order_id' => $order->id, 'order_reference' => $order->reference],
+            ]);
+        }
+
+        $this->actingAs($seller)->getJson('/api/v1/seller/orders?notification=unread')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $placed->id);
+        $this->getJson('/api/v1/seller/orders?status=cancelled')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $cancelled->id)
+            ->assertJsonPath('data.0.capabilities.can_accept', false);
+        $this->getJson('/api/v1/seller/orders?per_page=1&page=2')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.current_page', 2);
+        $this->getJson('/api/v1/seller/orders?status=unknown')->assertUnprocessable();
+        $this->getJson('/api/v1/seller/orders?page=-1')->assertUnprocessable();
+        $this->getJson('/api/v1/seller/orders?per_page=51')->assertUnprocessable();
+    }
+
     /** @return array{User, Shop} */
     private function sellerShop(string $suffix = 'one'): array
     {

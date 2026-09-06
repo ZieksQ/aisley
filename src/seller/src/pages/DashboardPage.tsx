@@ -3,7 +3,6 @@ import {
   FaBox,
   FaChartLine,
   FaCircleExclamation,
-  FaClipboardList,
   FaCommentDots,
   FaRotateRight,
   FaStore,
@@ -13,13 +12,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ApiError, apiRequest } from '../lib/api'
 import type { CatalogSection, DashboardResponse } from '../types/dashboard'
+import { DashboardOrders } from '../components/orders/DashboardOrders'
 
 const deferredSections = [
   { key: 'financial', name: 'Financial summary', detail: 'Waiting for Orders, payments, fees, refunds, and settlement definitions.', icon: FaWallet },
-  { key: 'orders', name: 'Order workload', detail: 'Waiting for the canonical Order lifecycle and Seller fulfillment states.', icon: FaClipboardList },
   { key: 'reviews', name: 'Review summary', detail: 'Waiting for verified Reviews and Seller response rules.', icon: FaCommentDots },
   { key: 'traffic', name: 'Traffic and conversion', detail: 'Waiting for Seller-scoped analytics event definitions.', icon: FaChartLine },
-  { key: 'notifications', name: 'Notifications', detail: 'Waiting for the shared persisted notification domain.', icon: FaCircleExclamation },
 ] as const
 
 export function DashboardPage() {
@@ -113,6 +111,7 @@ export function DashboardPage() {
 
       {!isLoading && dashboard?.shop && 'metrics' in dashboard.sections.catalog ? (
         <>
+          <DashboardOrders />
           <section className="mt-6 rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="shop-catalog-heading">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
               <div>

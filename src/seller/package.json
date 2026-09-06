@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 5174",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test:orders": "node tests/order-actions.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

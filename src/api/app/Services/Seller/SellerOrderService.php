@@ -25,13 +25,14 @@ class SellerOrderService
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
             ->when($filters['notification'] ?? null, function ($query, string $state) use ($seller): void {
                 $jsonOrderId = $this->notificationOrderIdSql();
-                $query->whereExists(function ($notifications) use ($seller, $state, $jsonOrderId): void {
+                $orderId = DB::getDriverName() === 'pgsql' ? 'CAST(orders.id AS TEXT)' : 'orders.id';
+                $query->whereExists(function ($notifications) use ($seller, $state, $jsonOrderId, $orderId): void {
                     $notifications->selectRaw('1')
                         ->from('notifications')
                         ->where('notifications.notifiable_type', User::class)
                         ->where('notifications.notifiable_id', $seller->id)
                         ->where('notifications.type', 'seller-order.actionable')
-                        ->whereRaw("{$jsonOrderId} = orders.id")
+                        ->whereRaw("{$jsonOrderId} = {$orderId}")
                         ->when($state === 'unread', fn ($query) => $query->whereNull('notifications.read_at'))
                         ->when($state === 'read', fn ($query) => $query->whereNotNull('notifications.read_at'));
                 });
