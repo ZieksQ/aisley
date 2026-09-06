@@ -2,16 +2,11 @@
 
 namespace App\Services\Seller;
 
-use App\Enums\InventoryMovementType;
-use App\Enums\InventorySkuStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ShopStatus;
 use App\Exceptions\Seller\SellerOrderException;
-use App\Models\InventoryBalance;
-use App\Models\InventoryMovement;
-use App\Models\InventorySku;
 use App\Models\Order;
 use App\Models\SellerOrderAcceptance;
 use App\Models\Shop;
@@ -25,6 +20,7 @@ class AcceptSellerOrder
     public function __construct(
         private readonly OrderTransitionService $transitions,
         private readonly SellerOrderService $orders,
+        private readonly SellerOrderInventory $inventory,
     ) {}
 
     public function handle(User $seller, string $orderId, string $idempotencyKey): Order
@@ -90,57 +86,6 @@ class AcceptSellerOrder
             throw SellerOrderException::conflict('ORDER_PRECONDITION_FAILED', 'This Order no longer has the required fulfillment snapshots.');
         }
 
-        $items = $order->items()->get(['product_id', 'product_variant_id', 'quantity']);
-        $requirements = $items
-            ->groupBy(fn ($item) => $item->product_variant_id ?? $item->product_id)
-            ->map(fn ($items) => (int) $items->sum('quantity'));
-        if ($requirements->has(null)) {
-            throw SellerOrderException::conflict('ORDER_PRECONDITION_FAILED', 'This Order has an invalid inventory reference.');
-        }
-
-        $skus = InventorySku::query()
-            ->where('status', InventorySkuStatus::Active)
-            ->whereHas('product', fn ($query) => $query->where('shop_id', $shop->id))
-            ->where(function ($query) use ($items): void {
-                $variantIds = $items->pluck('product_variant_id')->filter()->values()->all();
-                $productIds = $items->filter(fn ($item) => $item->product_variant_id === null)->pluck('product_id')->values()->all();
-                if ($variantIds !== []) {
-                    $query->whereIn('product_variant_id', $variantIds);
-                }
-                if ($productIds !== []) {
-                    $query->orWhere(fn ($base) => $base->whereIn('product_id', $productIds)->where('is_base', true));
-                }
-            })
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get();
-        $byTarget = $skus->keyBy(fn (InventorySku $sku) => $sku->product_variant_id ?? $sku->product_id);
-        if ($byTarget->count() !== $requirements->count()) {
-            throw SellerOrderException::conflict('INVENTORY_RESERVATION_INVALID', 'The reserved inventory for this Order is no longer available.');
-        }
-
-        $balances = InventoryBalance::query()
-            ->whereIn('inventory_sku_id', $skus->pluck('id'))
-            ->orderBy('inventory_sku_id')
-            ->lockForUpdate()
-            ->get()
-            ->keyBy('inventory_sku_id');
-        foreach ($requirements as $target => $quantity) {
-            $sku = $byTarget->get($target);
-            $balance = $sku === null ? null : $balances->get($sku->id);
-            if ($balance === null || $balance->reserved < $quantity) {
-                throw SellerOrderException::conflict('INVENTORY_RESERVATION_INVALID', 'The reserved inventory for this Order is no longer available.');
-            }
-        }
-
-        $reservedMovementCount = InventoryMovement::query()
-            ->whereIn('inventory_balance_id', $balances->pluck('id'))
-            ->where('movement_type', InventoryMovementType::Reserve)
-            ->where('reference_type', 'checkout_batch')
-            ->where('reference_id', $order->checkout_batch_id)
-            ->count();
-        if ($reservedMovementCount !== $requirements->count()) {
-            throw SellerOrderException::conflict('INVENTORY_RESERVATION_INVALID', 'The reserved inventory for this Order is no longer available.');
-        }
+        $this->inventory->lockReservation($order, $shop);
     }
 }

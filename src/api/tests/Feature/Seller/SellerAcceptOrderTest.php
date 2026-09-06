@@ -47,11 +47,11 @@ class SellerAcceptOrderTest extends TestCase
             ->assertJsonPath('data.0.id', $order->id);
         $this->getJson("/api/v1/seller/orders/{$foreignOrder->id}")->assertNotFound();
         $this->withHeader('Idempotency-Key', (string) Str::uuid())
-            ->postJson("/api/v1/seller/orders/{$foreignOrder->id}/accept")
+            ->postJson("/api/v1/seller/orders/{$foreignOrder->id}/approve")
             ->assertNotFound();
     }
 
-    public function test_seller_acceptance_is_idempotent_and_does_not_touch_payment_or_inventory(): void
+    public function test_seller_approval_is_idempotent_and_does_not_touch_payment_or_inventory(): void
     {
         [$seller, $shop] = $this->sellerShop();
         $order = $this->order($shop);
@@ -59,28 +59,28 @@ class SellerAcceptOrderTest extends TestCase
         $before = [$balance->on_hand, $balance->reserved, InventoryMovement::count()];
         $key = (string) Str::uuid();
 
-        $this->actingAs($seller)->postJson("/api/v1/seller/orders/{$order->id}/accept")
+        $this->actingAs($seller)->postJson("/api/v1/seller/orders/{$order->id}/approve")
             ->assertUnprocessable()
             ->assertJsonValidationErrors('idempotency_key');
-        $this->postJson("/api/v1/seller/orders/{$order->id}/accept", ['status' => 'delivered'])
+        $this->postJson("/api/v1/seller/orders/{$order->id}/approve", ['status' => 'delivered'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('status');
 
         $this->withHeader('Idempotency-Key', $key)
-            ->postJson("/api/v1/seller/orders/{$order->id}/accept")
+            ->postJson("/api/v1/seller/orders/{$order->id}/approve")
             ->assertOk()
             ->assertJsonPath('data.status', OrderStatus::SellerProcessing->value)
             ->assertJsonPath('data.payment.method', PaymentMethod::CashOnDelivery->value)
             ->assertJsonPath('data.payment.status', PaymentStatus::Pending->value)
-            ->assertJsonPath('data.capabilities.can_accept', false)
+            ->assertJsonPath('data.capabilities.can_approve', false)
             ->assertJsonPath('data.capabilities.can_prepare', true);
 
         $this->withHeader('Idempotency-Key', $key)
-            ->postJson("/api/v1/seller/orders/{$order->id}/accept")
+            ->postJson("/api/v1/seller/orders/{$order->id}/approve")
             ->assertOk()
             ->assertJsonPath('data.status', OrderStatus::SellerProcessing->value);
         $this->withHeader('Idempotency-Key', (string) Str::uuid())
-            ->postJson("/api/v1/seller/orders/{$order->id}/accept")
+            ->postJson("/api/v1/seller/orders/{$order->id}/approve")
             ->assertConflict()
             ->assertJsonPath('code', 'ORDER_NOT_ACCEPTABLE');
 
@@ -96,7 +96,7 @@ class SellerAcceptOrderTest extends TestCase
             ->assertJsonPath('code', 'WAYBILL_NOT_AVAILABLE');
     }
 
-    public function test_acceptance_requires_the_existing_reservation_and_notification_read_is_independent(): void
+    public function test_approval_requires_the_existing_reservation_and_notification_read_is_independent(): void
     {
         [$seller, $shop] = $this->sellerShop();
         $invalid = $this->order($shop);
@@ -104,7 +104,7 @@ class SellerAcceptOrderTest extends TestCase
 
         $this->actingAs($seller)
             ->withHeader('Idempotency-Key', (string) Str::uuid())
-            ->postJson("/api/v1/seller/orders/{$invalid->id}/accept")
+            ->postJson("/api/v1/seller/orders/{$invalid->id}/approve")
             ->assertConflict()
             ->assertJsonPath('code', 'INVENTORY_RESERVATION_INVALID');
         $this->assertSame(OrderStatus::Placed, $invalid->fresh()->status);
@@ -147,13 +147,67 @@ class SellerAcceptOrderTest extends TestCase
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $placed->id);
         $this->getJson('/api/v1/seller/orders?status=cancelled')
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $cancelled->id)
-            ->assertJsonPath('data.0.capabilities.can_accept', false);
+            ->assertJsonPath('data.0.capabilities.can_approve', false)
+            ->assertJsonPath('status_counts.cancelled', 1)
+            ->assertJsonPath('status_counts.placed', 1);
         $this->getJson('/api/v1/seller/orders?per_page=1&page=2')
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.total', 2)
             ->assertJsonPath('meta.current_page', 2);
         $this->getJson('/api/v1/seller/orders?status=unknown')->assertUnprocessable();
         $this->getJson('/api/v1/seller/orders?page=-1')->assertUnprocessable();
         $this->getJson('/api/v1/seller/orders?per_page=51')->assertUnprocessable();
+        $this->getJson('/api/v1/seller/orders?sort=unsafe')->assertUnprocessable();
+    }
+
+    public function test_seller_can_reject_before_processing_and_release_only_that_order_reservation(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $order = $this->order($shop);
+        $balance = InventoryBalance::firstOrFail();
+        $key = (string) Str::uuid();
+
+        $this->actingAs($seller)->withHeader('Idempotency-Key', $key)
+            ->postJson("/api/v1/seller/orders/{$order->id}/reject", ['reason' => 'Unable to fulfill this purchase.'])
+            ->assertOk()->assertJsonPath('data.status', OrderStatus::Rejected->value)
+            ->assertJsonPath('data.capabilities.can_reject', false);
+        $this->withHeader('Idempotency-Key', $key)->postJson("/api/v1/seller/orders/{$order->id}/reject")
+            ->assertOk()->assertJsonPath('data.status', OrderStatus::Rejected->value);
+
+        $this->assertSame(0, $balance->fresh()->reserved);
+        $this->assertSame(10, Product::query()->findOrFail($order->items()->firstOrFail()->product_id)->stock_quantity);
+        $this->assertDatabaseHas('inventory_movements', [
+            'reference_type' => 'order', 'reference_id' => $order->id,
+            'movement_type' => InventoryMovementType::Release->value, 'reserved_delta' => -1,
+        ]);
+        $this->assertDatabaseCount('seller_order_rejections', 1);
+        $this->assertSame(2, $order->statusEvents()->count());
+    }
+
+    public function test_seller_can_submit_multiple_processing_orders_as_one_pending_logistics_pickup(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $one = $this->order($shop, 'PICKUP-ONE');
+        $two = $this->order($shop, 'PICKUP-TWO');
+        $one->update(['status' => OrderStatus::SellerProcessing]);
+        $two->update(['status' => OrderStatus::SellerProcessing]);
+        $logistics = User::factory()->create(['role' => UserRole::Logistics, 'status' => UserStatus::Active]);
+        $logistics->logisticsOrganization()->create(['business_name' => 'Pickup Logistics']);
+        $key = (string) Str::uuid();
+
+        $response = $this->actingAs($seller)->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$one->id, $two->id]])
+            ->assertOk()->assertJsonPath('data.status', 'pending_logistics')
+            ->assertJsonPath('data.pickup_date', null)->assertJsonPath('data.logistics_organization_id', null);
+        $requestId = $response->json('data.id');
+        $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$two->id, $one->id]])
+            ->assertOk()->assertJsonPath('data.id', $requestId);
+
+        $this->assertSame(OrderStatus::ReadyForPickup, $one->fresh()->status);
+        $this->assertSame(OrderStatus::ReadyForPickup, $two->fresh()->status);
+        $this->assertDatabaseCount('seller_pickup_requests', 1);
+        $this->assertDatabaseCount('seller_pickup_request_orders', 2);
+        $this->assertDatabaseHas('notifications', ['notifiable_id' => $logistics->id, 'type' => 'logistics-pickup.requested']);
     }
 
     /** @return array{User, Shop} */
@@ -178,7 +232,7 @@ class SellerAcceptOrderTest extends TestCase
         $product = Product::create([
             'shop_id' => $shop->id, 'category_id' => $category->id, 'name' => 'Snapshot product',
             'slug' => 'snapshot-'.Str::lower(Str::random(10)), 'base_sku' => 'SNAP-'.Str::upper(Str::random(6)),
-            'price' => '100.00', 'currency' => 'PHP', 'stock_quantity' => 10, 'status' => ProductStatus::Active,
+            'price' => '100.00', 'currency' => 'PHP', 'stock_quantity' => 9, 'status' => ProductStatus::Active,
             'published_at' => now(),
         ]);
         $sku = InventorySku::create([
@@ -215,7 +269,7 @@ class SellerAcceptOrderTest extends TestCase
         InventoryMovement::create([
             'inventory_balance_id' => $balance->id, 'movement_type' => InventoryMovementType::Reserve,
             'on_hand_delta' => 0, 'reserved_delta' => 1, 'resulting_on_hand' => 10, 'resulting_reserved' => 1,
-            'reference_type' => 'checkout_batch', 'reference_id' => $batch->id,
+            'reference_type' => 'order', 'reference_id' => $order->id,
         ]);
 
         return $order;

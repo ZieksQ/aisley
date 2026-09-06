@@ -1,5 +1,5 @@
 export const orderStatuses = {
-  placed: 'Awaiting acceptance',
+  placed: 'Awaiting approval',
   seller_processing: 'Processing',
   ready_for_pickup: 'Ready for pickup',
   pending_payment: 'Pending payment',
@@ -41,13 +41,15 @@ export type SellerOrder = {
     id: string; from_status: SellerOrder['status'] | null
     to_status: SellerOrder['status']; occurred_at: string
   }>
-  capabilities: { can_accept: boolean; can_prepare: boolean; can_view_waybill: boolean }
+  capabilities: { can_approve: boolean; can_reject: boolean; can_prepare: boolean; can_view_waybill: boolean }
+  pickup: null | { request_id: string; status: string; pickup_date: string | null; logistics_organization_id: string | null }
   notification: null | { id: string; read_at: string | null }
 }
 
 export type SellerOrderPage = {
   data: SellerOrder[]
   meta: { current_page: number; last_page: number; total: number }
+  status_counts: Partial<Record<SellerOrder['status'], number>>
 }
 
 export function orderStatusLabel(status: string) {

@@ -44,11 +44,11 @@ after(async () => {
   await server?.close()
 })
 
-test('acceptance sends a credentialed action with CSRF and a UUID, without an arbitrary status', async () => {
-  const result = await actions.createOrderAcceptance('seller-one', 'order-one')()
+test('approval sends a credentialed action with CSRF and a UUID, without an arbitrary status', async () => {
+  const result = await actions.createOrderApproval('seller-one', 'order-one')()
   assert.equal(result.data.status, 'seller_processing')
   const { url, options } = requests[0]
-  assert.ok(url.endsWith('/api/v1/seller/orders/order-one/accept'))
+  assert.ok(url.endsWith('/api/v1/seller/orders/order-one/approve'))
   assert.equal(options.method, 'POST')
   assert.equal(options.credentials, 'include')
   assert.equal(options.headers.get('X-XSRF-TOKEN'), 'test-csrf')
@@ -58,11 +58,11 @@ test('acceptance sends a credentialed action with CSRF and a UUID, without an ar
 })
 
 test('uncertain network outcomes keep the same key across retries and page reloads', async () => {
-  const accept = actions.createOrderAcceptance('seller-one', 'order-one')
+  const accept = actions.createOrderApproval('seller-one', 'order-one')
   respond = () => { throw new TypeError('Network lost') }
   await assert.rejects(accept(), /Network lost/)
   await assert.rejects(accept(), /Network lost/)
-  const restored = actions.createOrderAcceptance('seller-one', 'order-one')
+  const restored = actions.createOrderApproval('seller-one', 'order-one')
   respond = () => Response.json({ data: { status: 'seller_processing' } })
   await restored()
   assert.equal(new Set(requests.map(({ options }) => options.headers.get('Idempotency-Key'))).size, 1)
@@ -72,22 +72,35 @@ test('uncertain network outcomes keep the same key across retries and page reloa
 test('separate orders and sellers never share an action key', async () => {
   respond = () => { throw new TypeError('Offline') }
   for (const [seller, order] of [['one', 'a'], ['one', 'b'], ['two', 'a']]) {
-    await assert.rejects(actions.createOrderAcceptance(seller, order)())
+    await assert.rejects(actions.createOrderApproval(seller, order)())
   }
   assert.equal(new Set(requests.map(({ options }) => options.headers.get('Idempotency-Key'))).size, 3)
 })
 
-test('a stale conflict is surfaced to the screen for refetch without an automatic second acceptance', async () => {
+test('a stale conflict is surfaced to the screen for refetch without an automatic second approval', async () => {
   respond = () => Response.json({ code: 'ORDER_NOT_ACCEPTABLE', message: 'Order has changed.' }, { status: 409 })
-  await assert.rejects(actions.createOrderAcceptance('one', 'a')(), (error) => error instanceof ApiError && error.status === 409 && error.code === 'ORDER_NOT_ACCEPTABLE')
+  await assert.rejects(actions.createOrderApproval('one', 'a')(), (error) => error instanceof ApiError && error.status === 409 && error.code === 'ORDER_NOT_ACCEPTABLE')
   assert.equal(requests.length, 1)
 })
 
-test('marking a notification read never calls the acceptance endpoint', async () => {
+test('marking a notification read never calls the approval endpoint', async () => {
   await actions.markOrderNotificationRead('notification-one')
   assert.equal(requests.length, 1)
   assert.ok(requests[0].url.endsWith('/api/v1/seller/notifications/notification-one/read'))
   assert.equal(requests[0].options.method, 'POST')
   assert.equal(requests[0].options.headers.has('Idempotency-Key'), false)
   assert.equal(requests[0].options.body, undefined)
+})
+
+test('rejection and pickup requests send only their permitted payloads', async () => {
+  await actions.createOrderRejection('seller-one', 'order-one', 'Cannot fulfill')()
+  assert.ok(requests[0].url.endsWith('/orders/order-one/reject'))
+  assert.deepEqual(JSON.parse(requests[0].options.body), { reason: 'Cannot fulfill' })
+  requests = []
+  respond = () => Response.json({ data: { id: 'pickup-one', status: 'pending_logistics', order_ids: ['one', 'two'] } })
+  await actions.createPickupRequest('seller-one', ['one', 'two'])()
+  assert.ok(requests[0].url.endsWith('/api/v1/seller/orders/pickup-requests'))
+  assert.deepEqual(JSON.parse(requests[0].options.body), { order_ids: ['one', 'two'] })
+  assert.equal('pickup_date' in JSON.parse(requests[0].options.body), false)
+  assert.equal('logistics_organization_id' in JSON.parse(requests[0].options.body), false)
 })

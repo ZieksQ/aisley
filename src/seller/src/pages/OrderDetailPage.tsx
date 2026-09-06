@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { OrderButton, OrderError, orderLink, orderPanel } from '../components/orders/OrderUi'
 import { ApiError } from '../lib/api'
-import { createOrderAcceptance, markOrderNotificationRead } from '../lib/sellerOrderActions'
+import { createOrderApproval, createOrderRejection, markOrderNotificationRead } from '../lib/sellerOrderActions'
 import { useOrderAccessError, useSellerOrders } from '../lib/useSellerOrders'
 import { orderDate, orderMoney, orderStatusLabel, type SellerOrder } from '../types/orders'
 
@@ -23,10 +23,12 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
   const [readError, setReadError] = useState('')
   const [readId, setReadId] = useState('')
   const [readRetry, setReadRetry] = useState(0)
-  const [accepting, setAccepting] = useState(false)
+  const [deciding, setDeciding] = useState(false)
   const submitting = useRef(false)
-  const acceptance = useRef<ReturnType<typeof createOrderAcceptance> | null>(null)
-  const confirmation = useRef<HTMLDialogElement>(null)
+  const approval = useRef<ReturnType<typeof createOrderApproval> | null>(null)
+  const rejection = useRef<ReturnType<typeof createOrderRejection> | null>(null)
+  const approvalDialog = useRef<HTMLDialogElement>(null)
+  const rejectionDialog = useRef<HTMLDialogElement>(null)
   const alive = useRef(true)
 
   useEffect(() => {
@@ -52,21 +54,22 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
     return () => controller.abort()
   }, [notificationId, notificationReadAt, readId, readRetry, accessError])
 
-  async function accept() {
-    if (submitting.current || !order?.capabilities.can_accept || error || loading) return
+  async function decide(decision: 'approve' | 'reject') {
+    if (submitting.current || !order?.capabilities.can_approve || error || loading) return
     submitting.current = true
-    setAccepting(true)
+    setDeciding(true)
     setActionError('')
     try {
-      acceptance.current ??= createOrderAcceptance(seller!.id, orderId)
-      const response = await acceptance.current()
+      if (decision === 'approve') approval.current ??= createOrderApproval(seller!.id, orderId)
+      else rejection.current ??= createOrderRejection(seller!.id, orderId)
+      const response = await (decision === 'approve' ? approval.current!() : rejection.current!())
       if (!alive.current) return
-      confirmation.current?.close()
-      if (response.data.capabilities.can_prepare) navigate(`/orders/${orderId}/prepare`, { replace: true, state: { accepted: true } })
-      else refresh()
+      approvalDialog.current?.close(); rejectionDialog.current?.close()
+      if (decision === 'approve' && response.data.capabilities.can_prepare) navigate('/orders/pickup', { replace: true, state: { approved: true } })
+      else navigate('/orders/approval', { replace: true, state: { rejected: true } })
     } catch (reason) {
       if (!alive.current || accessError(reason)) return
-      confirmation.current?.close()
+      approvalDialog.current?.close(); rejectionDialog.current?.close()
       if (reason instanceof ApiError && reason.status === 409) {
         setActionError(`${reason.message} The order is being refreshed; review its current status before trying again.`)
         refresh()
@@ -75,16 +78,16 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
       }
     } finally {
       submitting.current = false
-      if (alive.current) setAccepting(false)
+      if (alive.current) setDeciding(false)
     }
   }
 
-  const backTo = typeof location.state?.backTo === 'string' && /^\/orders\?/.test(location.state.backTo) ? location.state.backTo : '/orders'
+  const backTo = typeof location.state?.backTo === 'string' && location.state.backTo.startsWith('/orders') ? location.state.backTo : '/orders/monitoring'
   return <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
     <Link className={`${orderLink} text-sm`} to={preparation ? `/orders/${orderId}` : backTo}>{preparation ? 'Back to order' : 'Back to orders'}</Link>
     <div className="mt-4 flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
       <div><h2 className="break-all text-xl font-semibold sm:text-2xl">{preparation ? 'Prepare order' : 'Order details'}</h2>{order && <p className="mt-1 break-all text-sm text-zinc-600 dark:text-zinc-400">{order.reference} · Placed {orderDate(order.placed_at)}</p>}</div>
-      <OrderButton disabled={accepting} isLoading={loading} loadingLabel="Refreshing" onClick={refresh}>Refresh</OrderButton>
+      <OrderButton disabled={deciding} isLoading={loading} loadingLabel="Refreshing" onClick={refresh}>Refresh</OrderButton>
     </div>
     {error && <OrderError message={error} retry={refresh} />}
     {readError && <OrderError message={readError} retry={() => setReadRetry((value) => value + 1)} />}
@@ -94,12 +97,11 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div><h3 className="font-semibold" id="order-state">{orderStatusLabel(order.status)}</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{order.payment.method === 'cod' ? 'Cash on delivery' : order.payment.method} · Payment {order.payment.status}</p></div>
           {!preparation && <div className="flex flex-wrap gap-3">
-            {order.capabilities.can_prepare ? <Link className={orderLink} to={`/orders/${order.id}/prepare`}>Review preparation</Link> : <OrderButton variant="secondary" disabled={!order.capabilities.can_accept || loading || !!error} isLoading={accepting} loadingLabel="Accepting order" onClick={() => confirmation.current?.showModal()}>Accept order</OrderButton>}
+            {order.capabilities.can_prepare ? <Link className={orderLink} to="/orders/pickup">Open pickup orders</Link> : order.capabilities.can_approve ? <><OrderButton disabled={deciding} onClick={() => rejectionDialog.current?.showModal()}>Reject</OrderButton><OrderButton variant="secondary" disabled={loading || !!error} isLoading={deciding} loadingLabel="Saving decision" onClick={() => approvalDialog.current?.showModal()}>Approve</OrderButton></> : null}
           </div>}
         </div>
-        {location.state?.accepted && order.capabilities.can_prepare && <p role="status" className="mt-3 text-sm font-medium">Order accepted. Processing has started.</p>}
-        {order.capabilities.can_accept && <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">Accepting starts fulfillment and ends the customer’s normal cancellation window. COD payment remains pending until delivery.</p>}
-        {!order.capabilities.can_accept && !order.capabilities.can_prepare && <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">This order is not available for acceptance or preparation in its current state.</p>}
+        {order.capabilities.can_approve && <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">Approval starts fulfillment and ends the customer’s normal cancellation window. Rejection releases this order’s reserved inventory. COD payment remains pending.</p>}
+        {!order.capabilities.can_approve && !order.capabilities.can_prepare && <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">This order is not available for approval or preparation in its current state.</p>}
         {preparation && <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-white/10">
           <h3 className="font-medium">{order.capabilities.can_prepare ? 'Package submission is not available yet' : 'Preparation unavailable'}</h3>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{order.capabilities.can_prepare ? 'Review the purchased items below. Package details and ready-for-pickup confirmation are not available yet; this order remains in processing.' : 'Return to the order to review its current status and available actions.'}</p>
@@ -127,9 +129,13 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
       </div>
       <section className={`${orderPanel} mt-5 p-5`} aria-labelledby="order-history"><h3 className="font-semibold" id="order-history">Order history</h3><ol className="mt-4 space-y-4">{order.status_history.map((event) => <li className="flex flex-wrap justify-between gap-2 text-sm" key={event.id}><span>{orderStatusLabel(event.to_status)}</span><time className="text-zinc-600 dark:text-zinc-400" dateTime={event.occurred_at}>{orderDate(event.occurred_at)}</time></li>)}</ol></section>
     </> : null}
-    <dialog ref={confirmation} aria-labelledby="accept-title" aria-describedby="accept-description" className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-zinc-950 backdrop:bg-black/50 dark:border-white/20 dark:bg-[#18181b] dark:text-white" onCancel={(event) => { if (accepting) event.preventDefault() }}>
-      <h3 id="accept-title" className="text-lg font-semibold">Accept this order?</h3><p id="accept-description" className="mt-3 text-sm leading-6">You will take responsibility for preparing {order?.reference}. The customer will no longer be able to cancel normally. Payment remains cash on delivery.</p>
-      <div className="mt-5 flex flex-wrap justify-end gap-3"><OrderButton disabled={accepting} onClick={() => confirmation.current?.close()}>Keep reviewing</OrderButton><OrderButton variant="secondary" disabled={loading || !!error || !order?.capabilities.can_accept} isLoading={accepting} loadingLabel="Accepting" onClick={() => void accept()}>Confirm acceptance</OrderButton></div>
+    <dialog ref={approvalDialog} aria-labelledby="approve-title" className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-zinc-950 backdrop:bg-black/50 dark:border-white/20 dark:bg-[#18181b] dark:text-white" onCancel={(event) => { if (deciding) event.preventDefault() }}>
+      <h3 id="approve-title" className="text-lg font-semibold">Approve this order?</h3><p className="mt-3 text-sm leading-6">You will take responsibility for preparing {order?.reference}. The customer’s normal cancellation window will close.</p>
+      <div className="mt-5 flex justify-end gap-3"><OrderButton disabled={deciding} onClick={() => approvalDialog.current?.close()}>Cancel</OrderButton><OrderButton variant="secondary" isLoading={deciding} loadingLabel="Approving" onClick={() => void decide('approve')}>Confirm approval</OrderButton></div>
+    </dialog>
+    <dialog ref={rejectionDialog} aria-labelledby="reject-title" className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-zinc-950 backdrop:bg-black/50 dark:border-white/20 dark:bg-[#18181b] dark:text-white" onCancel={(event) => { if (deciding) event.preventDefault() }}>
+      <h3 id="reject-title" className="text-lg font-semibold">Reject this order?</h3><p className="mt-3 text-sm leading-6">The order will move to Rejected and its reserved inventory will be released. This decision cannot be reversed here.</p>
+      <div className="mt-5 flex justify-end gap-3"><OrderButton disabled={deciding} onClick={() => rejectionDialog.current?.close()}>Cancel</OrderButton><OrderButton variant="secondary" isLoading={deciding} loadingLabel="Rejecting" onClick={() => void decide('reject')}>Confirm rejection</OrderButton></div>
     </dialog>
   </div>
 }

@@ -213,7 +213,9 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::get('/low-stock-alerts/{alert}', [SellerLowStockAlertController::class, 'show'])->middleware('throttle:120,1')->whereUuid('alert')->name('low-stock-alerts.show');
     Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->whereUuid('order')->name('orders.show');
-    Route::post('/orders/{order}/accept', [SellerOrderController::class, 'accept'])->whereUuid('order')->name('orders.accept');
+    Route::post('/orders/{order}/approve', [SellerOrderController::class, 'accept'])->whereUuid('order')->name('orders.approve');
+    Route::post('/orders/{order}/reject', [SellerOrderController::class, 'reject'])->whereUuid('order')->name('orders.reject');
+    Route::post('/orders/pickup-requests', [SellerOrderController::class, 'requestPickup'])->name('orders.pickup-requests.store');
     Route::post('/notifications/{notification}/read', [SellerOrderController::class, 'markNotificationRead'])->whereUuid('notification')->name('notifications.read');
     Route::get('/orders/{order}/waybill', [SellerOrderController::class, 'waybill'])->whereUuid('order')->name('orders.waybill');
 });

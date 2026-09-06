@@ -39,7 +39,11 @@ class SellerOrderService
             })
             ->with($this->relations())
             ->withMax('statusEvents as latest_activity_at', 'occurred_at')
-            ->orderByDesc('latest_activity_at')
+            ->when(($filters['sort'] ?? 'activity_desc') === 'activity_desc', fn ($query) => $query->orderByDesc('latest_activity_at'))
+            ->when(($filters['sort'] ?? null) === 'oldest', fn ($query) => $query->orderBy('placed_at'))
+            ->when(($filters['sort'] ?? null) === 'amount_high', fn ($query) => $query->orderByDesc('payable_total'))
+            ->when(($filters['sort'] ?? null) === 'amount_low', fn ($query) => $query->orderBy('payable_total'))
+            ->when(($filters['sort'] ?? null) === 'status', fn ($query) => $query->orderBy('status'))
             ->orderByDesc('placed_at')
             ->orderByDesc('id')
             ->paginate((int) ($filters['per_page'] ?? 20))
@@ -76,6 +80,7 @@ class SellerOrderService
             'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
             'address',
             'statusEvents' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
+            'pickupRequestOrder.sellerPickupRequest',
         ];
     }
 
@@ -98,13 +103,23 @@ class SellerOrderService
             $notification = $notifications->get($order->id);
             $order->setAttribute('seller_notification_id', $notification?->id);
             $order->setAttribute('seller_notification_read_at', $notification?->read_at);
-            $order->setAttribute('seller_can_accept', $this->canAccept($order));
+            $order->setAttribute('seller_can_approve', $this->canApprove($order));
+            $order->setAttribute('seller_can_reject', $this->canApprove($order));
             $order->setAttribute('seller_can_prepare', $order->status === OrderStatus::SellerProcessing);
             $order->setAttribute('seller_can_view_waybill', false);
         }
     }
 
-    private function canAccept(Order $order): bool
+    /** @return array<string, int> */
+    public function statusCounts(User $seller): array
+    {
+        $shop = $this->shops->for($seller);
+
+        return Order::query()->where('shop_id', $shop->id)->selectRaw('status, COUNT(*) AS aggregate')
+            ->groupBy('status')->pluck('aggregate', 'status')->map(fn ($count) => (int) $count)->all();
+    }
+
+    private function canApprove(Order $order): bool
     {
         return $order->status === OrderStatus::Placed
             && $order->payment_method === PaymentMethod::CashOnDelivery

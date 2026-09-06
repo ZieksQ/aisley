@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\AcceptSellerOrderRequest;
 use App\Http\Requests\Seller\ListSellerOrdersRequest;
+use App\Http\Requests\Seller\RejectSellerOrderRequest;
+use App\Http\Requests\Seller\RequestSellerPickupRequest;
 use App\Http\Resources\Seller\SellerOrderNotificationResource;
 use App\Http\Resources\Seller\SellerOrderResource;
 use App\Models\User;
 use App\Services\Seller\AcceptSellerOrder;
+use App\Services\Seller\RejectSellerOrder;
+use App\Services\Seller\RequestSellerPickup;
 use App\Services\Seller\SellerOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +26,8 @@ class OrderController extends Controller
         /** @var User $seller */
         $seller = $request->user();
 
-        return SellerOrderResource::collection($orders->list($seller, $request->validated()));
+        return SellerOrderResource::collection($orders->list($seller, $request->validated()))
+            ->additional(['status_counts' => $orders->statusCounts($seller)]);
     }
 
     public function show(Request $request, string $order, SellerOrderService $orders): SellerOrderResource
@@ -39,6 +44,29 @@ class OrderController extends Controller
         $seller = $request->user();
 
         return new SellerOrderResource($accept->handle($seller, $order, $request->idempotencyKey()));
+    }
+
+    public function reject(RejectSellerOrderRequest $request, string $order, RejectSellerOrder $reject): SellerOrderResource
+    {
+        /** @var User $seller */
+        $seller = $request->user();
+
+        return new SellerOrderResource($reject->handle($seller, $order, $request->idempotencyKey(), $request->validated('reason')));
+    }
+
+    public function requestPickup(RequestSellerPickupRequest $request, RequestSellerPickup $pickup): JsonResponse
+    {
+        /** @var User $seller */
+        $seller = $request->user();
+        $record = $pickup->handle($seller, $request->validated('order_ids'), $request->idempotencyKey());
+
+        return response()->json(['data' => [
+            'id' => $record->id,
+            'status' => $record->status,
+            'pickup_date' => $record->pickup_date?->toDateString(),
+            'logistics_organization_id' => $record->logistics_organization_id,
+            'order_ids' => $record->orders->pluck('order_id')->values(),
+        ]]);
     }
 
     public function markNotificationRead(Request $request, string $notification): JsonResponse

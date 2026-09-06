@@ -60,9 +60,16 @@ class SellerOrderResource extends JsonResource
                 'occurred_at' => $event->occurred_at->toIso8601String(),
             ])->values(),
             'capabilities' => [
-                'can_accept' => (bool) $this->seller_can_accept,
+                'can_approve' => (bool) $this->seller_can_approve,
+                'can_reject' => (bool) $this->seller_can_reject,
                 'can_prepare' => (bool) $this->seller_can_prepare,
                 'can_view_waybill' => (bool) $this->seller_can_view_waybill,
+            ],
+            'pickup' => $this->pickupRequestOrder?->sellerPickupRequest === null ? null : [
+                'request_id' => $this->pickupRequestOrder->sellerPickupRequest->id,
+                'status' => $this->pickupRequestOrder->sellerPickupRequest->status,
+                'pickup_date' => $this->pickupRequestOrder->sellerPickupRequest->pickup_date?->toDateString(),
+                'logistics_organization_id' => $this->pickupRequestOrder->sellerPickupRequest->logistics_organization_id,
             ],
             'notification' => $this->seller_notification_id === null ? null : [
                 'id' => $this->seller_notification_id,
