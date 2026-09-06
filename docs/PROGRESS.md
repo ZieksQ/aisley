@@ -354,3 +354,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 - Revised `docs/domains/Seller.md` with the one-Seller/one-Shop boundary, implemented catalog and Inventory foundation, MDXEditor description-image rules, canonical Seller order handoff, and first-mile/Logistics boundaries. No application behavior changed.
 - Revised `docs/domains/Buyer.md` with the Customer/Buyer role boundary, implemented storefront/cart/checkout/order/address foundations, first-party Logistics status flow, visibility/privacy rules, and deferred feature boundaries. No application behavior changed.
 - Revised `docs/domains/Admin.md` with the implemented Admin console boundaries, RBAC and approval authority, account lifecycle/compliance/policy/audit workflows, notification-channel separation, and deferred platform operations. No application behavior changed.
+
+## 2026-09-06
+
+- Added the implementation-ready Seller Accept Order specification. It resolves COD acceptance while payment remains pending until delivery, defines the Seller `placed → seller_processing` action, preserves Prepare Orders as the readiness boundary, assigns waybill generation to Logistics after parcel receipt with Seller read-only access, supports downstream bulk pickup grouping without merging Orders, standardizes `/api/v1/` interfaces, and incorporates Shopee/Lazada fulfillment research. No application behavior changed.
