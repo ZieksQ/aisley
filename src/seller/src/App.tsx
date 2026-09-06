@@ -13,6 +13,10 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AccountPage } from './pages/AccountPage'
 import { LowStockAlertDetailPage } from './pages/LowStockAlertDetailPage'
 import { LowStockAlertsPage } from './pages/LowStockAlertsPage'
+import { OrdersPage } from './pages/OrdersPage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
+import { OrderApprovalPage } from './pages/OrderApprovalPage'
+import { OrderPickupPage } from './pages/OrderPickupPage'
 
 function App() {
   return (
@@ -25,6 +29,13 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<SellerLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
+          <Route element={<OrdersPage />} path="/orders/monitoring" />
+          <Route element={<OrderApprovalPage />} path="/orders/approval" />
+          <Route element={<OrderPickupPage />} path="/orders/pickup" />
+          <Route element={<OrderDetailPage />} path="/orders/:orderId" />
+          <Route element={<OrderDetailPage preparation />} path="/orders/:orderId/prepare" />
+          <Route element={<Navigate replace to="/orders/approval" />} path="/notifications" />
           <Route element={<ProductsPage />} path="/products" />
           <Route element={<ProductFormPage />} path="/products/new" />
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />

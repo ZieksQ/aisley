@@ -17,6 +17,7 @@ use App\Enums\UserStatus;
 use App\Enums\VoucherBenefitType;
 use App\Enums\VoucherIssuerType;
 use App\Enums\VoucherValueType;
+use App\Events\SellerOrderBecameActionable;
 use App\Exceptions\Customer\CheckoutException;
 use App\Models\Address;
 use App\Models\CartItem;
@@ -124,10 +125,12 @@ class CheckoutService
                 'placed_at' => $placedAt,
             ]);
 
+            $actionableOrderIds = [];
             foreach ($calculation['groups'] as $group) {
                 $order = $this->createOrder($batch, $customer, $calculation['address'], $group, $placedAt);
                 $this->reserveInventory($batch, $order, $group['lines']);
                 $this->redeemVouchers($batch, $customer, $order, $group['applied_vouchers'], $placedAt);
+                $actionableOrderIds[] = $order->id;
             }
 
             if ($input['mode'] === CheckoutMode::Cart->value) {
@@ -136,6 +139,12 @@ class CheckoutService
                     ->whereHas('cart', fn ($query) => $query->where('customer_id', $customer->id))
                     ->delete();
             }
+
+            DB::afterCommit(function () use ($actionableOrderIds): void {
+                foreach ($actionableOrderIds as $orderId) {
+                    event(new SellerOrderBecameActionable($orderId));
+                }
+            });
 
             return $this->loadBatch($batch);
         }, 3);

@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Events\SellerOrderBecameActionable;
+use App\Listeners\SendSellerOrderActionableNotification;
 use App\Models\PersonalAccessToken;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
@@ -25,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
 
         RateLimiter::for('customer-account-password', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [
