@@ -41,7 +41,7 @@ export function UtilityBar() {
 
 export function MarketplaceHeader({ initialQuery = "" }: { initialQuery?: string }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-[#DED7E1] bg-white shadow-[0_2px_8px_rgba(49,18,63,0.06)]">
+    <header className="sticky top-0 z-40 border-b border-[#DED7E1] bg-[#F0E6F5] shadow-[0_2px_8px_rgba(49,18,63,0.06)]">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-5 lg:px-8">
         <div className="flex h-16 items-center gap-2 sm:gap-4 lg:h-[72px]">
           <Link
@@ -79,14 +79,14 @@ export function MarketplaceHeader({ initialQuery = "" }: { initialQuery?: string
 
       <nav
         aria-label="Marketplace"
-        className="hidden border-t border-[#EEE9EF] md:block"
+        className="hidden border-t border-[#4C1268] bg-[#4C1268] md:block"
       >
-        <div className="mx-auto flex h-9 max-w-[1400px] items-center gap-7 overflow-x-auto px-5 text-xs font-medium text-[#514656] lg:px-8">
+        <div className="mx-auto flex h-9 max-w-[1400px] items-center gap-7 overflow-x-auto px-5 text-xs font-medium text-white lg:px-8">
           {marketplaceLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className="whitespace-nowrap transition-colors hover:text-[#E6007A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+              className="whitespace-nowrap transition-colors hover:text-[#E9D5F2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               {link.label}
             </Link>

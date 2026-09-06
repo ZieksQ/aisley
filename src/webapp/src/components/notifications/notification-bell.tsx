@@ -31,10 +31,9 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`} className="relative flex min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`} className="relative flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
         <FiBell aria-hidden="true" className="size-5" />
         {notifications.length ? <span className="absolute right-1 top-0.5 size-2 rounded-full bg-[#E6007A] ring-2 ring-white" /> : null}
-        <span className="mt-0.5 hidden lg:block">Alerts</span>
       </button>
       {open ? <div role="dialog" aria-label="Recent notifications" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-[#DED7E1] bg-white shadow-[0_16px_38px_rgba(49,18,63,0.16)]">
         <div className="flex items-center justify-between border-b border-[#EEE9EF] px-4 py-3"><h2 className="font-semibold text-[#281E2C]">Notifications</h2><button type="button" onClick={() => setOpen(false)} className="rounded p-1 text-[#746778] hover:bg-[#F6F0F8]" aria-label="Close notifications"><FiX /></button></div>

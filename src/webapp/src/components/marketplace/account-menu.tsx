@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  FiChevronDown,
   FiHeart,
   FiLogOut,
   FiMapPin,
@@ -54,10 +53,9 @@ export function AccountMenu() {
       <Link
         href="/login"
         aria-label="Sign in"
-        className="flex min-w-11 max-w-20 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+        className="flex min-h-11 min-w-11 max-w-20 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
       >
         <FiUser aria-hidden="true" className="size-5" />
-        <span className="mt-0.5 hidden lg:block">Sign in</span>
       </Link>
     );
   }
@@ -89,13 +87,11 @@ export function AccountMenu() {
         aria-haspopup="menu"
         aria-label={`Account menu for ${name}`}
         onClick={() => setIsOpen((open) => !open)}
-        className="flex min-w-11 max-w-28 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+        className="flex min-h-11 min-w-11 max-w-28 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
       >
         <span className="flex items-center gap-1">
           <CustomerAvatar className="size-5 text-[9px]" displayName={name} photoUrl={customer.avatarUrl} decorative />
-          <FiChevronDown aria-hidden="true" className="hidden size-3 lg:block" />
         </span>
-        <span className="mt-0.5 hidden max-w-24 truncate lg:block">{name}</span>
       </button>
 
       {isOpen ? (

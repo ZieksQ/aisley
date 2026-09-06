@@ -57,20 +57,20 @@ export function HeaderAccountControls() {
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-      <NotificationBell />
       <Link
         href={authDestination("/messages", viewer.isAuthenticated)}
         aria-label="Messages"
-        className="flex min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+        className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
       >
         <FiMessageCircle aria-hidden="true" className="size-5" />
-        <span className="mt-0.5 hidden lg:block">Messages</span>
       </Link>
+
+      <NotificationBell />
 
       <Link
         href={cartHref}
         aria-label={`Cart with ${cartItemCount} items`}
-        className="relative flex min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+        className="relative flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
       >
         <FiShoppingCart aria-hidden="true" className="size-5" />
         {cartItemCount > 0 ? (
@@ -78,7 +78,6 @@ export function HeaderAccountControls() {
             {cartItemCount > 99 ? "99+" : cartItemCount}
           </span>
         ) : null}
-        <span className="mt-0.5 hidden lg:block">Cart</span>
       </Link>
 
       <AccountMenu />
