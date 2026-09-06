@@ -19,11 +19,13 @@ export function CustomerAvatar({
   displayName,
   photoUrl,
   decorative = false,
+  tone = "default",
 }: {
   className?: string;
   displayName: string | null;
   photoUrl: string | null | undefined;
   decorative?: boolean;
+  tone?: "default" | "light";
 }) {
   const [loaded, setLoaded] = useState<{ source: string; objectUrl: string } | null>(null);
   const objectUrl = loaded && loaded.source === photoUrl ? loaded.objectUrl : null;
@@ -63,7 +65,7 @@ export function CustomerAvatar({
   return (
     <span
       aria-hidden="true"
-      className={`${className} grid shrink-0 place-items-center rounded-full bg-[#4C1268] text-xs font-bold uppercase text-white`}
+      className={`${className} grid shrink-0 place-items-center rounded-full text-xs font-bold uppercase ${tone === "light" ? "bg-[#E9D5F2] text-[#4C1268]" : "bg-[#4C1268] text-white"}`}
     >
       {initials(displayName)}
     </span>

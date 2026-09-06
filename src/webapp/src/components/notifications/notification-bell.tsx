@@ -31,7 +31,7 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`} className="relative flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-[#4C1268] transition-colors hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`} className="relative flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
         <FiBell aria-hidden="true" className="size-5" />
         {notifications.length ? <span className="absolute right-1 top-0.5 size-2 rounded-full bg-[#E6007A] ring-2 ring-white" /> : null}
       </button>

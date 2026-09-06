@@ -368,3 +368,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 - Added Customer-scoped persistent notifications for published Admin announcements and committed Order status changes, with idempotent queued delivery. Added Customer notification APIs, navbar bell/recent modal, notification center/detail pages, and removed the delivery-location navbar control. Seller promo rendering is reserved for the future promo feature; no promo sending workflow was added.
 
 - Updated the Customer navbar with a purple-tinted header and solid purple category bar. Made the main account controls icon-only in Messages → Notifications → Cart → Profile order, preserving accessible labels and 44px tap targets.
+
+## 2026-09-07
+
+- Changed the Customer logo/search navbar to dark purple with white icons and focus indicators. Added a light lavender default avatar for the navbar while preserving existing profile photos and avatar styling elsewhere.
