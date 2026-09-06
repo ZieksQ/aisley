@@ -36,6 +36,7 @@ use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
+use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
@@ -210,6 +211,11 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/inventory/{inventorySku}/threshold', [SellerInventoryController::class, 'threshold'])->whereUuid('inventorySku')->name('inventory.threshold');
     Route::get('/low-stock-alerts', [SellerLowStockAlertController::class, 'index'])->middleware('throttle:120,1')->name('low-stock-alerts.index');
     Route::get('/low-stock-alerts/{alert}', [SellerLowStockAlertController::class, 'show'])->middleware('throttle:120,1')->whereUuid('alert')->name('low-stock-alerts.show');
+    Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->whereUuid('order')->name('orders.show');
+    Route::post('/orders/{order}/accept', [SellerOrderController::class, 'accept'])->whereUuid('order')->name('orders.accept');
+    Route::post('/notifications/{notification}/read', [SellerOrderController::class, 'markNotificationRead'])->whereUuid('notification')->name('notifications.read');
+    Route::get('/orders/{order}/waybill', [SellerOrderController::class, 'waybill'])->whereUuid('order')->name('orders.waybill');
 });
 
 Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
