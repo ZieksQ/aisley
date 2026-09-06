@@ -2,6 +2,8 @@ import { useState } from 'react'
 import {
   FaArrowRightFromBracket,
   FaBars,
+  FaBell,
+  FaClipboardList,
   FaGaugeHigh,
   FaBoxesStacked,
   FaTriangleExclamation,
@@ -10,7 +12,7 @@ import {
   FaUserGear,
   FaXmark,
 } from 'react-icons/fa6'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { SellerAvatar } from '../components/SellerAvatar'
@@ -77,6 +79,15 @@ export function SellerLayout() {
               <FaBoxOpen aria-hidden="true" />
               Products
             </NavLink>
+            <div className="mt-1 flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <FaClipboardList aria-hidden="true" />
+              Orders
+            </div>
+            <div className="ml-6 border-l border-zinc-200 pl-2 dark:border-white/10">
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/orders/monitoring">Monitoring</NavLink>
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/orders/approval">Approval</NavLink>
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/orders/pickup">Pickup</NavLink>
+            </div>
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/inventory">
               <FaBoxesStacked aria-hidden="true" />
               Inventory
@@ -92,7 +103,7 @@ export function SellerLayout() {
           </nav>
 
           <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
-            Purchased-order fulfillment and reporting will appear when their source domains become available.
+            Package submission, pickup scheduling, and reporting are not available yet.
           </p>
         </div>
 
@@ -136,9 +147,12 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Link aria-label="Orders awaiting approval" title="Orders awaiting approval" className="grid size-10 place-items-center rounded-lg border border-zinc-300 text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/10" to="/orders/approval"><FaBell aria-hidden="true" /></Link>
+            <ThemeToggle />
+          </div>
         </header>
         <Outlet />
       </section>

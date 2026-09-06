@@ -70,4 +70,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderVoucher::class);
     }
+
+    public function pickupRequestOrder(): HasOne
+    {
+        return $this->hasOne(SellerPickupRequestOrder::class);
+    }
 }
