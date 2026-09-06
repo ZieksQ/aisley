@@ -26,12 +26,6 @@ export function CartPageContent() {
   const initializedCartId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (auth.status === "guest") {
-      router.replace(`/login?next=${encodeURIComponent("/cart")}`);
-    }
-  }, [auth.status, router]);
-
-  useEffect(() => {
     if (!cart) return;
     const availableIds = cart.items
       .filter((item) => item.availability.isAvailable)

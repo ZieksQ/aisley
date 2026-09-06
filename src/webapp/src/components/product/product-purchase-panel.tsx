@@ -201,7 +201,11 @@ export function ProductPurchasePanel({
 
     try {
       const settledAuth = auth.status === "loading" ? await refreshAuth() : auth;
-      if (settledAuth.status !== "authenticated") {
+      if (settledAuth.status === "loading") {
+        setMessage(settledAuth.error ?? "Your session is still being checked. Please try again.");
+        return;
+      }
+      if (settledAuth.status === "guest") {
         savePendingCartIntent(intent);
         router.push(`/login?next=${encodeURIComponent(`/products/${product.id}`)}`);
         return;
@@ -235,7 +239,7 @@ export function ProductPurchasePanel({
               message: "We could not add this item. Please try again.",
             });
 
-      if (error.status === 401 || error.status === 419) {
+      if (error.status === 401) {
         savePendingCartIntent(intent);
         router.push(`/login?next=${encodeURIComponent(`/products/${product.id}`)}`);
       } else if (error.status === 409) {
@@ -271,7 +275,11 @@ export function ProductPurchasePanel({
 
     setMessage(null);
     const settledAuth = auth.status === "loading" ? await refreshAuth() : auth;
-    if (settledAuth.status !== "authenticated") {
+    if (settledAuth.status === "loading") {
+      setMessage(settledAuth.error ?? "Your session is still being checked. Please try again.");
+      return;
+    }
+    if (settledAuth.status === "guest") {
       savePendingCartIntent(intent);
       router.push(`/login?next=${encodeURIComponent(`/products/${product.id}`)}`);
       return;

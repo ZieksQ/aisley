@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import { AuthRouteBoundary } from "@/components/auth/auth-route-boundary";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
-import { getServerAuthState } from "@/lib/auth/server";
 import { WishlistProvider } from "@/components/wishlist/wishlist-provider";
 import { RecentlyViewedProvider } from "@/components/recently-viewed/recently-viewed-provider";
 
@@ -44,19 +44,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const initialAuth = await getServerAuthState();
-
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <AuthProvider initialAuth={initialAuth}>
+        <AuthProvider>
           <RecentlyViewedProvider>
             <WishlistProvider>
-              <CartProvider>{children}</CartProvider>
+              <CartProvider><AuthRouteBoundary>{children}</AuthRouteBoundary></CartProvider>
             </WishlistProvider>
           </RecentlyViewedProvider>
         </AuthProvider>

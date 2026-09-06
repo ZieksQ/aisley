@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:auth": "node tests/auth-session.test.mjs"
   },
   "dependencies": {
     "@aisley/psgc-address-data": "workspace:*",

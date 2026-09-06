@@ -7,6 +7,6 @@ export type AuthenticatedCustomer = {
 };
 
 export type AuthState =
-  | { status: "loading" }
+  | { status: "loading"; error?: string }
   | { status: "guest" }
   | { status: "authenticated"; customer: AuthenticatedCustomer };

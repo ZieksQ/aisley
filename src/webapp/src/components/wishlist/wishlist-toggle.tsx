@@ -31,7 +31,11 @@ export function WishlistToggle({
   async function handleToggle() {
     setMessage("");
     const settledAuth = auth.status === "loading" ? await refresh() : auth;
-    if (settledAuth.status !== "authenticated") {
+    if (settledAuth.status === "loading") {
+      setMessage(settledAuth.error ?? "Your session is still being checked. Please try again.");
+      return;
+    }
+    if (settledAuth.status === "guest") {
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }

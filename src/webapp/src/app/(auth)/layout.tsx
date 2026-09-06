@@ -1,16 +1,6 @@
-import { redirect } from "next/navigation";
-
 import { AuthShell } from "@/components/auth/auth-shell";
-import { getServerAuthState } from "@/lib/auth/server";
+import { AuthRouteBoundary } from "@/components/auth/auth-route-boundary";
 
-export default async function CustomerAuthLayout({
-  children,
-}: LayoutProps<"/">) {
-  const auth = await getServerAuthState();
-
-  if (auth.status === "authenticated") {
-    redirect("/");
-  }
-
-  return <AuthShell>{children}</AuthShell>;
+export default function CustomerAuthLayout({ children }: LayoutProps<"/">) {
+  return <AuthShell><AuthRouteBoundary guestOnly>{children}</AuthRouteBoundary></AuthShell>;
 }

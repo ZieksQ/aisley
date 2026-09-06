@@ -1,3 +1,4 @@
+import { safeReturnPath } from "@/lib/auth/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { PageIntro } from "@/components/auth/page-intro";
 import type { Metadata } from "next";
@@ -15,21 +16,6 @@ export const metadata: Metadata = {
     url: "/login",
   },
 };
-
-function safeReturnPath(value: string | string[] | undefined) {
-  const path = Array.isArray(value) ? value[0] : value;
-
-  if (
-    !path ||
-    !path.startsWith("/") ||
-    path.startsWith("//") ||
-    path.includes("\\")
-  ) {
-    return "/";
-  }
-
-  return path;
-}
 
 export default async function LoginPage({
   searchParams,
