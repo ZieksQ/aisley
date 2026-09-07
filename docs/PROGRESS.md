@@ -381,3 +381,15 @@ Project is in active implementation across the API, Customer storefront, and Adm
 
 - Reworked Customer session restoration into one deduplicated browser `/me` check per app load, retaining in-memory identity across navigation and removing duplicate Next.js page/layout checks and focus revalidation. Centralized protected-route redirects and private API session-failure handling while preserving Laravel authentication, active-role checks, and ownership enforcement. Network/server failures now retain known identity or offer startup retry; ordinary resource `403` stays on the page, while `419` rechecks the session without replaying mutations. Added stale-response protection, same-origin cross-tab login/logout signals, safe query-preserving login returns, and auth regression coverage through `pnpm --filter webapp test:auth`.
 - Validation: all 11 auth regression tests and focused auth/client lint pass. Full Webapp lint remains blocked by the two existing `react-hooks/set-state-in-effect` errors in notification components.
+
+## 2026-09-07
+
+- Expanded the idempotent Product catalog seeder to 30 storefront-purchasable products backed by public Unsplash image URLs. Seeded products now provide explicit base SKUs, Shop-scoped Inventory SKUs, and Shop-scoped Variant records; base inventory uses the Product base SKU consistently. Updated seeder coverage verifies catalog size, complete SKU data, media totals, and Shop scoping. PHP formatting plus the seeder, Customer Cart, Checkout, and Product Detail suites pass (24 tests, 244 assertions).
+
+## 2026-09-07
+
+- Updated the Customer homepage discovery feed to use explicit 20-product SSR/CSR batches and a 120-product client render cap by default, with both values configurable through the existing `NEXT_PUBLIC_HOMEPAGE_DISCOVERY_PAGE_SIZE` and `NEXT_PUBLIC_HOMEPAGE_DISCOVERY_MAX_ITEMS` environment variables. Versioned and validated session-restored feed state so changed catalog pages, viewer authentication, and limit changes refresh instead of hiding newly eligible products. Targeted storefront lint, strict TypeScript, and the webpack production build pass; full Webapp lint remains blocked by the two existing notification-component hook errors, and the default Turbopack build remains blocked by the environment CSS-worker permission failure.
+
+## 2026-09-07
+
+- Added back links to the Customer notification list and detail pages. The navbar notification preview now shows at most five items, prioritizes unread notifications before read notifications, and uses a light lavender background with an accessible unread cue for unread rows. Webapp lint and strict TypeScript checks pass; the production build remains blocked by the environment's unavailable Google Fonts fetch.

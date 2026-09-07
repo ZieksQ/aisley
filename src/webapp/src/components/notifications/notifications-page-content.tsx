@@ -13,8 +13,24 @@ export function NotificationsPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true); setError(null);
-    apiRequest<NotificationResponse>(`/api/v1/customer/notifications?status=${status}&per_page=30`).then((response) => setItems(response.data)).catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : "Notifications could not be loaded.")).finally(() => setLoading(false));
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await apiRequest<NotificationResponse>(`/api/v1/customer/notifications?status=${status}&per_page=30`);
+        if (!cancelled) setItems(response.data);
+      } catch (reason: unknown) {
+        if (!cancelled) setError(reason instanceof ApiError ? reason.message : "Notifications could not be loaded.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void load();
+    return () => { cancelled = true; };
   }, [status]);
 
   return <>

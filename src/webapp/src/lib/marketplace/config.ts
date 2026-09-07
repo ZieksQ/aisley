@@ -17,9 +17,12 @@ function boundedInteger(
   return parsed;
 }
 
+const DEFAULT_DISCOVERY_PAGE_SIZE = 20;
+const DEFAULT_DISCOVERY_MAX_ITEMS = 120;
+
 const discoveryPageSize = boundedInteger(
   process.env.NEXT_PUBLIC_HOMEPAGE_DISCOVERY_PAGE_SIZE,
-  20,
+  DEFAULT_DISCOVERY_PAGE_SIZE,
   8,
   50,
 );
@@ -30,7 +33,7 @@ export const marketplaceConfig = {
     discoveryPageSize,
     boundedInteger(
       process.env.NEXT_PUBLIC_HOMEPAGE_DISCOVERY_MAX_ITEMS,
-      120,
+      DEFAULT_DISCOVERY_MAX_ITEMS,
       8,
       500,
     ),

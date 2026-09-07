@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ProductStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\InventorySku;
 use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductOptionGroup;
@@ -64,30 +65,33 @@ class DatabaseSeedersTest extends TestCase
             ->where('role', UserRole::Seller)
             ->firstOrFail();
 
-        $this->assertCount(4, $products);
+        $this->assertCount(30, $products);
         $this->assertTrue(Hash::check('InitialSeller123', $seller->password));
         $this->assertSame('Aisley Demo Store', $seller->shop->name);
         $this->assertTrue($products->every(
             fn (Product $product) => $product->status === ProductStatus::Active
                 && str_starts_with($product->thumbnail_path, 'https://images.unsplash.com/')
                 && $product->description_markdown !== null
-                && $product->specifications !== null,
+                && $product->specifications !== null
+                && $product->base_sku !== null,
         ));
 
-        $this->assertDatabaseCount('product_media', 12);
+        $this->assertDatabaseCount('product_media', 38);
         $this->assertDatabaseCount('product_option_groups', 3);
         $this->assertDatabaseCount('product_option_values', 6);
         $this->assertDatabaseCount('product_variants', 6);
-        $this->assertSame(12, ProductMedia::query()->where('path', 'like', 'https://images.unsplash.com/%')->count());
+        $this->assertSame(38, ProductMedia::query()->where('path', 'like', 'https://images.unsplash.com/%')->count());
         $this->assertSame(3, ProductOptionGroup::query()->count());
         $this->assertSame(6, ProductVariant::query()->count());
+        $this->assertSame(34, InventorySku::query()->count());
+        $this->assertSame(0, InventorySku::query()->whereNull('shop_id')->count());
 
         $seller->update(['status' => UserStatus::Suspended]);
         $this->seed(ProductSeeder::class);
 
         $this->assertSame(UserStatus::Suspended, $seller->fresh()->status);
-        $this->assertDatabaseCount('products', 4);
-        $this->assertDatabaseCount('product_media', 12);
+        $this->assertDatabaseCount('products', 30);
+        $this->assertDatabaseCount('product_media', 38);
         $this->assertDatabaseCount('product_option_groups', 3);
         $this->assertDatabaseCount('product_option_values', 6);
         $this->assertDatabaseCount('product_variants', 6);
