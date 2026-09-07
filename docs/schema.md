@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, catalog/inventory, Cart, Customer checkout/order schema, and Logistics/Courier authentication foundation
 >
-> **Last synchronized:** 2026-09-05
+> **Last synchronized:** 2026-09-07
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -31,6 +31,8 @@ The current authentication and Logistics foundation includes:
 Admin approves Logistics registration applications. The associated Logistics organization approves or rejects its Courier affiliations. Admin account lifecycle actions such as suspension, restoration, and deactivation remain separate from Courier affiliation approval.
 
 The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Shipment, waybill, scan, pickup, delivery-task, assignment, and proof-of-delivery tables remain deferred.
+
+Before any Logistics or Courier shipment action is implemented, `docs/workspace.md`, this schema, the affected domain documents, and the affected feature specifications must describe one consistent operational contract. The complete shared operational schema must then be defined and migrated before those actions can write Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, proof-of-delivery, or detailed physical-status data. No feature may invent a detailed status in `orders.status` or silently treat a high-level Order status as a physical scan.
 
 ### Implemented Logistics cardinality and deferred operations
 
@@ -155,7 +157,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `CheckoutMode` | `cart`, `buy_now` | Checkout request validation and `checkout_quotes.input_payload` |
 | `PaymentMethod` | `cod` | `orders.payment_method`, optional `vouchers.payment_method` |
 | `PaymentStatus` | `pending` | `orders.payment_status` |
-| `OrderStatus` | `pending_payment`, `placed`, `seller_processing`, `ready_for_pickup`, `assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivered`, `cancelled`, `rejected`, `delivery_failed`, `return_requested`, `returned` | `orders.status`, `order_status_events.from_status`/`to_status` |
+| `OrderStatus` | `pending_payment`, `placed`, `seller_processing`, `ready_for_pickup`, `assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivered`, `cancelled`, `rejected`, `delivery_failed`, `return_requested`, `returned` | `orders.status`, `order_status_events.from_status`/`to_status`; current COD placement skips `pending_payment` |
 | `VoucherIssuerType` | `app`, `shop` | `vouchers.issuer_type`, `order_vouchers.issuer_type` |
 | `VoucherBenefitType` | `discount`, `shipping` | `vouchers.benefit_type`, `order_vouchers.benefit_type` |
 | `VoucherValueType` | `fixed`, `percent` | `vouchers.value_type` |
@@ -457,6 +459,8 @@ Indexes:
 - (`user_id`, `is_default`).
 
 The database does not yet enforce one default address per user/type. That invariant must be maintained transactionally by the address service.
+
+PSGC names and manually reviewed address fields are authoritative. `latitude`/`longitude` are optional coordinates captured from a confirmed Customer pin; Geoapify suggestions and provider identifiers are assistive metadata only and are not persisted as address identity. The address/map contract uses bundled PSGC data, optional Geoapify assistance, and Leaflet rendering; Mapbox is not used.
 
 ## 7. Admin authorization
 
@@ -876,7 +880,7 @@ At most one active product-level gallery media row is marked `is_default` by the
 
 `inventory_balances` stores one current balance per SKU with unsigned `on_hand`, `reserved`, and nullable `alert_threshold` quantities. PostgreSQL checks enforce `0 <= reserved <= on_hand`; available stock is derived as `on_hand - reserved`.
 
-`inventory_movements` is the append-only stock ledger. Each movement records string-backed `movement_type`, signed on-hand/reserved deltas, resulting balances, optional reference and idempotency keys, the nullable acting User, reason, and creation time. Application models reject updates and deletes. Existing Product/Product Variant quantities are backfilled as opening balances and remain synchronized compatibility projections of **available** stock (`on_hand - reserved`) for current storefront and Cart queries. `ProductSeeder` creates missing SKU balances and opening movements for products seeded after the inventory migration.
+`inventory_movements` is the append-only stock ledger. Each movement records string-backed `movement_type`, signed on-hand/reserved deltas, resulting balances, optional reference and idempotency keys, the nullable acting User, reason, and creation time. Application models reject updates and deletes. Existing Product/Product Variant quantities are backfilled as opening balances and remain synchronized compatibility projections of **available** stock (`on_hand - reserved`) for current storefront and Cart queries. `ProductSeeder` creates missing SKU balances and opening movements for products seeded after the inventory migration. The currently implemented ledger records checkout reservations; the approved fulfillment boundary is to release a reservation once, before `picked_up_from_seller`, for an accepted cancellation/rejection, or commit it once at first-mile pickup. Post-pickup release, returns, refunds, and partial fulfillment require additional approved movement semantics and migrations.
 
 ### 9.6 `homepage_campaigns`
 
@@ -982,7 +986,7 @@ Money terms are `value`, nullable `maximum_discount`, and `minimum_spend` as `NU
 
 ### 9.11 `checkout_quotes` and `checkout_batches`
 
-`checkout_quotes` stores a short-lived Customer-owned checkout intent as normalized JSON, a SHA-256 request hash, an authoritative state hash, and `expires_at`. It does not accept a client price, shipping fee, address snapshot, status, or total. The state hash covers selected catalog/variant/inventory state, Address Book revision, selected voucher state, and the server shipping configuration.
+`checkout_quotes` stores a short-lived Customer-owned checkout intent as normalized JSON, a SHA-256 request hash, an authoritative state hash, and `expires_at`. It does not accept a client price, shipping fee, address snapshot, status, or total. The state hash covers selected catalog/variant/inventory state, Address Book revision, selected voucher state, and the server shipping configuration. Once Logistics selection is implemented, the normalized quote/request hash must also cover the selected eligible Logistics organization and the server must revalidate that choice before placement.
 
 `checkout_batches` records one successful atomic placement and has a unique `checkout_quote_id`. It stores Customer, Customer-scoped UUID `idempotency_key`, placement request hash, three-character currency, and `placed_at`. Unique (`customer_id`, `idempotency_key`) makes retries return the original Orders while rejecting reuse for different details.
 
@@ -994,11 +998,11 @@ Each Shop group in a batch creates exactly one `orders` row. Orders reference th
 
 ### 9.13 `order_addresses` and `order_status_events`
 
-Every Order has one `order_addresses` delivery snapshot. It retains a nullable `source_address_id` for traceability and independently copies recipient/contact, address lines, barangay, city/municipality, province, region, postal code, country, and optional coordinates. Deleting or editing the Address Book source cannot change the snapshot.
+Every Order has one `order_addresses` delivery snapshot. It retains a nullable `source_address_id` for traceability and independently copies recipient/contact, address lines, barangay, city/municipality, province, region, postal code, country, and optional coordinates. Deleting or editing the Address Book source cannot change the snapshot. PSGC/manual address fields remain authoritative; optional coordinates come from the Customer's confirmed map pin, and provider identifiers or suggestion metadata are not authoritative address identity.
 
 `order_status_events` is the UUID-backed status history. It stores nullable `from_status`, `to_status`, source, optional safe public JSON metadata, and server `occurred_at`. Placement creates the first `placed` event. Future fulfillment features must append validated transitions rather than rewrite history.
 
-`orders.status` remains the current high-level commercial/Customer-facing status. Until the deferred Shipment/Delivery Task schema exists, its Logistics-facing values have these meanings: `ready_for_pickup` means the Seller has completed preparation; `assigned` means Logistics has received and accepted the parcel at its sole hub; `picked_up` means the final-mile Courier has taken the parcel from that hub; `in_transit` and `out_for_delivery` describe the final-mile movement. Detailed first-mile and hub milestones must be stored in the future shipment/task records and must not be inferred from the current Order status alone.
+`orders.status` remains the current high-level commercial/Customer-facing status. Until the deferred Shipment/Delivery Task schema exists, its Logistics-facing values have these meanings: `ready_for_pickup` means the Seller has completed preparation; `assigned` means Logistics has received and accepted the parcel at its sole hub; `picked_up` means the final-mile Courier has taken the parcel from that hub; `in_transit` and `out_for_delivery` describe the final-mile movement. Detailed first-mile and hub milestones must be stored in the future shipment/task records and must not be inferred from the current Order status alone. The Customer selects one eligible Logistics organization per Shop Order when that fulfillment-selection contract is implemented; the selected organization is retained in the future fulfillment context and cannot be silently replaced after placement.
 
 ### 9.14 `order_vouchers` and `voucher_redemptions`
 
@@ -1010,7 +1014,9 @@ Every Order has one `order_addresses` delivery snapshot. It retains a nullable `
 
 Successful placement increments `inventory_balances.reserved`, writes an immutable `reserve` movement linked to the Order, and updates catalog compatibility quantities to available stock. All Shop Orders, lines, address snapshots, status events, voucher records, inventory reservations, and selected-Cart cleanup commit in one transaction.
 
-Logistics provider/method selection is not stored or accepted. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
+The current checkout schema does not yet persist a Logistics provider because the operational fulfillment records are deferred. Before Logistics actions are implemented, the shared schema must store one server-validated Customer-selected eligible Logistics organization for each Shop Order or fulfillment unit; the client may not submit an arbitrary organization or replace the selection after placement. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
+
+The reserved quantity is converted to fulfilled/committed inventory exactly once when first-mile pickup succeeds (`picked_up_from_seller`). An accepted cancellation or rejection before that milestone releases only the Order's reserved SKU quantities, transactionally and idempotently. After first-mile pickup, inventory is not automatically released; post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
 ### 9.16 Platform announcements and policies
 
@@ -1135,6 +1141,11 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 43. Compliance actions require the persisted expected case revision and a unique idempotency key; cases, affected Products, Sellers, and active restrictions are rechecked under database locks.
 44. Active Product compliance restrictions override publication state across discovery, Product Detail, Cart, Checkout, Seller publish, and Seller unarchive without deleting catalog, Inventory, or historical Order data.
 45. Seller suspension referrals use the canonical Account Management lifecycle service and require the exact `email/seller` confirmation; compliance does not write `users.status` directly.
+46. When fulfillment selection is implemented, the selected Logistics organization must be one of the server-validated eligible providers offered for the Shop Order. The selection is stored in the operational fulfillment context and cannot be silently replaced after placement.
+47. An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reserved SKU quantities, exactly once and transactionally. `picked_up_from_seller` commits the reservation to fulfillment without decrementing `on_hand` twice; post-pickup release, returns, refunds, and partial fulfillment require a later approved policy.
+48. Seller package-label versions may change until `ready_for_pickup`, then the active version is frozen. Logistics creates the operational waybill at `received_at_hub`; its identifier and Order/Parcel link are immutable, while pre-`picked_up_from_hub` route or assignment changes append events rather than overwrite history.
+49. Once the shared schema exists, a `ready_for_pickup` Order with a selected Logistics organization may have at most one active first-mile task; creation is authorized only to that organization and is idempotent across retries.
+50. Shipment/Parcel/Waybill/Scan/Delivery Task and assignment writes are prohibited until the reconciled shared operational schema and transition contract are approved and migrated.
 
 ## 13. Migration order
 
@@ -1196,10 +1207,11 @@ The following capabilities appear in requirements but have no migrations or mode
 
 | Capability                 | Deferred data design                                                                                                                                                                         |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Catalog and inventory      | Reservation release and conversion to fulfillment for cancellation/Seller processing beyond implemented checkout reservation                                                                 |
+| Catalog and inventory      | Reservation release before first-mile pickup and conversion at `picked_up_from_seller` are the approved next boundary; post-pickup release, returns/refunds, and partial-fulfillment records remain deferred |
 | Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
 | Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
-| First-party logistics      | Shipments/parcels, waybills, scan events, first-mile pickup/final-delivery tasks, assignments, proof of delivery, Courier availability, and Courier earnings; Logistics identity, organization, sole hub, and Courier affiliation are implemented |
+| First-party logistics      | Complete shared Shipments/parcels, waybills, scan events, first-mile pickup/final-delivery tasks, assignments, proof of delivery, Courier availability, and Courier earnings; the Customer-selected Logistics context, one-organization/one-hub scope, and operational transition contract must be defined before action implementation; Logistics identity, organization, sole hub, and Courier affiliation are implemented |
+| Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
 | Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
@@ -1209,8 +1221,11 @@ The following capabilities appear in requirements but have no migrations or mode
 Before adding these tables:
 
 - preserve the implemented five-role model and the decided one-Logistics-organization-to-one-hub MVP cardinality when adding deferred operational tables;
+- reconcile the accepted order/Logistics flow and status mappings across `docs/workspace.md`, the domain documents, and affected feature specifications before writing operational migrations;
 - keep every application model primary key and relationship key UUID-based;
 - keep enum-like columns as strings with PHP enum casts;
 - preserve mutable product, price, and address data as order-time snapshots;
+- model Seller package labels and Logistics operational waybills as separate linked artifacts with append-only assignment/scan history and the approved immutability boundaries;
+- keep COD placement at `placed` with `payment_status = pending`; retain `pending_payment` for a future online-payment path;
 - ensure every Seller-owned resource resolves to a shop for tenant isolation; and
 - update this document and `docs/PROGRESS.md` in the same change as the migrations.

@@ -2,8 +2,8 @@
 model: Seller
 type: Domain Context
 purpose: Shared Seller workflow and implementation context
-version: 1.1
-status: Revised — aligned with the implemented catalog/inventory foundation and first-party logistics flow
+version: 1.2
+status: Revised — aligned with the approved order/Logistics flow and implemented catalog/inventory foundation
 ---
 
 # Seller Model Context
@@ -12,7 +12,7 @@ status: Revised — aligned with the implemented catalog/inventory foundation an
 
 Seller is Aisley's merchant role. An approved Seller operates exactly one Shop through the separate React/Vite Seller web application; Laravel APIs and the database remain authoritative. Seller-owned reads and writes are always scoped from the authenticated Seller to that one Shop.
 
-The Seller owns catalog and inventory preparation. After a Customer places an Order, the Seller verifies and prepares the purchased items, produces or accesses the internal shipping reference, and confirms `ready_for_pickup`. The first-mile Courier, Logistics hub, and final-mile Courier own the later physical handoffs.
+The Seller owns catalog and inventory preparation. After a Customer places an Order, the Seller verifies and prepares the purchased items, creates the versioned package label, and confirms `ready_for_pickup`. The selected Logistics organization creates the first-mile task after readiness; the first-mile Courier, Logistics hub, and final-mile Courier own the later physical handoffs.
 
 ## Account, Shop, and approval boundary
 
@@ -21,7 +21,9 @@ The Seller owns catalog and inventory preparation. After a Customer places an Or
 - Seller age is calculated from `birth_date` by the API; a client-supplied age is never authoritative.
 - Seller registration uses the bundled PSGC Region → Province → City/Municipality → Barangay lookup with a required manual postal code and street/building fields. The address is the Seller's registered business address, not a Logistics hub address.
 - Registration evidence follows `docs/references/file-upload-requirements.md`: private JPEG/JPG, PNG, or WebP images under 10 MiB with server-side signature/MIME/decode validation.
-- Admin approves or rejects the pending Seller application, Shop, and evidence as one decision. A pending, rejected, suspended, or deactivated Seller cannot use the Seller dashboard.
+- Registration creates exactly one pending Shop with the application. Missing or invalid required registration fields/evidence prevent approval; no second Shop is created after approval.
+- Admin approves or rejects the pending Seller application, existing Shop, and evidence as one decision. A pending, rejected, suspended, or deactivated Seller cannot use the Seller dashboard.
+- After approval, the Seller may complete or edit permitted storefront settings on the existing Shop. `SHOP_SETUP_REQUIRED` means required storefront fields are incomplete; it is not an alternative to Admin approval or a second approval state.
 - The Seller cannot approve itself, alter account/Shop status, choose a Logistics hub, assign a Courier, or mutate another Seller's data.
 
 The Seller web application uses Sanctum cookie/session authentication. The API resolves a Seller by normalized `email + role`, and every protected request rechecks the Seller role and active status.
@@ -72,6 +74,8 @@ pending_payment
 → delivered
 ```
 
+Current COD placement skips `pending_payment`: checkout creates the Order at `placed` with `payment_status = pending` and reserves inventory. `pending_payment` remains available for a future online-payment flow.
+
 Seller-owned preparation covers only:
 
 ```text
@@ -98,6 +102,8 @@ seller_pickup_assigned
 
 The Seller does not write Logistics/Courier states. After `ready_for_pickup`, a first-mile Courier may be assigned independently from the final-mile Courier; assignment, scanning, and delivery completion belong to the downstream contracts.
 
+The Customer selects one eligible Logistics organization offered for the Shop Order during checkout. The selected provider is part of the downstream fulfillment context and cannot be silently replaced after placement. The Seller may view the selection but cannot choose a different Logistics organization, create a first-mile task, or assign a Courier.
+
 For the high-level order projection, `assigned` means Logistics has received and accepted the Seller-ready parcel at its sole hub, while `picked_up` means the final-mile Courier has taken the parcel from that hub. Neither value represents the first-mile Seller pickup by itself.
 
 ## Physical fulfillment flow
@@ -107,11 +113,13 @@ Customer places an Order (`placed`)
 → Seller opens and verifies immutable purchased item/SKU snapshots
 → Seller begins processing (`seller_processing`)
 → Seller packs the correct items and records package details
-→ Seller generates or accesses the internal waybill/reference
-→ Seller confirms `ready_for_pickup`
+→ Seller creates/version and prints the package label containing the immutable Order/Parcel reference
+→ Seller confirms `ready_for_pickup` and freezes the active package-label version
+→ selected Logistics organization creates and offers the first-mile task to an eligible Courier
 → first-mile Courier accepts and picks up from Seller (`picked_up_from_seller`)
 → Courier transfers the parcel to Logistics' sole hub
-→ Logistics receives, sorts, transfers, and dispatches it
+→ Logistics receives the parcel (`received_at_hub`) and creates the separate operational waybill linked by the immutable Order/Parcel reference
+→ Logistics sorts, transfers, and dispatches it
 → Logistics assigns a final-mile Courier
 → final-mile Courier picks up from the hub and delivers to the Customer
 ```
@@ -149,6 +157,7 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 - **Purpose:** Manage SKU-level on-hand, reserved, available, threshold, and movement information.
 - **Owns:** Authoritative `inventory_skus`, `inventory_balances`, and append-only `inventory_movements` behavior, including manual adjustments and stock history.
 - **Rules:** Sellers cannot set a resulting balance directly. Checkout reservations and later fulfillment actions use the Inventory service; Product catalog quantities are compatibility projections, not a second ledger.
+- **Fulfillment boundary:** Checkout reserves the requested SKU quantity. An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reservation once and transactionally. First-mile pickup commits the reservation to fulfillment exactly once; post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred.
 
 ### 6. Low-Stock Alerts
 
@@ -164,9 +173,10 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 
 ### 8. Prepare Orders and First-Mile Handoff
 
-- **Purpose:** Verify purchased snapshots, begin Seller processing, pack the parcel, record package details, generate/print the internal waybill, and confirm `ready_for_pickup`.
-- **Owns:** `placed → seller_processing → ready_for_pickup`, package/label validation, and readiness history.
-- **Boundary:** Logistics/Courier own parcel receipt, scanning, sorting, assignment, physical pickup, transit, and final delivery. External carrier APIs are optional; Aisley's internal reference must remain usable.
+- **Purpose:** Verify purchased snapshots, begin Seller processing, pack the parcel, record package details, create/version and print the package label, and confirm `ready_for_pickup`.
+- **Owns:** `placed → seller_processing → ready_for_pickup`, package-label validation, the immutable Order/Parcel reference, and readiness history.
+- **Label rule:** The package-label identifier includes the immutable Order/Parcel reference, package details, the Shop pickup address, and destination fields copied from the immutable Customer checkout snapshot. It may be revised only until `ready_for_pickup` is confirmed; the active label version is frozen at readiness and cannot be overwritten after `picked_up_from_seller`.
+- **Boundary:** The selected Logistics organization creates at most one active first-mile task after readiness, creates the separate operational waybill at `received_at_hub`, and owns parcel receipt, scanning, sorting, assignment, physical pickup, transit, and final delivery. Seller Prepare Orders does not create the Logistics task/waybill or assign a Courier. External carrier APIs are optional; Aisley's internal references must remain usable.
 
 ### 9. Delivery Confirmation
 
@@ -223,6 +233,9 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 - Product publication requires a valid active Shop/Seller, valid catalog/media/Inventory state, and no active compliance restriction. Storefront visibility is centrally enforced by the shared visibility predicate.
 - Inventory balances and Order snapshots are authoritative records. Catalog edits, low-stock evaluation, notifications, and Seller UI state cannot silently rewrite them.
 - Seller order transitions are validated, transactional, idempotent, and append immutable history. A notification, mapping, upload, or downstream delivery failure must not undo a committed Seller decision.
+- The selected Logistics organization is server-validated and retained in the future fulfillment context; Seller actions cannot replace it after placement.
+- Reservation release and fulfillment conversion are idempotent: pre-`picked_up_from_seller` cancellation/rejection releases the exact reserved quantity once, while first-mile pickup commits it once without decrementing `on_hand` twice.
+- Package-label versions freeze at `ready_for_pickup`; the later Logistics waybill is a separate linked artifact whose identifier and Order/Parcel link become immutable at `received_at_hub`.
 - Private registration/profile assets and draft/private description assets remain authorization-gated; eligible public media receives only safe delivery URLs and never exposes raw disk paths or credentials.
 - Seller cannot choose or operate another Seller's Shop, Logistics organization, hub, Courier, Order, or asset by changing request parameters.
 
@@ -237,7 +250,7 @@ Implemented Seller foundation:
 
 Deferred or dependent Seller operations:
 
-- Seller order notification/queue implementation, Prepare Orders execution, waybill/label persistence, Shipment/Delivery Task records, first-mile pickup, Logistics receipt/sorting/dispatch, Courier assignment/delivery, proof of delivery, delivery confirmation, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions.
+- Seller order notification/queue implementation, Prepare Orders execution, package-label persistence, Shipment/Parcel/Waybill/Scan/Delivery Task records, first-mile task creation/assignment, Logistics receipt/sorting/dispatch, Courier assignment/delivery, proof of delivery, delivery confirmation, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions. The shared operational schema and transition contract must be approved before any of these writes are implemented.
 
 Future status-like columns must be stored as strings and cast to PHP enums. Future fulfillment migrations must preserve one Seller/one Shop tenancy, immutable Order snapshots, the shared high-level OrderStatus contract, and the separate Shipment/Delivery Task milestones.
 

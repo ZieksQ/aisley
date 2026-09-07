@@ -393,3 +393,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Added back links to the Customer notification list and detail pages. The navbar notification preview now shows at most five items, prioritizes unread notifications before read notifications, and uses a light lavender background with an accessible unread cue for unread rows. Webapp lint and strict TypeScript checks pass; the production build remains blocked by the environment's unavailable Google Fonts fetch.
+
+## 2026-09-07
+
+- Reconciled `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and the Seller, Buyer, Logistics, and Courier domain contexts with the approved order/Logistics flow. The documents now define Customer selection of an eligible Logistics organization, Logistics-owned first-mile task creation, independent first-/final-mile assignments, separate Seller package labels and Logistics operational waybills with their immutability windows, COD `placed`/`payment_status = pending`, inventory reservation release/fulfillment boundaries, one-organization/one-hub scope, provider-neutral routing with no Mapbox, deferred subscription enforcement, and the shared-schema gate before shipment actions. No application behavior or migrations changed.
