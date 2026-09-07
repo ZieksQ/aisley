@@ -413,3 +413,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Revised the Courier Authentication specification against the implemented mobile-only bearer-token API, Logistics-owned affiliation approval, one-Courier/one-organization/sole-hub boundary, current evidence mapping, and deferred recovery and delivery operations. The spec now distinguishes implemented auth foundation from future Flutter-consumed operational contracts. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Updated `docs/architecture.md` to identify the four current frontend applications (Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard), while keeping Courier explicitly external and Flutter/mobile-only.
