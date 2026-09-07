@@ -405,3 +405,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Revised the Customer Checkout, Order Status, Order Modification/Cancellation, Address Book, Customer Authentication, and auth-aware navigation specifications against the implemented API/UI and approved order/logistics contracts. The specs now use `customer` as the canonical role, document COD `placed`/pending-payment behavior, Shop-level Order grouping and immutable snapshots, reservation release/first-mile boundaries, the Customer-selected Logistics transition gap, PSGC + optional Geoapify/Leaflet address pinning with no Mapbox, current session restoration, and the deferred Customer order-mutation and registration address/evidence work. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Logistics Authentication and Dashboard specifications against the implemented one-account/one-organization/one-hub foundation and current API/SPA scaffold. The specs now distinguish implemented registration/session/hub behavior from deferred shipment operations, preserve Admin Logistics approval and Logistics Courier-affiliation authority, document private evidence and PSGC/manual address rules, make subscription enforcement explicitly deferred, and keep Dashboard queue/status work behind the approved shared operational schema. No application behavior or migrations changed.
