@@ -9,13 +9,64 @@ import type { ProductSummary } from "@/lib/marketplace/types";
 import { useHomeData } from "./home-data-provider";
 import { ProductCard } from "./product-card";
 
-const storageKey = "aisley:homepage-discovery:v1";
+const storageKey = "aisley:homepage-discovery:v2";
 
 type SavedDiscovery = {
   cursor: string | null;
+  feedSignature: string;
+  isAuthenticated: boolean;
   items: ProductSummary[];
+  maxItems: number;
+  pageSize: number;
   scrollY: number;
 };
+
+function feedSignature({
+  items,
+  nextCursor,
+}: {
+  items: ProductSummary[];
+  nextCursor: string | null;
+}) {
+  return `${items.map((product) => product.id).join(",")}|${nextCursor ?? ""}`;
+}
+
+function clearSavedDiscovery() {
+  try {
+    window.sessionStorage.removeItem(storageKey);
+  } catch {
+    // Session storage is optional; the fresh feed remains usable.
+  }
+}
+
+function isSavedDiscovery(
+  value: unknown,
+  expectedFeedSignature: string,
+  expectedAuthentication: boolean,
+): value is SavedDiscovery {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const saved = value as Partial<SavedDiscovery>;
+
+  return (
+    Array.isArray(saved.items) &&
+    saved.items.length > 0 &&
+    typeof saved.feedSignature === "string" &&
+    saved.feedSignature === expectedFeedSignature &&
+    typeof saved.isAuthenticated === "boolean" &&
+    saved.isAuthenticated === expectedAuthentication &&
+    typeof saved.pageSize === "number" &&
+    Number.isInteger(saved.pageSize) &&
+    saved.pageSize === marketplaceConfig.discoveryPageSize &&
+    typeof saved.maxItems === "number" &&
+    Number.isInteger(saved.maxItems) &&
+    saved.maxItems === marketplaceConfig.discoveryMaxItems &&
+    (typeof saved.cursor === "string" || saved.cursor === null) &&
+    typeof saved.scrollY === "number"
+  );
+}
 
 function ProductGridSkeleton() {
   return (
@@ -52,6 +103,8 @@ export function DiscoveryFeed() {
   const loadingRef = useRef(false);
   const loadedMoreRef = useRef(false);
   const hasSessionStateRef = useRef(false);
+  const activeFeedSignatureRef = useRef(feedSignature(data.recommendations));
+  const viewerAuthenticationRef = useRef(data.viewer.isAuthenticated);
 
   useEffect(() => {
     let savedState: SavedDiscovery | null = null;
@@ -60,19 +113,32 @@ export function DiscoveryFeed() {
       const stored = window.sessionStorage.getItem(storageKey);
 
       if (stored) {
-        const saved = JSON.parse(stored) as SavedDiscovery;
+        const saved = JSON.parse(stored) as unknown;
 
-        if (Array.isArray(saved.items) && saved.items.length > 0) {
+        if (
+          isSavedDiscovery(
+            saved,
+            activeFeedSignatureRef.current,
+            viewerAuthenticationRef.current,
+          )
+        ) {
           hasSessionStateRef.current = true;
           savedState = saved;
+        } else {
+          clearSavedDiscovery();
         }
       }
     } catch {
-      window.sessionStorage.removeItem(storageKey);
+      clearSavedDiscovery();
     }
 
     const frame = window.requestAnimationFrame(() => {
-      if (savedState) {
+      if (
+        savedState &&
+        hasSessionStateRef.current &&
+        activeFeedSignatureRef.current === savedState.feedSignature &&
+        viewerAuthenticationRef.current === savedState.isAuthenticated
+      ) {
         setItems(
           savedState.items.slice(0, marketplaceConfig.discoveryMaxItems),
         );
@@ -89,6 +155,27 @@ export function DiscoveryFeed() {
   }, []);
 
   useEffect(() => {
+    const nextFeedSignature = feedSignature(data.recommendations);
+    const viewerChanged =
+      viewerAuthenticationRef.current !== data.viewer.isAuthenticated;
+    const feedChanged = activeFeedSignatureRef.current !== nextFeedSignature;
+
+    if (viewerChanged || (feedChanged && !loadedMoreRef.current)) {
+      viewerAuthenticationRef.current = data.viewer.isAuthenticated;
+      activeFeedSignatureRef.current = nextFeedSignature;
+      hasSessionStateRef.current = false;
+      loadedMoreRef.current = false;
+      setItems(data.recommendations.items);
+      setNextCursor(data.recommendations.nextCursor);
+      setRequestState("idle");
+
+      if (viewerChanged) {
+        clearSavedDiscovery();
+      }
+
+      return;
+    }
+
     if (loadedMoreRef.current || hasSessionStateRef.current) {
       return;
     }
@@ -96,10 +183,11 @@ export function DiscoveryFeed() {
     const frame = window.requestAnimationFrame(() => {
       setItems(data.recommendations.items);
       setNextCursor(data.recommendations.nextCursor);
+      activeFeedSignatureRef.current = nextFeedSignature;
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [data.recommendations]);
+  }, [data.recommendations, data.viewer.isAuthenticated]);
 
   useEffect(() => {
     if (!restoreComplete) {
@@ -109,16 +197,25 @@ export function DiscoveryFeed() {
     const save = () => {
       const state: SavedDiscovery = {
         cursor: nextCursor,
+        feedSignature: activeFeedSignatureRef.current,
+        isAuthenticated: viewerAuthenticationRef.current,
         items,
+        maxItems: marketplaceConfig.discoveryMaxItems,
+        pageSize: marketplaceConfig.discoveryPageSize,
         scrollY: window.scrollY,
       };
-      window.sessionStorage.setItem(storageKey, JSON.stringify(state));
+
+      try {
+        window.sessionStorage.setItem(storageKey, JSON.stringify(state));
+      } catch {
+        // Session storage is optional; the feed remains usable without it.
+      }
     };
 
     save();
     window.addEventListener("pagehide", save);
     return () => window.removeEventListener("pagehide", save);
-  }, [items, nextCursor, restoreComplete]);
+  }, [data.viewer.isAuthenticated, items, nextCursor, restoreComplete]);
 
   const loadNext = useCallback(async () => {
     if (
