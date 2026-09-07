@@ -3,8 +3,8 @@ feature: order-management
 title: Seller Order Management
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft
+version: 1.2
+status: Implemented catalog management
 role: Seller
 scope: Seller Web Application
 ---
@@ -13,127 +13,104 @@ scope: Seller Web Application
 
 ## WHAT
 
-- **Purpose:** Give an active Seller one shop-scoped catalog surface for Product drafts, editing, publishing, archiving, variants, pricing, media, and stock summaries.
-- **Naming boundary:** despite its name, this feature owns Product/Catalog management—not purchased-order fulfillment.
-- **Fulfillment belongs to:** Seller Order Notifications, Prepare Orders, Confirm Delivery, Logistics, and Courier features.
-- **Canonical ownership:** authenticated Seller → exactly one owned Shop → Products, options, variants, gallery media, and description assets.
-- **Routes:** `/products`, `/products/new`, `/products/:productId`, and `/products/:productId/edit` within the Seller SPA.
-- **Current schema:** Products support `description_markdown`; ProductMedia is the gallery/variant-media model; Product option/variant data is already UUID-based.
-- **Product-description editor:** use [MDXEditor — the Rich Text Markdown Editor React Component](https://mdxeditor.dev/editor/docs/overview) in the Seller form.
-- **Description images:** Sellers can insert, paste, or drop pictures into the Markdown description through MDXEditor's image plugin and an Aisley-authorized upload flow.
-- **Core flow:**
-
-```text
-Seller creates/saves Product draft
-→ opens ProductDescriptionEditor
-→ types Markdown-rich description or inserts an image
-→ Laravel authorizes, scans, stores, and returns a canonical description-asset URL
-→ MDXEditor inserts standard Markdown image syntax
-→ Seller saves Product
-→ Laravel validates Markdown and referenced assets belong to that Product
-→ Product publishes only after normal catalog/compliance checks
-```
-
-- **Architecture:** React/Vite owns the catalog UI and MDXEditor; Laravel owns Seller scope, storage, Markdown validation, publication, and API DTOs.
-- **Feature boundaries:** Inventory owns stock movements; Promotions own voucher/discount rules; ProductMedia owns gallery/variant images; description assets are distinct inline-content assets.
-- **Non-goals:** direct inventory overwrites, Product hard deletion, order fulfillment, arbitrary external image hotlinking, raw HTML/MDX execution, or storing Base64 images in Markdown.
+- **Actual ownership:** this Seller feature is the Product/Catalog workspace despite its historical name. It manages Product drafts, variants, prices, media, descriptions, publication, archive/unarchive, and deletion retention.
+- **Fulfillment pointer:** purchased-order approval belongs to Seller Order Approval; packing, package labels, and `ready_for_pickup` belong to Seller Prepare Orders. Logistics waybills, Courier assignment, and delivery are downstream.
+- **Routes:** Seller SPA `/products`, `/products/new`, `/products/:productId`, `/products/:productId/edit`; API `/api/v1/seller/products*` and product upload routes.
+- **Ownership:** authenticated Seller → exactly one Shop → Products, SKUs/variants, gallery media, and inline description assets.
+- **Editor:** use [MDXEditor — the Rich Text Markdown Editor React Component](https://mdxeditor.dev/editor/docs/overview) for controlled `description_markdown` authoring. Buyer viewing uses `react-markdown` with `remark-gfm` and no raw HTML.
+- **Description image flow:** save a draft/upload token → upload an allowed picture → receive a Seller-authorized Aisley asset reference → insert standard Markdown image syntax → save Product → Laravel claims and validates Product-owned assets.
+- **Non-goals:** direct stock-balance writes, arbitrary HTML/MDX execution, external image hotlinks, Buyer address changes, order-status transitions, Logistics selection, Courier assignment, or hard deletion that removes historical references.
 
 ## MUST
 
-### Seller scope and catalog lifecycle
+### Seller scope and lifecycle
 
-- Require authenticated active `SELLER`; derive Shop from the session and never trust `seller_id` or `shop_id` input.
-- Every Product, variant, gallery media, description asset, and upload-session query must be constrained to the Seller's Shop.
-- Use `401` unauthenticated, `403` forbidden/inactive, `404` Seller-scoped resource missing, `422` invalid input, and `409` stale publication/update conflicts.
-- Sellers may create, list, edit, explicitly publish, and archive only their own Products.
-- Draft/archived Products remain visible to the owner but never appear in Buyer discovery.
-- Archive preserves the Product and future Order snapshots/history; it must not hard-delete Product records or referenced assets.
-- Product updates must never rewrite historical Order item, price, description, or media snapshots once Orders exist.
+- Require `auth:sanctum` and active Seller status. Derive the Shop from the session; never trust client `seller_id`, `shop_id`, ownership, status, or storage paths.
+- Sellers may create, list, edit, publish, archive, unarchive, and delete only their own Products. Draft/archived Products remain owner-visible but not Buyer-discoverable.
+- Publish is an explicit server action requiring a valid active category in the Shop's canonical Shop Category, complete catalog fields, at least one approved gallery image, and at least one active SKU with positive `available` stock. Admin compliance restrictions also block publication/unarchive.
+- Archive/deletion preserves order/catalog history and retains media/description assets according to the configured recovery period; no historical Order snapshot is rewritten.
+- Use safe scoped `401`, `403`, `404`, `409`, and field-addressable `422` responses. Resource DTOs must not serialize unrelated Eloquent graphs.
 
-### Product fields, variants, prices, and stock
+### Product, variant, and Inventory boundaries
 
-- Laravel allow-lists mutable Product fields and validates category, title, summary, Markdown, prices, variants, media references, and publication readiness.
-- Prices use fixed-precision decimals and explicit currency; client-calculated totals and negative values are rejected.
-- Variants/SKUs are Seller-owned Product configurations with validated option combinations, server-enforced SKU uniqueness, and active/inactive state.
-- Publishing is an explicit server action requiring complete catalog data, allowed Seller/Shop/compliance state, valid media, and any configured dimensions/weight.
-- Promotions/vouchers validate Seller/Product scope, dates, limits, and final eligibility in their own domain.
-- Inventory owns authoritative `on_hand`, `reserved`, and `available` balances; Product management may show summaries or request an Inventory action but never writes a second balance.
-- Low-stock state comes from the Inventory/Low Stock Alert domain, not a duplicated Product calculation.
+- Validate title, short description, Markdown, category, prices/currency, SKU uniqueness, option combinations, variant status, media IDs, and publication readiness server-side.
+- Product variants have Seller-scoped UUIDs and may inherit or override Product prices. Product-level and variant primary media remain distinct from inline description assets.
+- Inventory owns authoritative `on_hand`, `reserved`, and `available = on_hand - reserved`; Product screens may show read-only summaries or create opening SKU stock through the Inventory service, never maintain a second balance.
+- Low-stock state comes from the Low Stock Alert/Inventory domain. Promotions and vouchers own their own eligibility and mutations.
 
-### MDXEditor Markdown authoring
+### MDXEditor authoring
 
-- Add `@mdxeditor/editor` to `src/seller`; the user-requested library is the approved rich-text Markdown editor for Product descriptions.
-- Import MDXEditor's stylesheet and render one controlled `ProductDescriptionEditor` bound to `description_markdown`.
-- Enable only the needed plugins: headings, lists, quotes, links/link dialog, thematic breaks, Markdown shortcuts, image, and toolbar.
-- Include the image toolbar control (`InsertImage`) and support image paste/drop through `imagePlugin({ imageUploadHandler })`.
-- Disable image resizing and raw HTML output because MDXEditor can serialize resized images as HTML `<img>` tags while the storefront intentionally renders no raw HTML.
-- Configure a custom image dialog that uploads/selects Aisley-owned description assets; do not permit arbitrary external image URLs.
-- The editor may emit standard Markdown images only:
+- The Seller app includes `@mdxeditor/editor` and its stylesheet. Use one controlled editor bound to `description_markdown` with headings, lists, quotes, links, thematic breaks, Markdown shortcuts, image, and toolbar plugins.
+- Show `InsertImage` and support toolbar, paste, and drop through the configured upload handler. The image handler calls `/api/v1/seller/product-uploads` and resolves only to an Aisley-owned canonical asset URL.
+- Description pictures use JPEG/JPG, PNG, or WebP and the shared file-upload policy; Product upload processing also enforces its configured edge/pixel/image-count limits.
+- Disable raw HTML/MDX execution and image-resizing output that would serialize unsafe HTML. Store standard Markdown such as `![alt](/api/v1/product-description-assets/{uuid})` only.
+- Inline image insertion requires a persisted Product draft; temporary uploads are claimed on Product save and unreferenced temporary assets expire under the configured retention policy.
+- Laravel parses the Markdown, rejects scripts/HTML/data/blob URLs and unapproved external images, and verifies every referenced asset belongs to the same Product and is scan-approved before save/publish.
+- The Buyer renderer uses `react-markdown` + `remark-gfm` without `rehype-raw`; it exposes description assets only when the Product is Buyer-visible and keeps them separate from the gallery.
 
-```markdown
-![Accessible description](/api/v1/product-description-assets/{assetUuid})
-```
+### Media and safety
 
-- Description image insertion is enabled only after the Product draft has a persisted UUID; before then, prompt the Seller to save the draft.
-- Maintain draft editor state, upload progress, retry/cancel, pasted/dropped-image failure, unsaved-change warning, and field-addressable save errors.
-- MDXEditor output is input, not trusted HTML; Laravel is the final validator and stored Markdown authority.
+- Uploads are Seller/Shop scoped, use server-generated UUID/object names, store bytes on configured object storage, and return safe application URLs rather than raw disk paths.
+- Gallery remains bounded (currently ten Product-level images and one primary image per variant) and supports filename rows, deletion, and default selection without arbitrary external URLs.
+- Product and description responses omit private drafts, rejected/pending assets, credentials, Buyer private data, and cross-tenant identifiers.
+- Client validation is UX only; Laravel is authoritative for ownership, MIME/signature/decode, size, dimensions, Markdown, and publication.
 
-### Description image upload and storage
+### Acceptance
 
-- Add a Seller-scoped endpoint such as `POST /api/v1/seller/products/{product}/description-assets` accepting one multipart image field.
-- The MDXEditor `imageUploadHandler` uploads the `File` with the credentialed API client and resolves only to the API-returned canonical asset URL.
-- Validate authorization, image MIME by server inspection, extension, byte size, decoded dimensions, pixel count, checksum, and configured rate/upload limits.
-- Scan uploads before making them usable; pending, rejected, or failed assets cannot be inserted or published.
-- Store object metadata and a UUID asset record—never a browser file path, Base64 payload, raw data URI, or storage-provider secret in Markdown.
-- Keep description assets separate from `product_media` so inline images do not alter the buyer gallery, gallery ordering, or variant primary-media rules.
-- Canonical Markdown URLs must be stable; do not persist expiring signed URLs in `description_markdown`.
-- Seller preview may resolve a separate authorized temporary URL, while public asset delivery resolves only when the Product is Buyer-visible.
-- Deleting/replacing an inline image must verify Product ownership; unreferenced assets may be garbage-collected only after a retention policy is chosen.
-
-### Markdown and storefront safety
-
-- Validate a bounded Markdown length, image count, alt-text length, link count, and allowed Markdown node set server-side.
-- Reject raw HTML, MDX/JSX, scriptable URLs, `data:`/`blob:` image URLs, embedded iframes, and image references outside the Product's canonical description-asset path.
-- On Product save and publish, parse the Markdown and verify every image asset is scan-approved and belongs to that same Product.
-- Buyer Product Detail continues to render Markdown with `react-markdown` and `remark-gfm`, without `rehype-raw`.
-- The Buyer renderer must allow only safe normal links and the canonical Aisley description-asset image route; rendered images use Markdown alt text, responsive sizing, lazy loading, and an accessible failure fallback.
-- Product descriptions may include GFM text constructs; tables, links, emphasis, lists, and images must not execute scripts or expose private draft assets.
-
-### API, events, and user experience
-
-- Provide Seller-scoped paginated Product list/detail/create/update/publish/archive endpoints and explicit API Resources; never serialize raw Eloquent graphs.
-- Product multi-row changes use transactions; slow upload/scanning work occurs outside database locks.
-- After committed Product/media/description changes, queue Buyer-search/cache/index refresh work; retries must not duplicate a Product mutation.
-- Dashboard, Search, Browse Shop, Product Detail, Cart, and Checkout consume only the authoritative published Product state.
-- Forms provide labeled fields, keyboard-operable MDXEditor toolbar/dialog, visible focus, text alternatives, and non-color-only validation/upload status.
-- [ ] Seller cannot read, edit, upload to, or delete another Seller's Product or description asset.
-- [ ] A Seller can author Markdown with MDXEditor and insert images by toolbar, paste, or drop after saving a draft.
-- [ ] Stored Markdown contains only canonical Product-owned image references and no raw HTML, Base64, or unapproved external image URL.
-- [ ] Unsafe, oversized, malformed, failed-scan, or cross-Product assets are rejected and cannot be published.
-- [ ] Description pictures render safely on Buyer Product Detail without entering the gallery or exposing draft/private assets.
-- [ ] Catalog, price, inventory, publish/archive, promotion, and historical-order boundaries remain intact.
+- [x] Seller Product CRUD and Shop/category scoping are enforced by API and Seller UI.
+- [x] Draft, active, archived, unarchived, variant, price, gallery, and inventory-summary flows preserve Product history.
+- [x] MDXEditor authoring supports safe Markdown and picture insertion by toolbar, paste, and drop.
+- [x] Description assets are Product-owned, canonical, bounded, and rendered with `react-markdown`/`remark-gfm` without raw HTML.
+- [x] Product gallery and inline description images use separate asset lifecycles and safe visibility rules.
+- [x] Inventory, Admin compliance, Buyer storefront, and historical Order boundaries are not bypassed.
+- [ ] Purchased-order queue/packing, Seller package labels, Logistics operational waybills, and delivery transitions are implemented in their owning features.
 
 ## HOW
 
-- Add Seller `ProductController`, Form Requests, Policies/scoped queries, Product API Resources, and product/domain actions under role-specific namespaces.
-- Add a dedicated `ProductDescriptionAsset` model/table or equivalent asset relation with UUID, `product_id`, disk/path, MIME, size, dimensions, checksum, scan status, timestamps, and retention metadata.
-- Keep enum-like columns as migration strings with PHP enum casts; do not modify existing migrations.
-- Recommended APIs:
+- Current backend is `ProductController`, `ProductCatalogService`, `ProductAssetService`, Seller Form Requests/Policies, Product API payloads, and additive catalog/media migrations. Current routes include `/products`, `/products/{product}`, `/publish`, `/archive`, `/unarchive`, `/product-uploads`, `/product-description-assets/{asset}`, and `/product-media/{media}`.
+- Current frontend is `ProductFormPage`, `ProductsPage`, `ProductDescriptionEditor`, and shared Seller API/media helpers. Keep the editor controlled and preserve upload progress, retry, unsaved-change, and field-error states.
+- Keep enum-like migration columns as strings with PHP enum casts and never edit an executed migration. Description assets need their own UUID records and ownership relation, separate from `product_media`.
+- Product writes, variant replacement, asset claiming, and publication checks are transactional. Queue search/cache refresh only after commit; retries must not duplicate mutations.
+- Tests cover Seller isolation, category/variant/price rules, publish/compliance gates, media limits/defaults, Markdown asset ownership, spoofed/oversized/corrupt uploads, Buyer visibility, archive retention, and retry behavior. Run API tests on SQLite/PostgreSQL plus Seller/Webapp lint, TypeScript, and builds.
+- Purchased-order links from this workspace must navigate to Order Approval or Prepare Orders; do not add fulfillment behavior here.
 
-```http
-GET    /api/v1/seller/products
-POST   /api/v1/seller/products
-PATCH  /api/v1/seller/products/{product}
-POST   /api/v1/seller/products/{product}/publish
-POST   /api/v1/seller/products/{product}/archive
-POST   /api/v1/seller/products/{product}/description-assets
-DELETE /api/v1/seller/products/{product}/description-assets/{asset}
-```
+### Current API contract
 
-- Implement `ProductDescriptionEditor` with MDXEditor plugins, a controlled `onChange`, the custom upload-only image dialog, `imageUploadHandler`, and an asset-preview resolver.
-- Update the Buyer description component's image renderer and URL policy in the same implementation so its safe rendering contract matches uploaded Markdown.
-- API tests cover Seller isolation, Markdown validation, upload type/size/dimension/scan states, canonical references, cross-Product assets, publish gating, and asset delivery visibility.
-- Frontend tests cover editor initialization in Vite, toolbar/paste/drop insertion, progress/retry, unsaved changes, keyboard use, Markdown persistence, and Buyer image rendering/failure fallback.
-- Run API tests on SQLite and PostgreSQL plus Seller/Webapp lint, TypeScript, and production builds.
-- **Open questions:** exact file/pixel/count limits, scan provider and pending UX, description-asset retention/garbage collection, category/weight publish checklist, SKU scope, Promotion rules, and whether to rename this feature Catalog/Product Management.
-- **References:** [MDXEditor Vite setup](https://mdxeditor.dev/editor/docs/getting-started), [MDXEditor image plugin](https://mdxeditor.dev/editor/docs/images), [Laravel 13 file storage](https://laravel.com/framework/docs/13.x/filesystem), `docs/schema.md`, and `docs/features/customer/view-product/spec.md`.
+- `GET /api/v1/seller/products` is paginated and supports Seller-owned search/status filters. `GET /products/{product}` returns Product, variants, inventory summaries, compliance state, gallery, and description-asset identifiers.
+- `POST /products` creates a draft with a base SKU or complete variant matrix; `PATCH /products/{product}` updates allow-listed catalog fields and claims uploaded assets.
+- `POST /products/{product}/publish`, `/archive`, `/unarchive`, and `DELETE /products/{product}` are explicit actions. An active Product must be archived before deletion; configured retention preserves media recoverability.
+- `GET /products/options` returns the Shop-scoped active category list and configured media limits. `POST /product-uploads` creates temporary Seller-owned gallery/variant/description assets; Product save claims them.
+- Seller asset preview routes are authorized and private. Public Product/description delivery remains gated by the shared storefront visibility rule.
+
+### Markdown safety checklist
+
+- Keep `description_markdown` bounded and parseable. Verify referenced asset UUIDs are unique, approved, attached to this Product, and not from another Shop.
+- Reject HTML/JSX, scripts, iframes, `data:` and `blob:` URLs, unsafe link schemes, and arbitrary remote images. Do not store Base64 payloads or expiring signed URLs in Markdown.
+- Preserve alt text and render description images responsively with a non-color-only failure state. A description image is never silently copied into the Product gallery.
+- MDXEditor is an authoring aid; the API validator and Buyer `react-markdown` renderer remain the security boundary.
+
+### Deferred boundary checks
+
+- Do not add a Seller “confirm order,” package, pickup, waybill, Courier, or delivery button to Product pages. Link to the owning Order Approval/Prepare Orders screen instead.
+- Catalog publication may be blocked by Admin compliance restrictions, but this feature does not create compliance cases or decide warnings/restrictions.
+- Inventory mutations and low-stock evaluations are dispatched through their services, including opening stock for new SKUs; catalog UI displays returned committed values only.
+- If a future Product field needs review/versioning, document the proposal/active-value model before adding it to the ordinary PATCH allow-list.
+
+### Product lifecycle guardrails
+
+- A newly created Product starts as `draft`; saving edits never silently publishes it. Publish and unarchive are explicit server actions and re-check current Shop, category, inventory, media, and compliance state.
+- Archiving deactivates its Inventory SKUs for storefront purposes while retaining Product, Order, and movement history. Unarchive returns the Product to `draft`; it is not immediately Buyer-visible.
+- Deleting an inactive Product retires its assets with configured retention. It must not remove an Order item snapshot, review reference, audit record, or historical movement.
+- Variant edits preserve existing variant/SKU UUIDs and balances when possible. Removed variants become inactive/retained rather than reusing their identifiers.
+
+### API and UI verification
+
+- Test every Product route with an active owner, another Seller, a non-Seller, a restricted Product, and forged Shop/category/media IDs.
+- Test Markdown parser rejection, exact image ownership, upload-token reuse, temporary-asset expiry, gallery count/default rules, variant combinations, price precision, publish prerequisites, archive/unarchive, and deletion retention.
+- Test Buyer Product Detail/search only receives active, compliant, scan-approved Product data and safe description media. Test `react-markdown`/`remark-gfm` output with links, tables, images, and hostile HTML.
+- Keep Order Approval and Prepare Orders links available from Seller navigation without coupling catalog writes to fulfillment status transitions.
+- A Product save may occur while an Order is being prepared, but it cannot alter the immutable purchased snapshot or package label snapshot.
+- A Product archive or compliance restriction must make its Buyer visibility change without deleting Inventory movement or historical Order references.
+- Keep catalog route parameters UUID-constrained and do not expose sequential internal identifiers in image or Product URLs.
+
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/references/file-upload-requirements.md`, Seller Create Product tests, and Seller Prepare Orders.

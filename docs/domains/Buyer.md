@@ -2,8 +2,8 @@
 model: Buyer
 type: Domain Context
 purpose: Shared Customer/Buyer workflow and implementation context
-version: 1.1
-status: Revised — aligned with the implemented Customer storefront and first-party order flow
+version: 1.2
+status: Revised — aligned with the approved Customer order/Logistics flow and implemented storefront foundation
 ---
 
 # Buyer Model Context
@@ -14,7 +14,7 @@ Buyer is Aisley's marketplace customer role. **Customer** is the canonical API a
 
 Guests may browse public storefront content. An active, approved Customer is required for account data, Cart, Wishlist, Recently Viewed synchronization, checkout, order history, and other protected actions. The Buyer app never decides ownership, price, stock, eligibility, or fulfillment status from client-provided values.
 
-Aisley uses its first-party Logistics organization and sole operational hub for fulfillment. Customer tracking consumes safe read-only projections of the shared Order and future Shipment/Delivery Task contracts; it is not a third-party-carrier or customer-controlled status flow.
+Aisley uses its first-party Logistics organization and sole operational hub for fulfillment. The Customer selects one eligible Logistics organization offered for each Shop Order during checkout; that selection is retained in the downstream fulfillment context and is not silently replaced. Customer tracking consumes safe read-only projections of the shared Order and future Shipment/Delivery Task contracts; it is not a third-party-carrier or customer-controlled status flow.
 
 ## Account and access boundary
 
@@ -63,15 +63,18 @@ pending_payment
 
 Exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
 
-COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains an available shared status for a future payment-state decision. `assigned` means Logistics received and accepted the Seller-ready parcel at its sole hub. `picked_up` means the final-mile Courier took the parcel from that hub. A Customer can read these states but cannot advance or rewrite them.
+COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains an available shared status for a future online-payment flow. `assigned` means Logistics received and accepted the Seller-ready parcel at its sole hub. `picked_up` means the final-mile Courier took the parcel from that hub. A Customer can read these states but cannot advance or rewrite them.
 
 The physical flow is:
 
 ```text
 Customer places Order (`placed`)
 → Seller processes and confirms `ready_for_pickup`
+→ Seller's package label is frozen with the immutable Order/Parcel reference and Customer destination snapshot
+→ selected Logistics organization creates and offers the first-mile task to an eligible Courier
 → first-mile Courier accepts and picks up from Seller
-→ Logistics receives, sorts, transfers, and dispatches at its sole hub
+→ Logistics receives the parcel at `received_at_hub` and creates the operational waybill linked to the Seller package label by the immutable Order/Parcel reference
+→ Logistics sorts, transfers, and dispatches at its sole hub
 → Logistics assigns a final-mile Courier
 → final-mile Courier picks up from hub and delivers to Customer
 → Order becomes `delivered`
@@ -134,8 +137,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 
 - **Purpose:** Convert Buy Now or selected Cart intent into one or more valid Shop Orders.
 - **Current state:** Server-authoritative quote/place APIs and storefront flow are implemented for COD. Lines are grouped by Shop; one Shop group creates one Order, while a multi-Shop submission is one atomic checkout batch with separate Orders.
-- **Rules:** The Customer selects a Customer-owned address, the API rechecks catalog/inventory/vouchers and creates immutable item, financial, payment, and delivery-address snapshots. Placement uses a Customer-scoped idempotency key and does not accept client prices, totals, status, ownership, or payment secrets.
-- **Boundary:** Payment gateways, returns/refunds, Seller preparation, Shipment/Delivery Task persistence, and Logistics/Courier assignment are separate features.
+- **Rules:** The Customer selects a Customer-owned address and one eligible Logistics organization offered for each Shop Order. The API rechecks catalog/inventory/vouchers/provider eligibility and creates immutable item, financial, payment, and delivery-address snapshots. Placement uses a Customer-scoped idempotency key and does not accept client prices, totals, status, ownership, payment secrets, or an arbitrary provider ID. The current implemented checkout schema does not yet persist the provider because operational fulfillment records are deferred; when implemented, the selected provider cannot be silently replaced after placement.
+- **Boundary:** Payment gateways, returns/refunds, Seller preparation, Shipment/Delivery Task persistence, and Logistics/Courier assignment are separate features. No Customer action may create or mutate a shipment/task record before the shared operational schema is approved.
 
 ### 7. Order History and Status Monitoring
 
@@ -148,8 +151,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 
 - **Purpose:** Save reusable shipping/billing addresses and select one during checkout.
 - **Current state:** Customer-scoped address list/create/edit/delete/default/checkout-selection flows are implemented.
-- **Location flow:** Philippine Region → Province → City/Municipality → Barangay options come from the bundled `@aisley/psgc-address-data` package. The Customer may use a Philippines-scoped Geoapify forward-geocoding request after selecting **Pin location**, then refine a local draggable pin on Leaflet-rendered Geoapify tiles; manual entry remains available when a provider or map is unavailable.
-- **Rules:** Coordinates are optional mutable Address Book data. Checkout validates the selected Customer-owned address and copies normalized fields/coordinates into an immutable `order_addresses` snapshot. Editing or deleting the saved address cannot rewrite a placed Order.
+- **Location flow:** Philippine Region → Province → City/Municipality → Barangay options come from the bundled `@aisley/psgc-address-data` package. The Customer may use a Philippines-scoped Geoapify forward-geocoding request after selecting **Pin location**, then refine a local draggable pin on Leaflet-rendered Geoapify tiles; manual entry remains available when a provider or map is unavailable. Mapbox is not used.
+- **Rules:** Coordinates are optional mutable Address Book data. Manually reviewed PSGC/address fields remain authoritative; coordinates are the optional result of the confirmed pin. Checkout validates the selected Customer-owned address and copies normalized fields/coordinates into an immutable `order_addresses` snapshot. Editing or deleting the saved address cannot rewrite a placed Order.
 - **Boundary:** The Buyer address flow does not choose a Logistics hub, calculate courier routes, or expose another Customer's address.
 
 ### 9. Order Modification and Cancellation
@@ -188,7 +191,10 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 - Every protected Customer query derives ownership from the authenticated Customer and applies the correct role/status middleware. Forged IDs, cross-role same-email records, and another Customer's UUIDs return an ownership-safe denial.
 - `storefrontVisible()` is applied to every public Product projection and again at Wishlist, Recently Viewed, Cart, and Checkout boundaries. Public cache entries contain no Customer-specific state.
 - Cart and Checkout use server prices, voucher eligibility, address validation, and inventory locks. Order placement is atomic and idempotent: failed validation creates no partial Orders, reservations, voucher redemption, or notifications.
+- Checkout reserves the requested SKU quantity at placement. An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reservation once and transactionally; first-mile pickup commits the reservation once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred.
 - Placed Order items, money, payment method/status, delivery address, and voucher data are immutable snapshots. Mutable Address Book, Product, Shop, or Seller changes cannot rewrite historical Orders.
+- A future fulfillment record must retain the server-validated Customer-selected Logistics organization per Shop Order/fulfillment unit; it must not expose provider IDs as client authority or silently substitute another provider.
+- Seller package labels and Logistics operational waybills are separate linked artifacts. The Seller label freezes at `ready_for_pickup`; the Logistics waybill identifier and Order/Parcel link become immutable at `received_at_hub`, with pre-`picked_up_from_hub` routing/assignment changes represented by append-only events.
 - Order status transitions and status events are owned by the relevant Seller, Logistics, or Courier contract and are validated, transactional, idempotent, and append-only. Notification or map delivery failure cannot roll back a committed business decision.
 - Customer-specific APIs and pages use private/no-store semantics where required. Logs and DTOs omit tokens, password hashes, full addresses, raw GPS history, private media paths, and payment credentials.
 - File/image work follows `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with server-side signature, MIME, decode, ownership, and private-delivery checks. Profile-photo storage is configured-disk/Azure Blob; Product description/gallery assets are separate Product-owned records.
@@ -203,7 +209,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller order preparation, first-mile pickup, Logistics hub processing, Shipment/Delivery Task records, final-mile assignment, Courier delivery, proof of delivery, route/ETA display, payment gateways, returns/refunds, reviews, Product Q&A, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts.
+- Seller order preparation, first-mile pickup, Logistics hub processing, Shipment/Parcel/Waybill/Scan/Delivery Task records, final-mile assignment, Courier delivery, proof of delivery, route/ETA display, payment gateways, returns/refunds, reviews, Product Q&A, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts. Logistics selection becomes operational only after the shared fulfillment schema and transition contract are approved.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 

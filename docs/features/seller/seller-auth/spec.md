@@ -3,8 +3,8 @@ feature: seller-auth
 title: Seller Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
+version: 1.2
+status: Implemented foundation
 role: Seller
 scope: Seller Web Application
 ---
@@ -13,118 +13,114 @@ scope: Seller Web Application
 
 ## WHAT
 
-- **Purpose:** Let a merchant register for a Seller account, pass Admin approval, and establish a secure Seller-only web session.
-- **Primary actors:** Seller applicant, approved Seller, and the existing authorized Admin reviewer.
-- **Application boundary:** React/Vite owns auth forms and route state; Laravel owns identity, validation, approval gating, sessions, and authorization.
-- **Canonical identity:** a persisted `users` record with `role = seller`, resolved by normalized `email + role`.
-- **Existing foundation:** Seller auth, approval gating, database sessions, Admin review, addresses, shops, private registration evidence, and the Shop/Product Category taxonomy are implemented.
-- **Current registration scope:** collect the account holder, a business address using PSGC-backed administrative dropdowns plus manual postal/street details, pending shop, line of business, government ID image, and business permit image for one Admin decision.
-- **Core lifecycle:**
+- **Purpose:** Let a merchant register as a Seller, submit one application for Admin review, and use a secure Seller-only web session after approval.
+- **Actors:** Seller applicant, approved Seller, and the authorized Admin reviewer. Courier/mobile staff and Seller storefront editing are outside this feature.
+- **Authority:** React/Vite owns forms and navigation state; Laravel owns identity, validation, application state, approval gating, sessions, and authorization.
+- **Canonical identity:** one `users` record with `role = seller`; same-email records for other roles are separate accounts.
+- **Implemented foundation:** registration, private evidence, local PSGC address options, pending Shop creation, Admin approval integration, Sanctum session auth, status gating, password recovery, and Seller UI routes exist.
+- **Lifecycle:**
 
 ```text
-register → PENDING → Admin APPROVED → ACTIVE → sign in → Seller Dashboard
-                   ↘ REJECTED → no dashboard access
+register → pending User/Application/Shop/evidence
+        → Admin approves → active Seller + active Shop → sign in → dashboard
+        ↘ Admin rejects → rejected/inactive → no Seller access
 ```
 
-- **Owned flows:** registration, login, session restoration, approval/status denial, logout, forgot password, and password reset.
-- **Frontend routes:** `/register`, `/login`, `/forgot-password`, `/reset-password`, and protected `/dashboard`.
-- **API namespace:** `/api/v1/seller/auth/*`.
-- **Boundaries:** Admin registration management owns approval/rejection; Seller Account Management owns signed-in profile and password changes.
-- **Non-goals:** redesigning the Admin review workflow, post-approval shop/catalog management, social login, MFA, mobile tokens, staff sub-accounts, or Seller-controlled account-status changes.
+- **One-Shop rule:** registration creates exactly one pending Shop for the Seller. Approval activates that existing Shop; a second Shop is never created by authentication.
+- **Non-goals:** Admin review UI, post-approval storefront setup, catalog/fulfillment, social login, MFA, staff sub-accounts, and Seller-controlled status changes.
 
 ## MUST
 
-### Identity and registration
+### Registration and address
 
-- Seller lookup and uniqueness must use normalized `email + seller`; a same-email Customer/Admin/Courier must remain isolated.
-- The API must derive `role = seller`; client-supplied `role`, `status`, reviewer, or approval fields are prohibited.
-- Registration must validate and persist first name, optional one-character middle initial, last name, contact number, sex, and birth date; age is calculated from birth date and is never accepted as authoritative input.
-- Registration must accept a business name and one active Shop Category selected from the server-provided canonical taxonomy.
-- Registration must provide cascading dropdowns backed by the bundled Q2 2026 PSGC JSON files under `packages/psgc-address-data/data` in this order: Region, Province, City/Municipality, and Barangay. Changing a parent must clear and reload its descendants.
-- Postal code must be a required manual field placed between Province and City/Municipality because the bundled dataset does not supply postal codes. Street/building and the optional secondary line also remain manual.
-- A complete manual administrative-address fallback must remain available when the bundled data is missing, invalid, or does not represent an independent city or other valid address cleanly.
-- Country is server-owned as Philippines. Laravel must validate and persist the selected address names; PSGC codes are lookup-only values and must not be persisted as authoritative registration data.
-- The Seller browser must call only versioned Aisley API routes. Laravel reads the bundled files locally; registration address lookup must not make a third-party network request or require a provider token.
-- Registration must require a government ID image and business permit image under `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP only, each smaller than 10 MiB and stored privately on the configured filesystem.
-- Registration must accept email, password, and password confirmation using the project-wide password policy.
-- Laravel must create the User, SellerProfile, default business Address, pending Shop, pending RegistrationApplication, and two evidence records as one logical operation, cleaning up stored blobs if persistence fails.
-- New records must use UUIDs, `UserStatus::Pending`, `ApplicationStatus::Pending`, and `UserRole::Seller`.
-- Passwords must use the configured Eloquent/Laravel hash mechanism and never appear in responses, logs, or audit payloads.
-- Duplicate and concurrent submissions must produce one Seller role-account/application and a stable field-addressable error.
-- Existing Admin registration management must be able to review the resulting application without a parallel approval model.
-- The Shop must use the submitted business name and selected Shop Category, derive a collision-resistant server-owned slug, and remain `pending` until the Admin decision.
+- Normalize email and enforce uniqueness within the Seller role. The client cannot submit `role`, status, reviewer, approval, or Shop ownership fields.
+- Validate first/last name, optional one-character middle name, contact number, sex, birth date, business name, one active Shop Category, email, and project password policy. Age is derived server-side from `birth_date`; client age is not authoritative.
+- Use the bundled `@aisley/psgc-address-data` hierarchy in `Region → Province → City/Municipality → Barangay` order. Postal code, street/building, and a secondary line remain manual; changing a parent clears descendants.
+- Persist submitted administrative names and manual fields as the address snapshot. PSGC codes and browser/provider identifiers are lookup values only. Keep a complete manual fallback when local data is unavailable or incomplete.
+- Current Seller registration uses local PSGC files and does not require a third-party lookup or Mapbox token. Geoapify is not an authentication persistence authority.
+- Require government ID and business permit images under [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md): JPEG/JPG, PNG, or WebP, strictly under 10 MiB, server-inspected, and private.
 
-### Approval and account gating
+### Transaction and Shop state
 
-- Only `role = seller` plus `status = active` may establish or retain ordinary Seller dashboard access.
-- `pending`, `rejected`, `suspended`, and `deactivated` accounts must be denied even when the password is correct.
-- Use stable response codes such as `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_INACTIVE`.
-- Inactive responses may explain the applicant's own state but must not expose Admin-only notes or unrelated accounts.
-- Approval must activate the existing User and Shop and approve the Application/evidence atomically; rejection must reject the User/Application/evidence and deactivate the pending Shop. It must not create a second Seller account or Shop.
-- Every protected Seller API must apply `auth:sanctum` and Seller-active role/status middleware.
-- Frontend guards improve navigation only; direct API requests remain protected by Laravel.
-- Seller-owned resources must be scoped from the authenticated Seller and must never trust a submitted `seller_id` or `shop_id`.
+- Create User, SellerProfile, registration application, default business Address, exactly one pending Shop, and both evidence records as one logical operation. Remove stored blobs if the database operation fails.
+- Use UUIDs and the existing string-backed enum casts (`UserRole::Seller`, `UserStatus::Pending`, `ApplicationStatus::Pending`, `ShopStatus::Pending`).
+- Derive a server-owned unique Shop slug. Do not trust a submitted slug, Shop status, category status, or address ownership.
+- Admin approval atomically activates the existing User and Shop and approves the application/evidence. Rejection marks the application/evidence and deactivates the pending Shop; it does not create replacement records.
+- After approval, `SHOP_SETUP_REQUIRED` means required storefront fields are incomplete. Setup edits the existing Shop and must not create another Shop. Required publishing fields are defined by the shared Seller/domain contract.
 
-### Stateful web login
+### Login, session, and recovery
 
-- The first-party Seller SPA must use Sanctum cookie/session authentication, not a Bearer token in browser storage.
-- The client must request `/sanctum/csrf-cookie` before submitting credentials and send cookies plus the XSRF header.
-- Login accepts normalized email, password, and optional remember preference; it must not accept a trusted role.
-- Laravel must resolve the Seller role-account, verify the hash, check active status, authenticate with the web guard, and regenerate the session.
-- Unknown Seller email, wrong password, and an email existing only under another role must share a generic credential error.
-- Rate-limit login by normalized email and IP; return `429` with `Retry-After` when exhausted.
-- Successful login returns a safe Seller DTO and redirects the SPA to `/dashboard`.
-- The DTO may contain Seller ID, calculated age, safe profile name/email, role, account status, and safe pending/active shop/category summary.
-- The DTO must exclude hashes, session IDs, remember tokens, registration evidence, and private review metadata.
-- Seller port `5174` and production Seller origin must be included in Sanctum stateful-domain and credentialed CORS configuration.
-- Production Seller and API hosts must share the same top-level domain required by Sanctum SPA authentication.
+- Require `auth:sanctum` and the active Seller middleware for `/me`, logout, and every protected Seller endpoint. Pending, rejected, suspended, and deactivated accounts are denied at the API.
+- Use first-party Sanctum cookie/session authentication: obtain CSRF, send credentialed cookies/XSRF, regenerate the session after login, and invalidate/regenerate it on logout.
+- Login resolves the Seller role-account, verifies the Laravel hash, checks active status, and returns a safe Seller DTO. Unknown email, wrong password, and another-role-only email use the same credential error.
+- Rate-limit login and reset requests. Forgot-password responses do not reveal account existence; reset tokens are hashed, expiring, single-use, and role-scoped.
+- DTOs exclude hashes, session/token values, private evidence, Admin notes, and raw storage paths. Protected resources derive Seller/Shop scope from the authenticated user.
+- Registration review notifications are dispatched after commit; delivery failure must not roll back the application.
 
-### Session lifecycle and recovery
+### Acceptance
 
-- App startup must remain in a checking state until `GET /api/v1/seller/auth/me` resolves.
-- Protected Seller content must not flash before session restoration finishes.
-- `me` must reject a non-Seller or newly inactive Seller even if a valid session cookie is present.
-- Expired or invalid sessions must clear client auth state and redirect protected navigation to `/login`.
-- `POST /api/v1/seller/auth/logout` must log out the web guard, invalidate the session, and regenerate the CSRF token.
-- Frontend-only state clearing is not logout; the old session must fail on later protected requests.
-- Forgot-password responses must not reveal whether an active Seller account exists.
-- Reset tokens must be stored and queried with `role = seller` so a Customer reset cannot reset a Seller password sharing the email.
-- Reset tokens must be hashed, expiring, single-use, rate-limited, and deleted after a successful reset.
-- A successful reset must rotate the remember token and revoke applicable existing personal access tokens.
-- Whether all database web sessions are revoked after reset is an open decision and must be applied consistently across roles.
-- Handle `401` unauthenticated, `403` inactive/forbidden, `419` CSRF/session expiry, `422` validation, and `429` throttling consistently.
-
-### User experience and acceptance
-
-- Forms must provide labels, keyboard access, visible focus, field errors, submit-progress state, and non-color-only status feedback.
-- Registration success must show the pending-approval state and direct the applicant to email/status guidance, not the dashboard.
-- Login links to registration and password recovery; approval/rejection screens link back to login or support where appropriate.
-- [x] Seller registration creates one pending User/Profile/Application transactionally.
-- [x] Seller registration creates one pending Shop, one manual default business Address, and the required private ID/permit evidence.
-- [x] Seller registration offers server-proxied cascading PSGC administrative dropdowns and preserves complete manual entry.
-- [x] Signup Shop Category options come from the canonical 14-group/83-product-category database taxonomy.
-- [x] Same-email accounts remain isolated by role across registration, login, and password reset.
-- [x] Pending, rejected, suspended, and deactivated Sellers cannot access protected APIs.
-- [x] Approved active Seller can sign in, restore a session, reach `/dashboard`, and log out.
-- [x] CSRF, session regeneration, credentialed CORS, throttling, and generic credential failures are covered.
-- [x] Seller data and routes cannot be accessed with Customer, Admin, or Courier authentication.
+- [x] Registration creates one pending Seller application, business address, Shop, and private evidence transactionally.
+- [x] Local PSGC cascading options and complete manual address entry are available.
+- [x] Category options come from the active canonical Shop Category taxonomy.
+- [x] Admin approval/rejection and active-status API gating are role- and tenant-safe.
+- [x] Seller login, `/me`, logout, forgot-password, and reset-password are role-isolated and throttled.
+- [x] Same-email Customer/Admin/Courier records cannot be used as Seller credentials.
+- [ ] Email verification, MFA, full web-session revocation policy, and post-approval Shop setup/publishing workflow are approved and implemented.
 
 ## HOW
 
-- Add Seller-namespaced `AuthController`, Form Requests, `SellerUserResource`, notification, config, and `EnsureActiveSeller` middleware.
-- Register middleware in `bootstrap/app.php`; add `/api/v1/seller/auth` routes beside existing Customer/Admin auth groups.
-- Mirror proven Customer transaction, status-code, reset-token, and race-handling patterns without cross-importing Customer classes.
-- Reuse the Admin `RegistrationReviewService` and `RegistrationDecisionNotification`, which already support `UserRole::Seller`.
-- Keep enum-like database values as strings with PHP enum casts. Product Categories use the additive `shop_category_id` migration to retain their canonical Shop Category grouping.
-- Add Seller origin `localhost:5174`/`127.0.0.1:5174` to `.env.example`, Sanctum defaults, and CORS defaults.
-- Add the project-declared React Router dependency to `src/seller` and replace the static dashboard entry with public/protected route layouts.
-- Implement one credentialed API client, auth context/store, session bootstrap, protected-route boundary, and status-specific error mapping.
-- Implement keyboard-accessible cascading selects backed by Seller-namespaced Laravel endpoints. Reset descendants when Region, Province, or City/Municipality changes, ignore stale responses, and retain the manual path when no useful result is returned.
-- Read and normalize the bundled `packages/psgc-address-data/data` hierarchy in Laravel, cache decoded files, flatten sub-municipality descendants for Barangay options, throttle the public registration lookup routes, and return a generic safe `503` when local data is unavailable. Do not make address lookup calls part of the registration transaction.
-- Reuse `@aisley/ui` form primitives where compatible and follow `docs/design.md` dashboard accessibility/dark-mode rules.
-- API feature tests must cover registration rollback/duplicates, role isolation, every account status, throttle, session fixation, `me`, logout, and reset-token role isolation.
-- Run the API suite on SQLite and PostgreSQL; run Seller lint, TypeScript/build, and focused browser/session checks from port `5174`.
-- Log safe operational result categories and request IDs; never log submitted passwords, cookies, CSRF values, or reset tokens.
-- Roll out only after Seller origins/cookie domains and the configured private filesystem are available in each environment, and after the canonical taxonomy seeder has run.
-- **Open questions:** email verification, remember-me policy, full web-session revocation after reset, and whether business permits will later support a separately approved PDF policy.
-- **References:** [Laravel 13 Sanctum SPA authentication](https://laravel.com/framework/docs/13.x/sanctum#spa-authentication), [Laravel 13 authentication](https://laravel.com/framework/docs/13.x/authentication), and [Laravel 13 password reset](https://laravel.com/framework/docs/13.x/passwords).
+- Current API routes are `/api/v1/seller/auth/registration-options`, `/address-options/*`, `/register`, `/login`, `/me`, `/logout`, `/forgot-password`, and `/reset-password`.
+- Current implementation is in `src/api/app/Http/Controllers/Seller/AuthController.php`, Seller Form Requests/Resources, `EnsureActiveSeller`, `RegistrationEvidenceService`, and the Admin registration decision service.
+- The Seller SPA implements public registration/login/recovery routes, session bootstrap, protected navigation, and status-specific errors on port `5174`.
+- Keep migrations additive; database enum-like values remain strings with PHP enum casts. Reuse the existing registration/application/document/address/shop relations rather than adding a parallel auth model.
+- Address option handlers read and cache the bundled package locally and are separate from the registration transaction. No provider request is made during registration.
+- API tests must cover rollback and duplicate races, evidence validation/cleanup, role isolation, every account status, CSRF/session fixation, reset-token isolation, and Admin notification failure. Seller checks cover lint, TypeScript, build, and accessible form states.
+- Before adding Shop setup or editable evidence, define the required storefront fields, review policy, notification/email verification, and session-reset behavior in the affected specs.
+
+### Current interface and error contract
+
+- Registration returns `201` with a pending-safe Seller DTO; it never creates a session or redirects to the protected dashboard.
+- Login returns `422 INVALID_CREDENTIALS` for indistinguishable credential failures and `403` with `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE` after a valid password for an inactive account.
+- `/me` returns the same safe role/profile/Shop projection as login. A session whose Seller is no longer active fails closed through middleware.
+- Address-option failures are bounded and safe; the form keeps manual entry available rather than persisting provider error details or PSGC codes.
+- Password reset always returns a non-enumerating acknowledgement. Invalid, expired, reused, or cross-role tokens return one field-addressable error.
+
+### Operational safeguards
+
+- Use an idempotent registration uniqueness boundary on normalized Seller email and clean temporary evidence if any later insert fails.
+- Keep Admin approval and registration evidence decisions in the existing registration/application records; do not add a Seller-specific reviewer field.
+- Persist only the manual/PSGC address values needed by the existing Address model. Coordinates, Geoapify identifiers, and lookup payloads are not Seller-auth fields.
+- Keep notification and cleanup jobs outside the registration transaction with an after-commit boundary and retry-safe application reference.
+- Review the one-Shop invariant whenever a future setup screen is added: it may edit or complete the pending/active record but never call a second-shop create path.
+
+### Deferred decisions
+
+- Decide whether email verification is required before Admin review or only before first login.
+- Decide whether password reset revokes all database web sessions in addition to personal access tokens.
+- Define storefront fields and publication readiness for the post-approval setup screen.
+- Define any future controlled evidence replacement and MFA policy before exposing those controls.
+
+### Verification checklist
+
+- Registration tests assert one User/Profile/Application/Address/Shop/evidence set for a successful request and zero partial records after a failed upload or database write.
+- Role-isolation tests cover same-email Customer/Admin/Courier accounts, forged role/status fields, cross-tenant resource IDs, and direct protected API calls without relying on SPA guards.
+- Approval tests assert the existing Shop is activated or deactivated atomically with the User/Application decision and that Admin notes stay private.
+- Session tests assert CSRF protection, session regeneration, logout invalidation, status changes taking effect on the next request, throttle headers, and reset-token single use.
+- Frontend checks cover keyboard navigation, file-limit messaging, manual address fallback, pending/rejected screens, session bootstrap, and recoverable API errors.
+
+### Route ownership summary
+
+| Route | State | Owner |
+| --- | --- | --- |
+| `POST /register` | public multipart submission | Seller Auth + Admin registration review |
+| `GET /registration-options` | public taxonomy | Seller Auth |
+| `GET /address-options/*` | public local PSGC lookup | Seller Auth address service |
+| `POST /login` | public credential exchange | Seller Auth |
+| `GET /me`, `POST /logout` | active session | Seller Auth middleware |
+| `POST /forgot-password`, `/reset-password` | public recovery | Seller Auth |
+
+- Registration option and address responses are bounded, versioned, and safe to cache independently of the private application payload.
+- A client may preserve form state after a validation error, but it must not replay uploaded evidence blindly with a new application without a fresh server idempotency/ownership check.
+- Admin review remains the only authority that changes pending Seller approval; Seller Account Management cannot activate itself or its Shop.
+
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, and `docs/references/user-registration-requirements.md`.

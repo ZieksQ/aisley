@@ -1,441 +1,96 @@
 ---
 feature: customer-auth
-title: Customer / Buyer Authentication
+title: Customer Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
-role: Buyer
-scope: Customer / Buyer Web Application
+version: 1.2
+status: Implemented foundation; registration requirements extensions deferred
+role: Customer
+scope: Customer storefront and Laravel API
 ---
 
-# Customer / Buyer Authentication
+# Customer Authentication
 
 ## WHAT
-- **Purpose:** Establish the authenticated `BUYER` identity used by the AISLEY customer/storefront web application and connect public Buyer registration to the Admin approval workflow.
-- **Canonical role:** `BUYER`.
-- **User-facing term:** Customer may be used in UI copy, but authorization, database role checks, API scopes, and feature directories use Buyer.
-- **Primary actors:** unauthenticated Customer/Buyer registering or logging in; approved authenticated `BUYER`.
-- **Source-backed responsibilities:**
-  - Customer/Buyer accounts use a public registration and Admin approval flow.
-  - AISLEY identity is role-aware, equivalent to `unique(email, role)`.
-  - web applications use the project's configured Laravel web-auth transport.
-  - protected Buyer features require authenticated/authorized Buyer access.
-- **Buyer source limitation:** `Buyer.md` defines Buyer features but does not define registration fields, login transport, password recovery, email verification, or exact approval-gating behavior.
-- **Existing architecture evidence:** the current AISLEY Auth source records a project-wide split where web clients use stateful Laravel session cookies and mobile clients use personal access tokens.
-- **Recommended Customer web flow:**
+
+- **Purpose:** Register a Customer for Admin approval and provide role/status-gated sign-in, session restoration, logout, and password recovery.
+- **Canonical identity:** `users.role = customer`; **Buyer** is the customer-facing storefront term and is not an alternate API/database role.
+- **Current implementation:** Customer registration creates a pending User, CustomerProfile, and RegistrationApplication; web session and optional device-token login, `/me`, logout, password reset, throttling, middleware, resources, and storefront pages exist.
+- Registration does not authenticate the applicant. Admin Manage Account Registrations remains the authority for approval/rejection; a valid password alone never activates access.
+- **Reference gap:** `docs/references/user-registration-requirements.md` lists a Customer address and ID upload, but the current `RegisterRequest`/RegisterForm do not collect or persist them. Treat those fields as a required follow-up, not as already implemented. When approved, extend registration without weakening the shared file-upload policy.
+- Customer Auth owns identity/session boundaries. Customer Account Management owns profile/photo/password changes after sign-in; Address Book owns reusable addresses; Customer Order Status and Checkout consume the active session.
+- **Non-goals:** Admin review UI, Seller/Courier/Logistics authentication, social login, MFA, email verification policy, account deletion, profile-photo upload, or role switching.
 
 ```text
-REGISTER
-Customer submits registration
-→ Laravel validates
-→ create BUYER registration/account in pending state
-→ Admin reviews through Manage Account Registrations
-→ APPROVED or REJECTED
-
-LOGIN
-GET /sanctum/csrf-cookie
-→ POST /login
-→ resolve email + BUYER
-→ verify password
-→ account approved/usable?
-   no  → deny normal Buyer access
-   yes → regenerate session
-       → HttpOnly session cookie
-       → Customer Homepage
+register profile + credentials
+→ pending customer User/Application (no session)
+→ Admin approves or rejects
+→ active Customer may POST /login
+→ web session or optional mobile token
+→ GET /me / protected Customer APIs
+→ logout or status change ends access
 ```
-
-- **Feature boundaries:**
-  - Customer Auth owns registration entry, login, session restoration, role enforcement, approval/access gating, and logout.
-  - Admin Manage Account Registrations owns approval/rejection decisions.
-  - Buyer Account Management owns profile changes, password changes, 2FA settings, and notification preferences.
-  - Buyer Address Book owns saved shipping/billing addresses unless registration explicitly requires an initial address.
-  - Global Ban/shared security middleware may independently block access.
-- **Recommended web routes:** `/register`, `/login`.
-- **Recommended post-login route:** Customer Homepage route selected by the storefront router.
-- **Non-goals:** Admin approval decisions, Buyer profile editing, password change, 2FA configuration, social login, SSO, passkeys, password recovery unless separately specified, inventing registration fields, or mobile Flutter token authentication unless explicitly added.
 
 ## MUST
-### Canonical Buyer identity
-- Authentication must resolve the persisted `BUYER` role-account.
-- AISLEY role-aware identity is:
-```text
-email + role
-```
-- Equivalent uniqueness concept:
-```text
-unique(email, role)
-```
-- A same-email `SELLER`, `COURIER`, `LOGISTICS`, or `ADMIN` account must not satisfy Buyer authentication.
-- The frontend must not be trusted to prove `role = BUYER`, `is_buyer`, or permissions.
-- Laravel determines the expected role from the Customer/Buyer authentication context.
-- Protected Buyer APIs require persisted `role = BUYER`.
 
-### Registration boundary
-- Public Buyer registration is required by the existing AISLEY account-approval architecture.
-- Registration must create or submit a Buyer-specific account/application that can enter Admin review.
-- Exact registration fields are **not defined by the available Buyer source**.
-- Do not invent mandatory fields in this spec.
-- Registration fields must come from the implemented registration requirements/schema.
-- Registration must:
-  - validate supplied fields server-side
-  - normalize email
-  - create only a `BUYER` role-account/application
-  - hash passwords before persistence
-  - never accept a privileged role from the client
-  - prevent conflicting duplicate `email + BUYER` registration
-  - preserve the registration state required by Admin review
-- Multi-record registration mutations must be transactional.
-- Duplicate form submission must not create duplicate Buyer applications/accounts.
+### Canonical role and registration
 
-### Registration uploads
-- The available Buyer model does not define specific registration documents.
-- If the implemented Buyer registration flow requires uploaded credentials/documents:
-  - upload through Laravel-authorized storage
-  - validate type/size
-  - malware scan according to project rules
-  - store asset references, not server paths
-  - keep documents private
-- Do not make an ID upload mandatory from this spec unless the registration requirements explicitly require it.
+- Force `UserRole::Customer` server-side. Prohibit client `role`, `status`, reviewer, approval, Customer ID, and ownership fields.
+- Normalize email to lowercase/trimmed and enforce uniqueness within the Customer role. A same-email Seller/Admin/Courier account is a separate role record and must not authenticate here.
+- Current registration fields are first/last name, optional middle name, contact number, sex, birth date, email, password, and confirmation. Validate Laravel's password rule and `birth_date < today`.
+- Age is derived from the persisted birth date through the shared profile age accessor; never accept or persist a client-supplied age. The current registration form displays/submit birth date only; account resources may expose derived age.
+- Create User (`pending`), CustomerProfile, and pending RegistrationApplication atomically. A duplicate retry must not create another Customer account/application.
+- Return a pending-safe Customer DTO with `201`; do not issue a web session or token and do not expose password/hash/application notes.
 
-### Registration state
-- Admin Manage Account Registrations establishes a lifecycle equivalent to:
-```text
-PENDING
-APPROVED
-REJECTED
-```
-- Customer Auth must respect authoritative registration/account state.
-- Registration submission enters the pending/reviewable state expected by Admin.
-- The browser cannot submit `APPROVED` or otherwise self-approve.
-- Admin remains the source of approval/rejection.
+### Registration address and evidence extension
 
-### Approval gating
-- A valid password alone must not bypass required Admin approval.
-- A pending/rejected Buyer must not receive ordinary approved-Buyer access.
-- Exact pending/rejected login UX is an Open Question.
-- Credential verification and account-state checks remain server-side.
-- Do not expose internal Admin reasons or security notes.
-- Whether a pending Buyer may access a limited application-status page/session is Open.
-- Approval must activate the existing account/application rather than create a duplicate.
+- If the reference requirement is approved for Customer registration, use the existing Address contract: bundled PSGC Region → Province → City/Municipality → Barangay, manual street/postal fields, and optional confirmed coordinates. Do not use Mapbox; follow the Customer Address Book Geoapify/Leaflet pin flow.
+- If an ID upload is added, submit it through an authenticated/authorized Laravel registration action using [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md): JPEG/JPG/PNG/WebP, strictly under 10 MiB, server MIME/signature/decode checks, generated private storage key, and no raw path in DTOs.
+- Evidence must attach to the Customer's pending RegistrationApplication, remain private, and be cleaned up if a transaction fails. Admin review decides verification; Customer Auth does not self-approve documents.
+- Do not make address/evidence appear in the current API contract until the request fields, multipart handling, migrations/relations, review behavior, and tests are approved.
 
-### Rejected registration
-- `REJECTED` must not be treated as normal authenticated Buyer access.
-- Whether rejected applicants may edit/resubmit, create a new application, or appeal/contact support is Open.
-- Authentication must not silently convert `REJECTED` to active.
+### Login and approval gating
 
-### Web authentication transport
-- Current project auth source establishes:
-  - web → stateful HttpOnly Laravel session
-  - Flutter/mobile → personal access token
-- Customer/Buyer storefront web should reuse the project web mechanism.
-- For a first-party SPA using Laravel Sanctum:
-  - initialize CSRF through `/sanctum/csrf-cookie`
-  - login through the configured Laravel `/login`
-  - use Laravel cookie-based session authentication
-  - send cookies/CSRF through the shared API client
-- Do not store Customer web Bearer tokens in `localStorage`, `sessionStorage`, or IndexedDB.
-- If the repository establishes a different web mechanism, repository behavior wins.
+- Resolve the Customer role-account by normalized email, verify the password with Laravel hashing, then enforce `status = active` before issuing credentials.
+- Unknown email, wrong password, and another-role-only email return the same `422 INVALID_CREDENTIALS` shape. Do not disclose account existence or role.
+- A valid password for `pending`, `rejected`, `suspended`, or another inactive state returns `403` with the stable account-state code and never issues a credential.
+- Active web login uses the first-party Sanctum session: initialize CSRF, authenticate on the web guard, regenerate the session, and return a safe navigation DTO. If `device_name` is supplied, issue a scoped personal access token for the external mobile consumer instead of a web session.
+- `/me` and logout require `auth:sanctum` plus `customer.active`; middleware verifies persisted role and status on every protected request. Logout invalidates the current web session or deletes the current personal access token.
+- Forgot-password is generic and rate-limited. Reset tokens are hashed, Customer-role scoped, expiring, single-use, and revoke personal access tokens after a successful reset.
 
-### CSRF
-- Stateful web login must initialize and respect CSRF protection.
-- Conceptual sequence:
-```http
-GET /sanctum/csrf-cookie
-POST /login
-```
-- Subsequent state-changing requests use project CSRF/session protections.
-- Do not bypass CSRF because frontend/API are separate applications.
+### Safety, privacy, and acceptance
 
-### Login request
-- Minimum conceptual credentials:
-```json
-{
-  "email": "buyer@example.com",
-  "password": "..."
-}
-```
-- Do not require trusted `role: BUYER` input.
-- Backend knows the Customer app expects `BUYER`.
-- Exact endpoint/response shape follows repository conventions.
-
-### Login validation
-- Laravel must:
-  1. validate email/password
-  2. normalize email
-  3. resolve `email + BUYER`
-  4. verify password using framework mechanisms
-  5. check registration/account eligibility
-  6. create/regenerate the session only when access is allowed
-- Never compare plaintext passwords manually.
-
-### Generic login errors
-- Invalid-login responses must avoid user/role enumeration.
-- Do not reveal whether the email exists under another role or expose internal security state.
-- Recommended ordinary failure:
-```text
-Invalid email or password.
-```
-- Approval-state messaging may differ only if product policy intentionally exposes the applicant's own registration state.
-
-### Session fixation protection
-- Regenerate the authenticated session after successful login.
-- Do not continue using a pre-authentication session identifier unchanged after login.
-
-### Successful login
-- On successful Buyer login:
-```text
-valid BUYER credentials
-+ approved/usable account
-→ authenticated Laravel session
-→ secure session cookie
-→ restore Buyer identity
-→ Customer Homepage
-```
-- Frontend must not need to read the HttpOnly session cookie.
-- Login success must not expose password, hash, session ID, or tokens.
-
-### Current Buyer/session restoration
-- On Customer app startup:
-```text
-CHECKING
-→ request current authenticated user
-→ persisted BUYER + usable account?
-   yes → AUTHENTICATED
-   no  → UNAUTHENTICATED / restricted state
-```
-- Conceptual endpoint:
-```http
-GET /api/buyer/me
-```
-or a shared current-user endpoint.
-- Safe response may include ID, display name, email when needed, role, and safe account/approval state.
-- Never include security secrets.
-- Protected Customer content must not flash before auth state resolves.
-
-### Protected Buyer routes
-- Protected Buyer features require backend authentication and role ownership.
-- Examples: cart/checkout, orders, wishlist, account management, address book, reviews, chat.
-- Public discovery/search/homepage sections may remain guest-accessible if their own specs allow it.
-- Authentication does not imply ownership of every Buyer record.
-- Laravel must scope Buyer-owned records by authenticated Buyer ID.
-
-### Authentication vs authorization
-- Authentication answers who the account is, whether it is `BUYER`, and whether it may authenticate.
-- Authorization answers whether that Buyer owns/accesses a cart/order/address/review/etc.
-- Authentication middleware is not a replacement for Buyer ownership Policies/query scoping.
-
-### Account lifecycle integration
-- Buyer access must respect Admin Manage User Accounts status and applicable Global Ban rules.
-- A suspended/deactivated Buyer must not retain normal protected access indefinitely through an old session.
-- Exact revocation strategy is Open:
-  - invalidate active sessions immediately, or
-  - enforce account-state middleware on protected requests
-- Backend denial must become effective promptly.
-- Removing a Global Ban does not reactivate a separately suspended account.
-
-### Logout
-- Conceptual endpoint:
-```http
-POST /logout
-```
-- Logout must invalidate the backend session, regenerate CSRF/session state as appropriate, and clear frontend auth state.
-- Frontend-only state clearing is not valid logout.
-- Previous authenticated session must not access protected Buyer APIs after logout.
-
-### Session expiry
-- Expired/invalid sessions are unauthenticated.
-- Frontend clears stale local auth state.
-- Sanctum SPA failures may surface as `401` or `419` depending on context.
-- Session lifetime, idle timeout, remember-me, and concurrent-session policy are Open.
-
-### Password security
-- Registration passwords use Laravel configured hashing.
-- Password hashes never appear in JSON.
-- Exact password policy is not defined by current sources.
-- Buyer Account Management owns password changes.
-- Forgot-password/reset is not source-defined and not required here.
-
-### Rate limiting
-- Login and registration should have tighter rate limits than normal browsing.
-- Reuse Laravel rate limiting.
-- Recommended defense-in-depth:
-  - per-account/email attempt control
-  - per-IP attempt control
-- Exact thresholds are Open.
-- Throttled requests use project-standard `429`.
-
-### Email verification
-- Current Buyer sources do not define email verification.
-- Do not require `MustVerifyEmail` or verification links unless another requirement establishes them.
-- Admin approval and email verification are different concepts.
-
-### 2FA
-- Buyer Account Management mentions 2FA as a possible security setting.
-- It does not define a concrete login challenge.
-- Do not invent TOTP, SMS OTP, email OTP, or passkeys.
-- If 2FA is later configured:
-```text
-password valid
-→ account eligible
-→ 2FA enabled?
-   no  → session
-   yes → configured challenge
-         → session only after success
-```
-
-### Global Ban integration
-- Shared Global Ban middleware may block user/IP access.
-- Customer Auth should respect applicable block rules.
-- Do not duplicate Global Ban matching inside Auth.
-- Exact blocked-login message follows security/privacy policy.
-
-### Security logging
-- Never intentionally log plaintext passwords, password hashes, session values, CSRF secrets, access tokens, OTPs, or 2FA secrets.
-- Safe technical logging may include request/correlation ID, endpoint, result category, resolved Buyer ID after success, and timestamp.
-- Exact login/logout/failed-login security logging policy is Open.
-
-### Frontend states
-- Registration: idle, validating, submitting, submitted/pending review, validation failure, duplicate/conflict, server failure.
-- Login: idle, requesting CSRF, submitting, success, invalid credentials, restricted/pending state when exposed, server error.
-- App bootstrap: checking, authenticated, unauthenticated.
-- Logout: submitting, success, failure.
-- Disable duplicate registration/login submission while active.
-
-### Accessibility
-- Registration/login forms require semantic labels.
-- Use appropriate email/password autocomplete hints.
-- Errors must be associated with fields and announced accessibly.
-- Keyboard navigation must work.
-- Status/errors must not rely on color alone.
-- Password visibility controls need accessible labels.
-
-### Acceptance criteria
-- [ ] Public Customer registration creates only a `BUYER` application/account.
-- [ ] Registration cannot self-assign `APPROVED`.
-- [ ] Registration password is hashed.
-- [ ] Duplicate submission does not create duplicate Buyer accounts/applications.
-- [ ] Same email remains role-isolated according to `unique(email, role)`.
-- [ ] Same-email Seller/Admin/etc. credentials do not authenticate as Buyer.
-- [ ] Buyer web initializes CSRF before stateful login where Sanctum SPA auth is configured.
-- [ ] Correct approved Buyer credentials establish a session.
-- [ ] Wrong password/unknown Buyer do not establish a session.
-- [ ] Pending/rejected Buyer cannot obtain ordinary approved-Buyer access.
-- [ ] Session is regenerated on successful authentication.
-- [ ] Customer web does not require JS-readable Bearer-token storage.
-- [ ] Current-user endpoint returns only safe Buyer identity.
-- [ ] Protected Buyer APIs reject guests and wrong-role accounts.
-- [ ] Buyer-owned records remain scoped to authenticated Buyer ID.
-- [ ] Suspended/deactivated/blocked state is enforced server-side.
-- [ ] Logout invalidates backend session.
-- [ ] Expired session becomes unauthenticated.
-- [ ] Auth errors do not disclose same-email accounts under other roles.
-- [ ] Auth secrets are absent from DTOs/logs.
-- [ ] UI handles registration pending, login error, auth checking, and logout states.
+- Customer resources derive ownership from the authenticated User. Private APIs must never accept a trusted role/Customer ID from the browser.
+- Safe auth DTOs may include ID, display name, role, status, and approved avatar URL. They exclude email where the navigation contract does not need it, profile details, hashes, tokens, CSRF values, private evidence, and storage paths. `CustomerUserResource` currently carries a nullable legacy `profile_photo_path`; it must remain null/remove that field before any non-null photo is returned.
+- Registration/admin notification delivery occurs after the database commit; a failed notification cannot undo the pending application.
+- [x] Registration creates one pending Customer account/profile/application and no credential.
+- [x] Client role/status injection and duplicate Customer email are rejected; same-email other roles remain isolated.
+- [x] Active web and optional mobile login, `/me`, logout, approval-state errors, rate limits, and password reset are implemented and covered by API tests.
+- [x] Protected Customer APIs fail closed for guests, wrong roles, and non-active accounts.
+- [ ] Customer registration address and ID evidence from the shared reference are implemented and reviewed.
+- [ ] Email verification, MFA, rejected-applicant resubmission, and complete session revocation policy are approved.
 
 ## HOW
-### Project findings
-- `Buyer.md` establishes Buyer as the canonical customer role and requires authentication/security middleware for Buyer Account Management, but does not define Buyer Auth itself.
-- `README.md` requires protected role requests to be authenticated/authorized and scopes Buyer-owned data by `buyer_id`.
-- Existing AISLEY Auth source establishes role-aware identity using `unique(email, role)` and says Customer/Seller/Logistics accounts use registration and approval flows.
-- That same source records the project-wide web/mobile split: web uses stateful HttpOnly sessions; Flutter/mobile uses personal access tokens.
-- Exact Buyer registration fields, email verification, recovery, account-status schema, and session lifetime are not defined by current Buyer sources.
 
-### Laravel registration action
-- Suggested action: `RegisterBuyer`.
-- Conceptual endpoint:
-```http
-POST /register
-```
-or a Buyer-scoped equivalent.
-- Laravel should validate registration input, force `BUYER` role server-side, check role-aware uniqueness, hash password, persist the pending application/account, and dispatch any required acknowledgement after commit.
-- Do not authenticate normal Buyer access before approval.
+### Current interfaces and implementation
 
-### Laravel login action
-- For the established first-party web/Sanctum pattern:
-```http
-GET  /sanctum/csrf-cookie
-POST /login
-GET  /api/buyer/me
-POST /logout
-```
-- Laravel Sanctum SPA authentication uses Laravel cookie-based session services rather than API tokens for first-party SPAs.
-- Its documented flow initializes `/sanctum/csrf-cookie`, then posts credentials to `/login`.
-- Storefront/API deployment must satisfy Sanctum stateful-domain/CORS/cookie constraints.
+- Public routes are `POST /api/v1/customer/auth/register`, `/login`, `/forgot-password`, and `/reset-password`.
+- Active-session routes are `GET /api/v1/customer/auth/me` and `POST /api/v1/customer/auth/logout`, protected by `auth:sanctum` and `customer.active`.
+- Laravel uses `Customer\AuthController`, `RegisterRequest`, `LoginRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest`, `CustomerUserResource`, `CustomerNavigationResource`, and `EnsureActiveCustomer`.
+- The current migration/model set uses UUID Users, CustomerProfiles, RegistrationApplications, role-scoped reset tokens, Sanctum tokens, and string-backed enum casts. Additive migrations are required for future evidence/address fields.
+- The Webapp implements `/register`, `/login`, pending/rejected/forgot/reset screens, CSRF-aware API helpers, and the shared `AuthProvider`; it does not store a web bearer token in browser storage.
 
-### Credential resolution
-- Prefer a Buyer-specific login action/service that resolves normalized email + persisted `BUYER`.
-- Do not accept a trusted role selector.
-- After password verification, enforce approval eligibility, account lifecycle status, and Global Ban rules.
-- Regenerate session after successful login.
-- Laravel standard session login guidance regenerates the session and invalidates it on logout.
+### Session and error contract
 
-### Next.js / React
-- Build registration page, login page, auth provider/store (`CHECKING | AUTHENTICATED | UNAUTHENTICATED`), protected Buyer layout, logout action, and pending-review screen when product policy requires it.
-- Use the shared Laravel API client with credentials/CSRF support.
-- Do not create a Next.js API route that reimplements Laravel auth/business rules.
-- Public Customer Homepage/Search/Browse behavior remains owned by those specs.
+- `201` registration returns `Registration submitted for approval.` with pending Customer data.
+- `200` web login returns a safe `customer` navigation object; mobile login additionally returns `token` only when `device_name` is requested.
+- `403` account codes are `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE`. `/me` returns `401` with no session and `403` for wrong role/status.
+- Password-reset requests always acknowledge generically. Invalid, expired, reused, or cross-role tokens produce one `INVALID_RESET_TOKEN` validation error.
+- Customer session restoration/navigation behavior is owned by `customer_verify_auth/spec.md`; it must call this API contract rather than duplicate login rules.
 
-### Rate limiting/security
-- Apply Laravel rate limiting around registration/login.
-- Use generic credential errors to reduce account enumeration.
-- Use layered throttling for brute-force/credential-stuffing defense.
-- Regenerate session IDs after authentication.
+### Verification and deferred decisions
 
-### Tests
-- **Laravel:** Buyer registration; forced BUYER role; role-aware duplicates; password hashing; pending state; invalid registration; same-email role isolation; approved login; pending/rejected denial; wrong password/role; session regeneration; safe current-user; protected ownership; suspended/deactivated/block enforcement; logout; rate limiting.
-- **Frontend:** registration states; login/CSRF flow; generic errors; pending-review state; redirect to Customer Homepage; auth-checking flash prevention; session expiry; logout; wrong-role denial; accessibility.
-
-### Research-backed recommendations
-- Reuse the project's first-party web session model rather than inventing a Buyer-only token scheme.
-- For Sanctum SPA auth, use stateful cookie authentication and CSRF initialization rather than JS-managed API tokens.
-- Regenerate the session after successful authentication.
-- Use generic credential errors and throttling.
-- Keep Admin approval as a separate authoritative transition rather than allowing registration/login to self-activate Buyer accounts.
-
-### Risks
-- **Role confusion:** email-only lookup could authenticate Seller/Admin into Customer.
-- **Approval bypass:** pending accounts could gain access if eligibility is checked only in frontend.
-- **Duplicate onboarding:** retries may create duplicate applications.
-- **Session fixation:** failing to regenerate session weakens security.
-- **Cross-domain misconfiguration:** Sanctum cookie/CORS failures can break storefront login.
-- **Account enumeration:** detailed errors may reveal Buyer existence/state.
-- **Source gap:** inventing registration fields/email verification/recovery would exceed current source.
-- **Stale access:** suspended/deactivated Buyers may remain active if state is checked only at login.
-
-### Open questions
-- Exact Customer registration fields/documents.
-- Whether registration creates the `users` row immediately or a separate application record first.
-- Exact approval/account-status schema.
-- Pending/rejected login UX and limited status-session behavior.
-- Rejected-customer resubmission/appeal behavior.
-- Exact Customer Homepage route.
-- Email verification requirement.
-- Forgot-password/password-reset flow.
-- Session lifetime, idle timeout, remember-me, concurrent-session policy.
-- Login/registration rate limits.
-- Buyer 2FA mechanism/login challenge.
-- Suspension/deactivation session invalidation.
-- Whether Customer mobile auth exists.
-- Storefront/API domain layout and Sanctum cookie/CORS settings.
-- Registration acknowledgement/approval email behavior and provider.
-
-### Sources
-- Project rules: `SKILL.md`
-- AISLEY architecture contract: `README.md`
-- Buyer feature model: `Buyer.md`
-- Existing AISLEY Admin Authentication source/spec for shared identity/auth architecture
-- Laravel Sanctum SPA Authentication: https://laravel.com/docs/12.x/sanctum
-- Laravel basic authentication/session guidance: https://laravel.com/learn/getting-started-with-laravel/basic-authentication-loginlogout
-- OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
-- OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
-- OWASP Bot Management / Anti-Automation: https://cheatsheetseries.owasp.org/cheatsheets/Bot_Management_and_Anti-Automation_Cheat_Sheet.html
-
-### Storefront session-check policy (2026-09-07)
-
-- The persistent browser AuthProvider checks `/api/v1/customer/auth/me` once per app load, deduplicates concurrent checks, and keeps the result in memory across client navigation. A full reload starts a new check. Do not store session credentials or a trusted login flag in browser storage.
-- Next.js pages compose public shells; private Customer data is fetched through Laravel's `auth:sanctum` and `customer.active` APIs. The shared client route guard is a UX boundary, not API authorization. Future server-rendered private data must independently authorize at its data source.
-- Confirmed `401` or explicit Customer role/account-state denial clears the cached session. Protected routes redirect to login while preserving the local path and query; public browsing stays available. Ordinary resource `403`, network errors, `429`, and `5xx` do not mean logout.
-- A `419` triggers a deduplicated `/me` recheck because a CSRF mismatch alone does not prove an expired login. Do not replay commerce mutations automatically. Unknown startup state shows retry feedback and does not render private content or redirect to login.
-- Login/profile responses update cached identity, and successful logout clears it. Late responses from an older session cannot overwrite these transitions. Same-origin tabs exchange login/logout change signals through BroadcastChannel when supported; signals carry no Customer data or credentials and login changes are verified through `/me`.
-- No `/me` polling or page-change/window-focus checks. Explicit retry, network recovery from unresolved startup, a CSRF failure, or a session change in another tab may revalidate.
+- API tests cover normalization, role-aware duplicates, hashing, pending/approval states, web/mobile credential paths, role/status middleware, CSRF/session invalidation, generic recovery, reset-token scope/expiry/single use, and notification failure.
+- Frontend tests cover registration/login/recovery states, pending/rejected messages, generic errors, CSRF, protected redirects, and accessible form errors.
+- Before adding registration address/evidence, agree on required fields, evidence types, Admin review semantics, age presentation, email acknowledgement, retention, and resubmission in the reference and schema docs.
+- References: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, `docs/features/customer/address-book/spec.md`, `docs/features/customer/customer_verify_auth/spec.md`, and the two shared registration/file-upload references.

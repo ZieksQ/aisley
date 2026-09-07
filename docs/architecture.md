@@ -4,6 +4,8 @@
 
 A multi-domain e-commerce platform utilizing a monorepo architecture. It features a single centralized backend API serving multiple specialized frontend applications.
 
+The repository contains four frontend applications: the Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard. Courier functionality is consumed by an external Flutter/mobile application and is not a frontend application in this repository.
+
 * **Authentication:** Laravel Sanctum
 * **Architecture Pattern:** Monorepo (pnpm workspace)
 * **Package Manager:** pnpm
@@ -63,7 +65,7 @@ Due to native enum column type errors in PostgreSQL migrations, database columns
 
 * **Database:** Hosted inside a local Docker container (`docker-compose.yml`).
 * **Dependencies:** Runs on the local machine's native PHP, Composer, and Node environments.
-* **Process launcher:** Root `pnpm dev` starts the Laravel HTTP server, database queue worker, Laravel scheduler, and all three current frontend applications. The queue worker persists asynchronous notifications and audit events; the scheduler redispatches recoverable pending audit outbox events.
+* **Process launcher:** Root `pnpm dev` starts the Laravel HTTP server, database queue worker, Laravel scheduler, and all four current frontend applications (`webapp`, `seller`, `admin`, and `logistics`). The queue worker persists asynchronous notifications and audit events; the scheduler redispatches recoverable pending audit outbox events.
 
 ### Production Strategy
 

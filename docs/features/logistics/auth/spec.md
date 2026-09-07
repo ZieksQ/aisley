@@ -3,118 +3,93 @@ feature: logistics-auth
 title: Logistics Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft — pending Logistics schema and subscription decisions
+version: 1.2
+status: Implemented foundation; operational features deferred
 role: Logistics
-scope: Logistics Web Application and Laravel API
+scope: Logistics React SPA and Laravel API
 ---
 
 # Logistics Authentication
 
 ## WHAT
 
-- **Purpose:** Let one authorized Logistics organization account register, obtain Admin approval, and securely use the Logistics dashboard.
-- **Actors:** Logistics applicant, approved active Logistics account, and authorized Admin reviewer.
-- **Boundary:** React/TypeScript in `src/logistics` owns forms, loading states, and route guards; Laravel owns identity, validation, approval gating, sessions, and authorization.
-- **Registration fields:** Last name, first name, optional middle initial, sex, email, contact number, birth date, server-computed age, operational hub address, business name, government ID, and business/DTI permit.
-- **MVP organization scope:** Each Logistics organization owns exactly one operational hub/sorting center. The registration field labelled **Operational hub/sorting-center address** represents that sole hub; no separate hub, sub-hub, or additional-hub address is collected.
-- **MVP account scope:** One Logistics account operates the organization and its hub through the Logistics dashboard. Staff or dispatcher sub-accounts are deferred and must not be implied by this feature.
-- **Canonical identity:** A persisted account resolved by normalized `email + logistics`; a same-email Customer, Seller, Admin, or Courier remains a separate account.
-- **Current status:** Logistics authentication is planned, not implemented. Product and workflow documents define Logistics as a role, but the current schema still has four role values and no Logistics profile, organization, hub, or subscription tables.
-- **Core lifecycle:**
+- **Purpose:** Register one Logistics organization/operator, submit it for Admin review, and provide secure access to the Logistics dashboard after approval.
+- **Current implementation:** Multipart registration, private government-ID/business-permit evidence, one Logistics profile, one organization, one operational hub, Admin review integration, Sanctum web-session login, `/me`, logout, password recovery, status gating, and the `src/logistics` SPA are implemented.
+- **Canonical identity:** `users.role = logistics`; a same-email Customer, Seller, Admin, or Courier is a separate account and never inherits Logistics access.
+- **MVP cardinality:** one Logistics account → one organization → exactly one operational hub/sorting center. The registration field is labelled **Operational hub/sorting-center address**; no sub-hub, second hub, hub selector, or staff account exists.
+- **Approval:** Admin approves/rejects the Logistics registration. Logistics, not Admin, approves or rejects Courier affiliations after the Courier selects this organization; that is a separate feature.
+- **Subscription:** Billing, plans, provider integration, the per-order charge, subscription records, and enforcement are deferred and do not gate the current approved active account.
+- **Non-goals:** parcel/Shipment/Waybill/Scan/Delivery Task operations, sorting/dispatch, Courier UI, fleet/zone/capacity features, sub-accounts, MFA, social login, or mobile Logistics tokens.
 
 ```text
-register → PENDING → Admin APPROVED → ACTIVE → sign in → Logistics Dashboard
-                   ↘ REJECTED → no dashboard access
-ACTIVE → SUSPENDED/DEACTIVATED → protected access denied
+multipart register
+→ pending User/Profile/Application/Organization/Sole Hub/Evidence
+→ Admin approves or rejects
+→ active Logistics account → web login/session → /dashboard
+↘ rejection/suspension/deactivation → protected access denied
 ```
-
-- **Owned flows:** Registration, login, session restoration, role/status gating, logout, and role-scoped password recovery.
-- **API namespace:** `/api/v1/logistics/auth/*`.
-- **Boundaries:** Admin Manage Account Registrations owns approval/rejection; Logistics operations own parcels, transfers, dispatch, and Courier assignment; Courier authentication and mobile work remain separate.
-- **Non-goals:** Parcel operations, sorting/waybill workflows, multi-hub or sub-hub management, staff/sub-account management, Courier approval UI, subscription billing, social login, passkeys, MFA, or a Logistics mobile UI.
 
 ## MUST
 
-### Role and organization prerequisites
+### Identity, ownership, and cardinality
 
-- Treat Logistics as a planned fifth role in the shared user model. Before enabling this feature, approve additive migrations for the role, organization/profile, sole hub relationship, and subscription references.
-- Store enum-like columns as strings in PostgreSQL migrations and use PHP enum casts in the API layer; do not use native PostgreSQL enum columns.
-- The API derives `role = logistics`. Client-supplied role, status, reviewer, approval, organization, hub, or subscription fields are rejected.
-- Normalize email before lookup and enforce uniqueness by `email + logistics`; never let a same-email account in another role inherit Logistics access.
-- The approved organization relationship must enforce one Logistics account and exactly one operational hub in the MVP. Do not add staff credentials, sub-hub selectors, or second-hub creation to this feature.
+- Derive `UserRole::Logistics` and all ownership from the server. Prohibit client role, status, reviewer, approval, organization, hub, subscription, or owner IDs.
+- Normalize email (trim/lowercase) and enforce Customer/Seller/Admin/Courier-isolated uniqueness for the Logistics role. Unknown and other-role-only credentials use the same generic login failure.
+- Keep the one-account/one-organization/one-hub invariant. `logistics_organizations.user_id` and `logistics_hubs.logistics_organization_id` are unique; no request may create or select a second hub or a sub-hub.
+- Resolve the organization and hub through the authenticated account. Do not authorize by email, business name, address text, or a browser-provided hub ID.
+- Store enum-like database values as strings and cast them to PHP enums; do not introduce native PostgreSQL enum columns.
 
-### Registration
+### Registration and hub address
 
-- Validate all personal fields, business name, email, password, and password confirmation server-side.
-- Calculate age from `birth_date` on the server. The UI may display it, but the client cannot submit or make age authoritative.
-- Label the address field **Operational hub/sorting-center address**. Use cascading Region → Province → City/Municipality → Barangay controls backed by the bundled Q2 2026 PSGC JSON data in `packages/psgc-address-data/data`.
-- Keep street/building and other address details editable. The current Address schema's required fields and any Logistics-specific postal/contact mapping must be reconciled before implementation; country is server-owned as Philippines.
-- Laravel owns submitted address names and validates hierarchy ownership. PSGC codes are lookup-only, provider identifiers are not persisted, and lookup failure must leave a complete manual fallback.
-- Registration address lookup must use Aisley routes or the approved local data source only; it must not make a third-party request or require a provider token.
-- Include government ID and business/DTI permit evidence. Requiredness follows the registration reference once its Logistics indicators are finalized.
-- For image evidence, apply `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, decoded/signature-checked, privately stored, and never exposed by raw path. A PDF permit requires a separate approved policy.
-- Persist the User, Logistics profile/organization, sole hub address, pending Registration Application, and evidence metadata transactionally. Store bytes on the configured private filesystem and remove orphaned blobs if persistence fails.
-- Registration creates only a pending account/application. It must never authenticate or self-approve the applicant.
-- Duplicate or concurrent submissions must not create multiple Logistics accounts, organizations, hubs, applications, or evidence records; return stable field-addressable errors.
+- Validate first/last name, optional one-character middle name, contact number, sex, birth date, business name, email, and the project password/confirmation rules.
+- Calculate age from the persisted birth date through the shared age accessor. The Logistics UI may display a calculated age, but age is not client input or a persisted authority.
+- Require the **Operational hub/sorting-center address** fields: address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; registration currently does not accept coordinates.
+- Use bundled `@aisley/psgc-address-data` Region → Province → City/Municipality → Barangay controls in the SPA, with manual text fallback. PSGC codes/provider IDs are lookup-only and are not persisted.
+- Do not make a Geoapify request during registration. If an exact pin is later approved, reuse the Customer Address Book's Geoapify/Leaflet contract in a separately reviewed change; Mapbox is not permitted.
+- Persist User, LogisticsProfile, pending RegistrationApplication, one default hub Address, one LogisticsOrganization, and one LogisticsHub in a logical transaction. A failed database write removes any stored evidence objects.
 
-### Approval and access gating
+### Evidence and Admin approval
 
-- Admin Manage Account Registrations is the authoritative approval boundary. Approval updates the existing application/account and does not create a duplicate.
-- Approval transitions the application to `approved` and the account to `active`; rejection records the Admin reason and leaves dashboard access denied.
-- Only `role = logistics` with `status = active` may establish or retain ordinary Logistics access.
-- Pending, rejected, suspended, deactivated, wrong-role, or otherwise unauthorized accounts are denied server-side even with a correct password.
-- Use stable state errors such as `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_INACTIVE` without exposing unrelated accounts or private Admin notes.
-- Extend the existing Admin registration API, permissions, audit, and notification flow to recognize Logistics; do not create a parallel review workflow.
+- `government_id` and `business_permit` are required registration evidence in the current form. The API accepts image evidence only: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with server MIME/signature/image validation and generated private storage keys.
+- Apply [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md). Store metadata in `documents`; never return raw disk/blob paths, credentials, or private evidence in a Logistics DTO.
+- Attach both documents to the pending RegistrationApplication and remove orphaned objects when persistence fails. Evidence remains private until the Admin review endpoint authorizes access.
+- Admin Manage Account Registrations is the only approval authority. Approval updates the existing application/User/organization state; rejection records the Admin reason and leaves access denied. No duplicate records are created.
+- Registration and review notification delivery is after-commit work. A communication failure cannot roll back a committed application or approval decision.
 
-### Stateful web authentication
+### Login, session, and recovery
 
-- Use Sanctum stateful HttpOnly session cookies for the Logistics React dashboard; browser JavaScript must not store Bearer tokens.
-- Initialize CSRF with `GET /sanctum/csrf-cookie`, then submit credentials to `POST /api/v1/logistics/auth/login`.
-- Login resolves normalized email plus the Logistics role, verifies the framework hash, checks active status, authenticates the web guard, and regenerates the session.
-- Unknown email, wrong password, and an email existing only under another role return one generic credential failure. Rate-limit by normalized email and IP and return `429` with `Retry-After` when exhausted.
-- Successful login returns a minimal safe Logistics DTO and routes to `/dashboard` (or the final agreed route). Exclude hashes, session values, reset tokens, evidence, raw storage paths, and private review notes.
+- Require an approved `status = active` Logistics account before issuing credentials. Pending, rejected, suspended, deactivated, and wrong-role accounts fail closed. Protected dashboard data additionally requires the existing organization and sole hub; the dashboard fails closed when that relationship is absent.
+- Use stateful Sanctum cookies for the web SPA: initialize `/sanctum/csrf-cookie`, submit credentials to the versioned login route, regenerate the session after login, and invalidate/regenerate it on logout. `device_name` is prohibited; Logistics has no mobile token flow in this repository.
+- Login is rate-limited (five attempts per throttle window) and returns `429` with `Retry-After` when exhausted. Password reset is separately rate-limited and generic.
+- Stable inactive codes are `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_INACTIVE`; do not reveal unrelated role/account state.
+- Reset tokens are hashed, Logistics-role scoped, expiring, single-use, and removed after success. Successful reset revokes personal access tokens without changing approval status.
+- `GET /me` and `POST /logout` require `auth:sanctum` plus `logistics.active`; every protected Logistics endpoint repeats role/status checks at the API boundary.
 
-### API surface
+### API contract and acceptance
 
-- `POST /api/v1/logistics/auth/register` accepts the validated profile, sole-hub address, and multipart evidence and returns a safe pending-application summary; it never returns an authenticated session.
-- `POST /api/v1/logistics/auth/login` returns the safe Logistics identity only after the account is approved and active.
-- `GET /api/v1/logistics/auth/me` returns the current authenticated identity; `POST /api/v1/logistics/auth/logout` invalidates the server session.
-- `POST /api/v1/logistics/auth/forgot-password` and `POST /api/v1/logistics/auth/reset-password` use the existing role-scoped, generic password-recovery contract.
-- All responses use versioned routes, safe DTOs, field-addressable validation errors, and ownership-safe not-found/forbidden behavior.
-
-### Session, recovery, and subscription boundaries
-
-- Keep startup in `CHECKING` until `GET /api/v1/logistics/auth/me` resolves through `auth:sanctum` and Logistics-active middleware. Recheck role and status on every protected request.
-- Logout invalidates the backend session and regenerates CSRF; clearing React state alone is insufficient. Invalid sessions redirect protected routes to `/login`.
-- Forgot-password responses must not reveal account existence. Reset tokens are hashed, Logistics-scoped, expiring, single-use, rate-limited, and deleted after success; reset does not change approval status.
-- Authentication proves identity and active status. Subscription plans, billing, renewal, the ₱10 per-order charge, and operational enforcement belong to a separate Subscription feature. Approval is not subscription.
-
-### Acceptance criteria
-
-- [x] Valid registration creates one pending Logistics account, organization, sole hub address, application, and submitted evidence records with server-derived role and age.
-- [x] The sole-hub address, local PSGC lookup/fallback, evidence policy, and ownership/status fields are enforced without trusting client authority.
-- [x] Retries or concurrent requests cannot create duplicate organization accounts, hubs, applications, or evidence.
-- [x] Admin approval/rejection updates the existing records and sends the configured notification.
-- [x] Only an approved active Logistics account can establish a dashboard session; same-email accounts in other roles cannot authenticate into it.
-- [x] CSRF, session regeneration, HttpOnly cookies, generic credential errors, login throttling, `me`, logout, and role-isolated password recovery work as specified.
-- [x] Private registration evidence cannot be fetched without authorization or exposed through DTOs.
+- Routes are `POST /api/v1/logistics/auth/register`, `/login`, `/forgot-password`, `/reset-password`, and protected `GET /me`/`POST /logout`.
+- Registration returns `201` with a pending-safe `logistics` resource and no credential. Login returns `200` with a safe profile/organization/hub projection only after activation.
+- [x] Registration creates exactly one pending profile, application, organization, sole hub, address, and two private evidence records.
+- [x] Client role/status/organization/hub/subscription injection is rejected; duplicate and concurrent registration are safe.
+- [x] Admin approval/rejection and active-status middleware gate access; same-email other roles cannot authenticate as Logistics.
+- [x] Web CSRF/session login, `/me`, logout, throttling, generic errors, and role-scoped password recovery are implemented.
+- [x] DTOs omit password/hash/session/token values, Admin notes, private evidence, and raw storage paths.
+- [ ] Email verification, MFA, resubmission/appeal, session lifetime/concurrent-session policy, and any future coordinate capture are approved.
 
 ## HOW
 
-- Add Logistics-namespaced Form Requests, controller, resource, middleware, notification/configuration, service, and routes beside the existing Customer, Seller, and Admin auth groups after the schema decisions.
-- Reuse `users`, `registration_applications`, `documents`, `addresses`, Sanctum sessions, password-reset, private-storage, and Admin registration-review patterns; add only new migrations for approved Logistics entities.
-- Build the future `src/logistics` React dashboard with one credentialed API client, auth provider, checking/guest/authenticated states, protected layout, and accessible registration/login/recovery forms. Courier remains external and mobile-only.
-- Reuse `@aisley/psgc-address-data` and the existing Aisley address-option contract. Do not call a provider inside registration or its database transaction.
-- Test rollback, duplicates, one-account/one-hub invariants, role isolation, age calculation, address validation/fallback, evidence validation/authorization, every account status, Admin handoff, CSRF, session fixation, logout, throttling, and reset-token isolation.
-- Roll out only after the Logistics role/profile/organization/hub schema, Admin review integration, evidence requiredness/file types, private storage, stateful-domain settings, and subscription enforcement policy are approved.
-- **Open decisions:** exact organization/profile/hub tables and duplicate-organization rule; mapping of required Address columns to the Logistics form; evidence requiredness and permit file types; email verification and remember-me policy; session revocation after reset; final dashboard route; subscription provider/enforcement; and notification wording.
+### Current code and data
 
-### References
+- Laravel routes live in `src/api/routes/api.php`. The implementation uses `App\Http\Controllers\Logistics\AuthController`, Logistics Form Requests, `LogisticsUserResource`, `EnsureActiveLogistics`, `RegistrationEvidenceService`, and the shared Admin registration-review/notification services.
+- The foundation migration is `2026_09_05_000001_create_logistics_foundation_tables.php`; it adds UUID `logistics_profiles`, `logistics_organizations`, and `logistics_hubs`. The existing `users`, `addresses`, `registration_applications`, and `documents` tables are reused; migrations remain additive.
+- The SPA lives in `src/logistics`: `AuthContext`, `ProtectedRoute`, AuthShell, registration/login/recovery pages, PSGC address fields, and the protected Dashboard layout. It sends credentialed requests and keeps no Logistics bearer token in browser storage.
+- `LogisticsUserResource` exposes safe profile age and organization/hub names; hub address details are returned by the separate Dashboard scaffold, not as private evidence.
 
-- Project: `docs/requirements.md`, `docs/workspace.md`, `docs/architecture.md`, `docs/schema.md`, `docs/domains/Logistics.md`, and `docs/references/user-registration-requirements.md`.
-- Shared upload policy: `docs/references/file-upload-requirements.md`.
-- [Laravel 13 Sanctum SPA authentication](https://laravel.com/framework/docs/13.x/sanctum#spa-authentication)
-- [Laravel 13 authentication](https://laravel.com/framework/docs/13.x/authentication)
-- [Laravel 13 password reset](https://laravel.com/framework/docs/13.x/passwords)
-- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+### Verification and deferred boundaries
+
+- API tests cover one-account/one-hub creation, evidence persistence/cleanup, duplicate races, role/status denial, Admin approval integration, CSRF/session regeneration, logout, throttling, reset-token scope/expiry, and dashboard access.
+- Frontend checks cover multipart field errors, local PSGC/manual fallback, file-limit messaging, pending/rejected states, auth bootstrap, protected redirects, theme/mobile layout, and recoverable API failures.
+- Before implementing shipment actions, reconcile `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, and Logistics/Courier operational specs. Keep the first-mile/final-mile assignments independent and the sole-hub boundary intact.
+- Subscription enforcement, online billing, staff accounts, alternate hubs, and operational records require separate approved specs/migrations. Do not add them to Auth as hidden assumptions.
+
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, `docs/features/logistics/dashboard/specs.md`, `docs/features/courier/auth/spec.md`, `docs/references/user-registration-requirements.md`, and the shared file-upload policy.

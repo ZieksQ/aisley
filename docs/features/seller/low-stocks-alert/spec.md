@@ -3,8 +3,8 @@ feature: low-stock-alerts
 title: Seller Low Stock Alerts
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented
+version: 1.3
+status: Implemented foundation
 role: Seller
 scope: Seller Web Application
 ---
@@ -13,117 +13,104 @@ scope: Seller Web Application
 
 ## WHAT
 
-- **Purpose:** Let an active Seller configure a per-SKU threshold and receive one persistent alert for each transition into low or out-of-stock availability.
-- **Primary actor:** authenticated active Seller who owns exactly one Shop and its Inventory SKUs.
-- **Existing foundation:** `inventory_balances.alert_threshold`, authoritative `on_hand`/`reserved`/`available` calculations, stock movements, threshold editing, low/out filters, and Seller inventory screens are implemented.
-- **Canonical rule:**
+- **Purpose:** Let an active Seller configure a threshold per SKU and see one persistent alert for each transition into low/out-of-stock availability.
+- **Authority:** Inventory owns `on_hand`, `reserved`, and `available`; this feature owns threshold evaluation, alert lifecycle, and Seller alert history. Notifications are a delivery channel, not the stock authority.
+- **Scope:** one Shop-owned Inventory SKU/base SKU at a time, never a Product-wide guess. `available = on_hand - reserved`.
+- **Implemented foundation:** UUID alerts, one active cycle per SKU, trigger/recovery snapshots, Seller-scoped list/detail APIs, Inventory indicators, database notifications, and bounded backfill exist.
+- **Canonical lifecycle:**
 
 ```text
-available = on_hand - reserved
-threshold = null  → alerting disabled
-available > threshold → available <= threshold
-→ create one ACTIVE alert for that low-stock cycle
-available > threshold again
-→ resolve that alert; a later crossing starts a new cycle
+threshold = null → no new alert
+available > threshold → available <= threshold → one `active` cycle
+available > threshold again → resolve cycle
+later breach → new historical cycle
 ```
 
-- **Scopes:** one Inventory SKU/variant, never a Product aggregate. A Product with one default SKU uses that SKU.
-- **Surfaces:** Inventory list/detail show current low/out state and threshold; `/low-stock-alerts` provides paginated alert history. Each new alert cycle also creates a Seller database notification with a server-generated alert destination.
-- **Boundaries:**
-  - Inventory owns balances, reservations, adjustments, and the committed availability value.
-  - This feature owns threshold-trigger evaluation and alert lifecycle only; it never changes stock, Product visibility, pricing, or Orders.
-  - The shared notification table owns inbox/read state and optional future external channels; this feature is a database-notification producer, not a provider integration.
-- **Non-goals:** supplier purchasing, automatic restocking, repeated alerts while stock remains low, global Product thresholds, buyer restock notifications, or a hard-coded email/push/SMS provider.
+- **Non-goals:** automatic replenishment, supplier orders, buyer restock notifications, repeated alerts while a breach remains active, Product-wide thresholds, or a hard-coded email/push/SMS provider.
 
 ## MUST
 
-### Ownership and threshold
+### Ownership and thresholds
 
-- Require `auth:sanctum`, active Seller status, and Shop-derived SKU scope. Never trust a submitted `seller_id`, `shop_id`, available quantity, or alert state.
-- Return `401` unauthenticated, `403` inactive/forbidden, `404` Seller-scoped SKU/alert absent, `422` invalid threshold, and `409` stale/conflicting mutation.
-- `alert_threshold` is an optional non-negative integer stored on the existing Inventory Balance; `null` disables new alert evaluation.
-- `0` is valid and alerts when available reaches zero. A threshold applies to `available`, not `on_hand`, because reserved units are not sellable.
-- Updating a threshold must lock/re-read the balance, save the threshold, and immediately evaluate the current availability.
-  - If the new enabled threshold already covers current availability, create or retain one active alert.
-  - Disabling a threshold resolves any active alert with resolution reason `threshold_disabled`; it does not alter stock history.
+- Require `auth:sanctum` and active Seller middleware. Derive Seller/Shop/SKU from the session; never trust client Seller IDs, balances, alert state, notification destinations, or another Shop's UUID.
+- Return `401` unauthenticated, `403` inactive/forbidden, `404` out-of-scope SKU/alert, `409` stale/unique conflict, and field-addressable `422` validation errors.
+- Store an optional non-negative integer `alert_threshold` on the Inventory Balance. `null` disables evaluation; `0` is valid and alerts when available reaches zero.
+- Evaluate against current committed `available`, not `on_hand`. Threshold updates must lock/re-read the balance and deterministically create, retain, resolve, or update the current cycle. The route must invoke the same evaluator used by Inventory mutations.
+- Disabling a threshold resolves an active cycle with `threshold_disabled`; it does not delete movement or alert history.
 
-### Alert lifecycle
+### Alert lifecycle and integrity
 
-- A committed Inventory mutation or threshold update evaluates only the affected SKU after the balance transaction commits.
-- Create an active alert only when alerting is enabled and current availability is `<= threshold`, with no active alert for the same SKU/threshold cycle.
-- An active alert contains UUID, Seller/Shop/SKU references, threshold, availability snapshot, state, triggered time, resolved time/reason, and a safe triggering movement/reference ID when present.
-- When availability rises above the active alert's threshold, resolve it automatically with reason `stock_recovered`; never delete the alert.
-- A later fall to `<= threshold` creates a distinct alert cycle. Changes that remain at/below the threshold must not create duplicates.
-- Threshold changes while an alert is active must be deterministic:
-  - lower threshold and availability becomes above it → resolve;
-  - threshold remains breached → retain the active cycle and update the current threshold/availability snapshot;
-  - raise threshold above availability → retain/create one active cycle, never several.
-- Low and out-of-stock are availability states, not separate alert types. The alert payload may label zero availability as `out_of_stock` for UI clarity.
-- An archived Product or inactive SKU retains historical alerts but cannot create a new alert until it becomes eligible for Inventory mutations again.
-- Seller suspension does not erase alert history; notification delivery and any Seller dashboard access continue to follow the account-status policy.
+- Evaluate after committed restock, manual increase/decrease, checkout reservation, cancellation/rejection release, future `picked_up_from_seller` fulfillment, and approved future correction/return actions. Evaluation never changes the balance.
+- An active alert stores UUID, Seller/Shop/SKU, trigger threshold/available, current threshold/available, state, trigger/resolution timestamps, resolution reason, and an optional safe movement reference.
+- One active alert per SKU is enforced by transaction locking plus a database uniqueness constraint/active marker. Repeated below-threshold mutations, retries, or concurrent evaluators update the current snapshot instead of creating duplicates.
+- Recovery above the current threshold resolves the alert with `stock_recovered`; a resolved record is immutable history and a later breach creates a new record.
+- An archived Product or inactive SKU cannot start a new cycle; existing alerts remain visible. Product publication/compliance and Seller account status govern whether the Seller can act on the SKU.
 
-### Notification and history
+### Notifications and privacy
 
-- Persist the alert before any in-app, email, push, or broadcast attempt. Alert state remains authoritative when external delivery fails.
-- Create one Seller-facing database/in-app notification after the alert transaction commits when the Seller notification infrastructure is available; it links only to the Seller-scoped alert/SKU.
-- External delivery is optional, queued, after-commit, retryable, and idempotent per alert/channel. It must not change the alert, Inventory balance, or Order state.
-- The alert list is newest-first, paginated, and Seller-scoped. Allow-list `active`/`resolved`, Product/SKU search, and date filters.
-- An alert detail/list DTO includes Product/SKU label, threshold and availability snapshots, state/times, safe movement reference, and internal Inventory link; omit buyer PII, supplier data, and other Sellers' stock.
-- Seller acknowledgement/read state, if later added, is independent from automatic `resolved` state. Reading an alert never resolves it or changes Inventory.
-- A resolved alert must never be reactivated; a later breach is represented by a new alert record.
-- An active alert may update its current availability snapshot after a later below-threshold mutation, but its original triggered time and trigger reference remain immutable.
-- Resolved alerts remain visible in history with their final availability snapshot and resolution reason.
+- Persist the alert before notification delivery. Create one Seller database notification after commit for each newly created cycle, with a server-generated Seller alert destination.
+- Email/push/SMS/broadcast delivery is optional, queued, retryable, and idempotent per alert/channel. A provider failure cannot roll back, resolve, or duplicate the stored alert or Inventory movement.
+- List/detail responses are paginated, newest-first, deterministic, and Seller-scoped. Allow-list state, SKU/Product search, and date filters; keep a bounded page size.
+- DTOs include safe Product/SKU labels, threshold/availability snapshots, state/times, and movement references only. Omit Buyer PII, supplier data, raw paths, credentials, and other Sellers' stock.
+- Reading/acknowledging an alert (if added later) is separate from automatic recovery and never changes Inventory.
 
-### Integrity and experience
+### UX and acceptance
 
-- Inventory transaction + alert decision must be race-safe. Lock the balance, re-evaluate current availability, and enforce one active alert per SKU with a database constraint/index; return/refetch on conflict.
-- Reservation, release, fulfillment, restock, manual increase/decrease, correction, return-in, and bulk import must all use the same post-commit evaluator. No frontend calculation may create alerts.
-- Retried mutations and queued evaluator jobs must not duplicate active alerts or notifications. Use the committed movement/reference plus alert state as the idempotency boundary.
-- Do not perform network delivery, cache rebuilding, or broadcasting while an Inventory balance row is locked.
-- Evaluator failures must be observable with a safe request/reference ID and retried independently; they must not roll back a committed stock movement.
-- Inventory shows threshold, `in_stock`/`low`/`out` state, active-alert indicator, and direct link to alert history. Low state must not rely on color alone.
-- Alert list/detail provide loading, empty, error, retry, resolved, and stale/refetched states with keyboard-operable filters and links.
-- The empty state explains that thresholds are configured from Inventory SKU details and distinguishes no configured thresholds from no alert history.
-- Inventory history remains the source for adjustment reasons; the alert only references its triggering movement.
-- [x] A Seller cannot configure or view another Seller's SKU threshold or alert.
-- [x] Threshold `null`, `0`, and a positive integer follow the defined availability rule.
-- [x] One low-stock cycle produces one active alert despite repeated mutations, retries, or notifications.
-- [x] Restocking above threshold resolves the cycle; a later breach creates a new historical alert.
+- Inventory shows threshold, textual `in_stock`/`low`/`out` state, active-alert indicator, and a link to history. Alert pages provide loading, empty, error, retry, resolved, stale/refetch, and keyboard-accessible filter states.
+- [x] Seller cannot configure or view another Seller's SKU threshold or alert.
+- [x] `null`, `0`, and positive thresholds follow the availability rule in the evaluator.
+- [x] One low-stock cycle produces one active alert despite repeated mutations/evaluations and notification attempts.
+- [x] Recovery resolves a cycle and a later breach creates a new historical alert; archived-product history remains visible.
 - [x] Alerting does not alter authoritative balances, reservations, Product publication, or Orders.
 - [x] Failed/duplicate notification delivery cannot undo or duplicate the stored alert.
-- [x] Alert history remains available after the SKU recovers or its Product is archived.
+- [ ] The HTTP threshold-update route and every future release/fulfillment/return writer invoke the shared post-commit evaluator.
 
 ## HOW
 
-- Keep the existing `InventoryBalance.alert_threshold` and `PATCH /api/v1/seller/inventory/{inventorySku}/threshold` endpoint as the threshold owner. Add additive `low_stock_alerts` persistence with UUIDs, Seller/Shop/SKU foreign keys, availability/threshold snapshots, state, trigger/resolution metadata, and indexes for Seller/state/time.
-- Store enum-like alert state/resolution values as strings with PHP enum casts; do not modify executed migrations. Use a PostgreSQL-safe partial unique index or equivalent constraint to permit at most one active alert per Inventory SKU.
-- Add an `EvaluateLowStockAlert` domain service/event listener invoked after committed Inventory mutations and threshold updates. It reads the locked/current balance rather than recalculating from a client payload.
-- Make evaluator input a persisted balance/SKU ID plus optional movement reference, not a serialized Eloquent model or browser-provided quantity.
-- Use an explicit recovery transition rather than deriving active/resolved history only at read time, so prior alert cycles remain reportable.
-- Add Seller-scoped APIs:
+- Current APIs are `GET /api/v1/seller/low-stock-alerts` and `GET /low-stock-alerts/{alert}` plus Inventory's threshold/list/detail routes under `seller.active`.
+- Current backend is `LowStockAlertService`, `LowStockAlertController`, `LowStockAlert`/enum models, `InventoryService`, checkout/Seller order inventory hooks, and `LowStockAlertNotification`. The CLI `inventory:evaluate-low-stock-alerts` performs bounded notification-suppressed backfill.
+- Keep enum-like columns as strings with PHP enum casts. Use additive migrations only; preserve resolved cycles and enforce at most one active marker per SKU on SQLite/PostgreSQL.
+- Evaluator pattern: after source transaction commit → lock current balance → read current availability → apply one lifecycle transition → commit → notify after commit. Do not perform network work while a balance is locked.
+- Seller UI reuses Inventory threshold controls and the `/low-stock-alerts` history page. API resources generate all destinations from authenticated ownership; no client path is trusted.
+- Tests cover threshold boundaries/change paths, each inventory/order reservation effect, ownership, uniqueness/concurrency/idempotency, archive history, evaluator failure, notification failure, filters/pagination, and accessibility. Run API tests on SQLite/PostgreSQL plus Seller lint, TypeScript, and build.
+- Before enabling external channels or alert preferences, approve retention, per-channel deduplication, scan/queue retry, real-time transport, and notification policy.
 
-```http
-GET /api/v1/seller/low-stock-alerts
-GET /api/v1/seller/low-stock-alerts/{alert}
-```
+### Transition examples
 
-- Reuse existing Inventory list/detail threshold controls and add active-alert links/badges plus a paginated Seller alert-history page. Do not require a notification bell before the alert history is usable.
-- API Resources must serialize decimal/integer stock snapshots consistently with the existing Inventory DTOs.
-- Do not expose unbounded alert history or unrestricted client-provided sort columns.
-- Rate-limit alert-list requests consistently with other Seller operational endpoints.
-- Keep route parameters UUID-constrained and generate all notification destinations server-side from the authenticated Seller's SKU/alert.
-- Send a safe `inventory.low-stock` database notification for each newly persisted alert cycle, with the stable `/low-stock-alerts/{alertId}` destination. Optional external delivery remains deferred. Laravel supports queued after-commit events/listeners. [Laravel events](https://laravel.com/framework/docs/13.x/events#dispatching-events-after-database-transactions)
-- Test Seller scope, threshold validation, every crossing/recovery/threshold-change path, reservation and checkout effects, duplicate/concurrent evaluation, history retention, notification failure, API filters/pagination, and Inventory UI accessibility.
-- Include migration tests for the active-alert uniqueness constraint on both supported databases.
-- Run API tests on SQLite and PostgreSQL, plus Seller lint, strict TypeScript, production build, and focused browser checks.
-- Roll out with existing thresholds treated as enabled configuration: evaluate them once through a bounded backfill/job and avoid sending a burst of external alerts until notification preferences are decided.
-- **Open questions:** maximum threshold, alert retention, whether resolved alerts may be dismissed/archived, Seller notification preferences/external channels, real-time transport, bulk-import notification summary policy, and whether threshold defaults are copied for new SKUs.
+| Event | Availability | Result |
+| --- | ---: | --- |
+| threshold enabled, already breached | `<= threshold` | create one active cycle |
+| repeated reservation/adjustment below threshold | `<= threshold` | update current snapshot only |
+| release/restock recovers stock | `> threshold` | resolve with `stock_recovered` |
+| threshold disabled | any | resolve with `threshold_disabled` |
+| later breach after resolution | `<= threshold` | create a new historical cycle |
 
-## Implemented baseline (2026-09-02)
+- Low and out-of-stock are presentation labels of the same lifecycle; zero is not a second alert type.
+- A threshold change must be serialized with the balance read. Lowering a threshold can resolve immediately; raising it can create/retain one cycle, never two.
+- The alert's original trigger time, trigger threshold, and trigger movement stay immutable even when current availability snapshots change.
 
-- `low_stock_alerts` stores immutable trigger snapshots plus current cycle snapshots, resolution state, Shop/Seller/SKU ownership, and an optional triggering Inventory movement.
-- The active-marker uniqueness constraint permits at most one active alert per SKU while preserving unlimited resolved cycles on PostgreSQL and SQLite.
-- Manual Inventory adjustments, checkout reservations, and threshold updates schedule the same evaluator after the surrounding transaction commits. Future release, fulfillment, correction, return, and bulk-import writers must call that evaluator when those mutation paths are added.
-- Seller-scoped list/detail APIs, Inventory alert indicators, alert history/detail screens, and one database notification per new cycle are implemented.
-- `inventory:evaluate-low-stock-alerts` performs a bounded, notification-suppressed backfill for existing configured thresholds.
-- Optional email/push/SMS, notification preferences, real-time transport, dismissal/archive behavior, and Inventory mutation paths not yet present elsewhere in the system remain deferred.
+### DTO and delivery contract
+
+- List/detail responses expose alert ID/state/type, Product/SKU labels, trigger/current threshold and availability, trigger/resolution times/reason, a safe movement reference, and an Inventory destination generated by the server.
+- Notification data contains only the Seller-owned alert/SKU reference and a stable `/low-stock-alerts/{alert}` destination. It does not copy Buyer data or storage paths.
+- If an after-commit evaluator fails, operators can retry it with the balance/SKU ID and movement reference. A successful retry reconciles the alert without replaying a notification for an existing cycle.
+- Backfill is bounded and notification-suppressed; it evaluates configured thresholds without sending a burst of external messages.
+
+### Evaluator guardrails
+
+- The evaluator accepts a persisted balance/SKU ID and optional committed movement reference, never a browser-supplied quantity or serialized stale model.
+- Lock the current balance and active alert in one short transaction, apply one state transition, and release locks before notification, broadcasting, cache work, or network delivery.
+- A unique active marker is an integrity backstop, not the only deduplication mechanism. On a uniqueness race, reload the committed active alert and return it without sending a second notification.
+- If the Product is archived after an alert is active, resolve/recovery history remains readable while new cycles are suppressed until the SKU/Product becomes eligible again.
+
+### Operational verification
+
+- Test every source writer—manual adjustments, checkout reservation, Seller rejection release, future cancellation release, first-mile fulfillment, correction, return, and bulk import—against the same evaluator entry point.
+- Test notification/database failures after the alert transaction commits and ensure retries do not alter alert state, Inventory balances, Orders, or notification count for an existing cycle.
+- Test pagination, state/search/date filters, configured-threshold count, cross-Shop concealment, private movement references, and UI keyboard/retry/empty states.
+- Keep external channel preferences and real-time delivery as separate contracts; a missing channel must never make an authoritative alert disappear.
+- A Seller dashboard badge, Inventory filter, and notification may be stale; opening alert detail must refetch the authoritative alert state.
+- Alert history is not a substitute for Inventory movement history and must not become an editable stock ledger.
+- Alert list/detail cache entries, if introduced, must include Seller/Shop/SKU scope and alert schema version.
+
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Inventory, Checkout, Order Approval, Prepare Orders, and `docs/order-logistics-flow-decisions.md`.

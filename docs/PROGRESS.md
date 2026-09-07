@@ -393,3 +393,27 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Added back links to the Customer notification list and detail pages. The navbar notification preview now shows at most five items, prioritizes unread notifications before read notifications, and uses a light lavender background with an accessible unread cue for unread rows. Webapp lint and strict TypeScript checks pass; the production build remains blocked by the environment's unavailable Google Fonts fetch.
+
+## 2026-09-07
+
+- Reconciled `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and the Seller, Buyer, Logistics, and Courier domain contexts with the approved order/Logistics flow. The documents now define Customer selection of an eligible Logistics organization, Logistics-owned first-mile task creation, independent first-/final-mile assignments, separate Seller package labels and Logistics operational waybills with their immutability windows, COD `placed`/`payment_status = pending`, inventory reservation release/fulfillment boundaries, one-organization/one-hub scope, provider-neutral routing with no Mapbox, deferred subscription enforcement, and the shared-schema gate before shipment actions. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Seller Authentication, Dashboard, Account Management, Product/Catalog (legacy Order Management), Prepare Orders, Inventory, and Low Stock Alert specifications against the implemented API/UI and approved order/logistics decisions. The specs now distinguish implemented foundations from deferred operational work, preserve the one-Seller/one-Shop boundary, document package-label versus Logistics-waybill ownership, align inventory reservation/fulfillment boundaries, retain MDXEditor picture insertion and safe Markdown viewing, and remove stale implementation TODOs. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Customer Checkout, Order Status, Order Modification/Cancellation, Address Book, Customer Authentication, and auth-aware navigation specifications against the implemented API/UI and approved order/logistics contracts. The specs now use `customer` as the canonical role, document COD `placed`/pending-payment behavior, Shop-level Order grouping and immutable snapshots, reservation release/first-mile boundaries, the Customer-selected Logistics transition gap, PSGC + optional Geoapify/Leaflet address pinning with no Mapbox, current session restoration, and the deferred Customer order-mutation and registration address/evidence work. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Logistics Authentication and Dashboard specifications against the implemented one-account/one-organization/one-hub foundation and current API/SPA scaffold. The specs now distinguish implemented registration/session/hub behavior from deferred shipment operations, preserve Admin Logistics approval and Logistics Courier-affiliation authority, document private evidence and PSGC/manual address rules, make subscription enforcement explicitly deferred, and keep Dashboard queue/status work behind the approved shared operational schema. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Courier Authentication specification against the implemented mobile-only bearer-token API, Logistics-owned affiliation approval, one-Courier/one-organization/sole-hub boundary, current evidence mapping, and deferred recovery and delivery operations. The spec now distinguishes implemented auth foundation from future Flutter-consumed operational contracts. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Updated `docs/architecture.md` to identify the four current frontend applications (Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard), while keeping Courier explicitly external and Flutter/mobile-only.

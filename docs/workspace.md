@@ -14,6 +14,8 @@ Required uniqueness rule:
 
 unique(email, role)
 
+`customer` is the canonical persisted/API role name. “Buyer” is the customer-facing marketplace term for that role; it must not be used as a second role value in routes, permissions, enums, or DTOs.
+
 5.2 Registration and Approval Flow
 
 Buyer
@@ -26,7 +28,7 @@ register → admin approval → email notification → sign in
 
 Logistics
 
-register → admin approval → email notification → sign in → subscription
+register → admin approval → email notification → sign in → MVP access (subscription billing/enforcement deferred)
 
 Courier
 
@@ -92,12 +94,11 @@ For the MVP, each Logistics organization/company owns exactly one operational hu
 
 - Sub-hubs, additional hubs, and multi-hub operations are out of scope for the MVP.
 - For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
+- If an exact hub pin is collected, reuse the Customer Address Book provider split: PSGC/manual fields are authoritative, Geoapify assists after **Pin location**, and Leaflet renders the pin with Geoapify tiles. No Mapbox dependency is used.
 - Courier registration selects the Logistics company; its sole hub is associated automatically. A separate hub/sub-hub selector is not needed.
 - Parcels, waybills, sorting, transfer, dispatch, Couriers, fleet records, zones, and capacity views are scoped to that Logistics organization's single hub.
 - The transfer step does not represent movement between multiple hubs owned by the same Logistics organization. Any future multi-hub or inter-organization handoff requires a separate approved workflow.
-- This cardinality rule does not by itself decide whether the Logistics organization may have multiple staff or dispatcher accounts; that is a separate account/authorization decision.
-  - Supersede: The logistics should have one account.
-  - Note: Sub account for staffs will be handled on a later date.
+- The MVP has one Logistics operating account per organization. Staff, dispatcher, and sub-account credentials are deferred to a later authorization decision and must not be implied by this workflow.
 
 6. Buyer MVP Requirements
 
@@ -151,7 +152,9 @@ Apply eligible vouchers and discounts.
 
 Select a shipping address.
 
-Select a mode of payment.
+Select one eligible Logistics organization offered for each Shop Order.
+
+Use the current COD payment flow. Future online payment methods require a separate payment contract.
 
 Review final order details.
 
@@ -159,13 +162,15 @@ Place the order.
 
 The system must protect inventory from overselling when an order is finalized.
 
-MVP decision required: the source specifies payment-method selection but does not name a payment gateway/provider.
+Successful COD placement skips `pending_payment`, creates the Order at `placed` with `payment_status = pending`, and reserves the requested inventory atomically. `pending_payment` remains available for a future online-payment flow.
+
+The currently implemented checkout schema does not yet persist a Logistics provider. When fulfillment selection is implemented, the API must store one server-validated eligible Logistics organization for each Shop Order and must not silently replace it after placement.
 
 6.5 Address Book
 
 Buyer shall be able to save and manage multiple shipping and billing addresses.
 
-The address experience shall support the specified Maps JavaScript Places integration for address completion.
+The address experience shall use the Customer Address Book flow: bundled PSGC Region → Province → City/Municipality → Barangay options, manual street/house/postal entry, optional Geoapify autocomplete or forward geocoding after **Pin location**, and a Leaflet map rendered with Geoapify tiles for click, drag, or GPS pin placement. Manual entry remains available when lookup or map services are unavailable. No Mapbox dependency, geocoding, or map rendering is used.
 
 6.6 Order Status
 
@@ -186,6 +191,8 @@ Only the owning domain may advance a status, and every transition must be valida
 Buyer shall be able to cancel or change eligible order details only before the Seller processes the order.
 
 The MVP shall at minimum enforce this using canonical order status, allowing changes only while the Order remains `placed` and before Seller processing begins.
+
+When an eligible cancellation or rejection is committed before `picked_up_from_seller`, the Inventory service releases only that Order's reserved SKU quantities once and transactionally. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred.
 
 6.8 Reviews and Ratings
 
@@ -212,6 +219,8 @@ The system shall enforce a 1:1 relationship:
 Seller Account ↔ Shop
 
 A Seller cannot own multiple shops in the MVP.
+
+Seller registration creates the one Shop in `pending` state. Admin approval activates that existing Shop atomically with the Seller account and accepted registration evidence; missing or invalid required evidence prevents approval. After approval, `SHOP_SETUP_REQUIRED` is used only when storefront setup is incomplete. Publishing requires an active approved Seller and Shop, a valid business/shop name, one active Shop Category, a valid business address, and the server-generated unique slug. No second Shop is created.
 
 7.2 Product and Inventory Management
 
@@ -251,13 +260,19 @@ Seller shall be able to process/approve an order and prepare it for fulfillment.
 
 Core flow:
 
-Buyer order → Seller approved → Seller packed → Logistics flow
+Customer selects an eligible Logistics organization during checkout → Order is placed → Seller processes and packs → Seller confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
 
-7.5 Prepare Order and Waybill
+Seller order processing does not assign a Courier or create the Logistics operational waybill.
 
-Seller shall be able to print or access the waybill/shipping details needed for pickup.
+7.5 Prepare Order and Package Label
 
-The parcel must have a reference that Logistics can scan or manually enter.
+Seller shall be able to create/version and print the package label and shipping details needed for first-mile pickup.
+
+The package-label identifier must contain the immutable Order/Parcel reference, package details, the Shop pickup address, and destination fields copied from the immutable Customer checkout snapshot. The Seller cannot rewrite the checkout snapshot.
+
+The Seller may revise the package label until `ready_for_pickup` is confirmed. The active label version then freezes; after `picked_up_from_seller`, the label and handoff history cannot be overwritten.
+
+Logistics creates the separate operational waybill when the parcel reaches `received_at_hub`. The package label and operational waybill are linked by the immutable Order/Parcel reference.
 
 7.6 Delivery Confirmation
 
@@ -297,31 +312,29 @@ Logistics shall be able to view Seller-confirmed orders that are ready to enter 
 
 8.2 Subscription
 
-After Admin approval and sign-in, a Logistics company enters the platform subscription flow.
+Subscription billing, provider integration, subscription records, and subscription enforcement are deferred from the MVP. Admin approval and an active Logistics account are sufficient for currently approved Logistics access; subscription must not gate the current authentication/dashboard foundation or future operations until a separate Subscription policy is approved.
 
-Business model:
-
-Base subscription.
-
-₱10 platform charge per order.
-
-MVP decision required: subscription billing/payment provider is not specified in the source.
+The previously described base subscription and ₱10 per-order charge remain future business rules and are not implemented by this workflow.
 
 8.3 Door-to-Door Seller Pickup
 
 A first-mile Courier shall pick up prepared parcels from Sellers as part of the first-party logistics flow.
 
-The system shall connect the `seller_pickup_assigned`, `seller_pickup_accepted`, and `picked_up_from_seller` task states to the corresponding Order/parcel.
+After the Seller confirms `ready_for_pickup`, the selected Logistics organization creates at most one active first-mile task when none exists and offers or assigns it to an eligible Courier. Retried requests must return the existing task rather than create a duplicate. The Seller does not select the Courier.
+
+The system shall connect the `seller_pickup_assigned`, `seller_pickup_accepted`, and `picked_up_from_seller` task states to the corresponding Order/Parcel.
 
 8.4 Waybill
 
-Logistics shall be able to print order details as a waybill.
+Logistics shall be able to create and print the operational waybill after the parcel is received at the sole hub.
 
-The waybill shall include a scannable or enterable identifier such as:
+The Seller package label and Logistics operational waybill are separate linked artifacts. The waybill shall include a stable, system-generated, scannable or enterable identifier such as:
 
 QR code, and/or
 
 Reference number.
+
+The operational waybill identifier and Order/Parcel link are immutable from `received_at_hub`. Routing and Courier assignments may change before `picked_up_from_hub` only through append-only events; after that pickup, final-mile assignment and custody history cannot be overwritten. Printing or reprinting does not independently advance an Order status.
 
 8.5 Receiving and Sorting
 
@@ -357,11 +370,11 @@ The canonical dispatched state is `dispatched_from_hub`; it must not be confused
 
 8.8 Deploy Rider
 
-Logistics shall be able to select a rider for an order based on operational suitability and distance.
+Logistics shall be able to create/offer the first-mile task after `ready_for_pickup` and select an eligible Courier for the first-mile or final-mile task based on operational suitability and distance.
 
-Successful final-mile assignment records `delivery_assigned`; it is distinct from `delivery_accepted` and `picked_up_from_hub`.
+Successful first-mile assignment records `seller_pickup_assigned`. Successful final-mile assignment records `delivery_assigned`; both are distinct from `delivery_accepted` and `picked_up_from_hub`.
 
-Mapbox Matrix and Optimization are the specified APIs for route/distance optimization.
+Route and distance assistance must use a separately approved provider-neutral Logistics/map contract. The Customer address flow's PSGC, Geoapify, and Leaflet responsibilities must not be replaced by a routing provider, and no Mapbox dependency is used for address or map rendering.
 
 The P0 MVP may use route-assisted/manual rider selection rather than a fully autonomous optimization engine.
 
@@ -397,13 +410,15 @@ Courier registration shall follow:
 
 search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
 
+Courier screens are delivered by the external mobile/Flutter application; this repository provides only the Laravel API consumed by that client.
+
 9.2 Courier Dashboard
 
 Courier shall be able to:
 
 View delivery notifications.
 
-View available first-mile pickup and final-mile delivery requests.
+View first-mile pickup and final-mile delivery requests created or offered by Logistics.
 
 View active delivery jobs.
 
@@ -418,6 +433,8 @@ Review delivery details.
 Accept an eligible request.
 
 Acceptance shall associate the task with the Courier.
+
+Courier acceptance does not grant assignment authority. Logistics remains responsible for creating and assigning/offering tasks.
 
 9.4 Pick Up Order
 
@@ -581,6 +598,8 @@ Timestamp.
 
 11.1 Core Order Flow
 
+Customer selects an eligible Logistics organization for each Shop Order during checkout
+↓
 Buyer places order
 ↓
 Seller begins processing and prepares the order
@@ -595,7 +614,7 @@ Courier transfers the parcel to the Logistics organization's sole hub
 ↓
 Logistics receives and validates the parcel (`received_at_hub`)
 ↓
-Logistics identifies or generates the canonical waybill/reference
+Logistics creates the operational waybill and links it to the Seller package label through the immutable Order/Parcel reference
 ↓
 Logistics sorts the parcel (`sorted_at_hub`)
 ↓
@@ -633,7 +652,9 @@ pending_payment
 → delivered
 ```
 
-The existing `assigned` value means `received_at_hub` at the Logistics boundary, while the existing `picked_up` value means `picked_up_from_hub` for the final-mile movement. This preserves the current OrderStatus contract while making the physical handoffs explicit in the shipment/task record and timeline.
+Current COD placement skips `pending_payment`: it creates `placed` with `payment_status = pending` and reserves inventory. `pending_payment` remains a future online-payment state.
+
+The existing `assigned` value means `received_at_hub` at the Logistics boundary, while the existing `picked_up` value means `picked_up_from_hub` for the final-mile movement. This preserves the current OrderStatus contract while making the physical handoffs explicit in the shipment/task record and timeline. Customer labels map `placed`, `seller_processing`, and `ready_for_pickup` to **To Prepare**; `assigned`, `picked_up`, and `in_transit` to **To Ship**; `out_for_delivery` to **Out for Delivery**; and `delivered` to **Completed**.
 
 The deferred `ShipmentStatus` / Delivery Task vocabulary should use explicit physical states:
 
@@ -654,7 +675,11 @@ out_for_delivery
 delivered
 ```
 
-Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules.
+Shipment/Parcel/Waybill/Scan/Delivery Task and assignment writes must not begin until this flow is reconciled with `docs/schema.md`, the affected domain documents, and feature specifications, and the complete shared operational schema has been approved and migrated. Detailed physical states must not be added to `orders.status` by an individual feature.
+
+Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. Seller package labels may be revised until `ready_for_pickup` is confirmed; the active label version is then frozen. Logistics' waybill identifier and Order/Parcel link are immutable when created at `received_at_hub`; routing and Courier assignments may change before `picked_up_from_hub` only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules.
+
+Inventory reservations follow the same boundary: placement reserves the requested SKU quantity; an accepted cancellation or rejection before `picked_up_from_seller` releases that quantity once and transactionally; first-mile pickup commits it once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
 11.3 Status History
 
@@ -678,9 +703,9 @@ Waybill processing is a core operational capability.
 
 The MVP shall support:
 
-Generation/display of a parcel reference.
+Generation/display of a system-owned Order/Parcel reference.
 
-Printing of waybill/order details.
+Seller package-label printing and Logistics operational-waybill printing.
 
 QR/barcode scanning where supported by the client device.
 
@@ -704,11 +729,7 @@ Do not infer either physical pickup from the generic high-level Order value `pic
 
 13.1 Logistics SaaS
 
-The source defines:
-
-Base subscription + ₱10 per order
-
-The platform shall track the ₱10 per-order Logistics SaaS charge.
+Subscription billing, the base subscription, and the ₱10 per-order Logistics SaaS charge are deferred. No subscription provider, subscription record, active-status check, or operational gate is part of the current MVP workflow. Revisit this section through a separate approved Subscription feature before charging or restricting Logistics operations.
 
 13.2 Shipping Fee
 
