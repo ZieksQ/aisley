@@ -409,3 +409,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Revised the Logistics Authentication and Dashboard specifications against the implemented one-account/one-organization/one-hub foundation and current API/SPA scaffold. The specs now distinguish implemented registration/session/hub behavior from deferred shipment operations, preserve Admin Logistics approval and Logistics Courier-affiliation authority, document private evidence and PSGC/manual address rules, make subscription enforcement explicitly deferred, and keep Dashboard queue/status work behind the approved shared operational schema. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Courier Authentication specification against the implemented mobile-only bearer-token API, Logistics-owned affiliation approval, one-Courier/one-organization/sole-hub boundary, current evidence mapping, and deferred recovery and delivery operations. The spec now distinguishes implemented auth foundation from future Flutter-consumed operational contracts. No application behavior or migrations changed.

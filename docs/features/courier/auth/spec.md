@@ -3,124 +3,100 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft — pending Courier authentication and Logistics relationship implementation
+version: 1.2
+status: Implemented foundation; recovery and delivery operations deferred
 role: Courier / Rider
-scope: External Courier Mobile Application and Laravel API
+scope: External Flutter/mobile client and Laravel API
+source_coverage: Courier.md, requirements.md, workspace.md, schema.md
 ---
 
 # Courier Authentication
 
 ## WHAT
 
-- **Purpose:** Let a Courier applicant register under one selected Logistics organization, receive that organization's approval, and obtain secure mobile API access.
-- **Actors:** Courier applicant, approved active Courier, authorized Logistics reviewer, and platform Admin for separate account-lifecycle actions.
-- **Boundary:** The external Flutter/mobile client owns forms, token storage, and mobile states; Laravel owns identity, validation, approval gating, tokens, and authorization.
-- **Mobile-only rule:** Do not build a Courier web dashboard or web-session UI under `src/`; Courier endpoints are consumed by the external mobile application.
-- **Registration source fields:** Last name, first name, optional middle initial, sex, email, contact number, birthday, server-derived age, Philippine address, vehicle type, plate number, OR/CR, and ID/driver’s license.
-- **Canonical identity:** A `users` row with `role = courier`, resolved by normalized `email + role`; a same-email Customer, Seller, or Admin is a separate account.
-- **Current foundation:** `UserRole::Courier`, `CourierProfile`, `Vehicle`, registration applications, documents, addresses, Sanctum personal access tokens, and the Logistics role/profile/organization/sole-hub foundation exist, but Courier auth routes/controllers and the Courier-to-Logistics relationship do not.
-- **Current gap:** The Courier affiliation and Logistics approval records still need an additive migration/service. The relationship is server-derived and must never be a client-authorized field.
-- **Source lifecycle:**
+- **Purpose:** Let a Courier register under one Logistics organization, wait for that organization's decision, and obtain secure API access from the external mobile application.
+- **Current implementation:** Active-Logistics discovery, multipart registration, one Courier profile/address/vehicle, private registration evidence, pending application and affiliation, Logistics approve/reject endpoints, Sanctum bearer login, `me`, current-token logout, status/affiliation middleware, and a generic forgot-password response are implemented.
+- **Mobile-only boundary:** Courier UI is Flutter/mobile-only and external to this repository. `src/` must contain API support only; it must not gain a Courier web dashboard or browser token flow.
+- **MVP relationship:** one Courier has one current Logistics affiliation. The selected organization operates exactly one hub/sorting center; its hub is derived server-side and is not a Courier-selected sub-hub.
+- **Approval:** The associated active Logistics organization approves or rejects the pending Courier affiliation. Admin account suspension, restoration, and deactivation remain separate lifecycle actions; Admin's registration queue does not approve Couriers.
+- **Deferred:** password-reset completion/notification delivery, email verification, MFA, affiliation revocation/history, multi-device policy, and all shipment, pickup, delivery, proof, routing, earnings, and offline operations.
 
 ```text
-select active Logistics → register → Logistics review
-                                      ↘ REJECTED → no token or Courier API access
-                                      ↘ APPROVED → ACTIVE → mobile sign in
-ACTIVE → SUSPENDED/DEACTIVATED → token/API access denied
+list active Logistics organizations
+→ select organization; server derives its sole hub
+→ submit pending Courier User/Profile/Application/Affiliation/Vehicle/Evidence
+→ Logistics approves or rejects
+→ approved affiliation + active account → mobile token login
+↘ rejection, suspension, deactivation, or invalid affiliation → API access denied
 ```
-
-- **Owned flows:** Logistics selection, registration, login, token/session revocation, current-Courier identity, status gating, logout, and role-scoped password recovery.
-- **Recommended API namespace:** `/api/v1/courier/auth/*`.
-- **Non-goals:** Delivery requests, pickup/delivery scanning, routing, proof of delivery, incidents, earnings, chat, offline task sync, vehicle fleet management, Logistics review UI, subscriptions, social login, MFA, and a Courier web app.
 
 ## MUST
 
-### Approval and relationship prerequisite
+### Identity, relationship, and ownership
 
-- The selected Logistics organization is the sole Courier registration reviewer and approval authority for the MVP. A Courier is not required to receive a separate Admin approval.
-- Admin account-management actions remain a separate lifecycle boundary: an Admin may suspend, restore, or deactivate an account according to platform policy, but those actions do not approve a pending Courier registration.
-- Record the Logistics reviewer, decision, reason, and server timestamp immutably. A pending, rejected, or revoked Logistics relationship cannot issue a Courier token.
-- The repository approval-gating rule and the product requirements both designate the associated Logistics organization as the Courier approver. Do not introduce a second Admin approval stage unless the product policy is explicitly changed later.
-- The API derives `courier` and the authorized Logistics relationship. Clients cannot set role, status, reviewer, approval, organization, hub, or token abilities.
-- Every protected Courier endpoint checks Sanctum authentication, Courier role, active status, approval state, and the authorized Logistics relationship; task ownership/assignment checks remain mandatory in operational features.
+- Derive `UserRole::Courier` and all ownership from the server. Reject client `role`, `status`, reviewer, approval, hub, affiliation, token-ability, or owner fields.
+- Normalize email (trim/lowercase) and enforce uniqueness by `email + role`; a same-email Customer, Seller, Admin, or Logistics account never authenticates as Courier.
+- Require exactly one current `CourierLogisticsAffiliation` per Courier in the MVP. The API must verify that the selected organization is active and that its derived hub belongs to that organization.
+- Treat `users.status` and `courier_logistics_affiliations.status` as separate facts. Operational access requires an active Courier, an approved affiliation, an active Logistics owner, and a valid sole hub.
+- Store enum-like database values as strings and cast them to PHP enums; do not introduce native PostgreSQL enum columns.
 
-### Registration
+### Registration contract
 
-- Require the starred personal fields from the registration reference: first name, last name, sex, email, contact number, and birthday. Middle initial is optional.
-- Calculate age from `birth_date` on the server using the application timezone. Never accept, persist, or authorize from a client-supplied age.
-- Require the applicant to select one eligible active Logistics organization. Derive that organization's sole operational hub server-side; do not accept a client-selected hub or sub-hub.
-- Provide a valid vehicle type and plate number for one initial vehicle. Use the existing `motorcycle`, `car`, and `van` values; additional vehicles belong to Courier Account/Fleet features.
-- Address selection must follow the repository flow Region → Province → City/Municipality → Barangay, with manual street/house details and a complete fallback. The source omits postal-code/recipient requirements; reconcile those with the current `addresses` schema before enabling registration.
-- Use bundled PSGC address data for administrative selectors. Address lookup is assistive; it must not call a third-party geocoder inside registration or persist provider identifiers.
-- Attach OR/CR as `vehicle_registration` evidence and the submitted ID/license as `government_id` or `drivers_license` after the exact document mapping is approved. The source does not mark these uploads as required, so mandatoryness and PDF support are open decisions.
-- If an evidence item is an image, apply `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, signature/MIME/decode validated, privately stored, and never exposed by raw path. A PDF requires a separate approved policy.
-- Persist the User, CourierProfile, selected Logistics relationship, address, initial Vehicle, pending RegistrationApplication, and evidence metadata as one logical operation. Store bytes on the configured private filesystem and delete orphaned blobs after failure.
-- Registration creates a pending account/application only; it never authenticates, activates, or self-approves the applicant. Duplicate and retried submissions must be idempotent and return stable field-addressable errors.
+- Validate first/last name, optional one-character middle name, contact number, sex, birth date before today, normalized email, and confirmed password (minimum 8 characters with mixed case and numbers).
+- Calculate `age` from the persisted `birth_date` through the shared accessor. Age is display-only and never accepted, persisted, or authorized from client input.
+- Accept one `logistics_organization_id` UUID. Resolve it to an active Logistics organization with a hub while ignoring any client hub or sub-hub value; persist the organization's sole `logistics_hub_id` on the affiliation.
+- Require address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; the current API stores address labels and does not accept coordinates.
+- The external client should use the repository's Region → Province → City/Municipality → Barangay PSGC data with a complete manual fallback. PSGC codes, provider IDs, and map coordinates are not persisted by current Courier registration.
+- Require one vehicle type (`motorcycle`, `car`, or `van`) and plate number. Registration creates one active initial Vehicle; additional vehicles belong to a later account/fleet feature.
+- Current multipart fields map the reference documents to `government_id` (ID/driver's license evidence) and `vehicle_registration` (OR/CR evidence). Both are required images: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with server MIME/signature/decode validation.
+- Apply [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md): use generated private storage keys and database metadata; never return raw paths, bytes, or private evidence in an auth DTO. PDF support or a distinct `drivers_license` document requires an approved change.
+- Create the User, CourierProfile, address, pending RegistrationApplication, pending affiliation, initial Vehicle, and Document rows in one logical transaction. Delete stored evidence objects when persistence fails; registration never authenticates or activates the applicant.
 
-### Approval and lifecycle
+### Logistics approval and account lifecycle
 
-- Record the Logistics reviewer, decision, reason, and server timestamp without overwriting prior decisions. Rejection must leave the Courier unable to sign in.
-- Only a Courier approved by the selected Logistics organization, with an active account and valid Logistics association, may receive a token or access Courier operations.
-- Pending, rejected, suspended, deactivated, wrong-role, and orphaned-relationship accounts must be denied server-side even with a correct password.
-- Use safe, stable codes such as `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, `ACCOUNT_INACTIVE`, and `LOGISTICS_ASSOCIATION_INVALID`; do not expose unrelated accounts or private review notes.
-- A Logistics approval or rejection notification is post-commit work. An Admin lifecycle action after approval is also post-commit and must not be confused with the registration decision.
-- If a Logistics company/hub becomes inactive or a Courier is disassociated, revoke or deny access according to the approved cascade policy; do not silently transfer the Courier.
-- Approval/rejection email and in-app delivery failure must not roll back the persisted Logistics decision; retries and delivery-failure status are separate concerns.
+- Public discovery is `GET /api/v1/courier/auth/logistics-options`; return only active organizations, bounded to 50 results, with safe `id` and `business_name` projections. Search is optional and server-side.
+- Logistics uses `GET /api/v1/logistics/courier-applications` and `POST /api/v1/logistics/courier-applications/{affiliation}/{decision}`. The decision is `approve` or `reject`; rejection requires a reason, and the affiliation must belong to the authenticated Logistics organization.
+- Approval/rejection updates the existing affiliation, Courier account status, and Courier registration application transactionally. The current affiliation stores reviewer, decision time, and rejection reason; append-only decision history and `revoked` actions require a future migration.
+- A pending, rejected, suspended, deactivated, wrong-role, or orphaned relationship cannot receive a token or read protected Courier data. Cross-organization IDs must fail closed without disclosing another organization's Courier.
+- Admin may use the separate user-account lifecycle feature to suspend, restore, or deactivate a Courier. Those actions do not approve a pending affiliation and must be rechecked on the next request.
+- Notification or email delivery is post-commit work. A delivery failure must not roll back a committed Logistics decision; the current foundation does not promise a notification endpoint.
 
-### Mobile token authentication
+### Mobile token contract
 
-- `POST /api/v1/courier/auth/login` accepts normalized email, password, and `device_name`; it must not accept a trusted role or caller-selected abilities.
-- Verify the Courier role, password, Logistics approval, active status, and Logistics relationship before calling Sanctum `createToken`. Return the plain-text token only in the successful response.
-- Grant server-owned least-privilege abilities (at minimum a Courier baseline ability); operational endpoints may require narrower abilities when their contracts exist.
-- The mobile app stores the token only in OS secure storage (Flutter secure storage/Keychain/Keystore) and sends `Authorization: Bearer <token>`. Never log, cache in ordinary preferences, or return it from `me`.
-- Protect `me` and logout with `auth:sanctum` plus Courier-active middleware. `GET /api/v1/courier/auth/me` rechecks role, status, Logistics approval, and relationship on every request.
-- `POST /api/v1/courier/auth/logout` revokes the current personal access token. Expired or revoked tokens return `401`; forbidden status or relationship returns `403` without leaking private details.
-- No token-refresh endpoint is implied. Use the configured Sanctum expiration/revocation policy, and document device/session limits before adding multi-device management.
-
-### Authentication interface
-
-- `GET /api/v1/courier/auth/logistics-options` may expose only active Logistics organizations accepting Courier applications; the sole hub is derived after selection. Search and pagination must be bounded and relationship-scoped.
-- `POST /api/v1/courier/auth/register` accepts the validated profile, address, vehicle, and evidence as multipart input and returns `201` with a safe pending-application summary.
-- A successful registration response contains no password, token, evidence bytes, private storage path, reviewer note, or unapproved Logistics data.
-- Successful login returns the one-time plain-text token, Courier identity summary, and approval/status information needed by the mobile client.
-- `GET /api/v1/courier/auth/me` returns the current safe Courier identity only; it is not a delivery-job or vehicle-fleet endpoint.
-- Use field-addressable `422` validation errors, `401` for missing/invalid bearer credentials, `403` for status/relationship denial, and `429` for throttling.
+- `POST /api/v1/courier/auth/login` accepts normalized `email`, `password`, and required `device_name`; `role`, `abilities`, and ownership fields are prohibited.
+- Verify password, Courier role, active account, approved affiliation, active Logistics owner, and valid hub before `createToken`. Issue only server-owned baseline `courier` ability and return the plain-text token once.
+- The Flutter client stores the token only in OS secure storage (Keychain/Keystore/Flutter secure storage) and sends `Authorization: Bearer <token>`. It must not log, ordinary-cache, or return the token from `me`.
+- `GET /api/v1/courier/auth/me` and `POST /api/v1/courier/auth/logout` require `auth:sanctum` and `courier.active`. `me` rechecks the relationship; logout deletes only the current personal access token.
+- Invalid bearer credentials return `401`; login failures use the generic `INVALID_CREDENTIALS` response (currently `422`); status/relationship denial returns `403`; validation returns `422`; throttling returns `429` with `Retry-After`. No token-refresh endpoint is implied.
 
 ### Recovery, privacy, and abuse controls
 
-- Provide role-scoped `forgot-password` and `reset-password` endpoints only after the Courier notification path exists. Responses for unknown, inactive, or cross-role email addresses remain generic.
-- Store reset tokens hashed, expiring, single-use, rate-limited, and keyed by `email + courier`; successful reset rotates the remember token and revokes personal access tokens.
-- Apply CSRF only to any future browser surface; bearer-token mobile requests use transport security and do not use the web SPA cookie flow.
-- Throttle registration, login, and recovery by normalized email plus IP and return `429` with `Retry-After`. Log safe success/failure categories, request IDs, and account IDs—not passwords, tokens, documents, or private URLs.
-- The mobile client must show pending/rejected/disabled states and recoverable validation/network errors. Offline task caching may not bypass approval or perform unsynchronized auth decisions.
+- The current `POST /api/v1/courier/auth/forgot-password` endpoint returns a generic response and records a rate-limit hit. It does not yet issue a reset token or send a notification.
+- Before implementing reset completion, use hashed, expiring, single-use, Courier-role-scoped tokens and revoke personal access tokens after a successful reset. Unknown and cross-role emails must remain indistinguishable.
+- Rate-limit options, registration, and login (current login limit: five attempts per throttle key); do not log passwords, bearer tokens, document contents, private paths, or reviewer notes.
+- Protected auth DTOs may expose only Courier identity, profile name/age, affiliation status, organization name, and hub name. They must omit private evidence, addresses not needed by the client, credentials, token hashes, and raw storage paths.
 
 ### Acceptance criteria
 
-- [x] A valid submission creates one pending Courier User/Profile/Application with server-derived age and one selected Logistics relationship.
-- [x] Personal, PSGC/manual address, vehicle, and approved evidence rules reject invalid or unauthorized input without partial records or orphaned blobs.
-- [x] Duplicate/retried registration cannot create duplicate role accounts, applications, vehicles, or evidence.
-- [x] Every required approval is recorded and only an approved active Courier can obtain a token.
-- [x] Same-email accounts under other roles cannot authenticate as Courier.
-- [x] Token abilities, secure mobile storage guidance, role/status/relationship middleware, `me`, logout, and revocation are enforced.
-- [x] Password recovery is generic, Courier-scoped, expiring, single-use, throttled, and token-revoking.
-- [x] Private registration evidence is never returned in auth DTOs or fetched without authorization.
+- [x] Active Logistics options, pending multipart registration, one profile/address/vehicle, two private evidence records, and one server-derived pending affiliation are implemented.
+- [x] Age, role, status, organization, hub, and document ownership are server-authoritative; invalid file types/sizes and prohibited fields are rejected.
+- [x] Logistics-only affiliation approval/rejection, active-account gating, Courier role middleware, bearer login, `me`, and current-token logout are implemented.
+- [x] Same-email other-role accounts cannot authenticate as Courier, and auth DTOs omit secrets and raw evidence paths.
+- [ ] Stable normalization of concurrent duplicate-registration conflicts, append-only affiliation history/revocation, reset-token delivery/completion, email verification, MFA, and multi-device limits are implemented.
+- [ ] Courier operational endpoints remain blocked until the shared Shipment/Delivery Task schema and transition contract are approved and migrated.
 
 ## HOW
 
-- Add Courier-namespaced Form Requests, controller, resource, notifications, middleware, service, and routes beside the existing Customer/Seller auth groups; keep the mobile client external to this repository.
-- Reuse `users`, `CourierProfile`, `Vehicle`, `registration_applications`, `documents`, `addresses`, Sanctum `personal_access_tokens`, password-reset, and private-storage patterns. Add only new migrations after the Logistics relationship and approval model are approved.
-- Model a Logistics approval record with reviewer, decision, reason, and timestamp; keep any later Admin suspend/restore/deactivate action in the separate account-lifecycle history rather than treating it as Courier approval.
-- Reuse the current Courier profile age accessor, `VehicleType` enum, UUID conventions, bundled PSGC data, and shared upload policy. Keep file bytes in blob storage and metadata in database records.
-- Implement the mobile flow as: search eligible Logistics options → submit multipart registration → show pending status → receive the Logistics decision notification → login with `device_name` → securely store token → call Courier APIs.
-- Add API tests for validation/rollback, duplicate races, age boundaries, address hierarchy, vehicle/document mapping, Logistics-only approval, role isolation, status/relationship revocation, token abilities, logout, throttling, and reset-token isolation.
-- Roll out only after the Courier-to-Logistics relationship/approval schema, required document types, email delivery, private storage, token lifetime, and external mobile API contract are approved.
-- **Open decisions:** requiredness and PDF policy for OR/CR and ID/license; vehicle multiplicity; relationship deactivation cascade; email verification; token expiration/device limits; and final mobile status endpoint. The MVP's one-Logistics-organization/one-sole-hub affiliation and Logistics-only approval are settled.
+### Current API and data
 
-### References
+- Routes live in `src/api/routes/api.php`; implementation uses `Courier\AuthController`, `Courier` Form Requests, `CourierUserResource`, `EnsureActiveCourier`, `CourierLogisticsAffiliation`, and `Logistics\CourierApprovalController`.
+- `2026_08_27_000102_create_courier_profiles_table.php`, `2026_08_27_000110_create_vehicles_table.php`, and `2026_09_05_000002_create_courier_logistics_affiliations_table.php` provide the current foundation. Existing `users`, `addresses`, `registration_applications`, `documents`, and Sanctum token tables are reused; future changes require additive migrations.
+- The external Flutter client must copy these versioned endpoint contracts and implement secure token storage, pending/rejected/disabled states, field errors, retry behavior, and no offline bypass. No Courier UI is implemented here.
 
-- Project: `docs/requirements.md`, `docs/workspace.md`, `docs/architecture.md`, `docs/schema.md`, `docs/domains/Courier.md`, `docs/domains/Logistics.md`, and `docs/references/user-registration-requirements.md`.
-- Shared upload policy: `docs/references/file-upload-requirements.md`.
-- [Laravel Sanctum token abilities](https://laravel.com/framework/docs/10.x/sanctum#token-abilities)
-- [Laravel authentication](https://laravel.com/framework/docs/13.x/authentication)
-- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+### Verification and rollout
+
+- Verify registration rollback/evidence cleanup, address and vehicle validation, duplicate races, role isolation, Logistics organization scope, approval transitions, status/affiliation revocation, token abilities, logout, throttling, and DTO privacy on SQLite/PostgreSQL.
+- Before adding pickup or delivery actions, reconcile `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Courier.md`, and the affected Courier/Logistics specs. Keep first-mile and final-mile assignments independent and preserve the sole-hub boundary.
+- Approve required document/PDF policy, email/reset delivery, affiliation history/revocation, token expiration/device limits, and the external mobile API version before expanding this feature.
+
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Courier.md`, `docs/domains/Logistics.md`, `docs/references/user-registration-requirements.md`, [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md), [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities), and [Laravel authentication](https://laravel.com/docs/authentication).
