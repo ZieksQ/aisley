@@ -389,3 +389,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Updated the Customer homepage discovery feed to use explicit 20-product SSR/CSR batches and a 120-product client render cap by default, with both values configurable through the existing `NEXT_PUBLIC_HOMEPAGE_DISCOVERY_PAGE_SIZE` and `NEXT_PUBLIC_HOMEPAGE_DISCOVERY_MAX_ITEMS` environment variables. Versioned and validated session-restored feed state so changed catalog pages, viewer authentication, and limit changes refresh instead of hiding newly eligible products. Targeted storefront lint, strict TypeScript, and the webpack production build pass; full Webapp lint remains blocked by the two existing notification-component hook errors, and the default Turbopack build remains blocked by the environment CSS-worker permission failure.
+
+## 2026-09-07
+
+- Added back links to the Customer notification list and detail pages. The navbar notification preview now shows at most five items, prioritizes unread notifications before read notifications, and uses a light lavender background with an accessible unread cue for unread rows. Webapp lint and strict TypeScript checks pass; the production build remains blocked by the environment's unavailable Google Fonts fetch.
