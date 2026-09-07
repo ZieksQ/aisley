@@ -1,489 +1,102 @@
 ---
 feature: address-book
-title: Customer / Buyer Address Book
+title: Customer Address Book
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
-role: Buyer
-scope: Customer / Buyer Web Application
+version: 1.2
+status: Implemented foundation; order mutation integration deferred
+role: Customer
+scope: Customer storefront and Laravel API
 ---
 
-# Customer / Buyer Address Book
+# Customer Address Book
 
 ## WHAT
-- **Purpose:** Let authenticated Buyers save and manage multiple reusable shipping and billing addresses for faster checkout.
-- **Canonical role:** `BUYER`.
-- **Source-defined capabilities:**
-  - save multiple addresses
-  - manage shipping and billing addresses
-  - categorize addresses such as `Home` or `Office`
-  - quickly select an address during checkout
-  - optionally validate/geographically verify addresses for more accurate logistics routing
-- **Source-defined data relationship:** one Buyer has many Address records.
-- **Architecture:**
-  - Next.js/React owns address list/forms, selection UI, validation feedback, and checkout integration.
-  - Laravel owns authentication, Buyer ownership, validation, normalization, persistence, address selection rules, and integration with checkout/order workflows.
-  - Laravel/Eloquent data is authoritative.
-- **Recommended route:**
+
+- **Purpose:** Let an authenticated Customer save, edit, delete, label, default, and select reusable shipping/billing addresses.
+- **Current implementation:** Customer-scoped list/create/update/delete APIs, transactional default handling, the protected `/account/addresses` page, checkout selection, PSGC cascading fields, optional Geoapify pinning, and immutable checkout snapshots exist.
+- One Customer has many Address rows. A saved row is mutable profile data; a placed Order owns an independent delivery snapshot.
+- Address fields and manually reviewed PSGC names are authoritative. Optional coordinates are confirmed location metadata, not proof of serviceability.
+- Logistics/Courier must consume the Order snapshot, never the Customer's current default Address Book row.
+- **Non-goals:** delivery-zone decisions, shipping fees, route optimization, hub selection, courier assignment, live parcel tracking, or changing an existing Order outside the Order Modification contract.
+
 ```text
-/account/addresses
+Customer opens /account/addresses
+→ list saved rows
+→ add/edit/delete or select a shipping-capable row
+→ optional Pin location
+→ checkout submits address_id
+→ Laravel revalidates and copies the row into order_addresses
 ```
-or the Customer Account route convention selected by the project.
-- **Recommended core flow:**
-```text
-Buyer opens Address Book
-→ view saved addresses
-→ add / edit / delete an address
-→ optionally label it Home / Office / custom label
-→ checkout
-→ select saved shipping/billing address
-→ Laravel validates selected Buyer-owned address
-→ checkout snapshots required address fields into the order
-```
-- **Important boundary:** saved Address Book records are reusable profile data; placed orders must preserve the delivery/billing address used for that order.
-- **Feature boundaries:**
-  - Customer Auth establishes the authenticated Buyer.
-  - View Cart/Checkout selects an eligible saved address.
-  - Order Modification/Cancellation owns changing an already-placed order address within its allowed pre-processing window.
-  - Logistics/Courier consume the order's delivery destination, not a live mutable Address Book record.
-- **Non-goals:**
-  - defining shipping fees
-  - choosing logistics sorting centers
-  - live courier routing
-  - geofencing delivery zones
-  - changing an order address outside the Order Modification rules
-  - making Google Maps mandatory
-  - inventing country-specific address fields not established by the project
 
 ## MUST
+
 ### Authentication and ownership
-- Address Book requires an authenticated `BUYER`.
-- Every Address record is scoped by the authenticated Buyer ID.
-- Laravel must never trust a client-supplied `buyer_id`.
-- A Buyer must not:
-  - list another Buyer's addresses
-  - view another Buyer's address
-  - update another Buyer's address
-  - delete another Buyer's address
-  - use another Buyer's address during checkout
-- Use scoped Eloquent relationship queries or equivalent ownership enforcement.
-- Return project-standard:
-  - `401` unauthenticated
-  - `403` forbidden when appropriate
-  - `404` when a Buyer-scoped address does not exist
-  - `422` validation failure
-  - `409` stale/conflicting update when applicable
 
-### Address collection
-- Buyer may store multiple addresses.
-- The source explicitly requires a one-to-many relationship:
-```text
-Buyer
-└── Addresses[]
-```
-- Address collection size limit is not defined by the source.
-- Do not invent a maximum unless product/performance requirements establish one.
-- Address list does not require pagination for a small bounded personal collection unless the project later permits unusually large collections.
+- Require `auth:sanctum` and `customer.active` for every Address Book API and protected page.
+- Derive ownership from the authenticated Customer. Reject any client `user_id`, `customer_id`, Shop, Seller, or Order owner field.
+- Scope list, create, update, delete, and checkout selection through the Customer's `addresses` relationship.
+- Return `401` for guests, `403` for wrong role/inactive status, `404` for a non-owned UUID, and `422` for invalid fields. Do not reveal another Customer's address existence.
 
-### Address fields
-- The source does not define the exact address schema.
-- Required fields must come from the selected country/checkout requirements.
-- A conceptual address may need:
-  - recipient/full name
-  - contact number
-  - street/address line
-  - locality/city/municipality
-  - region/province/state
-  - postal code when applicable
-  - country/region code
-  - label/category
-- These fields are recommendations, not source-defined mandatory names.
-- Do not hard-code a country-specific hierarchy until the project address requirements establish it.
-- Laravel remains authoritative for required-field validation.
+### Address data and validation
 
-### Labels/categories
-- Source explicitly supports categorization such as:
-```text
-Home
-Office
-```
-- Labels are for Buyer convenience.
-- Exact label behavior is Open:
-  - predefined only
-  - custom text allowed
-  - both
-- Labels must not control delivery eligibility.
-- Validate label length/content server-side.
+- The current string-backed `AddressType` is `shipping`, `billing`, or `both`; a row may be eligible for both uses.
+- Required fields are recipient name, contact number, address line 1, barangay, city/municipality, province, region, postal code, and country. Address line 2 and label are optional. `latitude` and `longitude` are optional but must arrive as a complete valid pair.
+- Trim safe text and validate lengths, country, coordinate ranges, and any configured contact/postal rules server-side. Client validation is convenience only.
+- Use Region → Province → City/Municipality → Barangay searchable cascading fields from the bundled `@aisley/psgc-address-data` package. Parent changes clear incompatible descendants.
+- PSGC codes, provider IDs, autocomplete payloads, and map tile data are lookup/rendering aids; persist the reviewed names and optional coordinates, not provider identity.
+- Duplicate human-readable addresses are allowed unless a separately approved deduplication policy exists.
 
-### Shipping vs billing
-- Source explicitly says Address Book supports both shipping and billing addresses.
-- The model may represent this by:
-  - address type flags
-  - separate default references
-  - checkout-time usage without storing type
-- Exact persistence strategy is Open.
-- One saved address may be eligible for both shipping and billing if product requirements allow it.
-- Do not duplicate identical records solely because one is used for shipping and billing unless the schema intentionally requires this.
+### Provider and pin authority
 
-### Default addresses
-- The source does not explicitly require a default shipping/billing address.
-- Defaults are recommended for faster checkout but remain optional.
-- If implemented:
-  - at most one default shipping address per Buyer
-  - at most one default billing address per Buyer
-  - a single record may be both defaults
-  - default changes must be transactional
-- Deleting a default address must follow a defined fallback:
-  - clear the default, or
-  - select another eligible address
-- Do not silently select a replacement unless the product explicitly defines that behavior.
+- Manual entry remains available if local PSGC data, Geoapify, or map tiles are unavailable.
+- Do not call a provider while the Customer types or selects PSGC values. After the Customer clicks **Pin location**, make one Philippines-scoped Geoapify forward-geocoding request for the completed address.
+- Geoapify may provide only a latitude/longitude pair. It must not silently rewrite the Customer's reviewed address fields, claim deliverability, or select a shipping zone.
+- The interactive pin uses Leaflet with Geoapify raster tiles; the Customer may click or drag the local marker to refine coordinates. Mapbox is not used.
+- Restrict the public Geoapify key to the storefront origin, show Geoapify/OpenStreetMap/OpenMapTiles attribution, and never persist provider credentials or suggestion IDs.
+- Changing a populated location field clears stale coordinates until the Customer pins again.
 
-### Create address
-- Conceptual endpoint:
-```http
-POST /api/buyer/addresses
-```
-- Laravel must:
-  1. authenticate Buyer
-  2. validate fields
-  3. normalize safe address components
-  4. optionally run configured address validation
-  5. create the Address using authenticated Buyer ownership
-  6. apply default rules if supported
-  7. return a safe Address Resource
-- The client cannot set another owner.
-- Duplicate addresses are allowed unless the product explicitly wants duplicate detection.
-- If duplicate detection is added, it must not prevent legitimate similar addresses such as different units in one building.
+### Defaults, CRUD, and privacy
 
-### Update address
-- Conceptual endpoint:
-```http
-PATCH /api/buyer/addresses/{address}
-```
-- Resolve the Address through authenticated Buyer scope.
-- Validate changed fields server-side.
-- Update only Address Book data.
-- Editing a saved address must **not retroactively mutate addresses stored on previously placed orders**.
-- If the address is selected by an in-progress checkout, checkout revalidates it before order placement.
-- Concurrent stale edits may use `409` or the project's normal update strategy.
+- A Customer may create multiple rows. `is_default` is updated in the same transaction as the row; a shipping default clears overlapping `shipping`/`both` rows, a billing default clears `billing`/`both`, and a `both` default clears all other defaults.
+- There is no separate default route in the current API; create/update with `is_default` is the authoritative operation. The list returns defaults first, then newest rows.
+- Update/delete affect only the Address Book row. Deleting or editing a row never rewrites historical Order snapshots. Checkout detects a deleted/stale selected row and requires another eligible address.
+- The protected account UI requires delete confirmation and displays type, label, recipient/contact, summary, and whether a pin is saved. Sensitive address data is not logged or exposed to unrelated users.
+- A Seller/Logistics/Courier may receive only the address snapshot required by an authorized Order/task. Do not expose a Customer's whole Address Book.
 
-### Delete address
-- Conceptual endpoint:
-```http
-DELETE /api/buyer/addresses/{address}
-```
-- Resolve through Buyer scope.
-- Require confirmation in the UI.
-- Deleting an Address Book record must not delete or rewrite:
-  - historical orders
-  - waybills
-  - delivery records
-  - dispute evidence
-- If a cart/checkout currently references the address:
-  - checkout must detect the missing address
-  - Buyer must select/enter another eligible address before placing the order
-- Whether Address Book uses hard delete or soft delete is an implementation choice.
-- Historical order address data must remain independent either way.
+### Checkout and future Order changes
 
-### Checkout integration
-- View Cart/Checkout owns final address selection.
-- Checkout must accept an Address ID/reference only from the authenticated Buyer's Address Book.
-- Laravel must resolve and validate that address server-side.
-- Never trust a complete client-supplied address snapshot as proof that it belongs to the Buyer.
-- Checkout may allow entering a new address and optionally saving it to Address Book if the final Checkout spec defines that behavior.
-- "Save this address" behavior is not source-defined and remains Open.
+- Checkout accepts only a Customer-owned `address_id` with `shipping` or `both`, revalidates completeness/serviceability, and snapshots all required delivery fields plus optional coordinates into `order_addresses` in the same transaction as the Order.
+- The snapshot retains a nullable source-address reference for traceability but never reads the mutable source for delivery.
+- The Customer Order Modification feature, not Address Book, may update an already-placed Order snapshot during its approved pre-Seller-processing window. Current Order modification endpoints do not exist.
+- After Seller accepts an Order (`placed → seller_processing`), Address Book edits cannot reroute it; post-pickup changes and returns/refunds are deferred.
 
-### Order address snapshot
-- When an order is placed, persist the delivery/billing address needed for that order independently from the mutable Address Book record.
-- Recommended conceptual flow:
-```text
-Address Book record
-→ selected during checkout
-→ copy normalized required fields into order/order-address snapshot
-→ later Address Book edits do not alter placed order
-```
-- The order may retain the source `address_id` for traceability, but delivery must not depend on reading the current mutable Address record.
-- Snapshot fields must be sufficient for Seller/Logistics/Courier fulfillment.
-- Exact order-address schema belongs to Checkout/Order domain.
+### UX, accessibility, and acceptance
 
-### Order modification integration
-- Buyer source allows changing shipping address during a strict pre-processing window. fileciteturn31file0
-- Address Book provides candidate addresses.
-- Order Modification/Cancellation decides whether the order is still eligible to change destination.
-- An eligible modification must update the **order's address snapshot** through the Order domain.
-- It must not mutate the selected Address Book record merely to change one order.
-- Once the order has crossed the allowed processing state/time boundary, Address Book edits cannot reroute it.
-
-### Logistics / Courier handoff
-- Logistics and Courier must receive the address/destination attached to the order.
-- They must not resolve a delivery destination by reading the Buyer's current default Address Book entry.
-- This preserves historical correctness and prevents mid-delivery mutation.
-- Address changes allowed by Order Modification must propagate through the authoritative order workflow before logistics fulfillment advances.
-
-### Validation
-- Laravel Form Request or equivalent dedicated validator owns address validation.
-- Client-side validation is convenience only.
-- Validate:
-  - required fields
-  - field length
-  - accepted country/region codes when constrained
-  - postal code format when applicable
-  - contact data format where required
-- Do not claim an address is physically deliverable solely because its text format is valid.
-- Delivery-zone eligibility belongs to logistics/shipping rules.
-
-### Optional external address assistance
-- `Buyer.md` recommends geospatial validation or a maps/address API such as Google Maps. fileciteturn30file1 The project implementation uses Geoapify for intentional forward geocoding and map tiles rendered by Leaflet.
-- Geoapify forward geocoding may resolve a completed Customer-reviewed PSGC address to coordinates only after the Customer clicks `Pin location`.
-- Use HTTPS, restrict the public Geoapify browser key by allowed storefront URLs and required APIs, and filter geocoding to the supported country.
-- Treat returned coordinates as Customer-confirmable metadata, not proof that an address is complete, correct, deliverable, or inside a shipping zone.
-- Manual entry must remain available when Geoapify is unconfigured, unavailable, or has no suitable result.
-- A Geoapify result supplies only the coordinate pair; it must not silently rewrite the Customer-reviewed PSGC address fields.
-- Show required Geoapify and OpenStreetMap attribution with the geocoding and embedded map experience.
-
-### Geolocation coordinates
-- Latitude/longitude is optional unless Logistics/zone mapping requires it.
-- If external validation/geocoding returns coordinates:
-  - treat them as derived location metadata
-  - preserve the human-readable address
-  - do not silently replace Buyer-entered data without confirmation when changes are material
-- Exact geospatial storage format is Open.
-- Do not assume coordinates alone are sufficient for delivery instructions.
-
-### Delivery instructions
-- The source does not explicitly define gate codes/landmarks/delivery notes as Address Book fields.
-- Courier source mentions address clarifications and gate codes in Chat, but that does not automatically make them Address Book requirements.
-- Delivery instructions may be added only if Checkout/Delivery requirements establish them.
-- Sensitive access codes should not be exposed more broadly than necessary.
-
-### Privacy
-- Address records contain sensitive location/contact data.
-- Serialize only fields required by the Buyer UI and authorized checkout/logistics flows.
-- Do not expose Buyer addresses to unrelated Sellers/users.
-- Seller/Logistics/Courier access to delivery address must be tied to an authorized order/task and limited to what fulfillment requires.
-- Do not put full addresses in logs unnecessarily.
-- Follow the project requirement to mask sensitive location/contact data where appropriate. fileciteturn30file2
-
-### Concurrency and defaults
-- Address edits are low-contention but can conflict across devices/tabs.
-- Default-address changes, if implemented, must preserve the one-default invariant.
-- Use a transaction for operations that:
-  - unset one default
-  - set another default
-- If the record changed/deleted since the UI loaded, return current project conflict/not-found behavior.
-
-### Frontend states
-- Address list:
-  - loading
-  - empty
-  - loaded
-  - error
-  - forbidden/unauthenticated
-- Address form:
-  - idle
-  - validating
-  - submitting
-  - validation error
-  - external-geocoding progress/result if enabled
-  - success
-  - failure
-- Delete/default change:
-  - confirmation
-  - submitting
-  - success
-  - failure
-- Checkout selection:
-  - selected
-  - unavailable/deleted
-  - validation error
-- Do not optimistically persist ownership/default state before Laravel confirms it.
-
-### Accessibility
-- Address forms require semantic labels and field-level errors.
-- Group region/locality/postal fields logically.
-- Saved-address cards must be keyboard navigable.
-- Default/type state cannot rely on color alone.
-- Delete confirmation must identify the address label/summary.
-- Geocoding progress, failures, and pinned coordinates must be announced accessibly.
-
-### Acceptance criteria
-- [ ] Guest cannot manage Buyer Address Book.
-- [ ] Buyer can list only their own addresses.
-- [ ] Buyer can create multiple addresses.
-- [ ] Buyer can edit only their own address.
-- [ ] Buyer can delete only their own address.
-- [ ] Client cannot assign `buyer_id`.
-- [ ] Home/Office/custom-label behavior follows the selected label policy.
-- [ ] Shipping/billing usage follows approved model rules.
-- [ ] Default-address invariants hold when defaults are enabled.
-- [ ] Checkout rejects an Address ID owned by another Buyer.
-- [ ] Checkout rejects a deleted/unavailable Address.
-- [ ] Placed order contains an address snapshot independent of later Address Book edits.
-- [ ] Editing/deleting Address Book entries does not rewrite historical orders.
-- [ ] Order address changes occur only through Order Modification rules.
-- [ ] Logistics/Courier use the order destination, not the current Buyer default address.
-- [ ] External map/address validation is optional and failure does not corrupt saved data.
-- [ ] Address API keys/secrets never appear in browser bundles when server-side validation is used.
-- [ ] Sensitive address/contact data is scoped and serialized minimally.
-- [ ] UI handles empty, validation, delete, unavailable, and external-validation states.
+- Show loading, empty, loaded, validation, forbidden/session, save, delete-confirmation, stale/deleted, Geoapify failure, map-unavailable, and retry states. Never claim success before Laravel persistence.
+- Forms use semantic labels, field-level errors, keyboard-operable comboboxes, visible focus, announcements for pin/errors, and non-color-only default/type cues.
+- [x] Guests and wrong-role/inactive sessions cannot manage addresses.
+- [x] Customer CRUD is ownership-scoped and rejects forged owner IDs.
+- [x] Defaults are serialized transactionally and overlapping defaults are cleared.
+- [x] PSGC fields use bundled local data with manual fallback; no Customer dropdown request depends on a remote address API.
+- [x] Pin location performs optional Geoapify forward geocoding and supports a Leaflet click/drag pin without Mapbox.
+- [x] Checkout and placed Orders use immutable address snapshots.
+- [ ] Address changes on an already-placed Order are implemented; this waits for Customer Order Modification policy/API.
 
 ## HOW
-### Project findings
-- `Buyer.md` explicitly defines Address Book as saving/managing multiple shipping and billing addresses, categorizing them (e.g. Home/Office), and rapidly selecting them at checkout. fileciteturn30file1
-- It explicitly recommends an `Addresses` table with a one-to-many relationship to Buyer and optionally geospatial/API validation. fileciteturn30file1
-- Buyer Order Modification/Cancellation separately allows changing shipping address only within a strict pre-processing window. fileciteturn31file0
-- `README.md` requires Laravel-owned validation/authorization, Buyer scoping, safe location serialization, and no direct Next.js database access. fileciteturn30file2turn31file9
-- Exact address fields, defaults, validation provider, country hierarchy, geospatial schema, and checkout-save behavior are not defined.
 
-### Laravel data model
-Recommended conceptual schema:
-```text
-addresses
-- id
-- buyer_id
-- label nullable
-- recipient_name
-- contact_number
-- address_line_1
-- address_line_2 nullable
-- locality
-- region
-- postal_code nullable
-- country_code
-- latitude nullable
-- longitude nullable
-- is_default_shipping optional
-- is_default_billing optional
-- created_at
-- updated_at
-```
-- Field names are conceptual; use actual project address requirements.
-- Eloquent supports the source-required one-to-many `hasMany` relationship. citeturn875176search1turn875176search3
-- Address belongs to one Buyer.
-- Add indexes for `buyer_id` and any default/lookup fields actually used.
+### Current interfaces and implementation
 
-### Laravel API
-Conceptual endpoints:
-```http
-GET    /api/buyer/addresses
-POST   /api/buyer/addresses
-GET    /api/buyer/addresses/{address}
-PATCH  /api/buyer/addresses/{address}
-DELETE /api/buyer/addresses/{address}
-POST   /api/buyer/addresses/{address}/default-shipping   # optional
-POST   /api/buyer/addresses/{address}/default-billing    # optional
-```
-- Use Form Requests.
-- Use `AddressPolicy` or Buyer-scoped route/model lookup.
-- Use API Resources.
-- Suggested services/actions:
-  - `CreateBuyerAddress`
-  - `UpdateBuyerAddress`
-  - `DeleteBuyerAddress`
-  - `SetDefaultBuyerAddress` if defaults exist
-  - optional `ValidateDeliveryAddress`
-- Keep controllers thin.
+- API routes are `GET/POST /api/v1/customer/addresses`, `PATCH /api/v1/customer/addresses/{address}`, and `DELETE /api/v1/customer/addresses/{address}` under `auth:sanctum` + `customer.active`.
+- Laravel uses `AddressController`, `AddressService`, `StoreAddressRequest`, `UpdateAddressRequest`, and `AddressResource`; `AddressService` locks the Customer row and clears overlapping defaults transactionally.
+- The existing `addresses` migration/model stores UUID ownership, string-backed type, normalized fields, optional decimal coordinates, and `is_default`; do not edit the executed migration.
+- The Webapp uses `/account/addresses`, `AddressBookContent`, `AddressForm`, `PsgcAddressFields`, `GeoapifyLocationPicker`, and shared checkout client/types. Checkout links back to this page for selection.
+- PSGC data is loaded from `@aisley/psgc-address-data/data`; the Customer UI does not call `/api/v1/address-options/*` for its dropdowns.
 
-### Ownership queries
-- Prefer authenticated Buyer relationship access:
-```text
-buyer->addresses()
-```
-rather than global lookup followed by client ownership checks.
-- Laravel Eloquent directly supports one-to-many ownership relationships. citeturn875176search1
-- Policy checks remain useful for explicit resource authorization.
+### Data flow and tests
 
-### Checkout handoff
-- Checkout receives an Address ID.
-- Laravel:
-  1. resolves it through authenticated Buyer scope
-  2. validates eligibility
-  3. optionally revalidates address/serviceability
-  4. snapshots required fields into the order
-  5. proceeds with the checkout transaction
-- This keeps Address Book reusable while preserving historical order destinations.
-
-### Optional Geoapify geocoding and map integration
-- The Address Book Client Component does not call a provider while the Customer types or selects PSGC values.
-- After the Customer completes the address and clicks `Pin location`, call Geoapify forward geocoding once with `filter=countrycode:ph` and `limit=1`.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` is a public browser key for forward geocoding and map tiles. Restrict it by allowed storefront URLs and only the required Geoapify APIs.
-- Apply the returned `lat`/`lon` to the existing coordinate fields without rewriting the Customer-reviewed textual address.
-- Create the Leaflet map only after geocoding succeeds, using Geoapify raster tiles and a local HTML marker to avoid Marker Icon API credits.
-- The embedded map provides a clickable and draggable pin; pin movement updates the coordinate pair without silently rewriting the address text.
-- Geoapify geocoding and map pins do not replace Laravel validation, Customer ownership checks, checkout revalidation, or future logistics serviceability rules.
-
-### Next.js / React
-- Build:
-  - Address Book page
-  - address card/list
-  - create/edit form
-  - delete confirmation
-  - optional default selectors
-  - optional pin-location action and map
-- Use shared Laravel API client.
-- Address form may be a Client Component due to interactive form state, geocoding, and maps.
-- Keep authoritative validation and ownership in Laravel.
-- Checkout consumes the same address DTO/selector rather than duplicating address storage.
-
-### Tests
-- **Laravel:** auth/role denial; Buyer ownership isolation; create/update/delete; field validation; default uniqueness when enabled; cross-Buyer access denial; checkout scoped-address selection; order snapshot independence; deleted-address checkout failure; optional external-validator success/failure/timeout.
-- **Frontend:** empty/list states; create/edit validation; delete confirmation; default selection; checkout selector; stale/deleted address; external correction confirmation; accessibility.
-
-### Research-backed recommendations
-- Use the source-required Buyer `hasMany` Address relationship. Laravel natively supports one-to-many Eloquent relationships. citeturn875176search1turn875176search3
-- Keep an order-time address snapshot instead of treating the mutable Address Book row as historical delivery truth.
-- Treat external address assistance as optional. Geoapify geocoding and map tiles share one daily credit pool and add latency, attribution, and provider-availability considerations.
-- Ask the Buyer to review the pinned coordinates rather than silently treating a geocoding result as authoritative.
-
-### Risks
-- **Ownership leak:** global Address lookup can expose another Buyer's location.
-- **Historical mutation:** live Address references can silently reroute old/current orders after edits.
-- **Bad routing:** format-valid addresses may still be inaccurate or undeliverable.
-- **External dependency:** map/address APIs add billing, quotas, latency, and policy constraints.
-- **Overvalidation:** automatically replacing addresses may introduce wrong locations.
-- **Default race:** concurrent default changes can produce multiple defaults without transactional enforcement.
-- **Schema mismatch:** inventing a country-specific address hierarchy now may conflict with final registration/checkout requirements.
-- **Privacy:** full residential addresses are sensitive user data.
-
-### Open questions
-- Exact address fields and supported countries/regions.
-- Whether the project uses province/municipality/barangay or another hierarchy.
-- Whether users can create custom labels.
-- Whether default shipping and billing addresses are required.
-- Whether checkout can enter a one-time address without saving it.
-- Whether checkout can save a newly entered address automatically/optionally.
-- Whether billing address can differ from shipping address.
-- Whether Geoapify remains the long-term geocoding and map-tile provider.
-- Whether latitude/longitude is persisted.
-- Delivery-serviceability/zone validation ownership.
-- Address Book record limit.
-- Hard delete vs soft delete.
-- Exact contact-number/recipient-name handling.
-- Whether delivery notes/landmarks/gate codes belong here or Checkout.
-- How Order Modification selects/revalidates a replacement address.
-
-### Current Address Book and checkout implementation (2026-08-31)
-
-- Active Customers can list, create, update, and delete only their own saved addresses through `/api/v1/customer/addresses`; the Address Book is available at `/account/addresses`.
-- Create/update accepts the existing `shipping`, `billing`, or `both` string-backed `AddressType`, validates all normalized address fields, prohibits owner assignment, and accepts latitude/longitude only as a complete valid pair.
-- Setting a new default is serialized transactionally and clears an overlapping shipping/billing default supported by the existing single `is_default` field.
-- Checkout displays only its currently selected shipping-capable default/first address and links to the separate Address Book for adding, editing, deleting, or selecting another address, preventing a large saved collection from crowding checkout.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` optionally enables one-click Geoapify forward geocoding and Geoapify map tiles on the Address Book form.
-- Provider-backed autosuggest has been removed. Customers set Region, Province, City/Municipality, and Barangay through the PSGC controls, then complete street and postal fields manually.
-- Geoapify is queried only after the Customer clicks `Pin location`; the request is limited to one Philippine result and only populates latitude and longitude.
-- Autofill maps only matching structured levels (`suburb` to Barangay, `city`/`municipality` to City or Municipality, `county` to Province, and `state` to Region). It does not substitute adjacent administrative levels, and a new selection clears unavailable location components so values from an older selection cannot remain mixed into the new address.
-- Region, Province, City/Municipality, and Barangay remain independently editable searchable comboboxes backed directly by the bundled PSA PSGC Q2 2026 hierarchy in `packages/psgc-address-data/data`. The Webapp loads the region index locally and lazy-loads the selected region file; it does not request `/api/v1/address-options/*` for Customer dropdowns. Selecting a parent scopes the available child options; typing remains available as a manual fallback when local data is unavailable.
-- Geoapify-provided coordinates center the embedded Geoapify map and position its local HTML pin.
-- The Customer may click the embedded map or drag its pin to refine longitude/latitude. Coordinates are cleared when a populated location component is manually changed, preventing stale coordinates from being saved with edited text.
-- No serviceability decision, shipping-zone rule, routing behavior, or logistics selection was added.
-
-### Sources
-- Project rules: `SKILL.md`
-- AISLEY architecture contract: `README.md`
-- Buyer feature model: `Buyer.md`
-- Laravel Eloquent relationships: https://api.laravel.com/docs/12.x/Illuminate/Database/Eloquent/Concerns/HasRelationships.html
-- Geoapify Geocoding API: https://apidocs.geoapify.com/docs/geocoding/
-- Geoapify pricing: https://www.geoapify.com/pricing/
-- Geoapify pricing details: https://www.geoapify.com/pricing-details/
-- Geoapify map tiles: https://apidocs.geoapify.com/docs/maps/
+- Create/update: validate → normalize → lock Customer → clear overlapping defaults if requested → persist → return safe Resource. Delete follows the same ownership lock.
+- Pin: validate completed fields locally → one `filter=countrycode:ph`/`limit=1` Geoapify request → save only coordinates after Customer review/refinement.
+- Checkout: resolve `address_id` through Customer scope → revalidate → copy required fields into `order_addresses` before commit.
+- API tests cover ownership, role/status gates, fields/coordinates, default races, CRUD, checkout selection, and snapshot independence. Storefront checks cover combobox keyboard behavior, map fallback, pin invalidation, retry, and accessible errors.
+- Follow `docs/workspace.md`, `docs/schema.md`, `docs/order-logistics-flow-decisions.md`, `docs/domains/Buyer.md`, and [`docs/references/user-registration-requirements.md`](../../../references/user-registration-requirements.md). The repository has no separate `docs/maps-location-api.md`; the shared workspace/schema provider contract is authoritative.

@@ -401,3 +401,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Revised the Seller Authentication, Dashboard, Account Management, Product/Catalog (legacy Order Management), Prepare Orders, Inventory, and Low Stock Alert specifications against the implemented API/UI and approved order/logistics decisions. The specs now distinguish implemented foundations from deferred operational work, preserve the one-Seller/one-Shop boundary, document package-label versus Logistics-waybill ownership, align inventory reservation/fulfillment boundaries, retain MDXEditor picture insertion and safe Markdown viewing, and remove stale implementation TODOs. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Customer Checkout, Order Status, Order Modification/Cancellation, Address Book, Customer Authentication, and auth-aware navigation specifications against the implemented API/UI and approved order/logistics contracts. The specs now use `customer` as the canonical role, document COD `placed`/pending-payment behavior, Shop-level Order grouping and immutable snapshots, reservation release/first-mile boundaries, the Customer-selected Logistics transition gap, PSGC + optional Geoapify/Leaflet address pinning with no Mapbox, current session restoration, and the deferred Customer order-mutation and registration address/evidence work. No application behavior or migrations changed.
