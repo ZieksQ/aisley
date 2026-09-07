@@ -397,3 +397,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Reconciled `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and the Seller, Buyer, Logistics, and Courier domain contexts with the approved order/Logistics flow. The documents now define Customer selection of an eligible Logistics organization, Logistics-owned first-mile task creation, independent first-/final-mile assignments, separate Seller package labels and Logistics operational waybills with their immutability windows, COD `placed`/`payment_status = pending`, inventory reservation release/fulfillment boundaries, one-organization/one-hub scope, provider-neutral routing with no Mapbox, deferred subscription enforcement, and the shared-schema gate before shipment actions. No application behavior or migrations changed.
+
+## 2026-09-07
+
+- Revised the Seller Authentication, Dashboard, Account Management, Product/Catalog (legacy Order Management), Prepare Orders, Inventory, and Low Stock Alert specifications against the implemented API/UI and approved order/logistics decisions. The specs now distinguish implemented foundations from deferred operational work, preserve the one-Seller/one-Shop boundary, document package-label versus Logistics-waybill ownership, align inventory reservation/fulfillment boundaries, retain MDXEditor picture insertion and safe Markdown viewing, and remove stale implementation TODOs. No application behavior or migrations changed.

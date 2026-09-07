@@ -3,8 +3,8 @@ feature: dashboard
 title: Seller Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft
+version: 1.2
+status: Implemented catalog slice
 role: Seller
 scope: Seller Web Application
 ---
@@ -13,116 +13,109 @@ scope: Seller Web Application
 
 ## WHAT
 
-- **Purpose:** Give an approved Seller a secure, shop-scoped overview of current business state and the next actions requiring attention.
-- **Primary actor:** an authenticated active `SELLER` using the React/Vite Seller SPA.
-- **Frontend route:** `/dashboard`, matching the Seller Authentication post-login contract.
-- **API endpoint:** `GET /api/v1/seller/dashboard`.
-- **Current UI state:** `src/seller/src/App.tsx` is a static demonstration with hard-coded revenue, order, listing, and action values.
-- **Current backend state:** no Seller dashboard route/controller exists; Shop, Product, and ProductVariant data exist, while Orders/finance, inventory movements, Reviews, notifications, analytics, and reporting remain deferred.
-- **First implementable slice:** safe shop identity/status, catalog status counts, basic current stock signals, and setup/action states derived from existing records.
-- **Target sections:** financial summary, order workload, inventory attention, review summary, traffic, notifications, and bounded actionable items as their owning domains become authoritative.
-- **Core flow:**
+- **Purpose:** Give an approved Seller a secure, Shop-scoped overview and links to the features that own each piece of data.
+- **Route/API:** Seller SPA `/dashboard`; Laravel `GET /api/v1/seller/dashboard`.
+- **Current implementation:** the API returns the authenticated Shop summary, optional normalized period metadata, catalog counts, and explicit unavailable envelopes for domains that have no authoritative dashboard source yet. The React page renders these states instead of demo totals.
+- **Catalog slice:** total, active, draft, archived, zero-stock base Products, and zero-stock variant SKUs. These zero-stock values are a catalog signal, not a replacement for Inventory `available`.
+- **Target sections:** Orders, Inventory/low stock, finance, reviews, traffic, notifications, reports, and other metrics become available only when their owning domain defines a reconciled source.
+- **One-Shop rule:** the account owns one Shop. Registration creates it pending; after approval, setup edits that Shop rather than creating another one.
+- **Non-goals:** mutations, platform-wide totals, fabricated analytics, duplicate metric stores, or Seller access to another Shop.
 
 ```text
-Seller Auth restores active session
-→ Dashboard resolves Seller-owned Shop
-→ Laravel validates optional period inputs
-→ each available section applies Shop scope before aggregation
-→ unavailable domains return explicit availability state
-→ React renders data, empty, unavailable, partial-error, or retry state
-→ cards/actions deep-link to their owning Seller feature
+active Seller session
+→ resolve the Seller's one Shop
+→ validate optional period/timezone
+→ aggregate only Shop-owned records
+→ return available/empty/unavailable section states
+→ render cards and links to owning features
 ```
-
-- **Architecture:** React/Vite and React Router own composition and interaction; Laravel/Eloquent/PostgreSQL own scope, definitions, aggregation, and safe serialization.
-- **Feature boundaries:** Dashboard is read-only composition; Orders, Inventory, Reports, Reviews, Analytics, and Notifications own their records and mutations.
-- **Non-goals:** fake/demo metrics, platform-wide totals, direct order/stock mutations, exports, a competing analytics store, or frontend-authoritative calculations.
 
 ## MUST
 
-### Authentication and tenant isolation
+### Authorization and scope
 
-- Require `auth:sanctum` plus the Seller-active role/status middleware defined by Seller Authentication.
-- Resolve Seller identity from the session and resolve the Shop through `users.id → shops.seller_id`.
-- Never accept `seller_id` or `shop_id` as authorization input.
-- Apply the Shop constraint before every Product, Order, finance, inventory, Review, notification, or analytics query.
-- A Seller must never receive another Shop's values, previews, identifiers, or cache entries.
-- A Seller without a Shop receives an explicit `SHOP_SETUP_REQUIRED` state; the API must not fall back to global data.
-- Suspended, rejected, pending, deactivated, Customer, Admin, and Courier accounts cannot access the endpoint.
+- Require `auth:sanctum` and active Seller status. Pending, rejected, suspended, deactivated, Customer, Admin, and Courier accounts cannot fetch the dashboard.
+- Resolve Seller and Shop from the authenticated session; never accept `seller_id`, `shop_id`, arbitrary metric names, SQL fragments, or client-calculated totals.
+- Apply the Shop constraint before every aggregate, preview, cache key, and action. A cross-Shop lookup is a `404`/empty scoped result, never a fallback.
+- If the existing Shop is absent or its required storefront fields are incomplete, return `SHOP_SETUP_REQUIRED` without global data or a placeholder Shop. Setup edits the existing registration-created Shop.
 
-### Request and period semantics
+### Request and response contract
 
-- Initial request may omit filters; period-aware sections may accept `from`, `to`, and IANA `timezone` query values.
-- Laravel validates date format, `from <= to`, timezone, and a configured maximum range.
-- Normalize Seller-local dates into UTC half-open boundaries: `[from_inclusive, to_exclusive)`.
-- Return the normalized period so Dashboard and Generate Report can use identical definitions.
-- Exact default range, maximum range, date presets, and comparison policy remain open decisions.
-- Reject malformed filters with `422`; do not accept arbitrary metric names, SQL fragments, grouping, or sorting expressions.
-
-### Response contract and availability
-
-- Return one versioned DTO with `shop`, `period`, `sections`, `actions`, and server `generated_at`.
-- Every section uses an explicit state: `available`, `empty`, `unavailable`, or `error`.
-- `0` means an authoritative zero; unavailable or failed data must never be serialized as zero.
-- An unavailable section includes a stable reason such as `DOMAIN_NOT_IMPLEMENTED`; it must not expose internal exceptions.
-- A failed optional section may produce a partial response while preserving successful sections and a retryable error code.
-- Whole-request auth, scope, or validation failure must fail normally rather than return a partial success.
-- Lists/previews are bounded, deterministically ordered, and contain only fields needed by the Dashboard.
-- `generated_at` is server-generated UTC; cached sections additionally expose their own `data_as_of` and stale state.
+- Optional `from`, `to`, and IANA `timezone` values are validated; normalize accepted dates to Seller-local half-open UTC boundaries and return the normalized period.
+- Reject malformed dates, invalid timezones, reversed ranges, and overlong periods with field-addressable `422` errors.
+- Return `version`, `code`, `shop`, `period`, `sections`, `actions`, and server-generated UTC `generated_at`.
+- Every section is `available`, `empty`, `unavailable`, or a retryable `error`; authoritative zero is not the same as unavailable or failed.
+- Lists/actions are bounded, deterministic, and contain only safe Seller fields. Do not expose Buyer PII, payment secrets, private evidence, raw storage paths, or another tenant's identifiers.
+- A partial section failure remains distinguishable from a successful empty section. Whole-request auth/scope failures remain normal HTTP failures.
 
 ### Current catalog section
 
-- Catalog metrics must derive only from Products belonging to the authenticated Seller's Shop.
-- Required initial counts: total, active, draft, archived, and current zero-stock Products/SKUs when the schema can represent them safely.
-- Variant-aware stock signals must not double-count a Product and its variants; the final Inventory contract decides canonical SKU availability.
-- Until reservations/movements exist, label current stock as a catalog signal rather than authoritative `available` inventory.
-- Catalog actions may link to Product or Inventory routes only when those routes exist; otherwise show a non-clickable setup state.
-- Never reuse public storefront visibility queries as the only Seller management scope because draft/archived Products must remain visible to their owner.
+- Count Products through the authenticated Shop, including draft and archived records for Seller management.
+- Count zero-stock base Products and variant SKUs without double-counting variant Products. Inventory owns the eventual canonical availability calculation.
+- Catalog actions link only to implemented Seller routes. The dashboard does not publish, archive, adjust stock, approve Orders, or assign Logistics/Couriers.
+- Product visibility and compliance restrictions remain governed by Product/catalog and Admin compliance domains; dashboard counts must not make restricted Products public.
 
-### Deferred target sections
+### Deferred sections
 
-- Financial values remain `unavailable` until shop-scoped Orders, payments, fees, refunds, and settlement semantics exist.
-- When available, financial labels distinguish gross paid sales, refunds, pending amounts, settled amounts, and net proceeds.
-- Do not label net proceeds as profit unless Product cost/COGS is authoritative; all money uses fixed precision and explicit currency.
-- Order counts must map presentation groups to the canonical Order lifecycle; notification read state is not fulfillment state.
-- Pending fulfillment derives from actionable Seller Order states and deep-links to the filtered Order/Prepare Order view.
-- Low-stock values derive from the future Inventory/Low Stock Alert authority, not duplicated Product-level guesses.
-- Review summaries use only verified Reviews on Seller-owned Products; cached `average_rating` fields are insufficient without reconciliation rules.
-- Traffic stays unavailable until event definitions and Seller-scoped Analytics storage exist; do not invent visitors, conversion, or impressions.
-- Notification counts/previews use the shared persisted notification domain and never create Dashboard-owned read state.
-- Dashboard financial totals must reconcile with Generate Report for the same Shop, period, currency, and status rules.
+- Orders use canonical status groups and link to Order Approval/Prepare Orders when those sources are exposed; notification read state is not fulfillment state.
+- Inventory and low-stock cards read Inventory/Low Stock Alert DTOs, never duplicate `on_hand`, `reserved`, or `available` calculations.
+- Finance waits for authoritative Orders, payments, fees, refunds, settlement, currency, and period semantics. Do not call net proceeds “profit” without COGS.
+- Reviews require verified Seller-owned reviews and defined rating reconciliation. Traffic requires Seller-scoped analytics events and storage.
+- Notifications use the shared notification domain and do not create Dashboard-owned read state. Reports must reconcile with identical Shop, period, currency, and status rules.
 
-### User experience and acceptance
+### UX and acceptance
 
-- Use the professional dashboard design system with light/dark themes, responsive layout, accessible focus, and non-color-only statuses.
-- Provide page loading, loaded, empty, partial, stale, session-expired, shop-setup, and whole-page error states.
-- Charts require textual summaries and accessible labels; omit charts when no authoritative series exists.
-- Refresh/realtime signals trigger an API refetch after committed domain events; browser events never mutate totals directly.
-- [ ] Guest and non-active/non-Seller accounts cannot fetch or view the Dashboard.
-- [ ] Every returned identifier and metric belongs to the authenticated Seller's Shop.
-- [ ] A missing Shop produces `SHOP_SETUP_REQUIRED` without leaking global data.
-- [ ] Existing catalog counts are computed server-side and the static demo values are removed.
-- [ ] Deferred sections display unavailable—not zero, fabricated data, or misleading empty charts.
-- [ ] Partial section failure is distinguishable from authoritative empty data.
-- [ ] Money, date, timezone, comparison, and freshness metadata are explicit when applicable.
-- [ ] Every action routes to an implemented, Seller-scoped owning feature.
-- [ ] Dashboard and Generate Report definitions reconcile once financial domains exist.
+- Render responsive light/dark layouts with keyboard focus, text labels, accessible chart summaries, and non-color-only states.
+- Support loading, loaded, empty, setup-required, unavailable, partial-error, stale/refetch, session-expired, and retry states.
+- [x] Guests and inactive/non-Seller accounts cannot use the API or protected page.
+- [x] Every current catalog value and Shop identifier is authenticated-Seller scoped.
+- [x] Missing-Shop responses are explicit `SHOP_SETUP_REQUIRED` and contain no marketplace-wide data.
+- [x] Catalog counts are server-derived; deferred sections are explicit `DOMAIN_NOT_IMPLEMENTED` rather than fake zeros.
+- [ ] Order, Inventory, finance, review, traffic, notification, report, and comparison metrics are enabled only after their owning contracts and reconciliation tests exist.
 
 ## HOW
 
-- Add Seller-namespaced `DashboardController`, `DashboardRequest`, `SellerDashboardResource`, and a query/service under `src/api/app`.
-- Register `GET /api/v1/seller/dashboard` under `auth:sanctum` and Seller-active middleware in `routes/api.php`.
-- Start with Shop/catalog queries supported by the current schema; keep deferred section builders behind stable availability envelopes.
-- Aggregate with scoped database `count`/`sum`/`avg` queries rather than loading records for React to total.
-- Use independently testable section builders only where complexity warrants them; share metric definitions with owning domains.
-- Replace the static `App.tsx` dashboard with a protected React Router page using the Seller Auth credentialed API client.
-- Suggested UI modules: `DashboardHeader`, `CatalogSummary`, `SectionState`, `ActionList`, and later financial/order/inventory/review modules.
-- Fetch once on route entry, support abort/retry, and prevent stale responses from overwriting a newer period request.
-- Begin without metric caching; add bounded caching only after profiling demonstrates need.
-- Cache keys must include Shop ID, normalized period/timezone, section, and metric version; cached data must expose freshness.
-- Invalidate/refetch only after committed source-domain events; Laravel 13 `Cache::flexible` is optional for bounded stale-while-revalidate.
-- API tests cover role/status denial, missing Shop, cross-Seller isolation, catalog counts, unavailable/empty/error distinction, DTO shape, and bounded actions.
-- PostgreSQL tests verify scoped aggregates and planned indexes; Seller checks cover lint, TypeScript/build, responsive states, and keyboard access.
-- Log request ID, Seller/Shop IDs, duration, section result categories, and cache hit/staleness without Buyer PII or financial row details.
-- Roll out the catalog slice first; enable later sections only with migrations, source-domain tests, metric definitions, and reconciliation coverage.
-- **Open questions:** shop onboarding route, initial stock definition, default period/comparison, currency policy, section error HTTP strategy, chart library, cache TTL, and realtime driver.
-- **References:** `docs/domains/Seller.md`, `docs/schema.md`, Seller Auth and dependent Seller specs, [Laravel 13 query aggregates](https://laravel.com/framework/docs/13.x/queries#aggregates), [Laravel 13 cache](https://laravel.com/framework/docs/13.x/cache), and [React Router modes](https://reactrouter.com/start/modes).
+- Current backend: `src/api/app/Services/Seller/DashboardService.php`, Seller `DashboardController`, `DashboardRequest`, and `SellerDashboardResource`; route is protected by `seller.active`.
+- Current frontend: `src/seller/src/pages/DashboardPage.tsx`, dashboard types/components, and the shared credentialed API client. It displays the Shop/catalog slice and safe deferred states.
+- Use scoped database aggregates and explicit section builders. Add caching only after profiling; keys must include Shop, normalized period/timezone, section, and metric version, with freshness metadata.
+- Dispatch refresh/broadcast work only after committed source-domain events. Browser events never mutate authoritative totals.
+- Add new migrations only for an approved metric/read-model contract; do not modify executed migrations or introduce a Dashboard-owned source of truth.
+- Before enabling a section, document its source tables, status/period definitions, privacy DTO, failure state, reconciliation query, indexes, and owning feature link.
+- Test role/status denial, setup safety, Shop isolation, period validation, catalog counts, empty/unavailable/error distinction, DTO privacy, deterministic ordering, and stale refresh. Run Seller lint, TypeScript, and production build.
+
+### Current response shape
+
+- `shop` contains only the Shop UUID, name, status, and vacation flag. It is not a public storefront projection and must stay Seller-scoped.
+- `sections.catalog` is `available` or `empty` and returns total, active, draft, archived, zero-stock base Product, and zero-stock variant-SKU counts plus `stock_signal = catalog_quantity`.
+- `sections.financial`, `orders`, `inventory`, `reviews`, `traffic`, and `notifications` currently return `state = unavailable` with `reason = DOMAIN_NOT_IMPLEMENTED`.
+- `actions` is currently empty. A future action must include a safe destination owned by an implemented Seller feature; a dashboard card must not imply an unavailable mutation exists.
+- `generated_at` is UTC server time. The period object includes submitted local dates, timezone, and UTC boundaries when both dates are supplied.
+
+### Section enablement rules
+
+- Order cards may be enabled only after the Order Approval/Prepare Orders source defines actionable groups and a reconciliation test against the canonical `OrderStatus` history.
+- Inventory cards must read the Inventory and Low Stock Alert APIs or a shared query object; they must not count Product `stock_quantity` as `available` once reservations are present.
+- Finance cards require a currency-aware ledger and explicit treatment of COD pending payment, refunds, fees, settlement, and period boundaries.
+- Review, traffic, and notification cards need ownership, retention, privacy, and failure contracts before any UI placeholder is changed to `0`.
+
+### Observability and rollout
+
+- Record request ID, Seller/Shop identifiers, normalized period, section result categories, duration, and cache freshness without logging Buyer rows or financial secrets.
+- Start with the catalog response and no cache. Add bounded cache/read models only after profiling and include Shop, period, section, and metric-version in every key.
+- A source-domain outage may mark one section `error` while preserving successful sections. Repeated failures are retried or surfaced to operators independently of the Seller page.
+- When the one-Shop setup flow is approved, expose a setup action that routes to Account Management; do not let Dashboard create or silently attach a Shop.
+
+### Period and freshness rules
+
+- A request with no dates returns the current catalog snapshot and a null period. A request with both dates uses inclusive local `from` and `to` dates converted to `[from_utc, to_utc_exclusive)`.
+- Partial dates are rejected rather than interpreted differently by each section. Server time, not the browser clock, supplies `generated_at`.
+- If a future section is cached, expose `data_as_of`/stale metadata and keep the same Shop/period/metric definition in the cache key.
+- Refresh after a committed Product, Order, Inventory, or notification event is a refetch signal only; the page never increments or decrements a metric optimistically.
+
+### Implementation guardrails
+
+- Keep Dashboard query objects read-only and share metric definitions with the owning domain instead of duplicating business calculations.
+- Bound preview rows and action counts. Do not expose raw SQL/order clauses, unrestricted date ranges, or internal exception text through query parameters.
+- A `DOMAIN_NOT_IMPLEMENTED` response is a truthful product state and should link to the relevant roadmap/spec, not show a disabled chart that looks like zero data.
+
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Auth, Product/Catalog, Inventory, Low Stock Alerts, Order Approval, Prepare Orders, and Generate Report specs.
