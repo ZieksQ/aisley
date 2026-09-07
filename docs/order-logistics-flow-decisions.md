@@ -1,6 +1,18 @@
+---
+title: Order and Logistics Flow Decisions
+type: Decision Record
+status: Approved — source documents synchronized
+canonical: false
+purpose: Historical rationale and sign-off record
+canonical_sources:
+  - docs/requirements.md
+  - docs/workspace.md
+  - docs/schema.md
+---
+
 # Order and Logistics Flow Decision Worksheet
 
-**Status:** Open — working document for resolving cross-document decisions
+**Status:** This file records decisions and rationale. It is not an implementation specification; the canonical rules are maintained in the listed source documents.
 
 ## Purpose
 
