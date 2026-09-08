@@ -26,7 +26,7 @@ class CourierSeeder extends Seeder
 
         $organization = $this->organization();
         if (! $organization?->hub) {
-            $this->command?->warn('Courier accounts were not created: seed an active Logistics organization with a hub first.');
+            $this->command?->warn('Courier accounts were not created: seed the configured active initial Logistics organization with a hub first.');
 
             return;
         }
@@ -79,13 +79,16 @@ class CourierSeeder extends Seeder
 
     private function organization(): ?LogisticsOrganization
     {
-        $email = trim((string) config('courier.initial.logistics_email', ''));
+        $email = strtolower(trim((string) config('logistics.initial.email', '')));
+
+        if ($email === '') {
+            return null;
+        }
 
         return LogisticsOrganization::query()
-            ->when($email !== '', fn ($query) => $query->whereHas('user', fn ($users) => $users->where('email', strtolower($email))))
+            ->whereHas('user', fn ($query) => $query->where('email', $email))
             ->whereHas('user', fn ($query) => $query->where('role', UserRole::Logistics)->where('status', UserStatus::Active))
             ->with('hub')
-            ->orderBy('id')
             ->first();
     }
 
@@ -107,6 +110,21 @@ class CourierSeeder extends Seeder
             'postal_code' => $details['postal_code'], 'country' => 'Philippines', 'is_default' => true,
         ]);
         $courier->courierProfile->vehicles()->firstOrCreate(['plate_number' => $details['plate_number']], ['type' => $details['vehicle_type'], 'status' => VehicleStatus::Active]);
-        $courier->courierLogisticsAffiliation()->firstOrCreate([], ['logistics_organization_id' => $organization->id, 'logistics_hub_id' => $organization->hub->id, 'status' => CourierAffiliationStatus::Approved, 'reviewer_id' => $organization->user_id, 'reviewed_at' => now()]);
+        $affiliation = $courier->courierLogisticsAffiliation()->firstOrNew();
+        $requiresApproval = ! $affiliation->exists
+            || $affiliation->logistics_organization_id !== $organization->id
+            || $affiliation->logistics_hub_id !== $organization->hub->id
+            || $affiliation->status !== CourierAffiliationStatus::Approved;
+
+        if ($requiresApproval) {
+            $affiliation->fill([
+                'logistics_organization_id' => $organization->id,
+                'logistics_hub_id' => $organization->hub->id,
+                'status' => CourierAffiliationStatus::Approved,
+                'reviewer_id' => $organization->user_id,
+                'reviewed_at' => now(),
+                'rejection_reason' => null,
+            ])->save();
+        }
     }
 }

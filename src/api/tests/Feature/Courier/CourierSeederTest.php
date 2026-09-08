@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Courier;
 
+use App\Enums\AddressType;
 use App\Enums\CourierAffiliationStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Enums\VehicleStatus;
 use App\Enums\VehicleType;
+use App\Models\Address;
+use App\Models\LogisticsOrganization;
 use App\Models\User;
 use Database\Seeders\CourierSeeder;
 use Database\Seeders\InitialLogisticsSeeder;
@@ -54,13 +57,14 @@ class CourierSeederTest extends TestCase
             'province' => 'Metro Manila',
             'region' => 'National Capital Region',
             'postal_code' => '1209',
-            'logistics_email' => 'logistics@example.com',
         ]);
         config()->set('courier.generic', [
             'count' => 20,
             'email_prefix' => 'test-courier',
             'email_domain' => 'seed.example.com',
         ]);
+
+        $otherLogistics = $this->createActiveLogistics('another-logistics@example.com', 'Another Logistics');
 
         $this->seed(InitialLogisticsSeeder::class);
         $this->seed(CourierSeeder::class);
@@ -94,13 +98,58 @@ class CourierSeederTest extends TestCase
         $this->assertSame(CourierAffiliationStatus::Approved, $primary->courierLogisticsAffiliation->status);
         $this->assertSame('logistics@example.com', $primary->courierLogisticsAffiliation->organization->user->email);
         $this->assertNotNull($primary->courierLogisticsAffiliation->reviewed_at);
+        $this->assertNotSame($otherLogistics->id, $primary->courierLogisticsAffiliation->logistics_organization_id);
 
+        $primary->courierLogisticsAffiliation->update([
+            'logistics_organization_id' => $otherLogistics->id,
+            'logistics_hub_id' => $otherLogistics->hub->id,
+            'status' => CourierAffiliationStatus::Pending,
+            'reviewer_id' => null,
+            'reviewed_at' => null,
+        ]);
         $this->seed(CourierSeeder::class);
 
-        $this->assertDatabaseCount('users', 22);
+        $primary->refresh()->load('courierLogisticsAffiliation.organization.user');
+        $this->assertDatabaseCount('users', 23);
         $this->assertDatabaseCount('courier_profiles', 21);
         $this->assertDatabaseCount('vehicles', 21);
         $this->assertDatabaseCount('courier_logistics_affiliations', 21);
         $this->assertTrue(Hash::check('CourierSecret123', $primary->fresh()->password));
+        $this->assertSame('logistics@example.com', $primary->courierLogisticsAffiliation->organization->user->email);
+        $this->assertSame(CourierAffiliationStatus::Approved, $primary->courierLogisticsAffiliation->status);
+    }
+
+    private function createActiveLogistics(string $email, string $businessName): LogisticsOrganization
+    {
+        $user = User::factory()->create([
+            'email' => $email,
+            'role' => UserRole::Logistics,
+            'status' => UserStatus::Active,
+        ]);
+        $address = Address::create([
+            'user_id' => $user->id,
+            'type' => AddressType::Both,
+            'label' => 'Operational hub/sorting-center address',
+            'recipient_name' => $businessName,
+            'contact_number' => '+639171111114',
+            'address_line_1' => '99 Other Hub Road',
+            'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City',
+            'province' => 'Metro Manila',
+            'region' => 'National Capital Region',
+            'postal_code' => '1200',
+            'country' => 'Philippines',
+            'is_default' => true,
+        ]);
+        $organization = LogisticsOrganization::create([
+            'user_id' => $user->id,
+            'business_name' => $businessName,
+        ]);
+        $organization->hub()->create([
+            'address_id' => $address->id,
+            'name' => $businessName.' Hub',
+        ]);
+
+        return $organization->load('hub');
     }
 }
