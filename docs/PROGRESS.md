@@ -417,3 +417,13 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Updated `docs/architecture.md` to identify the four current frontend applications (Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard), while keeping Courier explicitly external and Flutter/mobile-only.
+
+## 2026-09-08
+
+- Added `docs/features/courier/rules.md` with the Courier feature-spec revision workflow, explicit Flutter API handoff requirements, backend/security/testing guardrails, and a 200–230-line feature-spec length rule. No application behavior changed.
+
+## 2026-09-08
+
+- Revised the Courier Authentication and Dashboard specifications against the current Laravel Courier foundation and shared order/Logistics contracts. Auth now documents exact bearer-token, multipart registration, Logistics approval, error, privacy, and Flutter handoff behavior; Dashboard now truthfully marks its API and operational queue as unavailable until the shared Shipment/Delivery Task schema exists. Both specs are 200–230 physical lines. No application behavior or migrations changed.
+
+- Implemented the Courier Dashboard API scaffold for the external Flutter client. Added protected `GET /api/v1/courier/dashboard` access through Courier role/status/affiliation middleware, private no-store response headers, explicit unavailable notification/available-task/active-task sections, server freshness metadata, and no fabricated operational data while Shipment/Delivery Task tables remain deferred. Added guest, wrong-role, pending-account, privacy, and scaffold contract coverage; focused tests pass (4 tests, 20 assertions). No Courier web UI or operational mutation endpoint was added.
