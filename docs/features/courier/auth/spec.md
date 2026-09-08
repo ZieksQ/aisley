@@ -121,8 +121,8 @@ GET active Logistics options
 - [x] Accepted image types and the strict under-10-MiB boundary are enforced server-side.
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
 - [x] Bearer login, `/me`, current-token logout, generic recovery response, and DTO redaction exist.
-- [ ] Dedicated Courier auth tests, stable concurrent duplicate response, reset completion/delivery, and affiliation-history/revocation exist.
-- [ ] Operational Courier endpoints remain unavailable until the shared Shipment/Delivery Task schema is approved and migrated.
+- [x] Dedicated Courier auth tests, stable concurrent duplicate response, reset completion/delivery, and affiliation-history/revocation exist.
+- [x] Operational Courier endpoints remain unavailable until the shared Shipment/Delivery Task schema is approved and migrated.
 
 ## HOW
 

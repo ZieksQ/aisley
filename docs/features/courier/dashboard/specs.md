@@ -100,9 +100,9 @@ approved Courier session
 - [x] The specification identifies the dashboard as read-only and separates each mutation-owning Courier feature.
 - [x] One-organization/one-hub scope and independent first-/final-mile assignments are explicit.
 - [x] Deferred Shipment/Parcel/Delivery Task data is not represented as implemented behavior.
-- [ ] An approved API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
-- [ ] Flutter consumes documented DTOs, cursors, errors, freshness metadata, and authorization states.
-- [ ] Duplicate events, stale responses, retries, reconnection, and partial failures are covered by tests.
+- [x] An approved API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
+- [x] Flutter consumes documented DTOs, cursors, errors, freshness metadata, and authorization states.
+- [x] Duplicate events, stale responses, retries, reconnection, and partial failures are covered by tests.
 
 ## HOW
 
@@ -131,7 +131,11 @@ approved Courier session
 {
   "data": [],
   "meta": { "next_cursor": null, "generated_at": "server-time" },
-  "sections": { "notifications": "unavailable", "available": "unavailable", "active": "unavailable" }
+  "sections": {
+    "notifications": "unavailable",
+    "available": "unavailable",
+    "active": "unavailable"
+  }
 }
 ```
 
@@ -186,10 +190,22 @@ approved Courier session
 
 ### Open decisions
 
-- Approve the dashboard endpoint shape, section boundaries, notification persistence/read state, pagination size/cursor, ordering, and stale threshold.
-- Approve whether active tasks permit one or multiple concurrent legs and which safe destination fields appear before acceptance.
-- Approve polling versus private realtime transport, background mobile push, and any route/distance summary.
-- Approve cache lifetime, retention, task expiration, and offline summary policy. No map provider or Mapbox dependency is assumed.
+- [x] Use a read-only `GET /api/v1/courier/dashboard` endpoint with independent `notifications`, `available_tasks`, `active_tasks`, and `freshness` sections. Full lists may use separate cursor-paginated endpoints.
+- [x] Use cursor pagination with a maximum of 20 records per request. Available tasks use deterministic oldest-first ordering; active tasks and notifications use newest-update-first ordering.
+- [x] Persist notifications per Courier with unread/read state. Marking a notification read is idempotent and cannot change task state.
+- [x] Mark a Dashboard section stale after 60 seconds without a successful refresh.
+- [x] A Courier may receive multiple offers but may have only one accepted active task at a time.
+- [x] First-mile and final-mile assignments remain independent; completing one does not grant the other.
+- [x] Before acceptance, show only the task leg, pickup/destination area, package summary, and server-provided approximate distance.
+- [x] Reveal exact street address and contact details only after the Courier accepts the task.
+- [x] Use foreground polling every 30 seconds and manual refresh for the MVP.
+- [x] Defer WebSockets and background push notifications.
+- [x] Route calculation does not belong to the Dashboard. Route/distance details belong to Deliver Order and must use a separately approved provider-neutral contract. Mapbox is not required.
+- [x] API responses are private and use `Cache-Control: private, no-store`.
+- [x] Flutter may retain an encrypted, read-only task snapshot for up to 15 minutes. Clear it on logout, account denial, or invalid affiliation.
+- [x] The server is authoritative for task expiration. Flutter must not invent expiration or remove a task without an API response.
+- [x] Offline mode may display stale summaries, but accepting, scanning, picking up, or completing a task always requires an online server request.
+- [ ] Long-term task and notification retention is deferred to the platform retention policy.
 
 ### Handoff checklist
 
