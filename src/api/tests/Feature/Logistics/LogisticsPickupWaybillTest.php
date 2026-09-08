@@ -94,6 +94,7 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->assertStringContainsString('private', (string) $pdf->headers->get('Cache-Control'));
         $this->assertStringContainsString('no-store', (string) $pdf->headers->get('Cache-Control'));
         $this->assertStringStartsWith('%PDF-', (string) $pdf->getContent());
+        $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', (string) $pdf->getContent()));
         $this->assertDatabaseCount('waybill_access_events', 1);
         $this->get("/api/v1/seller/pickup-requests/{$pickupId}/waybills.pdf")->assertOk();
         $this->assertDatabaseCount('waybill_access_events', 2);
