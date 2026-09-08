@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
+use App\Http\Controllers\Courier\DashboardController as CourierDashboardController;
 use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -247,6 +248,10 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
         Route::get('/me', [CourierAuthController::class, 'show'])->name('me');
         Route::post('/logout', [CourierAuthController::class, 'logout'])->name('logout');
     });
+});
+
+Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active'])->group(function () {
+    Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
 });
 
 Route::get('v1/product-description-assets/{asset}', ProductDescriptionAssetController::class)

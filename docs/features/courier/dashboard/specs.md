@@ -3,13 +3,14 @@ feature: courier-dashboard
 title: Courier Dashboard
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Conceptual; API unavailable; operational schema deferred
-implementation_status: no Courier dashboard API or UI in this repository
+version: 2.1
+status: Implemented scaffold; operational schema deferred
+implementation_status: read-only API scaffold implemented; operational sections unavailable
 canonical: true
 role: Courier / Rider
-scope: External Flutter mobile client and future Laravel read API
+scope: External Flutter mobile client and Laravel read API scaffold
 backend_contract_commit: d817a10
+backend_contract_version: courier-dashboard-scaffold-v1
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md
 ---
 
@@ -18,7 +19,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 ## WHAT
 
 - **Purpose:** Provide the external Flutter Courier app with one read-oriented view of new allocations, available pickup/delivery requests, and the Courier's active work.
-- **Current status:** No `/api/v1/courier/dashboard`, notification-feed, available-task, or active-task endpoint exists. No Courier UI belongs in this Laravel repository.
+- **Current status:** `GET /api/v1/courier/dashboard` is an implemented protected scaffold. It returns no operational records and marks notifications, available tasks, and active tasks unavailable until the shared operational schema exists. No Courier UI belongs in this Laravel repository.
 - **Future scope:** After the shared Shipment/Parcel/Delivery Task schema is approved and migrated, the dashboard may aggregate server-authorized task summaries and link to stateful Courier features.
 - **Mobile boundary:** Flutter owns screens, secure token storage, refresh behavior, and accessibility. Laravel owns identity, authorization, tenant scope, task eligibility, status, and data freshness.
 - **MVP relationship:** A Courier operates only within one approved Logistics organization and its sole operational hub. First-mile Seller pickup and final-mile hub delivery are independent task legs.
@@ -26,7 +27,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 
 ```text
 approved Courier session
-→ future read endpoint returns authorized summaries
+→ dashboard scaffold returns unavailable operational sections
 → Flutter displays notifications, available work, and active work
 → tap navigates to an owning feature
 → owning API performs the state mutation
@@ -36,7 +37,7 @@ approved Courier session
 
 ### Authority, access, and tenant scope
 
-- Any future dashboard endpoint must use `auth:sanctum` and `courier.active`.
+- The dashboard endpoint must use `auth:sanctum` and `courier.active`.
 - The server must recheck `courier` role, active account, approved affiliation, active Logistics owner, and valid sole hub on every request.
 - Resolve `user → Courier affiliation → Logistics organization → sole hub` server-side. Never accept client `courier_id`, `organization_id`, `hub_id`, role, status, or assignment as authority.
 - Every row, count, notification, cursor, cache key, and event must belong to the authenticated Courier and its authorized Logistics organization/hub.
@@ -54,7 +55,7 @@ approved Courier session
 
 ### Current versus future content
 
-- Current Laravel data proves only Courier authentication, affiliation, profile, vehicle, address, registration evidence, and Logistics approval.
+- Current Laravel data and the dashboard scaffold prove only Courier authentication, affiliation, profile, vehicle, address, registration evidence, and Logistics approval.
 - The dashboard must not fabricate a task queue from `orders`, current notifications, or cached order data while operational tables are deferred.
 - Future available work may include a first-mile pickup at a Seller and a final-mile pickup at the Logistics organization's sole hub.
 - Future active work may include an accepted first-mile or final-mile task, but the server must identify its task leg explicitly.
@@ -76,7 +77,7 @@ approved Courier session
 
 ### Notifications and freshness
 
-- No Courier notification endpoint or push-provider contract is implemented today. Do not make Flutter call a guessed route.
+- No separate Courier notification endpoint or push-provider contract is implemented today. The dashboard only reports the notification section as unavailable; Flutter must not call a guessed route.
 - A future in-app allocation notification must identify the owning task and be deduplicated by a stable event/assignment ID.
 - Email/SMS delivery is not required to render an in-app dashboard allocation. Provider failure cannot reverse a committed task decision.
 - Polling or an authorized private realtime channel may refresh data after a contract exists; the transport and interval remain open decisions.
@@ -96,25 +97,29 @@ approved Courier session
 
 ### Acceptance criteria
 
-- [x] The repository does not advertise a Courier dashboard endpoint or build a Courier web UI.
+- [x] The repository exposes only a read-only Courier dashboard scaffold and builds no Courier web UI.
 - [x] The specification identifies the dashboard as read-only and separates each mutation-owning Courier feature.
 - [x] One-organization/one-hub scope and independent first-/final-mile assignments are explicit.
 - [x] Deferred Shipment/Parcel/Delivery Task data is not represented as implemented behavior.
-- [x] An approved API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
-- [x] Flutter consumes documented DTOs, cursors, errors, freshness metadata, and authorization states.
-- [x] Duplicate events, stale responses, retries, reconnection, and partial failures are covered by tests.
+- [x] The protected dashboard scaffold returns bounded empty data, explicit unavailable section reasons, freshness metadata, and private cache headers.
+- [x] The scaffold's guest, wrong-role, pending-account, privacy, and no-operational-data behavior is covered by API tests.
+- [ ] An operational API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
+- [ ] Flutter consumes live operational DTOs, cursors, and task-state responses.
+- [ ] Duplicate events, stale responses, retries, reconnection, and partial operational failures are covered by tests.
 
 ## HOW
 
-### Endpoint status and proposed implementation boundary
+### Endpoint status and implementation boundary
 
-- **No usable Courier Dashboard endpoint exists at commit `d817a10`.** Flutter must not call `/api/v1/courier/dashboard` or any similarly named route until it is implemented and documented.
+- **Implemented scaffold:** `GET /api/v1/courier/dashboard` requires `auth:sanctum` and `courier.active`, accepts no query fields, performs no mutations, and returns an empty `data` array with `notifications`, `available_tasks`, and `active_tasks` sections marked `unavailable` with reason `OPERATIONAL_SCHEMA_DEFERRED`.
+- The response includes `meta.next_cursor = null`, server `generated_at`, and `freshness.state = scaffold`. It sends `Cache-Control: private, no-store` and never queries or fabricates Orders, tasks, assignments, notifications, or hub activity.
+- Guests receive `401`; wrong-role, pending, rejected, suspended, deactivated, or invalid-affiliation requests are denied by `courier.active` with the existing Courier auth error contract.
 - `GET /api/v1/logistics/dashboard` is a Logistics-only scaffold and is not a Courier data source; a Courier token must receive `FORBIDDEN_ROLE` there.
-- A future dashboard route must use `/api/v1/courier/...`, be protected by `auth:sanctum` and `courier.active`, and state whether it is implemented, scaffold-only, planned, or unavailable.
-- The future contract must document method/path, request query fields, prohibited fields, response DTO/nullability, stable errors, pagination/cursors, ordering, cache headers, retry/idempotency, and related tests.
+- Future operational sections or routes must use `/api/v1/courier/...`, remain protected by the same middleware, and state whether they are implemented, scaffold-only, planned, or unavailable.
+- The future operational contract must document method/path, request query fields, prohibited fields, response DTO/nullability, stable errors, pagination/cursors, ordering, cache headers, retry/idempotency, and related tests.
 - Separate notification, available-task, and active-task routes are acceptable only if each has an explicit ownership and consistency contract; one aggregate route is also acceptable if sections distinguish failure from zero.
 
-### Future endpoint contract template
+### Future operational endpoint contract template
 
 - Identify each endpoint as `implemented`, `scaffold-only`, `planned`, or `unavailable`; a draft route is never callable by Flutter.
 - State the exact HTTP method and path under `/api/v1/courier/`, including whether a route is a list, detail, or aggregate read.
@@ -132,19 +137,20 @@ approved Courier session
   "data": [],
   "meta": { "next_cursor": null, "generated_at": "server-time" },
   "sections": {
-    "notifications": "unavailable",
-    "available": "unavailable",
-    "active": "unavailable"
-  }
+    "notifications": { "state": "unavailable", "reason": "OPERATIONAL_SCHEMA_DEFERRED" },
+    "available_tasks": { "state": "unavailable", "reason": "OPERATIONAL_SCHEMA_DEFERRED" },
+    "active_tasks": { "state": "unavailable", "reason": "OPERATIONAL_SCHEMA_DEFERRED" }
+  },
+  "freshness": { "state": "scaffold", "reason": "OPERATIONAL_SCHEMA_DEFERRED", "generated_at": "server-time" }
 }
 ```
 
-- The example is a documentation shape, not an implemented response. Replace it only when the backend contract is approved.
+- This is the implemented scaffold response shape; replace unavailable sections only when the backend operational contract is approved.
 
 ### Flutter screen contract
 
 - The initial screen checks secure-token presence and calls the documented endpoint; a token alone never unlocks operational data.
-- Render an unavailable/scaffold state while the API is absent, with no fake tasks or action buttons that imply a working backend.
+- Render an unavailable/scaffold state for the unavailable sections, with no fake tasks or action buttons that imply a working operational backend.
 - Render independent section states so a notification failure does not hide a successful active-task section or become a false empty queue.
 - Keep task cards read-only on the Dashboard; tap targets navigate to the owning feature and pass only the server identifier.
 - Preserve the last authorized snapshot only for the documented cache window and clear it on logout, account denial, or affiliation invalidation.
@@ -186,7 +192,7 @@ approved Courier session
 - Operational tests must cover first-/final-mile leg separation, accepted versus assigned states, stale revisions, concurrent reads, duplicate events, and post-commit notification failure.
 - Flutter tests must cover parsing fixtures, loading/empty/stale/partial/offline/forbidden states, cursor pagination, refresh races, duplicate-event deduplication, logout cache clearing, and accessibility semantics.
 - Mocks may support deterministic widget tests but cannot replace contract verification against Laravel once the endpoint exists.
-- Do not mark this feature implementation-ready until the shared schema, endpoint contract, Flutter copy, API-version record, and `PROGRESS.md` entry are updated.
+- Do not mark the operational sections implementation-ready until the shared schema, endpoint contract, Flutter copy, API-version record, and `PROGRESS.md` entry are updated.
 
 ### Open decisions
 
