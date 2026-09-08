@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Courier\DashboardController as CourierDashboardController;
+use App\Http\Controllers\Courier\FirstMileTaskController;
 use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
+use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
@@ -218,6 +220,8 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/orders/{order}/approve', [SellerOrderController::class, 'accept'])->whereUuid('order')->name('orders.approve');
     Route::post('/orders/{order}/reject', [SellerOrderController::class, 'reject'])->whereUuid('order')->name('orders.reject');
     Route::post('/orders/pickup-requests', [SellerOrderController::class, 'requestPickup'])->name('orders.pickup-requests.store');
+    Route::get('/logistics-options', [SellerOrderController::class, 'logisticsOptions'])->name('logistics-options.index');
+    Route::get('/pickup-requests/{pickup}/waybills.pdf', [SellerOrderController::class, 'pickupWaybills'])->whereUuid('pickup')->name('pickup-requests.waybills');
     Route::post('/notifications/{notification}/read', [SellerOrderController::class, 'markNotificationRead'])->whereUuid('notification')->name('notifications.read');
     Route::get('/orders/{order}/waybill', [SellerOrderController::class, 'waybill'])->whereUuid('order')->name('orders.waybill');
 });
@@ -237,6 +241,13 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
+    Route::get('/pickups', [LogisticsPickupController::class, 'index'])->name('pickups.index');
+    Route::get('/pickups/{pickup}', [LogisticsPickupController::class, 'show'])->whereUuid('pickup')->name('pickups.show');
+    Route::get('/pickups/{pickup}/waybills', [LogisticsPickupController::class, 'waybills'])->whereUuid('pickup')->name('pickups.waybills');
+    Route::get('/waybills/{waybill}.pdf', [LogisticsPickupController::class, 'waybillPdf'])->whereUuid('waybill')->name('waybills.pdf');
+    Route::post('/pickup-schedules', [LogisticsPickupController::class, 'createSchedule'])->name('pickup-schedules.store');
+    Route::patch('/pickup-schedules/{schedule}', [LogisticsPickupController::class, 'reviseSchedule'])->whereUuid('schedule')->name('pickup-schedules.update');
+    Route::post('/pickup-schedules/{schedule}/cancel', [LogisticsPickupController::class, 'cancelSchedule'])->whereUuid('schedule')->name('pickup-schedules.cancel');
 });
 
 Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
@@ -252,6 +263,9 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active'])->group(function () {
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
+    Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');
+    Route::post('/waybills/resolve', [FirstMileTaskController::class, 'resolveWaybill'])->middleware('throttle:60,1')->name('waybills.resolve');
 });
 
 Route::get('v1/product-description-assets/{asset}', ProductDescriptionAssetController::class)

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Seller;
 
+use App\Enums\AddressType;
 use App\Enums\CategoryStatus;
 use App\Enums\InventoryMovementType;
 use App\Enums\InventorySkuStatus;
@@ -191,22 +192,32 @@ class SellerAcceptOrderTest extends TestCase
         $one->update(['status' => OrderStatus::SellerProcessing]);
         $two->update(['status' => OrderStatus::SellerProcessing]);
         $logistics = User::factory()->create(['role' => UserRole::Logistics, 'status' => UserStatus::Active]);
-        $logistics->logisticsOrganization()->create(['business_name' => 'Pickup Logistics']);
+        $hubAddress = $logistics->addresses()->create([
+            'type' => AddressType::Both, 'label' => 'Hub', 'recipient_name' => 'Hub Operator',
+            'contact_number' => '09170000000', 'address_line_1' => '2 Hub Road', 'barangay' => 'Poblacion',
+            'city_municipality' => 'Manila', 'province' => 'Metro Manila', 'region' => 'NCR',
+            'postal_code' => '1000', 'country' => 'PH', 'is_default' => true,
+        ]);
+        $organization = $logistics->logisticsOrganization()->create(['business_name' => 'Pickup Logistics']);
+        $organization->hub()->create(['address_id' => $hubAddress->id, 'name' => 'Pickup Hub']);
         $key = (string) Str::uuid();
 
         $response = $this->actingAs($seller)->withHeader('Idempotency-Key', $key)
-            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$one->id, $two->id]])
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$one->id, $two->id], 'logistics_organization_id' => $organization->id])
             ->assertOk()->assertJsonPath('data.status', 'pending_logistics')
-            ->assertJsonPath('data.pickup_date', null)->assertJsonPath('data.logistics_organization_id', null);
+            ->assertJsonPath('data.pickup_date', null)->assertJsonPath('data.logistics_organization_id', $organization->id)
+            ->assertJsonCount(2, 'data.waybills');
         $requestId = $response->json('data.id');
         $this->withHeader('Idempotency-Key', $key)
-            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$two->id, $one->id]])
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$two->id, $one->id], 'logistics_organization_id' => $organization->id])
             ->assertOk()->assertJsonPath('data.id', $requestId);
 
         $this->assertSame(OrderStatus::ReadyForPickup, $one->fresh()->status);
         $this->assertSame(OrderStatus::ReadyForPickup, $two->fresh()->status);
         $this->assertDatabaseCount('seller_pickup_requests', 1);
         $this->assertDatabaseCount('seller_pickup_request_orders', 2);
+        $this->assertDatabaseCount('waybills', 2);
+        $this->assertDatabaseCount('waybill_snapshots', 2);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $logistics->id, 'type' => 'logistics-pickup.requested']);
     }
 
@@ -216,6 +227,12 @@ class SellerAcceptOrderTest extends TestCase
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
         $shopCategory = ShopCategory::create(['name' => "General {$suffix}", 'slug' => "general-{$suffix}", 'status' => CategoryStatus::Active]);
         $shop = Shop::create(['seller_id' => $seller->id, 'shop_category_id' => $shopCategory->id, 'name' => "Shop {$suffix}", 'slug' => "shop-{$suffix}", 'status' => ShopStatus::Active]);
+        $seller->addresses()->create([
+            'type' => AddressType::Both, 'label' => 'Shop pickup', 'recipient_name' => "Seller {$suffix}",
+            'contact_number' => '09171111111', 'address_line_1' => '1 Seller Road', 'barangay' => 'Poblacion',
+            'city_municipality' => 'Manila', 'province' => 'Metro Manila', 'region' => 'NCR',
+            'postal_code' => '1000', 'country' => 'PH', 'is_default' => true,
+        ]);
 
         return [$seller, $shop];
     }

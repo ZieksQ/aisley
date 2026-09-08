@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, catalog/inventory, Cart, Customer checkout/order schema, and Logistics/Courier authentication foundation
+> **Status:** Implemented foundation, marketplace/order schema, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile assignment foundation
 >
-> **Last synchronized:** 2026-09-07
+> **Last synchronized:** 2026-09-08
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -30,9 +30,7 @@ The current authentication and Logistics foundation includes:
 
 Admin approves Logistics registration applications. The associated Logistics organization approves or rejects its Courier affiliations. Admin account lifecycle actions such as suspension, restoration, and deactivation remain separate from Courier affiliation approval.
 
-The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Shipment, waybill, scan, pickup, delivery-task, assignment, and proof-of-delivery tables remain deferred.
-
-Before any Logistics or Courier shipment action is implemented, `docs/workspace.md`, this schema, the affected domain documents, and the affected feature specifications must describe one consistent operational contract. The complete shared operational schema must then be defined and migrated before those actions can write Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, proof-of-delivery, or detailed physical-status data. No feature may invent a detailed status in `orders.status` or silently treat a high-level Order status as a physical scan.
+The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Seller pickup requests, immutable shared waybills, schedules, and first-mile assignment/acceptance records are implemented. Physical-custody scans, Shipment/Parcel milestones, hub processing, final-mile tasks, and proof of delivery remain deferred and must not be inferred from the first-mile schedule records.
 
 ### Implemented Logistics cardinality and deferred operations
 
@@ -41,7 +39,7 @@ Before any Logistics or Courier shipment action is implemented, `docs/workspace.
 - The Logistics registration address is the organization's sole operational hub/sorting-center address. The Logistics account operates that hub through the Logistics dashboard; no separate hub or sub-hub address is collected.
 - Courier registration selects the Logistics organization; the sole hub is derived server-side rather than supplied as a client-controlled ID.
 - Current foundation cardinality is one Logistics user per organization. Staff/sub-account support is a later authorization decision and is not part of this foundation.
-- Deferred parcel, waybill, scan, pickup, delivery-task, assignment, fleet, zone, capacity, subscription, and proof-of-delivery records must resolve through the organization's sole hub when introduced.
+- Implemented pickup requests, waybills, schedules, first-mile tasks, and reminders resolve through the organization's sole hub. Deferred Shipment/Parcel, physical-scan, final-mile, fleet, zone, capacity, subscription, and proof-of-delivery records must preserve that scope when introduced.
 
 ## 2. Database conventions
 
@@ -1030,6 +1028,16 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 `policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. User-facing consent presentation and enforcement remain a separate integration decision.
 
+### 9.17 Seller pickup, shared waybill, and first-mile scheduling
+
+`seller_pickup_requests` now freezes the selected `logistics_organization_id` and derived sole `logistics_hub_id` for every new API-created request. It persists the locally derived PSGC match tier plus optional Geoapify road-distance value/status, calculation time, and coordinate fingerprints. `seller_pickup_request_orders.position` preserves the Seller-selected bulk-print order.
+
+`waybills` has one UUID row per Order through unique `order_id`, with unique non-sequential human reference and keyed QR-payload hash. It retains the pickup request, Shop, selected organization, sole hub, status, template/schema versions, and immutable content checksum. `waybill_snapshots` stores the server-owned printable payload one-to-one; `waybill_access_events` appends authorized view/download/bulk-download/resolve actions without claiming physical printing or custody.
+
+`pickup_schedules` belongs to one organization/hub and one approved affiliated Courier, stores a UTC future window, revision, status, human reference, and organization-scoped idempotency key. `pickup_schedule_orders` retains schedule/request/Order membership. `first_mile_tasks` creates one task per scheduled Order and waybill; PostgreSQL enforces one active task per Order with a partial unique index over `assigned`, `accepted`, and `picked_up_from_seller`. `pickup_schedule_history` retains create/revise/cancel snapshots and reasons. `pickup_schedule_reminders` stores one durable reminder per schedule revision with claim, retry, success, failure, superseded, and suppression state.
+
+Scheduling and Courier acknowledgement do not mutate `orders.status`, custody, payment, or Inventory. A separate approved transition must own `picked_up_from_seller` and its Inventory fulfillment effect.
+
 ## 10. Framework infrastructure tables
 
 These tables are created by the Laravel foundation migrations and do not have application-domain Eloquent models.
@@ -1141,11 +1149,11 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 43. Compliance actions require the persisted expected case revision and a unique idempotency key; cases, affected Products, Sellers, and active restrictions are rechecked under database locks.
 44. Active Product compliance restrictions override publication state across discovery, Product Detail, Cart, Checkout, Seller publish, and Seller unarchive without deleting catalog, Inventory, or historical Order data.
 45. Seller suspension referrals use the canonical Account Management lifecycle service and require the exact `email/seller` confirmation; compliance does not write `users.status` directly.
-46. When Seller pickup selection is implemented, the chosen Logistics organization must be server-validated as eligible. It is stored on the pickup/fulfillment context and cannot be silently replaced after pickup-request commitment.
+46. Seller pickup selection server-validates the chosen Logistics organization, stores it with the derived sole hub and recommendation evidence, and cannot silently replace it after commitment.
 47. An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reserved SKU quantities, exactly once and transactionally. `picked_up_from_seller` commits the reservation to fulfillment without decrementing `on_hand` twice; post-pickup release, returns, refunds, and partial fulfillment require a later approved policy.
 48. The Seller pickup-request transaction creates one immutable shared waybill per Order at `ready_for_pickup`. Its identifier, snapshot, selected Logistics organization, and Order/Parcel link do not change; later route, assignment, print, and scan activity appends events rather than overwriting history.
 49. Once the shared schema exists, a `ready_for_pickup` Order with a selected Logistics organization may have at most one active first-mile task; creation is authorized only to that organization and is idempotent across retries.
-50. Shipment/Parcel/Waybill/Scan/Delivery Task and assignment writes are prohibited until the reconciled shared operational schema and transition contract are approved and migrated.
+50. The implemented waybill/schedule/first-mile assignment slice cannot write physical custody or Inventory effects. Shipment/Parcel milestones, physical Scan events, final-mile tasks, assignments beyond the approved first-mile schedule, and proof-of-delivery writes remain prohibited until their shared transition contract is approved and migrated.
 
 ## 13. Migration order
 
@@ -1200,6 +1208,9 @@ Migrations currently run in this dependency order:
 47. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
 48. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
 49. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
+50. `2026_09_06_000004_create_seller_order_acceptances_table.php` — idempotent Seller Order acceptance history.
+51. `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php` — Seller rejection history and transitional grouped pickup requests.
+52. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
 
 ## 14. Deferred schema
 
@@ -1210,7 +1221,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Catalog and inventory      | Reservation release before first-mile pickup and conversion at `picked_up_from_seller` are the approved next boundary; post-pickup release, returns/refunds, and partial-fulfillment records remain deferred |
 | Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
 | Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
-| First-party logistics      | Complete shared Shipments/parcels, Seller-created shared waybills, scan events, first-mile pickup/final-delivery tasks, assignments, proof of delivery, Courier availability, and Courier earnings; the Seller-selected Logistics context, one-organization/one-hub scope, and operational transition contract must be defined before action implementation; Logistics identity, organization, sole hub, and Courier affiliation are implemented |
+| First-party logistics      | Physical Shipment/Parcel and Scan milestones, hub receipt/sort/transfer/dispatch, final-mile tasks, proof of delivery, Courier availability, and Courier earnings. Seller-selected pickup requests, shared waybills, pickup schedules, and first-mile assignment/acceptance are implemented. |
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |

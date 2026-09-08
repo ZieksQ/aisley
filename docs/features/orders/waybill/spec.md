@@ -4,7 +4,7 @@ title: Seller-Created Pickup Waybill
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: Implementation-ready draft
+status: API and A6 PDF implemented; Seller and Logistics UI pending
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 ---

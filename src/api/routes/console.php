@@ -15,3 +15,8 @@ Schedule::command('audit:dispatch-pending')
 Schedule::command('products:cleanup-assets')
     ->hourly()
     ->withoutOverlapping();
+
+Schedule::command('pickups:dispatch-reminders')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

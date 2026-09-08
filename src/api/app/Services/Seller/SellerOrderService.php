@@ -81,6 +81,7 @@ class SellerOrderService
             'address',
             'statusEvents' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
             'pickupRequestOrder.sellerPickupRequest',
+            'waybill:id,order_id,reference,created_at',
         ];
     }
 
@@ -106,7 +107,7 @@ class SellerOrderService
             $order->setAttribute('seller_can_approve', $this->canApprove($order));
             $order->setAttribute('seller_can_reject', $this->canApprove($order));
             $order->setAttribute('seller_can_prepare', $order->status === OrderStatus::SellerProcessing);
-            $order->setAttribute('seller_can_view_waybill', false);
+            $order->setAttribute('seller_can_view_waybill', $order->waybill !== null);
         }
     }
 

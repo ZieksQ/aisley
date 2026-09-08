@@ -11,6 +11,9 @@
     "require": {
         "php": "^8.3",
         "azure-oss/storage-blob-laravel": "^2.2",
+        "bacon/bacon-qr-code": "^3.1",
+        "barryvdh/laravel-dompdf": "^3.1.2",
+        "dompdf/dompdf": "^3.1.6",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0"

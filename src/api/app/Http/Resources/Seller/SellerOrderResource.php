@@ -71,6 +71,12 @@ class SellerOrderResource extends JsonResource
                 'pickup_date' => $this->pickupRequestOrder->sellerPickupRequest->pickup_date?->toDateString(),
                 'logistics_organization_id' => $this->pickupRequestOrder->sellerPickupRequest->logistics_organization_id,
             ],
+            'waybill' => $this->waybill === null ? null : [
+                'id' => $this->waybill->id,
+                'reference' => $this->waybill->reference,
+                'created_at' => $this->waybill->created_at->toISOString(),
+                'pdf_url' => "/api/v1/seller/orders/{$this->id}/waybill",
+            ],
             'notification' => $this->seller_notification_id === null ? null : [
                 'id' => $this->seller_notification_id,
                 'read_at' => $this->seller_notification_read_at?->toIso8601String(),
