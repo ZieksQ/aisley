@@ -109,6 +109,18 @@ export async function apiBlobRequest(path: string): Promise<Blob> {
   return response.blob()
 }
 
+export async function apiPdfRequest(path: string): Promise<Blob> {
+  const response = await fetch(url(path), {
+    credentials: 'include',
+    headers: { Accept: 'application/pdf' },
+  })
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as ErrorPayload
+    throw new ApiError(response.status, payload)
+  }
+  return response.blob()
+}
+
 export function readableAuthError(error: ApiError): string {
   if (error.code === 'ACCOUNT_PENDING_APPROVAL') {
     return 'Your Seller application is still waiting for Admin approval.'

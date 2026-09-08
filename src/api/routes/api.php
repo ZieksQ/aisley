@@ -244,6 +244,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/pickups', [LogisticsPickupController::class, 'index'])->name('pickups.index');
     Route::get('/pickups/{pickup}', [LogisticsPickupController::class, 'show'])->whereUuid('pickup')->name('pickups.show');
     Route::get('/pickups/{pickup}/waybills', [LogisticsPickupController::class, 'waybills'])->whereUuid('pickup')->name('pickups.waybills');
+    Route::get('/pickup-couriers', [LogisticsPickupController::class, 'couriers'])->name('pickup-couriers.index');
     Route::get('/waybills/{waybill}.pdf', [LogisticsPickupController::class, 'waybillPdf'])->whereUuid('waybill')->name('waybills.pdf');
     Route::post('/pickup-schedules', [LogisticsPickupController::class, 'createSchedule'])->name('pickup-schedules.store');
     Route::patch('/pickup-schedules/{schedule}', [LogisticsPickupController::class, 'reviseSchedule'])->whereUuid('schedule')->name('pickup-schedules.update');

@@ -43,6 +43,7 @@ export type SellerOrder = {
   }>
   capabilities: { can_approve: boolean; can_reject: boolean; can_prepare: boolean; can_view_waybill: boolean }
   pickup: null | { request_id: string; status: string; pickup_date: string | null; logistics_organization_id: string | null }
+  waybill: null | { id: string; reference: string; created_at: string; pdf_url: string }
   notification: null | { id: string; read_at: string | null }
 }
 

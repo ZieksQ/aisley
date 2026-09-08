@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Logistics;
 
+use App\Enums\CourierAffiliationStatus;
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\CancelPickupScheduleRequest;
 use App\Http\Requests\Logistics\CreatePickupScheduleRequest;
 use App\Http\Requests\Logistics\ListPickupsRequest;
 use App\Http\Requests\Logistics\RevisePickupScheduleRequest;
+use App\Models\CourierLogisticsAffiliation;
 use App\Models\PickupSchedule;
 use App\Models\SellerPickupRequest;
 use App\Models\Waybill;
@@ -70,6 +73,26 @@ class PickupController extends Controller
         $record = SellerPickupRequest::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->whereKey($pickup)->firstOrFail();
 
         return response()->json(['data' => $record->waybills()->orderBy('created_at')->orderBy('id')->get()->map(fn (Waybill $waybill) => ['id' => $waybill->id, 'order_id' => $waybill->order_id, 'reference' => $waybill->reference, 'created_at' => $waybill->created_at->toISOString(), 'printable' => true, 'pdf_url' => "/api/v1/logistics/waybills/{$waybill->id}.pdf"])]);
+    }
+
+    public function couriers(Request $request): JsonResponse
+    {
+        $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
+        $couriers = CourierLogisticsAffiliation::query()
+            ->where('logistics_organization_id', $org->id)
+            ->where('logistics_hub_id', $org->hub->id)
+            ->where('status', CourierAffiliationStatus::Approved)
+            ->whereHas('courier', fn ($query) => $query->where('status', UserStatus::Active))
+            ->with('courier.courierProfile')
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($affiliation) => [
+                'id' => $affiliation->courier_id,
+                'name' => trim(($affiliation->courier->courierProfile?->first_name ?? '').' '.($affiliation->courier->courierProfile?->last_name ?? '')),
+                'email' => $affiliation->courier->email,
+            ]);
+
+        return response()->json(['data' => $couriers]);
     }
 
     public function waybillPdf(Request $request, string $waybill, WaybillPdfService $pdf)

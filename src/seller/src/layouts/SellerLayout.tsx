@@ -103,7 +103,7 @@ export function SellerLayout() {
           </nav>
 
           <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
-            Package submission, pickup scheduling, and reporting are not available yet.
+            Pickup requests include a shared A6 waybill for every prepared Order.
           </p>
         </div>
 

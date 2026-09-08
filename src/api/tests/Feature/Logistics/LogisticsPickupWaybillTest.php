@@ -112,6 +112,8 @@ class LogisticsPickupWaybillTest extends TestCase
         $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$order->id], 'logistics_organization_id' => $organization->id])->json('data');
 
         $this->actingAs($foreign)->getJson("/api/v1/logistics/pickups/{$pickup['id']}")->assertNotFound();
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-couriers')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $courier->id);
         $this->actingAs($logistics)->getJson('/api/v1/logistics/pickups?search='.urlencode($order->reference))
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $pickup['id']);
         $this->getJson("/api/v1/logistics/pickups/{$pickup['id']}/waybills")
