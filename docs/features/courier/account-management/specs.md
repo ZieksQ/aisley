@@ -3,14 +3,14 @@ feature: courier-account-management
 title: Courier Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Phase 1 implementation-ready; API not implemented
-implementation_status: planned; no Courier account-management routes currently exist
-canonical: false
+version: 2.1
+status: Phase 1 implemented; Flutter handoff-ready
+implementation_status: implemented; three protected Courier account-management routes are available
+canonical: true
 role: Courier / Rider
 scope: Laravel API plus external Flutter mobile client
-backend_contract_commit: 3c4303d (auth/dashboard baseline; account endpoints absent)
-backend_contract_version: courier-account-management-v1 (planned)
+backend_contract_commit: implementation branch (Courier account-management API)
+backend_contract_version: courier-account-management-v1 (implemented)
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md
 ---
 
@@ -22,9 +22,9 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 - Phase 1 scope: own-account read, basic profile updates, and password change.
 - The API is the authority; Flutter only displays server responses and submits allow-listed fields.
 - Current foundation: Courier registration, Logistics affiliation approval, bearer login, /me, logout, profile, address, vehicle, and token tables exist.
-- Current gap: no Courier account-management controller, request, resource, service, route, or test exists.
-- This specification defines planned endpoints; planned routes are unavailable until the Laravel implementation is added and tested.
-- Because the API is absent, this reviewed plan is not a callable backend authority; mark it canonical after implementation and contract tests land.
+- Implemented foundation: the Laravel controller, Form Requests, resource, service, routes, throttle, and focused contract tests are present.
+- The three Phase 1 endpoints are available only through the protected `/api/v1/courier` bearer-token boundary.
+- This document is the callable backend contract for the implemented Phase 1 slice; Flutter must still be synchronized to it.
 
 Request flow:
     sign in and store bearer token
@@ -78,11 +78,11 @@ Non-goals:
 | --- | --- | --- |
 | GET /api/v1/courier/auth/me | implemented | identity and approval-gated session check |
 | POST /api/v1/courier/auth/logout | implemented | deletes the current personal access token |
-| GET /api/v1/courier/account | planned/unavailable | full Phase 1 account projection |
-| PATCH /api/v1/courier/account/profile | planned/unavailable | allow-listed profile update |
-| PUT /api/v1/courier/account/password | planned/unavailable | current-password change |
+| GET /api/v1/courier/account | implemented | full Phase 1 account projection |
+| PATCH /api/v1/courier/account/profile | implemented | allow-listed profile update |
+| PUT /api/v1/courier/account/password | implemented | current-password change |
 
-Flutter must not call an endpoint marked planned or unavailable.
+Flutter may call only the implemented endpoint versions listed here.
 ### Endpoint: account read
 - Method/path: GET /api/v1/courier/account.
 - Auth: auth:sanctum plus courier.active; no query parameters or client identity fields.
@@ -131,7 +131,7 @@ Example request:
 - 200 means the password was committed and all personal access tokens were revoked.
 - 401 means the bearer token is missing or invalid; 403 means the account is no longer eligible.
 - 422 covers invalid current_password, password policy failure, and confirmation mismatch.
-- 429 is returned when the configured credential-sensitive throttle is exceeded and includes Retry-After.
+- 429 is returned when the configured credential-sensitive throttle (5 requests per minute per Courier/IP) is exceeded and includes Retry-After.
 - Do not auto-retry this mutation. After a timeout, retain no password in memory, clear the token only after the result is known, and use login to verify access.
 - Response is private, no-store, and contains only a success message; it never returns a new token.
 
@@ -153,22 +153,22 @@ Example request:
 - Clear account data and navigation state after logout, token revocation, or a 401.
 
 ### Acceptance criteria
-- [ ] Guest, invalid-token, wrong-role, inactive, and invalid-affiliation requests cannot read or mutate the account.
-- [ ] A Courier can read only the account resolved from its bearer token.
-- [ ] Profile updates persist only the four allow-listed fields and preserve all other values.
-- [ ] Role, status, email, affiliation, hub, age, and registration evidence cannot be changed through profile update.
-- [ ] Invalid fields produce 422 errors without a partial write.
+- [x] Guest, invalid-token, wrong-role, inactive, and invalid-affiliation requests cannot read or mutate the account.
+- [x] A Courier can read only the account resolved from its bearer token.
+- [x] Profile updates persist only the four allow-listed fields and preserve all other values.
+- [x] Role, status, email, affiliation, hub, age, and registration evidence cannot be changed through profile update.
+- [x] Invalid fields produce 422 errors without a partial write.
 - [ ] Concurrent profile writes are serialized and return the latest committed projection.
-- [ ] Password change requires the current password and centralized password validation.
-- [ ] A successful password change revokes all Courier personal access tokens and forces fresh login.
-- [ ] Passwords, hashes, tokens, paths, and private evidence are absent from every DTO and log.
-- [ ] Responses are private and no-store; no personalized account data is shared-cached.
+- [x] Password change requires the current password and centralized password validation.
+- [x] A successful password change revokes all Courier personal access tokens and forces fresh login.
+- [x] Passwords, hashes, tokens, paths, and private evidence are absent from every DTO and log.
+- [x] Responses are private and no-store; no personalized account data is shared-cached.
 - [ ] Flutter handles loading, success, validation, forbidden, 401, 429, timeout, and offline states.
 
 ## HOW
 ### Backend implementation
-- Add Courier AccountController, Form Requests, AccountResource, and AccountService under the existing Courier namespaces.
-- Add routes under the protected /api/v1/courier group and reuse courier.active; do not add a browser-cookie route.
+- Added Courier AccountController, Form Requests, AccountResource, and AccountService under the existing Courier namespaces.
+- Added routes under the protected /api/v1/courier group and reused courier.active; no browser-cookie route was added.
 - Resolve the User from Request::user(), load exactly one CourierProfile, and never accept a target ID.
 - Use a database transaction and row lock for profile changes. Use Laravel Hash checks and the User hashed cast for password changes.
 - Revoke tokens only after a successful password write in the same transaction; return no replacement token.
@@ -194,9 +194,9 @@ Example request:
 - Backend tests must cover role/status/affiliation gates, IDOR attempts, prohibited fields, normalization, transaction rollback, concurrent updates, privacy, and token revocation.
 - Request tests must cover 401, 403, 422, 429, malformed JSON, duplicate keys, and oversized strings.
 - Flutter tests must cover JSON parsing, secure-storage failure, form validation, no-store refresh, 401 logout, 403 messages, timeout, offline recovery, and accessible announcements.
-- Add the route, controller, request, resource, service, and tests in one backend change; do not expose the planned endpoint earlier.
-- Run focused Laravel tests and Flutter analyzer/tests before marking the implementation complete.
-- Update this spec's backend_contract_commit after the API is implemented, then copy the synchronized spec to the Flutter project.
+- The route, controller, request, resource, service, and focused Laravel tests were added together; no endpoint was exposed before validation.
+- Focused Laravel tests and PHP formatting pass; Flutter analyzer/tests remain the external client's handoff work.
+- Synchronize this spec to the Flutter project before implementing its Account screen.
 - Append the implementation summary to docs/PROGRESS.md.
 
 ### Deferred decisions
@@ -212,4 +212,4 @@ Example request:
 - Courier bearer-token and Flutter boundaries come from courier/auth/spec.md and courier/rules.md.
 - File or image upload work must first adopt docs/references/file-upload-requirements.md.
 - Historical order-logistics decisions cannot authorize this feature or create operational records.
-- This Phase 1 contract is standalone, but its planned endpoints remain unavailable until implemented and tested.
+- This Phase 1 contract is standalone, and its three endpoints are available after the protected API tests pass.
