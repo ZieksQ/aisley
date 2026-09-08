@@ -4,6 +4,7 @@ import { createServer } from 'vite'
 
 let server
 let actions
+let logisticsOptions
 let ApiError
 let storage
 let requests
@@ -15,6 +16,7 @@ const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'sessionStor
 before(async () => {
   server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' })
   actions = await server.ssrLoadModule('/src/lib/sellerOrderActions.ts')
+  logisticsOptions = await server.ssrLoadModule('/src/lib/sellerLogisticsOptions.ts')
   ;({ ApiError } = await server.ssrLoadModule('/src/lib/api.ts'))
   globalThis.document = { cookie: 'XSRF-TOKEN=test-csrf' }
   Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: {
@@ -102,4 +104,20 @@ test('rejection and pickup requests send only their permitted payloads', async (
   assert.ok(requests[0].url.endsWith('/api/v1/seller/orders/pickup-requests'))
   assert.deepEqual(JSON.parse(requests[0].options.body), { order_ids: ['one', 'two'], logistics_organization_id: 'logistics-one' })
   assert.equal('pickup_date' in JSON.parse(requests[0].options.body), false)
+})
+
+test('logistics options deduplicate concurrent and short-lived repeated reads', async () => {
+  respond = () => Response.json({ data: [], meta: { attribution: ['Geoapify'] } })
+
+  await Promise.all([
+    logisticsOptions.getSellerLogisticsOptions('seller-options-cache'),
+    logisticsOptions.getSellerLogisticsOptions('seller-options-cache'),
+  ])
+  await logisticsOptions.getSellerLogisticsOptions('seller-options-cache')
+
+  assert.equal(requests.length, 1)
+  assert.ok(requests[0].url.endsWith('/api/v1/seller/logistics-options'))
+
+  await logisticsOptions.getSellerLogisticsOptions('seller-options-cache', true)
+  assert.equal(requests.length, 2)
 })

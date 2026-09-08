@@ -8,6 +8,13 @@ return [
         'last_name' => env('INITIAL_SELLER_LAST_NAME', 'Catalog'),
         'contact_number' => env('INITIAL_SELLER_CONTACT_NUMBER', '+639171234568'),
         'birth_date' => env('INITIAL_SELLER_BIRTH_DATE', '1995-01-01'),
+        'address_line_1' => env('INITIAL_SELLER_ADDRESS_LINE_1', '1 Seller Street'),
+        'address_line_2' => env('INITIAL_SELLER_ADDRESS_LINE_2'),
+        'barangay' => env('INITIAL_SELLER_BARANGAY', 'Poblacion'),
+        'city_municipality' => env('INITIAL_SELLER_CITY_MUNICIPALITY', 'Makati City'),
+        'province' => env('INITIAL_SELLER_PROVINCE', 'Metro Manila'),
+        'region' => env('INITIAL_SELLER_REGION', 'National Capital Region (NCR)'),
+        'postal_code' => env('INITIAL_SELLER_POSTAL_CODE', '1200'),
     ],
 
     'auth' => [
