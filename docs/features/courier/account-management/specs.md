@@ -1,970 +1,215 @@
 ---
-role: Courier/Rider
-feature: Account Management
+feature: courier-account-management
+title: Courier Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
-scope: Flutter Courier Mobile Application / Self-Service Profile and Security Settings
-source_coverage: Courier.md, app.md
+version: 2.0
+status: Phase 1 implementation-ready; API not implemented
+implementation_status: planned; no Courier account-management routes currently exist
+canonical: false
+role: Courier / Rider
+scope: Laravel API plus external Flutter mobile client
+backend_contract_commit: 3c4303d (auth/dashboard baseline; account endpoints absent)
+backend_contract_version: courier-account-management-v1 (planned)
+source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md
 ---
-# Courier / Rider Account Management Specification
-## 1. Purpose
-Courier / Rider Account Management is AISLEY's self-service settings feature for maintaining Courier profile, operational, payout, and login information.
-`Courier.md` defines:
-`Core Value: → Update Courier information. → Basically account settings.`
-Expanded definition:
-```text
-Profile management
-for the driver.
 
-Handles updates to:
-- vehicle details
-- license information
-- payout methods
-- secure login credentials
-```
-System context:
-```text
-Standard CRUD operations
-on the Couriers table.
-
-Sensitive updates
-(like changing vehicle types)
-
-may require middleware
-for administrative verification.
-```
-This feature is primarily self-service CRUD/settings behavior.
-A separate `flow.md` is not required because the source does not define a business-state lifecycle for Account Management itself.
-## 2. Primary Actor
-Primary actor:
-`COURIER / RIDER`
-The Courier manages account settings through the Flutter mobile application.
-## 3. Application Context
-From `app.md`:
-`Mobile App: → Rider → Storefront`
-Therefore Courier Account Management is mobile-first.
-## 4. Authentication
-Courier mobile authentication follows `app.md`:
-```text
-Flutter sends:
-credentials + device_name
-→ /login
-
-Laravel:
-createToken()
-→ personal access token
-
-Flutter:
-stores token in flutter_secure_storage
-
-Future requests:
-Authorization: Bearer <token>
-```
-All Account Management requests must resolve:
-`authenticated user_id → + → COURIER role`
-## 5. Account Identity Rule
-AISLEY identity uniqueness is:
-`unique(email, role)`
-A same-email Buyer/Seller/Logistics account is a separate role account.
-Never identify or update the Courier account using email alone.
-# Source Schema Tension
-## 6. Courier.md Schema Statement
-`Courier.md` says:
-`Standard CRUD operations → on the Couriers table.`
-## 7. app.md Shared User Model
-`app.md` says:
-`all roles live in the same users table`
-with:
-`unique(email, role)`
-## 8. Recommended Reconciliation
-Recommended architecture:
-```text
-users
-→ authentication / shared account identity
-
-courier_profiles or couriers
-→ Courier-specific operational profile
-```
-This recommendation preserves both source statements without requiring all Courier-specific fields to live directly on `users`.
-## 9. Schema Is Not Finalized
-The exact table layout remains an Open Decision.
-Do not silently assume either:
-`everything is on users`
-or:
-`Courier authentication is completely separate from users`
-without final schema confirmation.
-# Feature Responsibility
-## 10. Account Management Owns
-Courier Account Management owns:
-- reading the authenticated Courier's account/profile settings
-- updating allowed Courier profile fields
-- updating vehicle details where this self-service feature permits
-- updating license information
-- managing payout-method information
-- changing secure login credentials
-- validating sensitive field updates
-- routing sensitive changes through administrative verification where required
-- protecting account/private financial information
-- mobile validation and error handling
-- role-safe self-service updates
-## 11. Account Management Does Not Own
-It does not own:
-- initial Courier registration
-- Logistics approval of Courier registration
-- Courier dispatch
-- delivery acceptance
-- pickup/delivery status transitions
-- Fleet master vehicle registry
-- Zone/Territory mapping
-- Courier availability monitoring
-- earnings calculation
-- payout disbursement
-- bank/e-wallet transfer execution
-- delivery-history editing
-- performance scoring
-- incident processing
-- SOS alerting
-unless explicitly added later.
-## 12. Core Boundary
-Account Management answers:
-```text
-What profile,
-operational,
-payout,
-and login information
-belongs to my Courier account,
-and what am I allowed to update?
-```
-It does not answer:
-`Which delivery should I take?`
-or:
-`How much should I be paid?`
-# Registration / Approval Boundary
-## 13. Courier Registration Source
-From `app.md`:
-```text
-courier
-→ search for logistics hubs
-→ register for that logistics
-→ logistics admin approved
-→ sign in
-```
-## 14. Account Management Starts After Access
-Account Management is a post-registration self-service feature.
-It does not replace Logistics approval.
-## 15. Approval State
-Changing ordinary profile information must not silently:
-`approve → reject → or re-register`
-the Courier.
-## 16. Logistics Relationship
-The Courier is registered under a Logistics organization.
-Account Management must not allow arbitrary reassignment to another Logistics organization unless a separate transfer workflow is defined.
-# Profile Information
-## 17. Source Profile Scope
-The source describes:
-`profile management → for the driver`
-but does not enumerate all general profile fields.
-## 18. Recommended General Fields
-Where already present in the shared user/profile model, self-service may include fields such as:
-`display name → contact number → profile image`
-only if the project already defines them.
-These are recommendations, not explicit Courier.md requirements.
-## 19. Role
-Courier role is not an editable profile field.
-Never allow:
-`COURIER → LOGISTICS → COURIER → SELLER`
-through self-service settings.
-## 20. Logistics Ownership
-The Courier's Logistics organization relationship should not be freely editable from Account Management.
-## 21. Immutable System Fields
-Do not expose self-service mutation for:
-```text
-user_id
-role
-created_at
-system approval flags
-internal moderation state
-```
-unless another feature explicitly owns that change.
-# Vehicle Details
-## 22. Source Requirement
-Courier Account Management explicitly handles:
-`vehicle details`
-## 23. Vehicle Detail Meaning
-The source does not enumerate exact fields.
-Possible vehicle-profile fields may include:
-`vehicle type/class → plate/reference → vehicle description`
-where defined by the project.
-Exact fields are Open.
-## 24. Fleet Management Relationship
-Logistics Vehicle Fleet Management separately owns the Logistics vehicle registry, including:
-```text
-plate numbers
-maintenance schedules
-Courier assignments
-vehicle capacities
-```
-## 25. Source Overlap
-Courier Account Management also says the Courier may update:
-`vehicle details`
-This creates overlap with the Logistics Fleet registry.
-## 26. Recommended Ownership
-Recommended:
-```text
-Courier Account Management
-→ Courier submits/maintains self-service vehicle profile data
-
-Vehicle Fleet Management
-→ authoritative Logistics fleet/assignment registry
-```
-Sensitive changes may require Logistics/Admin verification before becoming dispatch-authoritative.
-## 27. Vehicle Type Sensitivity
-`Courier.md` explicitly says:
-`changing vehicle types → may require → administrative verification`
-Therefore vehicle-type change should be treated as a sensitive update.
-## 28. Vehicle Type Is Not Instantly Authoritative by Default
-Recommended:
-`Courier requests vehicle-type change → → verification required where configured → → authoritative operational value updates after approval`
-The exact verifier is not named in the source.
-## 29. Administrative Verification Actor
-Because Courier accounts belong to Logistics, the likely verifier may be:
-`Logistics administration`
-but `Courier.md` only says:
-`administrative verification`
-Exact actor is Open.
-## 30. Vehicle Capacity
-Vehicle-capacity rules belong to Fleet Management.
-Courier Account Management should not let a Courier arbitrarily increase authoritative vehicle capacity used by Deploy Rider.
-## 31. Maintenance
-Vehicle maintenance schedules belong to Vehicle Fleet Management.
-Not Account Management.
-# License Information
-## 32. Source Requirement
-Account Management handles:
-`license information`
-## 33. License Fields
-The source does not define:
-- license number
-- license class
-- issue date
-- expiry date
-- document image
-- issuing authority
-- verification status
-Open Decision.
-## 34. Sensitive Information
-License information is sensitive personal/operational data.
-Return and display only what is necessary.
-## 35. Verification
-Whether all license changes require administrative verification is not explicitly stated.
-Open Decision.
-## 36. Expiration
-The source does not define automatic license-expiry enforcement.
-Do not invent:
-`expired license → → automatic account suspension`
-without explicit policy.
-## 37. Document Upload
-The source does not explicitly require uploading a license image/document.
-Open Decision.
-## 38. External Verification
-No government licensing API is required by the current sources.
-# Payout Methods
-## 39. Source Requirement
-Courier Account Management handles:
-`payout methods`
-## 40. Payout Method Meaning
-The source does not define supported methods such as:
-```text
-bank account
-e-wallet
-cash
-platform balance
-```
-Open Decision.
-## 41. Payout Method vs Payout Execution
-Account Management owns:
-`where/how the Courier wishes to receive payouts`
-where such fields are implemented.
-It does not own:
-`actual disbursement → settlement → withdrawal`
-## 42. Profit Dashboard Boundary
-Profit Dashboard shows:
-`recorded Courier earnings`
-It does not edit payout methods.
-## 43. Financial Data Security
-Payout-method information is sensitive.
-Use:
-- server-side authorization
-- minimum response exposure
-- masked display where possible
-- secure storage/encryption according to implementation policy
-## 44. No Raw Secret Display
-Do not return full sensitive payout credentials unnecessarily.
-## 45. Payment Gateway
-The source does not select a payout provider.
-Do not introduce a bank/e-wallet/payment gateway as mandatory.
-## 46. Payout Verification
-Whether payout-method changes require administrative verification is not explicitly defined.
-Recommended for high-risk changes, but Open Decision.
-## 47. Change Confirmation
-Additional credential re-authentication for payout-method change is recommended.
-Not explicitly source-required.
-# Secure Login Credentials
-## 48. Source Requirement
-Account Management explicitly handles:
-`secure login credentials`
-## 49. Password Change
-Password change is a core supported credential-management operation.
-## 50. Current Password
-Recommended security rule:
-`changing password → → verify current credential`
-unless the user is in a dedicated recovery flow.
-## 51. Password Validation
-New password must follow the platform's centralized password policy.
-The exact policy is not defined in the current source.
-## 52. Password Storage
-Laravel must store passwords using secure hashing.
-Never store or return plaintext passwords.
-## 53. Token Sessions
-Changing password may affect existing personal-access-token sessions.
-Exact token revocation policy is Open.
-## 54. Device Tokens
-Courier mobile auth may have multiple:
-`personal_access_tokens`
-associated with devices.
-Whether Account Management exposes active devices/sessions is not source-required.
-Open Decision.
-## 55. Login Email
-Whether Courier can change their login email is not explicitly defined in Courier.md.
-Open Decision.
-## 56. Email Uniqueness
-If self-service email change is implemented:
-`unique(email, COURIER)`
-must remain valid.
-## 57. Same Email Across Roles
-Changing Courier email does not require that the email be globally unique across all roles.
-The project rule is:
-`unique(email, role)`
-## 58. Email Verification
-Whether email change requires re-verification is not defined.
-If transactional email is used, AISLEY can reuse Brevo.
-This is optional until policy is defined.
-# Two-Factor Authentication
-## 59. Source Boundary
-Unlike some other account-management sources, Courier.md does not explicitly mention:
-`2FA`
-## 60. MVP
-Do not make 2FA mandatory for Courier Account Management based on the current source.
-It may be added later as a security enhancement.
-# Sensitive Update Verification
-## 61. Source Requirement
-`Courier.md` says:
-```text
-Sensitive updates
-(like changing vehicle types)
-may require middleware
-for administrative verification.
-```
-## 62. Sensitive Update Category
-At minimum:
-`vehicle type`
-is a source-backed example.
-## 63. Other Sensitive Fields
-Potentially sensitive updates may include:
-`license information → payout methods → login email`
-but the source does not explicitly say they all require admin verification.
-Open Decision.
-## 64. Verification Middleware
-The source expects middleware or equivalent backend enforcement.
-The mobile app must not decide whether a sensitive update is verified.
-## 65. Pending Change Model
-Recommended:
-```text
-current verified value
-+
-pending requested value
-+
-verification status
-```
-for fields that require approval.
-This is a recommendation.
-## 66. No Instant Dispatch Effect
-For a verification-required vehicle-type change:
-`submitted change → ≠ immediately dispatch-authoritative`
-until approved.
-## 67. Current Value Preservation
-Recommended:
-`pending sensitive update → → current approved operational value remains active`
-until verification succeeds.
-## 68. Rejection
-If verification rejects a sensitive update:
-`current approved value remains`
-The exact rejection workflow is Open.
-## 69. Verification Notifications
-Whether the Courier receives in-app/email notification for approved/rejected changes is not defined.
-Open Decision.
-# Self-Service CRUD Model
-## 70. Read Account
-Courier can retrieve their current settings/profile.
-## 71. Update Allowed Fields
-Courier can update only explicitly allowlisted fields.
-## 72. Partial Update
-PATCH-style updates are appropriate for profile/settings changes.
-## 73. Create Semantics
-Although the source says standard CRUD, the Courier account/profile is initially created by registration.
-Account Management should not create a second Courier identity.
-## 74. Delete Semantics
-Self-service account deletion is not defined.
-Do not add account deletion as required merely because the source says CRUD.
-## 75. Deactivation
-Courier deactivation/suspension lifecycle is not defined in this feature.
-Open Decision / separate account-lifecycle concern.
-# API
-## 76. Account Detail
-Conceptual:
-```http
-GET /api/courier/account
-```
-## 77. Profile Update
-Conceptual:
-```http
-PATCH /api/courier/account/profile
-```
-## 78. Vehicle Update
-Conceptual:
-```http
-PATCH /api/courier/account/vehicle
-```
-or:
-```http
-POST /api/courier/account/vehicle-change-request
-```
-for verification-sensitive changes.
-Exact API is Open.
-## 79. License Update
-Conceptual:
-```http
-PATCH /api/courier/account/license
-```
-or a pending-change endpoint where verification is required.
-## 80. Payout Method
-Conceptual:
-```http
-GET /api/courier/account/payout-method
-PATCH /api/courier/account/payout-method
-```
-Exact implementation depends on payout architecture.
-## 81. Password Change
-Conceptual:
-```http
-POST /api/courier/account/password
-```
-## 82. Email Update
-Only if supported:
-```http
-PATCH /api/courier/account/email
-```
-## 83. Pending Sensitive Changes
-Possible:
-```http
-GET /api/courier/account/change-requests
-```
-if the verification model exposes them.
-# Backend Authority
-## 84. Authenticated Identity
-The backend derives:
-`courier user_id → role → Logistics relationship`
-from the authenticated token/domain model.
-## 85. No Client User ID Authority
-Do not trust:
-```text
-user_id
-courier_id
-role
-logistics_id
-```
-from the client for self-service ownership.
-## 86. Field Allowlist
-Every update endpoint must explicitly allow only supported fields.
-## 87. Mass Assignment
-Do not accept arbitrary model attributes from JSON.
-## 88. Sensitive Change Detection
-Backend determines whether a requested update requires administrative verification.
-## 89. Verification State
-Client cannot mark its own update:
-`APPROVED → VERIFIED`
-# Authorization
-## 90. Bearer Authentication
-All Courier Account Management endpoints require a valid personal access token.
-## 91. Exact Role
-Backend verifies:
-`role = COURIER`
-## 92. Own Account Only
-Courier may update only their own account/profile.
-## 93. IDOR
-Knowing another Courier:
-```text
-user_id
-courier_id
-profile_id
-payout_method_id
-```
-must not expose or modify that account.
-## 94. Same-Email Role Isolation
-A Buyer/Seller/Logistics account with the same email cannot access the Courier settings.
-# Security
-## 95. Password
-Never return:
-`password → password hash`
-## 96. Tokens
-Never return/log:
-`plain-text personal access token`
-from Account Management responses.
-## 97. Payout Data
-Mask sensitive payout identifiers in standard reads.
-## 98. License Data
-Expose only necessary license fields.
-## 99. Vehicle Data
-Vehicle data may affect dispatch eligibility and therefore must be backend validated.
-## 100. Reauthentication
-For high-risk updates such as:
-`password → payout method → possibly email`
-reauthentication is recommended.
-Exact requirements are Open.
-## 101. Rate Limiting
-Credential-sensitive endpoints should use reasonable rate limits.
-Exact values are Open.
-# Validation
-## 102. General Profile Validation
-Validate according to field type and project rules.
-## 103. Vehicle Type
-Vehicle type must come from the configured/accepted Fleet/domain values.
-Do not accept arbitrary values that bypass dispatch capacity logic.
-## 104. Plate Number
-If the Courier can submit/edit plate information, validation must be consistent with Vehicle Fleet Management.
-## 105. License
-License-field format/rules are Open.
-Do not hardcode unsupported jurisdiction rules.
-## 106. Payout Method
-Validate according to the selected payout-method type/provider architecture.
-## 107. Password
-Use centralized platform password validation.
-## 108. Email
-If editable:
-`valid format → + → unique(email, COURIER)`
-## 109. Phone
-If a contact number is editable, exact format rules are Open.
-# Vehicle Fleet Integration
-## 110. Authoritative Fleet
-Logistics Vehicle Fleet Management owns the operational Fleet registry.
-## 111. Courier Vehicle Profile
-Courier Account Management may expose self-service vehicle information.
-## 112. Sync Problem
-The system must avoid:
-`Courier profile vehicle = motorcycle → Fleet registry vehicle = van`
-without a defined source-of-truth rule.
-## 113. Recommended Approach
-Recommended:
-`Courier proposes vehicle detail change → → Logistics/Fleet verification → → authoritative Fleet relationship updated`
-for dispatch-impacting fields.
-## 114. Non-Authoritative Display Fields
-Purely descriptive fields may be self-service if they do not affect dispatch safety/eligibility.
-Exact split is Open.
-# Deploy Rider Integration
-## 115. Vehicle Type Impact
-Deploy Rider may filter using:
-`vehicle capacity/type`
-from Fleet Management.
-## 116. Sensitive Change Reason
-This is why changing vehicle type may require verification.
-## 117. No Immediate Candidate Manipulation
-Courier must not be able to self-change a vehicle type and instantly gain eligibility for tasks requiring a larger vehicle without server verification.
-# License / Eligibility Integration
-## 118. Dispatch Eligibility
-Whether license status directly affects dispatch eligibility is not defined.
-Open Decision.
-## 119. No Invented Suspension
-Do not automatically suspend a Courier for license edits/expiry without defined rules.
-# Payout / Profit Integration
-## 120. Profit Dashboard
-Profit Dashboard reads Courier earnings from the authoritative earnings ledger.
-## 121. Payout Method
-Account Management may store where payout is sent.
-## 122. Separation
-```text
-Profit Dashboard
-= earnings visibility
-
-Account Management
-= payout destination/settings
-
-Payout/Settlement feature
-= actual money transfer
-```
-## 123. No Ledger Mutation
-Changing payout method must not alter historical earnings amounts.
-# Account Security
-## 124. Password Change Success
-After successful password update:
-`new credential → → used for future sign-in`
-## 125. Current Session
-Whether the current token remains valid after password change is Open.
-## 126. Other Sessions
-Whether other device tokens are revoked is Open.
-## 127. Session Management UI
-Not required by current source.
-## 128. Password Recovery
-Forgot-password recovery is authentication infrastructure, not Account Management CRUD.
-# Operational Requirements
-
-## Profile and Document Scope
-
-`Courier.md` does not explicitly require:
-
-`profile image → license document upload → vehicle document upload`
-
-These remain Open Decisions.
-
-Do not introduce cloud media storage solely for Account Management unless document/image upload is later selected.
-
-No exact regulatory document, insurance, or government verification requirement is defined by the source.
-
-## Notifications
-
-Core Account Management requires immediate in-app success/error feedback.
-
-If a sensitive update requires administrative verification, the Courier should be able to see a clear pending/approved/rejected state where that workflow exists.
-
-Email notifications for sensitive changes are not required. If later selected, AISLEY may reuse Brevo.
-
-SMS and Push are not required for core Account Management.
-
-## Error Handling
-
-Validation errors should return field-level feedback.
-
-Unauthorized updates must fail without mutation.
-
-If a sensitive update requires verification:
-
-`submit requested change → → preserve current authoritative value → → show pending verification`
-
-where the pending-change model is adopted.
-
-Network failure must not be presented as a successful update.
-
-Concurrent updates remain backend-authoritative; optimistic locking/versioning is an Open Decision.
-
-## Sensitive Change History
-
-Recommended significant history events include:
-
-```text
-vehicle-type change request
-license change
-payout-method change
-password-change event
-```
-
-History must never contain plaintext passwords, access tokens, or full sensitive payout credentials.
-
-Whether these events feed a generalized platform audit ledger is Open.
-
-## Privacy
-
-Account responses should expose only fields required by the Courier settings UI.
-
-Payout identifiers should be masked/minimized.
-
-License information should remain restricted to authorized account/verification surfaces.
-
-Vehicle information may be visible to authorized Logistics/Fleet systems according to operational policy.
-
-## Offline Behavior
-
-Account/security changes should generally require connectivity.
-
-Safe display data may be cached, but cached profile state is not authoritative.
-
-Do not queue password changes offline.
-
-Do not queue payout-method changes offline unless a deliberately secure sync model is defined.
-
-## Performance
-
-Account settings should use bounded single-account/profile queries.
-
-Do not load delivery history, earnings ledger, messages, or incidents to render the settings page.
-
-Load sensitive verification/change-request metadata only where needed.
-
-## UI
-
-Recommended mobile structure:
-
-```text
-Account Management
-├── Profile
-├── Vehicle Details
-├── License Information
-├── Payout Method
-└── Security
-```
-
-For verification-sensitive vehicle changes, distinguish:
-
-`current verified value → pending requested value → verification status`
-
-Payout information should use masked display.
-
-At minimum, the Security section should provide:
-
-`Change Password`
-
-Role and associated Logistics organization should be read-only where displayed.
-
-Section-specific saves are recommended because different sections have different validation/security requirements.
-
-The UI should provide semantic labels, accessible errors, adequate touch targets, and textual verification states rather than relying on color alone.
-
-## Third-Party Dependencies
-
-No new third-party provider is required for core Account Management.
-
-No external vehicle/license verification provider is required by current sources.
-
-No payout provider is required merely to store payout settings.
-
-Brevo is optional only if email verification/security messages are later added.
-
-Mapbox, Google Maps, SMS, and Push are not required for core Account Management.
-
-# MVP Scope
-## 180. Required
-- authenticated Courier access
-- exact Courier role authorization
-- own-account read
-- own-profile update
-- vehicle-detail support
-- license-information support
-- payout-method settings support
-- secure credential/password update
-- field allowlisting
-- backend validation
-- same-email role isolation
-- IDOR protection
-- sensitive payout-data protection
-- vehicle-type sensitive-update verification hook
-- loading/success/error states
-## 181. Recommended
-- `users` + Courier-specific profile separation
-- section-specific update endpoints
-- current-password verification for password changes
-- payout-method masking
-- pending sensitive-change model
-- administrative verification status
-- sensitive-change history
-- Logistics/Fleet handoff for dispatch-impacting vehicle changes
-- reauthentication for high-risk updates
-## 182. Not Required
-- account deletion
-- Logistics reassignment
-- automatic Courier approval
-- automatic vehicle-capacity change
-- vehicle maintenance management
-- payout execution
-- withdrawals
-- bank/e-wallet provider integration
-- mandatory 2FA
-- license government API
-- insurance integration
-- license document upload
-- vehicle document upload
-- Mapbox
-- Google Maps
-- SMS
-- Push
-- new third-party provider
-# Acceptance Criteria
-## 183. Access
-- Missing/invalid token cannot access account settings.
-- Non-Courier token cannot access Courier Account Management.
-- Same-email other-role account does not inherit Courier access.
-- Courier can access/update only their own account.
-## 184. Profile
-- Supported self-service fields can be read.
-- Supported editable fields can be updated.
-- Role cannot be changed through self-service.
-- Logistics organization cannot be arbitrarily changed.
-- System/internal fields cannot be mass-assigned.
-## 185. Vehicle
-- Courier can view supported vehicle details.
-- Supported vehicle changes are validated.
-- Vehicle type is treated as a sensitive update according to configured verification policy.
-- Pending vehicle-type change does not bypass Fleet/Deploy Rider authoritative eligibility.
-- Courier cannot arbitrarily increase authoritative vehicle capacity.
-## 186. License
-- Supported license information can be read/updated according to policy.
-- Sensitive license data is protected.
-- No unsupported automatic suspension/expiry rule is invented.
-## 187. Payout Method
-- Courier can view configured payout method safely.
-- Sensitive identifiers are masked/minimized.
-- Courier can update allowed payout-method fields according to policy.
-- Updating payout method does not alter historical earnings.
-- Profit Dashboard remains read-only earnings authority.
-## 188. Security
-- Courier can securely change password.
-- Plaintext password is never stored/returned.
-- Bearer tokens are not exposed by Account Management.
-- Password policy is enforced server-side.
-- Token/session behavior after password change follows configured policy.
-## 189. Sensitive Verification
-- Backend determines whether a change requires verification.
-- Client cannot self-approve a pending change.
-- Current approved value remains authoritative until verification if pending-model is adopted.
-- Verification status is presented clearly.
-## 190. Schema Integrity
-- Shared user identity remains compatible with `unique(email, role)`.
-- Courier-specific profile data can coexist with shared `users` identity.
-- Email alone is never used as the account primary scope.
-## 191. Third-Party
-- Core Account Management works without a new third-party provider.
-- No government/license API is required.
-- No payout provider is required merely to store payout settings.
-- Mapbox/Google Maps/SMS/Push are not required.
-# Tests
-## 192. Backend Tests
-Test:
-- missing token denied
-- invalid token denied
-- Buyer token denied
-- Seller token denied
-- Logistics token denied
-- authenticated Courier allowed
-- same-email role isolation
-- own account returned
-- another Courier account denied
-- profile field allowlist
-- role mutation rejected
-- Logistics relationship mutation rejected
-- mass assignment rejected
-- vehicle detail update
-- invalid vehicle type
-- vehicle-type verification path
-- pending sensitive update cannot self-approve
-- license update
-- payout method masked in reads
-- payout-method update authorization
-- payout update does not mutate earnings ledger
-- password current-credential validation if adopted
-- password update
-- plaintext password absent
-- token absent
-- email uniqueness `(email, COURIER)` if email update exists
-- rate-limit/security tests for sensitive endpoints
-## 193. Flutter Tests
-Test:
-- Account Management screen
-- Profile section
-- Vehicle section
-- License section
-- Payout section
-- Security section
-- profile save
-- field validation
-- vehicle change
-- pending verification state
-- license update
-- masked payout display
-- payout update
-- password change
-- invalid current password if required
-- loading state
-- success state
-- error state
-- offline/network failure
-- role read-only
-- Logistics relationship read-only
-- screen-reader labels
-- touch-target sizing
-- status text not color-only
-# Open Decisions
-## 194. Open Decisions
-The current sources do not define:
-1. exact shared `users` vs `couriers` schema
-2. Courier profile table name
-3. exact general profile fields
-4. whether email is self-editable
-5. email re-verification
-6. phone/contact-number field
-7. profile-image support
-8. exact vehicle fields
-9. whether plate number is Courier-editable
-10. vehicle type enum
-11. exact fields requiring administrative verification
-12. identity of administrative verifier
-13. pending-change schema
-14. rejection-reason visibility
-15. vehicle change effect on Fleet registry
-16. license fields
-17. license verification requirements
-18. license-expiry policy
-19. license document upload
-20. vehicle document upload
-21. exact payout methods
-22. payout provider
-23. payout-method verification
-24. payout-method masking rules
-25. payout settlement/withdrawal feature
-26. reauthentication rules for payout changes
-27. password policy
-28. personal-access-token revocation after password change
-29. active-device/session UI
-30. 2FA support
-31. self-service account deletion/deactivation
-32. sensitive-change audit architecture
-33. exact API routes
-# Final Definition
-## 195. Final Definition
-AISLEY Courier / Rider Account Management is:
-`the Courier's self-service → profile and account-settings portal`
-covering source-backed categories:
-```text
-vehicle details
-license information
-payout methods
-secure login credentials
-```
-with ordinary Courier identity still grounded in:
-`users → + → unique(email, role)`
-while `Courier.md` also expects a Courier-specific CRUD model.
-Recommended schema boundary:
-```text
-users
-→ auth / shared role identity
-
-Courier profile/table
-→ driver-specific operational settings
-```
-Sensitive-update rule:
-`vehicle type change → may require administrative verification`
-and should not instantly bypass Fleet/dispatch eligibility controls.
-Critical boundaries:
-```text
-Account Management
-≠ Courier registration approval
-
-Account Management
-≠ Vehicle Fleet authority
-
-Account Management
-≠ Profit calculation
-
-Account Management
-≠ payout execution
-```
-Third-party rule:
-`No new third-party provider → is required for core Courier Account Management.`
+# Courier Account Management
+
+## WHAT
+- Purpose: let an authenticated Courier view and maintain the safe, personal account information needed by the Flutter app.
+- Primary actor: the Courier whose identity is derived from the Sanctum bearer token.
+- Phase 1 scope: own-account read, basic profile updates, and password change.
+- The API is the authority; Flutter only displays server responses and submits allow-listed fields.
+- Current foundation: Courier registration, Logistics affiliation approval, bearer login, /me, logout, profile, address, vehicle, and token tables exist.
+- Current gap: no Courier account-management controller, request, resource, service, route, or test exists.
+- This specification defines planned endpoints; planned routes are unavailable until the Laravel implementation is added and tested.
+- Because the API is absent, this reviewed plan is not a callable backend authority; mark it canonical after implementation and contract tests land.
+
+Request flow:
+    sign in and store bearer token
+    → GET /api/v1/courier/account
+    → view or edit allowed profile fields
+    → PATCH profile, or PUT password
+    → server validates and returns the current account
+
+Account Management begins only after Courier access is active. It does not approve registration, change Logistics affiliation, assign work, or alter shipment state.
+
+Phase 1 deliberately excludes vehicle mutations, license information, payout methods, profile-photo upload, email changes, account deletion, availability, and delivery operations. Those areas need separate authority, storage, or policy decisions.
+
+Non-goals:
+- No Courier web or React UI in this repository; screens belong to the external Flutter project.
+- No Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, proof, route, or order-status writes.
+- No self-service role, status, reviewer, organization, or hub changes.
+- No payment, payout execution, license-government lookup, 2FA, SMS, Push, or map provider.
+
+## MUST
+### Authentication and ownership
+- Every Phase 1 endpoint requires auth:sanctum and courier.active.
+- The server must recheck the persisted courier role, active user status, approved affiliation, active Logistics owner, and valid sole hub.
+- Flutter sends Authorization: Bearer token; it does not send cookies or CSRF tokens for this feature.
+- The authenticated user is the only account scope. Client-supplied user_id, courier_id, profile_id, role, status, organization_id, hub_id, reviewer_id, or token abilities are prohibited.
+- A same-email Customer, Seller, Admin, or Logistics account must never inherit Courier access.
+- Affiliation organization and sole hub are read-only. Reassignment remains a separate Logistics workflow.
+- Failed authorization must make no mutation and must not disclose another account.
+
+### Phase 1 profile contract
+- Editable profile fields are first_name, middle_name, last_name, and contact_number only.
+- Names are trimmed; an empty optional middle_name is normalized to null.
+- Required names remain non-empty strings with the existing profile length limits.
+- contact_number is required when supplied and remains within the existing 32-character limit.
+- sex, birth_date, and derived age are read-only in Phase 1 because registration evidence and correction authority are not defined.
+- email, role, status, approval data, affiliation, hub, timestamps, and internal paths are read-only.
+- Profile photo is not uploaded, replaced, or deleted by this feature. The nullable legacy profile_photo_path is never returned as a raw path.
+- A profile update changes only the submitted allow-listed fields and preserves all other profile values.
+- The update is transactional, locks the authenticated Courier profile, and returns the post-commit account projection.
+
+### Password security
+- Password change requires current_password, password, and password_confirmation.
+- The backend verifies current_password and applies the centralized Laravel password policy.
+- Password fields, hashes, reset values, and tokens never appear in responses, logs, audit metadata, or Flutter state.
+- A successful password change rotates remember_token and revokes every personal access token for the Courier, including the token used by the request.
+- Flutter must treat the successful response as a signed-out state, clear secure storage, and require a fresh login.
+- A password request is not automatically retried after a timeout because the server may already have committed it.
+- Courier forgot-password currently returns only a generic acknowledgement; it is not an Account Management reset endpoint.
+
+### Existing authentication dependencies
+| Endpoint | Status | Use |
+| --- | --- | --- |
+| GET /api/v1/courier/auth/me | implemented | identity and approval-gated session check |
+| POST /api/v1/courier/auth/logout | implemented | deletes the current personal access token |
+| GET /api/v1/courier/account | planned/unavailable | full Phase 1 account projection |
+| PATCH /api/v1/courier/account/profile | planned/unavailable | allow-listed profile update |
+| PUT /api/v1/courier/account/password | planned/unavailable | current-password change |
+
+Flutter must not call an endpoint marked planned or unavailable.
+### Endpoint: account read
+- Method/path: GET /api/v1/courier/account.
+- Auth: auth:sanctum plus courier.active; no query parameters or client identity fields.
+- Response: 200 with account, profile, affiliation, and security capability data for the authenticated Courier.
+- Account includes id, email, role, and status. Profile includes first_name, middle_name, last_name, contact_number, sex, birth_date, age, and profile_photo_url (currently null).
+- Affiliation includes approved status, organization name, and sole hub name; it does not expose organization internals or private evidence.
+- Security includes email_editable=false, profile_photo_editable=false, and password_change_requires_current_password=true.
+- Response headers are Cache-Control: private, no-store and Pragma: no-cache.
+- GET is safe to retry. On timeout, Flutter may retry with bounded backoff.
+- Errors: 401 unauthenticated/invalid token; 403 inactive, wrong role, invalid affiliation, or invalid hub.
+
+Minimal response shape:
+    { "account": { "id": "uuid", "email": "courier@example.com",
+      "role": "courier", "status": "active",
+      "profile": { "first_name": "Ana", "middle_name": null,
+        "last_name": "Santos", "contact_number": "09...",
+        "sex": "female", "birth_date": "1999-01-01", "age": 27,
+        "profile_photo_url": null },
+      "affiliation": { "status": "approved",
+        "organization_name": "Example Logistics", "hub_name": "Main Hub" },
+      "security": { "email_editable": false,
+        "profile_photo_editable": false,
+        "password_change_requires_current_password": true } } }
+
+### Endpoint: profile update
+- Method/path: PATCH /api/v1/courier/account/profile.
+- Auth and scope are identical to account read.
+- Content-Type is application/json. Allowed keys are first_name, middle_name, last_name, and contact_number.
+- Prohibited keys include id, user_id, courier_id, email, role, status, sex, birth_date, age, profile_photo_path, organization_id, hub_id, and arbitrary model attributes.
+- A successful 200 response returns message and the complete post-commit account projection.
+- 401 and 403 have the same meanings as account read.
+- 422 returns field-addressable validation errors and no partial update.
+- Repeated identical payloads are safe; the server must not change ownership or duplicate a business effect.
+- Flutter should send an Idempotency-Key for a user-initiated save when available. On an uncertain response, fetch account before showing failure.
+- This endpoint is private and no-store; do not persist its response in shared or public caches.
+
+Example request:
+    { "first_name": "Ana", "middle_name": null,
+      "last_name": "Santos", "contact_number": "09171234567" }
+
+### Endpoint: password update
+- Method/path: PUT /api/v1/courier/account/password.
+- Auth and scope are identical to account read.
+- Content-Type is application/json. Required keys are current_password, password, and password_confirmation.
+- Prohibited keys include email, role, status, token, abilities, user_id, courier_id, and remember.
+- 200 means the password was committed and all personal access tokens were revoked.
+- 401 means the bearer token is missing or invalid; 403 means the account is no longer eligible.
+- 422 covers invalid current_password, password policy failure, and confirmation mismatch.
+- 429 is returned when the configured credential-sensitive throttle is exceeded and includes Retry-After.
+- Do not auto-retry this mutation. After a timeout, retain no password in memory, clear the token only after the result is known, and use login to verify access.
+- Response is private, no-store, and contains only a success message; it never returns a new token.
+
+### Privacy and failure rules
+- DTOs contain no password, hash, bearer token, token hash, evidence bytes, raw storage path, reviewer note, payout credential, or unrestricted Buyer/Seller data.
+- A private profile response is visible only to the authenticated Courier and must not be shared across users or devices.
+- Network failure is distinct from validation, forbidden, inactive, and signed-out states.
+- Flutter may keep unsaved form text locally during an interruption, but must not queue password changes or authoritative profile writes offline.
+- Server revalidation always wins over cached display data.
+- Notification or audit delivery failure, if added later, must not roll back a committed profile or password change.
+
+### Flutter states and interaction
+- Auth states: checking token, signed out, pending approval, rejected, suspended, invalid affiliation, authenticated, and recoverable network failure.
+- Account screen states: loading, success, validation error, forbidden, signed out, and retryable failure.
+- Disable save while a request is pending, but allow canceling local edits.
+- Announce field errors and save results semantically; do not rely on color alone.
+- Use labeled controls, keyboard/screen-reader semantics, adequate touch targets, and a confirmation step before password submission.
+- Never log request bodies containing passwords or authorization headers.
+- Clear account data and navigation state after logout, token revocation, or a 401.
+
+### Acceptance criteria
+- [ ] Guest, invalid-token, wrong-role, inactive, and invalid-affiliation requests cannot read or mutate the account.
+- [ ] A Courier can read only the account resolved from its bearer token.
+- [ ] Profile updates persist only the four allow-listed fields and preserve all other values.
+- [ ] Role, status, email, affiliation, hub, age, and registration evidence cannot be changed through profile update.
+- [ ] Invalid fields produce 422 errors without a partial write.
+- [ ] Concurrent profile writes are serialized and return the latest committed projection.
+- [ ] Password change requires the current password and centralized password validation.
+- [ ] A successful password change revokes all Courier personal access tokens and forces fresh login.
+- [ ] Passwords, hashes, tokens, paths, and private evidence are absent from every DTO and log.
+- [ ] Responses are private and no-store; no personalized account data is shared-cached.
+- [ ] Flutter handles loading, success, validation, forbidden, 401, 429, timeout, and offline states.
+
+## HOW
+### Backend implementation
+- Add Courier AccountController, Form Requests, AccountResource, and AccountService under the existing Courier namespaces.
+- Add routes under the protected /api/v1/courier group and reuse courier.active; do not add a browser-cookie route.
+- Resolve the User from Request::user(), load exactly one CourierProfile, and never accept a target ID.
+- Use a database transaction and row lock for profile changes. Use Laravel Hash checks and the User hashed cast for password changes.
+- Revoke tokens only after a successful password write in the same transaction; return no replacement token.
+- Add a safe audit/security event only if the shared audit contract is approved. Do not log secrets or raw paths.
+
+### Data and dependencies
+- Phase 1 needs no migration: users and courier_profiles already hold the editable data; personal_access_tokens already supports revocation.
+- The existing CourierProfile age accessor remains derived from birth_date; age is never stored or client-supplied.
+- Vehicle records are read-only or omitted until Logistics/Fleet authority defines update semantics and a current-vehicle rule.
+- License, payout, profile-photo, and document changes require separate specifications, fields, authorization, and tests.
+- Shipment and Delivery Task schema approval is not a prerequisite for this Phase 1 slice.
+- Registration approval remains Logistics-owned; this feature cannot activate or reassign a Courier.
+
+### Flutter handoff
+- Implement a Settings/Account screen against only the implemented endpoint versions.
+- Store bearer tokens in OS secure storage; never use browser cookies, shared preferences for tokens, or plaintext logs.
+- Use Dart models matching the snake_case JSON names shown here, or document an explicit mapping.
+- Keep profile edits as local form state until the API returns 200.
+- After password success, delete the token, show the signed-out state, and navigate to login.
+- Do not show vehicle, license, payout, photo, or shipment edit controls as if they were available.
+
+### Tests and rollout
+- Backend tests must cover role/status/affiliation gates, IDOR attempts, prohibited fields, normalization, transaction rollback, concurrent updates, privacy, and token revocation.
+- Request tests must cover 401, 403, 422, 429, malformed JSON, duplicate keys, and oversized strings.
+- Flutter tests must cover JSON parsing, secure-storage failure, form validation, no-store refresh, 401 logout, 403 messages, timeout, offline recovery, and accessible announcements.
+- Add the route, controller, request, resource, service, and tests in one backend change; do not expose the planned endpoint earlier.
+- Run focused Laravel tests and Flutter analyzer/tests before marking the implementation complete.
+- Update this spec's backend_contract_commit after the API is implemented, then copy the synchronized spec to the Flutter project.
+- Append the implementation summary to docs/PROGRESS.md.
+
+### Deferred decisions
+- Whether sex or birth_date corrections require Logistics review.
+- Whether email changes are ever allowed and require re-verification.
+- The authoritative owner and workflow for vehicle type, plate, capacity, and maintenance changes.
+- License fields, payout methods, profile-photo metadata, and their verification/retention rules.
+- Whether a shared audit ledger is required for ordinary profile edits.
+- Any future token lifetime or active-device management policy.
+
+### Source boundaries
+- Shared identity, address, vehicle, affiliation, hub, and auth rules come from requirements.md, workspace.md, schema.md, Courier.md, and Logistics.md.
+- Courier bearer-token and Flutter boundaries come from courier/auth/spec.md and courier/rules.md.
+- File or image upload work must first adopt docs/references/file-upload-requirements.md.
+- Historical order-logistics decisions cannot authorize this feature or create operational records.
+- This Phase 1 contract is standalone, but its planned endpoints remain unavailable until implemented and tested.

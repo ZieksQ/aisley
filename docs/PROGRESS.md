@@ -21,3 +21,4 @@ Format:
 
 - Switched Seller registration and pickup-address PSGC selectors to the bundled `@aisley/psgc-address-data` loader and renamed the Seller Geoapify example variable to `GEOAPIFY_API_KEY`.
 - Fixed repeat Customer homepage requests under production-safe cache deserialization by caching only scalar advertisement, campaign, and category projections, rotating the affected cache keys, and covering guest plus Seller/Admin/Logistics session behavior; disabled prefetch for unimplemented storefront resource links to prevent background RSC 404 noise.
+- Revised Courier Account Management into a standalone Phase 1 contract for own-profile read/update and password change, with exact planned `/api/v1/courier` routes, bearer-token and Flutter handoff rules, privacy/error/retry semantics, and explicit deferral of vehicle, license, payout, uploads, and shipment operations. No application behavior or migrations changed.
