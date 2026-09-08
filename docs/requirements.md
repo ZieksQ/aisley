@@ -6,7 +6,7 @@ Aisley is a vertically integrated multi-vendor e-commerce marketplace. Independe
 Unlike a marketplace that depends on third-party logistics APIs, Aisley controls its own logistics infrastructure. The MVP must therefore support the marketplace transaction and first-party logistics lifecycle as one connected system.
 
 The core MVP success path is:
-Buyer discovers a product → selects an eligible Logistics organization offered for the Shop during checkout → places an order → Seller processes, packs, and marks it ready → the selected Logistics organization creates the first-mile task and assigns/offers it to an eligible Courier → that Courier picks it up from the Seller and transfers it to Logistics → Logistics receives, sorts, and dispatches it from its sole hub → Logistics assigns a final-mile Courier → that Courier picks it up from the hub and delivers it → Buyer receives and rates it.
+Buyer discovers a product and places an order → Seller processes and packs it → Seller selects an eligible Logistics organization, requests pickup, and prints the shared waybill → selected Logistics schedules/assigns an eligible Courier → Courier picks it up and transfers it to Logistics → Logistics receives, sorts, and dispatches it from its sole hub → Logistics assigns a final-mile Courier → Courier delivers it → Buyer receives and rates it.
 
 ## MVP Objectives
 
@@ -22,7 +22,7 @@ The MVP shall prove that Aisley can operate the complete marketplace and logisti
 - Role-based authentication and authorization across web and mobile applications.
 - Platform fee and shipping-fee tracking.
 
-The Customer-selected Logistics organization is part of the Shop Order's downstream fulfillment context. The Seller may determine which providers are eligible for its Shop, but the Customer makes the checkout selection. The selected provider must not be silently replaced after placement.
+The Seller selects an eligible Logistics organization when requesting pickup for prepared Shop Orders. A same-city/province/country provider is recommended first, then eligible providers are ranked by Geoapify road distance when coordinates and provider capacity are available. The committed provider must not be silently replaced.
 
 # Roles
 
@@ -79,7 +79,7 @@ MVP responsibilities:
 - Monitor stock levels.
 - Receive and review new orders.
 - Process and prepare orders.
-- Create or print the package label/shipping details needed for first-mile pickup. The Seller does not create the Logistics operational waybill or assign a Courier.
+- Pack each parcel, select the Logistics organization, request pickup, and print/reprint the resulting shared waybill. The Seller does not assign a Courier.
 - Receive notification after successful delivery.
 - View basic sales/profit reports.
 - Communicate with users.
@@ -99,7 +99,9 @@ MVP responsibilities:
 - View Seller-confirmed Orders whose selected Logistics organization is this organization.
 - Create the first-mile pickup task after the Seller marks the Order `ready_for_pickup`, then offer or assign it to an eligible Courier.
 - Receive parcels transferred from Sellers by a first-mile Courier.
-- Create and print the operational waybill after the parcel is received at the sole hub, linked to the Seller package label through an immutable Order/Parcel reference.
+- View/download the Seller-created shared waybill and use it for pickup, hub, sorting, transfer, and dispatch operations.
+- View only pickup requests explicitly addressed to the authenticated Logistics organization, assign one approved affiliated Courier to a pickup schedule, and limit each schedule to 30 Orders.
+- Notify the Seller and assigned Courier of the committed pickup date/time and run idempotent scheduled reminders.
 - Sort parcels.
 - Transfer parcels by scanning or entering waybill QR/reference numbers.
 - Dispatch parcels by scanning or entering waybill QR/reference numbers.
@@ -137,6 +139,6 @@ MVP responsibilities:
 
 - Persisted and API status values use lowercase `snake_case`; UI labels and legacy uppercase source labels are not database values. Keep the existing high-level `OrderStatus` values for compatibility and use explicit Shipment/Delivery Task milestones for physical handoffs.
 - Successful COD checkout skips `pending_payment`, creates each Shop Order at `placed` with `payment_status = pending`, and reserves the requested SKU quantities atomically. An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reservation once; first-mile pickup commits the reservation once. Post-pickup returns, refunds, delivery-failure restoration, and partial fulfillment require a separately approved policy.
-- Seller-created package labels and Logistics-created operational waybills are separate linked artifacts. The Seller label identifies the Order/Parcel, package details, Shop pickup address, and immutable Customer destination snapshot. It may be revised until `ready_for_pickup`, then freezes. Logistics creates the operational waybill at `received_at_hub`; its identifier and Order/Parcel link are immutable, while pre-`picked_up_from_hub` route/assignment changes are append-only events.
+- Aisley creates one immutable shared waybill per Order in the Seller's committed pickup-request transaction. Seller and selected Logistics may view/print it; an assigned Courier may resolve its opaque QR only through an authorized task. Document access and scanning never independently advance custody status.
 - First-mile and final-mile assignments are independent. Once the Seller confirms `ready_for_pickup`, the selected Logistics organization creates at most one active first-mile task and offers/assigns it to an eligible Courier; retried creation must be idempotent. Logistics separately assigns/offers final-mile work after hub dispatch. A Courier accepts only an offered task and cannot assign itself or another Courier.
 - Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, and proof-of-delivery writes must not begin until the reconciled shared operational schema and transition contract are approved and migrated. Subscription billing, provider integration, subscription records, and subscription enforcement are deferred from the MVP and do not gate current approved Logistics access.

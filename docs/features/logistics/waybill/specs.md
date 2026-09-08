@@ -3,11 +3,14 @@ role: Logistics
 feature: Waybill
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
+version: 1.1
+status: Superseded by docs/features/orders/waybill/spec.md
 scope: Logistics Web Application / Internal Hub Parcel Labeling
 source_coverage: Logistics.md, app.md
 ---
+
+> **Superseded:** The cross-role contract in `docs/features/orders/waybill/spec.md` is authoritative. It changes ownership to one shared waybill created atomically by the Seller pickup request at `ready_for_pickup`; Seller and selected Logistics can view/print it, and an assigned Courier can resolve its opaque QR. The historical draft below must not be used for timing, ownership, access, payload, dependency, or state-transition decisions.
+
 # Waybill Specification
 ## 1. Purpose
 Waybill is AISLEY's Logistics document-generation feature for converting authoritative order data into a printable and scannable parcel manifest/label used during sorting, transfer, and dispatch.

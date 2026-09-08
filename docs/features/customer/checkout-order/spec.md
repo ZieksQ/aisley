@@ -4,7 +4,7 @@ title: Customer Checkout & Order Creation
 system: AISLEY
 type: Feature Specification
 version: 1.2
-status: Implemented foundation; Logistics selection deferred
+status: Implemented foundation; Seller pickup selection downstream
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -19,7 +19,7 @@ scope: Customer storefront and Laravel API
 - The checkout address is selected from the Customer Address Book and copied into each Order's immutable delivery snapshot.
 - Current COD placement starts at `placed` with `payment_status = pending`; `pending_payment` remains a future payment-method status.
 - Customer checkout is not a Seller, Logistics, or Courier action. Seller acceptance, first-mile handoff, hub processing, waybill creation, delivery, returns, and refunds belong to their owning domains.
-- **Approved future boundary:** the Customer will select one server-validated eligible Logistics organization per Shop Order. The current schema/API does not persist this choice yet; until the shared fulfillment schema exists, shipping uses the server-owned per-Shop quote.
+- **Downstream boundary:** Customer checkout does not select Logistics. The Seller chooses one server-validated eligible Logistics organization when requesting pickup for prepared Orders; checkout continues to use the server-owned per-Shop quote.
 - **Non-goals:** online payment, Customer order editing/cancellation, shipment/parcel/waybill records, route selection, courier assignment, returns/refunds, or arbitrary address entry outside the Address Book contract.
 
 ```text
@@ -50,14 +50,13 @@ Buy Now or selected Cart lines
 - Store immutable Order Item snapshots: Product/Variant IDs, names, selected option labels, SKU, unit price, quantity, line subtotal, and currency.
 - Historical snapshots remain intact when a Product is edited, archived, restricted, or deleted.
 
-### Address, provider, and Logistics selection
+### Address and downstream Logistics boundary
 
 - Accept one `address_id` that belongs to the authenticated Customer and is eligible for shipping (`shipping` or `both`). Revalidate completeness at quote and placement.
 - Copy recipient, contact, address lines, PSGC/manual locality names, country, and optional coordinates into one `order_addresses` row per Order inside the placement transaction.
 - Address Book edits/deletes never rewrite a placed Order snapshot.
 - Manual/PSGC address fields are authoritative. Optional coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
-- When the approved fulfillment-selection contract is implemented, offer only server-validated eligible Logistics organizations for each Shop, include the selection in quote staleness hashing, and retain it after placement. The client must not submit an arbitrary Logistics ID or silently replace it.
-- Until that contract exists, do not add a fake provider field: use the configured `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote and expose that Logistics selection is unavailable.
+- Do not offer or accept a Logistics organization at checkout. The later Seller pickup contract validates and freezes that selection without rewriting the Customer's Order/address/financial snapshots.
 
 ### COD, pricing, vouchers, and totals
 
@@ -87,7 +86,7 @@ Buy Now or selected Cart lines
 - [x] Orders contain immutable item, address, financial, and voucher snapshots.
 - [x] COD placement starts at `placed`/pending payment and reserves inventory transactionally.
 - [x] Quote/place ownership, stale-state, rollback, and duplicate-retry paths are covered by API tests.
-- [ ] Customer-selected Logistics persistence and operational Shipment/Parcel records are implemented; this waits for the shared fulfillment schema.
+- [ ] Downstream Seller-selected Logistics and operational Shipment/Parcel records are implemented; checkout itself remains provider-neutral.
 
 ## HOW
 
@@ -108,6 +107,6 @@ Buy Now or selected Cart lines
 
 ### Deferred work and references
 
-- Define the eligible-Logistics source, per-Shop selection UI, and fulfillment persistence together with `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, and `docs/schema.md` before shipment actions.
+- Define eligible-Logistics ranking, Seller pickup selection, and fulfillment persistence in `docs/features/orders/logistics-pickups/spec.md`; do not add that UI to Customer checkout.
 - Online payment, taxes/platform fees, return/refund policy, delivery failure, partial fulfillment, and Customer order mutation remain open product decisions.
 - Related contracts: `docs/features/customer/address-book/spec.md`, `docs/features/customer/order-status/spec.md`, Seller Order Approval/Prepare Orders, Inventory, and `docs/references/user-registration-requirements.md`.

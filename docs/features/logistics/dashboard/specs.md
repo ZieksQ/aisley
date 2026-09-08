@@ -3,7 +3,7 @@ feature: logistics-dashboard
 title: Logistics Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented scaffold; operational queue deferred
 role: Logistics
 scope: Logistics React SPA and Laravel API
@@ -17,7 +17,7 @@ source_coverage: Logistics.md, requirements.md, workspace.md, schema.md
 - **Purpose:** Give an approved active Logistics account one secure view of its organization's sole operational hub and, later, the parcels requiring its attention.
 - **Current implementation:** `GET /api/v1/logistics/dashboard` returns the authenticated hub's safe identity/address, `summary: null`, `orders: []`, and freshness state `scaffold`. The protected `/dashboard` SPA page renders that hub, an operational-queue placeholder, refresh, loading, and recoverable error states.
 - **MVP scope:** one Logistics account → one organization → exactly one hub/sorting center. There is no hub selector, sub-hub, second-hub branch, or staff-account context.
-- **Future queue:** once the shared Shipment/Parcel/Waybill/Scan/Delivery Task schema exists, the dashboard will surface Seller-ready handoffs for this selected organization, then hub receipt, sorting, transfer, dispatch, and assignment work.
+- **Future queue:** the dedicated Pickups area will surface Seller-ready handoffs explicitly addressed to this organization, then Courier scheduling and later hub work.
 - **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns `ready_for_pickup`; Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, and Capacity features own their records and mutations. Courier UI is external/mobile-only.
 - **Subscription:** subscription billing and enforcement are deferred; an approved active Logistics account is not blocked by an unimplemented subscription status.
 - **Non-goals:** Seller processing, parcel/status mutation, waybill generation, scanning, Courier assignment/routing, Courier UI, multi-hub management, billing, and financial reporting.
@@ -53,7 +53,7 @@ active Logistics session
 
 ### Future queue inclusion and canonical statuses
 
-- Include a row only when its selected Customer Logistics organization is this organization and Seller preparation has committed `ready_for_pickup`. The current Order schema does not yet persist that provider selection, so no operational queue may be fabricated today.
+- Include a row only when the pickup request's immutable Seller-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. The current provider-less rows remain transitional and cannot be claimed by any tenant.
 - Later rows may enter only through approved Shipment/Delivery Task ownership and transitions: first-mile `picked_up_from_seller`, hub `received_at_hub`/`sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, and final-mile `delivery_assigned`/`picked_up_from_hub`.
 - Keep high-level Order values lowercase `snake_case`: `ready_for_pickup`, `assigned` (hub receipt/acceptance), `picked_up` (final-mile hub pickup), `in_transit`, and `out_for_delivery`. Uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER` are source/UI wording only.
 - Do not accept or persist a future/source status until the shared operational schema and transition service approve it. Dashboard display must not turn a label into state.
@@ -63,7 +63,7 @@ active Logistics session
 
 - Counts must use the exact same organization, hub, status, and assignment predicates as the queue rows. A filter cannot alter authoritative state.
 - Use bounded server-side status/assignment filters, configured search fields, deterministic sorting, and bounded pagination. Never load the whole operational queue or calculate counts in React.
-- A future row may include opaque Order/Parcel/Waybill references, current machine status plus human label, safe Shop/Seller summary, pickup/destination area, status time, and assigned/unassigned Courier state when that record exists.
+- A future row may include opaque Order/Parcel/Waybill references, current machine status plus human label, safe Shop/Seller summary, pickup area, status time, schedule, and assigned/unassigned Courier state.
 - Do not expose full Customer/Seller profiles, payment credentials, private registration evidence, raw storage paths, unrestricted Courier location history, or unrelated Order IDs.
 - Every deep link must re-authorize in its owning feature; Dashboard navigation is not permission.
 
@@ -93,7 +93,7 @@ active Logistics session
 - First reconcile `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, Seller Prepare Orders, and the Logistics/Courier operational specs. Do not implement Dashboard actions against guessed tables or statuses.
 - Add additive migrations for the complete shared operational records, including the immutable Order/Parcel link, selected Logistics organization, sole hub, first-/final-mile tasks, and append-only events.
 - Implement a scoped query/service and Resource that derives summary counts and rows from those records. Keep controller filters validated and use indexes matching organization/hub/status/activity predicates.
-- Deep-link only to owning Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, or Capacity contracts. Logistics creates first-mile tasks after Seller `ready_for_pickup`; first-/final-mile Courier assignments remain independent.
+- Deep-link Pickup work to `docs/features/orders/logistics-pickups/spec.md` and shared-waybill access to `docs/features/orders/waybill/spec.md`. Logistics creates schedules/tasks after Seller `ready_for_pickup`; first-/final-mile assignments remain independent.
 - Test role/status/tenant isolation, sole-hub scope, provider selection, inclusion/exclusion, count consistency, pagination, IDOR, DTO privacy, stale/reconnect behavior, duplicate events, and linked-feature authorization on SQLite/PostgreSQL.
 
 ### Open decisions and references

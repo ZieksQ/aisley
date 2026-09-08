@@ -164,7 +164,7 @@ The system must protect inventory from overselling when an order is finalized.
 
 Successful COD placement skips `pending_payment`, creates the Order at `placed` with `payment_status = pending`, and reserves the requested inventory atomically. `pending_payment` remains available for a future online-payment flow.
 
-The currently implemented checkout schema does not yet persist a Logistics provider. When fulfillment selection is implemented, the API must store one server-validated eligible Logistics organization for each Shop Order and must not silently replace it after placement.
+The currently implemented checkout schema correctly does not persist a Logistics provider. When Seller pickup selection is implemented, the API must store one server-validated eligible Logistics organization on the pickup/fulfillment records and must not silently replace it after commitment.
 
 6.5 Address Book
 
@@ -260,19 +260,19 @@ Seller shall be able to process/approve an order and prepare it for fulfillment.
 
 Core flow:
 
-Customer selects an eligible Logistics organization during checkout → Order is placed → Seller processes and packs → Seller confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
+Customer places the Order → Seller processes and packs → Seller selects an eligible Logistics organization and confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
 
-Seller order processing does not assign a Courier or create the Logistics operational waybill.
+Seller order processing does not assign a Courier; the later pickup-request transaction creates the shared waybill.
 
-7.5 Prepare Order and Package Label
+7.5 Prepare Order, Select Logistics, and Create Waybill
 
-Seller shall be able to create/version and print the package label and shipping details needed for first-mile pickup.
+Seller shall pack each parcel, select an eligible Logistics organization, request pickup, and print the resulting shared waybill needed for first-mile pickup.
 
-The package-label identifier must contain the immutable Order/Parcel reference, package details, the Shop pickup address, and destination fields copied from the immutable Customer checkout snapshot. The Seller cannot rewrite the checkout snapshot.
+The shared-waybill identifier and QR must resolve the immutable Order/Parcel reference. Its server-owned snapshot uses the Shop pickup address and destination copied from Customer checkout; Seller cannot rewrite those facts.
 
-The Seller may revise the package label until `ready_for_pickup` is confirmed. The active label version then freezes; after `picked_up_from_seller`, the label and handoff history cannot be overwritten.
+The Seller's pickup transaction creates one immutable waybill snapshot per Order as `ready_for_pickup` is confirmed. Reprints reuse the same identity and snapshot.
 
-Logistics creates the separate operational waybill when the parcel reaches `received_at_hub`. The package label and operational waybill are linked by the immutable Order/Parcel reference.
+The selected Logistics organization views and scans the same Seller-created waybill; it does not create a second hub waybill at `received_at_hub`.
 
 7.6 Delivery Confirmation
 
@@ -326,15 +326,15 @@ The system shall connect the `seller_pickup_assigned`, `seller_pickup_accepted`,
 
 8.4 Waybill
 
-Logistics shall be able to create and print the operational waybill after the parcel is received at the sole hub.
+Logistics shall be able to view, download, print, and scan the shared waybill created by the Seller pickup transaction.
 
-The Seller package label and Logistics operational waybill are separate linked artifacts. The waybill shall include a stable, system-generated, scannable or enterable identifier such as:
+The Seller-created shared waybill shall include a stable, system-generated, scannable or enterable identifier such as:
 
 QR code, and/or
 
 Reference number.
 
-The operational waybill identifier and Order/Parcel link are immutable from `received_at_hub`. Routing and Courier assignments may change before `picked_up_from_hub` only through append-only events; after that pickup, final-mile assignment and custody history cannot be overwritten. Printing or reprinting does not independently advance an Order status.
+The shared waybill identifier, snapshot, selected Logistics organization, and Order/Parcel link are immutable from the Seller pickup-request transaction at `ready_for_pickup`. Routing and Courier assignments may change before physical handoff only through append-only events; after pickup, assignment and custody history cannot be overwritten. Printing or reprinting does not independently advance an Order status.
 
 8.5 Receiving and Sorting
 
@@ -598,13 +598,11 @@ Timestamp.
 
 11.1 Core Order Flow
 
-Customer selects an eligible Logistics organization for each Shop Order during checkout
-↓
 Buyer places order
 ↓
 Seller begins processing and prepares the order
 ↓
-Seller confirms `ready_for_pickup`
+Seller selects an eligible Logistics organization, requests pickup, creates each waybill, and confirms `ready_for_pickup`
 ↓
 First-mile Courier accepts the Seller pickup task
 ↓
@@ -614,7 +612,7 @@ Courier transfers the parcel to the Logistics organization's sole hub
 ↓
 Logistics receives and validates the parcel (`received_at_hub`)
 ↓
-Logistics creates the operational waybill and links it to the Seller package label through the immutable Order/Parcel reference
+Logistics resolves the Seller-created shared waybill through its immutable Order/Parcel reference
 ↓
 Logistics sorts the parcel (`sorted_at_hub`)
 ↓
@@ -677,7 +675,7 @@ delivered
 
 Shipment/Parcel/Waybill/Scan/Delivery Task and assignment writes must not begin until this flow is reconciled with `docs/schema.md`, the affected domain documents, and feature specifications, and the complete shared operational schema has been approved and migrated. Detailed physical states must not be added to `orders.status` by an individual feature.
 
-Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. Seller package labels may be revised until `ready_for_pickup` is confirmed; the active label version is then frozen. Logistics' waybill identifier and Order/Parcel link are immutable when created at `received_at_hub`; routing and Courier assignments may change before `picked_up_from_hub` only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules.
+Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. The pickup transaction creates one immutable shared waybill snapshot per Order at `ready_for_pickup`. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules.
 
 Inventory reservations follow the same boundary: placement reserves the requested SKU quantity; an accepted cancellation or rejection before `picked_up_from_seller` releases that quantity once and transactionally; first-mile pickup commits it once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
@@ -705,7 +703,7 @@ The MVP shall support:
 
 Generation/display of a system-owned Order/Parcel reference.
 
-Seller package-label printing and Logistics operational-waybill printing.
+Seller and selected-Logistics printing of the same shared waybill.
 
 QR/barcode scanning where supported by the client device.
 

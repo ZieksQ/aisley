@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.1
+version: 1.2
 status: Implementation-ready draft
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -20,18 +20,17 @@ scope: Seller Web Application and Laravel API
   Customer checkout
   → Seller new-order notification
   → Seller approves / starts processing, or rejects before processing
-  → Seller prepares and marks the package ready
-  → Logistics is notified
+  → Seller packs, selects Logistics, requests pickup, and prints each waybill
+  → selected Logistics is notified
   → first-mile Courier pickup, possibly in a bulk pickup run
-  → Logistics receives the parcel and generates the waybill
-  → Seller and Logistics can view the authorized waybill
+  → Seller and selected Logistics can view the same authorized waybill
   → remaining shipment, transfer, dispatch, and delivery flow belongs to Logistics/Courier
   ```
 - **Payment decision:** COD is the only current payment method. A valid COD Order may be approved while `payment_status = pending`; payment becomes `paid` only when delivery is completed by the downstream delivery/payment transition. Seller approval never changes payment state.
-- **Waybill decision:** Seller does not generate or edit a waybill. Logistics generates it after receiving the parcel; Seller receives read-only access after generation.
+- **Waybill decision:** Aisley creates one immutable shared waybill per Order in the Seller's pickup-request transaction; Seller and selected Logistics receive role-scoped access.
 - **Project boundary:** One Customer checkout creates one Seller/Shop Order per Shop. Seller reads and mutations are always scoped to the authenticated Seller's one Shop.
 - **Order navigation:** Seller Orders are separated into Monitoring, Approval, and Pickup sections. Monitoring provides status counts and sorting; Approval owns approve/reject decisions; Pickup owns multi-Order readiness requests.
-- **Non-goals:** payment collection, Seller-generated waybills, Courier assignment, Courier pickup confirmation, Logistics scans/transfers, delivery completion, Buyer address editing, and arbitrary Order edits.
+- **Non-goals:** payment collection, editable/client-generated waybill data, Courier assignment, Courier pickup confirmation, Logistics scans/transfers, delivery completion, Buyer address editing, and arbitrary Order edits.
 
 ## MUST
 
@@ -65,12 +64,12 @@ scope: Seller Web Application and Laravel API
 ### Prepare and Logistics handoff
 
 - After approval, route the Seller to Pickup. Seller may review item snapshots and select up to 50 `seller_processing` Orders for one pickup request when they are physically ready.
-- `POST /api/v1/seller/orders/pickup-requests` groups the selected Orders, transitions each to `ready_for_pickup`, and notifies active Logistics organizations after commit. The request starts as `pending_logistics`; its Logistics organization and pickup date remain null until Logistics assigns them.
-- Seller readiness validates immutable item quantities, payment state, current Order state, and the Order-linked Inventory reservation before committing. Package measurements and label generation remain deferred until their open contract is settled.
-- A committed `ready_for_pickup` transition creates one pending pickup request and emits an after-commit notification to active Logistics organizations. It must not select a Logistics organization, set a pickup date, generate a waybill, or assign a Courier.
+- `POST /api/v1/seller/orders/pickup-requests` groups the selected Orders with one eligible Seller-selected Logistics organization, creates one waybill per Order, transitions each to `ready_for_pickup`, and notifies only that organization after commit. Pickup date/Courier remain null until Logistics schedules them.
+- Seller readiness validates immutable item quantities, payment state, current Order state, Order-linked Inventory reservation, and Logistics eligibility before committing. Package measurements remain deferred for this MVP.
+- A committed `ready_for_pickup` transition freezes the selected Logistics organization and waybill snapshots. It must not set a pickup date, assign a Courier, or claim physical custody.
 - Logistics may combine multiple Seller-ready Orders into one first-mile pickup run or manifest. The batch is an operational grouping only: every Order keeps its own status, package identity, pickup evidence, history, and idempotency boundary.
-- Before a waybill exists, Logistics/Courier must use an authorized pickup manifest or opaque Order/package reference. The final waybill is created only after Logistics receives the parcel.
-- Waybill generation, receipt scans, `assigned`, hub processing, transfer, dispatch, final-mile assignment, and delivery belong to Logistics/Courier contracts. Seller may only view a generated waybill through an authorized read endpoint.
+- Logistics/Courier use the authorized shared waybill reference/QR for parcel verification; scanning alone does not advance custody.
+- Receipt scans, `assigned`, hub processing, transfer, dispatch, final-mile assignment, and delivery belong to Logistics/Courier contracts. Seller retains read-only access to the immutable waybill.
 
 ### Notifications and privacy
 
@@ -87,7 +86,7 @@ scope: Seller Web Application and Laravel API
 - [ ] Concurrent Customer cancellation and Seller approval cannot both commit incompatible transitions.
 - [ ] Approval does not mark payment paid, generate a waybill, assign a Courier, or mutate Inventory balances.
 - [ ] Seller readiness emits a committed Logistics handoff and supports downstream bulk pickup grouping without merging Orders.
-- [ ] Logistics generates the waybill after receipt; Seller and Logistics can view it only through role-scoped endpoints.
+- [ ] Pickup readiness creates immutable waybills; Seller and selected Logistics can view them only through role-scoped endpoints.
 
 ## HOW
 
@@ -106,7 +105,7 @@ GET  /api/v1/seller/orders/{order}/waybill
 - Order list/detail responses expose `status`, payment facts, immutable snapshots, `can_approve`, `can_reject`, `can_prepare`, pickup state, `can_view_waybill`, safe notification references, and Shop-scoped status counts computed by Laravel.
 - Implement a Seller-scoped approval action over the shared `OrderTransitionService`; use a Policy/scoped query, Form Request, API Resource, transaction, row lock, idempotency guard, and after-commit event listener.
 - Keep Order approval separate from pickup readiness; opening either screen does not change Order status.
-- Use `OrderReadyForPickup` as the downstream contract. Logistics owns bulk pickup task/manifest creation, Courier pickup confirmation, receipt validation, and post-receipt waybill generation.
+- Use `OrderReadyForPickup` as the downstream contract. Logistics owns bulk pickup scheduling/task creation, Courier assignment, pickup confirmation, and receipt validation; waybill creation remains inside Seller readiness.
 - Seller frontend belongs in the React/Vite Seller SPA with shared `@aisley/ui` primitives. Provide loading, actionable, processing, stale/conflict, cancelled/rejected, unavailable, and retry states with keyboard-accessible actions.
 - No new Order or payment enum is needed. Any future idempotency, pickup-manifest, or waybill read model uses additive migrations and string-backed enum-like columns with PHP enum casts.
 
@@ -114,12 +113,12 @@ GET  /api/v1/seller/orders/{order}/waybill
 
 - API tests cover role/Shop isolation, COD pending approval/rejection, reservation release, invalid states, duplicate/concurrent requests, immutable snapshots, multi-Order pickup, after-commit Logistics notification, and no approval payment/Inventory/waybill side effects.
 - Seller tests cover Monitoring/Approval/Pickup navigation, approve/reject actions, disabled capabilities, `409` refetch, notification read separation, pickup selection, and accessible error states.
-- Roll out in dependency order: Seller order list/detail and notification → Approval → Pickup request → Logistics assignment/receipt → Logistics waybill read/generation → remaining shipment flow.
+- Roll out in dependency order: Seller order list/detail and notification → Approval → provider selection/pickup request/waybill → Logistics Pickups scheduling → Courier pickup/receipt → remaining shipment flow.
 - Log correlation ID, Seller/Shop/Order IDs, transition source, idempotency result, and event outcome; never log full address, payment secrets, or raw Buyer payloads.
 
 ### Research alignment and open decisions
 
 - Shopee's seller flow separates **To Ship**, Arrange Shipment, pickup/drop-off selection, AWB printing, and mass pickup; late shipment/pickup can lead to system cancellation. See [Shopee seller fulfillment guide](https://cdngarenanow-a.akamaihd.net/shopee/seller/seller_cms/e68a7068c5423d45decff4573cd3fdef/How%20to%20fulfil%20an%20order%20in%20seller%20centre.pdf), [Shopee mass pickup guide](https://cdngarenanow-a.akamaihd.net/shopee/seller/seller_cms/6f01c96a4fa2e7feb8c441245ea98b4b/9.9%20Campaign%20Preparation.pdf), and [Shopee COD guidance](https://help.shopee.ph/portal/4/article/135541-How-do-I-choose-Cash-on-Delivery-(COD)-as-a-payment-option-(TAG)).
 - Lazada's official fulfillment APIs separate Pack, PrintAWB, ReadyToShip, and pickup operations; some document endpoints accept multiple packages. See [Lazada fulfillment API](https://open.lazada.com/apps/doc/doc?docId=120984&nodeId=30764) and [Lazada Pack/PrintAWB/ReadyToShip guide](https://open.lazada.com/apps/doc/doc?docId=121328&nodeId=43453).
-- Aisley keeps Seller approval and pickup readiness separate from Logistics waybill ownership, and keeps bulk pickup as an operational grouping without merging Orders.
-- Open: exact pickup-manifest/scan artifact before waybill creation, Seller processing deadline/SLA, notification channel/polling, and the owner of the final `pending → paid` payment update at delivery completion.
+- Aisley keeps Seller approval and pickup readiness separate, creates one shared waybill at readiness, and keeps bulk pickup as an operational grouping without merging Orders.
+- Open: Seller processing deadline/SLA, Courier acceptance-versus-acknowledgement policy, and the owner of the final `pending → paid` payment update at delivery completion.

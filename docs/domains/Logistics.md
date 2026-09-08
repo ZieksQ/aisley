@@ -10,7 +10,7 @@ status: Revised — aligned with the approved order/Logistics flow and implement
 
 ## Overview
 
-Logistics is Aisley's first-party parcel-operations role. It operates one organization and exactly one operational hub/sorting center in the MVP. The organization creates first-mile pickup tasks for Seller-ready Orders, receives and validates the parcels, creates operational waybills, sorts and dispatches them for final-mile delivery, and monitors the associated Courier tasks.
+Logistics is Aisley's first-party parcel-operations role. It operates one organization and exactly one operational hub/sorting center in the MVP. The organization schedules first-mile pickup tasks for Seller-ready Orders addressed to it, views/scans their shared waybills, receives and sorts parcels, dispatches final-mile delivery, and monitors Courier tasks.
 
 The Logistics web dashboard is separate from the Customer and Seller applications. Courier operations are consumed through the external mobile application; this repository does not build a Courier web UI.
 
@@ -74,7 +74,7 @@ Customer places the Order
 → Courier picks up from Seller (`picked_up_from_seller`)
 → Courier transfers the parcel to the sole Logistics hub
 → Logistics receives and validates it (`received_at_hub`)
-→ Logistics creates the operational waybill and links it to the Seller package label through the immutable Order/Parcel reference
+→ Logistics views/scans the Seller-created shared waybill through the immutable Order/Parcel reference
 → Logistics sorts it (`sorted_at_hub`)
 → Logistics transfers and dispatches it (`in_transfer` → `dispatched_from_hub`)
 → Logistics assigns a final-mile Courier (`delivery_assigned`)
@@ -130,9 +130,9 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 ### 7. Waybill
 
 - **Core value:** Print order/parcel details.
-- **Definition:** Create the operational waybill when the parcel reaches `received_at_hub`, using a stable, opaque, printable/scannable identifier linked to the Seller-created package label by the immutable Order/Parcel reference.
+- **Definition:** View, download, print, and scan the shared waybill created when the Seller requested pickup, using its stable opaque reference and authorized QR.
 - **Immutability:** The waybill identifier and Order/Parcel link are immutable from creation. Routing and Courier assignments may change before `picked_up_from_hub` only through append-only events; after that pickup, final-mile assignment and custody history cannot be overwritten. Printing or reprinting is a document/audit operation and must not silently advance status or expose unnecessary Customer data.
-- **System context:** QR/barcode scans resolve authoritative Shipment/Delivery Task records. The Seller package label and Logistics operational waybill are separate artifacts; Logistics does not rewrite the Seller's frozen label.
+- **System context:** QR scans resolve authoritative Shipment/Delivery Task records. Logistics does not rewrite the frozen waybill, and a scan alone never advances custody.
 
 ### 8. Zone/Territory Mapping
 
@@ -149,7 +149,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 ## Operational invariants
 
 - Only an authenticated active Logistics account may operate its organization's sole hub.
-- Every Order/Shipment/Delivery Task, Courier affiliation, waybill, scan, assignment, cache entry, and event must be resolved server-side to that organization and hub. An Order is eligible for this queue only when its server-validated Customer-selected Logistics organization is this organization.
+- Every Order/Shipment/Delivery Task, Courier affiliation, waybill, scan, assignment, cache entry, and event must be resolved server-side to that organization and hub. A pickup is eligible only when its immutable Seller-selected Logistics organization is this organization.
 - `delivery_assigned` is not `delivery_accepted`, and neither means `picked_up_from_hub`.
 - First-mile pickup is `picked_up_from_seller`; final-mile hub pickup is `picked_up_from_hub`.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; the same or a different eligible Courier may be selected by Logistics for the second leg.
@@ -160,7 +160,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 
 ## Deferred operational data
 
-The current schema implements Logistics identity, organization, sole hub, and Courier affiliation. Shipment/Parcel/Waybill/Scan/Delivery Task, assignment, proof-of-delivery, availability, capacity, and earnings tables remain deferred. Their complete shared schema and transition contract must be reconciled and migrated before Logistics or Courier actions are implemented. Future migrations must preserve the one-organization/one-hub invariant, the Customer-selected provider context, separate Seller-label/Logistics-waybill artifacts, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
+The current schema implements Logistics identity, organization, sole hub, and Courier affiliation. Shipment/Parcel/Waybill/Scan/Delivery Task, assignment, proof-of-delivery, availability, capacity, and earnings tables remain deferred. Future migrations must preserve the one-organization/one-hub invariant, immutable Seller-selected provider context, one shared waybill, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
 
 ## Shared contracts
 

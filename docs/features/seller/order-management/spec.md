@@ -14,7 +14,7 @@ scope: Seller Web Application
 ## WHAT
 
 - **Actual ownership:** this Seller feature is the Product/Catalog workspace despite its historical name. It manages Product drafts, variants, prices, media, descriptions, publication, archive/unarchive, and deletion retention.
-- **Fulfillment pointer:** purchased-order approval belongs to Seller Order Approval; packing, package labels, and `ready_for_pickup` belong to Seller Prepare Orders. Logistics waybills, Courier assignment, and delivery are downstream.
+- **Fulfillment pointer:** purchased-order approval belongs to Seller Order Approval; packing, provider selection, shared-waybill creation, and `ready_for_pickup` belong to Seller Prepare Orders. Courier assignment and delivery are downstream.
 - **Routes:** Seller SPA `/products`, `/products/new`, `/products/:productId`, `/products/:productId/edit`; API `/api/v1/seller/products*` and product upload routes.
 - **Ownership:** authenticated Seller → exactly one Shop → Products, SKUs/variants, gallery media, and inline description assets.
 - **Editor:** use [MDXEditor — the Rich Text Markdown Editor React Component](https://mdxeditor.dev/editor/docs/overview) for controlled `description_markdown` authoring. Buyer viewing uses `react-markdown` with `remark-gfm` and no raw HTML.
@@ -63,7 +63,7 @@ scope: Seller Web Application
 - [x] Description assets are Product-owned, canonical, bounded, and rendered with `react-markdown`/`remark-gfm` without raw HTML.
 - [x] Product gallery and inline description images use separate asset lifecycles and safe visibility rules.
 - [x] Inventory, Admin compliance, Buyer storefront, and historical Order boundaries are not bypassed.
-- [ ] Purchased-order queue/packing, Seller package labels, Logistics operational waybills, and delivery transitions are implemented in their owning features.
+- [ ] Purchased-order queue/packing, shared waybills, pickup scheduling, and delivery transitions are implemented in their owning features.
 
 ## HOW
 
@@ -109,7 +109,7 @@ scope: Seller Web Application
 - Test Markdown parser rejection, exact image ownership, upload-token reuse, temporary-asset expiry, gallery count/default rules, variant combinations, price precision, publish prerequisites, archive/unarchive, and deletion retention.
 - Test Buyer Product Detail/search only receives active, compliant, scan-approved Product data and safe description media. Test `react-markdown`/`remark-gfm` output with links, tables, images, and hostile HTML.
 - Keep Order Approval and Prepare Orders links available from Seller navigation without coupling catalog writes to fulfillment status transitions.
-- A Product save may occur while an Order is being prepared, but it cannot alter the immutable purchased snapshot or package label snapshot.
+- A Product save may occur while an Order is being prepared, but it cannot alter the immutable purchased or waybill snapshot.
 - A Product archive or compliance restriction must make its Buyer visibility change without deleting Inventory movement or historical Order references.
 - Keep catalog route parameters UUID-constrained and do not expose sequential internal identifiers in image or Product URLs.
 
