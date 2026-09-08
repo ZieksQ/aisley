@@ -417,3 +417,7 @@ Project is in active implementation across the API, Customer storefront, and Adm
 ## 2026-09-07
 
 - Updated `docs/architecture.md` to identify the four current frontend applications (Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard), while keeping Courier explicitly external and Flutter/mobile-only.
+
+## 2026-09-08
+
+- Added `docs/features/courier/rules.md` with the Courier feature-spec revision workflow, explicit Flutter API handoff requirements, backend/security/testing guardrails, and a 200–230-line feature-spec length rule. No application behavior changed.
