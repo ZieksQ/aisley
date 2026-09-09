@@ -8,6 +8,8 @@ use App\Enums\PaymentStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Events\CustomerOrderStatusChanged;
+use App\Listeners\SendCustomerOrderStatusNotification;
 use App\Models\CheckoutBatch;
 use App\Models\CheckoutQuote;
 use App\Models\Order;
@@ -223,6 +225,73 @@ class CustomerOrderStatusTest extends TestCase
             ->assertJsonPath('data.1.location.city', 'Taguig City')
             ->assertJsonPath('meta.total', 3)
             ->assertJsonPath('meta.last_page', 2);
+    }
+
+    public function test_customer_notifications_include_only_important_order_events_and_hide_legacy_movement_alerts(): void
+    {
+        $customer = $this->customer();
+        $order = $this->order($customer, $this->shop(), OrderStatus::Placed, now());
+        $important = [
+            OrderStatus::SellerProcessing,
+            OrderStatus::Cancelled,
+            OrderStatus::Rejected,
+            OrderStatus::OutForDelivery,
+            OrderStatus::Delivered,
+            OrderStatus::DeliveryFailed,
+            OrderStatus::ReturnRequested,
+            OrderStatus::Returned,
+        ];
+        $routine = [
+            OrderStatus::PendingPayment,
+            OrderStatus::Placed,
+            OrderStatus::ReadyForPickup,
+            OrderStatus::Assigned,
+            OrderStatus::PickedUp,
+            OrderStatus::InTransit,
+        ];
+        $listener = app(SendCustomerOrderStatusNotification::class);
+
+        foreach ([...$important, ...$routine] as $status) {
+            $statusEvent = $order->statusEvents()->create([
+                'from_status' => OrderStatus::Placed,
+                'to_status' => $status,
+                'source' => 'notification_audience_test',
+                'occurred_at' => now(),
+            ]);
+            $listener->handle(new CustomerOrderStatusChanged($statusEvent->id));
+        }
+
+        $this->assertSame(
+            collect($important)->map(fn (OrderStatus $status) => $status->value)->sort()->values()->all(),
+            $customer->notifications()->pluck('data')->map(fn (array $data) => $data['status'])->sort()->values()->all(),
+        );
+
+        $legacyIds = [];
+        foreach ($routine as $status) {
+            $legacyIds[] = $customer->notifications()->create([
+                'id' => (string) Str::uuid(),
+                'type' => 'customer-order.status-changed',
+                'data' => [
+                    'title' => 'Legacy movement alert',
+                    'summary' => 'This routine movement should no longer appear.',
+                    'order_id' => $order->id,
+                    'order_reference' => $order->reference,
+                    'status' => $status->value,
+                ],
+            ])->id;
+        }
+
+        $notifications = $this->getJson('/api/v1/customer/notifications?per_page=50')
+            ->assertOk()
+            ->assertJsonCount(count($important), 'data')
+            ->json('data');
+        $this->assertEqualsCanonicalizing(
+            collect($important)->map(fn (OrderStatus $status) => $status->value)->all(),
+            array_column($notifications, 'status'),
+        );
+        $this->assertSame('Order approved by seller', collect($notifications)->firstWhere('status', OrderStatus::SellerProcessing->value)['title']);
+        $this->getJson('/api/v1/customer/notifications/'.$legacyIds[0])->assertNotFound();
+        $this->postJson('/api/v1/customer/notifications/'.$legacyIds[0].'/read')->assertNotFound();
     }
 
     private function customer(): User

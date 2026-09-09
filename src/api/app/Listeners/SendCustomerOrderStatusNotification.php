@@ -24,6 +24,9 @@ class SendCustomerOrderStatusNotification implements ShouldQueue
             if ($statusEvent === null || $order === null || $customer === null || $customer->role !== UserRole::Customer || $customer->status !== UserStatus::Active) {
                 return;
             }
+            if (! in_array($statusEvent->to_status, OrderStatusChangedNotification::STATUSES, true)) {
+                return;
+            }
             $id = Uuid::uuid5(Uuid::NAMESPACE_URL, "aisley:customer:{$customer->id}:order-event:{$statusEvent->id}")->toString();
             if ($customer->notifications()->whereKey($id)->exists()) {
                 return;

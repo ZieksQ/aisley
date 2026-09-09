@@ -134,6 +134,8 @@ class LogisticsPickupWaybillTest extends TestCase
         $sellerNotification = $this->actingAs($seller)->getJson('/api/v1/seller/notifications?status=unread')
             ->assertOk()
             ->assertJsonPath('data.0.type', 'pickup-schedule.assigned')
+            ->assertJsonPath('data.0.title', 'Pickup scheduled')
+            ->assertJsonPath('data.0.summary', fn ($value) => is_string($value) && str_contains($value, 'PHT'))
             ->assertJsonPath('data.0.schedule.id', $schedule['id'])
             ->assertJsonPath('data.0.schedule.order_count', 1)
             ->json('data.0');
@@ -147,6 +149,23 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->postJson("/api/v1/seller/notifications/{$sellerNotification['id']}/read")
             ->assertOk()
             ->assertJsonPath('data.read_at', fn ($value) => is_string($value));
+        $legacyNotification = $seller->notifications()->create([
+            'id' => (string) Str::uuid(),
+            'type' => 'pickup-schedule.assigned',
+            'data' => [
+                'schedule_id' => $schedule['id'],
+                'reference' => $schedule['reference'],
+                'starts_at' => $schedule['starts_at'],
+                'ends_at' => $schedule['ends_at'],
+                'timezone' => 'UTC',
+                'order_count' => 1,
+                'pickup_area' => ['city_municipality' => 'Manila', 'province' => 'Metro Manila', 'region' => 'NCR'],
+            ],
+        ]);
+        $this->getJson("/api/v1/seller/notifications/{$legacyNotification->id}")
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Pickup scheduled')
+            ->assertJsonPath('data.summary', fn ($value) => is_string($value) && str_contains($value, $schedule['reference']) && str_contains($value, 'PHT'));
         [$otherSeller] = $this->sellerShop();
         $this->actingAs($otherSeller)->getJson("/api/v1/seller/notifications/{$sellerNotification['id']}")->assertNotFound();
 

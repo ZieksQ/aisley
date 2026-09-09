@@ -57,6 +57,13 @@ Account menu → Orders → paginated Customer-owned list
 - Detailed Shipment/Delivery Task milestones are separate: `picked_up_from_seller`, `received_at_hub`, `sorted_at_hub`, `dispatched_from_hub`, `delivery_assigned`, and `picked_up_from_hub`. Do not persist or infer these from generic `picked_up` until the shared operational schema exists.
 - First-mile and final-mile assignments are independent; a first-mile Courier is not automatically the final-mile Courier.
 
+### Customer notification boundary
+
+- Create Customer Order notifications only for important decisions or outcomes: Seller approval (`seller_processing`), cancellation/rejection (`cancelled`, `rejected`), delivery milestones (`out_for_delivery`, `delivered`), and parcel/fulfillment issues (`delivery_failed`, `return_requested`, `returned`).
+- Placement, payment-wait, routine preparation, and movement states (`placed`, `pending_payment`, `ready_for_pickup`, `assigned`, `picked_up`, `in_transit`) remain visible in the Order timeline but do not create Customer notifications.
+- First-mile pickup schedules and Seller-origin collection reminders notify the Seller and assigned Courier, not the Customer.
+- Apply the same allow-list when reading notifications so legacy routine-movement records no longer appear or become directly accessible in the Customer notification center.
+
 ### List, detail, and timeline data
 
 - `/orders` defaults to **All**, then uses the same server-side collection for the six status tabs. Filters reset pagination and reject unknown groups.
