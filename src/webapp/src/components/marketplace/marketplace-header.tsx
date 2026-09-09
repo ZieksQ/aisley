@@ -26,15 +26,15 @@ export function UtilityBar() {
     <div className="hidden border-b border-[#E9E4EB] bg-white text-xs text-[#5E5262] md:block">
       <div className="mx-auto flex h-8 max-w-[1400px] items-center justify-between px-5 lg:px-8">
         <nav aria-label="Marketplace resources" className="flex items-center gap-5">
-          <Link href="/app" className="hover:text-[#E6007A]">
+          <Link href="/app" prefetch={false} className="hover:text-[#E6007A]">
             Download Aisley App
           </Link>
-          <Link href="/seller" className="hover:text-[#E6007A]">
+          <Link href="/seller" prefetch={false} className="hover:text-[#E6007A]">
             Sell on Aisley
           </Link>
         </nav>
         <nav aria-label="Customer resources" className="flex items-center gap-5">
-          <Link href="/help" className="hover:text-[#E6007A]">
+          <Link href="/help" prefetch={false} className="hover:text-[#E6007A]">
             Help Center
           </Link>
           <UtilityAccountControls />

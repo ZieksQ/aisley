@@ -12,7 +12,7 @@ class HomepageAdvertisementConfiguration extends Model
 {
     use HasUuids;
 
-    public const ACTIVE_CACHE_KEY = 'customer:homepage:advertisement-layer';
+    public const ACTIVE_CACHE_KEY = 'customer:homepage:advertisement-layer:v2';
 
     protected $fillable = ['source_configuration_id', 'tag_title', 'layout', 'rotation_interval_seconds', 'starts_at', 'ends_at', 'status', 'revision', 'created_by_admin_id', 'published_by_admin_id', 'published_at'];
 

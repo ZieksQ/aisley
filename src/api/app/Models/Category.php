@@ -14,7 +14,7 @@ class Category extends Model
 {
     use HasFactory, HasUuids;
 
-    public const HOMEPAGE_CACHE_KEY = 'customer:homepage:categories';
+    public const HOMEPAGE_CACHE_KEY = 'customer:homepage:categories:v2';
 
     protected $fillable = [
         'parent_id',

@@ -20,3 +20,4 @@ Format:
 ## 2026-09-10
 
 - Switched Seller registration and pickup-address PSGC selectors to the bundled `@aisley/psgc-address-data` loader and renamed the Seller Geoapify example variable to `GEOAPIFY_API_KEY`.
+- Fixed repeat Customer homepage requests under production-safe cache deserialization by caching only scalar advertisement, campaign, and category projections, rotating the affected cache keys, and covering guest plus Seller/Admin/Logistics session behavior; disabled prefetch for unimplemented storefront resource links to prevent background RSC 404 noise.

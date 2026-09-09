@@ -13,7 +13,7 @@ class HomepageCampaign extends Model
 {
     use HasFactory, HasUuids;
 
-    public const CACHE_KEY = 'customer:homepage:campaigns';
+    public const CACHE_KEY = 'customer:homepage:campaigns:v2';
 
     protected $fillable = [
         'homepage_advertisement_configuration_id',
