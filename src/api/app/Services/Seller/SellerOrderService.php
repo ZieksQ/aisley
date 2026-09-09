@@ -81,6 +81,7 @@ class SellerOrderService
             'address',
             'statusEvents' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
             'pickupRequestOrder.sellerPickupRequest',
+            'pickupRequestOrder.pickupAddress',
             'firstMileTask.schedule',
             'waybill:id,order_id,reference,created_at',
         ];

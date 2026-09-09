@@ -6,6 +6,7 @@ use App\Enums\LogisticsMatchTier;
 use App\Enums\UserStatus;
 use App\Models\Address;
 use App\Models\LogisticsOrganization;
+use App\Models\SellerPickupRequest;
 use App\Models\Shop;
 use Illuminate\Support\Collection;
 
@@ -23,6 +24,11 @@ class EligibleLogisticsQuery
             ->whereHas('hub.address')
             ->with(['hub.address'])
             ->get();
+        $defaultProviderId = SellerPickupRequest::query()
+            ->where('seller_id', $sellerId)
+            ->oldest('created_at')
+            ->oldest('id')
+            ->value('logistics_organization_id');
         $distances = $this->distance->distances($address, $organizations->pluck('hub'));
 
         $options = $organizations->map(function (LogisticsOrganization $organization) use ($address, $distances): array {
@@ -50,7 +56,11 @@ class EligibleLogisticsQuery
         $exact = $options->filter(fn (array $option) => LogisticsMatchTier::from($option['match_tier'])->rank() === $bestTier);
         $recommended = $exact->sortBy(fn (array $option) => [$option['distance_km'] === null ? PHP_FLOAT_MAX : $option['distance_km'], mb_strlen($option['business_name']), $option['id']])->first();
         $hasAuthoritativeDistance = $options->contains(fn (array $option) => $option['distance_km'] !== null);
-        $options = $options->map(fn (array $option) => [...$option, 'recommended' => $hasAuthoritativeDistance && $recommended !== null && $option['id'] === $recommended['id']]);
+        $options = $options->map(fn (array $option) => [
+            ...$option,
+            'recommended' => $hasAuthoritativeDistance && $recommended !== null && $option['id'] === $recommended['id'],
+            'default' => $option['id'] === $defaultProviderId,
+        ]);
 
         return compact('shop', 'address', 'options');
     }
@@ -73,6 +83,15 @@ class EligibleLogisticsQuery
 
     private function area(Address $address): array
     {
-        return ['city_municipality' => $address->city_municipality, 'province' => $address->province, 'region' => $address->region, 'country' => $address->country];
+        return [
+            'address_line_1' => $address->address_line_1,
+            'address_line_2' => $address->address_line_2,
+            'barangay' => $address->barangay,
+            'city_municipality' => $address->city_municipality,
+            'province' => $address->province,
+            'region' => $address->region,
+            'postal_code' => $address->postal_code,
+            'country' => $address->country,
+        ];
     }
 }

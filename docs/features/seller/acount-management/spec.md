@@ -3,10 +3,10 @@ feature: account-management
 title: Seller Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented foundation
 role: Seller
-scope: Seller Web Application
+scope: Seller Web Application and Laravel API
 ---
 
 # Seller Account Management
@@ -15,7 +15,7 @@ scope: Seller Web Application
 
 - **Purpose:** Let an approved active Seller manage their own profile, the one Shop's storefront details, login email/password, vacation state, and profile photo.
 - **Authority:** React/Vite owns forms and feedback; Laravel owns allow-lists, validation, Seller/Shop scope, re-authentication, storage, and safe DTOs.
-- **Current implementation:** profile/storefront editing, vacation fields, current-password-protected email/password changes, and private profile-photo upload/view/replace/remove are available at `/account`.
+- **Current implementation:** profile/storefront editing, vacation fields, current-password-protected email/password changes, private profile-photo upload/view/replace/remove, and a Seller pickup-address book are available at `/account`.
 - **One-Shop rule:** a Seller edits the registration-created Shop. Account Management never creates a second Shop; incomplete required storefront data is surfaced as `SHOP_SETUP_REQUIRED` by the Dashboard.
 - **Boundaries:** Seller Auth owns sessions/recovery; Admin owns status, approval, compliance, and controlled review; Product/Catalog owns product data; Inventory owns balances; payout integrations own provider secrets.
 - **Non-goals:** role/status/permission changes, Admin decisions, another Seller's data, arbitrary column patches, Seller closure, MFA, payouts without an approved provider, notification preferences, or replacement evidence review.
@@ -34,6 +34,13 @@ scope: Seller Web Application
 - Validate length, format, URL, enum, and date rules server-side. Storefront Markdown/text is untrusted and must render safely in Buyer surfaces.
 - Keep Shop status, slug, category, Seller role, account status, commission, permissions, and Admin decisions server-controlled.
 - Active Shop values are the only Buyer-visible values. If a future field requires review, preserve the active value and store the proposal separately; do not silently replace it.
+
+### Pickup addresses
+
+- An active Seller may list, create, edit, and delete only addresses owned by that Seller. Seller pickup addresses are operational `both` addresses; clients cannot submit `user_id` or override the stored address type.
+- Use the shared PSGC Region → Province → City/Municipality → Barangay flow with searchable options and manual fallback. Coordinates remain optional, must be a complete valid pair, and are cleared when textual location fields change without a newly confirmed pin.
+- The first saved address becomes default automatically. Setting another default clears the previous default; deleting the default promotes one remaining address so a non-empty address book always has one default.
+- Address-book edits affect future selections only. Each committed pickup Order keeps the immutable pickup snapshot stored on its waybill.
 
 ### Email and password
 
@@ -63,11 +70,13 @@ scope: Seller Web Application
 - [x] Role, status, slug, category, Admin decisions, and other protected fields cannot be self-edited.
 - [x] Profile-photo replacement/removal is authorized, validated, private, and path-safe.
 - [x] Account DTOs mask security-sensitive data and account mutations emit secret-free operational logs.
+- [x] A Seller manages multiple isolated pickup addresses with one default and can use a different saved address per prepared Order.
 - [ ] Controlled review, payout tokenization, preference matrix, MFA, document replacement, notification delivery policy, and Seller-initiated closure are approved and implemented.
 
 ## HOW
 
 - Current routes are `GET/PATCH /api/v1/seller/account`, profile/storefront/email updates, `PUT /account/password`, and `POST/GET/DELETE /account/profile-photo` under `auth:sanctum,seller.active`.
+- Pickup address routes are `GET/POST /api/v1/seller/pickup-addresses` and `PATCH/DELETE /api/v1/seller/pickup-addresses/{address}` under the same active-Seller boundary.
 - Current implementation is `src/api/app/Http/Controllers/Seller/AccountController.php`, `SellerAccountService`, Seller Form Requests/Resources, and the configured filesystem. `SellerAccountService` locks profile rows, stores generated photo keys, redacts logs, and cleans up replaced objects.
 - The Seller `/account` pages consume the credentialed API and show profile, storefront, vacation, security, and photo controls. Do not add unsupported payout/preference panels as if they were live.
 - Keep migrations additive; enum-like values remain strings with PHP enum casts. Add controlled-change or asset metadata tables only after their policies are approved.

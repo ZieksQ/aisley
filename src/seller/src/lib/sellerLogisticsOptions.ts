@@ -6,7 +6,10 @@ export type LogisticsOption = {
   hub: {
     id: string
     name: string
-    area: { city_municipality: string; province: string; region: string; country: string }
+    area: {
+      address_line_1: string; address_line_2: string | null; barangay: string
+      city_municipality: string; province: string; region: string; postal_code: string; country: string
+    }
   }
   available: boolean
   match_tier: string
@@ -14,6 +17,7 @@ export type LogisticsOption = {
   distance_km: number | null
   status: string
   recommended: boolean
+  default: boolean
 }
 
 export type LogisticsOptions = {

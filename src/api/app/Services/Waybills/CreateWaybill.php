@@ -56,7 +56,7 @@ class CreateWaybill
 
     private function address($address, string $name, ?string $phone): array
     {
-        return ['name' => $name, 'contact_number' => $phone, 'address_line_1' => $address->address_line_1, 'address_line_2' => $address->address_line_2, ...$this->area($address), 'barangay' => $address->barangay, 'postal_code' => $address->postal_code];
+        return ['name' => $name, 'contact_number' => $phone, 'address_line_1' => $address->address_line_1, 'address_line_2' => $address->address_line_2, ...$this->area($address), 'barangay' => $address->barangay, 'postal_code' => $address->postal_code, 'latitude' => $address->latitude, 'longitude' => $address->longitude];
     }
 
     private function area($address): array

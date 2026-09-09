@@ -37,7 +37,7 @@ class PickupController extends Controller
                 $search->{$method}('waybills', fn ($waybills) => $waybills->where('reference', 'like', '%'.addcslashes($value, '%_').'%'))
                     ->orWhereHas('orders.order', fn ($orders) => $orders->where('reference', 'like', '%'.addcslashes($value, '%_').'%'));
             }))
-            ->with(['waybills:id,seller_pickup_request_id,reference,created_at', 'orders.order:id,reference', 'orders.order.firstMileTask.schedule:id,reference,courier_id,status,starts_at,ends_at', 'shop:id,name', 'shop.seller.addresses'])
+            ->with(['waybills:id,seller_pickup_request_id,reference,created_at', 'orders.order:id,reference', 'orders.order.waybill.snapshot', 'orders.order.firstMileTask.schedule:id,reference,courier_id,status,starts_at,ends_at', 'shop:id,name'])
             ->withCount('orders')->orderByDesc('created_at')->orderByDesc('id')->paginate($data['per_page'] ?? 25);
 
         return response()->json(['data' => collect($paginator->items())->map(fn ($pickup) => $this->pickup($pickup)), 'meta' => ['current_page' => $paginator->currentPage(), 'last_page' => $paginator->lastPage(), 'per_page' => $paginator->perPage(), 'total' => $paginator->total()]]);
@@ -47,7 +47,7 @@ class PickupController extends Controller
     {
         $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
         $record = SellerPickupRequest::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->whereKey($pickup)
-            ->with(['shop:id,name,seller_id', 'shop.seller.addresses', 'orders.order:id,reference,status', 'orders.order.waybill:id,order_id,reference,created_at', 'orders.order.firstMileTask.schedule', 'orders.order.firstMileTask.courier.courierProfile'])->withCount('orders')->firstOrFail();
+            ->with(['shop:id,name,seller_id', 'orders.order:id,reference,status', 'orders.order.waybill.snapshot', 'orders.order.firstMileTask.schedule', 'orders.order.firstMileTask.courier.courierProfile'])->withCount('orders')->firstOrFail();
 
         return response()->json(['data' => $this->pickup($record, true)]);
     }
@@ -107,9 +107,13 @@ class PickupController extends Controller
 
     private function pickup(SellerPickupRequest $pickup, bool $detail = false): array
     {
-        $address = $pickup->shop?->seller?->addresses?->sortByDesc('is_default')->first();
-        $orders = $pickup->orders->map(fn ($link) => ['id' => $link->order_id, 'reference' => $link->order?->reference, 'status' => $link->order?->status?->value, 'scheduled' => $link->order?->firstMileTask !== null, 'schedule' => $link->order?->firstMileTask?->schedule ? $this->schedule($link->order->firstMileTask->schedule) : null, 'waybill' => $link->order?->waybill ? ['id' => $link->order->waybill->id, 'reference' => $link->order->waybill->reference] : null]);
-        $base = ['id' => $pickup->id, 'status' => $pickup->status, 'shop' => ['name' => $pickup->shop?->name, 'pickup_area' => $address ? ['city_municipality' => $address->city_municipality, 'province' => $address->province, 'region' => $address->region] : null], 'order_count' => $pickup->orders_count ?? $orders->count(), 'unscheduled_count' => $orders->where('scheduled', false)->count(), 'ready_at' => $pickup->created_at->toISOString(), 'created_at' => $pickup->created_at->toISOString()];
+        $orders = $pickup->orders->map(function ($link): array {
+            $address = $link->order?->waybill?->snapshot?->payload['pickup'] ?? null;
+
+            return ['id' => $link->order_id, 'reference' => $link->order?->reference, 'status' => $link->order?->status?->value, 'pickup_area' => $address ? ['city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region']] : null, 'scheduled' => $link->order?->firstMileTask !== null, 'schedule' => $link->order?->firstMileTask?->schedule ? $this->schedule($link->order->firstMileTask->schedule) : null, 'waybill' => $link->order?->waybill ? ['id' => $link->order->waybill->id, 'reference' => $link->order->waybill->reference] : null];
+        });
+        $pickupAreas = $orders->pluck('pickup_area')->filter()->unique(fn ($area) => implode('|', $area))->values();
+        $base = ['id' => $pickup->id, 'status' => $pickup->status, 'shop' => ['name' => $pickup->shop?->name, 'pickup_area' => $pickupAreas->first(), 'pickup_areas' => $pickupAreas], 'order_count' => $pickup->orders_count ?? $orders->count(), 'unscheduled_count' => $orders->where('scheduled', false)->count(), 'ready_at' => $pickup->created_at->toISOString(), 'created_at' => $pickup->created_at->toISOString()];
 
         return $detail ? [...$base, 'orders' => $orders->values()] : [...$base, 'schedules' => $orders->pluck('schedule')->filter()->unique('id')->values()];
     }

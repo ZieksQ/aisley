@@ -27,9 +27,10 @@ export function createOrderRejection(sellerId: string, orderId: string, reason?:
   return createIdempotentAction<{ data: SellerOrder }>(`seller-reject:${sellerId}:${orderId}`, `/api/v1/seller/orders/${encodeURIComponent(orderId)}/reject`, reason ? { reason } : {})
 }
 
-export function createPickupRequest(sellerId: string, orderIds: string[], logisticsOrganizationId: string) {
+export function createPickupRequest(sellerId: string, orderIds: string[], logisticsOrganizationId: string, pickupAddressIds: Record<string, string>) {
   const identity = [...orderIds].sort().join(':')
-  return createIdempotentAction<{ data: { id: string; status: string; pickup_date: string | null; logistics_organization_id: string; order_ids: string[]; waybills: Array<{ id: string; order_id: string; reference: string; created_at: string; printable: boolean }> } }>(`seller-pickup:${sellerId}:${identity}:${logisticsOrganizationId}`, '/api/v1/seller/orders/pickup-requests', { order_ids: orderIds, logistics_organization_id: logisticsOrganizationId })
+  const addressesIdentity = Object.entries(pickupAddressIds).sort(([left], [right]) => left.localeCompare(right)).map(([orderId, addressId]) => `${orderId}:${addressId}`).join(':')
+  return createIdempotentAction<{ data: { id: string; status: string; pickup_date: string | null; logistics_organization_id: string; order_ids: string[]; waybills: Array<{ id: string; order_id: string; reference: string; created_at: string; printable: boolean }> } }>(`seller-pickup:${sellerId}:${identity}:${logisticsOrganizationId}:${addressesIdentity}`, '/api/v1/seller/orders/pickup-requests', { order_ids: orderIds, logistics_organization_id: logisticsOrganizationId, pickup_address_ids: pickupAddressIds })
 }
 
 export async function markOrderNotificationRead(notificationId: string, signal?: AbortSignal) {

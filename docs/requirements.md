@@ -74,12 +74,13 @@ MVP responsibilities:
 - Register with all required personal, business, address, ID, and permit information and wait for Admin approval.
 - Registration creates one pending Shop; Admin approval activates that existing Shop atomically with the Seller account and evidence. After approval, incomplete storefront fields may show `SHOP_SETUP_REQUIRED`; no second Shop is created.
 - Manage shop/account information.
+- Manage multiple Seller-owned pickup addresses, keep one default, and choose one saved pickup address per prepared Order.
 - Add, update, and archive products.
 - Set prices, discounts, and seller vouchers where supported.
 - Monitor stock levels.
 - Receive and review new orders.
 - Process and prepare orders.
-- Pack each parcel, select the Logistics organization, request pickup, and print/reprint the resulting shared waybill. The Seller does not assign a Courier.
+- Pack each parcel, confirm its pickup address, select the Logistics organization, request pickup, and print/reprint the resulting shared waybill. The first committed provider becomes the Seller's default while remaining eligible, but another eligible provider may be chosen per request. The Seller does not assign a Courier.
 - Receive notification after successful delivery.
 - View basic sales/profit reports.
 - Communicate with users.
