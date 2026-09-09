@@ -6,4 +6,6 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
-export default function App() { return <Routes><Route element={<Navigate replace to="/dashboard" />} path="/" /><Route element={<LoginPage />} path="/login" /><Route element={<RegisterPage />} path="/register" /><Route element={<ForgotPasswordPage />} path="/forgot-password" /><Route element={<ResetPasswordPage />} path="/reset-password" /><Route element={<ProtectedRoute />}><Route element={<LogisticsLayout />}><Route element={<DashboardPage />} path="/dashboard" /></Route></Route><Route element={<Navigate replace to="/dashboard" />} path="*" /></Routes> }
+import { PickupsPage } from './pages/PickupsPage'
+import { PickupDetailPage } from './pages/PickupDetailPage'
+export default function App() { return <Routes><Route element={<Navigate replace to="/dashboard" />} path="/" /><Route element={<LoginPage />} path="/login" /><Route element={<RegisterPage />} path="/register" /><Route element={<ForgotPasswordPage />} path="/forgot-password" /><Route element={<ResetPasswordPage />} path="/reset-password" /><Route element={<ProtectedRoute />}><Route element={<LogisticsLayout />}><Route element={<DashboardPage />} path="/dashboard" /><Route element={<PickupsPage />} path="/pickups" /><Route element={<PickupDetailPage />} path="/pickups/:pickupId" /></Route></Route><Route element={<Navigate replace to="/dashboard" />} path="*" /></Routes> }

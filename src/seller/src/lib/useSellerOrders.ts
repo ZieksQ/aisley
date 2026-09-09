@@ -18,7 +18,7 @@ export function useOrderAccessError() {
   }, [location.pathname, location.search, navigate, logout])
 }
 
-// One request at a time; refresh on return and every 30 seconds while visible.
+// Keep order data reasonably fresh without treating ordinary window focus as a refresh request.
 export function useSellerOrders<T>(path: string) {
   const [result, setResult] = useState<{ path: string; data: T } | null>(null)
   const [error, setError] = useState('')
@@ -54,13 +54,11 @@ export function useSellerOrders<T>(path: string) {
     }
     const visibleRefresh = () => { if (document.visibilityState === 'visible') void load() }
     void load()
-    const timer = window.setInterval(visibleRefresh, 30_000)
-    window.addEventListener('focus', visibleRefresh)
+    const timer = window.setInterval(visibleRefresh, 60_000)
     document.addEventListener('visibilitychange', visibleRefresh)
     return () => {
       controller.abort()
       window.clearInterval(timer)
-      window.removeEventListener('focus', visibleRefresh)
       document.removeEventListener('visibilitychange', visibleRefresh)
     }
   }, [path, revision, accessError])

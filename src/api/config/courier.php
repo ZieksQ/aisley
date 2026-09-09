@@ -18,7 +18,6 @@ return [
         'province' => env('INITIAL_COURIER_PROVINCE', 'Metro Manila'),
         'region' => env('INITIAL_COURIER_REGION', 'National Capital Region (NCR)'),
         'postal_code' => env('INITIAL_COURIER_POSTAL_CODE', '1200'),
-        'logistics_email' => env('INITIAL_COURIER_LOGISTICS_EMAIL'),
     ],
     'generic' => [
         'count' => (int) env('COURIER_GENERIC_COUNT', 20),

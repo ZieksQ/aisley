@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FirstMileTaskStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -74,5 +75,19 @@ class Order extends Model
     public function pickupRequestOrder(): HasOne
     {
         return $this->hasOne(SellerPickupRequestOrder::class);
+    }
+
+    public function waybill(): HasOne
+    {
+        return $this->hasOne(Waybill::class);
+    }
+
+    public function firstMileTask(): HasOne
+    {
+        return $this->hasOne(FirstMileTask::class)->whereIn('status', [
+            FirstMileTaskStatus::Assigned,
+            FirstMileTaskStatus::Accepted,
+            FirstMileTaskStatus::PickedUp,
+        ]);
     }
 }

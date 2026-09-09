@@ -8,6 +8,9 @@ status: Draft
 scope: Flutter Courier Mobile Application / Physical Parcel Pickup
 source_coverage: Courier.md, app.md
 ---
+
+> **Cross-role authority:** Use `docs/features/orders/logistics-pickups/spec.md` for Logistics assignment/scheduling and `docs/features/orders/waybill/spec.md` for shared-waybill identity and QR access. Any package-label or Logistics-created-waybill wording below is historical and does not override those contracts.
+
 # Pick Up Order Specification
 ## 1. Purpose
 Pick Up Order is AISLEY's Courier workflow for confirming the physical handover of a parcel from its pickup origin to the Courier.

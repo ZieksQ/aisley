@@ -101,7 +101,7 @@ Do not leave the client to infer request names, status values, ownership, or err
 - Store enum-like database columns as strings and cast them to PHP enums; never add native PostgreSQL enum columns.
 - Never modify an executed migration; specify an additive migration when schema change is approved.
 - Use transactional writes, row locks or compare-and-update guards, stable idempotency keys, and append-only history for state changes.
-- Keep Seller labels and Logistics waybills as separate linked artifacts when the feature concerns shipment documents.
+- Keep one immutable shared waybill created by the Seller pickup transaction; Seller and selected Logistics have role-scoped access, and assigned Courier QR resolution remains task-authorized.
 - Do not put detailed physical shipment milestones directly in `orders.status` without an approved shared migration.
 - Do not invent Shipment, Parcel, Scan, Delivery Task, assignment, or proof records while the shared operational schema is deferred.
 

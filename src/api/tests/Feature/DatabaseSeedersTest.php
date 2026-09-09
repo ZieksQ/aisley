@@ -113,12 +113,15 @@ class DatabaseSeedersTest extends TestCase
         $this->assertTrue(Hash::check('InitialSeller123', $seller->password));
         $this->assertSame('Aisley', $seller->sellerProfile->first_name);
         $this->assertSame('Catalog', $seller->sellerProfile->last_name);
+        $this->assertSame('Shop pickup address', $seller->addresses->sole()->label);
+        $this->assertSame('Makati City', $seller->addresses->sole()->city_municipality);
 
         $seller->forceFill([
             'password' => 'Changed12345',
             'status' => UserStatus::Suspended,
         ])->save();
         $seller->sellerProfile->update(['first_name' => 'Changed']);
+        $seller->addresses->sole()->update(['city_municipality' => 'Pasig City']);
         config()->set('seller.initial.password', 'ReplacementSeller456');
         config()->set('seller.initial.first_name', 'Replacement');
 
@@ -128,8 +131,10 @@ class DatabaseSeedersTest extends TestCase
         $this->assertSame(UserStatus::Suspended, $seller->status);
         $this->assertTrue(Hash::check('Changed12345', $seller->password));
         $this->assertSame('Changed', $seller->sellerProfile->fresh()->first_name);
+        $this->assertSame('Pasig City', $seller->addresses()->sole()->city_municipality);
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('seller_profiles', 1);
+        $this->assertDatabaseCount('addresses', 1);
     }
 
     public function test_initial_seller_seeder_requires_explicit_credentials_in_production(): void

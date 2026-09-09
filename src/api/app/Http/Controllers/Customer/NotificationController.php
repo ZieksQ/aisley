@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\ListNotificationsRequest;
 use App\Http\Resources\Customer\CustomerNotificationResource;
 use App\Models\User;
+use App\Notifications\Customer\OrderStatusChangedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
@@ -16,11 +18,7 @@ class NotificationController extends Controller
     {
         /** @var User $customer */
         $customer = $request->user();
-        $query = $customer->notifications()->whereIn('type', [
-            'customer-announcement.published',
-            'customer-order.status-changed',
-            'customer-promo.ongoing',
-        ]);
+        $query = $this->notifications($customer);
 
         $query->when($request->input('status') === 'unread', fn ($query) => $query->whereNull('read_at'))
             ->when($request->input('status') === 'read', fn ($query) => $query->whereNotNull('read_at'))
@@ -57,10 +55,25 @@ class NotificationController extends Controller
 
     private function notifications(User $customer)
     {
-        return $customer->notifications()->whereIn('type', [
-            'customer-announcement.published',
-            'customer-order.status-changed',
-            'customer-promo.ongoing',
-        ]);
+        $statuses = array_map(fn ($status) => $status->value, OrderStatusChangedNotification::STATUSES);
+        $statusExpression = DB::raw(match (DB::getDriverName()) {
+            'pgsql' => "(notifications.data::jsonb ->> 'status')",
+            'sqlite' => "json_extract(notifications.data, '$.status')",
+            default => "JSON_UNQUOTE(JSON_EXTRACT(notifications.data, '$.status'))",
+        });
+
+        return $customer->notifications()
+            ->whereIn('type', [
+                'customer-announcement.published',
+                'customer-order.status-changed',
+                'customer-promo.ongoing',
+            ])
+            ->where(function ($query) use ($statuses, $statusExpression): void {
+                $query->where('type', '!=', 'customer-order.status-changed')
+                    ->orWhere(function ($orders) use ($statuses, $statusExpression): void {
+                        $orders->where('type', 'customer-order.status-changed')
+                            ->whereIn($statusExpression, $statuses);
+                    });
+            });
     }
 }

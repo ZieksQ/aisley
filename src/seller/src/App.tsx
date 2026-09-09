@@ -17,6 +17,8 @@ import { OrdersPage } from './pages/OrdersPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrderApprovalPage } from './pages/OrderApprovalPage'
 import { OrderPickupPage } from './pages/OrderPickupPage'
+import { NotificationsPage } from './pages/NotificationsPage'
+import { NotificationDetailPage } from './pages/NotificationDetailPage'
 
 function App() {
   return (
@@ -35,7 +37,8 @@ function App() {
           <Route element={<OrderPickupPage />} path="/orders/pickup" />
           <Route element={<OrderDetailPage />} path="/orders/:orderId" />
           <Route element={<OrderDetailPage preparation />} path="/orders/:orderId/prepare" />
-          <Route element={<Navigate replace to="/orders/approval" />} path="/notifications" />
+          <Route element={<NotificationsPage />} path="/notifications" />
+          <Route element={<NotificationDetailPage />} path="/notifications/:notificationId" />
           <Route element={<ProductsPage />} path="/products" />
           <Route element={<ProductFormPage />} path="/products/new" />
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />

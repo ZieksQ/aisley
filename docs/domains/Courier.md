@@ -84,7 +84,7 @@ Courier-owned task transitions are:
 
 `received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub` are Logistics-side milestones. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history.
 
-Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; this payment detail is read-only to Couriers. The Customer-selected Logistics organization owns both task legs, and a Courier may operate only tasks created/offered within that organization.
+Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; this payment detail is read-only to Couriers. The Seller-selected Logistics organization owns both task legs, and a Courier may operate only assigned/offered tasks within that organization.
 
 ## Physical delivery flow
 
@@ -92,11 +92,11 @@ Current COD placement skips `pending_payment` and starts the Order at `placed` w
 Seller prepares the Order and confirms `ready_for_pickup`
 → selected Logistics organization creates and offers a first-mile Seller pickup task
 → first-mile Courier receives and accepts the task
-→ Courier uses the Seller package label and immutable Order/Parcel reference to verify the parcel
+→ Courier uses the shared waybill QR/reference to verify the parcel
 → Courier verifies and scans the parcel at the Seller
 → Courier confirms `picked_up_from_seller`
 → Courier transfers the parcel to the Logistics organization's sole hub
-→ Logistics receives the parcel (`received_at_hub`) and creates the operational waybill linked to the Seller package label
+→ Logistics receives the parcel (`received_at_hub`) using the same shared waybill
 → Logistics sorts, transfers, and dispatches it
 → Logistics assigns a final-mile Courier (`delivery_assigned`)
 → final-mile Courier accepts (`delivery_accepted`)
@@ -212,7 +212,7 @@ The Courier does not assign itself, change Logistics hub state, or complete a ta
 - Every task, assignment, parcel, waybill, scan, incident, conversation, cache entry, and event is resolved server-side to the authenticated Courier and its authorized Logistics organization/hub.
 - `delivery_assigned` is not `delivery_accepted`; neither means `picked_up_from_hub`. First-mile and final-mile pickup states remain distinct.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; Logistics may assign the same or a different eligible Courier for the second leg.
-- Seller package labels and Logistics operational waybills are separate linked artifacts. The label is frozen at Seller `ready_for_pickup`; the Logistics waybill identifier and Order/Parcel link are immutable at `received_at_hub`, with pre-`picked_up_from_hub` route/assignment changes recorded as append-only events.
+- One shared waybill is created and frozen in the Seller pickup transaction at `ready_for_pickup`; Seller and selected Logistics have role-scoped access, while an assigned Courier may resolve its opaque QR. Route/assignment/scan changes are append-only events.
 - Courier operational writes are blocked until the reconciled shared Shipment/Delivery Task schema and transition contract are approved and migrated.
 - State transitions are validated against the current task state, transactional, idempotent, and append immutable history. Notification, mapping, upload, or synchronization failure must not undo a committed decision.
 - A Courier can read only its own operational data and the minimum authorized Buyer/Seller/Logistics details needed for the active task. Payment credentials, private registration/POD evidence, raw storage paths, and unrestricted location history are excluded from normal DTOs.
@@ -228,7 +228,7 @@ Implemented foundation:
 
 Deferred until the shared shipment contract exists:
 
-- Shipment/Parcel records, Seller package labels, Logistics waybills, scan events, delivery tasks, first-mile/final-mile assignments, proof-of-delivery records, incidents, Courier availability/capacity, earnings, tips, metrics, and offline synchronization. The complete shared schema must be approved before any Courier operational action is implemented.
+- Shipment/Parcel records, shared waybills, scan events, pickup schedules, delivery tasks, first-mile/final-mile assignments, proof-of-delivery records, incidents, Courier availability/capacity, earnings, tips, metrics, and offline synchronization. The complete shared schema must be approved before any Courier operational action is implemented.
 
 Future status-like database columns must be stored as strings and cast to PHP enums. Future operational records must preserve the one-Logistics-organization/one-hub boundary and must not place detailed physical milestones directly in `orders.status` without an approved migration.
 

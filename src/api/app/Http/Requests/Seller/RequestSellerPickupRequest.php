@@ -10,7 +10,7 @@ class RequestSellerPickupRequest extends AcceptSellerOrderRequest
             'order_ids' => ['required', 'array', 'min:1', 'max:50'],
             'order_ids.*' => ['required', 'uuid', 'distinct'],
             'pickup_date' => ['prohibited'],
-            'logistics_organization_id' => ['prohibited'],
+            'logistics_organization_id' => ['required', 'uuid'],
             'status' => ['prohibited'],
         ];
     }
