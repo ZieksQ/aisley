@@ -42,9 +42,9 @@ export function OrderPickupPage() {
   const [addressLoading, setAddressLoading] = useState(true)
   const [providerId, setProviderId] = useState('')
   const [selected, setSelected] = useState<string[]>([])
-  const [pickupAddressIds, setPickupAddressIds] = useState<Record<string, string>>({})
+  const [pickupAddressId, setPickupAddressId] = useState('')
   const [providerModalOpen, setProviderModalOpen] = useState(false)
-  const [addressOrderId, setAddressOrderId] = useState<string | null>(null)
+  const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [pdfBusy, setPdfBusy] = useState('')
   const [error, setError] = useState('')
@@ -69,7 +69,13 @@ export function OrderPickupPage() {
 
   const loadAddresses = useCallback(async () => {
     setAddressLoading(true)
-    try { setAddresses((await getPickupAddresses()).data) }
+    try {
+      const result = (await getPickupAddresses()).data
+      setAddresses(result)
+      setPickupAddressId((current) => result.some((address) => address.id === current)
+        ? current
+        : result.find((address) => address.is_default)?.id ?? result[0]?.id ?? '')
+    }
     catch (reason) { if (!accessError(reason)) setError(reason instanceof Error ? reason.message : 'Pickup addresses could not be loaded.') }
     finally { setAddressLoading(false) }
   }, [accessError])
@@ -83,21 +89,20 @@ export function OrderPickupPage() {
     return groups
   }, {}))
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0]
+  const selectedAddress = addresses.find((address) => address.id === pickupAddressId)
   const selectedProvider = providers.find((provider) => provider.id === providerId)
-  const addressesComplete = selected.every((orderId) => Boolean(pickupAddressIds[orderId]))
 
   function toggle(id: string) {
     setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id])
-    if (!selected.includes(id) && defaultAddress) setPickupAddressIds((current) => ({ ...current, [id]: current[id] ?? defaultAddress.id }))
+    if (!pickupAddressId && defaultAddress) setPickupAddressId(defaultAddress.id)
   }
 
   async function submit() {
-    if (!seller || selected.length === 0 || !providerId || !addressesComplete || submitting) return
+    if (!seller || selected.length === 0 || !providerId || !pickupAddressId || submitting) return
     setSubmitting(true); setError(''); setNotice('')
     try {
-      const selectedAddresses = Object.fromEntries(selected.map((orderId) => [orderId, pickupAddressIds[orderId]]))
-      const response = await createPickupRequest(seller.id, selected, providerId, selectedAddresses)()
-      setSelected([]); setPickupAddressIds({})
+      const response = await createPickupRequest(seller.id, selected, providerId, pickupAddressId)()
+      setSelected([])
       setNotice(`${response.data.order_ids.length} ${response.data.order_ids.length === 1 ? 'Order is' : 'Orders are'} ready for pickup. Print and attach each waybill before handoff.`)
       processing.refresh(); pending.refresh(); void loadProviders(true)
     } catch (reason) {
@@ -113,15 +118,21 @@ export function OrderPickupPage() {
   }
 
   return <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10"><div><h2 className="text-2xl font-semibold">Order pickup</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Prepare parcels, choose pickup addresses and a Logistics provider, then print the shared waybills.</p></div><OrderButton isLoading={processing.loading || pending.loading || providerLoading || addressLoading} loadingLabel="Refreshing" onClick={() => { processing.refresh(); pending.refresh(); void loadProviders(true); void loadAddresses() }}>Refresh</OrderButton></div>
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10"><div><h2 className="text-2xl font-semibold">Order pickup</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Prepare parcels, choose one pickup address and a Logistics provider, then print the shared waybills.</p></div><OrderButton isLoading={processing.loading || pending.loading || providerLoading || addressLoading} loadingLabel="Refreshing" onClick={() => { processing.refresh(); pending.refresh(); void loadProviders(true); void loadAddresses() }}>Refresh</OrderButton></div>
 
-    <section className={`${orderPanel} mt-5 p-5`} aria-labelledby="packing-steps"><h3 className="font-semibold" id="packing-steps">Before requesting pickup</h3><ol className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2"><li><strong>1.</strong> Confirm the items, then pack and seal each Order separately.</li><li><strong>2.</strong> Confirm a pickup address for every Order.</li><li><strong>3.</strong> Choose a Logistics provider and request pickup.</li><li><strong>4.</strong> Print and attach each generated waybill.</li></ol><p className="mt-3 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10">Do not place the waybill across a seam or fold it. Avoid tape glare over the QR.</p></section>
+    <section className={`${orderPanel} mt-5 p-5`} aria-labelledby="packing-steps"><h3 className="font-semibold" id="packing-steps">Before requesting pickup</h3><ol className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2"><li><strong>1.</strong> Confirm the items, then pack and seal each Order separately.</li><li><strong>2.</strong> Choose one address for the complete pickup request.</li><li><strong>3.</strong> Choose a Logistics provider and request pickup.</li><li><strong>4.</strong> Print and attach each generated waybill.</li></ol><p className="mt-3 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10">Do not place the waybill across a seam or fold it. Avoid tape glare over the QR.</p></section>
 
     {error && <OrderError message={error} retry={() => { processing.refresh(); pending.refresh(); void loadProviders(true); void loadAddresses() }} />}
     {notice && <p className="my-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-400/20 dark:bg-green-400/10 dark:text-green-200" role="status">{notice}</p>}
 
     <section className={`${orderPanel} mt-5`} aria-labelledby="ready-to-submit">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-5 dark:border-white/10"><div><h3 className="font-semibold" id="ready-to-submit">Prepared orders</h3><p className="mt-1 text-sm text-zinc-500">{eligible.length} available · {selected.length} selected</p></div><OrderButton variant="secondary" disabled={!selected.length || !providerId || !addressesComplete || providers.length === 0} isLoading={submitting} loadingLabel="Requesting pickup" onClick={() => void submit()}>Request pickup</OrderButton></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-5 dark:border-white/10"><div><h3 className="font-semibold" id="ready-to-submit">Prepared orders</h3><p className="mt-1 text-sm text-zinc-500">{eligible.length} available · {selected.length} selected</p></div><OrderButton variant="secondary" disabled={!selected.length || !providerId || !pickupAddressId || providers.length === 0} isLoading={submitting} loadingLabel="Requesting pickup" onClick={() => void submit()}>Request pickup</OrderButton></div>
+
+      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+        <p className="text-sm font-medium">Pickup address</p>
+        <p className="mt-1 text-xs text-zinc-500">The same location is applied to every selected Order in this request.</p>
+        {selectedAddress ? <div className="mt-3 flex flex-col justify-between gap-3 border border-zinc-200 p-4 dark:border-white/10 sm:flex-row sm:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{selectedAddress.label || 'Pickup address'}</p>{selectedAddress.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{selectedAddress.recipient_name} · {selectedAddress.contact_number}</p><p className="mt-1 truncate text-xs text-zinc-500">{pickupAddressSummary(selectedAddress)}</p>{selectedAddress.latitude !== null && selectedAddress.longitude !== null ? <p className="mt-1 text-xs text-zinc-500">Pin: {Number(selectedAddress.latitude).toFixed(6)}, {Number(selectedAddress.longitude).toFixed(6)}</p> : <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">No exact map pin saved.</p>}</div><OrderButton disabled={addressLoading} onClick={() => setAddressModalOpen(true)}>Change address</OrderButton></div> : <OrderButton className="mt-3" disabled={addressLoading || addresses.length === 0} onClick={() => setAddressModalOpen(true)}>{addressLoading ? 'Loading addresses…' : 'Choose address'}</OrderButton>}
+      </div>
 
       <div className="border-b border-zinc-200 p-5 dark:border-white/10">
         <p className="text-sm font-medium">Logistics provider</p>
@@ -131,13 +142,13 @@ export function OrderPickupPage() {
       </div>
 
       {addresses.length === 0 && !addressLoading ? <div className="border-b border-zinc-200 p-5 text-sm dark:border-white/10"><p className="text-amber-700 dark:text-amber-300">No pickup address is available.</p><Link className={`${orderLink} mt-2 inline-block`} to="/account">Add one in Account settings</Link></div> : null}
-      {processing.error ? <div className="px-5"><OrderError message={processing.error} retry={processing.refresh} /></div> : eligible.length === 0 ? <p className="p-5 text-sm text-zinc-600 dark:text-zinc-400">Approved Orders appear here while they are being prepared.</p> : <ul className="divide-y divide-zinc-200 dark:divide-white/10">{eligible.map((order) => <SelectableOrder address={addresses.find((item) => item.id === pickupAddressIds[order.id])} checked={selected.includes(order.id)} key={order.id} onChooseAddress={() => setAddressOrderId(order.id)} order={order} toggle={toggle} />)}</ul>}
+      {processing.error ? <div className="px-5"><OrderError message={processing.error} retry={processing.refresh} /></div> : eligible.length === 0 ? <p className="p-5 text-sm text-zinc-600 dark:text-zinc-400">Approved Orders appear here while they are being prepared.</p> : <ul className="divide-y divide-zinc-200 dark:divide-white/10">{eligible.map((order) => <SelectableOrder checked={selected.includes(order.id)} key={order.id} order={order} toggle={toggle} />)}</ul>}
     </section>
 
     {pending.error ? <OrderError message={pending.error} retry={pending.refresh} /> : <PickupRequests groups={pickupGroups} pdfBusy={pdfBusy} waybill={waybill} />}
 
     {providerModalOpen ? <ProviderModal onClose={() => setProviderModalOpen(false)} onSelect={(id) => { setProviderId(id); setProviderModalOpen(false) }} options={providers} selectedId={providerId} /> : null}
-    {addressOrderId ? <AddressModal addresses={addresses} onClose={() => setAddressOrderId(null)} onSelect={(id) => { setPickupAddressIds((current) => ({ ...current, [addressOrderId]: id })); setAddressOrderId(null) }} selectedId={pickupAddressIds[addressOrderId]} /> : null}
+    {addressModalOpen ? <AddressModal addresses={addresses} onClose={() => setAddressModalOpen(false)} onSelect={(id) => { setPickupAddressId(id); setAddressModalOpen(false) }} selectedId={pickupAddressId} /> : null}
   </div>
 }
 
@@ -154,7 +165,7 @@ function ProviderModal({ onClose, onSelect, options, selectedId }: { onClose: ()
 
 function AddressModal({ addresses, onClose, onSelect, selectedId }: { addresses: PickupAddress[]; onClose: () => void; onSelect: (id: string) => void; selectedId?: string }) {
   useDialogEscape(onClose)
-  return <div aria-labelledby="address-dialog-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}><div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#18181b]"><div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5 dark:border-white/10"><div><h3 className="text-lg font-semibold" id="address-dialog-title">Choose pickup address</h3><p className="mt-1 text-sm text-zinc-500">This address will be saved on this Order’s waybill.</p></div><button aria-label="Close address picker" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10" onClick={onClose}><FaXmark /></button></div><div className="max-h-[60vh] divide-y divide-zinc-200 overflow-y-auto dark:divide-white/10">{addresses.map((address) => <button className={`flex w-full items-start gap-3 p-4 text-left hover:bg-zinc-50 dark:hover:bg-white/5 ${selectedId === address.id ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`} key={address.id} onClick={() => onSelect(address.id)}><FaLocationDot className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" /><span><span className="flex flex-wrap gap-2"><strong className="font-medium">{address.label || 'Pickup address'}</strong>{address.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</span><span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-300">{address.recipient_name} · {address.contact_number}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{pickupAddressSummary(address)}</span></span></button>)}</div><div className="border-t border-zinc-200 p-4 text-right dark:border-white/10"><Link className={orderLink} onClick={onClose} to="/account">Manage pickup addresses</Link></div></div></div>
+  return <div aria-labelledby="address-dialog-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}><div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#18181b]"><div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5 dark:border-white/10"><div><h3 className="text-lg font-semibold" id="address-dialog-title">Choose pickup address</h3><p className="mt-1 text-sm text-zinc-500">One address will be saved on every waybill in this pickup request.</p></div><button aria-label="Close address picker" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10" onClick={onClose}><FaXmark /></button></div><div className="max-h-[60vh] divide-y divide-zinc-200 overflow-y-auto dark:divide-white/10">{addresses.map((address) => <button className={`flex w-full items-start gap-3 p-4 text-left hover:bg-zinc-50 dark:hover:bg-white/5 ${selectedId === address.id ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`} key={address.id} onClick={() => onSelect(address.id)}><FaLocationDot className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" /><span><span className="flex flex-wrap gap-2"><strong className="font-medium">{address.label || 'Pickup address'}</strong>{address.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</span><span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-300">{address.recipient_name} · {address.contact_number}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{pickupAddressSummary(address)}</span>{address.latitude !== null && address.longitude !== null ? <span className="mt-1 block text-xs text-zinc-500">Exact pin saved</span> : null}</span></button>)}</div><div className="border-t border-zinc-200 p-4 text-right dark:border-white/10"><Link className={orderLink} onClick={onClose} to="/account">Manage pickup addresses</Link></div></div></div>
 }
 
 function useDialogEscape(onClose: () => void) {
@@ -180,6 +191,6 @@ function pickupWindow(startsAt: string, endsAt: string) {
   return `${new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(startsAt))}–${new Intl.DateTimeFormat('en-PH', { timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(endsAt))}`
 }
 
-function SelectableOrder({ address, checked, onChooseAddress, order, toggle }: { address?: PickupAddress; checked: boolean; onChooseAddress: () => void; order: SellerOrder; toggle: (id: string) => void }) {
-  return <li className="p-5"><div className="flex gap-3"><input checked={checked} className="mt-1 size-4 accent-[#4C1268]" id={`pickup-${order.id}`} onChange={() => toggle(order.id)} type="checkbox" /><label className="min-w-0 flex-1" htmlFor={`pickup-${order.id}`}><span className="font-medium">{order.reference}</span><span className="mt-1 block truncate text-sm text-zinc-600 dark:text-zinc-400">{order.items.map((item) => `${item.quantity} × ${item.product_name}`).join(', ')}</span></label><Link className={`${orderLink} text-sm`} to={`/orders/${order.id}/prepare`}>Review</Link></div>{checked ? <div className="ml-7 mt-3 flex flex-col justify-between gap-3 border-l-2 border-zinc-200 pl-3 dark:border-white/15 sm:flex-row sm:items-center"><div className="min-w-0"><p className="text-xs font-medium text-zinc-500">Pickup address</p>{address ? <><p className="mt-1 text-sm font-medium">{address.label || address.city_municipality}{address.is_default ? ' · Default' : ''}</p><p className="mt-1 truncate text-xs text-zinc-500">{pickupAddressSummary(address)}</p></> : <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">Choose an address for this Order.</p>}</div><OrderButton className="shrink-0" onClick={onChooseAddress}>{address ? 'Change' : 'Choose address'}</OrderButton></div> : null}</li>
+function SelectableOrder({ checked, order, toggle }: { checked: boolean; order: SellerOrder; toggle: (id: string) => void }) {
+  return <li className="p-5"><div className="flex gap-3"><input checked={checked} className="mt-1 size-4 accent-[#4C1268]" id={`pickup-${order.id}`} onChange={() => toggle(order.id)} type="checkbox" /><label className="min-w-0 flex-1" htmlFor={`pickup-${order.id}`}><span className="font-medium">{order.reference}</span><span className="mt-1 block truncate text-sm text-zinc-600 dark:text-zinc-400">{order.items.map((item) => `${item.quantity} × ${item.product_name}`).join(', ')}</span></label><Link className={`${orderLink} text-sm`} to={`/orders/${order.id}/prepare`}>Review</Link></div></li>
 }

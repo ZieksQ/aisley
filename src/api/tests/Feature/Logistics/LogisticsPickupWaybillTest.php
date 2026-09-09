@@ -78,13 +78,13 @@ class LogisticsPickupWaybillTest extends TestCase
         $key = (string) Str::uuid();
 
         $response = $this->actingAs($seller)->withHeader('Idempotency-Key', $key)->postJson('/api/v1/seller/orders/pickup-requests', [
-            'order_ids' => [$order->id], 'pickup_address_ids' => [$order->id => $pickupAddress->id], 'logistics_organization_id' => $selected->id,
+            'order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $selected->id,
         ])->assertOk()->assertJsonPath('data.logistics_organization_id', $selected->id)->assertJsonCount(1, 'data.waybills');
         $waybillId = $response->json('data.waybills.0.id');
         $pickupId = $response->json('data.id');
 
         $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/seller/orders/pickup-requests', [
-            'order_ids' => [$order->id], 'pickup_address_ids' => [$order->id => $pickupAddress->id], 'logistics_organization_id' => $selected->id,
+            'order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $selected->id,
         ])->assertOk()->assertJsonPath('data.waybills.0.id', $waybillId);
         $this->assertDatabaseCount('waybills', 1);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $selectedUser->id, 'type' => 'logistics-pickup.requested']);
@@ -115,7 +115,7 @@ class LogisticsPickupWaybillTest extends TestCase
         [$foreign] = $this->logistics('Foreign Logistics', 'Cebu City', 'Cebu');
         $courier = $this->courier($organization->id, $hub->id);
         $pickupAddress = $seller->addresses()->sole();
-        $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$order->id], 'pickup_address_ids' => [$order->id => $pickupAddress->id], 'logistics_organization_id' => $organization->id])->json('data');
+        $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $organization->id])->json('data');
 
         $this->actingAs($foreign)->getJson("/api/v1/logistics/pickups/{$pickup['id']}")->assertNotFound();
         $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-couriers')
@@ -204,7 +204,7 @@ class LogisticsPickupWaybillTest extends TestCase
         $pickupAddress = $seller->addresses()->sole();
         $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', [
             'order_ids' => [$firstOrder->id, $secondOrder->id],
-            'pickup_address_ids' => [$firstOrder->id => $pickupAddress->id, $secondOrder->id => $pickupAddress->id],
+            'pickup_address_id' => $pickupAddress->id,
             'logistics_organization_id' => $organization->id,
         ])->assertOk();
         $startsAt = now()->addHours(3);

@@ -4,18 +4,19 @@ import { FaLocationDot, FaPen, FaPlus, FaTrashCan, FaXmark } from 'react-icons/f
 import { ApiError, apiRequest } from '../lib/api'
 import { createPickupAddress, deletePickupAddress, getPickupAddresses, pickupAddressSummary, updatePickupAddress } from '../lib/sellerPickupAddresses'
 import type { PickupAddress, PickupAddressPayload } from '../types/pickupAddresses'
+import { GeoapifyLocationPicker } from './GeoapifyLocationPicker'
 
 type Option = { code: string; name: string }
 type Level = 'regions' | 'provinces' | 'municipalities' | 'barangays'
 type FormValues = {
   label: string; recipient_name: string; contact_number: string; address_line_1: string; address_line_2: string
   barangay: string; city_municipality: string; province: string; region: string; postal_code: string
-  country: string; is_default: boolean
+  country: string; latitude: number | null; longitude: number | null; is_default: boolean
 }
 
 const blank: FormValues = {
   label: '', recipient_name: '', contact_number: '', address_line_1: '', address_line_2: '', barangay: '',
-  city_municipality: '', province: '', region: '', postal_code: '', country: 'Philippines', is_default: false,
+  city_municipality: '', province: '', region: '', postal_code: '', country: 'Philippines', latitude: null, longitude: null, is_default: false,
 }
 const locationFields = new Set<keyof FormValues>(['address_line_1', 'address_line_2', 'barangay', 'city_municipality', 'province', 'region', 'postal_code', 'country'])
 
@@ -25,7 +26,8 @@ function initial(address?: PickupAddress): FormValues {
     label: address.label ?? '', recipient_name: address.recipient_name, contact_number: address.contact_number,
     address_line_1: address.address_line_1, address_line_2: address.address_line_2 ?? '', barangay: address.barangay,
     city_municipality: address.city_municipality, province: address.province, region: address.region,
-    postal_code: address.postal_code, country: address.country, is_default: address.is_default,
+    postal_code: address.postal_code, country: address.country,
+    latitude: address.latitude === null ? null : Number(address.latitude), longitude: address.longitude === null ? null : Number(address.longitude), is_default: address.is_default,
   }
 }
 
@@ -61,7 +63,7 @@ export function PickupAddressBook() {
     {message ? <p className="mt-4 text-sm text-zinc-700 dark:text-zinc-300" role="status">{message}</p> : null}
     {loading ? <p className="mt-5 text-sm text-zinc-500">Loading pickup addresses…</p> : addresses.length === 0 ? <p className="mt-5 border-l-2 border-[#FF8800] pl-3 text-sm text-zinc-600 dark:text-zinc-300">Add a pickup address before requesting courier pickup.</p> : <div className="mt-5 grid gap-3 md:grid-cols-2">
       {addresses.map((address) => <article className="border border-zinc-200 p-4 dark:border-white/10" key={address.id}>
-        <div className="flex items-start gap-3"><FaLocationDot className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-x-3 gap-y-1"><h4 className="font-medium">{address.label || 'Pickup address'}</h4>{address.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{address.recipient_name} · {address.contact_number}</p><p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{pickupAddressSummary(address)}</p></div></div>
+        <div className="flex items-start gap-3"><FaLocationDot className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-x-3 gap-y-1"><h4 className="font-medium">{address.label || 'Pickup address'}</h4>{address.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{address.recipient_name} · {address.contact_number}</p><p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{pickupAddressSummary(address)}</p><p className={`mt-1 text-xs ${address.latitude !== null && address.longitude !== null ? 'text-zinc-500' : 'text-amber-700 dark:text-amber-300'}`}>{address.latitude !== null && address.longitude !== null ? `Pin saved · ${Number(address.latitude).toFixed(6)}, ${Number(address.longitude).toFixed(6)}` : 'No exact map pin saved'}</p></div></div>
         <div className="mt-4 flex justify-end gap-2 border-t border-zinc-200 pt-3 dark:border-white/10"><button className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-[#4C1268] hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-white/5" onClick={() => setEditing(address)} type="button"><FaPen />Edit</button><button className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-400/10" disabled={busyId === address.id} onClick={() => void remove(address)} type="button"><FaTrashCan />{busyId === address.id ? 'Deleting…' : 'Delete'}</button></div>
       </article>)}
     </div>}
@@ -73,7 +75,6 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
   const [values, setValues] = useState(() => initial(address))
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [submitting, setSubmitting] = useState(false)
-  const [locationChanged, setLocationChanged] = useState(false)
   const [options, setOptions] = useState<Record<Level, Option[]>>({ regions: [], provinces: [], municipalities: [], barangays: [] })
   const [optionsUnavailable, setOptionsUnavailable] = useState(false)
 
@@ -93,14 +94,12 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close) }, [onClose])
 
   function update(field: keyof FormValues, value: string | boolean) {
-    if (locationFields.has(field)) setLocationChanged(true)
-    setValues((current) => ({ ...current, [field]: value, ...(field === 'region' ? { province: '', city_municipality: '', barangay: '' } : {}), ...(field === 'province' ? { city_municipality: '', barangay: '' } : {}), ...(field === 'city_municipality' ? { barangay: '' } : {}) }))
+    setValues((current) => ({ ...current, [field]: value, ...(locationFields.has(field) ? { latitude: null, longitude: null } : {}), ...(field === 'region' ? { province: '', city_municipality: '', barangay: '' } : {}), ...(field === 'province' ? { city_municipality: '', barangay: '' } : {}), ...(field === 'city_municipality' ? { barangay: '' } : {}) }))
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setSubmitting(true); setErrors({})
-    const keepCoordinates = Boolean(address) && !locationChanged
-    const payload: PickupAddressPayload = { ...values, label: values.label.trim() || null, address_line_2: values.address_line_2.trim() || null, latitude: keepCoordinates && address?.latitude !== null && address?.latitude !== undefined ? Number(address.latitude) : null, longitude: keepCoordinates && address?.longitude !== null && address?.longitude !== undefined ? Number(address.longitude) : null }
+    const payload: PickupAddressPayload = { ...values, label: values.label.trim() || null, address_line_2: values.address_line_2.trim() || null }
     try {
       if (address) await updatePickupAddress(address.id, payload)
       else await createPickupAddress(payload)
@@ -111,7 +110,7 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
   }
 
   return <div aria-labelledby="pickup-address-dialog-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}><form className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-200 bg-white p-5 shadow-lg dark:border-white/10 dark:bg-[#18181b] sm:p-6" onSubmit={submit}>
-    <div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-semibold" id="pickup-address-dialog-title">{address ? 'Edit pickup address' : 'Add pickup address'}</h3><p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Use official PSGC fields for Region, Province, City or Municipality, and Barangay.</p></div><button aria-label="Close address form" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10" onClick={onClose} type="button"><FaXmark /></button></div>
+    <div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-semibold" id="pickup-address-dialog-title">{address ? 'Edit pickup address' : 'Add pickup address'}</h3><p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Use official PSGC fields, then pin the exact entrance couriers should use.</p></div><button aria-label="Close address form" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10" onClick={onClose} type="button"><FaXmark /></button></div>
     {errors.form?.[0] ? <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="alert">{errors.form[0]}</p> : null}
     <div className="mt-5 grid gap-4 sm:grid-cols-2">
       <AddressField error={errors.label?.[0]} label="Address label" name="label" onChange={(value) => update('label', value)} placeholder="Main shop or Warehouse" value={values.label} />
@@ -127,7 +126,8 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
       <AddressField error={errors.country?.[0]} label="Country" name="country" onChange={(value) => update('country', value)} required value={values.country} />
     </div>
     {optionsUnavailable ? <p className="mt-4 border-l-2 border-[#FF8800] pl-3 text-xs text-zinc-600 dark:text-zinc-300" role="status">Official address options are temporarily unavailable. You can still enter the administrative address manually.</p> : <p className="mt-4 text-xs text-zinc-500">Type to search official PSA PSGC options in sequence.</p>}
-    <label className="mt-5 flex items-start gap-3 text-sm"><input checked={values.is_default} className="mt-0.5 size-4 accent-[#E6007A]" onChange={(event) => update('is_default', event.target.checked)} type="checkbox" /><span><span className="font-medium">Use as default pickup address</span><span className="mt-1 block text-xs text-zinc-500">Newly selected orders start with this address. You can change each order separately.</span></span></label>
+    {import.meta.env.VITE_GEOAPIFY_API_KEY ? <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10"><GeoapifyLocationPicker address={{ addressLine1: values.address_line_1, barangay: values.barangay, cityMunicipality: values.city_municipality, province: values.province, region: values.region, postalCode: values.postal_code, country: values.country }} apiKey={import.meta.env.VITE_GEOAPIFY_API_KEY} latitude={values.latitude} longitude={values.longitude} onChange={({ latitude, longitude }) => setValues((current) => ({ ...current, latitude, longitude }))} /></div> : <div className="mt-5 flex gap-2 border-l-2 border-zinc-400 pl-3 text-xs leading-5 text-zinc-500"><FaLocationDot className="mt-0.5 shrink-0" />Geoapify location pinning is not configured. You can still save the textual address without coordinates.</div>}
+    <label className="mt-5 flex items-start gap-3 text-sm"><input checked={values.is_default} className="mt-0.5 size-4 accent-[#E6007A]" onChange={(event) => update('is_default', event.target.checked)} type="checkbox" /><span><span className="font-medium">Use as default pickup address</span><span className="mt-1 block text-xs text-zinc-500">New pickup requests start with this address. You can choose another saved address for a request.</span></span></label>
     <div className="mt-6 flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-white/10"><button className="min-h-10 rounded-lg border border-zinc-300 px-4 text-sm font-semibold dark:border-white/15" onClick={onClose} type="button">Cancel</button><button className="min-h-10 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={submitting}>{submitting ? 'Saving…' : 'Save address'}</button></div>
   </form></div>
 }

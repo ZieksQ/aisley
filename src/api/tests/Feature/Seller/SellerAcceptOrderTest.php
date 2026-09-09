@@ -200,33 +200,49 @@ class SellerAcceptOrderTest extends TestCase
         ]);
         $organization = $logistics->logisticsOrganization()->create(['business_name' => 'Pickup Logistics']);
         $organization->hub()->create(['address_id' => $hubAddress->id, 'name' => 'Pickup Hub']);
-        $pickupAddress = $seller->addresses()->sole();
         $warehouseAddress = $seller->addresses()->create([
             'type' => AddressType::Both, 'label' => 'Warehouse', 'recipient_name' => 'Warehouse Staff',
             'contact_number' => '09172222222', 'address_line_1' => '9 Warehouse Road', 'barangay' => 'Bagong Ilog',
             'city_municipality' => 'Pasig City', 'province' => 'Metro Manila', 'region' => 'NCR',
-            'postal_code' => '1600', 'country' => 'PH', 'is_default' => false,
+            'postal_code' => '1600', 'country' => 'PH', 'latitude' => 14.573611, 'longitude' => 121.085833, 'is_default' => false,
         ]);
+        $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$one->id, $two->id],
+                'pickup_address_ids' => [$one->id => $warehouseAddress->id, $two->id => $warehouseAddress->id],
+                'logistics_organization_id' => $organization->id,
+            ])->assertUnprocessable()->assertJsonValidationErrors(['pickup_address_id', 'pickup_address_ids']);
+        $foreignAddress = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active])->addresses()->create([
+            'type' => AddressType::Both, 'label' => 'Other shop', 'recipient_name' => 'Another Seller',
+            'contact_number' => '09173333333', 'address_line_1' => '3 Other Road', 'barangay' => 'Poblacion',
+            'city_municipality' => 'Manila', 'province' => 'Metro Manila', 'region' => 'NCR',
+            'postal_code' => '1000', 'country' => 'PH', 'is_default' => true,
+        ]);
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$one->id, $two->id], 'pickup_address_id' => $foreignAddress->id, 'logistics_organization_id' => $organization->id])
+            ->assertConflict()->assertJsonPath('code', 'PICKUP_ADDRESS_INVALID');
         $key = (string) Str::uuid();
 
         $response = $this->actingAs($seller)->withHeader('Idempotency-Key', $key)
-            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$one->id, $two->id], 'pickup_address_ids' => [$one->id => $pickupAddress->id, $two->id => $warehouseAddress->id], 'logistics_organization_id' => $organization->id])
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$one->id, $two->id], 'pickup_address_id' => $warehouseAddress->id, 'logistics_organization_id' => $organization->id])
             ->assertOk()->assertJsonPath('data.status', 'pending_logistics')
             ->assertJsonPath('data.pickup_date', null)->assertJsonPath('data.logistics_organization_id', $organization->id)
             ->assertJsonCount(2, 'data.waybills');
         $requestId = $response->json('data.id');
         $this->withHeader('Idempotency-Key', $key)
-            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$two->id, $one->id], 'pickup_address_ids' => [$two->id => $warehouseAddress->id, $one->id => $pickupAddress->id], 'logistics_organization_id' => $organization->id])
+            ->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$two->id, $one->id], 'pickup_address_id' => $warehouseAddress->id, 'logistics_organization_id' => $organization->id])
             ->assertOk()->assertJsonPath('data.id', $requestId);
 
         $this->assertSame(OrderStatus::ReadyForPickup, $one->fresh()->status);
         $this->assertSame(OrderStatus::ReadyForPickup, $two->fresh()->status);
         $this->assertDatabaseCount('seller_pickup_requests', 1);
         $this->assertDatabaseCount('seller_pickup_request_orders', 2);
-        $this->assertDatabaseHas('seller_pickup_request_orders', ['order_id' => $one->id, 'pickup_address_id' => $pickupAddress->id]);
+        $this->assertDatabaseHas('seller_pickup_request_orders', ['order_id' => $one->id, 'pickup_address_id' => $warehouseAddress->id]);
         $this->assertDatabaseHas('seller_pickup_request_orders', ['order_id' => $two->id, 'pickup_address_id' => $warehouseAddress->id]);
-        $this->assertSame('1 Seller Road', $one->waybill()->with('snapshot')->firstOrFail()->snapshot->payload['pickup']['address_line_1']);
+        $this->assertSame('9 Warehouse Road', $one->waybill()->with('snapshot')->firstOrFail()->snapshot->payload['pickup']['address_line_1']);
         $this->assertSame('9 Warehouse Road', $two->waybill()->with('snapshot')->firstOrFail()->snapshot->payload['pickup']['address_line_1']);
+        $this->assertSame('14.5736110', $one->waybill()->with('snapshot')->firstOrFail()->snapshot->payload['pickup']['latitude']);
+        $this->assertSame('121.0858330', $two->waybill()->with('snapshot')->firstOrFail()->snapshot->payload['pickup']['longitude']);
         $this->assertDatabaseCount('waybills', 2);
         $this->assertDatabaseCount('waybill_snapshots', 2);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $logistics->id, 'type' => 'logistics-pickup.requested']);

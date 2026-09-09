@@ -19,7 +19,7 @@ PSGC names and manually reviewed address fields remain authoritative. Coordinate
 
 ## Address pinning flow
 
-The Customer Address Book reference flow is:
+The Customer and Seller Address Book flow is:
 
 ```text
 Select cascading PSGC address
@@ -48,7 +48,7 @@ There is no provider request while the user types. Changing a populated textual 
 - Latitude and longitude are optional unless a feature explicitly requires them, but they must be submitted as a complete pair and remain within `-90..90` and `-180..180`.
 - Provider failures must not erase entered text or silently rewrite address fields.
 - Do not put credentials, full addresses, or route payloads in logs.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` is the origin-restricted browser key for intentional forward geocoding and tiles. `GEOAPIFY_SERVER_API_KEY` is a separate server-only key for Route Matrix requests.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` (Customer webapp) and `VITE_GEOAPIFY_API_KEY` (Seller dashboard) are origin-restricted browser keys for intentional forward geocoding and tiles. `GEOAPIFY_SERVER_API_KEY` is a separate server-only key for Route Matrix requests.
 
 ## Cost boundary
 
