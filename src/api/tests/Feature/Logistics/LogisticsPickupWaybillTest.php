@@ -74,16 +74,17 @@ class LogisticsPickupWaybillTest extends TestCase
         $order->update(['status' => OrderStatus::SellerProcessing]);
         [$selectedUser, $selected] = $this->logistics('Selected Logistics', 'Manila', 'Metro Manila');
         [$otherUser] = $this->logistics('Other Logistics', 'Quezon City', 'Metro Manila');
+        $pickupAddress = $seller->addresses()->sole();
         $key = (string) Str::uuid();
 
         $response = $this->actingAs($seller)->withHeader('Idempotency-Key', $key)->postJson('/api/v1/seller/orders/pickup-requests', [
-            'order_ids' => [$order->id], 'logistics_organization_id' => $selected->id,
+            'order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $selected->id,
         ])->assertOk()->assertJsonPath('data.logistics_organization_id', $selected->id)->assertJsonCount(1, 'data.waybills');
         $waybillId = $response->json('data.waybills.0.id');
         $pickupId = $response->json('data.id');
 
         $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/seller/orders/pickup-requests', [
-            'order_ids' => [$order->id], 'logistics_organization_id' => $selected->id,
+            'order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $selected->id,
         ])->assertOk()->assertJsonPath('data.waybills.0.id', $waybillId);
         $this->assertDatabaseCount('waybills', 1);
         $this->assertDatabaseHas('notifications', ['notifiable_id' => $selectedUser->id, 'type' => 'logistics-pickup.requested']);
@@ -100,6 +101,9 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->assertDatabaseCount('waybill_access_events', 2);
         $this->assertSame(OrderStatus::ReadyForPickup, $order->fresh()->status);
         $this->assertSame(1, InventoryBalance::firstOrFail()->reserved);
+        $this->getJson('/api/v1/seller/logistics-options')->assertOk()
+            ->assertJsonPath('data.0.default', true)
+            ->assertJsonPath('data.0.id', $selected->id);
     }
 
     public function test_logistics_schedule_is_tenant_scoped_and_courier_can_accept_and_resolve_only_assigned_waybill(): void
@@ -110,7 +114,8 @@ class LogisticsPickupWaybillTest extends TestCase
         [$logistics, $organization, $hub] = $this->logistics('Assigned Logistics', 'Manila', 'Metro Manila');
         [$foreign] = $this->logistics('Foreign Logistics', 'Cebu City', 'Cebu');
         $courier = $this->courier($organization->id, $hub->id);
-        $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$order->id], 'logistics_organization_id' => $organization->id])->json('data');
+        $pickupAddress = $seller->addresses()->sole();
+        $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', ['order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $organization->id])->json('data');
 
         $this->actingAs($foreign)->getJson("/api/v1/logistics/pickups/{$pickup['id']}")->assertNotFound();
         $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-couriers')
@@ -196,8 +201,10 @@ class LogisticsPickupWaybillTest extends TestCase
         $secondOrder->update(['status' => OrderStatus::SellerProcessing]);
         [$logistics, $organization, $hub] = $this->logistics('Conflict Logistics', 'Manila', 'Metro Manila');
         $courier = $this->courier($organization->id, $hub->id);
+        $pickupAddress = $seller->addresses()->sole();
         $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', [
             'order_ids' => [$firstOrder->id, $secondOrder->id],
+            'pickup_address_id' => $pickupAddress->id,
             'logistics_organization_id' => $organization->id,
         ])->assertOk();
         $startsAt = now()->addHours(3);

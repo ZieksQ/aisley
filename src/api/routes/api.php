@@ -42,6 +42,7 @@ use App\Http\Controllers\Seller\InventoryController as SellerInventoryController
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
 use App\Http\Controllers\Seller\NotificationController as SellerNotificationController;
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
+use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
@@ -195,6 +196,10 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/account/profile-photo', [SellerAccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
     Route::get('/account/profile-photo', [SellerAccountController::class, 'profilePhoto'])->name('account.photo.show');
     Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
+    Route::get('/pickup-addresses', [SellerPickupAddressController::class, 'index'])->name('pickup-addresses.index');
+    Route::post('/pickup-addresses', [SellerPickupAddressController::class, 'store'])->name('pickup-addresses.store');
+    Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
+    Route::delete('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'destroy'])->whereUuid('address')->name('pickup-addresses.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::post('/product-uploads', [SellerProductUploadController::class, 'store'])->middleware('throttle:30,1')->name('product-uploads.store');

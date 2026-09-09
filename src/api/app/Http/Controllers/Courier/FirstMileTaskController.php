@@ -23,7 +23,7 @@ class FirstMileTaskController extends Controller
         $tasks = FirstMileTask::query()->where('courier_id', $request->user()->id)
             ->when($data['pickup_schedule_id'] ?? null, fn ($query, $schedule) => $query->where('pickup_schedule_id', $schedule))
             ->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted])
-            ->with(['schedule', 'waybill:id,reference', 'order:id,reference,shop_id', 'order.address', 'order.shop:id,seller_id,name,contact_number', 'order.shop.seller.addresses'])
+            ->with(['schedule', 'waybill.snapshot', 'order:id,reference,shop_id', 'order.address', 'order.shop:id,seller_id,name,contact_number'])
             ->orderBy('created_at')->orderBy('id')->paginate($data['per_page'] ?? 25);
 
         return response()->json(['data' => collect($tasks->items())->map(fn ($task) => $this->task($task)), 'meta' => ['current_page' => $tasks->currentPage(), 'last_page' => $tasks->lastPage(), 'total' => $tasks->total()]]);
@@ -38,7 +38,7 @@ class FirstMileTaskController extends Controller
             }
             abort_unless($record->status === FirstMileTaskStatus::Accepted, 409, 'This task can no longer be accepted.');
 
-            return $record->fresh(['schedule', 'waybill:id,reference', 'order:id,reference,shop_id', 'order.address', 'order.shop:id,seller_id,name,contact_number', 'order.shop.seller.addresses']);
+            return $record->fresh(['schedule', 'waybill.snapshot', 'order:id,reference,shop_id', 'order.address', 'order.shop:id,seller_id,name,contact_number']);
         });
 
         return response()->json(['data' => $this->task($record)]);
@@ -50,9 +50,9 @@ class FirstMileTaskController extends Controller
         $waybill = Waybill::query()->where('qr_token_hash', $hasher->hashQr($data['payload']))->where('status', WaybillStatus::Active)
             ->whereHas('firstMileTask', fn ($query) => $query->where('courier_id', $request->user()->id)->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted]))
             ->with([
-                'firstMileTask.schedule', 'firstMileTask.waybill:id,reference',
+                'firstMileTask.schedule', 'firstMileTask.waybill.snapshot',
                 'firstMileTask.order:id,reference,shop_id', 'firstMileTask.order.address',
-                'firstMileTask.order.shop:id,seller_id,name,contact_number', 'firstMileTask.order.shop.seller.addresses',
+                'firstMileTask.order.shop:id,seller_id,name,contact_number',
                 'order:id,reference',
             ])->firstOrFail();
         WaybillAccessEvent::create(['waybill_id' => $waybill->id, 'actor_id' => $request->user()->id, 'actor_role' => $request->user()->role, 'action' => WaybillAccessAction::Resolve, 'correlation_id' => Str::uuid(), 'occurred_at' => now()]);
@@ -62,7 +62,7 @@ class FirstMileTaskController extends Controller
 
     private function task(FirstMileTask $task): array
     {
-        $pickup = $task->order?->shop?->seller?->addresses?->sortByDesc('is_default')->first();
+        $pickup = $task->waybill?->snapshot?->payload['pickup'] ?? null;
         $destination = $task->order?->address;
 
         return [
@@ -71,17 +71,17 @@ class FirstMileTaskController extends Controller
             'order' => ['id' => $task->order_id, 'reference' => $task->order?->reference],
             'waybill' => ['reference' => $task->waybill?->reference],
             'pickup' => $pickup ? [
-                'shop_name' => $task->order->shop->name,
-                'contact_number' => $task->order->shop->contact_number ?? $pickup->contact_number,
-                'address_line_1' => $pickup->address_line_1,
-                'address_line_2' => $pickup->address_line_2,
-                'barangay' => $pickup->barangay,
-                'city_municipality' => $pickup->city_municipality,
-                'province' => $pickup->province,
-                'region' => $pickup->region,
-                'postal_code' => $pickup->postal_code,
-                'latitude' => $pickup->latitude,
-                'longitude' => $pickup->longitude,
+                'shop_name' => $pickup['name'] ?? $task->order->shop->name,
+                'contact_number' => $pickup['contact_number'] ?? $task->order->shop->contact_number,
+                'address_line_1' => $pickup['address_line_1'],
+                'address_line_2' => $pickup['address_line_2'] ?? null,
+                'barangay' => $pickup['barangay'],
+                'city_municipality' => $pickup['city_municipality'],
+                'province' => $pickup['province'],
+                'region' => $pickup['region'],
+                'postal_code' => $pickup['postal_code'],
+                'latitude' => $pickup['latitude'] ?? null,
+                'longitude' => $pickup['longitude'] ?? null,
             ] : null,
             'destination_area' => $destination ? ['city_municipality' => $destination->city_municipality, 'province' => $destination->province, 'region' => $destination->region] : null,
             'schedule' => ['id' => $task->schedule->id, 'reference' => $task->schedule->reference, 'starts_at' => $task->schedule->starts_at->toISOString(), 'ends_at' => $task->schedule->ends_at->toISOString(), 'timezone' => 'UTC'],

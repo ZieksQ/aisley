@@ -100,9 +100,9 @@ test('rejection and pickup requests send only their permitted payloads', async (
   assert.deepEqual(JSON.parse(requests[0].options.body), { reason: 'Cannot fulfill' })
   requests = []
   respond = () => Response.json({ data: { id: 'pickup-one', status: 'pending_logistics', order_ids: ['one', 'two'] } })
-  await actions.createPickupRequest('seller-one', ['one', 'two'], 'logistics-one')()
+  await actions.createPickupRequest('seller-one', ['one', 'two'], 'logistics-one', 'address-one')()
   assert.ok(requests[0].url.endsWith('/api/v1/seller/orders/pickup-requests'))
-  assert.deepEqual(JSON.parse(requests[0].options.body), { order_ids: ['one', 'two'], logistics_organization_id: 'logistics-one' })
+  assert.deepEqual(JSON.parse(requests[0].options.body), { order_ids: ['one', 'two'], logistics_organization_id: 'logistics-one', pickup_address_id: 'address-one' })
   assert.equal('pickup_date' in JSON.parse(requests[0].options.body), false)
 })
 

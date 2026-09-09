@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.4
 status: Implementation-ready draft
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -67,6 +67,8 @@ scope: Seller Web Application and Laravel API
 - `POST /api/v1/seller/orders/pickup-requests` groups the selected Orders with one eligible Seller-selected Logistics organization, creates one waybill per Order, transitions each to `ready_for_pickup`, and notifies only that organization after commit. Pickup date/Courier remain null until Logistics schedules them.
 - Seller readiness validates immutable item quantities, payment state, current Order state, Order-linked Inventory reservation, and Logistics eligibility before committing. Package measurements remain deferred for this MVP.
 - A committed `ready_for_pickup` transition freezes the selected Logistics organization and waybill snapshots. It must not set a pickup date, assign a Courier, or claim physical custody.
+- Each solo or multi-Order pickup request requires exactly one authenticated-Seller-owned pickup address. That same address applies to every Order in the request, and every waybill freezes its fields and coordinates so later address-book edits cannot rewrite committed pickup instructions.
+- Before the first pickup request, the highest-ranked eligible provider remains the suggestion. The provider chosen for the Seller's first committed pickup request becomes the default while it remains eligible; choosing another provider for a later request does not silently replace that default.
 - Logistics may combine multiple Seller-ready Orders into one first-mile pickup run or manifest. The batch is an operational grouping only: every Order keeps its own status, package identity, pickup evidence, history, and idempotency boundary.
 - Logistics/Courier use the authorized shared waybill reference/QR for parcel verification; scanning alone does not advance custody.
 - Receipt scans, `assigned`, hub processing, transfer, dispatch, final-mile assignment, and delivery belong to Logistics/Courier contracts. Seller retains read-only access to the immutable waybill.
@@ -87,6 +89,8 @@ scope: Seller Web Application and Laravel API
 - [ ] Approval does not mark payment paid, generate a waybill, assign a Courier, or mutate Inventory balances.
 - [ ] Seller readiness emits a committed Logistics handoff and supports downstream bulk pickup grouping without merging Orders.
 - [ ] Pickup readiness creates immutable waybills; Seller and selected Logistics can view them only through role-scoped endpoints.
+- [ ] The Seller can choose one owned saved pickup address for a solo or bulk pickup request, with the default address prefilled, and no foreign or missing address can be committed.
+- [ ] Provider selection uses a searchable modal that exposes provider name, operational hub address, current distance evidence, and applicable Default/Suggested/Near-you tags without preventing another eligible selection.
 
 ## HOW
 
@@ -103,6 +107,7 @@ GET  /api/v1/seller/orders/{order}/waybill
 ```
 
 - Order list/detail responses expose `status`, payment facts, immutable snapshots, `can_approve`, `can_reject`, `can_prepare`, pickup state, `can_view_waybill`, safe notification references, and Shop-scoped status counts computed by Laravel.
+- Pickup requests submit one `pickup_address_id` alongside `order_ids` and `logistics_organization_id`; Laravel verifies Seller ownership inside the transaction and applies that address to every selected Order and waybill snapshot.
 - Implement a Seller-scoped approval action over the shared `OrderTransitionService`; use a Policy/scoped query, Form Request, API Resource, transaction, row lock, idempotency guard, and after-commit event listener.
 - Keep Order approval separate from pickup readiness; opening either screen does not change Order status.
 - Use `OrderReadyForPickup` as the downstream contract. Logistics owns bulk pickup scheduling/task creation, Courier assignment, pickup confirmation, and receipt validation; waybill creation remains inside Seller readiness.

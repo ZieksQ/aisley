@@ -29,11 +29,11 @@ class RequestSellerPickup
         private readonly CreateWaybill $createWaybill,
     ) {}
 
-    public function handle(User $seller, array $orderIds, string $logisticsOrganizationId, string $key): SellerPickupRequest
+    public function handle(User $seller, array $orderIds, string $pickupAddressId, string $logisticsOrganizationId, string $key): SellerPickupRequest
     {
         $previous = SellerPickupRequest::query()->where('seller_id', $seller->id)->where('idempotency_key', $key)->with(['orders', 'waybills'])->first();
         if ($previous) {
-            return $this->existing($previous, $orderIds, $logisticsOrganizationId);
+            return $this->existing($previous, $orderIds, $pickupAddressId, $logisticsOrganizationId);
         }
         $eligible = $this->eligibleLogistics->forSeller($seller->id);
         $provider = $eligible['options']->firstWhere('id', $logisticsOrganizationId);
@@ -41,11 +41,11 @@ class RequestSellerPickup
             throw SellerOrderException::conflict('LOGISTICS_PROVIDER_UNAVAILABLE', 'The selected Logistics organization is no longer eligible.');
         }
 
-        return DB::transaction(function () use ($seller, $orderIds, $logisticsOrganizationId, $key, $eligible, $provider): SellerPickupRequest {
+        return DB::transaction(function () use ($seller, $orderIds, $pickupAddressId, $logisticsOrganizationId, $key, $provider): SellerPickupRequest {
             $shop = Shop::query()->where('seller_id', $seller->id)->lockForUpdate()->firstOrFail();
             $previous = SellerPickupRequest::query()->where('seller_id', $seller->id)->where('idempotency_key', $key)->with(['orders', 'waybills'])->first();
             if ($previous) {
-                return $this->existing($previous, $orderIds, $logisticsOrganizationId);
+                return $this->existing($previous, $orderIds, $pickupAddressId, $logisticsOrganizationId);
             }
             $stillEligible = LogisticsOrganization::query()->whereKey($provider['id'])
                 ->whereHas('user', fn ($query) => $query->where('status', UserStatus::Active))
@@ -57,6 +57,10 @@ class RequestSellerPickup
             $orders = Order::query()->where('shop_id', $shop->id)->whereIn('id', $orderIds)->orderBy('id')->lockForUpdate()->get();
             if ($orders->count() !== count($orderIds)) {
                 throw SellerOrderException::conflict('PICKUP_ORDERS_INVALID', 'One or more selected Orders are unavailable.');
+            }
+            $pickupAddress = $seller->addresses()->whereKey($pickupAddressId)->lockForUpdate()->first();
+            if (! $pickupAddress) {
+                throw SellerOrderException::conflict('PICKUP_ADDRESS_INVALID', 'The selected pickup address is unavailable.');
             }
             if ($orders->contains(fn (Order $order) => $order->status !== OrderStatus::SellerProcessing)) {
                 throw SellerOrderException::conflict('PICKUP_ORDERS_INVALID', 'Only processing Orders can be submitted for pickup.');
@@ -81,8 +85,8 @@ class RequestSellerPickup
             foreach ($orderIds as $position => $orderId) {
                 $order = $ordersById->get($orderId);
                 $event = $this->transitions->transition($order, OrderStatus::SellerProcessing, OrderStatus::ReadyForPickup, 'seller_pickup_request');
-                $request->orders()->create(['order_id' => $order->id, 'status_event_id' => $event->id, 'position' => $position]);
-                $this->createWaybill->handle($order, $request, $eligible['address']);
+                $request->orders()->create(['order_id' => $order->id, 'pickup_address_id' => $pickupAddress->id, 'status_event_id' => $event->id, 'position' => $position]);
+                $this->createWaybill->handle($order, $request, $pickupAddress);
             }
 
             DB::afterCommit(function () use ($request): void {
@@ -99,11 +103,12 @@ class RequestSellerPickup
         }, 3);
     }
 
-    private function existing(SellerPickupRequest $previous, array $orderIds, string $logisticsOrganizationId): SellerPickupRequest
+    private function existing(SellerPickupRequest $previous, array $orderIds, string $pickupAddressId, string $logisticsOrganizationId): SellerPickupRequest
     {
         $committed = $previous->orders->pluck('order_id')->sort()->values()->all();
         $requested = collect($orderIds)->sort()->values()->all();
-        if ($committed !== $requested || $previous->logistics_organization_id !== $logisticsOrganizationId) {
+        $committedAddressIds = $previous->orders->pluck('pickup_address_id')->filter()->unique()->values();
+        if ($committed !== $requested || $committedAddressIds->count() !== 1 || $committedAddressIds->first() !== $pickupAddressId || $previous->logistics_organization_id !== $logisticsOrganizationId) {
             throw SellerOrderException::conflict('IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used for another pickup request.');
         }
 

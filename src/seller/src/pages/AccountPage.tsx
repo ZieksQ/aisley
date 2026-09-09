@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent, InputHTMLAttributes } from 'react'
 import { FaCamera, FaCircleCheck, FaRotateRight, FaTrashCan } from 'react-icons/fa6'
 import { useAuth } from '../auth/useAuth'
 import { SellerAvatar } from '../components/SellerAvatar'
+import { PickupAddressBook } from '../components/PickupAddressBook'
 import { ApiError, apiRequest } from '../lib/api'
 import type { SellerAccount, SellerAccountMutationResponse, SellerAccountResponse } from '../types/account'
 
@@ -246,6 +247,8 @@ export function AccountPage() {
           <FormActions busy={busy === 'storefront'} label="Save storefront" progress="Saving…" />
         </form>
       </div>
+
+      <PickupAddressBook />
 
       <section aria-labelledby="security-heading" className={`${sectionClass} seller-security-panel`}>
         <h3 className="font-semibold" id="security-heading">Sign-in security</h3>

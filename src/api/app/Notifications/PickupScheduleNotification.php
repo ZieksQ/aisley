@@ -4,7 +4,6 @@ namespace App\Notifications;
 
 use App\Enums\UserRole;
 use App\Models\PickupSchedule;
-use App\Models\SellerPickupRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -31,8 +30,9 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        $pickup = $this->schedule->orders()->first()?->seller_pickup_request_id;
-        $address = $pickup ? SellerPickupRequest::query()->whereKey($pickup)->with('shop.seller.addresses')->first()?->shop?->seller?->addresses?->sortByDesc('is_default')->first() : null;
+        $firstOrder = $this->schedule->orders()->with('order.waybill.snapshot')->first();
+        $pickup = $firstOrder?->seller_pickup_request_id;
+        $address = $firstOrder?->order?->waybill?->snapshot?->payload['pickup'] ?? null;
         $startsAt = Carbon::parse($this->schedule->starts_at)->timezone('Asia/Manila');
         $endsAt = Carbon::parse($this->schedule->ends_at)->timezone('Asia/Manila');
         $orderCount = $this->schedule->orders()->count();
@@ -55,7 +55,7 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
             'ends_at' => $this->schedule->ends_at->toISOString(),
             'timezone' => 'Asia/Manila',
             'order_count' => $orderCount,
-            'pickup_area' => $address ? ['city_municipality' => $address->city_municipality, 'province' => $address->province, 'region' => $address->region] : null,
+            'pickup_area' => $address ? ['city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region']] : null,
             'api_reference' => $notifiable->role === UserRole::Seller
                 ? "/api/v1/seller/pickup-requests/{$pickup}/waybills.pdf"
                 : "/api/v1/courier/first-mile-tasks?pickup_schedule_id={$this->schedule->id}",

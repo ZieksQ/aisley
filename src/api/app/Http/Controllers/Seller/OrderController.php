@@ -59,13 +59,14 @@ class OrderController extends Controller
     {
         /** @var User $seller */
         $seller = $request->user();
-        $record = $pickup->handle($seller, $request->validated('order_ids'), $request->validated('logistics_organization_id'), $request->idempotencyKey());
+        $record = $pickup->handle($seller, $request->validated('order_ids'), $request->validated('pickup_address_id'), $request->validated('logistics_organization_id'), $request->idempotencyKey());
         $waybillsByOrder = $record->waybills->keyBy('order_id');
 
         return response()->json(['data' => [
             'id' => $record->id,
             'status' => $record->status,
             'pickup_date' => $record->pickup_date?->toDateString(),
+            'pickup_address_id' => $record->orders->first()?->pickup_address_id,
             'logistics_organization_id' => $record->logistics_organization_id,
             'order_ids' => $record->orders->pluck('order_id')->values(),
             'waybills' => $record->orders->map(fn ($link) => $waybillsByOrder->get($link->order_id))->filter()->map(fn ($waybill) => [
