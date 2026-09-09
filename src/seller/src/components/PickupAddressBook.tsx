@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { FaLocationDot, FaPen, FaPlus, FaTrashCan, FaXmark } from 'react-icons/fa6'
-import { ApiError, apiRequest } from '../lib/api'
+import { ApiError } from '../lib/api'
+import { fetchPsgcOptions, type PsgcAddressOption, type PsgcLevel } from '../lib/psgc-options'
 import { createPickupAddress, deletePickupAddress, getPickupAddresses, pickupAddressSummary, updatePickupAddress } from '../lib/sellerPickupAddresses'
 import type { PickupAddress, PickupAddressPayload } from '../types/pickupAddresses'
 import { GeoapifyLocationPicker } from './GeoapifyLocationPicker'
 
-type Option = { code: string; name: string }
-type Level = 'regions' | 'provinces' | 'municipalities' | 'barangays'
 type FormValues = {
   label: string; recipient_name: string; contact_number: string; address_line_1: string; address_line_2: string
   barangay: string; city_municipality: string; province: string; region: string; postal_code: string
@@ -75,22 +74,22 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
   const [values, setValues] = useState(() => initial(address))
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [submitting, setSubmitting] = useState(false)
-  const [options, setOptions] = useState<Record<Level, Option[]>>({ regions: [], provinces: [], municipalities: [], barangays: [] })
+  const [options, setOptions] = useState<Record<PsgcLevel, PsgcAddressOption[]>>({ regions: [], provinces: [], municipalities: [], barangays: [] })
   const [optionsUnavailable, setOptionsUnavailable] = useState(false)
 
   const selectedRegion = useMemo(() => options.regions.find((item) => item.name === values.region), [options.regions, values.region])
   const selectedProvince = useMemo(() => options.provinces.find((item) => item.name === values.province), [options.provinces, values.province])
   const selectedMunicipality = useMemo(() => options.municipalities.find((item) => item.name === values.city_municipality), [options.municipalities, values.city_municipality])
 
-  const fetchOptions = useCallback(async (level: Level, params = new URLSearchParams()) => {
-    try { const response = await apiRequest<{ options: Option[] }>(`/api/v1/address-options/${level}?${params}`); setOptions((current) => ({ ...current, [level]: response.options })); setOptionsUnavailable(false) }
+  const fetchOptions = useCallback(async (level: PsgcLevel, filters: Record<string, string> = {}) => {
+    try { const result = await fetchPsgcOptions(level, filters); setOptions((current) => ({ ...current, [level]: result })); setOptionsUnavailable(false) }
     catch { setOptionsUnavailable(true) }
   }, [])
 
   useEffect(() => { void fetchOptions('regions') }, [fetchOptions])
-  useEffect(() => { if (selectedRegion) void fetchOptions('provinces', new URLSearchParams({ reg: selectedRegion.code })) }, [fetchOptions, selectedRegion])
-  useEffect(() => { if (selectedRegion) { const query = new URLSearchParams({ reg: selectedRegion.code }); if (selectedProvince) query.set('prv', selectedProvince.code); void fetchOptions('municipalities', query) } }, [fetchOptions, selectedProvince, selectedRegion])
-  useEffect(() => { if (selectedRegion && selectedMunicipality) { const query = new URLSearchParams({ reg: selectedRegion.code, mun: selectedMunicipality.code }); if (selectedProvince) query.set('prv', selectedProvince.code); void fetchOptions('barangays', query) } }, [fetchOptions, selectedMunicipality, selectedProvince, selectedRegion])
+  useEffect(() => { if (selectedRegion) void fetchOptions('provinces', { reg: selectedRegion.code }) }, [fetchOptions, selectedRegion])
+  useEffect(() => { if (selectedRegion) { const filters: Record<string, string> = { reg: selectedRegion.code }; if (selectedProvince) filters.prv = selectedProvince.code; void fetchOptions('municipalities', filters) } }, [fetchOptions, selectedProvince, selectedRegion])
+  useEffect(() => { if (selectedRegion && selectedMunicipality) { const filters: Record<string, string> = { reg: selectedRegion.code, mun: selectedMunicipality.code }; if (selectedProvince) filters.prv = selectedProvince.code; void fetchOptions('barangays', filters) } }, [fetchOptions, selectedMunicipality, selectedProvince, selectedRegion])
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close) }, [onClose])
 
   function update(field: keyof FormValues, value: string | boolean) {
@@ -136,6 +135,6 @@ function AddressField({ error, label, name, onChange, placeholder, required, val
   return <label className="text-sm font-medium">{label}{required ? ' *' : ''}<input aria-invalid={Boolean(error)} className="mt-1.5 min-h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-pink-100 dark:border-white/15 dark:bg-[#111113] dark:focus:ring-pink-500/10" name={name} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} value={value} />{error ? <span className="mt-1 block text-xs text-red-700 dark:text-red-300">{error}</span> : null}</label>
 }
 
-function OptionField({ error, label, list, onChange, options, required, value }: { error?: string; label: string; list: string; onChange: (value: string) => void; options: Option[]; required?: boolean; value: string }) {
+function OptionField({ error, label, list, onChange, options, required, value }: { error?: string; label: string; list: string; onChange: (value: string) => void; options: PsgcAddressOption[]; required?: boolean; value: string }) {
   return <label className="text-sm font-medium">{label}{required ? ' *' : ''}<input aria-invalid={Boolean(error)} className="mt-1.5 min-h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-pink-100 dark:border-white/15 dark:bg-[#111113] dark:focus:ring-pink-500/10" list={list} onChange={(event) => onChange(event.target.value)} required={required} type="search" value={value} /><datalist id={list}>{options.map((option) => <option key={option.code} value={option.name} />)}</datalist>{error ? <span className="mt-1 block text-xs text-red-700 dark:text-red-300">{error}</span> : null}</label>
 }
