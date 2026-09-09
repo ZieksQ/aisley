@@ -42,7 +42,10 @@ export type SellerOrder = {
     to_status: SellerOrder['status']; occurred_at: string
   }>
   capabilities: { can_approve: boolean; can_reject: boolean; can_prepare: boolean; can_view_waybill: boolean }
-  pickup: null | { request_id: string; status: string; pickup_date: string | null; logistics_organization_id: string | null }
+  pickup: null | {
+    request_id: string; status: string; pickup_date: string | null; logistics_organization_id: string | null
+    schedule: null | { id: string; reference: string; status: string; starts_at: string; ends_at: string; timezone: string }
+  }
   waybill: null | { id: string; reference: string; created_at: string; pdf_url: string }
   notification: null | { id: string; read_at: string | null }
 }

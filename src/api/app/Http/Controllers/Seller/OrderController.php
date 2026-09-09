@@ -7,7 +7,6 @@ use App\Http\Requests\Seller\AcceptSellerOrderRequest;
 use App\Http\Requests\Seller\ListSellerOrdersRequest;
 use App\Http\Requests\Seller\RejectSellerOrderRequest;
 use App\Http\Requests\Seller\RequestSellerPickupRequest;
-use App\Http\Resources\Seller\SellerOrderNotificationResource;
 use App\Http\Resources\Seller\SellerOrderResource;
 use App\Models\SellerPickupRequest;
 use App\Models\User;
@@ -20,7 +19,6 @@ use App\Services\Waybills\WaybillPdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Notifications\DatabaseNotification;
 
 class OrderController extends Controller
 {
@@ -91,25 +89,6 @@ class OrderController extends Controller
             'distance_provider' => 'Geoapify Route Matrix',
             'attribution' => ['Geoapify', 'OpenStreetMap contributors'],
         ]]);
-    }
-
-    public function markNotificationRead(Request $request, string $notification): JsonResponse
-    {
-        /** @var User $seller */
-        $seller = $request->user();
-        /** @var DatabaseNotification $record */
-        $record = $seller->notifications()
-            ->where('type', 'seller-order.actionable')
-            ->whereKey($notification)
-            ->firstOrFail();
-        if ($record->read_at === null) {
-            $record->markAsRead();
-        }
-
-        return response()->json([
-            'message' => 'Notification marked as read.',
-            'data' => new SellerOrderNotificationResource($record->refresh()),
-        ]);
     }
 
     public function waybill(Request $request, string $order, SellerOrderService $orders, WaybillPdfService $pdf)

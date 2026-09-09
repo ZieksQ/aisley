@@ -40,6 +40,7 @@ use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
+use App\Http\Controllers\Seller\NotificationController as SellerNotificationController;
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
@@ -222,7 +223,9 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/orders/pickup-requests', [SellerOrderController::class, 'requestPickup'])->name('orders.pickup-requests.store');
     Route::get('/logistics-options', [SellerOrderController::class, 'logisticsOptions'])->name('logistics-options.index');
     Route::get('/pickup-requests/{pickup}/waybills.pdf', [SellerOrderController::class, 'pickupWaybills'])->whereUuid('pickup')->name('pickup-requests.waybills');
-    Route::post('/notifications/{notification}/read', [SellerOrderController::class, 'markNotificationRead'])->whereUuid('notification')->name('notifications.read');
+    Route::get('/notifications', [SellerNotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}', [SellerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
+    Route::post('/notifications/{notification}/read', [SellerNotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
     Route::get('/orders/{order}/waybill', [SellerOrderController::class, 'waybill'])->whereUuid('order')->name('orders.waybill');
 });
 

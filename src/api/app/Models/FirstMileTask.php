@@ -32,4 +32,9 @@ class FirstMileTask extends Model
     {
         return $this->belongsTo(Waybill::class);
     }
+
+    public function courier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'courier_id');
+    }
 }

@@ -128,8 +128,29 @@ class LogisticsPickupWaybillTest extends TestCase
         ])->assertCreated()->assertJsonPath('data.order_ids.0', $order->id)->json('data');
         $this->assertSame(OrderStatus::ReadyForPickup, $order->fresh()->status);
         $this->assertDatabaseCount('pickup_schedule_reminders', 1);
+        $this->actingAs($logistics)->getJson("/api/v1/logistics/pickups/{$pickup['id']}")
+            ->assertOk()
+            ->assertJsonPath('data.orders.0.schedule.id', $schedule['id']);
+        $sellerNotification = $this->actingAs($seller)->getJson('/api/v1/seller/notifications?status=unread')
+            ->assertOk()
+            ->assertJsonPath('data.0.type', 'pickup-schedule.assigned')
+            ->assertJsonPath('data.0.schedule.id', $schedule['id'])
+            ->assertJsonPath('data.0.schedule.order_count', 1)
+            ->json('data.0');
+        $this->getJson('/api/v1/seller/orders?status=ready_for_pickup')
+            ->assertOk()
+            ->assertJsonPath('data.0.pickup.schedule.id', $schedule['id'])
+            ->assertJsonPath('data.0.pickup.schedule.timezone', 'Asia/Manila');
+        $this->getJson("/api/v1/seller/notifications/{$sellerNotification['id']}")
+            ->assertOk()
+            ->assertJsonPath('data.schedule.reference', $schedule['reference']);
+        $this->postJson("/api/v1/seller/notifications/{$sellerNotification['id']}/read")
+            ->assertOk()
+            ->assertJsonPath('data.read_at', fn ($value) => is_string($value));
+        [$otherSeller] = $this->sellerShop();
+        $this->actingAs($otherSeller)->getJson("/api/v1/seller/notifications/{$sellerNotification['id']}")->assertNotFound();
 
-        $schedule = $this->patchJson("/api/v1/logistics/pickup-schedules/{$schedule['id']}", [
+        $schedule = $this->actingAs($logistics)->patchJson("/api/v1/logistics/pickup-schedules/{$schedule['id']}", [
             'expected_revision' => 1, 'reason' => 'Move the future collection window.',
             'starts_at' => now()->addHours(4)->toISOString(), 'ends_at' => now()->addHours(5)->toISOString(),
         ])->assertOk()->assertJsonPath('data.revision', 2)->json('data');
@@ -145,6 +166,41 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->actingAs($foreignCourier)->postJson('/api/v1/courier/waybills/resolve', ['payload' => $payload])->assertNotFound();
         $this->actingAs($logistics)->postJson("/api/v1/logistics/pickup-schedules/{$schedule['id']}/cancel", ['expected_revision' => 2, 'reason' => 'Seller requested a future reschedule.'])->assertOk()->assertJsonPath('data.status', 'cancelled');
         $this->assertDatabaseHas('pickup_schedule_reminders', ['pickup_schedule_id' => $schedule['id'], 'status' => 'suppressed']);
+    }
+
+    public function test_overlapping_schedule_for_the_same_courier_returns_a_visible_conflict_contract(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $firstOrder = $this->order($shop);
+        $secondOrder = $this->order($shop);
+        $firstOrder->update(['status' => OrderStatus::SellerProcessing]);
+        $secondOrder->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Conflict Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', [
+            'order_ids' => [$firstOrder->id, $secondOrder->id],
+            'logistics_organization_id' => $organization->id,
+        ])->assertOk();
+        $startsAt = now()->addHours(3);
+        $endsAt = now()->addHours(4);
+
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/pickup-schedules', [
+            'order_ids' => [$firstOrder->id],
+            'courier_id' => $courier->id,
+            'starts_at' => $startsAt->toISOString(),
+            'ends_at' => $endsAt->toISOString(),
+        ])->assertCreated();
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/pickup-schedules', [
+            'order_ids' => [$secondOrder->id],
+            'courier_id' => $courier->id,
+            'starts_at' => $startsAt->copy()->addMinutes(30)->toISOString(),
+            'ends_at' => $endsAt->copy()->addMinutes(30)->toISOString(),
+        ])->assertConflict()
+            ->assertJsonPath('code', 'COURIER_SCHEDULE_CONFLICT')
+            ->assertJsonPath('message', 'The Courier already has an overlapping pickup schedule.');
+        $this->assertDatabaseCount('pickup_schedules', 1);
+        $this->assertDatabaseMissing('first_mile_tasks', ['order_id' => $secondOrder->id]);
     }
 
     private function sellerShop(bool $coordinates = false): array
