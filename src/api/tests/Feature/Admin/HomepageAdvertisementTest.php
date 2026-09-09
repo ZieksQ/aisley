@@ -9,6 +9,7 @@ use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -21,6 +22,9 @@ class HomepageAdvertisementTest extends TestCase
         parent::setUp();
 
         config(['filesystems.default' => 'public']);
+        config()->set('cache.stores.array.serialize', true);
+        Cache::purge('array');
+        Cache::flush();
     }
 
     public function test_admin_can_upload_a_storage_backed_image_and_publish_an_image_only_tagged_advertisement(): void
@@ -58,6 +62,10 @@ class HomepageAdvertisementTest extends TestCase
             ->assertJsonPath('advertisementLayer.primary.0.title', null)
             ->assertJsonPath('advertisementLayer.primary.0.description', null)
             ->assertJsonPath('advertisementLayer.primary.0.altText', null)
+            ->assertJsonPath('advertisementLayer.primary.0.imageDesktopUrl', url('/api/v1/homepage-advertisement-images/'.$draft->json('data.ads.0.id').'/desktop'));
+
+        $this->getJson('/api/v1/customer/home?limit=20')->assertOk()
+            ->assertJsonPath('advertisementLayer.layout', 'single')
             ->assertJsonPath('advertisementLayer.primary.0.imageDesktopUrl', url('/api/v1/homepage-advertisement-images/'.$draft->json('data.ads.0.id').'/desktop'));
 
         $imageResponse = $this->get(parse_url((string) $homepage->json('advertisementLayer.primary.0.imageDesktopUrl'), PHP_URL_PATH));

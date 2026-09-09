@@ -21,7 +21,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class CustomerHomepageTest extends TestCase
@@ -37,6 +36,10 @@ class CustomerHomepageTest extends TestCase
 
     public function test_guest_homepage_returns_only_current_and_storefront_eligible_content(): void
     {
+        config()->set('cache.stores.array.serialize', true);
+        Cache::purge('array');
+        Cache::flush();
+
         $category = $this->createCategory(['name' => 'Electronics', 'slug' => 'electronics']);
         $this->createCategory([
             'name' => 'Archived',
@@ -154,6 +157,12 @@ class CustomerHomepageTest extends TestCase
             ->assertJsonPath('recommendations.nextCursor', null)
             ->assertJsonMissing(['id' => $draft->id])
             ->assertJsonMissing(['id' => $unapprovedProduct->id]);
+
+        $this->getJson('/api/v1/customer/home')
+            ->assertOk()
+            ->assertJsonPath('campaigns.hero.0.id', $campaign->id)
+            ->assertJsonPath('categories.0.slug', 'electronics')
+            ->assertJsonPath('topProducts.0.id', $eligible->id);
     }
 
     public function test_active_customer_receives_delivery_recent_history_and_category_aware_discovery(): void
@@ -223,21 +232,23 @@ class CustomerHomepageTest extends TestCase
 
     public function test_non_customer_or_inactive_identity_is_not_used_for_personalization(): void
     {
-        $seller = User::factory()->create([
-            'role' => UserRole::Seller,
-            'status' => UserStatus::Active,
-        ]);
+        foreach ([UserRole::Seller, UserRole::Admin, UserRole::Logistics] as $role) {
+            $dashboardUser = User::factory()->create([
+                'role' => $role,
+                'status' => UserStatus::Active,
+            ]);
 
-        Sanctum::actingAs($seller);
+            $this->actingAs($dashboardUser, 'web');
 
-        $this->getJson('/api/v1/customer/home')
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertJsonPath('viewer.isAuthenticated', false)
-            ->assertJsonPath('recentlyViewed', []);
+            $this->getJson('/api/v1/customer/home')
+                ->assertOk()
+                ->assertHeader('Cache-Control', 'no-store, private')
+                ->assertJsonPath('viewer.isAuthenticated', false)
+                ->assertJsonPath('recentlyViewed', []);
+        }
 
         $pendingCustomer = $this->createCustomer(['status' => UserStatus::Pending]);
-        Sanctum::actingAs($pendingCustomer);
+        $this->actingAs($pendingCustomer, 'web');
 
         $this->getJson('/api/v1/customer/home')
             ->assertOk()

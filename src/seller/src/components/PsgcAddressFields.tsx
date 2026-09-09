@@ -1,41 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { apiRequest } from '../lib/api'
+import { fetchPsgcOptions, type PsgcAddressOption, type PsgcLevel } from '../lib/psgc-options'
 import { FormField, SelectField } from './FormField'
-
-type AddressOption = {
-  code: string
-  name: string
-}
-
-type OptionsResponse = {
-  options: AddressOption[]
-}
 
 type Props = {
   errors: Record<string, string[]>
 }
 
-const independentProvince: AddressOption = { code: '__independent__', name: 'Not applicable / independent city' }
+const independentProvince: PsgcAddressOption = { code: '__independent__', name: 'Not applicable / independent city' }
 
 export function PsgcAddressFields({ errors }: Props) {
   const [manual, setManual] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
-  const [regions, setRegions] = useState<AddressOption[]>([])
-  const [provinces, setProvinces] = useState<AddressOption[]>([])
-  const [municipalities, setMunicipalities] = useState<AddressOption[]>([])
-  const [barangays, setBarangays] = useState<AddressOption[]>([])
-  const [region, setRegion] = useState<AddressOption | null>(null)
-  const [province, setProvince] = useState<AddressOption | null>(null)
-  const [municipality, setMunicipality] = useState<AddressOption | null>(null)
-  const [barangay, setBarangay] = useState<AddressOption | null>(null)
-  const [loading, setLoading] = useState<'regions' | 'provinces' | 'municipalities' | 'barangays' | null>('regions')
+  const [regions, setRegions] = useState<PsgcAddressOption[]>([])
+  const [provinces, setProvinces] = useState<PsgcAddressOption[]>([])
+  const [municipalities, setMunicipalities] = useState<PsgcAddressOption[]>([])
+  const [barangays, setBarangays] = useState<PsgcAddressOption[]>([])
+  const [region, setRegion] = useState<PsgcAddressOption | null>(null)
+  const [province, setProvince] = useState<PsgcAddressOption | null>(null)
+  const [municipality, setMunicipality] = useState<PsgcAddressOption | null>(null)
+  const [barangay, setBarangay] = useState<PsgcAddressOption | null>(null)
+  const [loading, setLoading] = useState<PsgcLevel | null>('regions')
   const requestSequence = useRef(0)
 
   useEffect(() => {
     const controller = new AbortController()
-    apiRequest<OptionsResponse>('/api/v1/seller/auth/address-options/regions', { signal: controller.signal })
-      .then((response) => setRegions(response.options))
+    fetchPsgcOptions('regions', {}, controller.signal)
+      .then((options) => setRegions(options))
       .catch(() => {
         if (!controller.signal.aborted) activateManualFallback()
       })
@@ -53,15 +44,15 @@ export function PsgcAddressFields({ errors }: Props) {
     setNotice('Address options are unavailable. Enter the administrative address manually to continue.')
   }
 
-  async function loadOptions(level: 'provinces' | 'municipalities' | 'barangays', query: URLSearchParams) {
+  async function loadOptions(level: 'provinces' | 'municipalities' | 'barangays', query: Record<string, string>) {
     const sequence = ++requestSequence.current
     setLoading(level)
     setNotice(null)
 
     try {
-      const response = await apiRequest<OptionsResponse>(`/api/v1/seller/auth/address-options/${level}?${query}`)
+      const options = await fetchPsgcOptions(level, query)
       if (sequence !== requestSequence.current) return null
-      return response.options
+      return options
     } catch {
       if (sequence === requestSequence.current) activateManualFallback()
       return null
@@ -81,7 +72,7 @@ export function PsgcAddressFields({ errors }: Props) {
     setBarangays([])
     if (!next) return
 
-    const options = await loadOptions('provinces', new URLSearchParams({ reg: next.code }))
+    const options = await loadOptions('provinces', { reg: next.code })
     if (options) setProvinces([...options, independentProvince])
   }
 
@@ -94,8 +85,8 @@ export function PsgcAddressFields({ errors }: Props) {
     setBarangays([])
     if (!region || !next) return
 
-    const query = new URLSearchParams({ reg: region.code })
-    if (next.code !== independentProvince.code) query.set('prv', next.code)
+    const query: Record<string, string> = { reg: region.code }
+    if (next.code !== independentProvince.code) query.prv = next.code
     const options = await loadOptions('municipalities', query)
     if (options) setMunicipalities(options)
   }
@@ -107,8 +98,8 @@ export function PsgcAddressFields({ errors }: Props) {
     setBarangays([])
     if (!region || !province || !next) return
 
-    const query = new URLSearchParams({ reg: region.code, mun: next.code })
-    if (province.code !== independentProvince.code) query.set('prv', province.code)
+    const query: Record<string, string> = { reg: region.code, mun: next.code }
+    if (province.code !== independentProvince.code) query.prv = province.code
     const options = await loadOptions('barangays', query)
     if (options) setBarangays(options)
   }

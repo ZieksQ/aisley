@@ -36,21 +36,17 @@ class HomepageService
             'viewer' => $this->viewer($customer),
             'advertisementLayer' => $this->advertisementLayer(),
             'campaigns' => [
-                'hero' => HomepageCampaignResource::collection(
-                    $campaigns
-                        ->where('placement', HomepageCampaignPlacement::Hero)
-                        ->take((int) config('homepage.campaigns.hero_limit', 6))
-                        ->values(),
-                ),
-                'side' => HomepageCampaignResource::collection(
-                    $campaigns
-                        ->where('placement', HomepageCampaignPlacement::HeroSide)
-                        ->take((int) config('homepage.campaigns.side_limit', 2))
-                        ->values(),
-                ),
+                'hero' => $campaigns
+                    ->where('placement', HomepageCampaignPlacement::Hero->value)
+                    ->take((int) config('homepage.campaigns.hero_limit', 6))
+                    ->values(),
+                'side' => $campaigns
+                    ->where('placement', HomepageCampaignPlacement::HeroSide->value)
+                    ->take((int) config('homepage.campaigns.side_limit', 2))
+                    ->values(),
             ],
             'quickActions' => config('homepage.quick_actions', []),
-            'categories' => HomepageCategoryResource::collection($this->categories()),
+            'categories' => $this->categories(),
             'flashDeals' => $this->flashDeals(),
             'topProducts' => $this->topProducts(),
             'recentlyViewed' => $this->recentlyViewed($customer),
@@ -60,18 +56,44 @@ class HomepageService
 
     private function advertisementLayer(): ?array
     {
-        $configuration = Cache::remember(HomepageAdvertisementConfiguration::ACTIVE_CACHE_KEY, max(1, (int) config('homepage.public_cache_seconds', 300)), fn () => HomepageAdvertisementConfiguration::query()->with('campaigns')->where('status', HomepageAdvertisementStatus::Published)->latest('published_at')->first());
+        /** @var array<string, mixed>|null $configuration */
+        $configuration = Cache::remember(
+            HomepageAdvertisementConfiguration::ACTIVE_CACHE_KEY,
+            max(1, (int) config('homepage.public_cache_seconds', 300)),
+            function (): ?array {
+                $model = HomepageAdvertisementConfiguration::query()
+                    ->with('campaigns')
+                    ->where('status', HomepageAdvertisementStatus::Published)
+                    ->latest('published_at')
+                    ->first();
+
+                if (! $model) {
+                    return null;
+                }
+
+                return [
+                    'layout' => $model->layout->value,
+                    'rotationIntervalSeconds' => $model->rotation_interval_seconds,
+                    'startsAtTimestamp' => $model->starts_at?->timestamp,
+                    'endsAtTimestamp' => $model->ends_at?->timestamp,
+                    'campaigns' => $model->campaigns
+                        ->map(fn (HomepageCampaign $campaign) => (new HomepageCampaignResource($campaign))->resolve())
+                        ->all(),
+                ];
+            },
+        );
+
         if (! $configuration) {
             return null;
         }
-        if (($configuration->starts_at && $configuration->starts_at->isFuture()) || ($configuration->ends_at && $configuration->ends_at->lte(now()))) {
+        if (($configuration['startsAtTimestamp'] && $configuration['startsAtTimestamp'] > now()->timestamp)
+            || ($configuration['endsAtTimestamp'] && $configuration['endsAtTimestamp'] <= now()->timestamp)) {
             return null;
         }
-        $active = $configuration->campaigns->filter(fn (HomepageCampaign $ad) => $ad->is_active)->sortBy('position')->values();
-        $item = fn (HomepageCampaign $ad) => (new HomepageCampaignResource($ad))->resolve();
+        $active = collect($configuration['campaigns'])->where('isActive', true)->sortBy('position')->values();
         $fallback = fn (string $slot) => ['id' => "default-{$slot}", 'title' => 'Discover more on Aisley', 'description' => 'Browse everyday essentials and fresh finds from marketplace sellers.', 'imageDesktopUrl' => null, 'imageMobileUrl' => null, 'altText' => 'Discover more on Aisley', 'destinationUrl' => '/search', 'isActive' => true, 'slot' => $slot, 'position' => 0];
-        $primary = $active->where('slot', 'primary')->map($item)->values();
-        $layout = $configuration->layout->value;
+        $primary = $active->where('slot', 'primary')->values();
+        $layout = $configuration['layout'];
         if (in_array($layout, ['single', 'multi_block'], true) && $primary->isEmpty()) {
             $primary = collect([$fallback('primary')]);
         }
@@ -79,7 +101,7 @@ class HomepageService
             $primary = collect([$fallback('primary')]);
         }
 
-        return ['layout' => $layout, 'rotationIntervalSeconds' => $configuration->rotation_interval_seconds, 'primary' => $primary, 'secondaryTop' => ($top = $active->firstWhere('slot', 'secondary_top')) ? $item($top) : (str_starts_with($layout, 'multi_block') ? $fallback('secondary_top') : null), 'secondaryBottom' => ($bottom = $active->firstWhere('slot', 'secondary_bottom')) ? $item($bottom) : (str_starts_with($layout, 'multi_block') ? $fallback('secondary_bottom') : null)];
+        return ['layout' => $layout, 'rotationIntervalSeconds' => $configuration['rotationIntervalSeconds'], 'primary' => $primary, 'secondaryTop' => $active->firstWhere('slot', 'secondary_top') ?? (str_starts_with($layout, 'multi_block') ? $fallback('secondary_top') : null), 'secondaryBottom' => $active->firstWhere('slot', 'secondary_bottom') ?? (str_starts_with($layout, 'multi_block') ? $fallback('secondary_bottom') : null)];
     }
 
     /**
@@ -146,11 +168,11 @@ class HomepageService
     }
 
     /**
-     * @return Collection<int, HomepageCampaign>
+     * @return Collection<int, array<string, mixed>>
      */
     private function activeCampaigns(): Collection
     {
-        /** @var Collection<int, HomepageCampaign> $campaigns */
+        /** @var array<int, array{payload: array<string, mixed>, startsAtTimestamp: int, endsAtTimestamp: int}> $campaigns */
         $campaigns = Cache::remember(
             HomepageCampaign::CACHE_KEY,
             max(1, (int) config('homepage.public_cache_seconds', 300)),
@@ -159,21 +181,30 @@ class HomepageService
                 ->where('ends_at', '>', now())
                 ->orderByDesc('priority')
                 ->orderByDesc('starts_at')
-                ->get(),
+                ->get()
+                ->map(fn (HomepageCampaign $campaign) => [
+                    'payload' => (new HomepageCampaignResource($campaign))->resolve(),
+                    'startsAtTimestamp' => $campaign->starts_at->timestamp,
+                    'endsAtTimestamp' => $campaign->ends_at->timestamp,
+                ])
+                ->all(),
         );
 
-        return $campaigns
-            ->filter(fn (HomepageCampaign $campaign) => $campaign->starts_at->lte(now())
-                && $campaign->ends_at->gt(now()))
+        $timestamp = now()->timestamp;
+
+        return collect($campaigns)
+            ->filter(fn (array $campaign) => $campaign['startsAtTimestamp'] <= $timestamp
+                && $campaign['endsAtTimestamp'] > $timestamp)
+            ->pluck('payload')
             ->values();
     }
 
     /**
-     * @return Collection<int, Category>
+     * @return Collection<int, array<string, mixed>>
      */
     private function categories(): Collection
     {
-        /** @var Collection<int, Category> $categories */
+        /** @var array<int, array<string, mixed>> $categories */
         $categories = Cache::remember(
             Category::HOMEPAGE_CACHE_KEY,
             max(1, (int) config('homepage.public_cache_seconds', 300)),
@@ -182,10 +213,12 @@ class HomepageService
                 ->where('status', CategoryStatus::Active)
                 ->orderBy('name')
                 ->limit((int) config('homepage.categories_limit', 20))
-                ->get(),
+                ->get()
+                ->map(fn (Category $category) => (new HomepageCategoryResource($category))->resolve())
+                ->all(),
         );
 
-        return $categories;
+        return collect($categories);
     }
 
     /**
