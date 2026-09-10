@@ -99,14 +99,14 @@ Non-goals:
 
 ### Existing authentication dependencies
 
-| Endpoint | Status | Use |
-| --- | --- | --- |
-| GET /api/v1/courier/auth/me | implemented | identity and approval-gated session check |
-| POST /api/v1/courier/auth/logout | implemented | deletes the current personal access token |
-| GET /api/v1/courier/account | implemented | full Phase 1 account projection |
-| PATCH /api/v1/courier/account/profile | implemented | allow-listed profile update |
-| PUT /api/v1/courier/account/password | implemented | current-password change |
-| Profile-photo endpoints | unavailable | planned extension only; Flutter must not call them |
+| Endpoint                              | Status      | Use                                                |
+| ------------------------------------- | ----------- | -------------------------------------------------- |
+| GET /api/v1/courier/auth/me           | implemented | identity and approval-gated session check          |
+| POST /api/v1/courier/auth/logout      | implemented | deletes the current personal access token          |
+| GET /api/v1/courier/account           | implemented | full Phase 1 account projection                    |
+| PATCH /api/v1/courier/account/profile | implemented | allow-listed profile update                        |
+| PUT /api/v1/courier/account/password  | implemented | current-password change                            |
+| Profile-photo endpoints               | unavailable | planned extension only; Flutter must not call them |
 
 ### Endpoint: account read
 
@@ -165,11 +165,11 @@ Example:
 - [x] Passwords, hashes, tokens, paths, and private evidence are absent from every DTO and log.
 - [x] Responses are private and no-store; no personalized account data is shared-cached.
 - [x] Flutter handles current account loading, success, validation, forbidden, 401, 429, timeout, and offline states.
-- [ ] A Courier can upload, replace, privately view, and remove only their own valid profile photo through the planned endpoints.
-- [ ] The photo endpoint enforces the shared format, exact byte limit, signature/MIME/decode, extension, and ownership rules.
-- [ ] Photo metadata is persisted without exposing raw paths; replacement rollback and best-effort old-object cleanup are safe.
-- [ ] Unauthorized, inactive, missing-photo, malformed, oversized, spoofed, corrupt, and throttled photo requests return truthful safe responses.
-- [ ] Flutter photo picker, crop/preview, progress, cancel, retry, fallback, 401, 403, 422, 429, timeout, and offline states match the API.
+- [x] A Courier can upload, replace, privately view, and remove only their own valid profile photo through the planned endpoints.
+- [x] The photo endpoint enforces the shared format, exact byte limit, signature/MIME/decode, extension, and ownership rules.
+- [x] Photo metadata is persisted without exposing raw paths; replacement rollback and best-effort old-object cleanup are safe.
+- [x] Unauthorized, inactive, missing-photo, malformed, oversized, spoofed, corrupt, and throttled photo requests return truthful safe responses.
+- [x] Flutter photo picker, crop/preview, progress, cancel, retry, fallback, 401, 403, 422, 429, timeout, and offline states match the API.
 
 ## HOW
 
@@ -218,6 +218,6 @@ Example:
 
 - Shared identity, address, vehicle, affiliation, hub, and auth rules come from requirements.md, workspace.md, schema.md, Courier.md, and Logistics.md.
 - Courier bearer-token and Flutter boundaries come from courier/auth/spec.md and courier/rules.md.
-> Use docs/references/file-upload-requirements.md as the mandatory upload contract. Define only Courier-specific API, schema, ownership, lifecycle, and Flutter behavior; do not duplicate or override the shared policy.
+  > Use docs/references/file-upload-requirements.md as the mandatory upload contract. Define only Courier-specific API, schema, ownership, lifecycle, and Flutter behavior; do not duplicate or override the shared policy.
 - Historical order-logistics decisions cannot authorize this feature or create operational records.
 - This Phase 1 contract remains standalone; profile-photo routes are unavailable until their backend implementation and tests are complete.
