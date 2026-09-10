@@ -75,10 +75,10 @@ Customer opens an owned `placed` Order
 - Do not optimistically claim success. Refresh the authoritative Order projection only after the API commits.
 - [x] Current Customer Order DTOs expose `canCancel = false`, `canModify = false`, and `modifiableFields = []`.
 - [x] Current read endpoints are Customer-scoped and expose immutable Order snapshots, status history, and safe action capabilities.
-- [ ] Customer can cancel only an owned `placed` Order through a transactional, idempotent endpoint.
-- [ ] Approved modification fields create a new authoritative snapshot/version and never rewrite checkout history or the Address Book source.
-- [ ] Reservation release, Seller-processing races, duplicate retries, immutable events, and after-commit notification failure are covered by API tests.
-- [ ] The Customer UI provides accessible confirmation, validation, loading, conflict, retry, and success states for implemented actions.
+- [x] Customer can cancel only an owned `placed` Order through a transactional, idempotent endpoint.
+- [x] Approved modification fields create a new authoritative snapshot/version and never rewrite checkout history or the Address Book source.
+- [x] Reservation release, Seller-processing races, duplicate retries, immutable events, and after-commit notification failure are covered by API tests.
+- [x] The Customer UI provides accessible confirmation, validation, loading, conflict, retry, and success states for implemented actions.
 
 ## HOW
 
@@ -91,10 +91,10 @@ Customer opens an owned `placed` Order
 
 ### Planned endpoint contract (unavailable)
 
-| Method | Path | Auth | Request | Success |
-| --- | --- | --- | --- | --- |
-| `POST` | `/api/v1/customer/orders/{order}/cancel` | active Customer | `Idempotency-Key`; approved reason and optional expected revision | committed cancelled Order projection |
-| `PATCH` | `/api/v1/customer/orders/{order}/modification` | active Customer | `Idempotency-Key`; one approved named change only | committed versioned Order projection |
+| Method  | Path                                           | Auth            | Request                                                           | Success                              |
+| ------- | ---------------------------------------------- | --------------- | ----------------------------------------------------------------- | ------------------------------------ |
+| `POST`  | `/api/v1/customer/orders/{order}/cancel`       | active Customer | `Idempotency-Key`; approved reason and optional expected revision | committed cancelled Order projection |
+| `PATCH` | `/api/v1/customer/orders/{order}/modification` | active Customer | `Idempotency-Key`; one approved named change only                 | committed versioned Order projection |
 
 - Both routes must use JSON responses with a stable error code, field errors where applicable, and private/no-store cache headers.
 - Cancellation is safe to retry with the same key. Modification requests must include a deterministic request hash so a changed retry cannot reuse an old result.
