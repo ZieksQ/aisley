@@ -11,7 +11,8 @@
     "dev:webapp": "pnpm --dir src/webapp dev",
     "dev:seller": "pnpm --dir src/seller dev",
     "dev:admin": "pnpm --dir src/admin dev",
-    "dev:logistics": "pnpm --dir src/logistics dev"
+    "dev:logistics": "pnpm --dir src/logistics dev",
+    "dev:couriermockup": "pnpm --dir src/couriermockup dev"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
