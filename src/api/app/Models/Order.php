@@ -59,7 +59,7 @@ class Order extends Model
 
     public function address(): HasOne
     {
-        return $this->hasOne(OrderAddress::class)->latestOfMany('version');
+        return $this->hasOne(OrderAddress::class)->orderByDesc('version');
     }
 
     public function addressVersions(): HasMany
