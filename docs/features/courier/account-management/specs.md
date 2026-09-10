@@ -3,161 +3,154 @@ feature: courier-account-management
 title: Courier Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.1
-status: Phase 1 implemented; Flutter handoff-ready
-implementation_status: implemented; three protected Courier account-management routes are available
+version: 2.2
+status: Phase 1 account operations implemented; profile-photo extension specified, backend pending
+implementation_status: partial; three protected account routes available; photo routes unavailable
 canonical: true
 role: Courier / Rider
 scope: Laravel API plus external Flutter mobile client
 backend_contract_commit: 555567d (Courier account-management API implementation)
-backend_contract_version: courier-account-management-v1 (implemented)
-source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md
+backend_contract_version: courier-account-management-v1 (photo extension planned)
+source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md, file-upload-requirements.md
 ---
 
 # Courier Account Management
 
 ## WHAT
-- Purpose: let an authenticated Courier view and maintain the safe, personal account information needed by the Flutter app.
-- Primary actor: the Courier whose identity is derived from the Sanctum bearer token.
-- Phase 1 scope: own-account read, basic profile updates, and password change.
-- The API is the authority; Flutter only displays server responses and submits allow-listed fields.
-- Current foundation: Courier registration, Logistics affiliation approval, bearer login, /me, logout, profile, address, vehicle, and token tables exist.
-- Implemented foundation: the Laravel controller, Form Requests, resource, service, routes, throttle, and focused contract tests are present.
-- The three Phase 1 endpoints are available only through the protected `/api/v1/courier` bearer-token boundary.
-- This document is the callable backend contract for the implemented Phase 1 slice; Flutter must still be synchronized to it.
 
-Request flow:
+- Purpose: let an authenticated Courier view and maintain safe personal account information in the external Flutter app.
+- Primary actor: the Courier resolved from the Sanctum bearer token.
+- Implemented Phase 1: own-account read, basic profile updates, and password change.
+- Planned extension: own profile-photo upload, private retrieval, replacement, and removal; its endpoints are not implemented yet.
+- Laravel is authoritative; Flutter displays server responses and submits only documented fields.
+- Courier registration, Logistics affiliation approval, bearer login, /me, logout, profile, address, vehicle, and token tables already exist.
+- The three Phase 1 endpoints are available only through the protected /api/v1/courier bearer-token boundary.
+- This document is the callable contract for implemented endpoints and the reviewed plan for the photo extension.
+
+Current flow:
 sign in and store bearer token
 → GET /api/v1/courier/account
 → view or edit allowed profile fields
-→ PATCH profile, or PUT password
+→ PATCH profile or PUT password
 → server validates and returns the current account
+
+Planned photo flow:
+select image locally → POST /api/v1/courier/account/profile-photo
+→ server validates and persists it → account returns a safe delivery URL
+→ Flutter fetches the private image with the bearer token
 
 Account Management begins only after Courier access is active. It does not approve registration, change Logistics affiliation, assign work, or alter shipment state.
 
-Phase 1 deliberately excludes vehicle mutations, license information, payout methods, profile-photo upload, email changes, account deletion, availability, and delivery operations. Those areas need separate authority, storage, or policy decisions.
+Vehicle mutations, license information, payout methods, email changes, account deletion, availability, and delivery operations remain separate or deferred. Profile-photo behavior is specified below but remains unavailable until the backend extension is implemented.
 
 Non-goals:
+
 - No Courier web or React UI in this repository; screens belong to the external Flutter project.
 - No Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, proof, route, or order-status writes.
-- No self-service role, status, reviewer, organization, or hub changes.
-- No payment, payout execution, license-government lookup, 2FA, SMS, Push, or map provider.
+- No self-service role, status, reviewer, organization, hub, or affiliation changes.
+- No payment, payout execution, license-government lookup, 2FA, SMS, push, map provider, or direct Azure SDK dependency.
 
 ## MUST
+
 ### Authentication and ownership
-- Every Phase 1 endpoint requires auth:sanctum and courier.active.
-- The server must recheck the persisted courier role, active user status, approved affiliation, active Logistics owner, and valid sole hub.
-- Flutter sends Authorization: Bearer token; it does not send cookies or CSRF tokens for this feature.
-- The authenticated user is the only account scope. Client-supplied user_id, courier_id, profile_id, role, status, organization_id, hub_id, reviewer_id, or token abilities are prohibited.
-- A same-email Customer, Seller, Admin, or Logistics account must never inherit Courier access.
-- Affiliation organization and sole hub are read-only. Reassignment remains a separate Logistics workflow.
-- Failed authorization must make no mutation and must not disclose another account.
+
+- Every implemented and planned endpoint requires auth:sanctum and courier.active.
+- Recheck persisted courier role, active User status, approved affiliation, active Logistics owner, and valid sole hub.
+- Flutter sends Authorization: Bearer; it does not send browser cookies or CSRF tokens for this API.
+- Resolve the only account scope from the authenticated User. Prohibit client user_id, courier_id, profile IDs, role, status, organization, hub, reviewer, path, or token-ability fields.
+- Same-email Customer, Seller, Admin, or Logistics records never inherit Courier access.
+- Affiliation and sole-hub data are read-only; reassignment belongs to Logistics.
+- Failed authorization makes no mutation and does not disclose another account.
 
 ### Phase 1 profile contract
-- Editable profile fields are first_name, middle_name, last_name, and contact_number only.
-- Names are trimmed; an empty optional middle_name is normalized to null.
-- Required names remain non-empty strings with the existing profile length limits.
-- contact_number is required when supplied and remains within the existing 32-character limit.
-- sex, birth_date, and derived age are read-only in Phase 1 because registration evidence and correction authority are not defined.
-- email, role, status, approval data, affiliation, hub, timestamps, and internal paths are read-only.
-- Profile photo is not uploaded, replaced, or deleted by this feature. The nullable legacy profile_photo_path is never returned as a raw path.
-- A profile update changes only the submitted allow-listed fields and preserves all other profile values.
-- The update is transactional, locks the authenticated Courier profile, and returns the post-commit account projection.
+
+- Editable fields are first_name, middle_name, last_name, and contact_number only.
+- Trim names and normalize an empty optional middle_name to null; retain existing length limits.
+- contact_number remains within the existing 32-character limit.
+- sex, birth_date, and derived age are read-only because correction authority is not defined.
+- Email, role, status, approval data, affiliation, hub, timestamps, and internal paths are read-only.
+- The current account response keeps profile_photo_url null and profile_photo_editable false until the planned extension is implemented.
+- A profile update changes only submitted allow-listed fields and returns the post-commit projection.
+- Profile writes use a transaction and lock the authenticated Courier profile.
+
+### Profile-photo extension (planned; unavailable)
+
+- Add POST, GET, and DELETE /api/v1/courier/account/profile-photo inside the active-Courier route group; do not expose them until implemented and tested.
+- POST is multipart/form-data with one required photo field. Ownership is derived from the bearer token; client IDs and storage paths are prohibited.
+- Apply docs/references/file-upload-requirements.md without overriding it: JPEG/JPG, PNG, or WebP only; strictly under 10 MiB; server MIME/signature/decode validation; mismatches, corrupt, double-extension, spoofed, or unlisted files return field-addressable 422.
+- Use Laravel's configured filesystem (FILESYSTEM_DISK; Azure Blob when configured) and never hard-code Azure credentials, container names, or public blob URLs.
+- Generate a server-owned UUID object name under courier-profile-photos/{courier UUID}/; do not use the original filename as identity.
+- Add an additive migration for profile_photo_disk, profile_photo_mime, profile_photo_size, profile_photo_width, and profile_photo_height; retain the existing relative profile_photo_path and do not edit the executed creation migration.
+- Persist validated metadata and the new pointer transactionally. If persistence fails, remove the new object; after commit, delete a replaced object best-effort without restoring stale metadata.
+- GET streams only the authenticated owning active Courier's object with detected Content-Type, private/no-store, Pragma: no-cache, and X-Content-Type-Options: nosniff.
+- DELETE clears metadata and removes the current object; no-photo deletion is idempotent. Upload replacement and deletion never expose raw paths or credentials.
+- The post-extension account DTO may expose only an owner-authorized profile_photo_url for that GET endpoint; it never exposes disk, path, blob URL, signed URL, or raw upload metadata.
+- Upload retries use a stable Idempotency-Key when available; after an uncertain response Flutter refetches account/photo state before retrying. GET is safe to retry; DELETE is idempotent.
+- Do not claim malware scanning, quarantine, derivatives, or stricter dimensions until their policies and lifecycle are approved.
 
 ### Password security
+
 - Password change requires current_password, password, and password_confirmation.
-- The backend verifies current_password and applies the centralized Laravel password policy.
-- Password fields, hashes, reset values, and tokens never appear in responses, logs, audit metadata, or Flutter state.
-- A successful password change rotates remember_token and revokes every personal access token for the Courier, including the token used by the request.
-- Flutter must treat the successful response as a signed-out state, clear secure storage, and require a fresh login.
-- A password request is not automatically retried after a timeout because the server may already have committed it.
-- Courier forgot-password currently returns only a generic acknowledgement; it is not an Account Management reset endpoint.
+- Verify the current password and use the centralized Laravel password policy.
+- Never return or log password values, hashes, reset values, bearer tokens, or token hashes.
+- A successful change rotates remember_token and revokes every Courier personal access token, including the request token.
+- Flutter clears secure storage and requires fresh login after password success; do not automatically retry after a timeout.
+- Courier forgot-password remains a generic recovery acknowledgement, not an Account Management reset endpoint.
 
 ### Existing authentication dependencies
 
-| Endpoint                              | Status      | Use                                       |
-| ------------------------------------- | ----------- | ----------------------------------------- |
-| GET /api/v1/courier/auth/me           | implemented | identity and approval-gated session check |
-| POST /api/v1/courier/auth/logout      | implemented | deletes the current personal access token |
-| GET /api/v1/courier/account           | implemented | full Phase 1 account projection           |
-| PATCH /api/v1/courier/account/profile | implemented | allow-listed profile update               |
-| PUT /api/v1/courier/account/password  | implemented | current-password change                   |
-
-Flutter may call only the implemented endpoint versions listed here.
+| Endpoint | Status | Use |
+| --- | --- | --- |
+| GET /api/v1/courier/auth/me | implemented | identity and approval-gated session check |
+| POST /api/v1/courier/auth/logout | implemented | deletes the current personal access token |
+| GET /api/v1/courier/account | implemented | full Phase 1 account projection |
+| PATCH /api/v1/courier/account/profile | implemented | allow-listed profile update |
+| PUT /api/v1/courier/account/password | implemented | current-password change |
+| Profile-photo endpoints | unavailable | planned extension only; Flutter must not call them |
 
 ### Endpoint: account read
 
-- Method/path: GET /api/v1/courier/account.
-- Auth: auth:sanctum plus courier.active; no query parameters or client identity fields.
-- Response: 200 with account, profile, affiliation, and security capability data for the authenticated Courier.
-- Account includes id, email, role, and status. Profile includes first_name, middle_name, last_name, contact_number, sex, birth_date, age, and profile_photo_url (currently null).
-- Affiliation includes approved status, organization name, and sole hub name; it does not expose organization internals or private evidence.
-- Security includes email_editable=false, profile_photo_editable=false, and password_change_requires_current_password=true.
-- Response headers are Cache-Control: private, no-store and Pragma: no-cache.
-- GET is safe to retry. On timeout, Flutter may retry with bounded backoff.
-- Errors: 401 unauthenticated/invalid token; 403 inactive, wrong role, invalid affiliation, or invalid hub.
+- GET /api/v1/courier/account; auth:sanctum plus courier.active; no query or client identity fields.
+- Returns 200 with account, profile, affiliation, and security capability data for the authenticated Courier.
+- Profile includes names, contact number, sex, birth_date, derived age, and currently-null profile_photo_url.
+- Affiliation includes approved status, organization name, and sole hub name; private evidence and organization internals are excluded.
+- Current security flags are email_editable: false, profile_photo_editable: false, and password_change_requires_current_password: true.
+- Responses use Cache-Control: private, no-store and Pragma: no-cache; GET is safe to retry with bounded backoff.
+- Errors: 401 missing/invalid bearer; 403 inactive, wrong role, invalid affiliation, or invalid hub.
 
-Minimal response shape:
-{ "account": { "id": "uuid", "email": "courier@example.com",
-"role": "courier", "status": "active",
-"profile": { "first_name": "Ana", "middle_name": null,
-"last_name": "Santos", "contact_number": "09...",
-"sex": "female", "birth_date": "1999-01-01", "age": 27,
-"profile_photo_url": null },
-"affiliation": { "status": "approved",
-"organization_name": "Example Logistics", "hub_name": "Main Hub" },
-"security": { "email_editable": false,
-"profile_photo_editable": false,
-"password_change_requires_current_password": true } } }
+Minimal response:
+{ "account": { "id": "uuid", "email": "courier@example.com", "role": "courier", "status": "active", "profile": { "first_name": "Ana", "middle_name": null, "last_name": "Santos", "contact_number": "09...", "sex": "female", "birth_date": "1999-01-01", "age": 27, "profile_photo_url": null }, "affiliation": { "status": "approved", "organization_name": "Example Logistics", "hub_name": "Main Hub" }, "security": { "email_editable": false, "profile_photo_editable": false, "password_change_requires_current_password": true } } }
 
 ### Endpoint: profile update
 
-- Method/path: PATCH /api/v1/courier/account/profile.
-- Auth and scope are identical to account read.
-- Content-Type is application/json. Allowed keys are first_name, middle_name, last_name, and contact_number.
-- Prohibited keys include id, user_id, courier_id, email, role, status, sex, birth_date, age, profile_photo_path, organization_id, hub_id, and arbitrary model attributes.
-- A successful 200 response returns message and the complete post-commit account projection.
-- 401 and 403 have the same meanings as account read.
-- 422 returns field-addressable validation errors and no partial update.
-- Repeated identical payloads are safe; the server must not change ownership or duplicate a business effect.
-- Flutter should send an Idempotency-Key for a user-initiated save when available. On an uncertain response, fetch account before showing failure.
-- This endpoint is private and no-store; do not persist its response in shared or public caches.
+- PATCH /api/v1/courier/account/profile; auth and scope match account read.
+- Content-Type: application/json; allowed keys are first_name, middle_name, last_name, and contact_number.
+- Prohibit IDs, email, role, status, sex, birth_date, age, all photo/storage fields, organization/hub fields, and arbitrary model attributes.
+- 200 returns a message and complete post-commit account projection; 422 returns field-addressable errors with no partial update.
+- Repeated identical payloads are safe; use an Idempotency-Key when available and refetch after an uncertain response.
+- This private response must not enter shared or public caches.
 
-Example request:
-{ "first_name": "Ana", "middle_name": null,
-"last_name": "Santos", "contact_number": "09171234567" }
+Example:
+{ "first_name": "Ana", "middle_name": null, "last_name": "Santos", "contact_number": "09171234567" }
 
 ### Endpoint: password update
 
-- Method/path: PUT /api/v1/courier/account/password.
-- Auth and scope are identical to account read.
-- Content-Type is application/json. Required keys are current_password, password, and password_confirmation.
-- Prohibited keys include email, role, status, token, abilities, user_id, courier_id, and remember.
-- 200 means the password was committed and all personal access tokens were revoked.
-- 401 means the bearer token is missing or invalid; 403 means the account is no longer eligible.
-- 422 covers invalid current_password, password policy failure, and confirmation mismatch.
-- 429 is returned when the configured credential-sensitive throttle (5 requests per minute per Courier/IP) is exceeded and includes Retry-After.
-- Do not auto-retry this mutation. After a timeout, retain no password in memory, clear the token only after the result is known, and use login to verify access.
-- Response is private, no-store, and contains only a success message; it never returns a new token.
+- PUT /api/v1/courier/account/password; auth and scope match account read; JSON body requires the three password fields.
+- Prohibit email, role, status, token, abilities, User IDs, and remember.
+- 200 means the password was committed and all personal access tokens were revoked; response contains only a success message.
+- 401 means missing/invalid bearer; 403 means the account is no longer eligible; 422 covers current-password or policy failure.
+- 429 applies the credential-sensitive throttle and includes Retry-After; never auto-retry this mutation.
+- Response is private/no-store and contains no replacement token.
 
-### Privacy and failure rules
+### Privacy, errors, and client states
 
 - DTOs contain no password, hash, bearer token, token hash, evidence bytes, raw storage path, reviewer note, payout credential, or unrestricted Buyer/Seller data.
-- A private profile response is visible only to the authenticated Courier and must not be shared across users or devices.
-- Network failure is distinct from validation, forbidden, inactive, and signed-out states.
-- Flutter may keep unsaved form text locally during an interruption, but must not queue password changes or authoritative profile writes offline.
-- Server revalidation always wins over cached display data.
-- Notification or audit delivery failure, if added later, must not roll back a committed profile or password change.
-
-### Flutter states and interaction
-
-- Auth states: checking token, signed out, pending approval, rejected, suspended, invalid affiliation, authenticated, and recoverable network failure.
-- Account screen states: loading, success, validation error, forbidden, signed out, and retryable failure.
-- Disable save while a request is pending, but allow canceling local edits.
-- Announce field errors and save results semantically; do not rely on color alone.
-- Use labeled controls, keyboard/screen-reader semantics, adequate touch targets, and a confirmation step before password submission.
-- Never log request bodies containing passwords or authorization headers.
-- Clear account data and navigation state after logout, token revocation, or a 401.
+- Account data and the planned profile photo are visible only to the authenticated Courier; never shared-cache personalized responses.
+- Network failure is distinct from validation, forbidden, inactive, signed-out, and unavailable-feature states.
+- Flutter states include token checking, signed out, pending/rejected approval, suspended, invalid affiliation, authenticated, loading, success, validation error, forbidden, retryable failure, timeout, and offline.
+- For the planned photo control, show accepted formats/size before selection, local preview, progress, cancellation, server rejection, retry, missing-photo fallback, and confirmed-success refresh. Do not claim success from a local preview.
+- Never log passwords, bearer headers, file contents, raw paths, or private URLs; clear account/photo state after logout, revocation, or 401.
+- Server revalidation wins over cached display data; authoritative profile/photo writes are not queued offline.
 
 ### Acceptance criteria
 
@@ -171,60 +164,60 @@ Example request:
 - [x] A successful password change revokes all Courier personal access tokens and forces fresh login.
 - [x] Passwords, hashes, tokens, paths, and private evidence are absent from every DTO and log.
 - [x] Responses are private and no-store; no personalized account data is shared-cached.
-- [x] Flutter handles loading, success, validation, forbidden, 401, 429, timeout, and offline states.
+- [x] Flutter handles current account loading, success, validation, forbidden, 401, 429, timeout, and offline states.
+- [ ] A Courier can upload, replace, privately view, and remove only their own valid profile photo through the planned endpoints.
+- [ ] The photo endpoint enforces the shared format, exact byte limit, signature/MIME/decode, extension, and ownership rules.
+- [ ] Photo metadata is persisted without exposing raw paths; replacement rollback and best-effort old-object cleanup are safe.
+- [ ] Unauthorized, inactive, missing-photo, malformed, oversized, spoofed, corrupt, and throttled photo requests return truthful safe responses.
+- [ ] Flutter photo picker, crop/preview, progress, cancel, retry, fallback, 401, 403, 422, 429, timeout, and offline states match the API.
 
 ## HOW
 
 ### Backend implementation
 
-- Added Courier AccountController, Form Requests, AccountResource, and AccountService under the existing Courier namespaces.
-- Added routes under the protected /api/v1/courier group and reused courier.active; no browser-cookie route was added.
-- Resolve the User from Request::user(), load exactly one CourierProfile, and never accept a target ID.
-- Use a database transaction and row lock for profile changes. Use Laravel Hash checks and the User hashed cast for password changes.
-- Revoke tokens only after a successful password write in the same transaction; return no replacement token.
-- Add a safe audit/security event only if the shared audit contract is approved. Do not log secrets or raw paths.
+- Keep the existing Courier AccountController, Form Requests, AccountResource, AccountService, protected routes, throttle, and current tests for the implemented three-route slice.
+- Resolve User from Request::user(), load exactly one CourierProfile, and never accept a target ID.
+- For the photo extension, add a Courier Form Request, service methods, controller routes, resource projection, private stream response, and focused throttle.
+- Use a transaction and row lock for metadata; use configured Storage and compensation cleanup rather than direct Azure SDK calls.
+- Add an additive migration only after the metadata decision is approved; never modify the executed Courier-profile migration.
+- Do not expose the photo routes to Flutter until implementation tests pass and the endpoint status is changed from unavailable.
 
 ### Data and dependencies
 
-- Phase 1 needs no migration: users and courier_profiles already hold the editable data; personal_access_tokens already supports revocation.
-- The existing CourierProfile age accessor remains derived from birth_date; age is never stored or client-supplied.
-- Vehicle records are read-only or omitted until Logistics/Fleet authority defines update semantics and a current-vehicle rule.
-- License, payout, profile-photo, and document changes require separate specifications, fields, authorization, and tests.
-- Shipment and Delivery Task schema approval is not a prerequisite for this Phase 1 slice.
-- Registration approval remains Logistics-owned; this feature cannot activate or reassign a Courier.
+- Current Phase 1 needs no migration: existing profile fields and personal access tokens support the implemented slice.
+- The photo extension needs existing profile_photo_path plus disk/MIME/size/width/height metadata, consistent with other role profile-photo implementations.
+- Age remains derived from birth_date; it is never stored or client-supplied.
+- Vehicle, license, payout, and evidence changes remain separate contracts; registration approval remains Logistics-owned.
+- Shipment and Delivery Task schema approval is not a prerequisite for this account feature.
+- The shared upload policy is mandatory; stricter avatar limits, scanning, derivatives, retention, and audit policy remain open.
 
 ### Flutter handoff
 
-- Implement a Settings/Account screen against only the implemented endpoint versions.
-- Store bearer tokens in OS secure storage; never use browser cookies, shared preferences for tokens, or plaintext logs.
-- Use Dart models matching the snake_case JSON names shown here, or document an explicit mapping.
-- Keep profile edits as local form state until the API returns 200.
-- After password success, delete the token, show the signed-out state, and navigate to login.
-- Do not show vehicle, license, payout, photo, or shipment edit controls as if they were available.
+- Use bearer tokens in OS secure storage; do not use browser cookies, shared preferences for tokens, or plaintext logs.
+- Use Dart models matching the snake_case JSON names and treat unavailable photo routes as disabled until the backend contract is released.
+- After release, send multipart/form-data field photo, retain no Base64/blob URL as server identity, and refresh the private image only after 200.
+- Keep local edits/previews separate from authoritative account state and never bypass server approval or revalidation.
 
 ### Tests and rollout
 
-- Backend tests must cover role/status/affiliation gates, IDOR attempts, prohibited fields, normalization, transaction rollback, concurrent updates, privacy, and token revocation.
-- Request tests must cover 401, 403, 422, 429, malformed JSON, duplicate keys, and oversized strings.
-- Flutter tests must cover JSON parsing, secure-storage failure, form validation, no-store refresh, 401 logout, 403 messages, timeout, offline recovery, and accessible announcements.
-- The route, controller, request, resource, service, and focused Laravel tests were added together; no endpoint was exposed before validation.
-- Focused Laravel tests and PHP formatting pass; Flutter analyzer/tests remain the external client's handoff work.
-- Synchronize this spec to the Flutter project before implementing its Account screen.
-- Append the implementation summary to docs/PROGRESS.md.
+- Existing tests cover role/status/affiliation gates, IDOR attempts, prohibited fields, normalization, transactions, concurrency, privacy, and token revocation.
+- Add photo tests for accepted types/exact byte boundary, MIME/extension/signature spoofing, corrupt images, generated disk paths, metadata, owner-only delivery, replacement/removal, rollback cleanup, throttling, and no raw path.
+- Add Flutter contract tests for multipart names, JSON/photo parsing, secure-storage failures, upload progress, retries, image fallback, 401/403/422/429, timeout, offline recovery, and accessible announcements.
+- Run focused Laravel tests and Flutter analyzer/tests before changing photo endpoints to implemented; update the Flutter copy with the released API commit/version.
+- Append a dated docs/PROGRESS.md entry only when implementation changes; this revision documents the planned extension and changes no runtime behavior.
 
-### Deferred decisions
+### Open decisions
 
-- Whether sex or birth_date corrections require Logistics review.
-- Whether email changes are ever allowed and require re-verification.
-- The authoritative owner and workflow for vehicle type, plate, capacity, and maintenance changes.
-- License fields, payout methods, profile-photo metadata, and their verification/retention rules.
-- Whether a shared audit ledger is required for ordinary profile edits.
+- Whether to require an idempotency record/table for upload retries or rely on refetch-before-retry.
+- Whether profile-photo metadata needs checksum, scan state, derivatives, retention, or redacted audit events.
+- Whether a Logistics operator may view a Courier photo; default is owner-only.
+- Whether sex or birth-date corrections require Logistics review, and whether email changes require re-verification.
 - Any future token lifetime or active-device management policy.
 
 ### Source boundaries
 
 - Shared identity, address, vehicle, affiliation, hub, and auth rules come from requirements.md, workspace.md, schema.md, Courier.md, and Logistics.md.
 - Courier bearer-token and Flutter boundaries come from courier/auth/spec.md and courier/rules.md.
-> Use `docs/references/file-upload-requirements.md` as the mandatory upload contract. Define only Courier-specific API, schema, ownership, lifecycle, and Flutter behavior; do not duplicate or override the shared policy.
+> Use docs/references/file-upload-requirements.md as the mandatory upload contract. Define only Courier-specific API, schema, ownership, lifecycle, and Flutter behavior; do not duplicate or override the shared policy.
 - Historical order-logistics decisions cannot authorize this feature or create operational records.
-- This Phase 1 contract is standalone, and its three endpoints are available after the protected API tests pass.
+- This Phase 1 contract remains standalone; profile-photo routes are unavailable until their backend implementation and tests are complete.

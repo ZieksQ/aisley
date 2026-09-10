@@ -32,3 +32,4 @@ Format:
 ## 2026-09-10
 
 - Synchronized the Courier Account Management implementation with the revised 230-line contract, corrected its implementation commit reference, and added regression coverage proving successive transactional profile writes return the latest full projection while preserving untouched fields. The focused account suite passes 9 tests/91 assertions; the complete Courier suite passes 14 tests/135 assertions. No new endpoint, migration, or Courier UI was added.
+- Revised Courier Account Management to define the deferred profile-photo extension from the shared file-upload policy, including planned private endpoints, metadata migration, storage/cleanup rules, Flutter states, and unchecked photo acceptance criteria. No runtime behavior or migration changed.
