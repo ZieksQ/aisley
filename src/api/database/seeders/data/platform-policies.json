@@ -1,0 +1,31 @@
+{
+  "policies": [
+    {
+      "type": "terms_of_service",
+      "version": 1,
+      "title": "Aisley Terms of Service (Development Placeholder)",
+      "content": "DEVELOPMENT PLACEHOLDER — NOT LEGAL ADVICE\n\nThese Terms of Service are temporary development content for the Aisley test environment. They are not the final legal terms and must be replaced before production use.\n\n1. Use of Aisley\nYou may use this test marketplace to explore product browsing, accounts, and checkout flows. Do not use test data for real purchases or rely on this document as a legal agreement.\n\n2. Accounts\nKeep account credentials private and provide accurate test information. Administrators may reset or remove development accounts while the platform is being tested.\n\n3. Marketplace content\nProduct, seller, delivery, and promotional content in this environment may be fictional, incomplete, or changed without notice.\n\n4. Availability\nDevelopment services may be unavailable, reset, or changed while features are being implemented.\n\n5. Contact\nQuestions about this placeholder should be directed to the Aisley project team.\n\nLast updated: development placeholder version 1.",
+      "change_summary": "Initial development placeholder; replace with approved legal Terms of Service before production.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "privacy_policy",
+      "version": 1,
+      "title": "Aisley Privacy Policy (Development Placeholder)",
+      "content": "DEVELOPMENT PLACEHOLDER — NOT LEGAL ADVICE\n\nThis Privacy Policy is temporary development content for the Aisley test environment. It is not the final privacy notice and must be replaced with an approved policy before production use.\n\n1. Development data\nThe test system may store account, profile, address, product, order, audit, and policy-consent data needed to exercise the application.\n\n2. Use of data\nDevelopment data is used to operate, test, secure, and improve the Aisley application. Test data may be reset or removed.\n\n3. Uploaded files\nImages and other files uploaded during testing may be stored in the configured development storage service and should not contain sensitive personal information.\n\n4. Sharing\nDo not enter confidential information into this test environment. Development data may be accessible to authorized project maintainers and test services.\n\n5. Contact\nQuestions about this placeholder should be directed to the Aisley project team.\n\nLast updated: development placeholder version 1.",
+      "change_summary": "Initial development placeholder; replace with an approved legal privacy policy before production.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "internal_rules",
+      "version": 1,
+      "title": "Aisley Internal Platform Rules (Development Placeholder)",
+      "content": "DEVELOPMENT PLACEHOLDER — INTERNAL USE ONLY\n\nThese internal rules are temporary test content for administrators. They are not exposed through the public policy endpoints.\n\n1. Protect test credentials and administrative access.\n2. Do not enter real personal, payment, or confidential business information into the development environment.\n3. Record feature and data changes through the approved application workflows.\n4. Report security, privacy, or data-integrity concerns to the project maintainers.\n\nLast updated: development placeholder version 1.",
+      "change_summary": "Initial internal development placeholder.",
+      "requires_reconsent": false,
+      "status": "published"
+    }
+  ]
+}
