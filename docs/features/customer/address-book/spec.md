@@ -68,7 +68,7 @@ Customer opens /account/addresses
 
 - Checkout accepts only a Customer-owned `address_id` with `shipping` or `both`, revalidates completeness/serviceability, and snapshots all required delivery fields plus optional coordinates into `order_addresses` in the same transaction as the Order.
 - The snapshot retains a nullable source-address reference for traceability but never reads the mutable source for delivery.
-- The Customer Order Modification feature, not Address Book, may update an already-placed Order snapshot during its approved pre-Seller-processing window. Current Order modification endpoints do not exist.
+- The Customer Order Modification feature, not Address Book, updates an already-placed Order snapshot during its approved pre-Seller-processing window. Its delivery-address endpoint accepts only an existing shipping-capable Address Book row; Address Book CRUD itself never edits an Order snapshot.
 - After Seller accepts an Order (`placed → seller_processing`), Address Book edits cannot reroute it; post-pickup changes and returns/refunds are deferred.
 
 ### UX, accessibility, and acceptance
@@ -81,7 +81,7 @@ Customer opens /account/addresses
 - [x] PSGC fields use bundled local data with manual fallback; no Customer dropdown request depends on a remote address API.
 - [x] Pin location performs optional Geoapify forward geocoding and supports a Leaflet click/drag pin without Mapbox.
 - [x] Checkout and placed Orders use immutable address snapshots.
-- [ ] Address changes on an already-placed Order are implemented; this waits for Customer Order Modification policy/API.
+- [x] Delivery-address changes on an already-placed Order are implemented by Customer Order Modification, with a new immutable snapshot version; item, quantity, and repricing changes remain deferred.
 
 ## HOW
 
@@ -99,4 +99,4 @@ Customer opens /account/addresses
 - Pin: validate completed fields locally → one `filter=countrycode:ph`/`limit=1` Geoapify request → save only coordinates after Customer review/refinement.
 - Checkout: resolve `address_id` through Customer scope → revalidate → copy required fields into `order_addresses` before commit.
 - API tests cover ownership, role/status gates, fields/coordinates, default races, CRUD, checkout selection, and snapshot independence. Storefront checks cover combobox keyboard behavior, map fallback, pin invalidation, retry, and accessible errors.
-- Follow `docs/workspace.md`, `docs/schema.md`, `docs/order-logistics-flow-decisions.md`, `docs/domains/Buyer.md`, and [`docs/references/user-registration-requirements.md`](../../../references/user-registration-requirements.md). The repository has no separate `docs/maps-location-api.md`; the shared workspace/schema provider contract is authoritative.
+- Follow `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, and [`docs/references/user-registration-requirements.md`](../../../references/user-registration-requirements.md). The repository has no separate `docs/maps-location-api.md`; the shared workspace/schema provider contract is authoritative.

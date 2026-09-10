@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
+use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Courier\DashboardController as CourierDashboardController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
@@ -271,6 +272,18 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 });
 
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active'])->group(function () {
+    Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::put('/account/password', [CourierAccountController::class, 'updatePassword'])
+        ->middleware('throttle:courier-account-password')
+        ->name('account.password.update');
+    Route::post('/account/profile-photo', [CourierAccountController::class, 'uploadProfilePhoto'])
+        ->middleware('throttle:courier-profile-photo')
+        ->name('account.profile-photo.update');
+    Route::get('/account/profile-photo', [CourierAccountController::class, 'profilePhoto'])
+        ->name('account.profile-photo.show');
+    Route::delete('/account/profile-photo', [CourierAccountController::class, 'removeProfilePhoto'])
+        ->name('account.profile-photo.destroy');
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
     Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');
@@ -354,6 +367,12 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/orders/{order}/tracking', [OrderController::class, 'tracking'])
             ->whereUuid('order')
             ->name('orders.tracking');
+        Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])
+            ->whereUuid('order')
+            ->name('orders.cancel');
+        Route::patch('/orders/{order}/modification', [OrderController::class, 'modify'])
+            ->whereUuid('order')
+            ->name('orders.modify');
     });
 });
 

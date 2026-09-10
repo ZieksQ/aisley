@@ -554,7 +554,8 @@ class CheckoutService
                 'line_subtotal' => $this->money($line['subtotal_cents']), 'currency' => $batch->currency,
             ]);
         }
-        $order->address()->create([
+        $order->addressVersions()->create([
+            'version' => 1,
             'source_address_id' => $address->id, 'recipient_name' => $address->recipient_name,
             'contact_number' => $address->contact_number, 'address_line_1' => $address->address_line_1,
             'address_line_2' => $address->address_line_2, 'barangay' => $address->barangay,

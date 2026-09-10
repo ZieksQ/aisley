@@ -3,8 +3,8 @@ feature: recently-viewed-items
 title: Customer Recently Viewed Items
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Ready for implementation
+version: 2.1
+status: Implemented (Phase 1)
 role: Customer
 scope: Customer web application and Laravel API
 ---
@@ -15,6 +15,7 @@ scope: Customer web application and Laravel API
 
 - Passively record a Product only after a Customer or guest successfully opens its canonical Product Detail page, then show it in most-recent-first order.
 - Support a small best-effort guest history in first-party browser storage and durable, cross-device history for an authenticated active Customer.
+- The Phase 1 Laravel API, Product Detail recorder, homepage rail, guest storage, and protected Account history page are implemented and covered by focused API coverage.
 - Complete the existing foundation instead of introducing a new history model: `recently_viewed_products` already has UUID `id`, `user_id`, `product_id`, `last_viewed_at`, unique (`user_id`, `product_id`), and the index used for recency reads.
 - The homepage already consumes authenticated history through `HomepageService` and displays up to the configured `homepage.recently_viewed_limit` (currently 12); it must remain a presentation consumer, not its own tracker.
 
@@ -72,8 +73,8 @@ scope: Customer web application and Laravel API
 
 - [x] Opening a visible Product Detail records one recency entry; cards, searches, rails, hovers, and variants do not.
 - [x] Repeated visits update `last_viewed_at`, keep one Customer/Product record, and put that Product first.
-- [ ] An unauthenticated visitor stores only a bounded minimal local history and continues shopping when browser storage fails.
-- [ ] Login/session merge validates, deduplicates, bounds, and retries safely without delaying authentication.
+- [x] An unauthenticated visitor stores only a bounded minimal local history and continues shopping when browser storage fails.
+- [x] Login/session merge validates, deduplicates, bounds, and retries safely without delaying authentication.
 - [x] Authenticated history is Customer-scoped, persistent across normal-device refreshes, and never exposes `user_id` control to the client.
 - [x] Guest and Customer displays omit every Product excluded by `storefrontVisible()` and use current safe Product card data.
 - [x] Homepage and Account page use the owning history API/data model; personalized data is never shared-cached.
@@ -83,8 +84,8 @@ scope: Customer web application and Laravel API
 
 ### Laravel API and persistence
 
-- Keep the existing `RecentlyViewedProduct` model, migration, relationships, unique constraint, and `last_viewed_at` naming. Do not modify the executed migration; add an additive migration only if a configuration/retention field later proves necessary.
-- Add Customer-active routes, a `RecentlyViewedController`, form requests, and a focused `RecentlyViewedService` for record, merge, list, remove, and clear operations.
+- The existing `RecentlyViewedProduct` model, migration, relationships, unique constraint, and `last_viewed_at` naming are the durable persistence contract. No migration change is needed for Phase 1.
+- Customer-active routes, `RecentlyViewedController`, form requests, and `RecentlyViewedService` implement record, merge, list, remove, and clear operations.
 - Route set:
 
   ```http
@@ -103,27 +104,28 @@ scope: Customer web application and Laravel API
 
 ### Customer application
 
-- Add a small browser-only `recently-viewed-storage` utility with parse/version validation, deduplication, cap, record, clear, and safe failure handling.
-- Add a Product Detail client recorder beside `ProductConfigurator`; it records locally for guests or calls the authenticated endpoint, then triggers a best-effort guest merge after the existing auth provider confirms a Customer.
-- Add authenticated API helpers/types under `src/webapp/src/lib/marketplace/`, including a private no-store request path distinct from public discovery helpers.
-- Update `RecentlyViewedSection` to omit itself when empty, hydrate guest cards only after mount, and continue using `ProductRail` for consistent accessible cards.
-- Add the protected Account page and a focused client history list for cursor pagination, remove, clear, retry, and reconciled optimistic UI.
+- The browser-only `recently-viewed-storage` utility performs parse/version validation, deduplication, capping, recording, clearing, and safe failure handling.
+- `ProductViewRecorder` beside `ProductConfigurator` records locally for guests or calls the authenticated endpoint, while `RecentlyViewedProvider` performs a best-effort guest merge after authentication is confirmed.
+- Authenticated API helpers and types under `src/webapp/src/lib/marketplace/` use a private `no-store` request path distinct from public discovery helpers.
+- `RecentlyViewedSection` omits itself when empty, hydrates guest cards after mount, and uses `ProductRail` for accessible cards; the protected Account page provides cursor pagination, remove, clear, retry, and optimistic UI.
 
 ### Validation, testing, and rollout
 
 - Laravel tests: Customer role/status enforcement; Product visibility; upsert/recency; concurrent/retried writes; retention pruning; merge validation/order/idempotency; cursor scope; delete/clear isolation; safe DTOs; resolver bound/order; and no N+1 representative list.
 - Customer tests: Product Detail recording once; guest storage unavailable/corrupt; stale resolver omissions; merge success/failure; Account protection/list/remove/clear; homepage guest/auth states; focus/retry; and keyboard/announced feedback.
-- Run focused API tests plus Customer lint, strict TypeScript, and production build. Add a dated `docs/PROGRESS.md` implementation entry when the feature is built; this revision is documentation-only.
+- `CustomerRecentlyViewedTest` covers Customer role/status gates, visible-product recording, upsert/recency, retention, merge validation and idempotency, cursor scoping, delete/clear isolation, safe resources, resolver bounds/order, and query-count stability. The Customer pages implement the guest/authenticated states, retries, focus/reconnect refresh, and accessible controls.
+- Run focused API tests plus Customer lint, strict TypeScript, and production build when runtime behavior changes. This revision only corrects the specification metadata and implementation description.
 
-### Open implementation choices
+### Deferred enhancements and maintenance choices
 
-- Decide whether the Account history should expose a human-readable `Viewed at` timestamp or only recency ordering; both use the same safe server timestamp.
-- Decide the exact configuration keys for retained Customer records and guest entries; this contract sets the initial limits at 50 and 12 respectively.
-- Decide whether a privacy/settings control to disable future tracking is required. It needs a separate persisted preference and must not be implied by clear-all.
+- The Account page currently displays a human-readable `Viewed` timestamp in addition to newest-first ordering.
+- Retention and request bounds are configuration-backed by `recently-viewed.retention_limit`, `merge_limit`, `resolver_limit`, `default_page_size`, `max_page_size`, and `client_timestamp_max_age_days`; the current guest limit is the client constant `guestRecentlyViewedLimit` (12).
+- A privacy/settings control to disable future tracking remains deferred. It would require a separate persisted preference and must not be implied by clear-all.
+- Recommendations, marketing messages, Seller analytics, notifications, Redis, and real-time cross-device updates remain outside this Phase 1 contract.
 
 ### Sources
 
-- Existing foundation: `src/api/app/Models/RecentlyViewedProduct.php`, `src/api/app/Services/Customer/HomepageService.php`, `src/api/config/homepage.php`, and `docs/schema.md` section 9.8.
+- Existing implementation: `src/api/app/Http/Controllers/Customer/RecentlyViewedController.php`, `src/api/app/Http/Requests/Customer/RecentlyViewedListRequest.php`, `src/api/app/Http/Requests/Customer/RecentlyViewedMergeRequest.php`, `src/api/app/Http/Resources/Customer/RecentlyViewedItemResource.php`, `src/api/app/Services/Customer/RecentlyViewedService.php`, `src/api/app/Models/RecentlyViewedProduct.php`, `src/api/tests/Feature/Customer/CustomerRecentlyViewedTest.php`, `src/webapp/src/components/recently-viewed/`, `src/webapp/src/lib/marketplace/recently-viewed-storage.ts`, and `docs/schema.md` section 9.8.
 - [MDN Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API) documents origin-scoped browser storage, persistence, and private-session behaviour.
 - [MDN storage availability guidance](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API/Using_the_Web_Storage_API) supports handling blocked and quota-limited storage safely.
 - [Laravel Eloquent](https://laravel.com/docs/12.x/eloquent) documents model persistence patterns used by the Customer-scoped upsert service.

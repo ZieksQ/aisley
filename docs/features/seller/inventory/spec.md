@@ -121,4 +121,4 @@ available = on_hand - reserved
 - Monitor invariant violations, duplicate idempotency hits, reservation conflicts, deadlocks/timeouts, low-stock evaluator failures, and reconciliation mismatches.
 - Any invariant mismatch is an explicit correction/reconciliation task. Never silently “repair” a balance from a Product field or frontend total.
 
-**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Low Stock Alerts, Checkout, Order Approval, Prepare Orders, and `docs/order-logistics-flow-decisions.md`.
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Low Stock Alerts, Checkout, Order Approval, and Prepare Orders.

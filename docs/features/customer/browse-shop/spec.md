@@ -3,8 +3,8 @@ feature: browse-shop
 title: Customer Browse Seller Shops
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Ready for implementation
+version: 2.1
+status: Implemented (Phase 1)
 role: Customer
 scope: Customer web application and public Laravel read APIs
 ---
@@ -16,6 +16,7 @@ scope: Customer web application and public Laravel read APIs
 - Provide a public Shop directory and a public, Seller-scoped storefront at `/shops/{slug}`.
 - Let guests and signed-in Customers discover active Shops, open a Shop, and browse that Shop's currently storefront-visible Products.
 - Let a Customer narrow the Shop's Products by the existing canonical Product Category taxonomy.
+- The Phase 1 API and Next.js directory/storefront pages are implemented and covered by focused tests.
 - The route identity is `shops.slug`; it is globally unique in the implemented schema and is already emitted by Product Detail as `storefrontUrl`.
 - A Shop has one Seller (`shops.seller_id` is unique); this feature never accepts a browser-supplied Seller ID as a scope.
 - Reuse the existing `Product::storefrontVisible()` scope and `ProductSummaryResource`; public Shop browsing must have the same Product availability boundary as homepage, search, Product Detail, Cart, and Checkout.
@@ -65,7 +66,7 @@ scope: Customer web application and public Laravel read APIs
 
 ### Customer experience and accessibility
 
-- Implement `/shops` and `/shops/[slug]` in the existing Next.js App Router, using the shared Laravel API client and existing marketplace header/product-card patterns.
+- The implemented `/shops` and `/shops/[slug]` pages use the existing Next.js App Router, shared Laravel API client, and marketplace header/product-card patterns.
 - Read directory/filter/page query state on the server page and use a small client control only to change URL parameters. Reset `page` to `1` when changing a category.
 - Render Shop name as the page `h1`; give category controls a visible label, semantic buttons or links, an announced selected state, and keyboard support.
 - Use meaningful Shop/logo/banner alt text, maintain focus after filter or pagination navigation, and distinguish not-found, empty directory, empty catalogue, validation, loading, and retriable service-error states.
@@ -86,35 +87,36 @@ scope: Customer web application and public Laravel read APIs
 
 ### API and data flow
 
-- Add a Customer public `ShopBrowseController`, request classes, and explicit `ShopSummaryResource`/`ShopDetailResource`; retain `ProductSummaryResource` rather than duplicating Product-card mapping.
-- Create a focused `ShopBrowseService` or query object. It resolves public Shops by slug and composes `Product::query()->storefrontVisible()->where('shop_id', $shop->id)` before category filtering and pagination.
-- Eager-load only `shopCategory` for Shop resources and `shop`, `category`, and `galleryMedia` relationships already needed by Product cards. Verify query counts to prevent N+1 loading.
-- Derive category options from the same final visible Shop Product query, using distinct Category IDs. Do not trust a category label or SQL column from the client.
-- Return Product Search-compatible pagination fields: `currentPage`, `lastPage`, `perPage`, and `total`. Use `paginate()` because directory and Shop UI require page navigation.
-- Apply short public caching only after correctness tests pass. Cache identity includes endpoint, Shop slug/ID, validated category, page, and limit; invalidate or use a brief TTL when Shop state, Product publication, price, media, category, or compliance restriction changes.
+- `ShopBrowseController`, `ShopDirectoryRequest`, `ShopProductsRequest`, `ShopSummaryResource`, `ShopDetailResource`, and `ShopCategorySummaryResource` implement the public contract; Product cards reuse `ProductSummaryResource`.
+- `ShopBrowseService` resolves public Shops by slug and composes `Product::query()->storefrontVisible()->where('shop_id', $shop->id)` before category filtering and pagination.
+- The service eager-loads only the Shop/category/media relationships required by the DTOs and Product cards. A query-count regression test verifies that page size does not create N+1 growth.
+- Category options are derived from the final visible Shop Product scope, and the selected category is resolved from those Shop-scoped options rather than trusted from client input.
+- The API returns the Product Search-compatible pagination fields `currentPage`, `lastPage`, `perPage`, and `total` using bounded page pagination.
+- Public API responses and Next.js server fetches use a 60-second cache window. Cache identity includes the endpoint, Shop slug/ID, validated category, page, and limit; Cart and Checkout still revalidate visibility and stock before mutation.
 
 ### Customer application
 
-- Add typed `ShopSummary`, `ShopDetail`, `ShopBrowseResponse`, and shared server-client API helpers under `src/webapp/src/lib/marketplace/`.
-- Build `src/webapp/src/app/shops/page.tsx` for the directory and `src/webapp/src/app/shops/[slug]/page.tsx` plus route-level `loading.tsx` and `not-found.tsx` for a Shop.
-- Reuse `MarketplaceHeader`, `ProductCard`, pagination conventions, responsive image handling, and the existing Product Detail route. Add focused Shop header, category-filter, Shop-card, and empty-state components only where reuse is not suitable.
-- Fetch public data without Customer credentials by default. Private Wishlist state, if later enriched, must be fetched separately after Customer authentication and must never change the cached public Shop payload.
+- Typed `ShopSummary`, `ShopDetail`, `ShopDirectoryResponse`, `ShopBrowseResponse`, and shared server API helpers live under `src/webapp/src/lib/marketplace/`.
+- `src/webapp/src/app/shops/page.tsx` implements the directory; `src/webapp/src/app/shops/[slug]/page.tsx` implements the storefront, with route-level loading and not-found states.
+- The pages reuse `MarketplaceHeader`, `ProductCard`, responsive image handling, Product Detail links, and focused Shop header/card/filter/pagination components.
+- Public data is fetched without Customer credentials. Wishlist controls remain separate Product-card behavior and do not alter the cached public Shop payload.
 
 ### Validation and tests
 
 - Laravel feature tests: public guest access; active Shop lookup; indistinguishable unavailable `404`; Seller/Shop scope isolation; Product visibility/compliance/vacation exclusions; category derivation and validation; pagination bounds/order; safe resources; and no N+1 regression for a representative list.
 - Customer tests: directory and Shop routing; query-string category/page behavior; Product Detail navigation; loading, empty, `404`, validation, and retry rendering; responsive controls; keyboard navigation and labelled filter state.
-- Run focused API tests and Customer lint, strict TypeScript, and production build. Append an accurate dated `docs/PROGRESS.md` entry after the implementation; this specification revision is logged separately as documentation work.
+- Focused API coverage exists in `CustomerBrowseShopTest` for public access, unavailable-Shop boundaries, visibility, scope isolation, validation, pagination, safe resources, and query-count stability. Customer routing, URL state, accessibility, loading, empty, not-found, validation, and retry behavior is implemented in the Shop pages.
+- Run the focused API tests and Customer lint, strict TypeScript, and production build when this implementation changes. Append an accurate dated `docs/PROGRESS.md` entry after runtime changes; this revision only corrects the specification metadata and implementation description.
 
-### Open implementation choices
+### Deferred enhancements and maintenance choices
 
-- Confirm whether Shop cards should display only logo/name/category or also the safe description and banner; the schema supports each but the directory density is a product decision.
-- Confirm the initial page size shown by the UI within the API's existing 8–50 bound. The recommended default is 20 for parity with Product Search.
-- Decide the cache TTL/invalidation mechanism with the existing homepage cache implementation before adding cache keys. Correct visibility takes priority over cache duration.
+- The current Shop cards display the safe banner, logo, name, active Shop Category, and optional description. Any density or presentation change belongs in a UI revision, not a new API contract.
+- The API and UI use a default page size of 20 within the validated 8–50 range. A different default requires coordinated API/UI and test changes.
+- The current public cache window is 60 seconds. If freshness requirements change, update the cache contract and invalidation strategy before changing the TTL.
 - Add Shop ratings, in-Shop keyword search, sorting, vouchers, and Shop-following only through their own approved specifications and authoritative data contracts.
 
 ### Sources
 
-- Existing implementation: `src/api/app/Models/Shop.php`, `src/api/app/Models/Product.php`, `src/api/app/Services/Customer/ProductSearchService.php`, and `src/api/app/Http/Resources/Customer/ProductSummaryResource.php`.
+- Existing implementation: `src/api/app/Http/Controllers/Customer/ShopBrowseController.php`, `src/api/app/Http/Requests/Customer/ShopDirectoryRequest.php`, `src/api/app/Http/Requests/Customer/ShopProductsRequest.php`, `src/api/app/Services/Customer/ShopBrowseService.php`, `src/api/app/Models/Shop.php`, `src/api/app/Models/Product.php`, `src/api/app/Http/Resources/Customer/ProductSummaryResource.php`, `src/api/tests/Feature/Customer/CustomerBrowseShopTest.php`, and `src/webapp/src/app/shops/`.
 - [Laravel pagination](https://laravel.com/docs/12.x/pagination) supports bounded page-based API collections.
 - [Next.js dynamic route and search-parameter guidance](https://nextjs.org/docs/app/getting-started/layouts-and-pages) supports the existing App Router route and URL-state design.

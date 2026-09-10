@@ -113,4 +113,4 @@ later breach → new historical cycle
 - Alert history is not a substitute for Inventory movement history and must not become an editable stock ledger.
 - Alert list/detail cache entries, if introduced, must include Seller/Shop/SKU scope and alert schema version.
 
-**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Inventory, Checkout, Order Approval, Prepare Orders, and `docs/order-logistics-flow-decisions.md`.
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Inventory, Checkout, Order Approval, and Prepare Orders.

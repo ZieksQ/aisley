@@ -90,7 +90,7 @@ active Logistics session
 
 ### Future implementation sequence
 
-- First reconcile `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, Seller Prepare Orders, and the Logistics/Courier operational specs. Do not implement Dashboard actions against guessed tables or statuses.
+- First reconcile `docs/workspace.md`, `docs/schema.md`, Seller Prepare Orders, and the Logistics/Courier operational specs. Do not implement Dashboard actions against guessed tables or statuses.
 - Add additive migrations for the complete shared operational records, including the immutable Order/Parcel link, selected Logistics organization, sole hub, first-/final-mile tasks, and append-only events.
 - Implement a scoped query/service and Resource that derives summary counts and rows from those records. Keep controller filters validated and use indexes matching organization/hub/status/activity predicates.
 - Deep-link Pickup work to `docs/features/orders/logistics-pickups/spec.md` and shared-waybill access to `docs/features/orders/waybill/spec.md`. Logistics creates schedules/tasks after Seller `ready_for_pickup`; first-/final-mile assignments remain independent.

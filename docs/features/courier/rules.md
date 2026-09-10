@@ -15,11 +15,10 @@ The rules keep the backend contract, the copied Flutter documentation, and the e
 
 ## Authority and scope
 
-- Treat the implemented API, migrations, models, tests, and current `docs/PROGRESS.md` as evidence of what exists.
-- Treat `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and `docs/domains/Courier.md` as shared canonical context.
-- Treat `docs/domains/Logistics.md` as canonical whenever a Courier feature uses affiliation, hub, assignment, or Logistics authority.
-- Treat the matching file under `docs/features/courier/` as the feature contract after it is reviewed and marked implementation-ready.
-- Treat `docs/order-logistics-flow-decisions.md` as historical rationale only; it cannot authorize an endpoint or migration.
+- Treat `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and every applicable file under `docs/domains/` as the canonical cross-feature contract for role boundaries, ownership, approval, hubs, statuses, data, and invariants.
+- Treat the matching file under `docs/features/courier/` as the detailed contract for that feature only after it is reviewed and marked implementation-ready. It may add endpoint and client detail, but it must not override a shared canonical rule.
+- Treat the implemented API, migrations, models, tests, and current `docs/PROGRESS.md` as evidence of what exists. If implementation evidence conflicts with the canonical contract, reconcile the documents before inventing or enabling behavior.
+- Treat `docs/order-logistics-flow-decisions.md` as background decision history only. Accepted decisions must be copied into the applicable canonical documents; the worksheet cannot authorize an endpoint, migration, status, or client behavior and must not be treated as an implementation prerequisite.
 - A copied spec in the Flutter project must retain the same behavior and endpoint contract as this source document.
 - A Flutter copy may add client implementation notes, but it must not change server authority, permissions, fields, or state transitions.
 - Do not make a Courier web page, React component, or browser-cookie client in `src/`.
