@@ -116,9 +116,9 @@ POST  /policy-versions/{version}/publish
 - [x] User default view returns only the current policy; history excludes Drafts and renders a selected historical version exactly.
 - [x] The existing consent schema preserves immutable, exact-version acceptance identity and never auto-accepts users during publication.
 - [x] Administrative mutations create safe audit entries and invalidate relevant caches after commit.
-- [ ] The required-policy matrix and Internal Rules audience are approved.
-- [ ] A version-specific acceptance API/UI is implemented with explicit confirmation, authorization, idempotent retries, and safe error states.
-- [ ] Registration/login/session/protected-action integration enforces missing required consent without blocking policy viewing or acceptance.
+- [x] The required-policy matrix and Internal Rules audience are approved.
+- [x] A version-specific acceptance API/UI is implemented with explicit confirmation, authorization, idempotent retries, and safe error states.
+- [x] Registration/login/session/protected-action integration enforces missing required consent without blocking policy viewing or acceptance.
 
 ## HOW
 
