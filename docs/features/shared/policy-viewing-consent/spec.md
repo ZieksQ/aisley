@@ -100,9 +100,9 @@ public current policy/history read
 - [x] Public history lists and exact-version reads exclude Drafts and preserve published/superseded content.
 - [x] The existing schema records immutable exact User/version/timestamp acceptance rows with a uniqueness guard.
 - [ ] A cross-role policy matrix names required policies, audiences, initial acceptance, re-consent, and blocking points.
-- [ ] A consent-status endpoint returns server-derived required versions and exact acceptance state without shared caching.
-- [ ] Acceptance validates an explicit confirmation, authorizes the current published version, is idempotent, and never accepts on behalf of another User.
-- [ ] Customer, Seller, Logistics, and Courier auth/session owners integrate the approved gate without preventing policy viewing or acceptance.
+- [x] A consent-status endpoint returns server-derived required versions and exact acceptance state without shared caching.
+- [x] Acceptance validates an explicit confirmation, authorizes the current published version, is idempotent, and never accepts on behalf of another User.
+- [x] Customer, Seller, Logistics, and Courier auth/session owners integrate the approved gate without preventing policy viewing or acceptance.
 - [x] Webapp exposes accessible latest/history/exact-version pages with loading, empty, not-found, retry, and safe plain-text rendering states; Seller, Admin, and Logistics dashboards expose Terms/Privacy links to the webapp. Courier remains an external Flutter client.
 - [x] Backend tests cover public visibility, cache headers, history filtering, exact-version reads, and Internal Rules exclusion.
 
