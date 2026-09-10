@@ -77,7 +77,7 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
           id: 'pickup-route-line',
           type: 'line',
           source: 'pickup-route',
-          filter: ['==', ['get', 'kind'], 'stop_sequence_visual'],
+          filter: ['==', ['get', 'kind'], 'route_line'],
           paint: { 'line-color': '#4c1268', 'line-width': 4, 'line-opacity': 0.85 },
         })
         map.addLayer({
@@ -96,6 +96,14 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
         const bounds = new maplibregl.LngLatBounds()
         manifest.stops.forEach((stop) => {
           bounds.extend([stop.longitude, stop.latitude])
+          if (stop.kind === 'hub' && stop.sequence === 0) {
+            const marker = document.createElement('div')
+            marker.className = 'route-hub-marker'
+            marker.textContent = 'Logistics start / end'
+            marker.setAttribute('aria-label', 'Logistics hub, route start and end')
+            new maplibregl.Marker({ element: marker, anchor: 'bottom' }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
+            return
+          }
           if (stop.kind !== 'pickup') return
           const marker = document.createElement('div')
           marker.className = 'route-number-marker'
@@ -145,7 +153,7 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
               </li>
             ))}
           </ol>
-          <p className="map-attribution">Stop-sequence visual only; not turn-by-turn navigation. Powered by Geoapify · © OpenStreetMap contributors · © OpenMapTiles.</p>
+          <p className="map-attribution">{manifest.geojson?.features[0]?.properties.geometry_source === 'geoapify_routing' ? 'Line follows the calculated driving route.' : 'Road geometry is unavailable; line connects the stops in order.'} The stop list remains authoritative. Not turn-by-turn navigation. Powered by Geoapify · © OpenStreetMap contributors · © OpenMapTiles.</p>
         </>
       ) : null}
     </section>

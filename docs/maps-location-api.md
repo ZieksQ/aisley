@@ -12,6 +12,7 @@ This document defines the approved provider, privacy, fallback, and cost boundar
 | Forward geocoding | Geoapify Geocoding API | Resolve a completed, user-confirmed Philippine address after an intentional action. |
 | Interactive map and pin | Geoapify map tiles rendered with Leaflet | Display confirmed coordinates and let the user click or drag a local HTML pin. |
 | Road-distance ranking | Geoapify Route Matrix API | Compare one Seller pickup coordinate with a bounded set of eligible Logistics hub coordinates server-side. |
+| Courier pickup route line | Geoapify Routing API | Build bounded road-following geometry through the server-authoritative hub → pickups → hub stop order. |
 | Current-device coordinates | Browser or mobile operating-system geolocation | Populate coordinates after explicit permission. |
 | Persistence and validation | Laravel API and Postgres | Validate and save authoritative address fields and optional coordinates. |
 
@@ -43,12 +44,19 @@ There is no provider request while the user types. Changing a populated textual 
 - Exact PSGC city/province/country matching is evaluated locally before road distance. Distance breaks ties and ranks eligible non-exact options only when authoritative values are available.
 - Keep Geoapify and OpenStreetMap attribution visible wherever calculated distance is presented.
 
+## Courier pickup route geometry
+
+- Determine the Courier stop order with the Route Matrix API first, then call `GET https://api.geoapify.com/v1/routing` from Laravel with the ordered hub → pickup stops → hub waypoints and `mode=drive`.
+- Split routes at the configured provider waypoint limit with one overlapping waypoint so the returned road geometry can be combined without changing stop order.
+- Send coordinates only—never addresses, names, phone numbers, parcel contents, or account identifiers—and keep `GEOAPIFY_SERVER_API_KEY` server-side.
+- Persist the sanitized road `LineString` with the manifest. If routing fails or its quota guard is reached, keep the manifest ready and return a labelled straight stop-sequence fallback instead of blocking pickup work.
+
 ## Coordinate and privacy rules
 
 - Latitude and longitude are optional unless a feature explicitly requires them, but they must be submitted as a complete pair and remain within `-90..90` and `-180..180`.
 - Provider failures must not erase entered text or silently rewrite address fields.
 - Do not put credentials, full addresses, or route payloads in logs.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` (Customer webapp) and `VITE_GEOAPIFY_API_KEY` (Seller dashboard) are origin-restricted browser keys for intentional forward geocoding and tiles. `GEOAPIFY_SERVER_API_KEY` is a separate server-only key for Route Matrix requests.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` (Customer webapp) and `VITE_GEOAPIFY_API_KEY` (Seller dashboard) are origin-restricted browser keys for intentional forward geocoding and tiles. `GEOAPIFY_SERVER_API_KEY` is a separate server-only key for Route Matrix, Routing, and proxied Courier map-tile requests.
 
 ## Cost boundary
 
@@ -57,6 +65,7 @@ Geoapify usage shares the configured account allowance. A 1×N matrix consumes N
 ## Official references
 
 - [Geoapify Route Matrix](https://apidocs.geoapify.com/docs/route-matrix/)
+- [Geoapify Routing API](https://apidocs.geoapify.com/docs/routing/)
 - [Geoapify pricing](https://www.geoapify.com/pricing/)
 - [Geoapify Geocoding API](https://apidocs.geoapify.com/docs/geocoding/)
 - [Geoapify map tiles with Leaflet](https://apidocs.geoapify.com/docs/maps/map-tiles/leaflet/)

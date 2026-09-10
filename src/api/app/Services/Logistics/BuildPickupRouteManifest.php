@@ -97,13 +97,14 @@ class BuildPickupRouteManifest
             }
 
             $route = $this->orderStops($resolved, $matrix);
+            $geojson = $this->geojson($route['stops'], $key, $schedule->id, $revision);
             $now = now();
             $manifest->update([
                 'status' => PickupRouteManifestStatus::Ready,
                 'total_distance_metres' => $route['distance'],
                 'total_duration_seconds' => $route['duration'],
                 'stops' => $route['stops'],
-                'geojson' => $this->geojson($route['stops']),
+                'geojson' => $geojson,
                 'failure_reason' => null,
                 'calculated_at' => $now,
             ]);
@@ -326,13 +327,20 @@ class BuildPickupRouteManifest
     }
 
     /** @param array<int, array<string, mixed>> $stops */
-    private function geojson(array $stops): array
+    private function geojson(array $stops, string $key, string $scheduleId, int $revision): array
     {
         $reachable = array_values(array_filter($stops, fn (array $stop): bool => $stop['reachable']));
+        $roadCoordinates = $this->roadCoordinates($reachable, $key, $scheduleId, $revision);
         $features = [[
             'type' => 'Feature',
-            'geometry' => ['type' => 'LineString', 'coordinates' => array_map(fn (array $stop): array => [$stop['longitude'], $stop['latitude']], $reachable)],
-            'properties' => ['kind' => 'stop_sequence_visual'],
+            'geometry' => [
+                'type' => 'LineString',
+                'coordinates' => $roadCoordinates ?? array_map(fn (array $stop): array => [$stop['longitude'], $stop['latitude']], $reachable),
+            ],
+            'properties' => [
+                'kind' => 'route_line',
+                'geometry_source' => $roadCoordinates === null ? 'stop_sequence_fallback' : 'geoapify_routing',
+            ],
         ]];
         foreach ($stops as $stop) {
             $features[] = [
@@ -343,6 +351,108 @@ class BuildPickupRouteManifest
         }
 
         return ['type' => 'FeatureCollection', 'features' => $features];
+    }
+
+    /** @param array<int, array<string, mixed>> $stops @return array<int, array{0: float, 1: float}>|null */
+    private function roadCoordinates(array $stops, string $key, string $scheduleId, int $revision): ?array
+    {
+        if (count($stops) < 2) {
+            return null;
+        }
+
+        $maxWaypoints = (int) config('pickup_routes.routing_max_waypoints', 25);
+        $chunks = [];
+        for ($offset = 0; $offset < count($stops) - 1; $offset += $maxWaypoints - 1) {
+            $chunks[] = array_slice($stops, $offset, $maxWaypoints);
+        }
+        $estimatedCredits = array_sum(array_map('count', $chunks));
+        if (! $this->reserveRoutingCredits($estimatedCredits)) {
+            Log::warning('Courier pickup road geometry skipped by quota guard.', [
+                'schedule_id' => $scheduleId,
+                'revision' => $revision,
+                'estimated_credits' => $estimatedCredits,
+            ]);
+
+            return null;
+        }
+
+        $coordinates = [];
+        try {
+            foreach ($chunks as $chunk) {
+                $waypoints = implode('|', array_map(
+                    fn (array $stop): string => $stop['latitude'].','.$stop['longitude'],
+                    $chunk,
+                ));
+                $response = Http::acceptJson()
+                    ->timeout((int) config('services.geoapify.routing_timeout', 8))
+                    ->retry(1, 100, throw: false)
+                    ->get('https://api.geoapify.com/v1/routing', [
+                        'waypoints' => $waypoints,
+                        'mode' => 'drive',
+                        'format' => 'geojson',
+                        'apiKey' => $key,
+                    ]);
+                $chunkCoordinates = $response->successful() ? $this->routingCoordinates($response->json()) : null;
+                if ($chunkCoordinates === null) {
+                    Log::warning('Courier pickup road geometry provider failure.', [
+                        'schedule_id' => $scheduleId,
+                        'revision' => $revision,
+                        'provider_status' => $response->status(),
+                    ]);
+
+                    return null;
+                }
+                if ($coordinates !== [] && $coordinates[array_key_last($coordinates)] === $chunkCoordinates[0]) {
+                    array_shift($chunkCoordinates);
+                }
+                array_push($coordinates, ...$chunkCoordinates);
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+
+        return count($coordinates) >= 2 ? $coordinates : null;
+    }
+
+    /** @return array<int, array{0: float, 1: float}>|null */
+    private function routingCoordinates(mixed $payload): ?array
+    {
+        $geometry = is_array($payload) ? ($payload['features'][0]['geometry'] ?? null) : null;
+        if (! is_array($geometry) || ! is_array($geometry['coordinates'] ?? null)) {
+            return null;
+        }
+        $raw = match ($geometry['type'] ?? null) {
+            'LineString' => $geometry['coordinates'],
+            'MultiLineString' => array_merge(...$geometry['coordinates']),
+            default => null,
+        };
+        if (! is_array($raw)) {
+            return null;
+        }
+        $coordinates = [];
+        foreach ($raw as $coordinate) {
+            if (! is_array($coordinate) || ! is_numeric($coordinate[0] ?? null) || ! is_numeric($coordinate[1] ?? null)) {
+                return null;
+            }
+            $coordinates[] = [(float) $coordinate[0], (float) $coordinate[1]];
+        }
+
+        return count($coordinates) >= 2 ? $coordinates : null;
+    }
+
+    private function reserveRoutingCredits(int $credits): bool
+    {
+        $cacheKey = 'geoapify:routing-credits:'.now('UTC')->format('Y-m-d');
+        Cache::add($cacheKey, 0, now('UTC')->endOfDay());
+        $used = (int) Cache::increment($cacheKey, $credits);
+        if ($used <= (int) config('pickup_routes.daily_routing_credit_limit', 300)) {
+            return true;
+        }
+        Cache::decrement($cacheKey, $credits);
+
+        return false;
     }
 
     private function unavailable(PickupRouteManifest $manifest, string $reason): PickupRouteManifest

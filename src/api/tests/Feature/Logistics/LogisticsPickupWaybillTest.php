@@ -338,13 +338,25 @@ class LogisticsPickupWaybillTest extends TestCase
         [$logistics, $organization, $hub] = $this->logistics('Route Logistics', 'Makati City', 'Metro Manila', true);
         $courier = $this->courier($organization->id, $hub->id);
         config()->set('services.geoapify.server_key', 'server-secret');
-        Http::fake([
-            'api.geoapify.com/*' => Http::response(['sources_to_targets' => [
-                [['distance' => 0, 'time' => 0], ['distance' => 5400, 'time' => 720]],
-                [['distance' => 5100, 'time' => 680], ['distance' => 0, 'time' => 0]],
-            ]]),
-            'maps.geoapify.com/*' => Http::response('tile-bytes', 200, ['Content-Type' => 'image/png']),
-        ]);
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/v1/routematrix')) {
+                return Http::response(['sources_to_targets' => [
+                    [['distance' => 0, 'time' => 0], ['distance' => 5400, 'time' => 720]],
+                    [['distance' => 5100, 'time' => 680], ['distance' => 0, 'time' => 0]],
+                ]]);
+            }
+            if (str_contains($request->url(), '/v1/routing')) {
+                return Http::response(['type' => 'FeatureCollection', 'features' => [[
+                    'type' => 'Feature',
+                    'geometry' => ['type' => 'MultiLineString', 'coordinates' => [[
+                        [121.03, 14.65], [121.01, 14.63], [120.98, 14.6], [121.02, 14.62], [121.03, 14.65],
+                    ]]],
+                    'properties' => [],
+                ]]]);
+            }
+
+            return Http::response('tile-bytes', 200, ['Content-Type' => 'image/png']);
+        });
 
         $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())
             ->postJson('/api/v1/seller/orders/pickup-requests', [
@@ -377,13 +389,22 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonPath('data.stops.1.kind', 'pickup')
             ->assertJsonCount(2, 'data.stops.1.tasks')
             ->assertJsonPath('data.stops.2.kind', 'hub')
-            ->assertJsonPath('data.geojson.type', 'FeatureCollection');
+            ->assertJsonPath('data.geojson.type', 'FeatureCollection')
+            ->assertJsonPath('data.geojson.features.0.properties.kind', 'route_line')
+            ->assertJsonPath('data.geojson.features.0.properties.geometry_source', 'geoapify_routing')
+            ->assertJsonCount(5, 'data.geojson.features.0.geometry.coordinates')
+            ->assertJsonPath('data.geojson.features.0.geometry.coordinates.0', [121.03, 14.65])
+            ->assertJsonPath('data.geojson.features.0.geometry.coordinates.4', [121.03, 14.65]);
         $this->assertStringContainsString('private', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
-        Http::assertSent(fn ($request) => count($request['sources']) === 2
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v1/routematrix')
+            && count($request['sources']) === 2
             && count($request['targets']) === 2
             && $request['sources'][0]['location'] === [121.03, 14.65]
             && $request['sources'][1]['location'] === [120.98, 14.6]);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v1/routing')
+            && $request['waypoints'] === '14.65,121.03|14.6,120.98|14.65,121.03'
+            && $request['mode'] === 'drive');
 
         [$foreignUser, $foreignOrganization, $foreignHub] = $this->logistics('Foreign Route Logistics', 'Cebu City', 'Cebu');
         $foreignCourier = $this->courier($foreignOrganization->id, $foreignHub->id);
@@ -435,7 +456,8 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'ready')
             ->assertJsonPath('data.coordinate_source', 'address_default')
-            ->assertJsonPath('data.stops.1.coordinate_source', 'address_default');
+            ->assertJsonPath('data.stops.1.coordinate_source', 'address_default')
+            ->assertJsonPath('data.geojson.features.0.properties.geometry_source', 'stop_sequence_fallback');
 
         AddressCoordinateDefault::query()->where('city_municipality', 'manila')->delete();
         $manifest = $schedule['id'];

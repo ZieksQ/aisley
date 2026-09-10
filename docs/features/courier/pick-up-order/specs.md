@@ -3,7 +3,7 @@ role: Courier/Rider
 feature: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.2
+version: 2.3
 status: Implemented Phase 2 pickup and Courier route-manifest flow
 implementation_status: Courier API and development web harness implemented; Flutter and Logistics dashboard map planned
 canonical: false
@@ -23,8 +23,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Actors:** Seller prepares Orders; Logistics selects one approved Courier and a pickup window; Courier performs the mobile pickup; the API remains authoritative for ownership and state.
 - **Scope:** Courier task receipt, schedule/address/order details, route-manifest consumption, QR/manual identifier verification, and first-mile pickup confirmation.
 - **Mobile boundary:** Production Courier screens, secure token storage, offline decoding, and device accessibility belong to the external Flutter app. `src/couriermockup` is a development-only React harness for verifying the same bearer-token API, camera/manual input states, and handoff behavior in a browser; it is not a deployable Courier web application.
-- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation records immutable idempotency/history data, sets `picked_up_from_seller`, and fulfills the Order's Inventory reservation without changing the high-level Order status. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, stores the result, and serves sanitized GeoJSON to the authorized Courier.
-- **Not implemented yet:** The production Flutter screens, Courier notification read/push endpoint, road-following geometry/navigation, and the Logistics dashboard companion map.
+- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation records immutable idempotency/history data, sets `picked_up_from_seller`, and fulfills the Order's Inventory reservation without changing the high-level Order status. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier.
+- **Not implemented yet:** The production Flutter screens, Courier notification read/push endpoint, turn-by-turn navigation, and the Logistics dashboard companion map.
 
 ### Scheduled bulk-pickup flow
 
@@ -98,13 +98,14 @@ Seller packs Orders and requests one Logistics provider
 - If neither exact nor address-default coordinates exist, mark the manifest `unavailable` with a reason and retain the address/list view; do not block the Courier from seeing or confirming eligible tasks.
 - Use Geoapify Route Matrix API with GeoJSON order `[longitude, latitude]`, `mode=drive`, and the hub plus pickup nodes as both sources and targets. Use returned `distance` metres and `time` seconds for a deterministic bounded stop-order heuristic.
 - The schedule limit yields at most 31 nodes and a 31×31/961-cell matrix. The manifest must report matrix status, calculated time, route distance/time, coordinate source per node, ordered stops, and unreachable-stop reasons.
-- Matrix data gives time/distance, not road geometry. The initial GeoJSON `LineString` is an explicitly labelled stop-sequence visual; turn-by-turn navigation or road-following geometry requires a separately approved Routing API extension.
+- Matrix data determines the stop order and its time/distance estimates. After ordering, request bounded Geoapify Routing API geometry through every stop in sequence, including the final hub return, and expose it as the map's GeoJSON route line.
+- Split route requests at the provider waypoint limit with one overlapping boundary waypoint, then combine the returned geometry in order. If routing geometry is unavailable, retain the ready manifest and explicitly fall back to the straight stop-sequence `LineString`; pickup work must not be blocked by a presentation-layer routing failure.
 - Use a bounded deterministic heuristic: start at the hub, choose the lowest available next-leg time, break ties by distance then persisted task position, visit every reachable stop once, and return to the hub. This is a manifest sequence, not a guaranteed optimal vehicle-routing solution.
 - Store a coordinate fingerprint for the hub and every stop. A changed exact/default coordinate or schedule revision invalidates the previous result and triggers one new calculation.
 
 ### Embedded map visual
 
-- When the manifest is `ready`, the Logistics pickup-schedule detail must embed an interactive map panel with the returned GeoJSON: hub start/end, numbered pickup points, and the ordered route line. A stop list remains available beside/below the map.
+- When the manifest is `ready`, the schedule detail map must show the Logistics hub as both start and end, numbered pickup points between them, and a visible ordered route line. Prefer road-following Routing API geometry and retain a clearly labelled straight-line fallback. A stop list remains available beside/below the map.
 - Use MapLibre GL JS in the existing Logistics React/Vite dashboard with a Geoapify `style.json`/map-tile source and a local GeoJSON source/layers. MapLibre GL JS is for the web dashboard, not the Flutter app.
 - The Courier API returns the same authorized ordered stops and GeoJSON. Flutter may render it with a free native map or an accessible ordered list; it must not depend on a Courier web page or paid map SDK.
 - Keep Geoapify, OpenStreetMap, and OpenMapTiles attribution visible. Do not put full addresses, QR secrets, or Buyer/Seller PII in map-provider requests or client logs.
@@ -134,7 +135,7 @@ Seller packs Orders and requests one Logistics provider
 - [x] QR and manual Order ID/reference input reach identical backend matching and validation rules.
 - [x] Only explicit confirmation changes the task to `picked_up_from_seller`; retries are idempotent and wrong/unknown identifiers have no side effects.
 - [x] Missing exact coordinates use the server-maintained address-default pair; missing both produces an honest unavailable manifest.
-- [x] A ready Courier route manifest includes grouped parcels, ordered stops, matrix metrics, and valid GeoJSON; the development harness renders the embedded MapLibre map and accessible list.
+- [x] A ready Courier route manifest includes grouped parcels, ordered stops, matrix metrics, and valid GeoJSON; the development harness renders the Logistics start, numbered pickups, Logistics return, visible route line, and accessible list.
 - [ ] The Logistics dashboard renders its separately authorized companion embedded map and accessible list.
 - [x] The implementation remains on the free/open-source dependency path, honors attribution, and continues task/pickup operation when map or quota services fail.
 - [x] The next state, Logistics parcel receipt, is recorded as N/A and is not implemented by this feature.
@@ -185,7 +186,7 @@ Example GeoJSON payload:
   "type": "FeatureCollection",
   "features": [
     { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.0, 14.5] }, "properties": { "kind": "hub", "sequence": 0 } },
-    { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[121.0, 14.5], [121.1, 14.6]] }, "properties": { "kind": "stop_sequence_visual" } }
+    { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[121.0, 14.5], [121.1, 14.6], [121.0, 14.5]] }, "properties": { "kind": "route_line", "geometry_source": "geoapify_routing" } }
   ]
 }
 ```
@@ -196,7 +197,7 @@ Example GeoJSON payload:
 
 - Reuse `PickupSchedule`, `PickupScheduleOrder`, `FirstMileTask`, `Waybill`, immutable waybill snapshot, schedule history, and post-commit notification services already present. `courier_pickup_confirmations` is the immutable one-per-task pickup/idempotency record, and `first_mile_tasks.picked_up_at` stores the current transition timestamp. Add an additive route-manifest migration/table only after the shared operational schema is approved.
 - Store route status/action enum-like columns as strings and cast them to PHP enums. A manifest record should key by schedule revision, retain source fingerprints and failure reason, and preserve the GeoJSON/ordered-stop snapshot used by the client.
-- `BuildPickupRouteManifest` and its unique queued job resolve exact/default coordinates, calculate/cache the bounded matrix once per stable revision/fingerprint, order reachable nodes, build sanitized GeoJSON, persist the snapshot, and expose it through the Courier-scoped resource.
+- `BuildPickupRouteManifest` and its unique queued job resolve exact/default coordinates, calculate/cache the bounded matrix once per stable revision/fingerprint, order reachable nodes, obtain bounded road geometry with a straight-line fallback, build sanitized GeoJSON, persist the snapshot, and expose it through the Courier-scoped resource.
 - Recalculate on schedule revision; superseded manifests remain history only. Cancellation prevents new pickup confirmation and marks the current manifest unavailable without deleting history.
 - The route builder must not own assignment, waybill identity, status transitions, or Logistics receipt.
 
@@ -211,13 +212,13 @@ Example GeoJSON payload:
 ### Verification, rollout, and open decisions
 
 - API coverage verifies task receipt, schedule handling, QR/manual matching, wrong identifiers without side effects, idempotent replay, immutable confirmation history, unchanged Order status, Inventory fulfillment, and private/no-store reads. Dedicated concurrent database verification remains part of the production rollout gate.
-- Current matrix fixtures cover exact/default/missing coordinates, same-address parcel grouping, cache reuse, metrics, sanitized GeoJSON, attribution, credential hiding, and tenant scope. Null-route, 31-node boundary, quota circuit-breaker, and dedicated PostgreSQL concurrency fixtures remain rollout work.
+- Current route fixtures cover exact/default/missing coordinates, same-address parcel grouping, cache reuse, matrix metrics, road geometry with Logistics return, sanitized GeoJSON, attribution, credential hiding, and tenant scope. Null-route, 31-node boundary, quota circuit-breaker, and dedicated PostgreSQL concurrency fixtures remain rollout work.
 - Add Logistics map tests for GeoJSON layers, ordered markers, accessible list fallback, stale revisions, and no map mutation. Add Flutter contract/widget tests for scanner fallback and server-error mapping.
 - Production rollout still requires the shared Shipment/Delivery Task transition contract, PostgreSQL verification, populated and reviewed address-coordinate defaults, and Geoapify usage monitoring; current list/accept/resolve behavior remains intact.
-- Open: schedule early/late pickup grace; native Flutter map versus list-only; road-following geometry; offline mutation queue; Courier push transport. Logistics receipt remains N/A.
+- Open: schedule early/late pickup grace; native Flutter map versus list-only; turn-by-turn navigation; offline mutation queue; Courier push transport. Logistics receipt remains N/A.
 
 ### Sources
 
-- [Geoapify Route Matrix API](https://apidocs.geoapify.com/docs/route-matrix/), [Geoapify pricing](https://www.geoapify.com/pricing/), [Geoapify map tiles](https://apidocs.geoapify.com/docs/maps/), and [Geoapify Static Maps API](https://apidocs.geoapify.com/docs/maps/static/).
+- [Geoapify Route Matrix API](https://apidocs.geoapify.com/docs/route-matrix/), [Geoapify Routing API](https://apidocs.geoapify.com/docs/routing/), [Geoapify pricing](https://www.geoapify.com/pricing/), [Geoapify map tiles](https://apidocs.geoapify.com/docs/maps/), and [Geoapify Static Maps API](https://apidocs.geoapify.com/docs/maps/static/).
 - [MapLibre GeoJSON source](https://maplibre.org/maplibre-gl-js/docs/API/classes/GeoJSONSource/) and [MapLibre GL JS license](https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt).
 - [mobile_scanner](https://pub.dev/packages/mobile_scanner), [flutter_zxing](https://pub.dev/packages/flutter_zxing), [qr_code_dart_scan](https://pub.dev/packages/qr_code_dart_scan), and [Google ML Kit barcode scanning](https://developers.google.com/ml-kit/vision/barcode-scanning).
