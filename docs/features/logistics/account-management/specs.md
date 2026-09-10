@@ -3,8 +3,8 @@ feature: logistics-account-management
 title: Logistics Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Deferred — contract clarified; account-management API and UI not implemented
+version: 1.2
+status: Implemented (Phase 1) — protected self-service profile, organization, hub-label, and password settings
 role: Logistics
 scope: Logistics React SPA and Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an approved active Logistics account view and maintain its own personal profile and the operational identity of its organization and sole hub.
-- **Current implementation:** Logistics registration, Admin approval, web Sanctum login/session, `/auth/me`, logout, password recovery, dashboard scaffold, and pickup views exist. No `/api/v1/logistics/account` routes, account controller, or Account Settings page exists.
+- **Current implementation:** Logistics registration, Admin approval, web Sanctum login/session, `/auth/me`, logout, password recovery, dashboard scaffold, pickup views, the protected account API, and the Account Settings page exist. The account API returns a safe private projection and supports allow-listed profile, organization, sole-hub-label, and password changes.
 - **Canonical identity:** `users.role = logistics`; the authenticated `user_id` resolves exactly one `LogisticsProfile`, one `LogisticsOrganization`, and one `LogisticsHub`.
 - **MVP cardinality:** one Logistics account → one organization → exactly one operational hub/sorting center. Account Management cannot create, select, rename into, or move to a second hub or sub-hub.
 - The registration field **Operational hub/sorting-center address** represents the sole hub address. Any relocation or coordinate change is an operational change, not an ordinary personal-profile edit.
@@ -52,7 +52,7 @@ active Logistics session
 
 ### Password and authentication boundary
 
-- A planned `PUT /api/v1/logistics/account/password` must require the current password, confirmation, and the shared password policy; it must never accept or return a password hash.
+- The implemented `PUT /api/v1/logistics/account/password` requires the current password, confirmation, and the shared password policy; it never accepts or returns a password hash.
 - Password changes are separate from profile/organization updates. Apply rate limiting and preserve the configured session/token revocation policy atomically.
 - Existing `/auth/forgot-password` and `/auth/reset-password` remain owned by Logistics Authentication. Account Management does not approve, activate, reject, or reset another role.
 - Email verification, MFA, recent-authentication challenges, and concurrent-session management require separate approved contracts; do not infer them from the settings screen.
@@ -78,7 +78,7 @@ active Logistics session
 - Separate **Personal profile**, **Organization**, **Operational hub**, and **Security** sections. Clearly label the hub as the sole operational hub/sorting center, not a personal residence.
 - Show loading, saved, validation, conflict, unauthorized, missing-hub, network, and retry states. Do not optimistically claim a save before the server projection returns.
 - Use semantic labels, keyboard-accessible controls, visible focus, field-level errors, responsive dark-mode dashboard styling, and non-color-only status/error cues.
-- Current navigation and `/auth/me` remain unchanged until account endpoints are implemented.
+- Account Settings is linked from the protected Logistics navigation. Existing authentication and `/auth/me` behavior remains unchanged; the settings page refreshes the shell projection after a successful organization update.
 
 ### Acceptance criteria
 
@@ -94,24 +94,24 @@ active Logistics session
 
 ## HOW
 
-### Current code and planned interfaces
+### Current code and interfaces
 
-- Existing routes are `POST /api/v1/logistics/auth/register`, `/login`, `/forgot-password`, `/reset-password`, protected `GET /api/v1/logistics/auth/me`/`POST /logout`, `GET /api/v1/logistics/dashboard`, and pickup/Courier-approval routes. No account route exists.
+- Existing routes are `POST /api/v1/logistics/auth/register`, `/login`, `/forgot-password`, `/reset-password`, protected `GET /api/v1/logistics/auth/me`/`POST /logout`, `GET /api/v1/logistics/dashboard`, pickup/Courier-approval routes, and the account routes below.
 - Existing implementation uses `Logistics\\AuthController`, `LogisticsUserResource`, `LogisticsProfile`, `LogisticsOrganization`, `LogisticsHub`, `EnsureActiveLogistics`, and `2026_09_05_000001_create_logistics_foundation_tables.php`.
-- Planned routes are `GET /api/v1/logistics/account`, `PATCH /api/v1/logistics/account/profile`, `PATCH /api/v1/logistics/account/organization`, and `PUT /api/v1/logistics/account/password`. Mark these unavailable until controllers, requests, resources, tests, and deployment exist.
+- Implemented routes are `GET /api/v1/logistics/account`, `PATCH /api/v1/logistics/account/profile`, `PATCH /api/v1/logistics/account/organization`, and throttled `PUT /api/v1/logistics/account/password`. The organization payload may update `business_name` and the sole hub's display `hub_name`; it cannot change the linked address or hub relationship.
 - Responses should return a private/no-store JSON projection with safe personal fields, organization name, sole-hub name, and approved address summary. Never return raw database/storage paths or client-controlled ownership fields.
 
 ### Implementation and data flow
 
-- Authenticate active Logistics user → load exact profile/organization/sole hub → validate allow-listed payload → lock rows → compare current state/revision → write transaction → commit → dispatch after-commit events/notifications → return the fresh projection.
+- Authenticate active Logistics user → load exact profile/organization/sole hub → validate allow-listed payload → lock rows → write the transaction → return the fresh projection. Account mutations are application-logged with request context; no notification provider is attached to this Phase 1 settings flow.
 - Reuse the existing models and `HasBirthDateAge` accessor. Age is derived from persisted `birth_date`; never accept or persist a client-supplied age.
 - Add only additive migrations for approved revision/history/idempotency data. Keep enum-like columns string-backed with PHP enum casts and never edit executed migrations.
 - Do not add a new address provider, subscription table, hub table, staff role, or operational Shipment/Delivery Task record for this feature.
 
 ### Verification and open decisions
 
-- API tests must cover role/status/tenant isolation, missing relationships, field allowlists, organization/hub cardinality, stale writes, password validation/throttling, safe DTOs, no-store headers, and notification failure after commit.
-- SPA tests must cover protected navigation, form sections, server refresh, validation, conflict/refetch, network retry, keyboard focus, responsive layout, and truthful saved/error states.
+- API tests cover role/status gates, missing relationships, field allowlists, organization/hub cardinality, successive writes, password validation/throttling, safe DTOs, and no-store headers. SPA type, lint, and production-build checks pass for the protected Account Settings route.
+- Future regression coverage should add a true revision/conflict contract, notification failure behavior, and browser-level keyboard/responsive assertions when those supporting contracts are approved.
 - Regression coverage must prove that foreign organization/hub identifiers never leak data and that failed transactions preserve the prior profile projection.
 - Run focused Logistics API tests and SPA type/lint/build checks before marking any acceptance item implemented.
 - Open decisions: exact editable personal fields; whether business-name/hub-label changes need Admin review; relocation/address versioning; email/phone verification; password session revocation; security history; and future staff permissions.

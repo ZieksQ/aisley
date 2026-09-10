@@ -29,6 +29,7 @@ use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\HomepageAdvertisementImageController;
+use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
@@ -247,6 +248,12 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active'])->group(function () {
+    Route::get('/account', [LogisticsAccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');
+    Route::put('/account/password', [LogisticsAccountController::class, 'updatePassword'])
+        ->middleware('throttle:logistics-account-password')
+        ->name('account.password.update');
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
