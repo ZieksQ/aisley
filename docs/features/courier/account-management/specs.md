@@ -231,6 +231,6 @@ Example request:
 
 - Shared identity, address, vehicle, affiliation, hub, and auth rules come from requirements.md, workspace.md, schema.md, Courier.md, and Logistics.md.
 - Courier bearer-token and Flutter boundaries come from courier/auth/spec.md and courier/rules.md.
-- File or image upload work must first adopt docs/references/file-upload-requirements.md.
+> Use `docs/references/file-upload-requirements.md` as the mandatory upload contract. Define only Courier-specific API, schema, ownership, lifecycle, and Flutter behavior; do not duplicate or override the shared policy.
 - Historical order-logistics decisions cannot authorize this feature or create operational records.
 - This Phase 1 contract is standalone, and its three endpoints are available after the protected API tests pass.
