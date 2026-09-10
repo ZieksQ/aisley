@@ -104,10 +104,10 @@ public current policy/history read
 - [x] Public history lists and exact-version reads exclude Drafts and preserve published/superseded content.
 - [x] The existing schema records immutable exact User/version/timestamp acceptance rows with a uniqueness guard.
 - [x] One platform-wide Terms of Service and one platform-wide Privacy Policy are shared by every account role; no role-specific or tenant-specific public variants are exposed.
-- [ ] The consent matrix decides which account roles must accept the shared policies, initial acceptance, re-consent, and blocking points.
-- [ ] A consent-status endpoint returns the same shared current versions plus server-derived required/accepted state without shared caching.
-- [ ] Acceptance validates an explicit confirmation, authorizes a shared current published version, is idempotent, and never accepts on behalf of another User.
-- [ ] Customer, Seller, Admin, Logistics, and Courier auth/session owners integrate the approved shared-policy gate without preventing policy viewing or acceptance.
+- [x] The consent matrix decides which account roles must accept the shared policies, initial acceptance, re-consent, and blocking points.
+- [x] A consent-status endpoint returns the same shared current versions plus server-derived required/accepted state without shared caching.
+- [x] Acceptance validates an explicit confirmation, authorizes a shared current published version, is idempotent, and never accepts on behalf of another User.
+- [x] Customer, Seller, Admin, Logistics, and Courier auth/session owners integrate the approved shared-policy gate without preventing policy viewing or acceptance.
 - [x] Webapp exposes accessible latest/history/exact-version pages with loading, empty, not-found, retry, and safe plain-text rendering states; Seller, Admin, and Logistics dashboards expose Terms/Privacy links to the webapp. Courier remains an external Flutter client.
 - [x] Backend tests cover public visibility, cache headers, history filtering, exact-version reads, and Internal Rules exclusion.
 
