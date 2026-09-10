@@ -99,12 +99,12 @@ public current policy/history read
 - [x] Public current Terms/Privacy reads return only the current published version and reject Internal Rules.
 - [x] Public history lists and exact-version reads exclude Drafts and preserve published/superseded content.
 - [x] The existing schema records immutable exact User/version/timestamp acceptance rows with a uniqueness guard.
-- [ ] A cross-role policy matrix names required policies, audiences, initial acceptance, re-consent, and blocking points.
-- [ ] A consent-status endpoint returns server-derived required versions and exact acceptance state without shared caching.
-- [ ] Acceptance validates an explicit confirmation, authorizes the current published version, is idempotent, and never accepts on behalf of another User.
-- [ ] Customer, Seller, Logistics, and Courier auth/session owners integrate the approved gate without preventing policy viewing or acceptance.
-- [ ] Webapp, dashboards, and the external Flutter client expose accessible latest/history/consent states and safe retry behavior.
-- [ ] Tests cover public visibility, XSS-safe rendering, stale publication races, duplicate acceptance, role isolation, no-store personalized responses, and gate recovery.
+- [x] A cross-role policy matrix names required policies, audiences, initial acceptance, re-consent, and blocking points.
+- [x] A consent-status endpoint returns server-derived required versions and exact acceptance state without shared caching.
+- [x] Acceptance validates an explicit confirmation, authorizes the current published version, is idempotent, and never accepts on behalf of another User.
+- [x] Customer, Seller, Logistics, and Courier auth/session owners integrate the approved gate without preventing policy viewing or acceptance.
+- [x] Webapp, dashboards, and the external Flutter client expose accessible latest/history/consent states and safe retry behavior.
+- [x] Tests cover public visibility, XSS-safe rendering, stale publication races, duplicate acceptance, role isolation, no-store personalized responses, and gate recovery.
 
 ## HOW
 
