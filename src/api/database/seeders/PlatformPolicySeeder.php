@@ -19,7 +19,7 @@ class PlatformPolicySeeder extends Seeder
     public function run(): void
     {
         if (app()->environment('production')) {
-            $this->command?->warn('Development placeholder policies were not seeded in production. Import approved policy content through the Platform Settings workflow.');
+            $this->command?->warn('Development fixture policies were not seeded in production. Import approved policy content through the Platform Settings workflow.');
 
             return;
         }
@@ -35,9 +35,15 @@ class PlatformPolicySeeder extends Seeder
             return;
         }
 
-        DB::transaction(function () use ($admin): void {
-            foreach ($this->definitions() as $definition) {
-                $this->seedDefinition($admin, $definition);
+        $definitionsByType = [];
+        foreach ($this->definitions() as $definition) {
+            $definitionsByType[$definition['type']->value][] = $definition;
+        }
+
+        DB::transaction(function () use ($admin, $definitionsByType): void {
+            foreach ($definitionsByType as $definitions) {
+                usort($definitions, fn (array $left, array $right): int => $left['version'] <=> $right['version']);
+                $this->seedPolicyDefinitions($admin, $definitions);
             }
         });
     }
@@ -53,6 +59,7 @@ class PlatformPolicySeeder extends Seeder
         }
 
         $definitions = [];
+        $seenVersions = [];
         foreach ($payload['policies'] as $definition) {
             if (! is_array($definition)) {
                 throw new InvalidArgumentException('Each platform policy fixture entry must be an object.');
@@ -72,6 +79,13 @@ class PlatformPolicySeeder extends Seeder
                 throw new InvalidArgumentException('Platform policy fixture entries require a positive version, title, and content.');
             }
 
+            $versionKey = $type->value.':'.$version;
+            if (isset($seenVersions[$versionKey])) {
+                throw new InvalidArgumentException("Platform policy fixture contains duplicate version {$versionKey}.");
+            }
+
+            $seenVersions[$versionKey] = true;
+
             $definitions[] = [
                 'type' => $type,
                 'version' => $version,
@@ -86,33 +100,41 @@ class PlatformPolicySeeder extends Seeder
         return $definitions;
     }
 
-    /** @param array{type: PlatformPolicyType, version: int, title: string, content: string, change_summary: ?string, requires_reconsent: bool, status: PlatformPolicyVersionStatus} $definition */
-    private function seedDefinition(User $admin, array $definition): void
+    /** @param list<array{type: PlatformPolicyType, version: int, title: string, content: string, change_summary: ?string, requires_reconsent: bool, status: PlatformPolicyVersionStatus}> $definitions */
+    private function seedPolicyDefinitions(User $admin, array $definitions): void
     {
-        $policy = PlatformPolicy::query()->firstOrCreate(['type' => $definition['type']->value]);
+        $type = $definitions[0]['type'];
+        $policy = PlatformPolicy::query()->firstOrCreate(['type' => $type->value]);
         $policy = PlatformPolicy::query()->whereKey($policy->id)->lockForUpdate()->firstOrFail();
 
         if ($policy->versions()->exists()) {
-            $this->command?->line("Skipped {$definition['type']->value}: existing policy versions were preserved.");
+            $this->command?->line("Skipped {$type->value}: existing policy versions were preserved.");
 
             return;
         }
 
-        $publishedAt = now();
-        $version = $policy->versions()->create([
-            'version' => $definition['version'],
-            'title' => $definition['title'],
-            'content' => $definition['content'],
-            'status' => $definition['status'],
-            'requires_reconsent' => $definition['requires_reconsent'],
-            'revision' => 1,
-            'created_by_admin_id' => $admin->id,
-            'published_by_admin_id' => $admin->id,
-            'published_at' => $publishedAt,
-            'change_summary' => $definition['change_summary'],
-        ]);
+        $previous = null;
+        foreach ($definitions as $definition) {
+            $version = $policy->versions()->create([
+                'version' => $definition['version'],
+                'title' => $definition['title'],
+                'content' => $definition['content'],
+                'status' => $definition['status'],
+                'requires_reconsent' => $definition['requires_reconsent'],
+                'revision' => 1,
+                'created_by_admin_id' => $admin->id,
+                'published_by_admin_id' => $admin->id,
+                'published_at' => now(),
+                'change_summary' => $definition['change_summary'],
+            ]);
 
-        $policy->update(['current_version_id' => $version->id]);
-        $this->command?->info("Seeded {$definition['type']->value} version {$definition['version']}.");
+            if ($previous) {
+                $previous->update(['status' => PlatformPolicyVersionStatus::Superseded]);
+            }
+
+            $policy->update(['current_version_id' => $version->id]);
+            $this->command?->info("Seeded {$definition['type']->value} version {$definition['version']}.");
+            $previous = $version;
+        }
     }
 }

@@ -16,7 +16,7 @@ class PlatformPolicySeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_development_fixture_seeds_each_policy_once_and_sets_the_current_published_version(): void
+    public function test_development_fixture_seeds_all_generic_versions_once_and_sets_the_latest_current_version(): void
     {
         $admin = User::factory()->create([
             'role' => UserRole::Admin,
@@ -26,17 +26,19 @@ class PlatformPolicySeederTest extends TestCase
         $this->seed(PlatformPolicySeeder::class);
 
         $this->assertDatabaseCount('platform_policies', 3);
-        $this->assertDatabaseCount('platform_policy_versions', 3);
+        $this->assertDatabaseCount('platform_policy_versions', 6);
 
         foreach (PlatformPolicyType::cases() as $type) {
             $policy = PlatformPolicy::query()->where('type', $type)->firstOrFail();
             $version = $policy->currentVersion()->firstOrFail();
 
-            $this->assertSame(1, $version->version);
+            $this->assertSame(2, $version->version);
             $this->assertSame(PlatformPolicyVersionStatus::Published, $version->status);
             $this->assertSame($admin->id, $version->created_by_admin_id);
             $this->assertSame($admin->id, $version->published_by_admin_id);
             $this->assertNotSame('', trim($version->content));
+
+            $this->assertSame(PlatformPolicyVersionStatus::Superseded, $policy->versions()->where('version', 1)->firstOrFail()->status);
         }
 
         $terms = PlatformPolicy::query()->where('type', PlatformPolicyType::TermsOfService)->firstOrFail();
@@ -45,7 +47,7 @@ class PlatformPolicySeederTest extends TestCase
         $this->seed(PlatformPolicySeeder::class);
 
         $this->assertDatabaseCount('platform_policies', 3);
-        $this->assertDatabaseCount('platform_policy_versions', 3);
+        $this->assertDatabaseCount('platform_policy_versions', 6);
         $this->assertSame('Manually edited development copy.', $terms->currentVersion()->firstOrFail()->content);
     }
 
