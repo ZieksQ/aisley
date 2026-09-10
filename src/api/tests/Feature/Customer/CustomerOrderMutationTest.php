@@ -88,6 +88,8 @@ class CustomerOrderMutationTest extends TestCase
             'change_type' => 'delivery_address',
         ]);
         $this->assertSame('123 Test Street', $order->addressVersions()->where('version', 1)->value('address_line_1'));
+        $this->assertFalse($order->address()->isOneOfMany());
+        $this->assertSame(2, $order->fresh()->address->version);
     }
 
     public function test_mutations_are_customer_scoped_and_reject_stale_or_forbidden_requests(): void
