@@ -80,13 +80,13 @@ class CustomerOrderStatusMapper
     /** @return array{canCancel: bool, canModify: bool, canReview: bool, modifiableFields: list<string>} */
     public function actions(OrderStatus $status): array
     {
+        $editable = $status === OrderStatus::Placed;
+
         return [
-            // The corresponding mutation features are not implemented yet. These
-            // must become true only when their authoritative services are present.
-            'canCancel' => false,
-            'canModify' => false,
+            'canCancel' => $editable,
+            'canModify' => $editable,
             'canReview' => $status === OrderStatus::Delivered,
-            'modifiableFields' => [],
+            'modifiableFields' => $editable ? ['delivery_address'] : [],
         ];
     }
 

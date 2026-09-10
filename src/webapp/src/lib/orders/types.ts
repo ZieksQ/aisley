@@ -133,6 +133,7 @@ export type OrderDetail = {
     currency: string;
   }>;
   deliveryAddress: {
+    version: number;
     recipientName: string;
     contactNumber: string;
     addressLine1: string;

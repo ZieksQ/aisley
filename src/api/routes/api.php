@@ -367,6 +367,12 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/orders/{order}/tracking', [OrderController::class, 'tracking'])
             ->whereUuid('order')
             ->name('orders.tracking');
+        Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])
+            ->whereUuid('order')
+            ->name('orders.cancel');
+        Route::patch('/orders/{order}/modification', [OrderController::class, 'modify'])
+            ->whereUuid('order')
+            ->name('orders.modify');
     });
 });
 

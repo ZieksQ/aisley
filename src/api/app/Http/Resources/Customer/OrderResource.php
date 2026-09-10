@@ -48,6 +48,7 @@ class OrderResource extends JsonResource
                 'currency' => $item->currency,
             ])->values(),
             'deliveryAddress' => [
+                'version' => $this->address->version,
                 'recipientName' => $this->address->recipient_name,
                 'contactNumber' => $this->address->contact_number,
                 'addressLine1' => $this->address->address_line_1,

@@ -59,7 +59,22 @@ class Order extends Model
 
     public function address(): HasOne
     {
-        return $this->hasOne(OrderAddress::class);
+        return $this->hasOne(OrderAddress::class)->latestOfMany('version');
+    }
+
+    public function addressVersions(): HasMany
+    {
+        return $this->hasMany(OrderAddress::class)->orderBy('version');
+    }
+
+    public function customerOrderCancellation(): HasOne
+    {
+        return $this->hasOne(CustomerOrderCancellation::class);
+    }
+
+    public function customerOrderModifications(): HasMany
+    {
+        return $this->hasMany(CustomerOrderModification::class);
     }
 
     public function statusEvents(): HasMany

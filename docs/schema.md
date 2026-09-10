@@ -116,8 +116,11 @@ erDiagram
     SHOPS o|--o{ VOUCHERS : issues
     USERS ||--o{ VOUCHER_REDEMPTIONS : redeems
     ORDERS ||--o{ ORDER_ITEMS : snapshots
-    ORDERS ||--|| ORDER_ADDRESSES : delivers_to
+    ORDERS ||--o{ ORDER_ADDRESSES : versions_delivery_to
     ORDERS ||--o{ ORDER_STATUS_EVENTS : records
+    ORDERS ||--o| CUSTOMER_ORDER_CANCELLATIONS : cancellation
+    ORDERS ||--o{ CUSTOMER_ORDER_MODIFICATIONS : address_changes
+    CUSTOMER_ORDER_MODIFICATIONS }o--|| ORDER_ADDRESSES : supersedes
     VOUCHERS ||--o{ ORDER_VOUCHERS : snapshots
     VOUCHERS ||--o{ VOUCHER_REDEMPTIONS : consumes
     ORDERS ||--o{ ORDER_VOUCHERS : applies
@@ -1001,9 +1004,11 @@ Each Shop group in a batch creates exactly one `orders` row. Orders reference th
 
 ### 9.13 `order_addresses` and `order_status_events`
 
-Every Order has one `order_addresses` delivery snapshot. It retains a nullable `source_address_id` for traceability and independently copies recipient/contact, address lines, barangay, city/municipality, province, region, postal code, country, and optional coordinates. Deleting or editing the Address Book source cannot change the snapshot. PSGC/manual address fields remain authoritative; optional coordinates come from the Customer's confirmed map pin, and provider identifiers or suggestion metadata are not authoritative address identity.
+Every Order starts with one `order_addresses` delivery snapshot at `version = 1`. Address correction appends a higher version rather than rewriting an earlier snapshot; the `Order::address()` relation resolves the latest version while `addressVersions` preserves the complete history. Each row retains a nullable `source_address_id` for traceability and independently copies recipient/contact, address lines, barangay, city/municipality, province, region, postal code, country, and optional coordinates. Deleting or editing the Address Book source cannot change any snapshot. PSGC/manual address fields remain authoritative; optional coordinates come from the Customer's confirmed map pin, and provider identifiers or suggestion metadata are not authoritative address identity.
 
 `order_status_events` is the UUID-backed status history. It stores nullable `from_status`, `to_status`, source, optional safe public JSON metadata, and server `occurred_at`. Placement creates the first `placed` event. Future fulfillment features must append validated transitions rather than rewrite history.
+
+`customer_order_cancellations` stores one immutable cancellation result per Order with the Customer, cancellation status event, optional reason, request hash, and Customer-scoped `idempotency_key`. `customer_order_modifications` stores each approved delivery-address change with the previous/new snapshot IDs, self-describing change type, status event, expected revision, request hash, and Customer-scoped idempotency key. These records are operational history, not mutable Order columns.
 
 `orders.status` remains the current high-level commercial/Customer-facing status. Until the deferred Shipment/Delivery Task schema exists, its Logistics-facing values have these meanings: `ready_for_pickup` means the Seller has completed preparation; `assigned` means Logistics has received and accepted the parcel at its sole hub; `picked_up` means the final-mile Courier has taken the parcel from that hub; `in_transit` and `out_for_delivery` describe the final-mile movement. Detailed first-mile and hub milestones must be stored in the future shipment/task records and must not be inferred from the current Order status alone. The Seller selects one eligible Logistics organization when requesting pickup for prepared Shop Orders; the committed organization is retained in fulfillment context and cannot be silently replaced.
 
@@ -1159,6 +1164,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 48. The Seller pickup-request transaction creates one immutable shared waybill per Order at `ready_for_pickup`. Its identifier, snapshot, selected Logistics organization, and Order/Parcel link do not change; later route, assignment, print, and scan activity appends events rather than overwriting history.
 49. Once the shared schema exists, a `ready_for_pickup` Order with a selected Logistics organization may have at most one active first-mile task; creation is authorized only to that organization and is idempotent across retries.
 50. The implemented waybill/schedule/first-mile assignment slice cannot write physical custody or Inventory effects. Shipment/Parcel milestones, physical Scan events, final-mile tasks, assignments beyond the approved first-mile schedule, and proof-of-delivery writes remain prohibited until their shared transition contract is approved and migrated.
+51. Customer Order mutations are scoped to owned `placed` COD Orders. Cancellation appends an immutable status/history record and releases only that Order's reservation once; delivery-address correction appends a versioned snapshot and never mutates the Address Book source. Item, quantity, voucher, shipping, repricing, and post-pickup changes remain deferred.
 
 ## 13. Migration order
 
@@ -1218,6 +1224,7 @@ Migrations currently run in this dependency order:
 52. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
 53. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
 54. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
+55. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
 
 ## 14. Deferred schema
 

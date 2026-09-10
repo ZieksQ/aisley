@@ -15,7 +15,7 @@ scope: Customer storefront and Laravel API
 
 - **Purpose:** Let an authenticated Customer list, inspect, and track only their own Shop Orders after checkout.
 - **Current implementation:** Paginated history, server-side group filters, Order detail, chronological tracking history, safe DTOs, private no-store responses, and the responsive `/orders` and `/orders/{order}` pages are implemented.
-- This feature is read-only. Customer pages never advance an Order, assign a Courier, scan a parcel, or choose a route.
+- This tracking projection is read-only. Customer pages never advance fulfillment, assign a Courier, scan a parcel, or choose a route; the narrowly scoped cancellation and delivery-address actions belong to Customer Order Modification and Cancellation.
 - Checkout creates `placed`; Seller Order Approval/Prepare Orders owns `seller_processing` and `ready_for_pickup`. Logistics and Courier operations are future owners of detailed physical milestones.
 - High-level `OrderStatus` values remain the compatibility contract. The Customer-facing **To Ship** tab is a label for Logistics-owned progress, not a new database status.
 - An Order from each Shop remains independently trackable even when several Orders share one checkout batch.
@@ -88,7 +88,7 @@ Account menu → Orders → paginated Customer-owned list
 - [x] `/orders` lists only the active Customer's Orders with All as the default and bounded server pagination.
 - [x] Tabs and labels come from the canonical mapper and include exceptional statuses.
 - [x] Detail and tracking endpoints enforce ownership and return safe immutable snapshots/events.
-- [x] Current map/action DTOs truthfully report unavailable map and disabled Customer mutation actions.
+- [x] Current map/action DTOs truthfully report unavailable map and server-derived Customer action capabilities; `placed` mutation capabilities are defined by Customer Order Modification and Cancellation.
 - [x] Responsive pages provide accessible loading, empty, error, retry, pagination, and status text states.
 - [ ] Logistics receipt, Shipment/Parcel/Waybill, Delivery Task, scan, assignment, live map, and final-mile events are implemented.
 
