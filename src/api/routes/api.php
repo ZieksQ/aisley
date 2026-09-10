@@ -277,6 +277,13 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
     Route::put('/account/password', [CourierAccountController::class, 'updatePassword'])
         ->middleware('throttle:courier-account-password')
         ->name('account.password.update');
+    Route::post('/account/profile-photo', [CourierAccountController::class, 'uploadProfilePhoto'])
+        ->middleware('throttle:courier-profile-photo')
+        ->name('account.profile-photo.update');
+    Route::get('/account/profile-photo', [CourierAccountController::class, 'profilePhoto'])
+        ->name('account.profile-photo.show');
+    Route::delete('/account/profile-photo', [CourierAccountController::class, 'removeProfilePhoto'])
+        ->name('account.profile-photo.destroy');
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
     Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');

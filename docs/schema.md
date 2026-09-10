@@ -251,6 +251,11 @@ Each profile has a UUID primary key and a unique UUID `user_id`, enforcing at mo
 | `sex`                | VARCHAR(32)     | No       | Cast to `UserSex`                           |
 | `birth_date`         | DATE            | No       | Source for the computed `age` accessor      |
 | `profile_photo_path` | VARCHAR(2048)   | Yes      | Blob-storage path                           |
+| `profile_photo_disk` | VARCHAR         | Yes      | Configured filesystem disk                  |
+| `profile_photo_mime` | VARCHAR(64)     | Yes      | Server-detected image MIME                  |
+| `profile_photo_size` | BIGINT          | Yes      | Image bytes                                 |
+| `profile_photo_width` | INTEGER        | Yes      | Image width in pixels                       |
+| `profile_photo_height` | INTEGER       | Yes      | Image height in pixels                      |
 | `created_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 | `updated_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 
@@ -260,7 +265,7 @@ Additional relationships:
 - `CourierProfile.vehicles` returns the Courier's registered vehicles.
 - Age is calculated from `birth_date`; it is not stored as a column.
 
-A Customer profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). `customer_profiles` additionally stores nullable `profile_photo_disk`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height` metadata alongside the generated relative `profile_photo_path`. The API never exposes these storage fields; authenticated delivery uses the current-Customer profile-photo endpoint with private, no-store response headers.
+A Customer, Seller, and Courier profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). Each profile table stores nullable `profile_photo_disk`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height` metadata alongside the generated relative `profile_photo_path`. The APIs never expose these storage fields; authenticated delivery uses each role's current-account profile-photo endpoint with private, no-store response headers. Courier photo metadata is added by `2026_09_10_000008_add_courier_profile_photo_metadata.php` without modifying the executed Courier-profile creation migration.
 
 #### `admin_profiles`
 
@@ -1211,6 +1216,8 @@ Migrations currently run in this dependency order:
 50. `2026_09_06_000004_create_seller_order_acceptances_table.php` — idempotent Seller Order acceptance history.
 51. `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php` — Seller rejection history and transitional grouped pickup requests.
 52. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
+53. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
+54. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
 
 ## 14. Deferred schema
 

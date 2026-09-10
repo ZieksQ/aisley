@@ -26,7 +26,9 @@ class CourierAccountResource extends JsonResource
                 'sex' => $profile?->sex?->value,
                 'birth_date' => $profile?->birth_date?->toDateString(),
                 'age' => $profile?->age,
-                'profile_photo_url' => null,
+                'profile_photo_url' => $profile?->profile_photo_disk && $profile->profile_photo_path
+                    ? '/api/v1/courier/account/profile-photo?v='.$profile->updated_at?->getTimestamp()
+                    : null,
             ],
             'affiliation' => [
                 'status' => $affiliation?->status?->value,
@@ -35,7 +37,7 @@ class CourierAccountResource extends JsonResource
             ],
             'security' => [
                 'email_editable' => false,
-                'profile_photo_editable' => false,
+                'profile_photo_editable' => true,
                 'password_change_requires_current_password' => true,
             ],
         ];

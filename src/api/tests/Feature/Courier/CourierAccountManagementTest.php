@@ -9,12 +9,21 @@ use App\Enums\UserSex;
 use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CourierAccountManagementTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('courier-profile-test');
+        config()->set('filesystems.default', 'courier-profile-test');
+    }
 
     public function test_only_an_active_approved_courier_can_read_their_private_account(): void
     {
@@ -48,7 +57,7 @@ class CourierAccountManagementTest extends TestCase
             ->assertJsonPath('account.affiliation.organization_name', 'Aisley Delivery Services')
             ->assertJsonPath('account.affiliation.hub_name', 'Aisley operational hub')
             ->assertJsonPath('account.security.email_editable', false)
-            ->assertJsonPath('account.security.profile_photo_editable', false)
+            ->assertJsonPath('account.security.profile_photo_editable', true)
             ->assertJsonPath('account.security.password_change_requires_current_password', true)
             ->assertJsonPath('account.profile.profile_photo_url', null)
             ->assertJsonMissingPath('account.password')
@@ -244,6 +253,166 @@ class CourierAccountManagementTest extends TestCase
         ])->assertTooManyRequests()->assertHeader('Retry-After');
     }
 
+    public function test_courier_can_upload_replace_view_and_remove_a_private_profile_photo(): void
+    {
+        $courier = $this->courier();
+
+        $firstResponse = $this->actingAs($courier)
+            ->post('/api/v1/courier/account/profile-photo', [
+                'photo' => $this->image('avatar.png'),
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('message', 'Profile photo updated successfully.')
+            ->assertJsonPath('account.security.profile_photo_editable', true);
+
+        $url = (string) $firstResponse->json('account.profile.profile_photo_url');
+        $this->assertStringStartsWith('/api/v1/courier/account/profile-photo?v=', $url);
+        $encoded = json_encode($firstResponse->json(), JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('courier-profile-photos/', $encoded);
+        $this->assertStringNotContainsString('courier-profile-test', $encoded);
+
+        $profile = $courier->courierProfile->fresh();
+        $this->assertSame('courier-profile-test', $profile->profile_photo_disk);
+        $this->assertSame('image/png', $profile->profile_photo_mime);
+        $this->assertSame(1, $profile->profile_photo_width);
+        $this->assertSame(1, $profile->profile_photo_height);
+        $this->assertMatchesRegularExpression(
+            '#^courier-profile-photos/'.preg_quote($courier->id, '#').'/[0-9a-f-]+\.png$#',
+            $profile->profile_photo_path,
+        );
+        Storage::disk('courier-profile-test')->assertExists($profile->profile_photo_path);
+        $oldPath = $profile->profile_photo_path;
+
+        $this->get('/api/v1/courier/account/profile-photo')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png')
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertHeader('Pragma', 'no-cache')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('replacement.png'),
+        ], ['Accept' => 'application/json'])->assertOk();
+
+        $replacementPath = $profile->fresh()->profile_photo_path;
+        $this->assertNotSame($oldPath, $replacementPath);
+        Storage::disk('courier-profile-test')->assertMissing($oldPath);
+        Storage::disk('courier-profile-test')->assertExists($replacementPath);
+
+        $this->deleteJson('/api/v1/courier/account/profile-photo')
+            ->assertOk()
+            ->assertJsonPath('account.profile.profile_photo_url', null);
+        Storage::disk('courier-profile-test')->assertMissing($replacementPath);
+        $this->assertDatabaseHas('courier_profiles', [
+            'user_id' => $courier->id,
+            'profile_photo_disk' => null,
+            'profile_photo_path' => null,
+            'profile_photo_mime' => null,
+            'profile_photo_size' => null,
+            'profile_photo_width' => null,
+            'profile_photo_height' => null,
+        ]);
+        $this->get('/api/v1/courier/account/profile-photo')->assertNotFound();
+        $this->deleteJson('/api/v1/courier/account/profile-photo')->assertOk();
+    }
+
+    public function test_profile_photo_is_private_to_the_authenticated_active_courier(): void
+    {
+        $owner = $this->courier();
+        $other = $this->courier('other-courier@example.com');
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('guest.png'),
+        ], ['Accept' => 'application/json'])->assertUnauthorized();
+
+        $this->actingAs($owner)->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('owner.png'),
+        ], ['Accept' => 'application/json'])->assertOk();
+        $ownerPath = $owner->courierProfile->fresh()->profile_photo_path;
+
+        $this->actingAs($other)->get('/api/v1/courier/account/profile-photo')->assertNotFound();
+        $other->update(['status' => UserStatus::Suspended]);
+        $this->actingAs($other)->get('/api/v1/courier/account/profile-photo')->assertForbidden();
+        Storage::disk('courier-profile-test')->assertExists($ownerPath);
+    }
+
+    public function test_profile_photo_rejects_corrupt_spoofed_double_extension_and_size_boundary_files(): void
+    {
+        $courier = $this->courier();
+        $this->actingAs($courier);
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => UploadedFile::fake()->createWithContent('avatar.png', 'not-an-image'),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('avatar.safe.png'),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('avatar.jpg'),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => UploadedFile::fake()->create('avatar.png', 10 * 1024, 'image/png'),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('valid.png'),
+            'user_id' => User::factory()->create()->id,
+            'profile_photo_disk' => 'azure',
+            'profile_photo_path' => 'forged/path.png',
+        ], ['Accept' => 'application/json'])->assertUnprocessable()
+            ->assertJsonValidationErrors(['user_id', 'profile_photo_disk', 'profile_photo_path']);
+
+        $this->assertDatabaseMissing('courier_profiles', [
+            'user_id' => $courier->id,
+            'profile_photo_disk' => 'courier-profile-test',
+        ]);
+    }
+
+    public function test_profile_photo_accepts_valid_formats_and_the_strict_under_limit_boundary(): void
+    {
+        $courier = $this->courier();
+        $this->actingAs($courier);
+
+        foreach ([
+            ['avatar.jpeg', $this->jpegBytes(), 'image/jpeg'],
+            ['avatar.png', $this->imageBytes(), 'image/png'],
+            ['avatar.webp', $this->webpBytes(), 'image/webp'],
+        ] as [$name, $bytes, $mime]) {
+            $this->post('/api/v1/courier/account/profile-photo', [
+                'photo' => UploadedFile::fake()->createWithContent($name, $bytes),
+            ], ['Accept' => 'application/json'])->assertOk();
+
+            $this->assertSame($mime, $courier->courierProfile->fresh()->profile_photo_mime);
+        }
+
+        $image = $this->imageBytes();
+        $image .= str_repeat("\0", (10 * 1024 * 1024) - strlen($image) - 1);
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => UploadedFile::fake()->createWithContent('boundary.png', $image),
+        ], ['Accept' => 'application/json'])->assertOk();
+        $this->assertSame((10 * 1024 * 1024) - 1, $courier->courierProfile->fresh()->profile_photo_size);
+    }
+
+    public function test_profile_photo_upload_is_rate_limited(): void
+    {
+        $courier = $this->courier();
+        $this->actingAs($courier);
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->post('/api/v1/courier/account/profile-photo', [
+                'photo' => $this->image("avatar-{$attempt}.png"),
+            ], ['Accept' => 'application/json'])->assertOk();
+        }
+
+        $this->post('/api/v1/courier/account/profile-photo', [
+            'photo' => $this->image('limited.png'),
+        ], ['Accept' => 'application/json'])->assertTooManyRequests()->assertHeader('Retry-After');
+    }
+
     private function courier(string $email = 'courier@example.com', UserStatus $status = UserStatus::Active): User
     {
         $logistics = User::factory()->create([
@@ -300,5 +469,34 @@ class CourierAccountManagementTest extends TestCase
         ]);
 
         return $courier;
+    }
+
+    private function image(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, $this->imageBytes());
+    }
+
+    private function imageBytes(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+            true,
+        );
+    }
+
+    private function jpegBytes(): string
+    {
+        return base64_decode(
+            '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPxB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPxB//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxB//9k=',
+            true,
+        );
+    }
+
+    private function webpBytes(): string
+    {
+        return base64_decode(
+            'UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA',
+            true,
+        );
     }
 }
