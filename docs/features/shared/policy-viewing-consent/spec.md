@@ -3,8 +3,8 @@ feature: policy-viewing-consent
 title: Platform Policy Viewing and Version-Specific Consent
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Public policy API implemented; user UI and consent integration deferred
+version: 1.1
+status: Phase 1 implemented — public policy viewing is available; consent matrix, endpoints, and enforcement remain deferred
 roles: Guest, Customer, Seller, Admin, Logistics, Courier
 scope: Laravel API, Customer storefront, role dashboards, and external Courier Flutter client
 canonical: true
@@ -17,7 +17,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Let people read the current Terms of Service and Privacy Policy, inspect published history, and—after the policy matrix is approved—record explicit acceptance of the exact versions required for their role.
 - **Ownership:** Admin Manage Platform Settings authors, versions, publishes, and preserves policy content. This feature consumes those published records and owns user-facing reads, acceptance status, and integration contracts; it does not edit policy text.
-- **Current baseline:** Laravel already exposes public current/history reads for Terms and Privacy, and `policy_acceptances` stores immutable user/version/timestamp rows. Consent status, acceptance endpoints, visible non-Admin pages, and enforcement are not complete.
+- **Current baseline:** Laravel exposes public current/history reads for Terms and Privacy, the webapp provides current/history/exact-version pages, and role dashboards link to those public pages. `policy_acceptances` stores immutable user/version/timestamp rows, but consent status, acceptance endpoints, and enforcement remain deferred.
 - **Audience:** Guests may read public Terms and Privacy. Authenticated Customer, Seller, Logistics, and Courier clients may read any policy allowed for their role. Internal Platform Rules remain non-public unless an explicit audience is approved.
 - **Product rule:** A policy version is identified by its stable policy type and integer version. Ordinary views show only the current published version; history is a separate view.
 - **Non-goals:** Admin policy authoring, legal advice, automatic acceptance, editing published rows, Internal Rules publication, subscription consent, marketing preferences, email/push delivery, or a Courier web UI.
@@ -88,7 +88,7 @@ public current policy/history read
 
 ### Client behavior
 
-- Webapp and dashboards provide a visible Terms/Privacy link, latest-version page, separate history list, exact historical page, loading, empty, not-found, offline, retry, and safe-rendering states.
+- Webapp and dashboards provide a visible Terms/Privacy link, latest-version page, separate history list, exact historical page, loading, empty, not-found, offline/error, retry, and safe-rendering states. The public API and server-rendered webapp pages remain available without inventing a consent gate.
 - Public pages use semantic headings, keyboard-accessible history links, visible focus, readable contrast, stable URLs, and SSR/metadata where the host app's design contract allows it.
 - A consent prompt shows the complete current policy, exact version, change summary when available, an unchecked explicit confirmation, and a link to history. No optimistic success is shown before the API response.
 - Preserve a user's location and non-secret form state across a recoverable read/acceptance error, but never store tokens or trusted consent in browser storage.
@@ -99,16 +99,17 @@ public current policy/history read
 - [x] Public current Terms/Privacy reads return only the current published version and reject Internal Rules.
 - [x] Public history lists and exact-version reads exclude Drafts and preserve published/superseded content.
 - [x] The existing schema records immutable exact User/version/timestamp acceptance rows with a uniqueness guard.
-- [x] A cross-role policy matrix names required policies, audiences, initial acceptance, re-consent, and blocking points.
-- [x] A consent-status endpoint returns server-derived required versions and exact acceptance state without shared caching.
-- [x] Acceptance validates an explicit confirmation, authorizes the current published version, is idempotent, and never accepts on behalf of another User.
-- [x] Customer, Seller, Logistics, and Courier auth/session owners integrate the approved gate without preventing policy viewing or acceptance.
-- [x] Webapp, dashboards, and the external Flutter client expose accessible latest/history/consent states and safe retry behavior.
-- [x] Tests cover public visibility, XSS-safe rendering, stale publication races, duplicate acceptance, role isolation, no-store personalized responses, and gate recovery.
+- [ ] A cross-role policy matrix names required policies, audiences, initial acceptance, re-consent, and blocking points.
+- [ ] A consent-status endpoint returns server-derived required versions and exact acceptance state without shared caching.
+- [ ] Acceptance validates an explicit confirmation, authorizes the current published version, is idempotent, and never accepts on behalf of another User.
+- [ ] Customer, Seller, Logistics, and Courier auth/session owners integrate the approved gate without preventing policy viewing or acceptance.
+- [x] Webapp exposes accessible latest/history/exact-version pages with loading, empty, not-found, retry, and safe plain-text rendering states; Seller, Admin, and Logistics dashboards expose Terms/Privacy links to the webapp. Courier remains an external Flutter client.
+- [x] Backend tests cover public visibility, cache headers, history filtering, exact-version reads, and Internal Rules exclusion.
 
 ## HOW
 
 - Reuse `PlatformPolicy`, `PlatformPolicyVersion`, `PolicyAcceptance`, `PlatformContentController`, existing public resources, and the current policy cache keys. Do not duplicate Admin CRUD or introduce a second policy table.
+- Phase 1 implementation adds cache-control headers to the public reads, server-rendered webapp routes under `/policies/{type}`, `/policies/{type}/history`, and `/policies/{type}/history/{version}`, plus dashboard links configured with `VITE_STOREFRONT_URL`.
 - Add a shared `PolicyConsentService`, status/acceptance resources, Form Request, and controller only after the matrix is approved. Keep role-specific middleware and auth integrations in their owning namespaces.
 - Use a transaction with a unique User/version guard for acceptance; use row locks or an equivalent conflict check when resolving the current version. Add a migration only for an approved missing field; existing acceptance storage is sufficient for post-registration consent.
 - Keep public current/history reads cacheable by policy type and keep status/acceptance responses private. Invalidate current-policy cache after Admin publication commits.
@@ -122,7 +123,7 @@ public current policy/history read
 - Are Terms and Privacy public for guests in every environment, and which roles may ever read Internal Rules?
 - Which owning feature maintains the consent-status/acceptance endpoints and gate response status codes?
 - Should policy change summaries trigger an in-app, email, or push notice, and what retention applies?
-- Which webapp/dashboard routes and Flutter navigation entry point host policy pages?
+- The webapp owns public policy pages at `/policies/{type}` and its history routes; Seller, Admin, and Logistics dashboards link there. The Courier Flutter navigation entry point remains to be defined with the external client.
 
 ### References
 

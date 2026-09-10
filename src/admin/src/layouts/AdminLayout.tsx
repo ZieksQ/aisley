@@ -19,6 +19,8 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import { AdminAvatar } from '../components/AdminAvatar'
 import { AdminNotificationBell } from '../components/AdminNotificationBell'
 
+const storefrontUrl = (import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${
     isActive
@@ -162,6 +164,10 @@ export function AdminLayout() {
             <FaArrowRightFromBracket aria-hidden="true" />
             {isSigningOut ? 'Signing out…' : 'Sign out'}
           </button>
+          <nav aria-label="Policy links" className="mt-3 flex gap-3 border-t border-slate-200 px-2 pt-3 text-xs text-slate-400 dark:border-white/10 dark:text-purple-100/45">
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/terms_of_service`} rel="noreferrer" target="_blank">Terms</a>
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/privacy_policy`} rel="noreferrer" target="_blank">Privacy</a>
+          </nav>
         </div>
       </aside>
 

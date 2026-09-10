@@ -104,7 +104,11 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </main>
 
         <footer className="px-5 pb-6 text-center text-xs leading-5 text-[#807484] sm:px-8 lg:px-10 xl:px-16">
-          Secure customer access powered by Aisley.
+          <p>Secure customer access powered by Aisley.</p>
+          <nav aria-label="Policy links" className="mt-2 flex justify-center gap-3">
+            <Link className="hover:text-[#4C1268]" href="/policies/terms_of_service">Terms</Link>
+            <Link className="hover:text-[#4C1268]" href="/policies/privacy_policy">Privacy</Link>
+          </nav>
         </footer>
       </div>
     </div>

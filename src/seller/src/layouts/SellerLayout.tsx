@@ -18,6 +18,8 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import { SellerAvatar } from '../components/SellerAvatar'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 
+const storefrontUrl = (import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
     isActive
@@ -129,6 +131,10 @@ export function SellerLayout() {
             <FaArrowRightFromBracket aria-hidden="true" />
             {isSigningOut ? 'Signing out…' : 'Sign out'}
           </button>
+          <nav aria-label="Policy links" className="mt-3 flex gap-3 border-t border-zinc-200 px-2 pt-3 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-500">
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/terms_of_service`} rel="noreferrer" target="_blank">Terms</a>
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/privacy_policy`} rel="noreferrer" target="_blank">Privacy</a>
+          </nav>
         </div>
       </aside>
 
