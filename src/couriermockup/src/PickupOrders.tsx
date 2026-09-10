@@ -2,6 +2,7 @@ import type { IScannerControls } from '@zxing/browser'
 import { Button, TextField } from '@aisley/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from './lib/api'
+import { PickupRouteMap } from './PickupRouteMap'
 import type { FirstMileTask, FirstMileTaskListResponse, PickupConfirmationResponse } from './types'
 
 type IdentifierType = 'qr' | 'order_id'
@@ -54,6 +55,12 @@ export function PickupOrders({ token }: { token: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerControlsRef = useRef<IScannerControls | null>(null)
   const selected = tasks.find((task) => task.id === selectedId) ?? null
+  const schedules = Array.from(tasks.reduce((groups, task) => {
+    const group = groups.get(task.schedule.id) ?? []
+    group.push(task)
+    groups.set(task.schedule.id, group)
+    return groups
+  }, new Map<string, FirstMileTask[]>()).entries())
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -172,13 +179,23 @@ export function PickupOrders({ token }: { token: string }) {
 
       {tasks.length > 0 ? (
         <div className="pickup-layout">
-          <ul className="task-list" aria-label="Pickup tasks">
-            {tasks.map((task) => (
-              <li key={task.id}>
-                <button aria-current={selectedId === task.id ? 'true' : undefined} className="task-row" onClick={() => chooseTask(task)} type="button">
-                  <span><strong>{task.order.reference}</strong><span>{task.pickup?.shop_name ?? 'Seller pickup'}</span></span>
-                  <span><span>{formatManila(task.schedule.starts_at)} PHT</span><span>{task.status.replaceAll('_', ' ')}</span></span>
-                </button>
+          <ul className="task-list" aria-label="Pickup schedules and parcels">
+            {schedules.map(([scheduleId, scheduleTasks]) => (
+              <li className="schedule-group" key={scheduleId}>
+                <div className="schedule-group-header">
+                  <strong>{scheduleTasks[0].schedule.reference}</strong>
+                  <span>{scheduleTasks.length} parcel{scheduleTasks.length === 1 ? '' : 's'} · {formatManila(scheduleTasks[0].schedule.starts_at)} PHT</span>
+                </div>
+                <ul>
+                  {scheduleTasks.map((task) => (
+                    <li key={task.id}>
+                      <button aria-current={selectedId === task.id ? 'true' : undefined} className="task-row" onClick={() => chooseTask(task)} type="button">
+                        <span><strong>{task.order.reference}</strong><span>{task.pickup?.shop_name ?? 'Seller pickup'}</span></span>
+                        <span>{task.status.replaceAll('_', ' ')}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>
@@ -195,6 +212,8 @@ export function PickupOrders({ token }: { token: string }) {
                 <div><dt>Destination area</dt><dd>{selected.destination_area ? `${selected.destination_area.city_municipality}, ${selected.destination_area.province}` : '—'}</dd></div>
                 <div><dt>Status</dt><dd>{selected.status.replaceAll('_', ' ')}</dd></div>
               </dl>
+
+              <PickupRouteMap scheduleId={selected.schedule.id} token={token} />
 
               {selected.status === 'assigned' ? (
                 <Button className="min-h-11 rounded-md px-4 shadow-none" isLoading={busy === 'accept'} loadingLabel="Accepting" onClick={() => void acceptTask()} variant="secondary">Accept task</Button>

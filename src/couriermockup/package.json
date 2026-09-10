@@ -12,6 +12,7 @@
   "dependencies": {
     "@aisley/ui": "workspace:*",
     "@zxing/browser": "^0.2.1",
+    "maplibre-gl": "^6.9.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

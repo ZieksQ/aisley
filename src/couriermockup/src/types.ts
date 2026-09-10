@@ -135,6 +135,68 @@ export interface PickupConfirmationResponse {
   }
 }
 
+export interface PickupRouteStop {
+  sequence: number
+  node_id: string
+  kind: 'hub' | 'pickup'
+  address_summary: string
+  latitude: number
+  longitude: number
+  coordinate_source: 'exact' | 'address_default'
+  leg_distance_metres: number | null
+  leg_duration_seconds: number | null
+  reachable: boolean
+  tasks: Array<{
+    task_id: string
+    order_id: string
+    order_reference: string
+    waybill_reference: string
+  }>
+}
+
+export interface PickupRouteManifest {
+  status: 'pending' | 'ready' | 'unavailable'
+  schedule: {
+    id: string
+    reference: string
+    starts_at: string
+    ends_at: string
+    timezone: 'UTC'
+    order_count: number
+  }
+  revision: number
+  coordinate_source: 'exact' | 'address_default' | 'mixed' | null
+  summary: {
+    pickup_stop_count: number
+    parcel_count: number
+    unreachable_stop_count: number
+    distance_metres: number | null
+    duration_seconds: number | null
+    estimated_credits: number
+    heuristic: 'nearest_next_stop'
+    returns_to_hub: true
+  }
+  stops: PickupRouteStop[]
+  geojson: {
+    type: 'FeatureCollection'
+    features: Array<{
+      type: 'Feature'
+      geometry: { type: 'Point' | 'LineString'; coordinates: number[] | number[][] }
+      properties: Record<string, string | number | boolean>
+    }>
+  } | null
+  calculated_at: string | null
+  reason: string | null
+  map: {
+    style_url: string
+    attribution: string[]
+  }
+}
+
+export interface PickupRouteManifestResponse {
+  data: PickupRouteManifest
+}
+
 export interface ApiErrorPayload {
   code?: string
   message?: string

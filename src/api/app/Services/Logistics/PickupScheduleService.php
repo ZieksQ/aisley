@@ -4,11 +4,14 @@ namespace App\Services\Logistics;
 
 use App\Enums\CourierAffiliationStatus;
 use App\Enums\FirstMileTaskStatus;
+use App\Enums\PickupRouteManifestStatus;
 use App\Enums\PickupScheduleStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Logistics\LogisticsPickupException;
+use App\Jobs\BuildPickupRouteManifestJob;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\LogisticsOrganization;
+use App\Models\PickupRouteManifest;
 use App\Models\PickupSchedule;
 use App\Models\PickupScheduleHistory;
 use App\Models\SellerPickupRequest;
@@ -63,9 +66,11 @@ class PickupScheduleService
                     $schedule->orders()->create(['seller_pickup_request_id' => $link->seller_pickup_request_id, 'order_id' => $link->order_id]);
                     $schedule->tasks()->create(['order_id' => $link->order_id, 'waybill_id' => $link->order->waybill->id, 'logistics_organization_id' => $org->id, 'logistics_hub_id' => $org->hub->id, 'courier_id' => $data['courier_id']]);
                 }
+                PickupRouteManifest::create(['pickup_schedule_id' => $schedule->id, 'schedule_revision' => $schedule->revision, 'status' => PickupRouteManifestStatus::Pending]);
                 $this->history($schedule, $logistics, 'created', null, $this->state($schedule), null);
                 $this->refreshPickupStatuses($schedule->orders()->pluck('seller_pickup_request_id')->unique()->all());
                 $this->replaceReminder($schedule);
+                DB::afterCommit(fn () => BuildPickupRouteManifestJob::dispatch($schedule->id, $schedule->revision));
                 DB::afterCommit(fn () => $this->notify($schedule, 'assigned'));
 
                 return $schedule->load(['orders', 'tasks']);
@@ -98,8 +103,10 @@ class PickupScheduleService
             $this->assertNoCourierConflict($courierId, $starts, $ends, $schedule->id);
             $schedule->update(['courier_id' => $courierId, 'starts_at' => $starts, 'ends_at' => $ends, 'revision' => $schedule->revision + 1]);
             $schedule->tasks()->update(['courier_id' => $courierId]);
+            PickupRouteManifest::create(['pickup_schedule_id' => $schedule->id, 'schedule_revision' => $schedule->revision, 'status' => PickupRouteManifestStatus::Pending]);
             $this->history($schedule, $logistics, 'revised', $before, $this->state($schedule), $data['reason']);
             $this->replaceReminder($schedule);
+            DB::afterCommit(fn () => BuildPickupRouteManifestJob::dispatch($schedule->id, $schedule->revision));
             DB::afterCommit(fn () => $this->notify($schedule, 'revised'));
 
             return $schedule->fresh(['orders', 'tasks']);
@@ -120,6 +127,13 @@ class PickupScheduleService
             $before = $this->state($schedule);
             $schedule->update(['status' => PickupScheduleStatus::Cancelled, 'revision' => $schedule->revision + 1]);
             $schedule->tasks()->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted])->update(['status' => FirstMileTaskStatus::Cancelled]);
+            PickupRouteManifest::create([
+                'pickup_schedule_id' => $schedule->id,
+                'schedule_revision' => $schedule->revision,
+                'status' => PickupRouteManifestStatus::Unavailable,
+                'failure_reason' => 'schedule_unavailable',
+                'calculated_at' => now(),
+            ]);
             $schedule->reminders()->where('status', 'pending')->update(['status' => 'suppressed']);
             $this->refreshPickupStatuses($schedule->orders()->pluck('seller_pickup_request_id')->unique()->all());
             $this->history($schedule, $logistics, 'cancelled', $before, $this->state($schedule), $data['reason']);
