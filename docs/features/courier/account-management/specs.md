@@ -9,7 +9,7 @@ implementation_status: implemented; three protected Courier account-management r
 canonical: true
 role: Courier / Rider
 scope: Laravel API plus external Flutter mobile client
-backend_contract_commit: 678618b (Courier account-management API implementation)
+backend_contract_commit: 555567d (Courier account-management API implementation)
 backend_contract_version: courier-account-management-v1 (implemented)
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md
 ---
@@ -17,7 +17,6 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 # Courier Account Management
 
 ## WHAT
-
 - Purpose: let an authenticated Courier view and maintain the safe, personal account information needed by the Flutter app.
 - Primary actor: the Courier whose identity is derived from the Sanctum bearer token.
 - Phase 1 scope: own-account read, basic profile updates, and password change.
@@ -39,16 +38,13 @@ Account Management begins only after Courier access is active. It does not appro
 Phase 1 deliberately excludes vehicle mutations, license information, payout methods, profile-photo upload, email changes, account deletion, availability, and delivery operations. Those areas need separate authority, storage, or policy decisions.
 
 Non-goals:
-
 - No Courier web or React UI in this repository; screens belong to the external Flutter project.
 - No Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, proof, route, or order-status writes.
 - No self-service role, status, reviewer, organization, or hub changes.
 - No payment, payout execution, license-government lookup, 2FA, SMS, Push, or map provider.
 
 ## MUST
-
 ### Authentication and ownership
-
 - Every Phase 1 endpoint requires auth:sanctum and courier.active.
 - The server must recheck the persisted courier role, active user status, approved affiliation, active Logistics owner, and valid sole hub.
 - Flutter sends Authorization: Bearer token; it does not send cookies or CSRF tokens for this feature.
@@ -58,7 +54,6 @@ Non-goals:
 - Failed authorization must make no mutation and must not disclose another account.
 
 ### Phase 1 profile contract
-
 - Editable profile fields are first_name, middle_name, last_name, and contact_number only.
 - Names are trimmed; an empty optional middle_name is normalized to null.
 - Required names remain non-empty strings with the existing profile length limits.
@@ -70,7 +65,6 @@ Non-goals:
 - The update is transactional, locks the authenticated Courier profile, and returns the post-commit account projection.
 
 ### Password security
-
 - Password change requires current_password, password, and password_confirmation.
 - The backend verifies current_password and applies the centralized Laravel password policy.
 - Password fields, hashes, reset values, and tokens never appear in responses, logs, audit metadata, or Flutter state.

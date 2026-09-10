@@ -150,6 +150,28 @@ class CourierAccountManagementTest extends TestCase
             ->assertJsonValidationErrors('contact_number');
     }
 
+    public function test_serialized_profile_writes_return_the_latest_projection_and_preserve_other_fields(): void
+    {
+        $courier = $this->courier();
+
+        $this->actingAs($courier)
+            ->patchJson('/api/v1/courier/account/profile', ['first_name' => 'First committed'])
+            ->assertOk()
+            ->assertJsonPath('account.profile.first_name', 'First committed')
+            ->assertJsonPath('account.profile.last_name', 'Rider');
+
+        $this->patchJson('/api/v1/courier/account/profile', ['last_name' => 'Second committed'])
+            ->assertOk()
+            ->assertJsonPath('account.profile.first_name', 'First committed')
+            ->assertJsonPath('account.profile.last_name', 'Second committed');
+
+        $this->assertDatabaseHas('courier_profiles', [
+            'user_id' => $courier->id,
+            'first_name' => 'First committed',
+            'last_name' => 'Second committed',
+        ]);
+    }
+
     public function test_password_change_requires_current_password_and_revokes_every_token(): void
     {
         $courier = $this->courier();

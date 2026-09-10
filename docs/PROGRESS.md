@@ -28,3 +28,7 @@ Format:
 - Revised the Customer Recently Viewed Items specification to `Implemented (Phase 1)`, documenting the existing API, guest storage/merge behavior, Product Detail recording, homepage and Account integrations, focused coverage, and deferred enhancements. No runtime behavior or migrations changed.
 - Clarified the canonical-document hierarchy for Courier specifications and removed stale `docs/order-logistics-flow-decisions.md` prerequisite/reference links; the worksheet remains background history only. No runtime behavior or migrations changed.
 - Clarified in Courier Account Management that profile-photo work must inherit the shared file-upload contract and define only Courier-specific behavior. No runtime behavior or migrations changed.
+
+## 2026-09-10
+
+- Synchronized the Courier Account Management implementation with the revised 230-line contract, corrected its implementation commit reference, and added regression coverage proving successive transactional profile writes return the latest full projection while preserving untouched fields. The focused account suite passes 9 tests/91 assertions; the complete Courier suite passes 14 tests/135 assertions. No new endpoint, migration, or Courier UI was added.
