@@ -11,11 +11,11 @@ class FirstMileTask extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['pickup_schedule_id', 'order_id', 'waybill_id', 'logistics_organization_id', 'logistics_hub_id', 'courier_id', 'status', 'accepted_at'];
+    protected $fillable = ['pickup_schedule_id', 'order_id', 'waybill_id', 'logistics_organization_id', 'logistics_hub_id', 'courier_id', 'status', 'accepted_at', 'picked_up_at'];
 
     protected function casts(): array
     {
-        return ['status' => FirstMileTaskStatus::class, 'accepted_at' => 'datetime'];
+        return ['status' => FirstMileTaskStatus::class, 'accepted_at' => 'datetime', 'picked_up_at' => 'datetime'];
     }
 
     public function schedule(): BelongsTo

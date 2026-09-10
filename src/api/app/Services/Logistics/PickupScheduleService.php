@@ -86,6 +86,9 @@ class PickupScheduleService
             if ($schedule->status !== PickupScheduleStatus::Scheduled || $schedule->starts_at->isPast() || $schedule->revision !== (int) $data['expected_revision']) {
                 throw new LogisticsPickupException('SCHEDULE_STALE', 'The schedule can no longer be revised with that revision.');
             }
+            if ($schedule->tasks()->where('status', '!=', FirstMileTaskStatus::Assigned)->lockForUpdate()->exists()) {
+                throw new LogisticsPickupException('SCHEDULE_CUSTODY_STARTED', 'An accepted or picked-up schedule can no longer be revised.');
+            }
             $before = $this->state($schedule);
             $starts = isset($data['starts_at']) ? CarbonImmutable::parse($data['starts_at'])->utc() : $schedule->starts_at->toImmutable();
             $ends = isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc() : $schedule->ends_at->toImmutable();
@@ -111,9 +114,12 @@ class PickupScheduleService
             if ($schedule->status !== PickupScheduleStatus::Scheduled || $schedule->starts_at->isPast() || $schedule->revision !== (int) $data['expected_revision']) {
                 throw new LogisticsPickupException('SCHEDULE_STALE', 'The schedule can no longer be cancelled with that revision.');
             }
+            if ($schedule->tasks()->where('status', FirstMileTaskStatus::PickedUp)->lockForUpdate()->exists()) {
+                throw new LogisticsPickupException('SCHEDULE_CUSTODY_STARTED', 'A schedule with a picked-up parcel can no longer be cancelled.');
+            }
             $before = $this->state($schedule);
             $schedule->update(['status' => PickupScheduleStatus::Cancelled, 'revision' => $schedule->revision + 1]);
-            $schedule->tasks()->update(['status' => FirstMileTaskStatus::Cancelled]);
+            $schedule->tasks()->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted])->update(['status' => FirstMileTaskStatus::Cancelled]);
             $schedule->reminders()->where('status', 'pending')->update(['status' => 'suppressed']);
             $this->refreshPickupStatuses($schedule->orders()->pluck('seller_pickup_request_id')->unique()->all());
             $this->history($schedule, $logistics, 'cancelled', $before, $this->state($schedule), $data['reason']);

@@ -287,6 +287,7 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
     Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');
+    Route::post('/first-mile-tasks/{task}/pickup', [FirstMileTaskController::class, 'pickup'])->whereUuid('task')->name('first-mile-tasks.pickup');
     Route::post('/waybills/resolve', [FirstMileTaskController::class, 'resolveWaybill'])->middleware('throttle:60,1')->name('waybills.resolve');
 });
 

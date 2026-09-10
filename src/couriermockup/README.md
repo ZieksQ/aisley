@@ -17,4 +17,6 @@ The Vite proxy forwards `/api` requests to `http://127.0.0.1:8000`. Set `VITE_AP
 
 Login receives the Sanctum token once, then protected requests send it in an `Authorization: Bearer <token>` header. Requests explicitly use `credentials: omit`; this mockup does not initialize Sanctum cookies or send CSRF cookies. The token is kept in browser `sessionStorage` only for this local test harness. Flutter must use OS secure storage.
 
-The mockup currently checks login, session restoration, account read, profile update, password change, logout, and the implemented dashboard scaffold. It does not pretend that deferred shipment operations are available.
+The mockup checks login, session restoration, account read, profile update, password change, logout, dashboard, and the first-mile Seller pickup contract. Pickup testing includes assigned-task details, acceptance, local browser QR decoding, manual Order-reference entry, explicit idempotent pickup confirmation, and truthful API failure states. Logistics receipt and route manifests remain unavailable until their shared backend contracts are implemented.
+
+`VITE_API_URL` is only a non-secret API origin. Do not add Geoapify or any other secret to a `VITE_*` variable: Vite exposes those values to the browser bundle. Server-side provider calls use Laravel's `GEOAPIFY_SERVER_API_KEY` only.

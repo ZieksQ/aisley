@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, marketplace/order schema, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile assignment foundation
+> **Status:** Implemented foundation, marketplace/order schema, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile pickup confirmation
 >
-> **Last synchronized:** 2026-09-08
+> **Last synchronized:** 2026-09-10
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -30,7 +30,7 @@ The current authentication and Logistics foundation includes:
 
 Admin approves Logistics registration applications. The associated Logistics organization approves or rejects its Courier affiliations. Admin account lifecycle actions such as suspension, restoration, and deactivation remain separate from Courier affiliation approval.
 
-The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Seller pickup requests, immutable shared waybills, schedules, and first-mile assignment/acceptance records are implemented. Physical-custody scans, Shipment/Parcel milestones, hub processing, final-mile tasks, and proof of delivery remain deferred and must not be inferred from the first-mile schedule records.
+The MVP uses exactly one operational hub/sorting center per Logistics organization. Registration creates the hub from the Logistics operational-hub address, and the unique organization foreign key prevents a second hub. Sub-hubs, additional hubs, and multi-hub operations are out of scope. Seller pickup requests, immutable shared waybills, schedules, and first-mile assignment/acceptance/pickup-confirmation records are implemented. Hub-receipt scans, Shipment/Parcel milestones beyond Seller handoff, hub processing, final-mile tasks, and proof of delivery remain deferred and must not be inferred from the first-mile records.
 
 ### Implemented Logistics cardinality and deferred operations
 
@@ -1044,9 +1044,9 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 `waybills` has one UUID row per Order through unique `order_id`, with unique non-sequential human reference and keyed QR-payload hash. It retains the pickup request, Shop, selected organization, sole hub, status, template/schema versions, and immutable content checksum. `waybill_snapshots` stores the server-owned printable payload one-to-one; `waybill_access_events` appends authorized view/download/bulk-download/resolve actions without claiming physical printing or custody.
 
-`pickup_schedules` belongs to one organization/hub and one approved affiliated Courier, stores a UTC future window, revision, status, human reference, and organization-scoped idempotency key. `pickup_schedule_orders` retains schedule/request/Order membership. `first_mile_tasks` creates one task per scheduled Order and waybill; PostgreSQL enforces one active task per Order with a partial unique index over `assigned`, `accepted`, and `picked_up_from_seller`. `pickup_schedule_history` retains create/revise/cancel snapshots and reasons. `pickup_schedule_reminders` stores one durable reminder per schedule revision with claim, retry, success, failure, superseded, and suppression state.
+`pickup_schedules` belongs to one organization/hub and one approved affiliated Courier, stores a UTC future window, revision, status, human reference, and organization-scoped idempotency key. `pickup_schedule_orders` retains schedule/request/Order membership. `first_mile_tasks` creates one task per scheduled Order and waybill, with acceptance and physical-pickup timestamps; PostgreSQL enforces one active task per Order with a partial unique index over `assigned`, `accepted`, and `picked_up_from_seller`. `courier_pickup_confirmations` stores one immutable confirmation per task with Order/waybill/Courier scope, Courier-scoped idempotency key and request hash, previous/new detailed state, schedule revision, correlation ID, and pickup time. `pickup_schedule_history` retains create/revise/cancel snapshots and reasons. `pickup_schedule_reminders` stores one durable reminder per schedule revision with claim, retry, success, failure, superseded, and suppression state.
 
-Scheduling and Courier acknowledgement do not mutate `orders.status`, custody, payment, or Inventory. A separate approved transition must own `picked_up_from_seller` and its Inventory fulfillment effect.
+Scheduling and Courier acknowledgement do not mutate `orders.status`, custody, payment, or Inventory. Explicit `picked_up_from_seller` confirmation records custody in the detailed task/confirmation records and converts the Order's reservation to an Inventory fulfillment movement while leaving `orders.status = ready_for_pickup`; Logistics receipt remains the next unimplemented boundary.
 
 ## 10. Framework infrastructure tables
 
@@ -1225,6 +1225,7 @@ Migrations currently run in this dependency order:
 53. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
 54. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
 55. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
+56. `2026_09_10_000010_create_courier_pickup_confirmations.php` — first-mile pickup timestamp plus immutable Courier-scoped confirmation, idempotency, transition, schedule-revision, and correlation history.
 
 ## 14. Deferred schema
 
@@ -1232,10 +1233,10 @@ The following capabilities appear in requirements but have no migrations or mode
 
 | Capability                 | Deferred data design                                                                                                                                                                         |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Catalog and inventory      | Reservation release before first-mile pickup and conversion at `picked_up_from_seller` are the approved next boundary; post-pickup release, returns/refunds, and partial-fulfillment records remain deferred |
+| Catalog and inventory      | Reservation release before first-mile pickup and conversion at `picked_up_from_seller` are implemented; post-pickup release, returns/refunds, and partial-fulfillment records remain deferred |
 | Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
 | Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
-| First-party logistics      | Physical Shipment/Parcel and Scan milestones, hub receipt/sort/transfer/dispatch, final-mile tasks, proof of delivery, Courier availability, and Courier earnings. Seller-selected pickup requests, shared waybills, pickup schedules, and first-mile assignment/acceptance are implemented. |
+| First-party logistics      | Physical Shipment/Parcel milestones after Seller pickup, hub receipt/sort/transfer/dispatch, final-mile tasks, proof of delivery, Courier availability, and Courier earnings. Seller-selected pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, and explicit Seller pickup confirmation are implemented. |
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |

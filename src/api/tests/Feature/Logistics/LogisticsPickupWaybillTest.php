@@ -229,6 +229,102 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->assertDatabaseMissing('first_mile_tasks', ['order_id' => $secondOrder->id]);
     }
 
+    public function test_courier_confirms_qr_and_manual_pickups_idempotently_without_changing_order_status(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $manualOrder = $this->order($shop);
+        $qrOrder = $this->order($shop);
+        $manualOrder->update(['status' => OrderStatus::SellerProcessing]);
+        $qrOrder->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Pickup Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        $pickup = $this->actingAs($seller)
+            ->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$manualOrder->id, $qrOrder->id],
+                'pickup_address_id' => $seller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+        $this->actingAs($logistics)
+            ->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => [$manualOrder->id, $qrOrder->id],
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated();
+
+        $taskResponse = $this->actingAs($courier)->getJson('/api/v1/courier/first-mile-tasks')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 25);
+        $this->assertStringContainsString('private', (string) $taskResponse->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', (string) $taskResponse->headers->get('Cache-Control'));
+        $tasks = $taskResponse->json('data');
+        foreach ($tasks as $task) {
+            $this->postJson("/api/v1/courier/first-mile-tasks/{$task['id']}/accept")->assertOk();
+        }
+        $manualTask = collect($tasks)->firstWhere('order.id', $manualOrder->id);
+        $qrTask = collect($tasks)->firstWhere('order.id', $qrOrder->id);
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", [
+                'identifier_type' => 'order_id',
+                'identifier' => 'WRONG-ORDER',
+            ])->assertNotFound();
+        $this->assertDatabaseCount('courier_pickup_confirmations', 0);
+
+        $manualKey = (string) Str::uuid();
+        $manualPayload = ['identifier_type' => 'order_id', 'identifier' => strtolower($manualOrder->reference)];
+        $this->withHeader('Idempotency-Key', $manualKey)
+            ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", $manualPayload)
+            ->assertOk()
+            ->assertJsonPath('data.task_status', 'picked_up_from_seller')
+            ->assertJsonPath('data.order_status', 'ready_for_pickup')
+            ->assertJsonPath('data.idempotent', false)
+            ->assertJsonPath('data.next_step', 'logistics_receipt');
+        $this->withHeader('Idempotency-Key', $manualKey)
+            ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", $manualPayload)
+            ->assertOk()
+            ->assertJsonPath('data.idempotent', true);
+
+        $unrelatedCourier = $this->courier($organization->id, $hub->id);
+        $this->actingAs($unrelatedCourier)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
+                'identifier_type' => 'order_id',
+                'identifier' => $qrOrder->reference,
+            ])->assertNotFound();
+        $this->actingAs($courier)->withHeader('Idempotency-Key', $manualKey)
+            ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
+                'identifier_type' => 'order_id',
+                'identifier' => $qrOrder->reference,
+            ])->assertConflict()->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+
+        $qrReference = collect($pickup['waybills'])->firstWhere('order_id', $qrOrder->id)['reference'];
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
+                'identifier_type' => 'qr',
+                'identifier' => 'AISLEY:WB:1:'.$qrReference,
+            ])->assertOk()->assertJsonPath('data.task_status', 'picked_up_from_seller');
+
+        $this->assertDatabaseCount('courier_pickup_confirmations', 2);
+        $this->assertDatabaseHas('courier_pickup_confirmations', [
+            'first_mile_task_id' => $manualTask['id'],
+            'previous_status' => 'accepted',
+            'new_status' => 'picked_up_from_seller',
+            'schedule_revision' => 1,
+        ]);
+        $this->assertSame(OrderStatus::ReadyForPickup, $manualOrder->fresh()->status);
+        $this->assertSame(OrderStatus::ReadyForPickup, $qrOrder->fresh()->status);
+        $this->assertSame(0, (int) InventoryBalance::query()->sum('reserved'));
+        $this->assertSame(18, (int) InventoryBalance::query()->sum('on_hand'));
+        $this->assertDatabaseCount('inventory_movements', 4);
+        $this->getJson('/api/v1/courier/first-mile-tasks')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($logistics)->postJson("/api/v1/logistics/pickup-schedules/{$manualTask['schedule']['id']}/cancel", [
+            'expected_revision' => 1,
+            'reason' => 'This must not erase recorded custody.',
+        ])->assertConflict()->assertJsonPath('code', 'SCHEDULE_CUSTODY_STARTED');
+    }
+
     private function sellerShop(bool $coordinates = false): array
     {
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);

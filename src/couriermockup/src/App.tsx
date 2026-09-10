@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Button, TextField } from '@aisley/ui'
 import { ApiError, apiOriginLabel, request } from './lib/api'
+import { PickupOrders } from './PickupOrders'
 import type {
   AccountResponse,
   CourierAccount,
@@ -542,6 +543,8 @@ function App() {
           </section>
         </div>
 
+        <PickupOrders token={token} />
+
         <section className="panel" aria-labelledby="contract-heading">
           <div className="panel-header">
             <div>
@@ -553,6 +556,9 @@ function App() {
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/auth/me</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/account</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/dashboard</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/first-mile-tasks</span></li>
+            <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/first-mile-tasks/:task/accept</span></li>
+            <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/first-mile-tasks/:task/pickup</span></li>
             <li><span className="request-method">PATCH</span><span className="request-path">/api/v1/courier/account/profile</span></li>
             <li><span className="request-method">PUT</span><span className="request-path">/api/v1/courier/account/password</span></li>
             <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/auth/logout</span></li>
