@@ -89,7 +89,7 @@ multipart register
 
 - API tests cover one-account/one-hub creation, evidence persistence/cleanup, duplicate races, role/status denial, Admin approval integration, CSRF/session regeneration, logout, throttling, reset-token scope/expiry, and dashboard access.
 - Frontend checks cover multipart field errors, local PSGC/manual fallback, file-limit messaging, pending/rejected states, auth bootstrap, protected redirects, theme/mobile layout, and recoverable API failures.
-- Before implementing shipment actions, reconcile `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, and Logistics/Courier operational specs. Keep the first-mile/final-mile assignments independent and the sole-hub boundary intact.
+- Before implementing shipment actions, reconcile `docs/workspace.md`, `docs/schema.md`, and the Logistics/Courier operational specs. Keep the first-mile/final-mile assignments independent and the sole-hub boundary intact.
 - Subscription enforcement, online billing, staff accounts, alternate hubs, and operational records require separate approved specs/migrations. Do not add them to Auth as hidden assumptions.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, `docs/features/logistics/dashboard/specs.md`, `docs/features/courier/auth/spec.md`, `docs/references/user-registration-requirements.md`, and the shared file-upload policy.

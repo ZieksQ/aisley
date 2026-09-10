@@ -89,4 +89,4 @@ Customer opens an owned `placed` Order
 - Tests must cover ownership/role/status denial, exact `placed` boundary, Seller race, duplicate retries, address snapshot independence, variant stock/price validation, reservation release once, COD payment separation, immutable history, and notification failure.
 - Keep delivery failure, returns/refunds, partial fulfillment, and downstream waybill/task regeneration as open decisions in their owning specs.
 
-**References:** `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, Customer Checkout, Customer Order Status, Address Book, Seller Order Approval, Seller Prepare Orders, Inventory, and `docs/domains/Buyer.md`.
+**References:** `docs/workspace.md`, `docs/schema.md`, Customer Checkout, Customer Order Status, Address Book, Seller Order Approval, Seller Prepare Orders, Inventory, and `docs/domains/Buyer.md`.

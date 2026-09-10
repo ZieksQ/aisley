@@ -111,4 +111,4 @@ Account menu → Orders → paginated Customer-owned list
 
 - API tests cover role/status denial, IDOR-safe not-found behavior, group allow-lists, pagination, status mapping, event ordering, no-store headers, and map/action capability truthfulness.
 - Storefront tests cover login return paths, default All tab, group filtering, loading/empty/error/retry states, timeline ordering, accessibility, and stale/unavailable map states.
-- Do not add a shipment migration or provider-specific tracking field here. Follow `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, `docs/domains/Logistics.md`, and `docs/domains/Courier.md` before operational work.
+- Do not add a shipment migration or provider-specific tracking field here. Follow `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, `docs/domains/Logistics.md`, and `docs/domains/Courier.md` before operational work.

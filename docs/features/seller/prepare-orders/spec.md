@@ -75,7 +75,7 @@ Seller opens Seller-scoped processing Order
 - Recommended records are one immutable shared waybill snapshot per Order plus separate append-only print, route, assignment, and scan events.
 - Readiness transaction: lock Seller-scoped Order → validate `seller_processing`, payment, package, label, reservation, and idempotency → write status/event/pickup association → commit → dispatch Logistics/Buyer notifications after commit.
 - Tests cover Seller isolation, snapshots, stale/cancelled/payment-invalid rejection, package limits, label privacy/versioning/reprint, readiness races/retries, selected-provider scope, after-commit failure, and the `picked_up_from_seller` Inventory handoff. Run API tests on SQLite/PostgreSQL and Seller lint, TypeScript, and build.
-- Do not enable this operational slice until `docs/order-logistics-flow-decisions.md`, `docs/workspace.md`, and `docs/schema.md` agree and the shared operational migration is approved.
+- Do not enable this operational slice until `docs/workspace.md` and `docs/schema.md` agree with the applicable domain/spec contracts and the shared operational migration is approved.
 
 ### State and ownership matrix
 
@@ -116,4 +116,4 @@ Seller opens Seller-scoped processing Order
 - Any later label/waybill read must use the immutable Order/Parcel link and enforce Seller ownership before returning a document or route detail.
 - Package and label APIs must return capabilities derived from the locked current state, so the UI cannot infer readiness from stale status text.
 
-**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/domains/Logistics.md`, `docs/domains/Courier.md`, Seller Order Approval, Inventory, and `docs/order-logistics-flow-decisions.md`.
+**References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/domains/Logistics.md`, `docs/domains/Courier.md`, Seller Order Approval, and Inventory.
