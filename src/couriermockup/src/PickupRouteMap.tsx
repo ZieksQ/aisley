@@ -77,7 +77,7 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
           id: 'pickup-route-line',
           type: 'line',
           source: 'pickup-route',
-          filter: ['==', ['get', 'kind'], 'route_line'],
+          filter: ['==', ['geometry-type'], 'LineString'],
           paint: { 'line-color': '#4c1268', 'line-width': 4, 'line-opacity': 0.85 },
         })
         map.addLayer({

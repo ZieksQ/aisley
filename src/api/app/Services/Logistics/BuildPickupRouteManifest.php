@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 
 class BuildPickupRouteManifest
 {
+    private const GEOMETRY_VERSION = 'road-route-v2';
+
     public function handle(string $scheduleId, int $revision): PickupRouteManifest
     {
         $schedule = PickupSchedule::query()
@@ -42,10 +44,13 @@ class BuildPickupRouteManifest
             return $this->unavailable($manifest, 'node_limit_exceeded');
         }
 
-        $fingerprint = hash('sha256', json_encode(array_map(
-            fn (array $node): array => [$node['id'], $node['latitude'], $node['longitude'], $node['coordinate_source']],
-            $resolved,
-        ), JSON_THROW_ON_ERROR));
+        $fingerprint = hash('sha256', json_encode([
+            'geometry_version' => self::GEOMETRY_VERSION,
+            'nodes' => array_map(
+                fn (array $node): array => [$node['id'], $node['latitude'], $node['longitude'], $node['coordinate_source']],
+                $resolved,
+            ),
+        ], JSON_THROW_ON_ERROR));
         if ($manifest->status === PickupRouteManifestStatus::Ready && $manifest->coordinate_fingerprint === $fingerprint) {
             return $manifest;
         }

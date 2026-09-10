@@ -30,7 +30,7 @@ class PickupRouteManifestController extends Controller
                 'status' => PickupRouteManifestStatus::Pending,
             ]);
         }
-        if ($manifest->status === PickupRouteManifestStatus::Pending) {
+        if ($manifest->status === PickupRouteManifestStatus::Pending || $this->usesLegacyGeometry($manifest)) {
             BuildPickupRouteManifestJob::dispatch($record->id, $record->revision);
             $manifest->refresh();
         }
@@ -165,5 +165,18 @@ class PickupRouteManifestController extends Controller
                 'attribution' => ['Geoapify', 'OpenStreetMap contributors', 'OpenMapTiles'],
             ],
         ];
+    }
+
+    private function usesLegacyGeometry(PickupRouteManifest $manifest): bool
+    {
+        if ($manifest->status !== PickupRouteManifestStatus::Ready) {
+            return false;
+        }
+
+        return collect($manifest->geojson['features'] ?? [])->contains(
+            fn (mixed $feature): bool => is_array($feature)
+                && ($feature['geometry']['type'] ?? null) === 'LineString'
+                && ($feature['properties']['kind'] ?? null) === 'stop_sequence_visual',
+        );
     }
 }

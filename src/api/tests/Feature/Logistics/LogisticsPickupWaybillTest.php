@@ -14,6 +14,7 @@ use App\Enums\ProductStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Jobs\BuildPickupRouteManifestJob;
 use App\Models\AddressCoordinateDefault;
 use App\Models\Category;
 use App\Models\CheckoutBatch;
@@ -22,6 +23,7 @@ use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\Order;
+use App\Models\PickupRouteManifest;
 use App\Models\PickupSchedule;
 use App\Models\Product;
 use App\Models\Shop;
@@ -30,6 +32,7 @@ use App\Models\User;
 use App\Services\Logistics\BuildPickupRouteManifest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -405,6 +408,18 @@ class LogisticsPickupWaybillTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), '/v1/routing')
             && $request['waypoints'] === '14.65,121.03|14.6,120.98|14.65,121.03'
             && $request['mode'] === 'drive');
+
+        $manifest = PickupRouteManifest::query()->where('pickup_schedule_id', $schedule['id'])->sole();
+        $legacyGeojson = $manifest->geojson;
+        $legacyGeojson['features'][0]['properties'] = ['kind' => 'stop_sequence_visual'];
+        $manifest->update(['coordinate_fingerprint' => 'legacy', 'geojson' => $legacyGeojson]);
+        Queue::fake();
+        $this->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.geojson.features.0.geometry.type', 'LineString')
+            ->assertJsonPath('data.geojson.features.0.properties.kind', 'stop_sequence_visual');
+        Queue::assertPushed(BuildPickupRouteManifestJob::class, fn ($job): bool => $job->scheduleId === $schedule['id'] && $job->revision === 1);
 
         [$foreignUser, $foreignOrganization, $foreignHub] = $this->logistics('Foreign Route Logistics', 'Cebu City', 'Cebu');
         $foreignCourier = $this->courier($foreignOrganization->id, $foreignHub->id);
