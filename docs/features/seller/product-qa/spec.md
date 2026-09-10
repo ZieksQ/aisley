@@ -89,8 +89,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] The Customer question remains unchanged and the response excludes private Seller/Customer data and raw storage paths.
 - [x] Concurrent or retried answers are serialized, idempotent, and cannot create duplicate answers or notifications.
 - [x] After-commit notification failure cannot undo a committed answer; notification read state remains separate.
-- [ ] Seller queue/detail endpoints and React screens are implemented with the stated accessible states.
-- [ ] Answer edit/history, moderation/reporting, and Seller-specific retention rules are approved and implemented.
+- [x] Seller queue/detail endpoints and React screens are implemented with the stated accessible states.
+- [x] Answer edit/history, moderation/reporting, and Seller-specific retention rules are approved and implemented.
 
 ## HOW
 
