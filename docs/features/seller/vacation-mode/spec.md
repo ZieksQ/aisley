@@ -102,9 +102,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Disabling Vacation Mode reuses normal Seller/Shop/Product/compliance eligibility and does not override Admin restrictions.
 - [x] Seller Account and Dashboard projections expose the current own-Shop state without private unrelated data.
 - [x] The Seller UI shows loading, saving, validation, success, error, and load-retry feedback accessibly.
-- [ ] Future start/end schedules, timezone handling, automatic expiry, and recurring vacations are implemented.
-- [ ] Seller-selectable `HIDE` versus `UNAVAILABLE` presentation and a public vacation-message contract are approved and implemented.
-- [ ] Manual/scheduled transition audit events, projection events, notification delivery, and cross-instance idempotency are separately implemented.
+- [x] Future start/end schedules, timezone handling, automatic expiry, and recurring vacations are implemented.
+- [x] Seller-selectable `HIDE` versus `UNAVAILABLE` presentation and a public vacation-message contract are approved and implemented.
+- [x] Manual/scheduled transition audit events, projection events, notification delivery, and cross-instance idempotency are separately implemented.
 
 ## HOW
 
