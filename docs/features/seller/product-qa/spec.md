@@ -3,8 +3,8 @@ feature: seller-product-qa
 title: Seller Product Q&A Answer Management
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Implemented API (Phase 1) — Seller answer UI deferred
+version: 1.1
+status: Implemented (Phase 2) — Seller queue, detail, and answer management
 role: Seller
 scope: Seller Web Application and Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Seller.md, docs/features/customer/product-qa/spec.md, docs/design.md
@@ -16,7 +16,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Let the Seller that owns a Product publish one official answer to a Customer's public Product question.
 - **Canonical role:** `seller` is the persisted/API role. Seller authority is derived through `question → product → shop → seller`.
-- **Current state:** The Laravel answer endpoint, validation, ownership checks, persistence, idempotency, and Customer notification are implemented. A dedicated Seller queue/detail screen is not implemented.
+- **Current state:** The Laravel queue/detail and answer endpoints, validation, ownership checks, persistence, idempotency, Customer notification, and dedicated Seller queue/detail screens are implemented.
 - **Flow:**
   ```text
   Customer asks about a visible Product
@@ -26,7 +26,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   → Customer receives an in-app answer notification
   → Product Detail displays the public answer
   ```
-- **Owns:** Seller eligibility, Product/Shop scoping, answer validation, one-answer concurrency, safe answer projection, and Seller-facing entry points when their API exists.
+- **Owns:** Seller eligibility, Product/Shop scoping, queue filters, answer validation, one-answer concurrency, safe answer projection, and Seller-facing queue/detail entry points.
 - **Dependencies:** Customer Product Q&A owns question creation/public reading; Catalog owns Product and Shop ownership; Notifications owns delivery/read state; Reviews and Chat remain separate.
 - **Non-goals:** Customer questions, Seller-created questions, anonymous answers, multiple official answers, answer editing/history, voting, comments, attachments, Markdown/HTML, AI answers, moderation, direct Customer contact, and cross-Shop access.
 
@@ -43,7 +43,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Only the Seller owning the Product's Shop may answer. A different Seller, Customer, Admin, or same-email account receives a safe `403`/`404` result without another tenant's data.
 - The first valid answer fills `answer_text`, `answered_by_seller_id`, `answer_idempotency_key`, `answer_request_hash`, and `answered_at`. The Customer question is never rewritten.
 - A successful first answer and an identical idempotent replay return `200` with `{ "data": ... }` and `Cache-Control: no-store, private`.
-- The current safe resource contains only `id`, `question`, `askedAt`, `answer`, `answeredAt`, and an approved `sellerLabel`. It must not serialize Customer PII, credentials, evidence, addresses, payment data, internal notes, or storage paths.
+- The Customer safe resource contains only `id`, `question`, `askedAt`, `answer`, `answeredAt`, and an approved `sellerLabel`. The Seller queue/detail resource additionally contains the answer state and Product-safe `id`, `name`, `slug`, `status`, and `publishedAt`. Neither resource serializes Customer PII, credentials, evidence, addresses, payment data, internal notes, or storage paths.
 
 ### Errors and retries
 
@@ -64,20 +64,20 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   GET  /api/v1/seller/notifications/{notification}
   POST /api/v1/seller/notifications/{notification}/read
   ```
-- The Q&A notification destination is only a safe deep-link hint. It must not be treated as an implemented Seller Q&A page until that page and its API contract exist.
+- The Q&A notification destination is a safe deep link to the implemented Seller Product Q&A detail route. It remains a hint and does not mutate answer state when opened or marked read.
 
-### Deferred Seller queue/detail UI
+### Implemented Seller queue/detail UI
 
-- Seller UI is a future React/Vite dashboard surface under the existing dark-mode Seller design system. Do not add Q&A screens to the Customer storefront.
-- No Seller list/detail endpoint exists today. The following are conceptual and **unavailable** until implemented and tested; clients must not call them:
+- Seller UI is a React/Vite dashboard surface under the existing dark-mode Seller design system. Q&A screens remain outside the Customer storefront.
+- The implemented Seller list/detail endpoints are:
   ```http
-  GET /api/v1/seller/product-questions
+  GET /api/v1/seller/product-questions?status=all|unanswered|answered&product=&per_page=&page=
   GET /api/v1/seller/product-questions/{question}
   ```
-- When approved, the queue should be Seller/Shop-scoped, paginated, deterministic, and filterable by unanswered/answered state and Product. The server must derive all ownership and status fields.
-- A future detail view may show Product-safe context, question text, asked time, answer state, and the answer form. Customer email, phone, address, order/payment data, and registration evidence stay hidden by default.
-- The form must use the implemented answer endpoint, generate one UUID key per logical submit, preserve the key across retry, and never claim success before the committed response is returned.
-- Required UI states: loading, empty, answered/read-only, editable unanswered, validation, forbidden/not-found, throttled, session-expired, network/timeout retry, and notification-delivery warning.
+- The queue is Seller/Shop-scoped, paginated, deterministic, and filterable by unanswered/answered state and Product name. The server derives all ownership and status fields, and archived historical Product questions remain visible to the owning Seller as read-only records.
+- The detail view shows Product-safe context, question text, asked time, answer state, and the answer form. Customer email, phone, address, order/payment data, and registration evidence stay hidden.
+- The form uses the implemented answer endpoint, generates one UUID key per logical submit, preserves the key across retry, and never claims success before the committed response is returned.
+- Implemented UI states: loading, empty, answered/read-only, editable unanswered, validation, forbidden/not-found, throttled, session-expired, network/timeout retry, unavailable Product, and queued-notification success messaging.
 - Use labelled controls, visible focus, keyboard operation, screen-reader status announcements, non-color-only answer state, and accessible dark-mode contrast. Q&A text renders as escaped plain text.
 
 ### Acceptance criteria
@@ -90,31 +90,31 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Concurrent or retried answers are serialized, idempotent, and cannot create duplicate answers or notifications.
 - [x] After-commit notification failure cannot undo a committed answer; notification read state remains separate.
 - [x] Seller queue/detail endpoints and React screens are implemented with the stated accessible states.
-- [x] Answer edit/history, moderation/reporting, and Seller-specific retention rules are approved and implemented.
+- [ ] Answer edit/history, moderation/reporting, and Seller-specific retention rules are approved and implemented.
 
 ## HOW
 
 ### Current Laravel contract
 
-- Route: `src/api/routes/api.php`; controller: `App\Http\Controllers\Seller\ProductQAController`.
-- Validation: `AnswerProductQuestionRequest`; mutation and locking: shared `ProductQAService::answer`.
-- Projection: `Customer\ProductQAResource`; exception codes: `PRODUCT_QA_NOT_FOUND`, `PRODUCT_QA_FORBIDDEN`, `PRODUCT_QA_ALREADY_ANSWERED`, and `IDEMPOTENCY_KEY_REUSED`.
+- Routes: `src/api/routes/api.php`; controller: `App\Http\Controllers\Seller\ProductQAController`.
+- Validation: `ListProductQuestionsRequest` and `AnswerProductQuestionRequest`; Shop scoping and detail projection are controller-level, while mutation and locking use shared `ProductQAService::answer`.
+- Projections: `Customer\ProductQAResource` for storefront responses and `Seller\SellerProductQAResource` for queue/detail/answer responses. Exception codes include `PRODUCT_QA_NOT_FOUND`, `PRODUCT_QA_FORBIDDEN`, `PRODUCT_QA_ALREADY_ANSWERED`, and `IDEMPOTENCY_KEY_REUSED`.
 - Persistence: additive `product_qas` migration/model with Product, Customer, and verified answering-Seller foreign keys, actor-scoped idempotency keys/hashes, timestamps, and Product/Customer/Seller indexes.
 - Notifications: `ProductQuestionAskedNotification`, `ProductQuestionAnsweredNotification`, and `DeliverProductQANotification`; reuse the database notification/read-state contract.
 - Keep enum-like future fields string-backed in migrations and PHP-enum-cast in the API. Do not add a Seller-owned duplicate Q&A table.
 
 ### Seller implementation boundary
 
-- First use the existing notification inbox to prove the answer entry point. Implement queue/detail APIs only after their filters, ordering, safe fields, and retention behavior are approved.
+- The existing notification inbox deep-links to the Seller detail route; the queue and detail APIs now define the filters, ordering, safe fields, and retention boundary for the implemented surface.
 - Scope every query as `authenticated Seller → exactly one Shop → Product → ProductQA`; use policies/scoped queries before serialization, not only client-side filtering.
 - If a future Seller response needs a new field or lifecycle (edits, drafts, moderation), add an additive migration and update the Customer Q&A contract before coding.
 - Keep Product description Markdown/MDX rendering separate. Product Q&A answers remain plain text and do not use the Seller's MDXEditor or image-upload policy.
 
 ### Verification and rollout
 
-- Extend `src/api/tests/Feature/Customer/ProductQATest.php` or add a Seller-focused suite for role/Shop isolation, visibility, validation, idempotency, locking, notification dedupe, DTO privacy, and error mapping.
-- Add Seller UI tests only when list/detail routes exist: filters, pagination, answer submit/retry, already-answered conflict, session expiry, unavailable Product, network failure, and accessibility states.
+- `src/api/tests/Feature/Customer/ProductQATest.php` and `src/api/tests/Feature/Seller/ProductQATest.php` cover role/Shop isolation, visibility, validation, pagination/filtering, idempotency, locking, notification dedupe, DTO privacy, and error mapping.
+- The Seller React pages cover filters, pagination, answer submit/retry, already-answered conflict, session expiry, unavailable Product, network failure, and accessible loading/empty/read-only states.
 - Release API/schema and any UI together. Monitor scoped denials, validation/throttle rates, conflict/replay rates, queue failures, notification failures, and answer latency without logging full question/answer content.
-- Open decisions before expanding scope: Seller queue path and filters, whether Sellers may answer hidden historical Products, answer edit/version policy, moderation/reporting, Customer-facing Seller label, retention, and additional notification channels.
+- Open decisions before expanding scope: answer edit/version policy, moderation/reporting, Customer-facing Seller label, retention, and additional notification channels.
 
 **Sources:** `docs/features/customer/product-qa/spec.md`, `docs/domains/Seller.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/design.md`, [Laravel Authorization](https://laravel.com/docs/12.x/authorization), [Laravel Notifications](https://laravel.com/docs/12.x/notifications), [Laravel Validation](https://laravel.com/docs/12.x/validation), and [Laravel Queues](https://laravel.com/docs/12.x/queues).

@@ -206,6 +206,13 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
     Route::delete('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'destroy'])->whereUuid('address')->name('pickup-addresses.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/product-questions', [SellerProductQAController::class, 'index'])
+        ->middleware('throttle:120,1')
+        ->name('product-questions.index');
+    Route::get('/product-questions/{question}', [SellerProductQAController::class, 'show'])
+        ->whereUuid('question')
+        ->middleware('throttle:120,1')
+        ->name('product-questions.show');
     Route::post('/product-questions/{question}/answer', [SellerProductQAController::class, 'answer'])
         ->whereUuid('question')
         ->middleware('throttle:seller-product-qa-answer')
