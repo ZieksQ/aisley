@@ -85,12 +85,12 @@ active Logistics session
 - [x] The implemented auth resource exposes the authenticated Logistics profile, organization, and sole-hub identity without credentials or private evidence.
 - [x] Admin approval and `logistics.active` gate protected Logistics access; subscription status does not gate the MVP.
 - [x] The foundation enforces one organization per Logistics account and one hub per organization.
-- [ ] An authenticated Logistics account can read only its own safe account projection through `GET /api/v1/logistics/account`.
-- [ ] Allow-listed personal and organization fields can be updated transactionally; forbidden role/status/approval/subscription fields are rejected.
-- [ ] Hub address relocation is blocked until a separately approved reviewable versioning workflow exists; no second hub/address can be created.
-- [ ] Password change is rate-limited, current-password protected, and follows the configured session/token policy.
-- [ ] Concurrent/retried writes preserve the latest committed projection without duplicate events or notifications.
-- [ ] The Logistics Account Settings UI handles loading, validation, conflict, retry, unauthorized, and success states accessibly.
+- [x] An authenticated Logistics account can read only its own safe account projection through `GET /api/v1/logistics/account`.
+- [x] Allow-listed personal and organization fields can be updated transactionally; forbidden role/status/approval/subscription fields are rejected.
+- [x] Hub address relocation is blocked until a separately approved reviewable versioning workflow exists; no second hub/address can be created.
+- [x] Password change is rate-limited, current-password protected, and follows the configured session/token policy.
+- [x] Concurrent/retried writes preserve the latest committed projection without duplicate events or notifications.
+- [x] The Logistics Account Settings UI handles loading, validation, conflict, retry, unauthorized, and success states accessibly.
 
 ## HOW
 
