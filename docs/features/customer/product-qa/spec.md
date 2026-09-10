@@ -89,18 +89,17 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Acceptance criteria
 
-- [ ] Guests can read paginated Q&A only for a currently buyer-visible Product.
-- [ ] Only an authenticated active Customer can create a question; guest and cross-role requests are denied.
-- [ ] Product, Customer, Seller ownership, answered state, and notification recipient are server-derived.
-- [ ] Empty, oversized, malformed, executable, and rate-limited question/answer input is rejected safely.
-- [ ] Each question belongs to one Product and Customer; a Customer cannot attach it to another Product or Seller.
-- [ ] Only the Product-owning Seller can publish one official answer, and the Customer question remains unchanged.
-- [ ] Public DTOs contain no private Customer/Seller data, credentials, evidence, or raw storage paths.
-- [ ] Product visibility is rechecked for reads and mutations; hidden Products do not expose public Q&A.
-- [ ] Concurrent/retried question and answer requests are idempotent and do not duplicate records or notifications.
-- [ ] Notification delivery is after-commit and cannot reverse a committed Q&A decision.
-- [ ] Customer Product Detail and future Seller surfaces expose accessible loading, empty, answered, validation, unauthorized, unavailable, and retry states.
-- [ ] Q&A remains separate from private Chat/Messaging and verified-purchase Reviews & Ratings.
+- [x] Guests can read paginated Q&A only for a currently buyer-visible Product.
+- [x] Only an authenticated active Customer can create a question; guest and cross-role requests are denied.
+- [x] Product, Customer, Seller ownership, answered state, and notification recipient are server-derived. [x] Empty, oversized, malformed, executable, and rate-limited question/answer input is rejected safely.
+- [x] Each question belongs to one Product and Customer; a Customer cannot attach it to another Product or Seller.
+- [x] Only the Product-owning Seller can publish one official answer, and the Customer question remains unchanged.
+- [x] Public DTOs contain no private Customer/Seller data, credentials, evidence, or raw storage paths.
+- [x] Product visibility is rechecked for reads and mutations; hidden Products do not expose public Q&A.
+- [x] Concurrent/retried question and answer requests are idempotent and do not duplicate records or notifications.
+- [x] Notification delivery is after-commit and cannot reverse a committed Q&A decision.
+- [x] Customer Product Detail and future Seller surfaces expose accessible loading, empty, answered, validation, unauthorized, unavailable, and retry states.
+- [x] Q&A remains separate from private Chat/Messaging and verified-purchase Reviews & Ratings.
 
 ## HOW
 
