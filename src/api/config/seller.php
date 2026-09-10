@@ -17,6 +17,12 @@ return [
         'postal_code' => env('INITIAL_SELLER_POSTAL_CODE', '1200'),
     ],
 
+    'generic' => [
+        'count' => (int) env('SELLER_GENERIC_COUNT', 5),
+        'email_prefix' => env('SELLER_GENERIC_EMAIL_PREFIX', 'seller'),
+        'email_domain' => env('SELLER_GENERIC_EMAIL_DOMAIN', 'example.com'),
+    ],
+
     'auth' => [
         'password_reset_url' => env('SELLER_PASSWORD_RESET_URL', 'http://localhost:5174/reset-password'),
         'password_reset_expire_minutes' => (int) env('SELLER_PASSWORD_RESET_EXPIRE_MINUTES', 60),

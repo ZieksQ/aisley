@@ -12,7 +12,21 @@ class LogisticsProfile extends Model
 {
     use HasBirthDateAge, HasUuids;
 
-    protected $fillable = ['user_id', 'first_name', 'last_name', 'middle_name', 'contact_number', 'sex', 'birth_date'];
+    protected $fillable = [
+        'user_id',
+        'first_name',
+        'last_name',
+        'middle_name',
+        'contact_number',
+        'sex',
+        'birth_date',
+        'profile_photo_path',
+        'profile_photo_disk',
+        'profile_photo_mime',
+        'profile_photo_size',
+        'profile_photo_width',
+        'profile_photo_height',
+    ];
 
     public function user(): BelongsTo
     {
@@ -21,6 +35,12 @@ class LogisticsProfile extends Model
 
     protected function casts(): array
     {
-        return ['sex' => UserSex::class, 'birth_date' => 'date'];
+        return [
+            'sex' => UserSex::class,
+            'birth_date' => 'date',
+            'profile_photo_size' => 'integer',
+            'profile_photo_width' => 'integer',
+            'profile_photo_height' => 'integer',
+        ];
     }
 }

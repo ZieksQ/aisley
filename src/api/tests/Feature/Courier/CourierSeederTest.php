@@ -40,6 +40,7 @@ class CourierSeederTest extends TestCase
             'region' => 'National Capital Region',
             'postal_code' => '1200',
         ]);
+        config()->set('logistics.generic.count', 0);
         config()->set('courier.initial', [
             'email' => ' LEAD-COURIER@example.com ',
             'password' => 'CourierSecret123',

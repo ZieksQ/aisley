@@ -23,6 +23,15 @@ class DatabaseSeedersTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('customer.generic.count', 0);
+        config()->set('seller.generic.count', 0);
+        config()->set('logistics.generic.count', 0);
+    }
+
     public function test_initial_customer_seeder_creates_an_approved_customer_from_configuration(): void
     {
         config()->set('customer.initial', [
@@ -213,16 +222,104 @@ class DatabaseSeedersTest extends TestCase
         $this->assertDatabaseCount('logistics_hubs', 1);
     }
 
+    public function test_generic_customer_seller_and_logistics_accounts_use_configured_role_passwords_and_are_idempotent(): void
+    {
+        config()->set('customer.initial', [
+            'email' => 'customer@example.com',
+            'password' => 'CustomerSecret123',
+            'first_name' => 'Aisley',
+            'last_name' => 'Customer',
+            'contact_number' => '+639171234567',
+            'birth_date' => '2000-01-01',
+        ]);
+        config()->set('customer.generic', [
+            'count' => 20,
+            'email_prefix' => 'customer',
+            'email_domain' => 'seed.example.com',
+        ]);
+        config()->set('seller.initial', array_merge($this->sellerDetails(), [
+            'email' => 'seller@example.com',
+            'password' => 'SellerSecret123',
+        ]));
+        config()->set('seller.generic', [
+            'count' => 5,
+            'email_prefix' => 'seller',
+            'email_domain' => 'seed.example.com',
+        ]);
+        config()->set('logistics.initial', [
+            'email' => 'logistics@example.com',
+            'password' => 'LogisticsSecret123',
+            'first_name' => 'Aisley',
+            'last_name' => 'Logistics',
+            'contact_number' => '+639171234569',
+            'birth_date' => '1990-01-01',
+            'business_name' => 'Aisley Logistics',
+            'hub_name' => 'Aisley Logistics Operational Hub',
+            'address_line_1' => '1 Logistics Center',
+            'address_line_2' => null,
+            'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City',
+            'province' => 'Metro Manila',
+            'region' => 'National Capital Region (NCR)',
+            'postal_code' => '1200',
+        ]);
+        config()->set('logistics.generic', [
+            'count' => 5,
+            'email_prefix' => 'logistics',
+            'email_domain' => 'seed.example.com',
+        ]);
+
+        $this->seed(InitialCustomerSeeder::class);
+        $this->seed(InitialSellerSeeder::class);
+        $this->seed(InitialLogisticsSeeder::class);
+
+        $this->assertSame(21, User::query()->where('role', UserRole::Customer)->count());
+        $this->assertSame(6, User::query()->where('role', UserRole::Seller)->count());
+        $this->assertSame(6, User::query()->where('role', UserRole::Logistics)->count());
+        $this->assertDatabaseCount('customer_profiles', 21);
+        $this->assertDatabaseCount('seller_profiles', 6);
+        $this->assertDatabaseCount('logistics_profiles', 6);
+        $this->assertDatabaseCount('logistics_organizations', 6);
+        $this->assertDatabaseCount('logistics_hubs', 6);
+
+        $this->assertTrue(Hash::check('CustomerSecret123', User::query()->where('email', 'customer01@seed.example.com')->firstOrFail()->password));
+        $this->assertTrue(Hash::check('SellerSecret123', User::query()->where('email', 'seller01@seed.example.com')->firstOrFail()->password));
+        $this->assertTrue(Hash::check('LogisticsSecret123', User::query()->where('email', 'logistics01@seed.example.com')->firstOrFail()->password));
+
+        $this->seed(InitialCustomerSeeder::class);
+        $this->seed(InitialSellerSeeder::class);
+        $this->seed(InitialLogisticsSeeder::class);
+
+        $this->assertSame(21, User::query()->where('role', UserRole::Customer)->count());
+        $this->assertSame(6, User::query()->where('role', UserRole::Seller)->count());
+        $this->assertSame(6, User::query()->where('role', UserRole::Logistics)->count());
+        $this->assertDatabaseCount('logistics_hubs', 6);
+    }
+
     /** @param array<string, mixed> $overrides */
     private function configureInitialSeller(array $overrides = []): void
     {
-        config()->set('seller.initial', array_merge([
+        config()->set('seller.initial', array_merge($this->sellerDetails(), [
             'email' => 'seeded-seller@example.com',
             'password' => 'InitialSeller123',
+        ], $overrides));
+    }
+
+    /** @return array<string, string|null> */
+    private function sellerDetails(): array
+    {
+        return [
             'first_name' => 'Aisley',
             'last_name' => 'Catalog',
             'contact_number' => '+639171234568',
             'birth_date' => '1995-01-01',
-        ], $overrides));
+            'address_line_1' => '1 Seller Street',
+            'address_line_2' => null,
+            'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City',
+            'province' => 'Metro Manila',
+            'region' => 'National Capital Region (NCR)',
+            'postal_code' => '1200',
+        ];
     }
 }

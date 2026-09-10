@@ -6,6 +6,7 @@ import { HiChevronRight } from "react-icons/hi2";
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { ProductConfigurator } from "@/components/product/product-configurator";
+import { ProductQASection } from "@/components/product/product-qa-section";
 import { ProductViewRecorder } from "@/components/recently-viewed/product-view-recorder";
 import {
   ProductDescription,
@@ -121,6 +122,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 soldCount={product.soldCount}
               />
             </div>
+            <ProductQASection productId={product.id} />
           </div>
         </div>
       </main>
