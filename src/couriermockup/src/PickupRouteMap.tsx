@@ -31,6 +31,19 @@ function reason(value: string | null): string {
   return messages[value ?? ''] ?? 'The route map is unavailable. Use the pickup address list.'
 }
 
+function routeLine(manifest: PickupRouteManifest) {
+  const apiLine = manifest.geojson?.features.find((feature) => feature.geometry.type === 'LineString')
+  const coordinates = apiLine?.geometry.type === 'LineString' && apiLine.geometry.coordinates.length >= 2
+    ? apiLine.geometry.coordinates
+    : manifest.stops.filter((stop) => stop.reachable).map((stop) => [stop.longitude, stop.latitude])
+
+  return {
+    type: 'Feature' as const,
+    geometry: { type: 'LineString' as const, coordinates },
+    properties: apiLine?.properties ?? { kind: 'route_line', geometry_source: 'client_stop_sequence_fallback' },
+  }
+}
+
 export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; token: string }) {
   const [manifest, setManifest] = useState<PickupRouteManifest | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,13 +85,21 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
       })
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
       map.on('load', () => {
+        map.addSource('pickup-route-line', { type: 'geojson', data: routeLine(manifest) })
         map.addSource('pickup-route', { type: 'geojson', data: manifest.geojson as never })
+        map.addLayer({
+          id: 'pickup-route-line-casing',
+          type: 'line',
+          source: 'pickup-route-line',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.95 },
+        })
         map.addLayer({
           id: 'pickup-route-line',
           type: 'line',
-          source: 'pickup-route',
-          filter: ['==', ['geometry-type'], 'LineString'],
-          paint: { 'line-color': '#4c1268', 'line-width': 4, 'line-opacity': 0.85 },
+          source: 'pickup-route-line',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': '#e6007a', 'line-width': 5, 'line-opacity': 1 },
         })
         map.addLayer({
           id: 'pickup-route-points',
