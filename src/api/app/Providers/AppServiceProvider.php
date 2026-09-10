@@ -96,5 +96,21 @@ class AppServiceProvider extends ServiceProvider
                 $request->ip(),
             ]));
         });
+
+        RateLimiter::for('policy-consent-status', function (Request $request): Limit {
+            return Limit::perMinute(60)->by(implode('|', [
+                'policy-consent-status',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
+        RateLimiter::for('policy-consent-acceptance', function (Request $request): Limit {
+            return Limit::perMinute(10)->by(implode('|', [
+                'policy-consent-acceptance',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
     }
 }

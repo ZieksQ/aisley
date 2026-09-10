@@ -1069,7 +1069,7 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 `platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, an optional user-safe change summary, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Nullable unique `source_policy_version_id` records the published version copied into a successor Draft and prevents competing successor copies for the same source. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
 
-`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. User-facing consent presentation and enforcement remain a separate integration decision.
+`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. The shared policy-consent service exposes user-specific status and exact-version acceptance over private API routes; login/session/protected-action enforcement remains a separate integration decision.
 
 ### 9.17 Seller pickup, shared waybill, and first-mile scheduling
 

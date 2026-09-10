@@ -3,8 +3,8 @@ feature: manage-platform-settings
 title: Admin Manage Platform Settings
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented (Phase 1) — policy-consent integration deferred
+version: 1.3
+status: Implemented (Phase 2) — shared policy-consent status/acceptance is implemented; global enforcement remains deferred
 role: Admin
 scope: Admin Web Application and public policy API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Admin.md, docs/features/admin/content-customization/spec.md
@@ -18,7 +18,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - The Admin React dashboard owns the editor, preview, confirmation, history, and error states. Laravel owns authorization, validation, versioning, persistence, cache invalidation, and audit records.
 - Policy content is versioned. A published version is immutable; Admins may still choose Edit, which creates a copied successor Draft rather than changing the published record.
 - Ordinary user policy views show only the current published version. A separate history view lets an authorized user read prior published/superseded versions.
-- **Current state:** Admin announcement/policy CRUD, successor drafts, publication/history, public Terms/Privacy reads, cache invalidation, and audit records are implemented. The `policy_acceptances` table exists, but acceptance endpoints, consent UI, and authentication/protected-action enforcement do not.
+- **Current state:** Admin announcement/policy CRUD, successor drafts, publication/history, public Terms/Privacy reads, cache invalidation, and audit records are implemented. The shared Policy Viewing and Consent feature now owns private status/acceptance endpoints and role-owned consent screens; this feature still owns only the policy records and publication metadata.
 - Announcements are separate from Push Notification Management. Publishing an announcement does not imply push, SMS, or email delivery.
 - Homepage advertisements appear as a Platform Settings tab but are owned by `docs/features/admin/content-customization/spec.md`; this contract does not duplicate their layout/media rules.
 - This feature does not manage secrets, `.env`, infrastructure, arbitrary key/value settings, feature flags, policy-writing/legal advice, or targeted campaigns.
@@ -72,10 +72,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - History never exposes Drafts, Admin-only metadata, internal notes, or audit data. Internal Rules remain limited to their authorized audience.
 - Terms and Privacy may be public if the product visibility decision permits; otherwise use the project’s authenticated policy route.
 - `requires_reconsent` belongs to a specific Published version. It indicates that an already-accepted user may need to accept that successor; it does not by itself decide whether initial acceptance is mandatory.
-- The policy matrix (Terms, Privacy, and Internal Rules; initial acceptance and later re-consent) is not yet approved. Until it is approved, policy publication must not block any user action.
+- The shared policy matrix currently requires initial Terms/Privacy acceptance for Customer, Seller, Admin, Logistics, and Courier accounts; Internal Rules remain outside the shared consent flow. Policy publication does not block any user action until a separate auth/session/protected-action trigger is approved.
 - The existing `policy_acceptances` schema stores the actor as `user_id`, the exact `platform_policy_version_id` (and therefore its policy identity), and server `accepted_at` with a unique user/version constraint. It is immutable history, not proof that the current version was accepted.
-- A future acceptance API must derive the actor from the authenticated session, accept only an authorized current Published version, reject Draft/Superseded targets, set the server timestamp, and make a same-user/version retry idempotent. It must never accept on behalf of another user or accept every user automatically.
-- A future consent UI must show the complete current policy, an unchecked explicit confirmation, the exact version, a link to published history, validation/session/network retry states, and no success until the server returns the committed acceptance.
+- The shared acceptance API derives the actor from the authenticated session, accepts only an authorized current Published version, rejects Draft/Superseded targets, sets the server timestamp, and makes a same-user/version retry idempotent. It never accepts on behalf of another user or accepts every user automatically.
+- Customer, Seller, Admin, and Logistics consent screens show the complete current policy, an unchecked explicit confirmation, the exact version, a link to published history, validation/session/network retry states, and no success until the server returns the committed acceptance. Courier consumes the same contract from Flutter.
 - A future reusable consent guard must compare each required current version with that user's exact acceptance before the approved blocking point. Missing consent returns a stable machine-readable `POLICY_CONSENT_REQUIRED` response and the required policy/version list; it must not be disguised as a generic login failure.
 - The blocking point (registration completion, login/session restoration, or protected-feature entry), role coverage, and Internal Rules audience remain integration decisions. Platform Settings owns the records and publication metadata, not the global gate.
 
@@ -99,8 +99,7 @@ POST  /policy-versions/{version}/publish
 - User APIs expose current policy content and, when authorized, version history and an exact history entry. They return published-safe DTOs only.
 - Current implemented public routes are `GET /api/v1/platform/policies/{type}`, `GET /api/v1/platform/policies/{type}/history`, and `GET /api/v1/platform/policies/{type}/history/{version}`; only Terms and Privacy are public.
 - The Admin policy screen shows the current version, a New version action, Edit-to-successor action, Draft editor, Publish confirmation, re-consent checkbox, and version history.
-- No user acceptance route or consent-enforcement middleware is currently available. Any proposed acceptance paths are conceptual until an owning auth/registration feature approves and implements them; clients must not call guessed endpoints.
-- Recommended conceptual contract (unavailable until approved): `GET /api/v1/policy-consent/status` returns required current versions and the authenticated user's acceptance state; `POST /api/v1/policy-consent/{type}/versions/{version}/accept` records one explicit acceptance without a client user ID or timestamp.
+- Shared implemented contract: `GET /api/v1/policy-consent/status` returns required current versions and the authenticated user's acceptance state; `POST /api/v1/policy-consent/{type}/versions/{version}/accept` records one explicit acceptance without a client user ID or timestamp. Platform Settings does not duplicate these routes.
 - The user experience distinguishes “Edit published policy — creates a new draft” from editing a Draft.
 - Forms require labels, keyboard operation, visible focus, associated validation messages, non-color-only status, loading/error/retry states, and no optimistic publish result.
 
@@ -116,9 +115,9 @@ POST  /policy-versions/{version}/publish
 - [x] User default view returns only the current policy; history excludes Drafts and renders a selected historical version exactly.
 - [x] The existing consent schema preserves immutable, exact-version acceptance identity and never auto-accepts users during publication.
 - [x] Administrative mutations create safe audit entries and invalidate relevant caches after commit.
-- [x] The required-policy matrix and Internal Rules audience are approved.
-- [x] A version-specific acceptance API/UI is implemented with explicit confirmation, authorization, idempotent retries, and safe error states.
-- [x] Registration/login/session/protected-action integration enforces missing required consent without blocking policy viewing or acceptance.
+- [x] The shared Terms/Privacy matrix requires initial acceptance for all five account roles while Internal Rules remain outside the shared flow.
+- [x] A version-specific acceptance API/UI is implemented by the shared Policy Viewing and Consent feature with explicit confirmation, authorization, idempotent retries, and safe error states.
+- [ ] Registration/login/session/protected-action integration enforces missing required consent without blocking policy viewing or acceptance; the exact blocking trigger remains an auth-owner decision.
 
 ## HOW
 
@@ -127,19 +126,19 @@ POST  /policy-versions/{version}/publish
 - Implement successor creation in `PlatformSettingsService` with `DB::transaction()` and `lockForUpdate()` on the policy/version. Add a service/controller route, authorization, request validation, resource projection, and audit action.
 - Keep existing Draft-only update and publish paths, but update the Admin page so Published Edit creates/opens a successor Draft. Do not change a Published version through `PATCH`.
 - Current public current/history resources and routes already enforce policy-type visibility and exclude Draft/Admin data. Cache only current Published policy payloads. Do not add consent fields to public history DTOs.
-- When the policy matrix is approved, add the acceptance service/API/UI in the owning authentication or account feature. Use the existing `policy_acceptances` table unless an approved requirement needs additive metadata; use a transaction and a unique user/version guard.
-- Add one reusable consent-status projection for auth/session and protected-route consumers. Keep a user able to fetch/read the required policy and submit acceptance before applying a gate.
+- Reuse the shared `PolicyConsentService`, `PolicyConsentController`, and `policy.actor` middleware for status/acceptance. Use the existing `policy_acceptances` table with a transaction and unique user/version guard; do not add duplicate Platform Settings endpoints.
+- Add one reusable consent-status projection for future auth/session and protected-route consumers. Keep a user able to fetch/read the required policy and submit acceptance before applying a gate.
 - Test Laravel authorization, allow-listing, immutable source, copied successor data, single-current invariant, stale revision conflicts, history visibility, exact acceptance, cache invalidation, and audit records.
-- Test the Admin UI’s successor-edit flow, Draft/publish states, conflict recovery, latest-only user view, history selection, and keyboard/error accessibility. Add consent API/guard tests only after the policy matrix is approved.
+- Test the Admin UI’s successor-edit flow, Draft/publish states, conflict recovery, latest-only user view, history selection, and keyboard/error accessibility. Shared consent API/role-screen tests cover exact acceptance and safe error states; future gate tests belong to the owning auth features.
 - Roll out consent only after the user-facing policy/consent integration identifies who may see Internal Rules, which versions require acceptance, and where missing consent blocks access.
 
 ### Open questions
 
 - Are Terms and Privacy public, authenticated-only, or role-specific?
 - Should a successor Draft be returned or rejected when another Admin already created one?
-- Which policy types require initial acceptance, and who decides whether a published change requires re-consent?
+- Should a published `requires_reconsent` version block at registration, login/session restoration, protected-action entry, or multiple points?
 - Should missing consent be checked at registration completion, login/session restoration, protected-feature entry, or more than one point? Should a second Admin approve publication?
-- Which auth/registration feature owns the acceptance endpoints, UI, consent-status response, and enforcement middleware?
+- Which auth/registration feature adds the future gate while reusing the shared acceptance contract?
 - What user-facing change-summary format and policy notification channel are desired?
 
 ### Sources

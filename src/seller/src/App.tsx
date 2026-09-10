@@ -21,6 +21,7 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { NotificationDetailPage } from './pages/NotificationDetailPage'
 import { ProductQuestionDetailPage } from './pages/ProductQuestionDetailPage'
 import { ProductQuestionsPage } from './pages/ProductQuestionsPage'
+import { PolicyConsentPage } from './pages/PolicyConsentPage'
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
           <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />
           <Route element={<LowStockAlertDetailPage />} path="/low-stock-alerts/:alertId" />
           <Route element={<AccountPage />} path="/account" />
+          <Route element={<PolicyConsentPage />} path="/policy-consent" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

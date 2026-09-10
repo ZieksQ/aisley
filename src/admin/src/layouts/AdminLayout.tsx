@@ -4,6 +4,7 @@ import {
   FaBars,
   FaClipboardCheck,
   FaClockRotateLeft,
+  FaFileContract,
   FaGaugeHigh,
   FaInbox,
   FaShieldHalved,
@@ -51,12 +52,12 @@ export function AdminLayout() {
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
+      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Advertisement content' : 'Announcements, policies, and homepage ads' : 'Admin workspace'
+      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/policy-consent') ? 'Shared policy acceptance' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Advertisement content' : 'Announcements, policies, and homepage ads' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -138,6 +139,10 @@ export function AdminLayout() {
               <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
                 <FaUserGear aria-hidden="true" />
                 Account settings
+              </NavLink>
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/policy-consent">
+                <FaFileContract aria-hidden="true" />
+                Policy consent
               </NavLink>
             </div>
           </nav>

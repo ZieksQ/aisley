@@ -4,6 +4,7 @@ import {
   FaBars,
   FaClipboardList,
   FaComments,
+  FaFileContract,
   FaGaugeHigh,
   FaBoxesStacked,
   FaTriangleExclamation,
@@ -107,6 +108,10 @@ export function SellerLayout() {
               <FaUserGear aria-hidden="true" />
               Account settings
             </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/policy-consent">
+              <FaFileContract aria-hidden="true" />
+              Policy consent
+            </NavLink>
           </nav>
 
           <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
@@ -158,7 +163,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />

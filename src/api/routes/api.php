@@ -37,6 +37,7 @@ use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\PlatformContentController;
+use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
@@ -429,4 +430,14 @@ Route::prefix('v1/platform')->name('platform.')->middleware('throttle:120,1')->g
     Route::get('/policies/{type}/history/{version}', [PlatformContentController::class, 'policyHistoryVersion'])->whereNumber('version')->name('policies.history.show');
     Route::get('/policies/{type}/history', [PlatformContentController::class, 'policyHistory'])->name('policies.history.index');
     Route::get('/policies/{type}', [PlatformContentController::class, 'policy'])->name('policies.show');
+});
+
+Route::prefix('v1/policy-consent')->name('policy-consent.')->middleware('auth:sanctum')->group(function () {
+    Route::get('/status', [PolicyConsentController::class, 'status'])
+        ->middleware(['policy.actor', 'throttle:policy-consent-status'])
+        ->name('status');
+    Route::post('/{type}/versions/{version}/accept', [PolicyConsentController::class, 'accept'])
+        ->whereNumber('version')
+        ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])
+        ->name('accept');
 });

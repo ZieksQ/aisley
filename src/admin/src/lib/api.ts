@@ -1,17 +1,20 @@
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
 type ErrorPayload = {
+  code?: string
   message?: string
   errors?: Record<string, string[]>
 }
 
 export class ApiError extends Error {
+  readonly code?: string
   readonly status: number
   readonly errors: Record<string, string[]>
 
   constructor(status: number, payload: ErrorPayload) {
     super(payload.message ?? 'Something went wrong. Please try again.')
     this.name = 'ApiError'
+    this.code = payload.code
     this.status = status
     this.errors = payload.errors ?? {}
   }
