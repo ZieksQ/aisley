@@ -6,8 +6,10 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\AdminProfile;
 use App\Models\Permission;
+use App\Models\PlatformPolicy;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class PolicyViewingTest extends TestCase
@@ -42,6 +44,11 @@ class PolicyViewingTest extends TestCase
             ->assertHeader('Cache-Control', 'max-age=300, public, s-maxage=300')
             ->assertJsonPath('data.version.id', $firstId)
             ->assertJsonPath('data.version.content', "Version one\nNo HTML is rendered.");
+
+        $policy = PlatformPolicy::query()->where('type', 'terms_of_service')->firstOrFail();
+        $cachedVersion = Cache::get($policy->cacheKey());
+        $this->assertIsArray($cachedVersion);
+        $this->assertSame($firstId, $cachedVersion['id']);
 
         $this->getJson('/api/v1/platform/policies/terms_of_service/history')
             ->assertOk()

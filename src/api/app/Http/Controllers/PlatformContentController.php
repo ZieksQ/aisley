@@ -26,14 +26,18 @@ class PlatformContentController extends Controller
     {
         $policyType = $this->publicPolicyType($type);
         $policy = PlatformPolicy::query()->where('type', $policyType)->firstOrFail();
-        $version = Cache::remember($policy->cacheKey(), 300, fn () => $policy->currentVersion()->where('status', PlatformPolicyVersionStatus::Published)->first());
+        $version = Cache::remember($policy->cacheKey(), 300, function () use ($policy): ?array {
+            $current = $policy->currentVersion()->where('status', PlatformPolicyVersionStatus::Published)->first();
+
+            return $current ? (new PlatformPolicyResource($current))->resolve() : null;
+        });
         abort_unless($version, 404);
 
         return response()->json([
             'data' => [
                 'type' => $policyType->value,
                 'label' => $policyType->label(),
-                'version' => (new PlatformPolicyResource($version))->resolve(),
+                'version' => $version,
             ],
         ])->header('Cache-Control', 'public, max-age=300, s-maxage=300');
     }
