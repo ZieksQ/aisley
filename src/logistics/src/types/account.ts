@@ -11,6 +11,7 @@ export type LogisticsAccount = {
     sex: string | null
     birth_date: string | null
     age: number | null
+    profile_photo_url: string | null
   }
   organization: { id: string | null; business_name: string | null }
   hub: {

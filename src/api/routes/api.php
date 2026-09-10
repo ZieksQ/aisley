@@ -254,6 +254,13 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::put('/account/password', [LogisticsAccountController::class, 'updatePassword'])
         ->middleware('throttle:logistics-account-password')
         ->name('account.password.update');
+    Route::post('/account/profile-photo', [LogisticsAccountController::class, 'uploadProfilePhoto'])
+        ->middleware('throttle:logistics-profile-photo')
+        ->name('account.profile-photo.update');
+    Route::get('/account/profile-photo', [LogisticsAccountController::class, 'profilePhoto'])
+        ->name('account.profile-photo.show');
+    Route::delete('/account/profile-photo', [LogisticsAccountController::class, 'removeProfilePhoto'])
+        ->name('account.profile-photo.destroy');
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');

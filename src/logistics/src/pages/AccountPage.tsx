@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
-import { FaArrowsRotate, FaFloppyDisk, FaLock } from 'react-icons/fa6'
+import type { ChangeEvent, FormEvent } from 'react'
+import { FaArrowsRotate, FaCamera, FaFloppyDisk, FaLock, FaTrashCan } from 'react-icons/fa6'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { Field, SelectField } from '../components/Field'
-import { ApiError, request } from '../lib/api'
+import { LogisticsAvatar } from '../components/LogisticsAvatar'
+import { ApiError, request, uploadForm } from '../lib/api'
 import type { AccountResponse, LogisticsAccount } from '../types/account'
 
 type ProfileForm = {
@@ -32,7 +33,7 @@ function formError(caught: unknown, fallback: string): { message: string; errors
   if (!(caught instanceof ApiError)) return { message: fallback, errors: {} }
   if (caught.status === 409) return { message: 'This account changed while you were editing. Reload the latest values and try again.', errors: caught.errors }
   if (caught.status === 422) return { message: Object.keys(caught.errors).length ? 'Please correct the highlighted fields.' : caught.message, errors: caught.errors }
-  if (caught.status === 429) return { message: 'Too many password attempts. Wait a moment before trying again.', errors: caught.errors }
+  if (caught.status === 429) return { message: 'Too many attempts. Wait a moment before trying again.', errors: caught.errors }
   if (caught.status === 403) return { message: 'This account is not allowed to change these settings.', errors: caught.errors }
   return { message: caught.message || fallback, errors: caught.errors }
 }
@@ -55,6 +56,11 @@ export function AccountPage() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [organizationSaving, setOrganizationSaving] = useState(false)
   const [passwordSaving, setPasswordSaving] = useState(false)
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoProgress, setPhotoProgress] = useState(0)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [photoMessage, setPhotoMessage] = useState<string | null>(null)
 
   useEffect(() => { document.title = 'Account settings | Aisley' }, [])
 
@@ -98,6 +104,67 @@ export function AccountPage() {
 
   function updateProfileField(field: keyof ProfileForm, value: string) {
     setProfile((current) => ({ ...current, [field]: value }))
+  }
+
+  function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] ?? null
+    event.currentTarget.value = ''
+    setPhotoError(null)
+    setPhotoMessage(null)
+    setPhotoProgress(0)
+    if (!selected) return
+
+    const parts = selected.name.toLowerCase().split('.')
+    const extension = parts.at(-1)
+    if (parts.length > 2 || !extension || !['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
+      setPhoto(null)
+      setPhotoError('Choose a JPEG, PNG, or WebP image with one file extension.')
+      return
+    }
+    if (selected.size >= 10 * 1024 * 1024) {
+      setPhoto(null)
+      setPhotoError('The profile photo must be smaller than 10 MB.')
+      return
+    }
+    setPhoto(selected)
+  }
+
+  async function uploadPhoto(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!photo) return
+    setPhotoBusy(true)
+    setPhotoError(null)
+    setPhotoMessage(null)
+    try {
+      const body = new FormData()
+      body.append('photo', photo)
+      const data = await uploadForm<AccountResponse>('/api/v1/logistics/account/profile-photo', body, setPhotoProgress)
+      applyAccount(data.account)
+      await refresh().catch(() => undefined)
+      setPhoto(null)
+      setPhotoMessage(data.message ?? 'Profile photo updated successfully.')
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 401) { await logout().catch(() => undefined); navigate('/login', { replace: true }); return }
+      const result = formError(caught, 'We could not upload your profile photo. Try again.')
+      setPhotoError(result.errors.photo?.[0] ?? result.message)
+    } finally { setPhotoBusy(false) }
+  }
+
+  async function removePhoto() {
+    if (!account?.profile.profile_photo_url || !window.confirm('Remove your current profile photo?')) return
+    setPhotoBusy(true)
+    setPhotoError(null)
+    setPhotoMessage(null)
+    try {
+      const data = await request<AccountResponse>('/api/v1/logistics/account/profile-photo', { method: 'DELETE' })
+      applyAccount(data.account)
+      await refresh().catch(() => undefined)
+      setPhotoMessage(data.message ?? 'Profile photo removed successfully.')
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 401) { await logout().catch(() => undefined); navigate('/login', { replace: true }); return }
+      const result = formError(caught, 'We could not remove your profile photo. Try again.')
+      setPhotoError(result.message)
+    } finally { setPhotoBusy(false) }
   }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
@@ -158,12 +225,28 @@ export function AccountPage() {
   if (loadingError || !account) return <div className="max-w-2xl p-5 sm:p-7"><section className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"><p>{loadingError ?? 'The account projection is unavailable.'}</p><button className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-current px-3 font-semibold" onClick={() => void load()} type="button"><FaArrowsRotate />Try again</button></section></div>
 
   const address = account.hub.address
+  const initials = `${account.profile.first_name?.[0] ?? ''}${account.profile.last_name?.[0] ?? ''}` || 'L'
 
   return <div className="max-w-5xl space-y-5 p-5 sm:p-7">
     <div><h2 className="text-xl font-semibold">Account settings</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">Maintain the approved Logistics account and the identity of its one operational hub. Email, approval status, and hub relocation are managed outside this screen.</p></div>
 
     <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6">
       <div className="flex items-start justify-between gap-4"><div><h3 className="font-semibold">Personal profile</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Only your profile fields can be changed here.</p></div><span className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-white/10">{account.status}</span></div>
+      <div className="mt-5 flex flex-col gap-4 border-b border-zinc-200 pb-5 dark:border-white/10 sm:flex-row sm:items-center">
+        <LogisticsAvatar className="size-20" initials={initials} photoUrl={account.profile.profile_photo_url} />
+        <form className="min-w-0 flex-1" onSubmit={(event) => void uploadPhoto(event)}>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">Profile photo. JPEG, PNG, or WebP under 10 MB.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-semibold hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-white/10"><FaCamera /><span>{photo ? 'Choose another' : 'Choose photo'}</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" disabled={photoBusy} onChange={choosePhoto} type="file" /></label>
+            {photo ? <span className="max-w-56 truncate text-sm text-zinc-500">{photo.name}</span> : null}
+            <button className="h-10 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] disabled:cursor-not-allowed disabled:opacity-60" disabled={!photo || photoBusy} type="submit">{photoBusy ? `Uploading… ${photoProgress}%` : 'Upload'}</button>
+            {account.profile.profile_photo_url ? <button className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-300 dark:hover:bg-red-400/10" disabled={photoBusy} onClick={() => void removePhoto()} type="button"><FaTrashCan />Remove</button> : null}
+          </div>
+          {photoBusy ? <div aria-label={`Uploading profile photo: ${photoProgress}%`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={photoProgress} className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10" role="progressbar"><div className="h-full bg-[#E6007A] transition-[width] duration-150" style={{ width: `${photoProgress}%` }} /></div> : null}
+          {photoMessage ? <p className="mt-2 text-sm text-green-700 dark:text-green-300" role="status">{photoMessage}</p> : null}
+          {photoError ? <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">{photoError}</p> : null}
+        </form>
+      </div>
       <form className="mt-5 space-y-5" onSubmit={(event) => void saveProfile(event)}>
         {profileMessage ? <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.04]" role="status">{profileMessage}</p> : null}
         <div className="grid gap-4 sm:grid-cols-2"><Field error={errorFor(profileErrors, 'first_name')} id="first_name" label="First name" onChange={(event) => updateProfileField('first_name', event.target.value)} required value={profile.first_name} /><Field error={errorFor(profileErrors, 'last_name')} id="last_name" label="Last name" onChange={(event) => updateProfileField('last_name', event.target.value)} required value={profile.last_name} /><Field error={errorFor(profileErrors, 'middle_name')} id="middle_name" label="Middle name" onChange={(event) => updateProfileField('middle_name', event.target.value)} value={profile.middle_name} /><Field error={errorFor(profileErrors, 'contact_number')} id="contact_number" label="Contact number" onChange={(event) => updateProfileField('contact_number', event.target.value)} required value={profile.contact_number} /><SelectField error={errorFor(profileErrors, 'sex')} id="sex" label="Sex" onChange={(event) => updateProfileField('sex', event.target.value)} required value={profile.sex}><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option></SelectField><Field error={errorFor(profileErrors, 'birth_date')} id="birth_date" label="Birth date" max={new Date().toISOString().slice(0, 10)} onChange={(event) => updateProfileField('birth_date', event.target.value)} required type="date" value={profile.birth_date} /><Field disabled id="age" label="Age (calculated)" value={account.profile.age === null ? '' : String(account.profile.age)} /></div>

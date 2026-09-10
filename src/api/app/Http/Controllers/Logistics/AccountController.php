@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\UpdateAccountOrganizationRequest;
 use App\Http\Requests\Logistics\UpdateAccountPasswordRequest;
 use App\Http\Requests\Logistics\UpdateAccountProfileRequest;
+use App\Http\Requests\Logistics\UploadAccountProfilePhotoRequest;
 use App\Http\Resources\Logistics\LogisticsAccountResource;
 use App\Models\User;
 use App\Services\Logistics\LogisticsAccountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AccountController extends Controller
 {
@@ -74,6 +77,53 @@ class AccountController extends Controller
 
         return $this->privateResponse([
             'message' => 'Password updated successfully. All Logistics access tokens have been revoked.',
+        ]);
+    }
+
+    public function uploadProfilePhoto(UploadAccountProfilePhotoRequest $request): JsonResponse
+    {
+        $logistics = $this->accounts->updateProfilePhoto(
+            $this->logistics($request),
+            $request->file('photo'),
+            $this->context($request),
+        );
+
+        return $this->privateResponse([
+            'message' => 'Profile photo updated successfully.',
+            'account' => new LogisticsAccountResource($logistics),
+        ]);
+    }
+
+    public function profilePhoto(Request $request): StreamedResponse
+    {
+        $profile = $this->logistics($request)->logisticsProfile;
+        abort_unless($profile?->profile_photo_disk && $profile->profile_photo_path, 404);
+
+        $disk = Storage::disk($profile->profile_photo_disk);
+        abort_unless($disk->exists($profile->profile_photo_path), 404);
+
+        return $disk->response(
+            $profile->profile_photo_path,
+            null,
+            [
+                'Content-Type' => $profile->profile_photo_mime ?? 'application/octet-stream',
+                'Cache-Control' => 'private, no-store',
+                'Pragma' => 'no-cache',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+        );
+    }
+
+    public function removeProfilePhoto(Request $request): JsonResponse
+    {
+        $logistics = $this->accounts->removeProfilePhoto(
+            $this->logistics($request),
+            $this->context($request),
+        );
+
+        return $this->privateResponse([
+            'message' => 'Profile photo removed successfully.',
+            'account' => new LogisticsAccountResource($logistics),
         ]);
     }
 

@@ -282,7 +282,7 @@ An Admin profile photo is stored on the configured Laravel filesystem (Azure Blo
 
 **Model:** `LogisticsProfile`
 
-The Logistics personal profile uses the same UUID-backed identity fields as the other non-Admin role profiles. `user_id` is unique and cascades on user deletion. The computed age is derived from `birth_date` and is not stored.
+The Logistics personal profile uses the same UUID-backed identity fields as the other non-Admin role profiles. `user_id` is unique and cascades on user deletion. The computed age is derived from `birth_date` and is not stored. Its optional profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`); the API exposes only the authenticated owner's private capability path, never the raw storage metadata.
 
 | Column          | PostgreSQL type | Nullable | Notes                                       |
 | --------------- | --------------- | -------- | ------------------------------------------- |
@@ -294,6 +294,12 @@ The Logistics personal profile uses the same UUID-backed identity fields as the 
 | `contact_number` | VARCHAR(32)     | No       | Contact number                              |
 | `sex`            | VARCHAR(32)     | No       | Cast to `UserSex`                           |
 | `birth_date`     | DATE            | No       | Source for the computed `age` accessor      |
+| `profile_photo_path` | VARCHAR(2048) | Yes      | Generated private blob-storage path         |
+| `profile_photo_disk` | VARCHAR       | Yes      | Configured filesystem disk                  |
+| `profile_photo_mime` | VARCHAR(64)  | Yes      | Server-detected image MIME                  |
+| `profile_photo_size` | BIGINT       | Yes      | Image bytes                                 |
+| `profile_photo_width` | INTEGER     | Yes      | Image width in pixels                       |
+| `profile_photo_height` | INTEGER    | Yes      | Image height in pixels                      |
 | `created_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 | `updated_at`     | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 

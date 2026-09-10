@@ -28,6 +28,9 @@ class LogisticsAccountResource extends JsonResource
                 'sex' => $profile?->sex?->value,
                 'birth_date' => $profile?->birth_date?->toDateString(),
                 'age' => $profile?->age,
+                'profile_photo_url' => $profile?->profile_photo_disk && $profile->profile_photo_path
+                    ? '/api/v1/logistics/account/profile-photo?v='.$profile->updated_at?->getTimestamp()
+                    : null,
             ],
             'organization' => [
                 'id' => $organization?->id,
@@ -49,6 +52,7 @@ class LogisticsAccountResource extends JsonResource
             ],
             'security' => [
                 'email_editable' => false,
+                'profile_photo_editable' => true,
                 'password_change_requires_current_password' => true,
                 'organization_editable' => true,
                 'hub_name_editable' => true,
