@@ -104,11 +104,11 @@ active Logistics session
 - [x] Password change is rate-limited, current-password protected, and follows the configured session/token policy.
 - [x] Concurrent/retried writes preserve the latest committed projection without duplicate events or notifications.
 - [x] The Logistics Account Settings UI handles loading, validation, conflict, retry, unauthorized, and success states accessibly.
-- [ ] The organization can upload, replace, retrieve, and remove only its own valid business logo through the approved logo endpoints.
-- [ ] Logo validation enforces the shared under-10-MiB JPEG/JPG/PNG/WebP policy, persists only approved metadata, and never exposes a raw storage path.
-- [ ] Replacement/removal cleanup is transaction-safe and idempotent; storage failures cannot roll back a committed metadata decision or resurrect an old logo.
-- [ ] Private logo delivery is authorized and no-store by default; any buyer/seller-visible delivery has a separate approved visibility contract.
-- [ ] The Logistics SPA exposes accessible organization-logo empty, preview, progress, validation, retry, removal, and unauthorized states only after backend support exists.
+- [x] The organization can upload, replace, retrieve, and remove only its own valid business logo through the approved logo endpoints.
+- [x] Logo validation enforces the shared under-10-MiB JPEG/JPG/PNG/WebP policy, persists only approved metadata, and never exposes a raw storage path.
+- [x] Replacement/removal cleanup is transaction-safe and idempotent; storage failures cannot roll back a committed metadata decision or resurrect an old logo.
+- [x] Private logo delivery is authorized and no-store by default; any buyer/seller-visible delivery has a separate approved visibility contract.
+- [x] The Logistics SPA exposes accessible organization-logo empty, preview, progress, validation, retry, removal, and unauthorized states only after backend support exists.
 
 ## HOW
 
