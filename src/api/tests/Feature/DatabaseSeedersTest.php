@@ -204,11 +204,16 @@ class DatabaseSeedersTest extends TestCase
         $this->assertSame('Logan', $logistics->logisticsProfile->first_name);
         $this->assertSame('Aisley Delivery Services', $logistics->logisticsOrganization->business_name);
         $this->assertSame('Aisley Makati Hub', $logistics->logisticsOrganization->hub->name);
+        $this->assertSame(14.565681, (float) $logistics->addresses()->sole()->latitude);
+        $this->assertSame(121.032077, (float) $logistics->addresses()->sole()->longitude);
 
+        $logistics->addresses()->sole()->update(['latitude' => null, 'longitude' => null]);
         config()->set('logistics.initial.password', 'ReplacementLogistics456');
         $this->seed(InitialLogisticsSeeder::class);
 
         $this->assertTrue(Hash::check('InitialLogistics123', $logistics->fresh()->password));
+        $this->assertSame(14.565681, (float) $logistics->addresses()->sole()->latitude);
+        $this->assertSame(121.032077, (float) $logistics->addresses()->sole()->longitude);
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('logistics_hubs', 1);
     }

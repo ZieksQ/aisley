@@ -53,9 +53,17 @@ class InitialLogisticsSeeder extends Seeder
                 'region' => config('logistics.initial.region', 'National Capital Region (NCR)'),
                 'postal_code' => config('logistics.initial.postal_code', '1200'),
                 'country' => 'Philippines',
+                'latitude' => config('logistics.initial.latitude', 14.565681),
+                'longitude' => config('logistics.initial.longitude', 121.032077),
                 'is_default' => true,
             ],
         );
+        if ($address->latitude === null || $address->longitude === null) {
+            $address->forceFill([
+                'latitude' => config('logistics.initial.latitude', 14.565681),
+                'longitude' => config('logistics.initial.longitude', 121.032077),
+            ])->save();
+        }
 
         $organization = $logistics->logisticsOrganization()->firstOrCreate([], [
             'business_name' => config('logistics.initial.business_name', 'Aisley Logistics'),
