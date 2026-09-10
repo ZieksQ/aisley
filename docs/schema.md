@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, marketplace/order schema, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile assignment foundation
+> **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile assignment foundation
 >
-> **Last synchronized:** 2026-09-08
+> **Last synchronized:** 2026-09-10
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -107,6 +107,9 @@ erDiagram
     PRODUCTS ||--o{ PRODUCT_MEDIA : has
     PRODUCT_VARIANTS o|--o{ PRODUCT_MEDIA : has
     PRODUCT_VARIANTS o|--o| PRODUCT_MEDIA : primary_media
+    PRODUCTS ||--o{ PRODUCT_QAS : receives
+    USERS ||--o{ PRODUCT_QAS : asks
+    USERS o|--o{ PRODUCT_QAS : answers_as_seller
     FLASH_DEALS }o--o{ PRODUCTS : includes
     USERS ||--o{ RECENTLY_VIEWED_PRODUCTS : views
     PRODUCTS ||--o{ RECENTLY_VIEWED_PRODUCTS : appears_in
@@ -880,6 +883,30 @@ Unique (`product_id`, `position`) maintains the product gallery ordering; (`prod
 
 At most one active product-level gallery media row is marked `is_default` by the Seller-scoped asset service. Customer summary DTOs use it as the card thumbnail and fall back to the first approved product-level gallery image for legacy products without a selected default.
 
+### 9.5B `product_qas`
+
+**Model:** `ProductQA`
+
+Product Q&A stores one public Customer question per row and, at most, one official answer from the Seller that owns the Product's Shop. The Product relationship is authoritative; the API re-applies `Product::storefrontVisible()` before every public read, question write, and answer write.
+
+| Column                     | PostgreSQL type | Nullable | Notes                                                              |
+| -------------------------- | --------------- | -------- | ------------------------------------------------------------------ |
+| `id`                       | UUID            | No       | Eloquent UUIDv7 primary key                                       |
+| `product_id`               | UUID            | No       | FK → `products.id`; `ON DELETE RESTRICT`                          |
+| `customer_id`              | UUID            | No       | FK → `users.id`; active Customer derived from Sanctum             |
+| `question_text`            | TEXT            | No       | Normalized plain text; maximum 1,000 characters                   |
+| `question_idempotency_key` | VARCHAR(64)     | No       | Customer-scoped retry key                                         |
+| `question_request_hash`    | CHAR(64)        | No       | SHA-256 of the Product/question mutation                          |
+| `answer_text`              | TEXT            | Yes      | Normalized plain text; maximum 2,000 characters                   |
+| `answered_by_seller_id`    | UUID            | Yes      | FK → `users.id`; verified Product-owning Seller                   |
+| `answer_idempotency_key`   | VARCHAR(64)     | Yes      | Seller-scoped retry key; populated only after the official answer |
+| `answer_request_hash`      | CHAR(64)        | Yes      | SHA-256 of the Q&A/answer mutation                                |
+| `asked_at`                 | TIMESTAMP       | No       | Server question time                                              |
+| `answered_at`              | TIMESTAMP       | Yes      | Server official-answer time                                       |
+| `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Eloquent                                               |
+
+Unique (`customer_id`, `question_idempotency_key`) and (`answered_by_seller_id`, `answer_idempotency_key`) make actor-scoped retries return the original projection and reject reused keys with different details. Indexes on (`product_id`, `asked_at`, `id`), Customer/time, and Seller/answer time support bounded public pagination and ownership checks. Q&A history is restrictive against hard Product/User deletion; normal Product archival, compliance restriction, Shop vacation, or account deactivation only removes it from public projections.
+
 ### 9.5A Inventory SKUs, balances, and movements
 
 `inventory_skus` gives both base products and Product Variants one stable stock identity. A database check requires base SKUs to have no variant and variant SKUs to reference one. Variant references remain globally unique, while SKU codes are unique by (`shop_id`, `code`); records are retained when a product is archived.
@@ -1102,6 +1129,7 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Product media → Product                                           | `CASCADE`                   | Gallery media belongs to its product                                                                |
 | Product media → Variant                                           | `SET NULL`                  | Preserve product-gallery media if a variant is removed                                              |
 | Variant primary media → Product media                             | `SET NULL`                  | Keep the variant if its selected media is removed                                                   |
+| Product Q&A → Product/Customer/Seller                             | `RESTRICT`                  | Preserve public question/answer history and verified ownership attribution                         |
 | Flash deal item → Flash deal/Product                              | `CASCADE`                   | Deal membership has no meaning without either side                                                  |
 | Recently viewed item → User/Product                               | `CASCADE`                   | History has no meaning without either side                                                          |
 | Cart → Customer User                                              | `CASCADE`                   | A Cart belongs exclusively to its authenticating Customer                                           |
@@ -1171,6 +1199,8 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 49. Once the shared schema exists, a `ready_for_pickup` Order with a selected Logistics organization may have at most one active first-mile task; creation is authorized only to that organization and is idempotent across retries.
 50. The implemented waybill/schedule/first-mile assignment slice cannot write physical custody or Inventory effects. Shipment/Parcel milestones, physical Scan events, final-mile tasks, assignments beyond the approved first-mile schedule, and proof-of-delivery writes remain prohibited until their shared transition contract is approved and migrated.
 51. Customer Order mutations are scoped to owned `placed` COD Orders. Cancellation appends an immutable status/history record and releases only that Order's reservation once; delivery-address correction appends a versioned snapshot and never mutates the Address Book source. Item, quantity, voucher, shipping, repricing, and post-pickup changes remain deferred.
+52. Product Q&A reads and writes must re-apply `Product::storefrontVisible()`. Questions are active-Customer-owned, answers are restricted to the Product-owning Seller, and public DTOs contain no private Customer fields.
+53. Product Q&A question/answer mutations use actor-scoped idempotency keys and one-answer locking. Notifications are dispatched after the Q&A transaction commits and deterministic notification IDs prevent duplicate alerts.
 
 ## 13. Migration order
 
@@ -1231,6 +1261,7 @@ Migrations currently run in this dependency order:
 53. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
 54. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
 55. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
+56. `2026_09_10_000011_create_product_qas_table.php` — Product-scoped Customer questions, one official Seller answer, actor-scoped idempotency keys, and public-read indexes.
 
 ## 14. Deferred schema
 

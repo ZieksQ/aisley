@@ -24,6 +24,7 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
+use App\Http\Controllers\Customer\ProductQAController as CustomerProductQAController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
@@ -46,6 +47,7 @@ use App\Http\Controllers\Seller\NotificationController as SellerNotificationCont
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
@@ -203,6 +205,10 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
     Route::delete('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'destroy'])->whereUuid('address')->name('pickup-addresses.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
+    Route::post('/product-questions/{question}/answer', [SellerProductQAController::class, 'answer'])
+        ->whereUuid('question')
+        ->middleware('throttle:seller-product-qa-answer')
+        ->name('product-questions.answer');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::post('/product-uploads', [SellerProductUploadController::class, 'store'])->middleware('throttle:30,1')->name('product-uploads.store');
     Route::get('/product-uploads/{productUpload}', [SellerProductUploadController::class, 'show'])->whereUuid('productUpload')->name('product-uploads.show');
@@ -389,6 +395,16 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
             ->name('orders.modify');
     });
 });
+
+Route::get('v1/products/{product}/questions', [CustomerProductQAController::class, 'index'])
+    ->whereUuid('product')
+    ->middleware('throttle:120,1')
+    ->name('products.questions.index');
+
+Route::post('v1/products/{product}/questions', [CustomerProductQAController::class, 'store'])
+    ->whereUuid('product')
+    ->middleware(['auth:sanctum', 'customer.active', 'throttle:customer-product-questions'])
+    ->name('products.questions.store');
 
 Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
     ->whereUuid('id')

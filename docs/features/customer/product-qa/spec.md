@@ -3,8 +3,8 @@ feature: product-qa
 title: Customer Product Q&A
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Deferred — no Product Q&A API, schema, notifications, or UI is implemented
+version: 1.2
+status: Implemented (Phase 1) — Customer public read/ask, owning Seller answer API, notifications, and Product Detail Q&A UI are implemented; Seller answer UI remains deferred
 role: Customer
 scope: Customer storefront and owning Seller answer surface through the Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Buyer.md, docs/domains/Seller.md, docs/design.md
@@ -16,7 +16,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Let a Customer ask a public, Product-specific question and let the owning Seller publish one official answer for future shoppers.
 - **Terminology:** `customer` is the persisted/API role; “Buyer” is the storefront term. Questions belong to a Product, and Seller authority comes from that Product's Shop ownership.
-- **Current state:** Product Q&A is documented but deferred. There is no `ProductQA` model/table, question or answer route, notification producer, Product Detail section, or Seller answer screen in the current implementation.
+- **Current state:** Phase 1 is implemented. The API provides public Product-scoped reads, active-Customer question creation, owning-Seller official answers, actor-scoped idempotency, after-commit notifications, and the Customer Product Detail Q&A section. A dedicated Seller answer-management screen remains deferred.
 - **MVP flow:**
 
   ```text
@@ -36,7 +36,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Public read and Product visibility
 
-- Plan `GET /api/v1/products/{product}/questions?page=&limit=` as a public, paginated endpoint. It is unavailable until the schema, policy, and UI contract are implemented.
+- `GET /api/v1/products/{product}/questions?page=&limit=` is a public, paginated endpoint.
 - Allow guests and authenticated Customers to read Q&A only when the Product passes `Product::storefrontVisible()` and the Product Detail is publicly accessible.
 - Reapply the visibility scope in the Q&A query. A hidden, draft, archived, compliance-restricted, inactive-Shop, vacation-Shop, suspended-Shop, or inactive-Seller Product must return a scoped `404`/empty public result and must not leak its Q&A.
 - Use a bounded `limit` (project maximum 50) and deterministic `asked_at DESC, id DESC` ordering. Preserve valid page state and Product scope on every page.
@@ -45,7 +45,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Customer question creation
 
-- Plan `POST /api/v1/products/{product}/questions`; it is unavailable until the schema, policy, and notification contract are implemented.
+- `POST /api/v1/products/{product}/questions` requires an active Customer and a UUID `Idempotency-Key` header.
 - Require an authenticated active `customer` through Sanctum. Guests receive `401` and may be redirected to sign-in by the UI, but their question is never stored locally or submitted anonymously.
 - Derive the Customer, Product, Shop, and Seller from the authenticated session and relationships. Reject or ignore client `customer_id`, `buyer_id`, `seller_id`, role, timestamps, answered flags, and notification recipients.
 - Resolve the Product through `storefrontVisible()` inside the mutation. A Customer may ask about a visible Product without proving a purchase; Q&A is not a review.
@@ -57,7 +57,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Seller official answer
 
 - The owning Seller is the only role allowed to answer. Seller authority is derived through `question.product.shop.seller`, never from a request field.
-- Plan `POST /api/v1/seller/product-questions/{question}/answer` (or the route selected by the future Seller Q&A spec); this endpoint is unavailable until its Seller contract exists.
+- `POST /api/v1/seller/product-questions/{question}/answer` requires the active Seller that owns the Product's Shop. The endpoint is implemented for the future Seller surface.
 - Require an authenticated active `seller`, load the Q&A with its Product/Shop, and return an ownership-safe `403`/`404` for another Seller, Customer, Admin, or same-email account.
 - Store one official answer in the MVP. The mutation must not rewrite the Customer question and must reject a second concurrent answer with a stable result or `409`.
 - Validate answer text as non-empty, normalized, bounded plain text (initial recommendation: 2,000 characters), and escaped on every public render. Answer editing/history is open and must not be invented silently.
@@ -65,7 +65,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Data and consistency
 
-- The proposed additive `product_qas` record contains UUID `id`, UUID `product_id`, UUID `customer_id`, `question_text`, nullable `answer_text`, nullable `answered_by_seller_id`, `asked_at`, nullable `answered_at`, and timestamps.
+- The additive `product_qas` record contains UUID `id`, UUID `product_id`, UUID `customer_id`, `question_text`, Customer-scoped question idempotency/hash fields, nullable `answer_text`, nullable `answered_by_seller_id`, Seller-scoped answer idempotency/hash fields, `asked_at`, nullable `answered_at`, and timestamps.
 - Foreign keys and indexes must scope lookups by Product, Customer, and answer state. The Product relationship is authoritative; `answered_by_seller_id` is an audit value populated from the verified owner.
 - Keep one row per question and at most one official answer for the MVP. Use a transaction plus a uniqueness/conditional update guard so concurrent answer attempts cannot create two answers.
 - Support an actor-scoped idempotency key for question and answer mutations. Replays return the original committed projection and do not duplicate rows or alerts.
@@ -91,42 +91,44 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - [x] Guests can read paginated Q&A only for a currently buyer-visible Product.
 - [x] Only an authenticated active Customer can create a question; guest and cross-role requests are denied.
-- [x] Product, Customer, Seller ownership, answered state, and notification recipient are server-derived. [x] Empty, oversized, malformed, executable, and rate-limited question/answer input is rejected safely.
+- [x] Product, Customer, Seller ownership, answered state, and notification recipient are server-derived.
+- [x] Empty, oversized, malformed, executable, and rate-limited question/answer input is rejected safely.
 - [x] Each question belongs to one Product and Customer; a Customer cannot attach it to another Product or Seller.
 - [x] Only the Product-owning Seller can publish one official answer, and the Customer question remains unchanged.
 - [x] Public DTOs contain no private Customer/Seller data, credentials, evidence, or raw storage paths.
 - [x] Product visibility is rechecked for reads and mutations; hidden Products do not expose public Q&A.
 - [x] Concurrent/retried question and answer requests are idempotent and do not duplicate records or notifications.
 - [x] Notification delivery is after-commit and cannot reverse a committed Q&A decision.
-- [x] Customer Product Detail and future Seller surfaces expose accessible loading, empty, answered, validation, unauthorized, unavailable, and retry states.
+- [x] Customer Product Detail exposes accessible loading, empty, answered, validation, unauthorized, unavailable, pagination, and retry states.
+- [ ] A dedicated Seller answer-management UI is intentionally deferred until a Seller Q&A specification defines its surface; the Seller API contract is available now.
 - [x] Q&A remains separate from private Chat/Messaging and verified-purchase Reviews & Ratings.
 
 ## HOW
 
 ### Current project boundary
 
-- `docs/domains/Buyer.md` documents Product Q&A as a deferred public Customer question/Seller answer capability. `docs/domains/Seller.md` does not yet define the Seller answer screen.
-- Current `ProductDetailController` and `ProductDetailResource` expose visible Product data but no Q&A relation. No Q&A route, model, migration, service, notification, or frontend component exists.
-- Do not mark an acceptance item implemented until the route, migration, authorization, tests, and owning UI are present. Do not add a Seller answer flow by changing only the Customer spec.
+- `docs/domains/Buyer.md` records the implemented public Customer question/Seller answer API boundary. `docs/domains/Seller.md` keeps the dedicated Seller answer screen deferred.
+- `ProductDetailController` continues to expose the core Product projection; `ProductQAController`, `ProductQAService`, the additive `product_qas` migration/model, notification job, and Customer Product Detail section provide the Q&A contract. Seller answer UI is not part of the Customer application.
+- The implementation includes route/migration/authorization/privacy/idempotency/notification tests. Future Seller UI must consume the existing ownership contract rather than invent a second answer model or route.
 
 ### Laravel implementation plan
 
-- Add an additive migration and `ProductQA` model/relations. Keep enum-like fields string-backed and derive ownership from authenticated users, Product, Shop, and Seller relationships.
-- Add Form Requests, a `ProductQAPolicy`, thin Customer/Seller controllers, a safe `ProductQAResource`, and actions such as `AskProductQuestion` and `AnswerProductQuestion`.
-- Scope public reads with `storefrontVisible()` before pagination. Lock the Q&A row or use a conditional update for one-answer concurrency; persist idempotency and after-commit notification records transactionally.
-- Reuse the existing Customer/Seller notification resources and configured queue/outbox behavior. Do not send private Customer data in notification payloads.
+- The additive migration and `ProductQA` model/relations are implemented. Enum-like fields remain string-backed, and ownership is derived from authenticated users, Product, Shop, and Seller relationships.
+- Form Requests, thin Customer/Seller controllers, a safe `ProductQAResource`, and the shared `ProductQAService` enforce the contract.
+- Public reads apply `storefrontVisible()` before pagination. The answer mutation locks the Q&A row; actor-scoped idempotency fields and deterministic after-commit notification jobs prevent duplicate decisions/alerts.
+- Existing Customer/Seller notification resources and the configured queue/database channel are reused. Notification payloads contain only safe identifiers, previews, and destinations.
 
 ### Next.js implementation plan
 
-- Add `ProductQASection`, `ProductQAList`, `ProductQAItem`, pagination, and `AskProductQuestionForm` under the existing Product Detail route. Use the existing API client and Customer auth/return-path behavior.
+- `ProductQASection` under the existing Product Detail route uses the existing API client and Customer auth/return-path behavior. It renders escaped plain text, pagination, sign-in gating, field-level validation, throttling, unavailable/network retry, and announced loading/success states.
 - Render Q&A as escaped plain text, not `dangerouslySetInnerHTML`. Keep Product Detail's existing safe Markdown renderer limited to the Seller-authored description, not Q&A content.
-- Add a separate Seller dashboard component only when a Seller Q&A spec defines its route and screen; do not call a conceptual endpoint as if it were live.
+- A separate Seller dashboard component remains deferred until a Seller Q&A spec defines its route and screen. The implemented Seller answer endpoint is live and covered by the Customer Product Q&A API contract.
 
 ### Verification and rollout
 
-- Laravel tests must cover guest/role gates, Product visibility, Product/Seller ownership, validation, pagination, DTO privacy, one-answer concurrency, idempotency, after-commit notification failure, and hidden Product behavior.
-- Frontend tests must cover public/empty/answered states, login-required ask, validation/throttle/retry, pagination, unavailable Product, safe rendering, keyboard flow, and announced feedback.
-- Release the migration and API before enabling the Product Detail Q&A section. Monitor scoped `404`s, validation/throttle rates, duplicate suppression, notification failures, and public DTO errors without logging question/answer contents.
+- Laravel `ProductQATest` covers guest/role gates, Product visibility, Product/Seller ownership, validation, pagination, DTO privacy, one-answer conflict, idempotency, notification persistence, and hidden Product behavior.
+- The Customer Product Detail component covers public/empty/answered states, login-required ask, validation/throttle/retry, pagination, unavailable/network retry, escaped rendering, keyboard flow, and announced feedback through the existing webapp lint/type checks. Dedicated Seller answer UI tests remain deferred with that UI.
+- Release the migration and API together with the Product Detail Q&A section. Monitor scoped `404`s, validation/throttle rates, duplicate suppression, notification failures, and public DTO errors without logging question/answer contents.
 - Open decisions: exact question/answer limits, page size/order, Seller inbox placement, answer edit/history policy, Customer display label, retention/moderation/reporting, vacation-mode behavior, and notification channels.
 
 **Sources:** `docs/domains/Buyer.md`, `docs/domains/Seller.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/design.md`, [Laravel Authorization](https://laravel.com/docs/12.x/authorization), [Laravel Notifications](https://laravel.com/docs/12.x/notifications), [Laravel Validation](https://laravel.com/docs/12.x/validation), and [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).
