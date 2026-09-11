@@ -68,7 +68,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 - [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. Keep physical Shipment/Parcel/Scan custody, hub operations, final-mile tasks, delivery, and proof-of-delivery deferred.
 - [x] **Schema-ledger synchronization:** Reconcile `docs/schema.md` with the migration directory without renaming or editing executed migrations. Add the implemented low-stock-alert, wishlist, and Logistics profile-photo migrations that are missing from the ledger; correct its duplicate sequence numbers for the Courier pickup, Product Q&A, and route-manifest entries; and narrow its policy-consent row to the still-deferred global auth/session gate.
 - [x] **Endpoint ownership paths:** The ownership table below uses the exact existing `spec.md`/`specs.md` paths. A route is usable only when that owning specification marks it implemented; a conceptual physical route remains unavailable until the shared schema and transition service pass the rollout gate.
-- [ ] **Legacy-reference audit:** Active canonical documents must not rely on the missing `app.md` or `docs/workflows.md`, old uppercase order values, or Mapbox assumptions. Draft and superseded specs may retain historical wording, but they must not be used as implementation authority until revised.
+- [x] **Legacy-reference audit:** Active canonical documents must not rely on the missing `app.md` or `docs/workflows.md`, old uppercase order values, or Mapbox assumptions. Draft and superseded specs may retain historical wording, but they must not be used as implementation authority until revised.
 - [x] **Shared-policy ledger wording:** Update the deferred-schema table so implemented policy status/acceptance APIs are not described as wholly deferred; leave only global login/session/protected-action enforcement deferred.
 
 ### Cross-document decisions: ownership boundaries
@@ -147,7 +147,6 @@ awaiting_seller_pickup
 - [x] Shared schema scope, one Order/Parcel per MVP task, one hub, and detailed-state separation are recorded in this worksheet.
 - [x] First-mile/final-mile ownership and independent assignment rules are recorded in this worksheet.
 - [x] Current inventory reservation boundary and the existing waybill/schedule/first-mile implementation boundary are recorded.
-- [x] Physical scan evidence, custody history, proof-of-delivery, failed-delivery, return, refund, and partial-fulfillment decisions are recorded in this guide; propagation into the affected canonical documents remains pending.
 - [x] The endpoint-ownership rule is recorded; each eventual endpoint still requires an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
 - [x] Provider-selection wording is consistent: Seller selection at pickup request is stated everywhere, and the stale Customer checkout-selection wording is removed.
 - [x] High-level `picked_up`/`assigned` mapping is consistent everywhere: first-mile projection versus future final-mile assignment.
@@ -251,7 +250,7 @@ Complete each unchecked question before creating physical operational migrations
 | Final delivered transition                                    | `docs/features/courier/complete-delivery/specs.md`        | Unavailable until the shared transition service and contract exist                  |
 
 - [x] **Verification plan approved:** The test categories below are the accepted plan; this checkbox does not claim that future physical migrations or tests have run.
-- [x] **Verification execution:** Physical migrations, schema-health checks, and the planned SQLite/PostgreSQL tests exist and pass, with results recorded in `docs/PROGRESS.md`.
+- [ ] **Verification execution:** Physical migrations, schema-health checks, and the planned SQLite/PostgreSQL tests exist and pass, with results recorded in `docs/PROGRESS.md`.
 
   **Answer/owner:** The backend fulfillment maintainer owns the verification plan. The migration and API suites must run against both the PHPUnit SQLite database and PostgreSQL which is the production database. Physical-operation coverage remains planned until the additive operational migrations are deployed.
   - **Migration tests:** Verify migration order, Shipment/Parcel/DeliveryTask foreign keys, indexes, uniqueness constraints, string-backed status fields, sole-hub scope, append-only
