@@ -49,3 +49,4 @@ Format:
 ## 2026-09-11
 
 - Hardened Courier pickup route-map loading with bounded pending-manifest polling, truthful MapLibre/tile error fallback, retry-state reset, invalid-line protection, and Courier mockup CORS defaults; focused route coverage passes 2 tests/48 assertions and the mockup build/lint pass.
+- Aligned Seller Geoapify pinning with the configured `GEOAPIFY_API_KEY` variable, explicitly exposed that browser-key prefix through Vite, and updated the map policy reference; Seller type-check/lint and seven order-action tests pass.

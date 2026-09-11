@@ -56,7 +56,7 @@ There is no provider request while the user types. Changing a populated textual 
 - Latitude and longitude are optional unless a feature explicitly requires them, but they must be submitted as a complete pair and remain within `-90..90` and `-180..180`.
 - Provider failures must not erase entered text or silently rewrite address fields.
 - Do not put credentials, full addresses, or route payloads in logs.
-- `NEXT_PUBLIC_GEOAPIFY_API_KEY` (Customer webapp) and `VITE_GEOAPIFY_API_KEY` (Seller dashboard) are origin-restricted browser keys for intentional forward geocoding and tiles. `GEOAPIFY_SERVER_API_KEY` is a separate server-only key for Route Matrix, Routing, and proxied Courier map-tile requests.
+- `NEXT_PUBLIC_GEOAPIFY_API_KEY` (Customer webapp) and `GEOAPIFY_API_KEY` (Seller dashboard) are origin-restricted browser keys for intentional forward geocoding and tiles. `GEOAPIFY_SERVER_API_KEY` is a separate server-only key for Route Matrix, Routing, and proxied Courier map-tile requests.
 
 ## Cost boundary
 
