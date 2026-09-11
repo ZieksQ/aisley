@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile pickup confirmation
 >
-> **Last synchronized:** 2026-09-10
+> **Last synchronized:** 2026-09-11
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -198,6 +198,8 @@ in_transit
 out_for_delivery
 delivered
 ```
+
+Task-level `rejected` records an offered Courier's refusal and allows the same task to be offered to another eligible Courier without changing the Order. `stale` is an informational freshness condition for an unfinished task; it is not an `orders.status` value and should be derived unless a future task migration explicitly persists it. Neither condition automatically cancels an Order or reassigns a task.
 
 `picked_up_from_seller` records the first-mile Seller handoff. `picked_up_from_hub` records the final-mile handoff from the Logistics hub. `waybill_created`, scan, sort, transfer, and dispatch records are events/document operations unless a future shipment contract explicitly makes one of them a current state.
 
@@ -1055,7 +1057,7 @@ Every Order starts with one `order_addresses` delivery snapshot at `version = 1`
 
 Successful placement increments `inventory_balances.reserved`, writes an immutable `reserve` movement linked to the Order, and updates catalog compatibility quantities to available stock. All Shop Orders, lines, address snapshots, status events, voucher records, inventory reservations, and selected-Cart cleanup commit in one transaction.
 
-The current checkout schema does not persist a Logistics provider because the Seller selects one when committing a pickup request for prepared Shop Orders. Before Logistics actions are implemented, the shared schema must store that server-validated eligible organization immutably on the pickup/fulfillment records; the client may not submit an ineligible organization or replace the selection after commitment. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
+The current checkout schema does not persist a Logistics provider directly. The Seller selects one when committing a pickup request for prepared Shop Orders, and the implemented pickup-request records store that server-validated eligible organization and derived sole hub immutably; the client may not submit an ineligible organization or replace the selection after commitment. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
 
 The reserved quantity is converted to fulfilled/committed inventory exactly once when first-mile pickup succeeds (`picked_up_from_seller`). An accepted cancellation or rejection before that milestone releases only the Order's reserved SKU quantities, transactionally and idempotently. After first-mile pickup, inventory is not automatically released; post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
@@ -1080,6 +1082,8 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 `pickup_schedules` belongs to one organization/hub and one approved affiliated Courier, stores a UTC future window, revision, status, human reference, and organization-scoped idempotency key. `pickup_schedule_orders` retains schedule/request/Order membership. `first_mile_tasks` creates one task per scheduled Order and waybill, with acceptance and physical-pickup timestamps; PostgreSQL enforces one active task per Order with a partial unique index over `assigned`, `accepted`, and `picked_up_from_seller`. `courier_pickup_confirmations` stores one immutable confirmation per task with Order/waybill/Courier scope, Courier-scoped idempotency key and request hash, previous/new detailed state, schedule revision, correlation ID, and pickup time. `pickup_route_manifests` retains one pending/ready/unavailable matrix result per schedule revision, including coordinate fingerprint/source, metered credit estimate, totals, grouped ordered stops, sanitized GeoJSON, reason, and calculation time. `address_coordinate_defaults` is the maintained canonical-area fallback registry used only when an exact complete coordinate pair is absent. `pickup_schedule_history` retains create/revise/cancel snapshots and reasons. `pickup_schedule_reminders` stores one durable reminder per schedule revision with claim, retry, success, failure, superseded, and suppression state.
 
 Scheduling, Courier acknowledgement, scanning, and typing do not mutate `orders.status`, custody, payment, or Inventory. Explicit `picked_up_from_seller` confirmation records custody in the detailed task/confirmation records, appends `ready_for_pickup → picked_up` to Order status history, and converts the Order's reservation to an Inventory fulfillment movement in one transaction; Logistics receipt remains the next unimplemented boundary.
+
+The physical operational schema remains deferred. When approved and introduced through additive migrations, Shipment/Parcel/Delivery Task records must include append-only custody/transition history and physical scan/evidence events. A Courier submits the QR/reference scan or handoff evidence; an authorized Logistics account validates and records the authoritative event. Each applicable event preserves the performing Courier, recording Logistics account, event timestamp, location/context, and a safe evidence or QR/reference value. `waybill_access_events` remain access/audit records and must not be treated as physical scans or custody proof. Operational records must link to the immutable Order/Parcel/waybill reference and remain scoped to the Logistics organization's sole hub.
 
 ## 10. Framework infrastructure tables
 
@@ -1201,6 +1205,9 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 51. Customer Order mutations are scoped to owned `placed` COD Orders. Cancellation appends an immutable status/history record and releases only that Order's reservation once; delivery-address correction appends a versioned snapshot and never mutates the Address Book source. Item, quantity, voucher, shipping, repricing, and post-pickup changes remain deferred.
 52. Product Q&A reads and writes must re-apply `Product::storefrontVisible()`. Questions are active-Customer-owned, answers are restricted to the Product-owning Seller, and public DTOs contain no private Customer fields.
 53. Product Q&A question/answer mutations use actor-scoped idempotency keys and one-answer locking. Notifications are dispatched after the Q&A transaction commits and deterministic notification IDs prevent duplicate alerts.
+54. A future operational task contract permits one task per Order/Parcel per leg. A Courier rejection records task-level `rejected`, leaves the Order unchanged, and allows Logistics to re-offer the same task; informational `stale` does not automatically cancel or reassign it.
+55. Courier-submitted scans and handoff evidence are validated and recorded by the owning Logistics organization. Physical event history preserves the performing Courier, recording Logistics account, timestamp, location/context, and safe evidence/reference metadata; a scan or waybill access event alone never advances custody.
+56. Authorized Courier projections may include provider-neutral `distance_km` and `estimated_duration_minutes` for task context. These values are advisory and do not select a Courier, alter a status, expose a map vendor, or replace the immutable checkout destination snapshot.
 
 ## 13. Migration order
 
@@ -1290,6 +1297,9 @@ Before adding these tables:
 - keep enum-like columns as strings with PHP enum casts;
 - preserve mutable product, price, and address data as order-time snapshots;
 - model one Seller-created immutable shared waybill per Order at pickup-request commitment, with role-scoped access and append-only print/assignment/scan history;
+- model Courier-submitted scan/evidence as an append-only event validated and recorded by the owning Logistics organization, preserving performing and recording actors without treating waybill access as physical proof;
+- represent Courier task rejection as a task-level outcome that leaves the Order unchanged and permits re-offer of the same task; keep unfinished-task staleness informational with no automatic cancellation or reassignment;
+- expose only provider-neutral distance/estimated-duration context in authorized Courier projections; do not make a map provider a schema authority;
 - keep COD placement at `placed` with `payment_status = pending`; retain `pending_payment` for a future online-payment path;
 - ensure every Seller-owned resource resolves to a shop for tenant isolation; and
 - update this document and `docs/PROGRESS.md` in the same change as the migrations.
