@@ -45,3 +45,7 @@ Format:
 - Added road-following Geoapify Routing geometry to Courier pickup manifests in the server-authoritative Logistics hub → numbered pickups → Logistics hub order, with bounded waypoint chunking, separate quota/timeout controls, a labelled straight-line fallback, and a visible Logistics start/end map marker. The Courier/Logistics pickup suite passes 27 tests/382 assertions; courier mockup build and lint pass.
 - Fixed existing Courier pickup manifests disappearing after the route-line rollout by rendering any GeoJSON `LineString`, versioning the road-geometry fingerprint, and queuing legacy ready manifests for background regeneration.
 - Hardened Courier route rendering with a dedicated line-only MapLibre source, a client stop-sequence fallback when stored line geometry is absent, and a high-contrast cased route layer that remains visible across Geoapify tile colors.
+
+## 2026-09-11
+
+- Hardened Courier pickup route-map loading with bounded pending-manifest polling, truthful MapLibre/tile error fallback, retry-state reset, invalid-line protection, and Courier mockup CORS defaults; focused route coverage passes 2 tests/48 assertions and the mockup build/lint pass.

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { request } from './lib/api'
 import type { PickupRouteManifest, PickupRouteManifestResponse } from './types'
 
+const PENDING_POLL_INTERVAL_MS = 2_000
+const MAX_PENDING_POLLS = 15
+
 function distance(value: number | null): string {
   if (value === null) return '—'
   return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${value} m`
@@ -37,6 +40,8 @@ function routeLine(manifest: PickupRouteManifest) {
     ? apiLine.geometry.coordinates
     : manifest.stops.filter((stop) => stop.reachable).map((stop) => [stop.longitude, stop.latitude])
 
+  if (coordinates.length < 2) return null
+
   return {
     type: 'Feature' as const,
     geometry: { type: 'LineString' as const, coordinates },
@@ -44,19 +49,32 @@ function routeLine(manifest: PickupRouteManifest) {
   }
 }
 
+function isWebglFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+
+  return /webgl|gpu|canvas|graphics context|context lost/i.test(message)
+}
+
 export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; token: string }) {
   const [manifest, setManifest] = useState<PickupRouteManifest | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [webglUnavailable, setWebglUnavailable] = useState(false)
+  const [mapError, setMapError] = useState(false)
+  const [pollingStopped, setPollingStopped] = useState(false)
   const mapContainer = useRef<HTMLDivElement>(null)
+  const pendingPolls = useRef(0)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setWebglUnavailable(false)
+    setMapError(false)
+    setPollingStopped(false)
     try {
       const response = await request<PickupRouteManifestResponse>(`/api/v1/courier/pickup-schedules/${scheduleId}/route-manifest`, {}, token)
       setManifest(response.data)
+      if (response.data.status !== 'pending') pendingPolls.current = 0
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'The route manifest could not be loaded.')
     } finally {
@@ -64,79 +82,126 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
     }
   }, [scheduleId, token])
 
-  useEffect(() => { void load() }, [load])
+  const refresh = useCallback(() => {
+    pendingPolls.current = 0
+    setPollingStopped(false)
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    pendingPolls.current = 0
+    setPollingStopped(false)
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    if (manifest?.status !== 'pending' || loading) return
+    if (pendingPolls.current >= MAX_PENDING_POLLS) {
+      setPollingStopped(true)
+
+      return
+    }
+
+    pendingPolls.current += 1
+    const timeout = window.setTimeout(() => { void load() }, PENDING_POLL_INTERVAL_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [load, loading, manifest?.status])
 
   useEffect(() => {
     if (manifest?.status !== 'ready' || !manifest.geojson || !mapContainer.current) return
     const container = mapContainer.current
     let disposed = false
     let destroy: (() => void) | undefined
+    const reportMapError = (caught: unknown) => {
+      if (disposed) return
+      if (isWebglFailure(caught)) {
+        setWebglUnavailable(true)
+        setMapError(false)
+      } else {
+        setMapError(true)
+      }
+    }
 
     void import('maplibre-gl').then((maplibregl) => {
       if (disposed) return
-      const map = new maplibregl.Map({
-        container,
-        style: manifest.map.style_url,
-        center: [manifest.stops[0].longitude, manifest.stops[0].latitude],
-        zoom: 11,
-        transformRequest: (url: string) => url.includes('/api/v1/courier/map-')
-          ? { url, headers: { Authorization: `Bearer ${token}` } }
-          : { url },
-      })
+      let map: InstanceType<typeof maplibregl.Map>
+      try {
+        map = new maplibregl.Map({
+          container,
+          style: manifest.map.style_url,
+          center: [manifest.stops[0].longitude, manifest.stops[0].latitude],
+          zoom: 11,
+          transformRequest: (url: string) => url.includes('/api/v1/courier/map-')
+            ? { url, headers: { Authorization: `Bearer ${token}` } }
+            : { url },
+        })
+      } catch (caught) {
+        reportMapError(caught)
+
+        return
+      }
+      destroy = () => map.remove()
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
       map.on('load', () => {
-        map.addSource('pickup-route-line', { type: 'geojson', data: routeLine(manifest) })
-        map.addSource('pickup-route', { type: 'geojson', data: manifest.geojson as never })
-        map.addLayer({
-          id: 'pickup-route-line-casing',
-          type: 'line',
-          source: 'pickup-route-line',
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.95 },
-        })
-        map.addLayer({
-          id: 'pickup-route-line',
-          type: 'line',
-          source: 'pickup-route-line',
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: { 'line-color': '#e6007a', 'line-width': 5, 'line-opacity': 1 },
-        })
-        map.addLayer({
-          id: 'pickup-route-points',
-          type: 'circle',
-          source: 'pickup-route',
-          filter: ['==', ['geometry-type'], 'Point'],
-          paint: {
-            'circle-radius': ['case', ['==', ['get', 'kind'], 'hub'], 8, 11],
-            'circle-color': ['case', ['==', ['get', 'kind'], 'hub'], '#4c1268', '#e6007a'],
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-width': 2,
-          },
-        })
-
-        const bounds = new maplibregl.LngLatBounds()
-        manifest.stops.forEach((stop) => {
-          bounds.extend([stop.longitude, stop.latitude])
-          if (stop.kind === 'hub' && stop.sequence === 0) {
-            const marker = document.createElement('div')
-            marker.className = 'route-hub-marker'
-            marker.textContent = 'Logistics start / end'
-            marker.setAttribute('aria-label', 'Logistics hub, route start and end')
-            new maplibregl.Marker({ element: marker, anchor: 'bottom' }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
-            return
+        try {
+          const line = routeLine(manifest)
+          if (line) {
+            map.addSource('pickup-route-line', { type: 'geojson', data: line })
+            map.addLayer({
+              id: 'pickup-route-line-casing',
+              type: 'line',
+              source: 'pickup-route-line',
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+              paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.95 },
+            })
+            map.addLayer({
+              id: 'pickup-route-line',
+              type: 'line',
+              source: 'pickup-route-line',
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+              paint: { 'line-color': '#e6007a', 'line-width': 5, 'line-opacity': 1 },
+            })
           }
-          if (stop.kind !== 'pickup') return
-          const marker = document.createElement('div')
-          marker.className = 'route-number-marker'
-          marker.textContent = String(stop.sequence)
-          marker.setAttribute('aria-label', `Pickup stop ${stop.sequence}`)
-          new maplibregl.Marker({ element: marker }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
-        })
-        if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 48, maxZoom: 15 })
+          map.addSource('pickup-route', { type: 'geojson', data: manifest.geojson as never })
+          map.addLayer({
+            id: 'pickup-route-points',
+            type: 'circle',
+            source: 'pickup-route',
+            filter: ['==', ['geometry-type'], 'Point'],
+            paint: {
+              'circle-radius': ['case', ['==', ['get', 'kind'], 'hub'], 8, 11],
+              'circle-color': ['case', ['==', ['get', 'kind'], 'hub'], '#4c1268', '#e6007a'],
+              'circle-stroke-color': '#ffffff',
+              'circle-stroke-width': 2,
+            },
+          })
+
+          const bounds = new maplibregl.LngLatBounds()
+          manifest.stops.forEach((stop) => {
+            bounds.extend([stop.longitude, stop.latitude])
+            if (stop.kind === 'hub' && stop.sequence === 0) {
+              const marker = document.createElement('div')
+              marker.className = 'route-hub-marker'
+              marker.textContent = 'Logistics start / end'
+              marker.setAttribute('aria-label', 'Logistics hub, route start and end')
+              new maplibregl.Marker({ element: marker, anchor: 'bottom' }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
+              return
+            }
+            if (stop.kind !== 'pickup') return
+            const marker = document.createElement('div')
+            marker.className = 'route-number-marker'
+            marker.textContent = String(stop.sequence)
+            marker.setAttribute('aria-label', `Pickup stop ${stop.sequence}`)
+            new maplibregl.Marker({ element: marker }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
+          })
+          if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 48, maxZoom: 15 })
+        } catch (caught) {
+          reportMapError(caught)
+        }
       })
-      map.on('error', () => setWebglUnavailable(true))
-      destroy = () => map.remove()
-    }).catch(() => setWebglUnavailable(true))
+      map.on('error', (event) => reportMapError(event.error))
+    }).catch((caught) => reportMapError(caught))
 
     return () => {
       disposed = true
@@ -151,11 +216,12 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
           <h3 id="route-manifest-heading">Bulk pickup route</h3>
           <p>Orders at the same Seller address are grouped into one stop.</p>
         </div>
-        <Button className="min-h-10 rounded-md px-4 shadow-none" isLoading={loading} loadingLabel="Loading" onClick={() => void load()} variant="outline">Refresh route</Button>
+        <Button className="min-h-10 rounded-md px-4 shadow-none" isLoading={loading} loadingLabel="Loading" onClick={refresh} variant="outline">Refresh route</Button>
       </div>
 
       {error ? <p className="error-message" role="alert">{error}</p> : null}
-      {manifest && manifest.status !== 'ready' ? <p className="route-unavailable" role="status">{reason(manifest.reason)}</p> : null}
+      {manifest?.status === 'pending' ? <p className="route-unavailable" role="status">{pollingStopped ? `${reason(manifest.reason)} Use Refresh route to try again.` : `${reason(manifest.reason)} Checking again automatically.`}</p> : null}
+      {manifest?.status === 'unavailable' ? <p className="route-unavailable" role="status">{reason(manifest.reason)}</p> : null}
       {manifest?.status === 'ready' ? (
         <>
           <dl className="route-summary">
@@ -166,6 +232,7 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
           </dl>
           <div className="route-map" hidden={webglUnavailable} ref={mapContainer} aria-label="Interactive bulk pickup route map" />
           {webglUnavailable ? <p className="route-unavailable">Interactive maps are unavailable on this device. Follow the ordered stop list below.</p> : null}
+          {mapError ? <p className="route-unavailable" role="status">Map imagery could not be loaded. Follow the ordered stop list below.</p> : null}
           <ol className="route-stop-list" aria-label="Ordered pickup stops">
             {manifest.stops.map((stop) => (
               <li key={`${stop.node_id}-${stop.sequence}`}>
