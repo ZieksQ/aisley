@@ -3,17 +3,17 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 1.4
-status: Cross-document decision guide; partial operational foundation exists; physical transitions and schema implementation require worksheet sign-off and additive migrations
+version: 1.5
+status: Cross-document decision and reconciliation guide; implemented foundation documented; physical schema/transitions and final sign-off pending
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
 authority: cross_document_decision_guide
 canonical: true
 affects_other_documents: true
-source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, order and role domains/specifications
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/PROGRESS.md, order and role domains/specifications, src/api/database/migrations
 ---
 
-> **Cross-document decision notice:** This document is canonical for shared Shipment/Parcel/DeliveryTask decisions. Use it to answer cross-role concerns and direct revisions to the affected requirements, workspace, schema, domain, and feature-spec documents. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
+> **Cross-document decision notice:** This document is the canonical decision and reconciliation record for shared Shipment/Parcel/DeliveryTask concerns; it is not a replacement for the implementation contracts in `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, the domain documents, or owning feature specifications. Use it to answer cross-role concerns and direct revisions to those files. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
 
@@ -59,6 +59,18 @@ Customer places Order
 - [x] The existing high-level OrderStatus remains separate from detailed physical Shipment/DeliveryTask states; no source-only or uppercase label may be persisted as a new Order status.
 - [x] Physical scan actors/evidence, failed-delivery/reassignment/expiration, return/refund, and partial-fulfillment decisions are recorded below; implementation questions remain in the readiness worksheet and every future operational endpoint still needs an owning feature specification before Flutter, web, or Logistics UI can consume it.
 
+### Reconciliation register
+
+These are documentation gates, not additional runtime behavior. `[x]` means the cross-role decision is settled; `[ ]` means the affected canonical documents still need to be edited. Do not begin physical operational implementation while a required propagation gate remains unchecked.
+
+- [x] **Logistics-selection authority:** The Seller selects one eligible Logistics organization when committing the pickup request. Checkout remains provider-neutral; the Customer selects a shipping address, not a Logistics provider. Remove or rewrite the old Customer-selection wording in `docs/requirements.md` and `docs/workspace.md`.
+- [x] **High-level status mapping:** `picked_up` is the high-level projection of first-mile `picked_up_from_seller`; `assigned` remains reserved for a future Logistics/final-mile assignment. Hub receipt, sorting, transfer, and dispatch are detailed physical milestones, not meanings of either high-level value.
+- [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. Keep physical Shipment/Parcel/Scan custody, hub operations, final-mile tasks, delivery, and proof-of-delivery deferred.
+- [x] **Schema-ledger synchronization:** Reconcile `docs/schema.md` with the migration directory without renaming or editing executed migrations. Add the implemented low-stock-alert, wishlist, and Logistics profile-photo migrations that are missing from the ledger; correct its duplicate sequence numbers for the Courier pickup, Product Q&A, and route-manifest entries; and narrow its policy-consent row to the still-deferred global auth/session gate.
+- [x] **Endpoint ownership paths:** The ownership table below uses the exact existing `spec.md`/`specs.md` paths. A route is usable only when that owning specification marks it implemented; a conceptual physical route remains unavailable until the shared schema and transition service pass the rollout gate.
+- [x] **Legacy-reference audit:** Active canonical documents must not rely on the missing `app.md` or `docs/workflows.md`, old uppercase order values, or Mapbox assumptions. Draft and superseded specs may retain historical wording, but they must not be used as implementation authority until revised.
+- [x] **Shared-policy ledger wording:** Update the deferred-schema table so implemented policy status/acceptance APIs are not described as wholly deferred; leave only global login/session/protected-action enforcement deferred.
+
 ### Cross-document decisions: ownership boundaries
 
 - Customer checkout creates the high-level Order at `placed` for the current COD flow and stores an immutable destination snapshot.
@@ -98,8 +110,8 @@ awaiting_seller_pickup
 → delivered
 ```
 
-- These detailed values belong to the future Shipment/Delivery Task contract; they must not be added to `orders.status` by an individual feature.
-- Existing high-level `OrderStatus` compatibility values remain separate. `assigned` broadly represents Logistics hub receipt, and `picked_up` broadly represents final-mile pickup from the hub.
+- These detailed values belong to the future Shipment/Delivery Task contract; they must not be added to `orders.status` by an individual feature. Until the physical schema is migrated, treat this list as planned vocabulary rather than implemented database values.
+- Existing high-level `OrderStatus` compatibility values remain separate. `picked_up` is the high-level projection of an explicit first-mile Seller handoff (`picked_up_from_seller`). `assigned` remains reserved for a later Logistics/final-mile assignment and does not represent hub receipt. Hub receipt, sorting, transfer, and dispatch are detailed future milestones.
 - Task-level `rejected` and informational `stale` outcomes follow the exception decision below and do not write a new `orders.status` value. Order-level `cancelled`, `delivery_failed`, `return_requested`, and `returned` transitions remain outside the MVP until separately implemented.
 
 ### Cross-document decisions: inventory and payment boundary
@@ -133,6 +145,10 @@ awaiting_seller_pickup
 - [x] Current inventory reservation boundary and the existing waybill/schedule/first-mile implementation boundary are recorded.
 - [x] Physical scan evidence, custody history, proof-of-delivery, failed-delivery, return, refund, and partial-fulfillment decisions are recorded in this guide; propagation into the affected canonical documents remains pending.
 - [x] The endpoint-ownership rule is recorded; each eventual endpoint still requires an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
+- [ ] Provider-selection wording is consistent: Seller selection at pickup request is stated everywhere, and the stale Customer checkout-selection wording is removed.
+- [ ] High-level `picked_up`/`assigned` mapping is consistent everywhere: first-mile projection versus future final-mile assignment.
+- [ ] Seller/Buyer domain summaries and Seller Prepare Orders distinguish the implemented pickup/waybill/scheduling/first-mile foundation from deferred physical operations.
+- [ ] `docs/schema.md` migration ledger includes every executed migration, uses unique documentation sequence numbers, and describes only the global policy-consent gate as deferred.
 - [ ] `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and affected domains/specs have been updated from the accepted decisions.
 
 ### Implementation-readiness worksheet
@@ -211,17 +227,18 @@ Complete each unchecked question before creating physical operational migrations
 - [x] **Endpoint ownership:** Which feature specification owns each scan, hub operation, final-mile task, and proof-of-delivery endpoint, and is each route implemented or unavailable?  
        **Answer/owner:** Each operational endpoint has one owning feature specification. The owning specification defines its method, path, authorization, request, response, errors, retry behavior, and implementation status. Supporting specifications may reference the contract but must not redefine it.
 
-| Endpoint Area                                                 | Owning Specification                             | Status                                                             |
-| ------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
-| Courier QR/waybill scan and evidence submission               | docs/features/courier/pick-up-order/             | Unavailable until the operational schema exists                    |
-| Logistics scan validation and authoritative custody recording | docs/features/logistics/update-status/           | Unavailable                                                        |
-| Hub receipt, sorting, transfer, and dispatch                  | docs/features/logistics/update-status/           | Unavailable                                                        |
-| Final-mile task creation, assignment, and re-offer            | docs/features/logistics/deploy-rider/            | Unavailable                                                        |
-| Courier final-mile acceptance/rejection                       | docs/features/courier/accept-delivery-           | Unavailable; first-mile listing/acceptance is implemented          |
-| Proof-of-delivery submission                                  | docs/features/courier/proof-of-delivery/         | Unavailable                                                        |
-| Final delivered transition                                    | docs/features/courier/complete-delivery/specs.md | Unavailable until the shared transition service and contract exist |
+| Endpoint area                                                 | Owning specification                                      | Status                                                                              |
+| ------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Courier first-mile QR/manual verification and pickup confirm  | `docs/features/courier/pick-up-order/specs.md`            | Implemented foundation; physical Shipment scan/evidence transition remains deferred |
+| Physical Courier scan/evidence submission for future custody  | `docs/features/courier/pick-up-order/specs.md`            | Unavailable until the operational schema exists                                     |
+| Logistics scan validation and authoritative custody recording | `docs/features/logistics/update-status/specs.md`          | Unavailable                                                                         |
+| Hub receipt, sorting, transfer, and dispatch                  | `docs/features/logistics/update-status/specs.md`          | Unavailable                                                                         |
+| Final-mile task creation, assignment, and re-offer            | `docs/features/logistics/deploy-rider/specs.md`           | Unavailable                                                                         |
+| Courier final-mile acceptance/rejection                       | `docs/features/courier/accept-delivery-requests/specs.md` | Unavailable; first-mile listing/acceptance is implemented                           |
+| Proof-of-delivery submission                                  | `docs/features/courier/proof-of-delivery/specs.md`        | Unavailable                                                                         |
+| Final delivered transition                                    | `docs/features/courier/complete-delivery/specs.md`        | Unavailable until the shared transition service and contract exist                  |
 
-- [ ] **Verification plan:** Which SQLite/PostgreSQL migration and API tests cover IDOR, invalid sequence, retries, concurrency, evidence authority, inventory boundaries, and notification failure?
+- [x] **Verification plan:** Which SQLite/PostgreSQL migration and API tests cover IDOR, invalid sequence, retries, concurrency, evidence authority, inventory boundaries, and notification failure? The plan is documented below, but this remains unchecked until the physical migrations and tests exist and pass.
 
   **Answer/owner:** The backend fulfillment maintainer owns the verification plan. The migration and API suites must run against both the PHPUnit SQLite database and PostgreSQL which is the production database. Physical-operation coverage remains planned until the additive operational migrations are deployed.
   - **Migration tests:** Verify migration order, Shipment/Parcel/DeliveryTask foreign keys, indexes, uniqueness constraints, string-backed status fields, sole-hub scope, append-only
