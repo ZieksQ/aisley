@@ -31,6 +31,6 @@ class PlatformPolicy extends Model
 
     public function cacheKey(): string
     {
-        return 'platform:policy:'.$this->type->value.':current';
+        return 'platform:policy:'.$this->type->value.':current:projection:v2';
     }
 }

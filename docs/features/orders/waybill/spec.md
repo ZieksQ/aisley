@@ -3,10 +3,11 @@ feature: seller-created-pickup-waybill
 title: Seller-Created Pickup Waybill
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: API and A6 PDF implemented; Seller and Logistics UI pending
+version: 1.1
+status: API, A6 PDF, and Seller/Logistics UI implemented; physical scan transition deferred
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
 # Seller-Created Pickup Waybill
@@ -14,17 +15,20 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 ## WHAT
 
 - **Purpose:** Create one printable, scannable waybill for each Order when the Seller commits **Request pickup** with a selected Logistics organization.
-- **Actors:** Seller creates, views, downloads, and prints; selected Logistics views/downloads; assigned Courier scans through the external mobile API.
+- **Actors:** Seller creates, views, downloads, and prints; selected Logistics views/downloads; assigned Courier scans through the external mobile API and submits the scan/evidence to Logistics for validation.
 - **Ownership change:** This is one shared waybill, created by Aisley from Seller-authorized immutable data; it replaces the earlier split between Seller package label and Logistics-created hub waybill.
 - **Lifecycle:**
   ```text
   Seller packs parcel → selects Logistics → Request pickup
   → waybill identity/snapshot/QR created atomically
   → Seller prints and attaches it
-  → Logistics views/scans it in Pickups
+  → Logistics views/resolves it in Pickups
   → assigned Courier scans it at physical handoff
+  → Courier submission is validated and recorded by Logistics
   ```
 - Creating, viewing, downloading, printing, or scanning a waybill does not itself change Order or custody status.
+- A Courier QR/reference scan is an ingress/access event, not a custody transition. Only the shared transition service may advance physical state after Logistics validates the submitted event/evidence.
+- The preceding validation rule is the accepted future scan contract. Current explicit Courier pickup confirmation already commits first-mile custody and Inventory after QR/manual verification; migrating it to Logistics validation must preserve existing confirmations and avoid duplicate effects.
 - MVP output is one A6 portrait PDF per Order; a bulk download may combine up to 30 A6 pages for one pickup request or schedule.
 - **Non-goals:** thermal-printer drivers, external carrier labels, parcel weight/dimensions, multiple parcels per Order, route mutation, status mutation by document generation, or public unauthenticated tracking.
 
@@ -68,8 +72,17 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 - Logistics can read only waybills whose immutable selected organization equals its authenticated organization.
 - Courier can resolve/scan only a waybill connected to its active approved affiliation and assigned first-mile/final-mile task; Courier receives no web UI in this repository.
 - Customer, unrelated Seller/Logistics/Courier, inactive accounts, and guessed references receive no document or existence disclosure.
-- A scan resolves the waybill and returns a minimal authorized parcel/task match; a separate transition endpoint records physical pickup or hub events.
+- A scan resolves the waybill and returns a minimal authorized parcel/task match; the Courier submits the scan/evidence to the owning Logistics organization through a separate, versioned task-transition API.
+- Logistics validates the waybill/Order/Parcel link, task leg, current state, Courier authorization, and idempotency before recording the authoritative event. The event preserves the performing Courier, recording Logistics account, timestamp, and safe reference/evidence metadata.
+- A scan or waybill-access event alone never advances custody or `OrderStatus`; a validated event must pass the shared transition service.
 - A copied QR code is not proof of possession, delivery, identity, or permission and cannot bypass task assignment.
+
+### Courier scan and custody boundary
+
+- The external Courier app scans the opaque QR/reference and submits the payload, task leg, expected revision, and permitted evidence metadata; it does not submit a new status or actor identity as authority.
+- The backend records the Courier's resolve/access event separately from the physical handoff event. `waybill_access_events` therefore remain audit records, not custody history.
+- Logistics is the authoritative recorder for accepted physical scan/evidence. Failed validation records a safe rejection state where allowed and leaves custody unchanged; retrying an identical submission is idempotent.
+- Physical pickup and hub milestones use the approved detailed `snake_case` Shipment/DeliveryTask states. No source-only uppercase status is created by scanning.
 
 ### PDF and QR dependencies
 
@@ -106,7 +119,7 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 
 - Seller: `GET /api/v1/seller/orders/{order}/waybill` and `GET /pickup-requests/{pickup}/waybills.pdf`.
 - Logistics: `GET /api/v1/logistics/pickups/{pickup}/waybills` and `GET /waybills/{waybill}.pdf`.
-- Courier API: `POST /api/v1/courier/waybills/resolve` followed by a distinct task-transition endpoint.
+- Courier API: `POST /api/v1/courier/waybills/resolve` is an access-only resolve operation. A separate versioned Courier task-scan endpoint submits QR/reference/evidence to Logistics; the physical transition endpoint is unavailable until the shared Shipment/DeliveryTask schema and owning Courier/Logistics specs are implemented.
 - JSON metadata exposes reference, created time, printable capability, and authorized links; PDF bytes use dedicated streamed responses.
 - Seller UI follows `docs/design.md` and shared `@aisley/ui`; Logistics shows waybill actions within its role-isolated Pickups screens.
 - Preview must use the same backend-rendered PDF as Download/Print so browser HTML cannot diverge from the physical label.
@@ -114,11 +127,11 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 
 ### Verification and rollout
 
-- API tests cover role/status/Shop/organization/task isolation, IDOR, idempotent creation, concurrency, rollback, immutable snapshots, and no side effects on view/print/scan.
+- API tests cover role/status/Shop/organization/task isolation, IDOR, idempotent creation, concurrency, rollback, immutable snapshots, and no side effects on view/print/scan/resolve. Add scan-submission tests for Logistics validation, actor preservation, duplicate/revision conflicts, and no custody mutation on access or failed evidence.
 - Render tests inspect headers, page size/page count, required text, forbidden data, QR payload, and QR decode against the reference at multiple print/scanner resolutions.
 - Security tests reject raw/unhashed tokens, hostile printable input, remote-resource fetches, path traversal, oversized render inputs, and stale/void references.
 - Test address Unicode, long but valid snapshot values, page overflow, printer-safe contrast, keyboard access, repeated downloads, and deterministic checksums.
 - Run focused tests on SQLite and PostgreSQL, `composer audit`, Laravel formatting, and Seller/Logistics lint, TypeScript, and production builds.
 - Log waybill/reference IDs, actor/tenant, action, template version, render duration, size, and result; exclude snapshot PII and QR payload/token.
 - Alert on render failure rate, unexpected multi-page single labels, QR validation failure, and repeated unauthorized resolution attempts.
-- Roll out after pickup/provider schema, before Logistics scheduling and Courier scanning; keep the old fail-closed Seller waybill endpoint until the migration is deployed.
+- Roll out after pickup/provider schema and the shared transition contract, before physical Courier scanning; keep resolve/access fail-closed and separate from custody until the scan/evidence migration and Logistics recorder are deployed.

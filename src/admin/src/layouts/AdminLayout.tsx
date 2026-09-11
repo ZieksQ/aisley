@@ -4,6 +4,7 @@ import {
   FaBars,
   FaClipboardCheck,
   FaClockRotateLeft,
+  FaFileContract,
   FaGaugeHigh,
   FaInbox,
   FaShieldHalved,
@@ -18,6 +19,8 @@ import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { AdminAvatar } from '../components/AdminAvatar'
 import { AdminNotificationBell } from '../components/AdminNotificationBell'
+
+const storefrontUrl = (import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${
@@ -49,12 +52,12 @@ export function AdminLayout() {
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
+      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
-      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Advertisement content' : 'Announcements, policies, and homepage ads' : 'Admin workspace'
+      : location.pathname.startsWith('/users') ? 'Account lifecycle' : location.pathname.startsWith('/seller-compliance') ? 'Marketplace policy enforcement' : location.pathname.startsWith('/notifications') ? 'Admin inbox' : location.pathname.startsWith('/account') ? 'Administrator account' : location.pathname.startsWith('/policy-consent') ? 'Shared policy acceptance' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Advertisement content' : 'Announcements, policies, and homepage ads' : 'Admin workspace'
 
   async function handleLogout() {
     setIsSigningOut(true)
@@ -137,6 +140,10 @@ export function AdminLayout() {
                 <FaUserGear aria-hidden="true" />
                 Account settings
               </NavLink>
+              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/policy-consent">
+                <FaFileContract aria-hidden="true" />
+                Policy consent
+              </NavLink>
             </div>
           </nav>
 
@@ -162,6 +169,10 @@ export function AdminLayout() {
             <FaArrowRightFromBracket aria-hidden="true" />
             {isSigningOut ? 'Signing out…' : 'Sign out'}
           </button>
+          <nav aria-label="Policy links" className="mt-3 flex gap-3 border-t border-slate-200 px-2 pt-3 text-xs text-slate-400 dark:border-white/10 dark:text-purple-100/45">
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/terms_of_service`} rel="noreferrer" target="_blank">Terms</a>
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/privacy_policy`} rel="noreferrer" target="_blank">Privacy</a>
+          </nav>
         </div>
       </aside>
 

@@ -3,15 +3,15 @@ feature: courier-dashboard
 title: Courier Dashboard
 system: AISLEY
 type: Feature Specification
-version: 2.1
-status: Implemented scaffold; operational schema deferred
+version: 2.2
+status: Implemented scaffold; operational task sections deferred
 implementation_status: read-only API scaffold implemented; operational sections unavailable
 canonical: true
 role: Courier / Rider
 scope: External Flutter mobile client and Laravel read API scaffold
-backend_contract_commit: d817a10
+backend_contract_commit: 5596fab
 backend_contract_version: courier-dashboard-scaffold-v1
-source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
 # Courier Dashboard
@@ -20,7 +20,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 
 - **Purpose:** Provide the external Flutter Courier app with one read-oriented view of new allocations, available pickup/delivery requests, and the Courier's active work.
 - **Current status:** `GET /api/v1/courier/dashboard` is an implemented protected scaffold. It returns no operational records and marks notifications, available tasks, and active tasks unavailable until the shared operational schema exists. No Courier UI belongs in this Laravel repository.
-- **Future scope:** After the shared Shipment/Parcel/Delivery Task schema is approved and migrated, the dashboard may aggregate server-authorized task summaries and link to stateful Courier features.
+- **Future scope:** After the shared Shipment/Parcel/Delivery Task schema is approved and migrated, the dashboard may aggregate server-authorized task summaries and link to stateful Courier features. Rejected offers and informationally stale unfinished tasks are visible states, not Order cancellations.
 - **Mobile boundary:** Flutter owns screens, secure token storage, refresh behavior, and accessibility. Laravel owns identity, authorization, tenant scope, task eligibility, status, and data freshness.
 - **MVP relationship:** A Courier operates only within one approved Logistics organization and its sole operational hub. First-mile Seller pickup and final-mile hub delivery are independent task legs.
 - **Non-goals:** Accepting tasks, creating assignments, scanning, pickup confirmation, transit updates, delivery completion, proof upload, route optimization, chat persistence, incidents, earnings, or hub management.
@@ -59,6 +59,8 @@ approved Courier session
 - The dashboard must not fabricate a task queue from `orders`, current notifications, or cached order data while operational tables are deferred.
 - Future available work may include a first-mile pickup at a Seller and a final-mile pickup at the Logistics organization's sole hub.
 - Future active work may include an accepted first-mile or final-mile task, but the server must identify its task leg explicitly.
+- An offered task may be explicitly accepted or rejected by the Courier. `rejected` is task-level, preserves reason/time, leaves the Order unchanged, and permits Logistics to re-offer the same task.
+- An unfinished task may be presented as informationally `stale`; staleness does not cancel or automatically reassign it in the MVP.
 - `delivery_assigned` is an offer/assignment, not acceptance; `picked_up_from_hub` is not implied by either value.
 - Generic Order statuses such as `assigned` and `picked_up` must not be presented as physical Courier actions without a detailed task response.
 - Detailed states use lowercase `snake_case` only after the shared contract exists: `seller_pickup_assigned`, `seller_pickup_accepted`, `picked_up_from_seller`, `delivery_assigned`, `delivery_accepted`, and `picked_up_from_hub`.
@@ -67,7 +69,8 @@ approved Courier session
 ### Future card and list contract
 
 - Each item must have a stable opaque task or allocation identifier supplied by the API; Flutter must not synthesize identity from a display label.
-- A card may show task leg, current server status plus human label, safe Order/Parcel reference, pickup context, destination area, package summary, assignment state, and relevant timestamps when authorized.
+- A card may show task leg, current server status plus human label, safe Order/Parcel/waybill reference, pickup context, destination area, item/package summary, delivery instructions, assignment/evidence state, and relevant timestamps when authorized.
+- For an offered or accepted task, the API may include authorized operational Order, parcel, waybill, pickup, destination, item, and delivery-instruction data plus provider-neutral `distance_km` and `estimated_duration_minutes`. These values are advisory and may be explicitly unavailable.
 - Seller pickup cards must identify the Seller origin without exposing unrelated Seller profile data.
 - Hub pickup cards must identify the organization's sole hub without implying a selectable sub-hub.
 - Destination data must be minimized to what the Courier needs for the authorized task; exact address disclosure requires the owning feature's contract.
@@ -78,7 +81,7 @@ approved Courier session
 ### Notifications and freshness
 
 - No separate Courier notification endpoint or push-provider contract is implemented today. The dashboard only reports the notification section as unavailable; Flutter must not call a guessed route.
-- A future in-app allocation notification must identify the owning task and be deduplicated by a stable event/assignment ID.
+- Rejected offers remain visible in the owning task history or queue projection with safe reason/time; re-offering the same task must not duplicate the Order, waybill, or task.
 - Email/SMS delivery is not required to render an in-app dashboard allocation. Provider failure cannot reverse a committed task decision.
 - Polling or an authorized private realtime channel may refresh data after a contract exists; the transport and interval remain open decisions.
 - Reconnect must perform an authoritative refetch. Out-of-order responses cannot replace newer state with stale data.
@@ -104,6 +107,9 @@ approved Courier session
 - [x] The protected dashboard scaffold returns bounded empty data, explicit unavailable section reasons, freshness metadata, and private cache headers.
 - [x] The scaffold's guest, wrong-role, pending-account, privacy, and no-operational-data behavior is covered by API tests.
 - [ ] An operational API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
+- [ ] Offered task rows identify first-mile or final-mile leg, expose only authorized operational Order data, and include provider-neutral distance/ETA when available.
+- [ ] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task without changing the Order or duplicating task/waybill history.
+- [ ] Unfinished work can display informational `stale` with freshness metadata and is never automatically cancelled or reassigned.
 - [ ] Flutter consumes live operational DTOs, cursors, and task-state responses.
 - [ ] Duplicate events, stale responses, retries, reconnection, and partial operational failures are covered by tests.
 

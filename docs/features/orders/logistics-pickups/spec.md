@@ -7,6 +7,7 @@ version: 1.3
 status: Implemented
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
 # Seller-to-Logistics Pickup Scheduling
@@ -25,10 +26,14 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
   → Logistics combines one or more Seller handoffs (up to 30 parcels)
   → Logistics assigns one affiliated Courier and pickup window
   → Seller and Courier are notified
-  → Courier accepts and later confirms physical pickup
+  → Courier explicitly accepts or rejects the first-mile task
+  → accepted Courier later submits handoff scan/evidence to Logistics
   ```
 - One request belongs to one Shop and one Logistics organization; a Seller request may contain up to 50 Orders, while one pickup schedule may combine Orders from multiple Shops/requests addressed to that Logistics tenant and may contain at most 30 Orders for one Courier.
 - Logistics must split a request over 30 Orders into multiple schedules; Orders, waybills, custody, status, and idempotency remain independent.
+- Courier acceptance is required before physical handoff. Assignment creates an offered/assigned task; it does not mean `seller_pickup_accepted` or `picked_up_from_seller`.
+- A Courier rejection is a task-level `rejected` outcome. Preserve the Courier, reason, and time; leave the Order unchanged and let Logistics re-offer the same task to another eligible Courier. Re-offer cannot create a new Order, waybill, or merged task.
+- An unfinished task may be displayed as informationally `stale`; the MVP does not automatically cancel or reassign it.
 - **Non-goals:** parcel weight/dimension capacity, route optimization across stops, automatic Courier assignment, fixed Courier shifts, hub receipt/sorting, final-mile assignment, delivery completion, or Courier web UI.
 
 ## MUST
@@ -71,14 +76,16 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 - Store `starts_at` and `ends_at` in UTC, require `starts_at < ends_at`, reject past windows, and display in Asia/Manila unless the account later gains a timezone setting.
 - Lock selected Orders/request links and recheck schedule capacity and Courier conflicts before commit; return `409` for stale or competing assignment.
 - Create a first-mile task per Order under one schedule; assignment does not imply `seller_pickup_accepted` or `picked_up_from_seller`.
-- After task acceptance, a valid explicit Courier pickup confirmation advances that parcel task to `picked_up_from_seller` and its Order from `ready_for_pickup` to `picked_up`; scanning or typing an identifier alone remains read-only.
+- The assigned Courier must explicitly accept before physical pickup. A rejection records task-level `rejected`, preserves append-only offer history, and leaves the Order unchanged.
+- Logistics may re-offer the same rejected task to another eligible Courier. Re-offer is idempotent, does not erase the rejection, and does not create a second task, waybill, or Order.
+- Informational `stale` is a display/freshness outcome for unfinished work only; it is not an Order status and does not trigger automatic cancellation or reassignment.
 - Retrying the same Logistics idempotency key returns the committed schedule; it must not duplicate tasks or notifications.
 - Editing or cancelling a future schedule requires an expected revision, reason, append-only history, and fresh notifications; it cannot silently overwrite custody history.
-- Open question: whether Courier acceptance is mandatory or only an acknowledgement before the pickup window; retain the existing accepted state until that mobile policy is approved.
 
 ### Notifications and cron
 
 - After schedule commit, queue database notifications to the Seller and assigned Courier with schedule reference, pickup date/window, safe location summary, Order count, and deep-link/API reference.
+- When rejection/re-offer is implemented, queue the task decision after commit with the safe reason, prior offer history, and new offer state. Notification failure never restores a rejected offer or duplicates a re-offer.
 - Create durable reminder rows for one hour before `starts_at`; if scheduled inside one hour, the assignment notification is the only pre-pickup notice.
 - Run a Laravel scheduled command every minute to claim due reminders, dispatch them after commit, and mark success/failure idempotently.
 - Use `withoutOverlapping()` and `onOneServer()` in multi-instance production; the existing scheduler service remains the single cron entry point.
@@ -108,7 +115,7 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 - The Route Matrix free plan currently provides 3,000 credits/day; a 1×N matrix costs N baseline credits. Treat free capacity as a launch allowance, not an uptime guarantee.
 - Persist the distance value, unit, calculation time, coordinate fingerprints, mode, and provider status used for the recommendation; expire cached ranks when either address pin changes.
 - Do not send names, phone numbers, street lines, Order contents, or account IDs to the matrix API; only longitude/latitude pairs are needed.
-- Restore and approve the missing `docs/maps-location-api.md` before implementation; include Geoapify and OpenStreetMap attribution wherever distance is shown.
+- Follow the existing `docs/maps-location-api.md`; include Geoapify and OpenStreetMap attribution wherever distance is shown.
 - Sources: [Geoapify Route Matrix](https://apidocs.geoapify.com/docs/route-matrix/), [pricing](https://www.geoapify.com/pricing/), and [terms/attribution](https://www.geoapify.com/terms-and-conditions/).
 
 ### Interfaces and UI
@@ -125,8 +132,9 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 
 - Test role/status/Shop/organization IDOR, eligibility tiers, Geoapify success/timeout/quota fallback, deterministic ranks, and absent coordinates.
 - Test 30-Order bounds, idempotency, request/schedule races, Courier affiliation, overlap checks, UTC conversion, revisions, cancellation, and no Inventory effect.
+- Test explicit acceptance gating, task-level rejection/re-offer, preserved offer history, stale display, and notification failure without Order or custody mutation.
 - Test after-commit tenant notifications, reminder uniqueness, scheduler overlap, retries, lag monitoring, and safe payloads on SQLite and PostgreSQL.
 - Test Seller and Logistics responsive/accessibility flows; Courier work remains API-only.
 - Record request/schedule IDs, tenant IDs, Courier ID, revision, idempotency outcome, Geoapify credit estimate, and notification result; exclude full addresses and QR payloads.
 - Alert on overdue unassigned requests, due-reminder lag, repeated provider failures, and schedules starting without an active assigned Courier.
-- Roll out schema/backfill → option ranking → Seller selection/waybill creation → Logistics Pickups → scheduling/tasks → notifications/reminders.
+- Roll out schema/backfill → option ranking → Seller selection/waybill creation → Logistics Pickups → scheduling/tasks → explicit Courier acceptance → rejection/re-offer history → notifications/reminders; physical scan/custody remains a later shared transition rollout.

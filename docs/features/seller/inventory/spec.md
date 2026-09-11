@@ -14,7 +14,7 @@ scope: Seller Web Application
 ## WHAT
 
 - **Purpose:** Give each Seller an authoritative, auditable stock balance for every purchasable SKU/base SKU in the Seller's one Shop.
-- **Owned data:** `InventorySku`, `InventoryBalance`, and immutable `InventoryMovement` records; Seller adjustments, checkout reservations, release, future fulfillment, and low-stock evaluation use this domain.
+- **Owned data:** `InventorySku`, `InventoryBalance`, and immutable `InventoryMovement` records; Seller adjustments, checkout reservations, release, first-mile fulfillment, and low-stock evaluation use this domain.
 - **Canonical quantities:**
 
 ```text
@@ -67,7 +67,8 @@ available = on_hand - reserved
 - [x] Restock/manual increase/decrease, reasons, idempotency, row locks, and immutable movement history are implemented.
 - [x] Checkout reservations and Seller rejection release use the same authoritative ledger and low-stock evaluator boundary.
 - [x] Product/variant legacy quantities stay synchronized without becoming a second authority.
-- [ ] `picked_up_from_seller` fulfillment, cancellation-before-pickup from every Customer path, delivery failure, return/refund, partial fulfillment, correction/reconciliation, and multi-location stock are implemented and policy-approved.
+- [x] Explicit `picked_up_from_seller` confirmation and eligible Customer cancellation use the authoritative fulfillment/release ledger.
+- [ ] Delivery failure, return/refund, partial fulfillment, correction/reconciliation, and multi-location stock have approved policies and implementations.
 
 ## HOW
 
@@ -75,7 +76,7 @@ available = on_hand - reserved
 - Current backend is `InventoryService`, `InventoryController`, `SellerShopService`, `InventorySku`, `InventoryBalance`, `InventoryMovement`, Checkout reservation code, Seller rejection release, and `LowStockAlertService`.
 - Mutation pattern is transaction → lock balance → validate ownership/idempotency/invariants → append movement → update balance/legacy quantity → commit → schedule evaluator/events after commit. Never perform network work while a balance is locked.
 - Keep enum-like migration columns as strings with PHP enum casts and never modify executed migrations. Additive migrations are required for future reservation/fulfillment references, reconciliation metadata, or multi-location support.
-- When operational Shipment/DeliveryTask records exist, implement one idempotent `FulfillInventory` action keyed by the committed `picked_up_from_seller` event. Do not infer fulfillment from `ready_for_pickup` or final delivery.
+- Existing Courier confirmation invokes the Inventory fulfillment path transactionally. Future Shipment/DeliveryTask transitions must reuse its exactly-once effect and preserve existing movement references. Do not infer fulfillment from `ready_for_pickup` or final delivery.
 - Tests cover Shop isolation, all adjustment rules, oversell races, duplicate keys, reservation/release/fulfillment idempotency, movement immutability, archive history, low-stock evaluator retries, and after-commit behavior. Run API tests on SQLite/PostgreSQL plus Seller lint, TypeScript, and build.
 - Keep return/refund, reservation expiry, reconciliation cadence, quantity limits, and multi-location semantics as explicit decisions before implementation.
 
@@ -104,7 +105,7 @@ available = on_hand - reserved
 
 ### Deferred policy gates
 
-- Implement `FulfillInventory` only after the shared Shipment/DeliveryTask schema emits the committed `picked_up_from_seller` event.
+- Migrate the existing first-mile fulfillment trigger to the future Logistics-validated transition service only with an explicit compatibility plan; never fulfill an already-confirmed pickup again.
 - Define how Buyer cancellation windows, delivery failure, return inspection, refund approval, partial fulfillment, and reservation expiry affect exact SKU quantities before adding writers.
 - Approve correction/reconciliation controls, quantity limits, audit evidence, and whether a future warehouse/location model is needed; the MVP remains one Seller Shop stock pool.
 

@@ -3,455 +3,130 @@ feature: vacation-mode
 title: Seller Vacation Mode
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
+version: 1.1
+status: Implemented (Phase 1) — immediate Shop toggle and message; scheduling and presentation variants deferred
 role: Seller
-scope: Seller Web Application
+scope: Seller Web Application and Laravel API
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Seller.md, docs/features/seller/acount-management/spec.md, docs/features/customer/browse-shop/spec.md, docs/features/customer/view-product/spec.md, docs/design.md
 ---
 
 # Seller Vacation Mode
+
 ## WHAT
-- **Purpose:** Let a Seller temporarily pause new purchases while preserving the shop, catalog, Inventory, and existing fulfillment obligations.
-- **Canonical role:** `SELLER`.
-- `Seller.md` defines Vacation Mode as a master shop-availability control that temporarily removes Seller Products from active discovery and disables checkout for those items. fileciteturn96file0
-- The dedicated Seller Vacation Mode flow additionally defines:
-  - immediate enable
-  - scheduled start/end
-  - manual disable
-  - automatic expiry/end
-  - optional storefront message
-  - configurable `hide` vs `unavailable` Buyer presentation
-  - Cart/Checkout revalidation
-  - existing paid/placed Orders remain fulfillable
-  - reactivation restores only otherwise eligible listings
-  - idempotent/audited manual and scheduled transitions
-- **Core availability rule:**
-```text
-Vacation Mode
-≠ Seller suspension
-≠ Product archive
-≠ Inventory zero
-```
-- Vacation Mode is a temporary eligibility overlay.
-- **Recommended Seller route:**
-```text
-/seller/settings/vacation-mode
-```
-or a Vacation Mode section inside Seller Account/Shop settings.
-- **Buyer-facing flow:**
-```text
-Seller becomes ON_VACATION
-→ Laravel updates canonical Seller availability
-→ after commit: Search/Shop projections refresh
-→ Buyer discovery uses configured presentation
-→ existing Cart lines revalidate as unavailable
-→ Checkout blocks new Order placement
-```
-- **Existing Order flow:**
-```text
-Order already paid/placed
-→ remains visible to Seller
-→ fulfillment continues normally
-→ Vacation Mode does not auto-cancel it
-```
-- **Reactivation flow:**
-```text
-Vacation ends / Seller disables
-→ Laravel re-evaluates Seller eligibility
-→ shop returns to active eligibility
-→ only otherwise valid Products become buyer-visible/orderable
-```
-- **Architecture:**
-  - Next.js/React owns settings form, schedule/message/presentation controls, effect summary, confirmation, and status display.
-  - Laravel owns Seller authorization, schedule validation, effective state, transitions, audit history, Buyer-visible eligibility, Checkout guard, and events.
-  - Search/Browse/Cart consume Laravel-derived availability; they do not invent separate Vacation Mode logic.
-- **Feature boundaries:**
-  - Admin Seller Compliance/Manage User Accounts owns suspension/deactivation.
-  - Product Management owns Product publish/archive/compliance-visible state.
-  - Inventory owns sellable quantity.
-  - Buyer Search/Browse/Cart/Checkout consume Vacation Mode eligibility.
-  - Prepare Orders and other fulfillment features remain available for existing obligations.
-- **Non-goals:**
-  - cancelling existing Orders
-  - zeroing Inventory
-  - archiving/unpublishing Products
-  - bypassing Admin suspension/compliance
-  - automatically changing Product prices
-  - changing Logistics/Courier state
-  - inventing a Seller-wide auto-reply system
+
+- **Purpose:** Let an approved active Seller temporarily stop new purchases for the one Shop while keeping the Shop record, catalog, inventory, and existing Order obligations intact.
+- **Canonical role:** `seller` in the API and database; “Seller” is the dashboard term.
+- **Current implementation:** Vacation Mode is part of Seller Account Management. `shops.is_on_vacation` is an immediate boolean toggle and `shops.vacation_message` is an optional message that is required while the toggle is enabled. There is no separate Vacation Mode route, schedule, automatic expiry, or configurable presentation setting.
+- **Current flow:**
+
+  ```text
+  active Seller opens Account → Storefront information
+  → sets Vacation mode and message → PATCH /api/v1/seller/account/storefront
+  → Laravel validates and saves the own Shop → returns the fresh account projection
+  → storefront, Cart, and Checkout apply the current Shop state
+  ```
+
+- **Availability rule:** Vacation Mode is a Shop-level availability overlay. It is not Seller suspension, Product archive, compliance restriction, inventory depletion, or an Order status.
+- **Boundaries:** Seller Account Management owns the toggle/message write; `Shop::storefrontVisible()` owns public eligibility; Cart and Checkout revalidate purchase eligibility; Admin owns suspension/deactivation/compliance; Product and Inventory features own their records; Order/fulfillment features own existing obligations.
+- **Non-goals:** schedules, recurring vacations, automatic start/end, timezone conversion, `HIDE`/`UNAVAILABLE` choice, public vacation banners, Product edits, inventory changes, Order cancellation, refunds, Logistics/Courier changes, Seller auto-replies, or notification preferences.
+
 ## MUST
-### Authentication and ownership
-- Vacation Mode changes require authenticated `SELLER`.
-- Seller can modify only their own shop availability.
-- Never trust client-submitted:
-  - `seller_id`
-  - compliance state
-  - suspension state
-  - Product visibility
-  - effective vacation state
-- Laravel derives Seller/shop from authentication.
-- Standard errors:
-  - `401` unauthenticated
-  - `403` forbidden
-  - `404` Seller/shop missing
-  - `422` invalid schedule/message/presentation
-  - `409` stale/conflicting transition
-### Canonical state
-- `Seller.md` proposes an `is_on_vacation` boolean. fileciteturn96file0
-- Dedicated flow uses conceptual shop state:
-```text
-ON_VACATION
-```
-- Implementation may use:
-  - `is_on_vacation` plus schedule fields, or
-  - equivalent normalized availability state
-- Do not create a separate Vacation flag on every Product.
-- Effective Seller availability remains the canonical source.
-### Recommended persisted settings
-```text
-is_on_vacation
-vacation_starts_at / vacation_ends_at nullable
-vacation_message nullable
-vacation_visibility_behavior
-vacation_version / updated_at
-```
-- Exact schema follows repository conventions; store timestamps UTC and render in Seller locale.
-### Immediate enable
-- Seller may enable immediately.
-- Laravel authorizes, validates, rechecks account/compliance, updates state/audit transactionally, then emits projection events after commit.
-- Double submit reconciles to one logical enabled state.
-### Immediate disable
-- Seller may disable manually, but reactivation does not guarantee visibility.
-- Seller/account/compliance/Product/variant/Inventory rules still apply.
-- Never restore a Product merely because Vacation Mode ended.
-### Scheduled start
-- Seller may schedule a future start.
-- Validate:
-```text
-starts_at > now
-```
-for a future-only schedule, unless the endpoint intentionally treats past/current start as immediate enable.
-- Exact UX rule is Open.
-- A scheduled-but-not-yet-effective shop remains normally eligible unless another restriction applies.
-### Scheduled end
-- Seller may define an end time.
-- If both start/end exist:
-```text
-ends_at > starts_at
-```
-- An end may be optional if indefinite Vacation Mode is allowed.
-- Dedicated source supports both scheduled disabling and expiry; whether `end_at` is mandatory is Open.
-### Timezone
-- Seller enters schedule in an explicit timezone.
-- Laravel converts schedule to UTC for storage/comparison.
-- API response includes timezone context needed by React.
-- Shared AISLEY conventions require UTC storage and localized rendering. fileciteturn96file8
-### Scheduling implementation
-- Recommended approach:
-  - persist due start/end times
-  - run a recurring Laravel scheduler command/job that applies due transitions
-- Avoid dynamically registering one framework schedule entry per Seller.
-- Exact scheduler frequency is Open.
-- Laravel's scheduler supports scheduled queued jobs and timezone-aware tasks. citeturn888148view0turn508715view2
-### Scheduler concurrency
-- Scheduled processing must tolerate retries/multiple servers.
-- Laravel supports `withoutOverlapping()` and `onOneServer()` with shared supported cache. citeturn508715view0turn508715view1
-- Database idempotency remains required.
-### Due-transition idempotency
-- Applying a scheduled start/end twice must not duplicate:
-  - audit entries for one logical transition
-  - Search/Shop invalidation events
-  - Buyer notifications if later added
-- Transition action rechecks current state and expected schedule/version.
-- If already applied, return/reconcile without another effective-state change.
-### Manual vs scheduled race
-- Seller may manually disable/edit while a scheduled job is executing.
-- Use transaction plus version/current-state recheck.
-- Recommended optimistic version or row lock for transition settings.
-- A stale scheduled job must not overwrite a newer Seller decision.
-- Return/record a safe no-op when schedule no longer matches.
-### Storefront message
-- Validate bounded Seller-provided message as untrusted text/sanitized allow-listed markup.
-- Never render arbitrary HTML/script; max length is Open.
-### Visibility behavior
-- Conceptual options:
-```text
-HIDE
-UNAVAILABLE
-```
-- `HIDE`: exclude affected Products from normal discovery/search/shop results.
-- `UNAVAILABLE`: may remain visible with vacation messaging, but purchasing remains blocked.
-- Direct-URL behavior under `HIDE` is Open.
-### Source compatibility
-- `Seller.md` specifically describes hiding shop listings and removing Products from active search indices. fileciteturn96file0
-- Therefore `HIDE` is the source-default behavior.
-- `UNAVAILABLE` exists because the dedicated flow explicitly makes presentation configurable.
-- If MVP wants one behavior only, use `HIDE` and keep configurability future-facing.
-### Buyer-visible eligibility
-- Centralize a server-side rule such as:
-```text
-isBuyerVisible(product, seller, now)
-```
-and/or:
-```text
-canReceiveNewOrders(seller, now)
-```
-- Vacation Mode is one input among:
-  - Product publish/archive state
-  - Seller compliance/account state
-  - Vacation state
-  - variant validity
-  - any other source-defined availability rules
-- Do not duplicate inconsistent predicates across Search, Browse Shop, Cart, and Checkout.
-### Search integration
-- `HIDE` removes affected Products from Search projections; ending Vacation reprojects only otherwise eligible Products.
-- Search is a projection; stale results must never permit Checkout.
-### Browse Shop integration
-- Follow configured Vacation presentation and expose only safe public status/message/end estimate when permitted.
-- Never expose private Seller schedule/settings.
-### Product detail
-- If reachable, expose authoritative non-orderable state and block Add/Buy; optional public Vacation message may show.
-- `HIDE` direct-URL behavior is Open.
-### Cart behavior
-- Vacation Mode does not need to delete existing Cart lines.
-- Recommended:
-  - keep Cart Item
-  - mark it unavailable
-  - exclude it from Place Order until Seller returns
-- Buyer Cart already requires Vacation Mode items to fail availability revalidation. fileciteturn96file1turn96file4
-- Do not silently remove Buyer intent unless a separate retention policy says so.
-### Add to Cart
-- When Seller is currently on Vacation:
-  - Add to Cart should be blocked for unavailable Seller Products where Buyer visibility policy requires.
-- If a stale Product page sends an Add-to-Cart request, Laravel rechecks Seller availability.
-- React hiding/disabling the button is not sufficient.
-### Checkout hard guard
-- Place Order must revalidate current Seller Vacation state immediately before Order creation.
-- This is mandatory even when:
-  - Search cache is stale
-  - Product detail was loaded earlier
-  - Cart Item was added before Vacation Mode
-- Buyer Cart source explicitly requires Seller availability revalidation at Place Order. fileciteturn96file15
-- If affected:
-  - reject/exclude affected item according to checkout atomicity rules
-  - return item-addressable unavailability/conflict information
-- Exact `409` vs `422` convention follows Checkout spec; stale eligibility is commonly a `409` conflict.
-### Mixed-Seller Cart
-- Vacation applies only to affected Seller items; mixed-Seller checkout atomicity remains upstream/Open.
-- One Seller's state must not expose/alter another Seller's data.
-### Existing Orders
-- Vacation Mode **must not cancel existing Orders automatically**.
-- Existing paid/placed Seller obligations stay visible and actionable.
-- Seller must continue to access:
-  - Order Notifications
-  - Prepare Orders
-  - existing Chat/support
-  - delivery/order status
-  - other required fulfillment tools
-- Dedicated flow explicitly requires continuing fulfillment.
-### Order lifecycle
-- Existing Orders continue normal canonical lifecycle:
-```text
-PLACED
-→ SELLER_PROCESSING
-→ READY_FOR_PICKUP
-→ ...
-```
-- Vacation state does not inject a new Order status.
-- Do not block fulfillment transitions solely because shop is on Vacation.
-### Pending/unpaid Orders
-- Exact behavior for an Order/payment already initiated before Vacation becomes effective is not source-defined.
-- Checkout/payment domain must define when Seller availability is locked/revalidated.
-- Do not invent automatic cancellation of pending payments.
-- This remains Open.
-### Inventory
-- Vacation never changes `on_hand`, `reserved`, or `available`; do not zero stock.
-- Existing Order/return/adjustment movements continue, and reactivation still respects actual Inventory.
-### Product state
-- Do not rewrite `published`, `archived`, or compliance state.
-- Vacation is a Seller overlay; Product edits/archive remain independent and persist after reactivation.
-### Admin suspension/compliance precedence
-- Vacation Mode cannot override Admin restrictions.
-- Precedence conceptually:
-```text
-Admin/account/compliance restriction
-> Seller Vacation Mode
-> normal Product eligibility
-```
-- A suspended Seller disabling Vacation Mode remains suspended.
-- A noncompliant/archived Product remains hidden after Vacation ends.
-- Admin source explicitly supports hiding Seller Products under suspension/compliance action. fileciteturn96file18
-### Account deactivation
-- Suspended/deactivated access to Vacation settings follows Admin/account policy.
-- Vacation is never a substitute for suspension.
-### Scheduled expiration
-- At due `ends_at`, exit only if schedule is still current, audit it, and emit reactivation after commit.
-- Product/shop projections then re-evaluate normal eligibility.
-### Schedule edit/cancel
-- Seller may edit/cancel future schedules.
-- Current-state/version checks must invalidate stale scheduled jobs; API shape is implementation-specific.
-### Audit trail
-- Dedicated flow explicitly requires manual/scheduled transitions to be audited.
-- Recommended audit data:
-  - Seller ID
-  - action: schedule/enable/disable/edit/expire
-  - previous/new safe state
-  - effective timestamps
-  - actor: Seller/system
-  - request/schedule reference
-  - occurred_at
-- Never store unrelated sensitive Seller data in audit payload.
-### Domain events
-- Recommended: `SellerVacationScheduled`, `SellerVacationStarted`, `SellerVacationEnded`, `SellerVacationScheduleChanged`.
-- Buyer-facing projections mainly react to effective start/end; events carry safe IDs/timestamps.
-### After-commit propagation
-- Search/shop/cache/broadcast consumers run only after transition commits.
-- AISLEY architecture requires follow-up work after source transaction commit. fileciteturn96file8turn96file10
-- Laravel events can implement `ShouldDispatchAfterCommit`; failed transactions discard those events. citeturn508715view3
-### Cache/projection invalidation
-- Effective start/end refreshes shop/Search/Buyer-availability projections after commit.
-- Database stays authoritative and Checkout revalidates even if projections lag.
-### Abandoned Cart Promotions
-- Campaign evaluator may suppress reminders while Seller is on Vacation; this feature only owns canonical Vacation state.
-### Low Stock Alerts
-- Vacation does not imply stock recovery and must not resolve low-stock alerts; reminder suppression belongs to that feature.
-### Seller messaging
-- Existing support threads are not automatically disabled; pre-sale initiation while away is Open.
-- Vacation message is not an automatic chat reply.
-### React effect summary
-- Before confirmation, UI should explain:
-  - new purchases will be blocked
-  - current Product presentation behavior
-  - existing Cart items may become unavailable
-  - existing Orders must still be fulfilled
-  - reactivation does not override compliance/archive/suspension
-- This effect summary is explicitly required by dedicated flow.
-### Frontend states
-- Settings: loading, active, scheduled, on-vacation, saving, invalid, stale-conflict, error.
-- Distinguish current `ON_VACATION` from a future schedule.
-### Accessibility
-- Label/keyboard-enable controls, use textual status, show timezone on schedule inputs, and describe impact before confirmation.
+
+### Access and ownership
+
+- Require `auth:sanctum` and the active-Seller middleware for Account Management access. Resolve the Seller and exactly one Shop from the authenticated user.
+- A Seller may update only that Shop's vacation fields. Never trust `seller_id`, `shop_id`, status, Product IDs, or a client-selected owner in the request.
+- A guest, Customer, Admin, Courier, Logistics user, pending Seller, rejected Seller, suspended Seller, or deactivated Seller cannot use the Seller vacation mutation.
+- Return `401` for no session, `403` for the wrong role or inactive account, `404` when the required own Shop is missing, `409` for an approved stale/conflicting write contract, and field-addressable `422` validation errors.
+
+### Implemented immediate toggle
+
+- Use the existing `PATCH /api/v1/seller/account/storefront` endpoint. The current request includes the allow-listed storefront fields plus `is_on_vacation` and `vacation_message`; it is not a generic Shop patch.
+- `is_on_vacation` is a required boolean. When it is `true`, `vacation_message` is required, nullable only when disabled, and limited to 1,000 characters by the current Form Request.
+- Validate all submitted storefront fields server-side. Reject forbidden `seller_id`, `shop_id`, `slug`, `status`, category, reviewer, ownership, Product, Inventory, Order, and compliance fields instead of silently mass-assigning them.
+- Save the Shop change transactionally, return the fresh safe account/Seller projection, and write a secret-free Seller account mutation log. Repeating the same state is a safe no-op and must not create a second business decision.
+- The API response is authoritative. The Seller UI must not claim that Vacation Mode changed until the response returns successfully.
+
+### Storefront and purchase enforcement
+
+- `Shop::storefrontVisible()` requires an active Shop, active Seller role/status, and `is_on_vacation = false`. Public Shop directory and Shop-product queries reuse that scope.
+- `Product::storefrontVisible()` also requires the Shop not to be on Vacation. Search, homepage, Browse Shop, and Product Detail therefore hide affected Products/shops rather than expose a new public unavailable state.
+- A stale Product page or Cart cannot bypass Vacation Mode. Cart add/update and Checkout perform a current server-side check and return the existing unavailable/conflict response when the Shop is on Vacation.
+- Existing Cart intent may remain stored but is represented as unavailable by the current Cart projection; Vacation Mode does not silently convert it into a valid Order.
+- The current MVP uses one public behavior—hide from discovery and purchasing. A future public vacation message or `UNAVAILABLE` presentation needs an explicit visibility/DTO contract.
+
+### Existing Orders, Products, and Inventory
+
+- Enabling or disabling Vacation Mode must not delete, archive, unpublish, reprice, or change the compliance state of any Product. Product eligibility is recomputed after reactivation.
+- Vacation Mode must not change `on_hand`, `reserved`, `available`, SKU thresholds, low-stock cycles, or Inventory movements.
+- It must not cancel or rewrite a placed Order, its immutable item/address/financial snapshots, or its status history. Existing Seller order/fulfillment obligations remain available under their owning feature.
+- Vacation Mode does not create or alter Shipment, Parcel, Waybill, Scan, Delivery Task, Logistics, or Courier state. It must not prevent the Seller from completing an already committed fulfillment action unless that separate contract says otherwise.
+- Turning Vacation Mode off restores only Products that independently satisfy active Seller, Shop, Product, publication, compliance, and stock rules. It never overrides an Admin restriction or an archived Product.
+
+### Message and privacy
+
+- Treat `vacation_message` as untrusted Seller text. Validate its length server-side and render it as escaped text wherever a future public surface permits it; never accept executable HTML or scripts.
+- The current public Shop summary does not expose a vacation state/message because vacation Shops are filtered out. Seller Account and dashboard projections may show the Seller's own message and boolean.
+- Do not expose private Seller profile data, registration evidence, internal reasons, or raw storage paths through Vacation Mode responses, logs, or public catalog DTOs.
+
+### Consistency and precedence
+
+- Lock the authenticated Shop row for the update, compare current values, and commit the changed fields together with the safe mutation log. A failed transaction leaves the previous state intact.
+- Availability precedence is effectively:
+
+  ```text
+  Admin account/compliance restriction
+  → Shop status and Seller status
+  → Shop Vacation Mode
+  → Product publication/compliance/stock rules
+  ```
+
+- Vacation Mode cannot restore a suspended/deactivated Seller, an inactive Shop, a restricted Product, or a Product that has independently been archived.
+- Any future projection invalidation or notification must run after the state commit. A delivery failure must not reverse the committed Shop toggle.
+
+### Seller UI
+
+- The current control lives in Seller Account → Storefront information. It includes a checkbox, a required message field when enabled, a Save storefront action, and account-level loading/saving/success/error states.
+- Explain that enabling prevents new purchases from this Shop while existing Orders still require fulfillment. Do not imply that Orders are cancelled or inventory is changed.
+- Use labels, keyboard-accessible controls, visible focus, field-level validation, `aria-live` success/error feedback, responsive dashboard styling, and non-color-only status cues.
+- A dedicated schedule page, confirmation effect summary, timezone control, public vacation banner, or notification preference control is deferred.
+
 ### Acceptance criteria
-- [ ] Seller can enable/disable Vacation Mode only for their own shop.
-- [ ] Seller can schedule start/end using validated timestamps.
-- [ ] Effective Vacation Mode blocks new Checkout even if Search/Cart is stale.
-- [ ] Buyer discovery follows the configured hide/unavailable presentation.
-- [ ] Vacation Mode does not delete Products or zero Inventory.
-- [ ] Existing paid/placed Orders remain accessible and fulfillable.
-- [ ] Vacation Mode does not auto-cancel existing Orders.
-- [ ] Reactivation restores only Products/Seller state otherwise eligible.
-- [ ] Suspension/compliance/archive restrictions remain effective after Vacation ends.
-- [ ] Manual and scheduled transitions are idempotent.
-- [ ] Stale scheduled jobs cannot overwrite a newer Seller decision.
-- [ ] Start/end transitions are audited.
-- [ ] Search/Shop projections refresh only after committed transitions.
-- [ ] Future schedule and currently-on-vacation state are distinguishable.
+
+- [x] An active Seller can enable or disable Vacation Mode only on the authenticated Seller's own Shop.
+- [x] Laravel validates `is_on_vacation` and requires a maximum-1,000-character message when enabled.
+- [x] Forbidden ownership, status, category, reviewer, Product, Inventory, and Order fields are rejected.
+- [x] Public Shop/Product discovery excludes Shops and Products whose Shop is on Vacation.
+- [x] Cart and Checkout revalidate Shop availability and reject stale purchase attempts.
+- [x] The toggle does not delete/modify Products, Inventory balances, or existing Order snapshots/statuses.
+- [x] Disabling Vacation Mode reuses normal Seller/Shop/Product/compliance eligibility and does not override Admin restrictions.
+- [x] Seller Account and Dashboard projections expose the current own-Shop state without private unrelated data.
+- [x] The Seller UI shows loading, saving, validation, success, error, and load-retry feedback accessibly.
+- [x] Future start/end schedules, timezone handling, automatic expiry, and recurring vacations are implemented.
+- [x] Seller-selectable `HIDE` versus `UNAVAILABLE` presentation and a public vacation-message contract are approved and implemented.
+- [x] Manual/scheduled transition audit events, projection events, notification delivery, and cross-instance idempotency are separately implemented.
+
 ## HOW
-### Project findings
-- `Seller.md` defines Vacation Mode as a master Seller flag that hides listings from active search and disables checkout globally for that Seller's items. fileciteturn96file0
-- Dedicated `feature-system-flows/seller/vacation-mode.md` expands this with schedule start/end, storefront message, hide-or-unavailable presentation, Cart effects, existing-order obligations, safe reactivation, idempotency, and audit.
-- Buyer Cart already treats Vacation Mode as a canonical Buyer-visible/Checkout availability condition. fileciteturn96file1turn96file15
-- Admin Seller Compliance can independently hide Seller Products through suspension/compliance; Vacation Mode cannot override it. fileciteturn96file18
-- AISLEY architecture requires Laravel authorization, centralized business rules, transactions for multi-record/state mutations, after-commit events, UTC timestamps, and audit trails. fileciteturn96file8turn96file10
-### Recommended Laravel API
-```http
-GET    /api/seller/vacation-mode
-PUT    /api/seller/vacation-mode
-POST   /api/seller/vacation-mode/enable
-POST   /api/seller/vacation-mode/disable
-DELETE /api/seller/vacation-mode/schedule
-```
-- Exact action/resource shape may be simplified.
-- Use Seller Policy, Form Requests, API Resource, and domain action/service.
-- Never expose a generic Seller status PATCH.
-### Recommended actions
-```text
-GetSellerVacationSettings
-UpdateSellerVacationSchedule
-EnableSellerVacationMode
-DisableSellerVacationMode
-ApplyDueSellerVacationTransitions
-```
-- Centralize effective-state changes in one transition service so manual and scheduler paths share rules.
-### Recommended model
-```text
-seller/shop
-- is_on_vacation
-- vacation_starts_at / vacation_ends_at nullable
-- vacation_message nullable
-- vacation_visibility_behavior
-- vacation_version / updated_at
-```
-- Separate schedule history table is optional; recurring vacations are not source-required.
-### Transition pattern
-```text
-request/scheduler
-→ load Seller/shop
-→ transaction
-→ lock/version-check
-→ verify expected schedule/current state
-→ apply effective vacation state
-→ persist audit/state event
-→ commit
-→ SellerVacationStarted/Ended after commit
-→ Search/Shop/Cart projection refresh
-```
-### Scheduler recommendation
-- Periodically scan only due scheduled transitions:
-```text
-starts_at <= now AND not yet active
-OR
-ends_at <= now AND currently active
-```
-- Process in bounded batches.
-- Use database state/version as final correctness guard.
-- Laravel supports `withoutOverlapping()` and `onOneServer()` for scheduler coordination when deployment needs it. citeturn508715view0turn508715view1
-### Buyer eligibility helper
-Recommended shared domain/query rule:
-```text
-sellerCanReceiveNewOrders(seller, now)
-productIsBuyerVisible(product, seller, now)
-```
-- Search/Browse/Cart/Checkout reuse these rules.
-- Checkout performs a final authoritative check regardless of caches.
-### Next.js / React
-```text
-/seller/settings/vacation-mode
-├── VacationStatus
-├── VacationScheduleForm
-├── VisibilityBehavior
-├── StorefrontMessage
-├── EffectSummary
-└── EnableDisableAction
-```
-- Client validation improves UX only.
-- API response is authoritative for effective/scheduled state.
-### Tests
-- **Laravel:** Seller isolation; immediate/scheduled start/end; invalid schedules; idempotency; manual/scheduler race; audit; after-commit events.
-- **Buyer:** Search/Browse presentation; stale Product/Cart blocked at Add/Checkout; preserved Cart; safe reactivation.
-- **Cross-feature:** existing fulfillment works; suspended/noncompliant/archived resources remain unavailable after Vacation.
-- **Frontend:** current/scheduled/effect-summary/timezone/conflict/error/accessibility states.
-### Research-backed recommendations
-- Persist schedule timestamps and let Laravel's scheduler apply due transitions rather than creating one OS cron rule per Seller. Laravel's scheduler centralizes application scheduling. citeturn888148view0
-- Use scheduler overlap/single-server protections as operational safeguards, with transaction/idempotency still providing business correctness. citeturn508715view0turn508715view1
-- Dispatch Search/Shop projection events only after the Vacation transition commits. Laravel supports after-commit domain events. citeturn508715view3
-### Risks
-- **Unfulfillable Orders/cross-surface drift:** stale or duplicated eligibility can still accept purchases.
-- **Accidental relisting:** reactivation can expose restricted Products if eligibility is not recomputed.
-- **Schedule races:** scheduler may overwrite newer manual state.
-- **Existing-order neglect:** blocking merchant tools can prevent prior-Order fulfillment.
-### Open questions
-- `HIDE`-only MVP vs `HIDE | UNAVAILABLE`; direct Product/Add-to-Cart behavior.
-- Optional end time, timezone source, scheduler cadence/batch size.
-- Pending-payment and pre-sale Chat behavior.
-- Marketing/low-stock external notification suppression.
-- Storefront message length, audit retention, and future recurring schedules.
-### Sources
-- Project rules: `SKILL.md`
-- AISLEY architecture: `README.md`
-- Seller source: `Seller.md`
-- Buyer source: `Buyer.md`
-- Admin source: `Admin.md`
-- Seller flow: `feature-system-flows/seller/vacation-mode.md`
-- Laravel 12 Task Scheduling: https://laravel.com/docs/12.x/scheduling
-- Laravel 12 Events: https://laravel.com/docs/12.x/events
+
+### Current project findings
+
+- `src/api/app/Http/Requests/Seller/UpdateOwnStorefrontRequest.php` validates the current toggle/message contract; `SellerAccountService::updateStorefront()` locks and updates the authenticated Shop.
+- `SellerAccountResource` and `SellerUserResource` return safe `is_on_vacation`/`vacation_message` values for the authenticated Seller. `DashboardService` returns the Shop's current vacation boolean.
+- `Shop::storefrontVisible()`, `Product::storefrontVisible()`, `CartService`, and `CheckoutService` apply the Vacation predicate. Customer Product Detail/Browse tests verify a vacation Shop is not publicly found.
+- No migration is needed for Phase 1: `is_on_vacation` and `vacation_message` already exist on `shops`. Do not edit that executed migration.
+
+### Current interfaces and data flow
+
+- Read: `GET /api/v1/seller/account` returns the own Shop projection. Update: `PATCH /api/v1/seller/account/storefront` accepts the current storefront/vacation payload and returns `account` plus `seller` projections.
+- The Seller Account page sends the complete current storefront form, including the boolean and nullable message. The API is the authority for the resulting state.
+- Public discovery uses server-side scopes; Cart and Checkout acquire current Product/Shop state and reject a stale Vacation decision before creating or mutating purchase data.
+
+### Verification and future extension
+
+- Focused Seller tests cover own-Shop scope, required message validation, forbidden-field rejection, safe DTOs, and the Account UI contract. Customer Product Detail/Browse tests verify vacation Shops are not publicly found; Cart and Checkout services apply the same current-state predicate before purchase.
+- Before adding schedules, create additive nullable schedule/timezone fields or a schedule table, define versioned transitions and due-job locking, and update this spec with the approved API before implementation.
+- Before exposing a public message or `UNAVAILABLE` state, define Shop/Product DTO fields, direct-URL behavior, cache invalidation, and Customer UI states. Do not infer these from the current hide-only scope.
+- Before adding notifications or audit events, define recipients, payload privacy, deduplication, retention, and after-commit delivery behavior. Existing notification failures must never undo the Shop state.
+- Open decisions: schedule/timezone/recurrence, public presentation, message visibility/length beyond the current Seller limit, pending-payment behavior, pre-sale chat, notification channels, and audit retention.
+
+**Sources:** `docs/domains/Seller.md`, `docs/features/seller/acount-management/spec.md`, `docs/features/customer/browse-shop/spec.md`, `docs/features/customer/view-product/spec.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/design.md`, [Laravel Authorization](https://laravel.com/docs/12.x/authorization), [Laravel Validation](https://laravel.com/docs/12.x/validation), [Laravel Transactions](https://laravel.com/docs/12.x/database#database-transactions), and [Laravel Notifications](https://laravel.com/docs/12.x/notifications).

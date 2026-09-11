@@ -15,6 +15,7 @@ import { UsersPage } from './pages/UsersPage'
 import { UserDetailPage } from './pages/UserDetailPage'
 import { SellerCompliancePage } from './pages/SellerCompliancePage'
 import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
+import { PolicyConsentPage } from './pages/PolicyConsentPage'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<AccountPage />} path="/account" />
+          <Route element={<PolicyConsentPage />} path="/policy-consent" />
           <Route element={<PlatformSettingsPage />} path="/platform-settings" />
           <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/new" />
           <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/:configurationId/edit" />

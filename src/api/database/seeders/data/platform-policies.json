@@ -1,0 +1,58 @@
+{
+  "policies": [
+    {
+      "type": "terms_of_service",
+      "version": 1,
+      "title": "Aisley Terms of Service - General Use",
+      "content": "These generic Terms of Service describe the basic rules for using Aisley. They are a policy template for testing and must be reviewed and approved before production use.\n\n1. Acceptance\nBy creating an account or using Aisley, you agree to follow these terms and the other policies shown on the platform. If you do not agree, do not use the service.\n\n2. Accounts\nProvide accurate account information, keep your credentials secure, and report suspected unauthorized access. You are responsible for activity performed through your account.\n\n3. Marketplace conduct\nUse the marketplace honestly. Do not submit unlawful, unsafe, counterfeit, infringing, abusive, or misleading content, and do not interfere with the service or bypass its access controls.\n\n4. Availability and changes\nFeatures and marketplace information may change, be unavailable, or be removed as the service develops. A new published version may update these terms.\n\n5. Contact\nQuestions about these terms should be sent through the support channel identified in the application.\n\nThis generic template is not legal advice and should be replaced with approved legal terms before production deployment.",
+      "change_summary": "Initial generic Terms of Service template.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "terms_of_service",
+      "version": 2,
+      "title": "Aisley Terms of Service - Marketplace Use",
+      "content": "These Terms of Service describe the basic rules for using the Aisley marketplace. They are a generic policy template for testing and must be reviewed and approved before production use.\n\n1. Acceptance\nBy creating an account or using Aisley, you agree to follow these terms and any applicable policies shown on the platform. If you do not agree, do not use the service.\n\n2. Accounts\nProvide accurate account information and keep your login credentials secure. You are responsible for activity performed through your account and must promptly report suspected unauthorized access. Accounts may be restricted when required to protect users, transactions, or the platform.\n\n3. Marketplace use\nAisley connects customers, sellers, and delivery partners. Product descriptions, prices, availability, delivery estimates, and other marketplace information may be updated by the responsible account holder. Users should review order details before confirming a transaction.\n\n4. Orders and payments\nAn order is subject to the availability and confirmation information shown at checkout. Customers agree to provide complete delivery details and pay amounts due through the available payment process. Cancellations, refunds, returns, and delivery outcomes are handled under the applicable order rules and transaction records.\n\n5. Seller and user responsibilities\nDo not list, purchase, upload, or distribute unlawful, unsafe, counterfeit, infringing, abusive, or misleading content. Sellers are responsible for their listings and fulfillment obligations. Customers must use the marketplace honestly and must not abuse promotions, disputes, or review features.\n\n6. Acceptable use\nDo not interfere with the service, bypass access controls, submit malicious code, collect another person\u2019s information without permission, or use Aisley for fraud or other unlawful activity.\n\n7. Service changes\nFeatures may be added, changed, suspended, or retired as the platform develops. We may update these terms by publishing a new version and indicating when renewed consent is required.\n\n8. Contact\nQuestions about these terms should be sent through the support channel identified in the application.\n\nThis generic template is not legal advice and should be replaced with approved legal terms before production deployment.",
+      "change_summary": "Expanded generic Terms of Service template with marketplace, order, and acceptable-use rules.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "privacy_policy",
+      "version": 1,
+      "title": "Aisley Privacy Policy - General Notice",
+      "content": "This generic Privacy Policy explains the types of information Aisley may handle when you use the marketplace. It is a policy template for testing and must be reviewed and approved before production use.\n\n1. Information we may collect\nAisley may receive account details, contact information, delivery addresses, order references, support messages, device or session details, audit events, and policy-consent records.\n\n2. How information is used\nInformation may be used to create and secure accounts, process orders, coordinate delivery, provide support, prevent misuse, maintain records, and improve the service.\n\n3. Sharing and access\nInformation may be shared with authorized account roles and service providers that help operate the marketplace. Access should be limited to an approved purpose.\n\n4. Security and retention\nAisley uses reasonable safeguards, but no system can guarantee absolute security. Information may be retained as needed to provide the service, resolve disputes, maintain records, or meet applicable requirements.\n\n5. Choices and contact\nWhere available, you may update account information, manage consent, or contact support about privacy requests.\n\nThis generic template is not legal advice and should be replaced with an approved privacy notice before production deployment.",
+      "change_summary": "Initial generic Privacy Policy template.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "privacy_policy",
+      "version": 2,
+      "title": "Aisley Privacy Policy - Marketplace Data",
+      "content": "This Privacy Policy explains the types of information Aisley may handle when you use the marketplace. It is a generic policy template for testing and must be reviewed and approved before production use.\n\n1. Information we may collect\nDepending on the features you use, Aisley may receive account details, contact information, delivery addresses, seller and store information, order and payment references, support messages, device or session details, audit events, and policy-consent records.\n\n2. How information is used\nInformation may be used to create and secure accounts, process orders, coordinate delivery, provide support, prevent misuse, maintain audit records, improve the service, and meet applicable legal or operational requirements.\n\n3. Sharing and access\nInformation may be shared with the account roles and service providers that need it to operate the marketplace, such as sellers, delivery partners, payment providers, storage providers, and support personnel. Access should be limited to authorized purposes.\n\n4. Files and storage\nImages and other files uploaded to Aisley may be stored in the configured storage service. Do not upload information that you do not have permission to share or that is unnecessary for the feature being used.\n\n5. Security and retention\nAisley uses reasonable administrative and technical safeguards, but no system can guarantee absolute security. Information may be retained for as long as needed to provide the service, resolve disputes, maintain records, or meet applicable requirements.\n\n6. Choices and requests\nWhere available, you may update account information, manage consent, or contact support about access, correction, or deletion requests. Some records may need to be retained for security, legal, or transaction purposes.\n\n7. Children\nDo not use Aisley if you are not permitted to enter into an account or transaction under the laws that apply to you.\n\n8. Policy changes\nA new published version may explain changes to this notice. Aisley may request renewed consent when a change requires it.\n\n9. Contact\nPrivacy questions or requests should be sent through the privacy or support channel identified in the application.\n\nThis generic template is not legal advice and should be replaced with an approved privacy notice before production deployment.",
+      "change_summary": "Expanded generic Privacy Policy template with marketplace data, file storage, and privacy request guidance.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "internal_rules",
+      "version": 1,
+      "title": "Aisley Internal Platform Rules - Baseline",
+      "content": "These generic internal rules provide a baseline for people who administer or maintain Aisley. They are not exposed through the public policy endpoints.\n\n1. Access security\nUse individual accounts, protect credentials, and grant access according to job responsibilities. Do not share administrative tokens or use another person\u2019s account.\n\n2. Data handling\nUse test data when possible and avoid entering real payment details or unnecessary sensitive information into non-production environments.\n\n3. Platform operations\nUse documented workflows for account approvals, policy changes, moderation, order support, and data corrections. Preserve audit history.\n\n4. Incident reporting\nReport suspected fraud, abuse, privacy incidents, unauthorized access, data loss, and service outages promptly to the project maintainers.\n\nThis generic template is for internal planning and should be replaced with approved organizational rules before production use.",
+      "change_summary": "Initial generic internal platform rules template.",
+      "requires_reconsent": false,
+      "status": "published"
+    },
+    {
+      "type": "internal_rules",
+      "version": 2,
+      "title": "Aisley Internal Platform Rules - Operations",
+      "content": "These internal rules provide a generic operating baseline for people who administer or maintain Aisley. They are not exposed through the public policy endpoints.\n\n1. Account and access security\nUse individual accounts, protect credentials, enable available security controls, and grant access according to job responsibilities. Do not share administrative tokens or use another person\u2019s account.\n\n2. Data handling\nUse test data when possible and avoid entering real payment details or unnecessary sensitive personal information into non-production environments. Handle customer, seller, courier, and business information only for an approved purpose.\n\n3. Platform operations\nUse the documented workflows for account approvals, policy changes, moderation, order support, and data corrections. Preserve audit history and do not alter records merely to hide an action.\n\n4. Content and moderation\nReview reports consistently, remove or restrict content that violates platform rules, and escalate suspected fraud, abuse, privacy incidents, or safety concerns through the designated channel.\n\n5. Changes and incidents\nRecord important configuration and release changes. Report service outages, unauthorized access, data loss, and other incidents promptly to the project maintainers.\n\n6. Review\nThese rules should be reviewed as roles, systems, and legal or operational requirements change.\n\nThis generic template is for internal planning and should be replaced with approved organizational rules before production use.",
+      "change_summary": "Expanded generic internal platform rules template with moderation, incident, and change-management guidance.",
+      "requires_reconsent": false,
+      "status": "published"
+    }
+  ]
+}

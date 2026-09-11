@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { WishlistProvider } from "@/components/wishlist/wishlist-provider";
 import { RecentlyViewedProvider } from "@/components/recently-viewed/recently-viewed-provider";
+import { PolicyFooter } from "@/components/policies/policy-page-shell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </WishlistProvider>
           </RecentlyViewedProvider>
         </AuthProvider>
+        <PolicyFooter />
       </body>
     </html>
   );

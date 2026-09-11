@@ -37,6 +37,7 @@ use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\PlatformContentController;
+use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
@@ -69,7 +70,7 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
     });
 });
 
-Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active'])->group(function () {
+Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
     Route::prefix('seller-compliance')->name('seller-compliance.')->middleware('admin.permission:seller_compliance.manage')->group(function () {
         Route::get('/cases', [SellerComplianceController::class, 'index'])->name('index');
         Route::get('/options', [SellerComplianceController::class, 'options'])->name('options');
@@ -192,7 +193,7 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
     });
 });
 
-Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active'])->group(function () {
+Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
     Route::get('/account', [SellerAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/storefront', [SellerAccountController::class, 'updateStorefront'])->name('account.storefront.update');
@@ -206,6 +207,13 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
     Route::delete('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'destroy'])->whereUuid('address')->name('pickup-addresses.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/product-questions', [SellerProductQAController::class, 'index'])
+        ->middleware('throttle:120,1')
+        ->name('product-questions.index');
+    Route::get('/product-questions/{question}', [SellerProductQAController::class, 'show'])
+        ->whereUuid('question')
+        ->middleware('throttle:120,1')
+        ->name('product-questions.show');
     Route::post('/product-questions/{question}/answer', [SellerProductQAController::class, 'answer'])
         ->whereUuid('question')
         ->middleware('throttle:seller-product-qa-answer')
@@ -254,7 +262,7 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
     });
 });
 
-Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active'])->group(function () {
+Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
     Route::get('/account', [LogisticsAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');
@@ -293,7 +301,7 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
     });
 });
 
-Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active'])->group(function () {
+Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active', 'policy.consent'])->group(function () {
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::put('/account/password', [CourierAccountController::class, 'updatePassword'])
@@ -340,7 +348,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
-    Route::middleware(['auth:sanctum', 'customer.active'])->group(function () {
+    Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
         Route::get('/notifications', [CustomerNotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{notification}', [CustomerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
         Route::post('/notifications/{notification}/read', [CustomerNotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
@@ -409,7 +417,7 @@ Route::get('v1/products/{product}/questions', [CustomerProductQAController::clas
 
 Route::post('v1/products/{product}/questions', [CustomerProductQAController::class, 'store'])
     ->whereUuid('product')
-    ->middleware(['auth:sanctum', 'customer.active', 'throttle:customer-product-questions'])
+    ->middleware(['auth:sanctum', 'customer.active', 'policy.consent', 'throttle:customer-product-questions'])
     ->name('products.questions.store');
 
 Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
@@ -422,4 +430,14 @@ Route::prefix('v1/platform')->name('platform.')->middleware('throttle:120,1')->g
     Route::get('/policies/{type}/history/{version}', [PlatformContentController::class, 'policyHistoryVersion'])->whereNumber('version')->name('policies.history.show');
     Route::get('/policies/{type}/history', [PlatformContentController::class, 'policyHistory'])->name('policies.history.index');
     Route::get('/policies/{type}', [PlatformContentController::class, 'policy'])->name('policies.show');
+});
+
+Route::prefix('v1/policy-consent')->name('policy-consent.')->middleware('auth:sanctum')->group(function () {
+    Route::get('/status', [PolicyConsentController::class, 'status'])
+        ->middleware(['policy.actor', 'throttle:policy-consent-status'])
+        ->name('status');
+    Route::post('/{type}/versions/{version}/accept', [PolicyConsentController::class, 'accept'])
+        ->whereNumber('version')
+        ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])
+        ->name('accept');
 });

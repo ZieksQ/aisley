@@ -193,6 +193,7 @@ GET /api/admin/me
 - Every protected Admin API must require:
   - authenticated session
   - persisted role = `ADMIN`
+- After those checks, protected Admin APIs also require current shared Terms of Service and Privacy Policy consent. `GET /me`, logout, policy status, and policy acceptance remain reachable so an Admin can complete consent.
 - Backend authorization is authoritative.
 - Hiding a page, button, menu item, or React component is not sufficient authorization.
 - Authentication and authorization must remain separate:

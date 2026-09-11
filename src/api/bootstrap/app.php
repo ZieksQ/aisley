@@ -5,6 +5,8 @@ use App\Http\Middleware\Admin\EnsureAdminPermission;
 use App\Http\Middleware\Courier\EnsureActiveCourier;
 use App\Http\Middleware\Customer\EnsureActiveCustomer;
 use App\Http\Middleware\Logistics\EnsureActiveLogistics;
+use App\Http\Middleware\Policy\EnsureActivePolicyActor;
+use App\Http\Middleware\Policy\EnsurePolicyConsent;
 use App\Http\Middleware\Seller\EnsureActiveSeller;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -32,6 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'courier.active' => EnsureActiveCourier::class,
             'seller.active' => EnsureActiveSeller::class,
             'logistics.active' => EnsureActiveLogistics::class,
+            'policy.actor' => EnsureActivePolicyActor::class,
+            'policy.consent' => EnsurePolicyConsent::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

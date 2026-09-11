@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Seller-to-Logistics pickup scheduling, shared waybills, and first-mile pickup confirmation
 >
-> **Last synchronized:** 2026-09-10
+> **Last synchronized:** 2026-09-11
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -189,7 +189,6 @@ seller_pickup_accepted
 picked_up_from_seller
 received_at_hub
 sorted_at_hub
-in_transfer
 dispatched_from_hub
 delivery_assigned
 delivery_accepted
@@ -198,6 +197,8 @@ in_transit
 out_for_delivery
 delivered
 ```
+
+Task-level `rejected` records an offered Courier's refusal and allows the same task to be offered to another eligible Courier without changing the Order. `stale` is an informational freshness condition for an unfinished task; it is not an `orders.status` value and should be derived unless a future task migration explicitly persists it. Neither condition automatically cancels an Order or reassigns a task.
 
 `picked_up_from_seller` records the first-mile Seller handoff. `picked_up_from_hub` records the final-mile handoff from the Logistics hub. `waybill_created`, scan, sort, transfer, and dispatch records are events/document operations unless a future shipment contract explicitly makes one of them a current state.
 
@@ -1055,7 +1056,7 @@ Every Order starts with one `order_addresses` delivery snapshot at `version = 1`
 
 Successful placement increments `inventory_balances.reserved`, writes an immutable `reserve` movement linked to the Order, and updates catalog compatibility quantities to available stock. All Shop Orders, lines, address snapshots, status events, voucher records, inventory reservations, and selected-Cart cleanup commit in one transaction.
 
-The current checkout schema does not persist a Logistics provider because the Seller selects one when committing a pickup request for prepared Shop Orders. Before Logistics actions are implemented, the shared schema must store that server-validated eligible organization immutably on the pickup/fulfillment records; the client may not submit an ineligible organization or replace the selection after commitment. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
+The current checkout schema does not persist a Logistics provider directly. The Seller selects one when committing a pickup request for prepared Shop Orders, and the implemented pickup-request records store that server-validated eligible organization and derived sole hub immutably; the client may not submit an ineligible organization or replace the selection after commitment. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
 
 The reserved quantity is converted to fulfilled/committed inventory exactly once when first-mile pickup succeeds (`picked_up_from_seller`). An accepted cancellation or rejection before that milestone releases only the Order's reserved SKU quantities, transactionally and idempotently. After first-mile pickup, inventory is not automatically released; post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
@@ -1069,7 +1070,7 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 `platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, an optional user-safe change summary, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Nullable unique `source_policy_version_id` records the published version copied into a successor Draft and prevents competing successor copies for the same source. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
 
-`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. User-facing consent presentation and enforcement remain a separate integration decision.
+`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. The shared policy-consent service exposes user-specific status and exact-version acceptance over private API routes. The `policy.consent` middleware gates protected role APIs after the existing Sanctum/role/affiliation checks and leaves login, session bootstrap, logout, status, and acceptance reachable.
 
 ### 9.17 Seller pickup, shared waybill, and first-mile scheduling
 
@@ -1080,6 +1081,8 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 `pickup_schedules` belongs to one organization/hub and one approved affiliated Courier, stores a UTC future window, revision, status, human reference, and organization-scoped idempotency key. `pickup_schedule_orders` retains schedule/request/Order membership. `first_mile_tasks` creates one task per scheduled Order and waybill, with acceptance and physical-pickup timestamps; PostgreSQL enforces one active task per Order with a partial unique index over `assigned`, `accepted`, and `picked_up_from_seller`. `courier_pickup_confirmations` stores one immutable confirmation per task with Order/waybill/Courier scope, Courier-scoped idempotency key and request hash, previous/new detailed state, schedule revision, correlation ID, and pickup time. `pickup_route_manifests` retains one pending/ready/unavailable matrix result per schedule revision, including coordinate fingerprint/source, metered credit estimate, totals, grouped ordered stops, sanitized GeoJSON, reason, and calculation time. `address_coordinate_defaults` is the maintained canonical-area fallback registry used only when an exact complete coordinate pair is absent. `pickup_schedule_history` retains create/revise/cancel snapshots and reasons. `pickup_schedule_reminders` stores one durable reminder per schedule revision with claim, retry, success, failure, superseded, and suppression state.
 
 Scheduling, Courier acknowledgement, scanning, and typing do not mutate `orders.status`, custody, payment, or Inventory. Explicit `picked_up_from_seller` confirmation records custody in the detailed task/confirmation records, appends `ready_for_pickup → picked_up` to Order status history, and converts the Order's reservation to an Inventory fulfillment movement in one transaction; Logistics receipt remains the next unimplemented boundary.
+
+The physical operational schema remains deferred. When approved and introduced through additive migrations, Shipment/Parcel/Delivery Task records must include append-only custody/transition history and physical scan/evidence events. A Courier submits the QR/reference scan or handoff evidence; an authorized Logistics account validates and records the authoritative event. Each applicable event preserves the performing Courier, recording Logistics account, event timestamp, location/context, and a safe evidence or QR/reference value. `waybill_access_events` remain access/audit records and must not be treated as physical scans or custody proof. Operational records must link to the immutable Order/Parcel/waybill reference and remain scoped to the Logistics organization's sole hub.
 
 ## 10. Framework infrastructure tables
 
@@ -1201,10 +1204,13 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 51. Customer Order mutations are scoped to owned `placed` COD Orders. Cancellation appends an immutable status/history record and releases only that Order's reservation once; delivery-address correction appends a versioned snapshot and never mutates the Address Book source. Item, quantity, voucher, shipping, repricing, and post-pickup changes remain deferred.
 52. Product Q&A reads and writes must re-apply `Product::storefrontVisible()`. Questions are active-Customer-owned, answers are restricted to the Product-owning Seller, and public DTOs contain no private Customer fields.
 53. Product Q&A question/answer mutations use actor-scoped idempotency keys and one-answer locking. Notifications are dispatched after the Q&A transaction commits and deterministic notification IDs prevent duplicate alerts.
+54. A future operational task contract permits one task per Order/Parcel per leg. A Courier rejection records task-level `rejected`, leaves the Order unchanged, and allows Logistics to re-offer the same task; informational `stale` does not automatically cancel or reassign it.
+55. Courier-submitted scans and handoff evidence are validated and recorded by the owning Logistics organization. Physical event history preserves the performing Courier, recording Logistics account, timestamp, location/context, and safe evidence/reference metadata; a scan or waybill access event alone never advances custody.
+56. Authorized Courier projections may include provider-neutral `distance_km` and `estimated_duration_minutes` for task context. These values are advisory and do not select a Courier, alter a status, expose a map vendor, or replace the immutable checkout destination snapshot.
 
 ## 13. Migration order
 
-Migrations currently run in this dependency order:
+Repository migrations are listed below in filename execution order; this inventory does not assert which migrations have been deployed in a particular environment:
 
 1. `0001_01_01_000000_create_users_table.php` — `users`, `password_reset_tokens`, `sessions`.
 2. `0001_01_01_000001_create_cache_table.php` — `cache`, `cache_locks`.
@@ -1248,24 +1254,86 @@ Migrations currently run in this dependency order:
 40. `2026_08_31_000131_create_seller_compliance_tables.php` — manual cases, immutable decisions, idempotent action keys, and active/revocable Product restrictions.
 41. `2026_09_02_000132_add_seller_product_authoring.php` — Seller product authoring asset metadata, temporary uploads, product descriptions, and Product retention fields.
 42. `2026_09_02_000133_add_product_gallery_defaults.php` — Seller-selected default Product gallery cover marker.
-43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
-44. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
-45. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
-46. `2026_09_05_000001_create_logistics_foundation_tables.php` — Logistics personal profiles, one organization per Logistics account, and one sole operational hub per organization.
-47. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
-48. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
-49. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
-50. `2026_09_06_000004_create_seller_order_acceptances_table.php` — idempotent Seller Order acceptance history.
-51. `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php` — Seller rejection history and transitional grouped pickup requests.
-52. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
-53. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
-54. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
-55. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
-56. `2026_09_10_000011_create_product_qas_table.php` — Product-scoped Customer questions, one official Seller answer, actor-scoped idempotency keys, and public-read indexes.
-56. `2026_09_10_000010_create_courier_pickup_confirmations.php` — first-mile pickup timestamp plus immutable Courier-scoped confirmation, idempotency, transition, schedule-revision, and correlation history.
-57. `2026_09_10_000011_create_pickup_route_manifests.php` — maintained address-coordinate defaults and revision-scoped, immutable-history route manifest snapshots with metrics, grouped stops, GeoJSON, and failure state.
+43. `2026_09_02_000133_create_low_stock_alerts_table.php` — persistent SKU alert cycles and history.
+44. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
+45. `2026_09_02_000134_create_wishlist_items_table.php` — Customer-scoped unique Product saves.
+46. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
+47. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
+48. `2026_09_05_000001_create_logistics_foundation_tables.php` — Logistics personal profiles, one organization per Logistics account, and one sole operational hub per organization.
+49. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
+50. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
+51. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
+52. `2026_09_06_000004_create_seller_order_acceptances_table.php` — idempotent Seller Order acceptance history.
+53. `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php` — Seller rejection history and transitional grouped pickup requests.
+54. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
+55. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
+56. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
+57. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
+58. `2026_09_10_000010_add_logistics_profile_photo_metadata.php` — private Logistics profile-photo storage metadata.
+59. `2026_09_10_000010_create_courier_pickup_confirmations.php` — first-mile pickup timestamp plus immutable Courier-scoped confirmation, idempotency, transition, schedule-revision, and correlation history.
+60. `2026_09_10_000011_create_pickup_route_manifests.php` — maintained address-coordinate defaults and revision-scoped, immutable-history route manifest snapshots with metrics, grouped stops, GeoJSON, and failure state.
+61. `2026_09_10_000011_create_product_qas_table.php` — Product-scoped Customer questions, one official Seller answer, actor-scoped idempotency keys, and public-read indexes.
 
 ## 14. Deferred schema
+
+### Accepted operational record design (not deployed)
+
+- One Order contains one physical Parcel and one Shipment in the MVP. Each Shipment belongs to that Parcel; first-mile and final-mile tasks reference the same immutable Order/Parcel/waybill identity. Re-offering never creates another Shipment or Parcel.
+- Each future DeliveryTask has a server-controlled `leg`: `first_mile` is Seller → owning organization's sole hub; `final_mile` is that hub → Customer. Each leg has independent offers/acceptance and may use a different eligible Courier.
+- Store offer, acceptance/rejection, re-offer, scan submission, evidence validation, and custody changes as append-only records. Current task/assignment state is a projection; closing an assignment cannot delete its history.
+- Preserve performing Courier and validating/recording Logistics actors with UTC timestamps. Restricted audit projections and role-safe Customer/Courier timelines may share history without sharing private payloads.
+- Scope future idempotency to actor, organization, task, action, and key; store request hash and original result. Identical retries replay that result; changed input conflicts. No duplicate inventory or notification effects are permitted.
+- The additive dependency plan below defines the operational foundation and bridge. Existing migrations and immutable waybills must not be rewritten. Endpoint-specific payloads and mandatory proof combinations still require their owning contract before activation.
+
+### Additive migration and service plan (not implemented)
+
+All proposed application records use UUID primary/foreign keys, UTC timestamps, and string-backed enum fields with PHP casts. Names below are planned tables, not deployed API resources. Create parent tables before child foreign keys; add optional current-record pointers only after both tables exist.
+
+| Order | Planned records | Required identity, constraints, and purpose |
+| --- | --- | --- |
+| 1 | `parcels` | Unique `order_id` and existing waybill reference; immutable parcel UUID/reference and item/quantity snapshot. Preserve pickup/destination snapshots from the waybill. Optional measurements use decimal kilograms/centimeters; unknown values remain null, never invented from item count. |
+| 2 | `shipments` | Unique `parcel_id`, immutable reference, owning Logistics organization/sole-hub FKs, current physical state and revision. Order identity resolves through Parcel. |
+| 3 | `delivery_tasks` | Shipment FK, required `leg`, task state/revision; unique `(shipment_id, leg)` for one task per leg. Re-offering reuses this row. |
+| 4 | `delivery_task_offers` | Task/Courier/Logistics actor FKs and unique task offer sequence. Immutable offer and acceptance/rejection events; current offer projection is locked through the task. No MVP expiry deadline. |
+| 5 | `shipment_evidence` and validation events | Task/offer/waybill references, Courier, server submission/performance-observation timestamps, safe scan reference, request correlation; append-only Logistics decision with reason/time. Optional private media metadata inherits the shared upload policy. Legacy provenance permits absent Logistics validation without fabricating one. |
+| 6 | Completion intents and operational events | Intent links final-mile task/evidence/Courier. Append-only transition/custody records link Shipment/task/offer/evidence, before/after states, performing/validating/recording actors and server time. Unique successful milestone identity prevents repeated pickup/delivery effects. Proof-of-delivery uses evidence records, not a second public blob store. |
+| 7 | Idempotency, effect guards, and durable notification work | Unique `(organization_id, actor_id, task_id, action, key)` plus request hash/original status/body. One fulfillment-effect guard per Order, links to exact per-balance inventory movements, and unique event/recipient/type notification work. Preserve existing notification infrastructure. |
+| 8 | Legacy mapping and supporting indexes | Unique old first-mile task/new task mapping and source-confirmation/event mapping. Add scoped state/queue, Courier/leg, history timestamp/UUID, and evidence-review indexes; run the resumable bridge below before activation. |
+
+- FK existence alone is insufficient: validate Order/Parcel/waybill/provider/hub/Courier consistency transactionally; use composite uniqueness/FKs where supported consistently on both test databases.
+- Protect history from update/delete through the persistence layer and restricted write paths; test enforcement rather than assuming UUIDs or timestamps make rows immutable.
+- Planned `FulfillmentTransitionService` owns authorization, allowed transitions, evidence decisions, revisions, idempotency, history, inventory effects, and durable notification work. Reuse `OrderTransitionService` for approved high-level projections; controllers never bypass it.
+- Lock in one order across writers: legacy schedule where applicable → Shipment → task/current offer → Order → evidence/intent → inventory balances in deterministic key order. Recheck authorization/state after locks. Bridge cutover removes the old competing writer before enabling new custody writes.
+- Matching idempotent requests replay their stored status/body after authorization; changed payloads or stale/conflicting revisions return `409` without duplicate effects. External network delivery occurs only after commit.
+- Deploy additive tables first with physical routes disabled. Backfill/reconcile legacy records, run SQLite and PostgreSQL verification, and then enable evidence submission plus Logistics validation together. A schema-health check must verify required tables, columns, constraints, and bridge completion, not just database connectivity.
+- Feature activation is an explicit deployment gate, not a client flag. Disabled routes remain unavailable; a deployed controller encountering missing schema fails closed with a safe `503`, no writes, and operational diagnostics.
+- New final-mile delivery atomically commits task/Shipment/Order `delivered`, one event, and notification work after Logistics validates proof and Courier intent. It performs no additional Inventory fulfillment or payment mutation.
+- Record deployment/migration identities, bridge counts, stock reconciliation, and test results before declaring readiness. This plan neither creates migrations nor asserts that tests have passed.
+
+### MVP re-offer, expiry, and internal transfer rules
+
+- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
+- Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
+- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
+
+### First-mile migration bridge (planned; no runtime change)
+
+1. Deploy additive operational tables and a one-to-one mapping from each legacy `first_mile_tasks.id` to the new DeliveryTask UUID. Retain legacy tables, IDs, enum values, QR hashes, waybill snapshots, and idempotency results.
+2. Backfill one Parcel and Shipment per existing pickup Order/waybill, without changing Order status or inventory. Enforce unique Order/waybill and legacy-task links so a rerun resumes safely.
+3. For an existing `courier_pickup_confirmations` row, import an immutable custody event with its original Courier, pickup time, correlation ID, and a unique source-confirmation reference. Mark its provenance `legacy_confirmation`; do not fabricate a Logistics validator or validation timestamp.
+4. Reconcile the imported pickup with its existing Order status event and Inventory fulfillment movements. Existing movement keys use `courier-pickup-{legacy_task_id}-{inventory_balance_id}`. Link these exact effects; importing history never calls `FulfillOrderReservation`.
+5. Missing/contradictory confirmations, status events, quantities, or movements fail the migration verification for that Order. Report them for repair; do not invent evidence, reset balances, or silently mark the import successful.
+6. Pause first-mile writes for final catch-up and reconciliation, then switch new evidence submissions to the Logistics-validation service. Existing accepted but unpicked tasks migrate as accepted, with no custody or Inventory effect.
+7. Preserve the old pickup endpoint's exact replay behavior for already-committed keys after normal authorization. For a new pickup attempt after cutover, return `409 PICKUP_VALIDATION_REQUIRED` with the new implemented submission contract; never return an old-style pickup success for merely pending evidence.
+8. New Courier submissions store evidence and notify Logistics after commit. Only the owning Logistics validation transaction can append pickup custody, project `orders.status = picked_up`, and consume the reservation once.
+9. Use one Order-level fulfillment-effect guard plus per-SKU movement uniqueness across legacy/new task IDs. Lock schedule/task/Order and balances in a consistent documented order; a retry or overlapping legacy/new request must not deduct stock twice.
+10. Once new operational writes exist, rollback means disabling those writes while retaining tables/history. Do not reopen the old direct-confirmation writer or destructively roll back custody tables. Resume through a corrected forward deployment.
+
+The bridge implementation must test concurrent confirmation during cutover, resumable backfill, legacy replay, accepted-unpicked tasks, inconsistent legacy records, cross-organization IDs, and unchanged stock/history checksums. Route availability stays disabled until these checks pass on SQLite and PostgreSQL.
+
+### Deferred capabilities
 
 The following capabilities appear in requirements but have no migrations or models yet. Their names below are capability groupings, not approved table definitions.
 
@@ -1279,7 +1347,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
 | Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
-| Policy consent integration | User-facing consent presentation, acceptance endpoints, and login/application enforcement against the implemented version-specific acceptance schema                                         |
+| Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 
 Before adding these tables:
@@ -1290,6 +1358,11 @@ Before adding these tables:
 - keep enum-like columns as strings with PHP enum casts;
 - preserve mutable product, price, and address data as order-time snapshots;
 - model one Seller-created immutable shared waybill per Order at pickup-request commitment, with role-scoped access and append-only print/assignment/scan history;
+- model Courier-submitted scan/evidence as an append-only event validated and recorded by the owning Logistics organization, preserving performing and recording actors without treating waybill access as physical proof;
+- represent Courier task rejection as a task-level outcome that leaves the Order unchanged and permits re-offer of the same task; keep unfinished-task staleness informational with no automatic cancellation or reassignment;
+- expose only provider-neutral distance/estimated-duration context in authorized Courier projections; do not make a map provider a schema authority;
 - keep COD placement at `placed` with `payment_status = pending`; retain `pending_payment` for a future online-payment path;
 - ensure every Seller-owned resource resolves to a shop for tenant isolation; and
 - update this document and `docs/PROGRESS.md` in the same change as the migrations.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.

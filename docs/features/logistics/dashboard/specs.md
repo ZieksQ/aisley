@@ -7,51 +7,46 @@ version: 1.4
 status: Implemented scaffold; operational queue deferred
 role: Logistics
 scope: Logistics React SPA and Laravel API
-source_coverage: Logistics.md, requirements.md, workspace.md, schema.md
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
 # Logistics Dashboard
 
 ## WHAT
 
-- **Purpose:** Give an approved active Logistics account one secure view of its organization's sole operational hub and, later, the parcels requiring its attention.
-- **Current implementation:** `GET /api/v1/logistics/dashboard` returns the authenticated hub's safe identity/address, `summary: null`, `orders: []`, and freshness state `scaffold`. The protected `/dashboard` SPA page renders that hub, an operational-queue placeholder, refresh, loading, and recoverable error states.
-- **MVP scope:** one Logistics account → one organization → exactly one hub/sorting center. There is no hub selector, sub-hub, second-hub branch, or staff-account context.
-- **Future queue:** the dedicated Pickups area will surface Seller-ready handoffs explicitly addressed to this organization, then Courier scheduling and later hub work.
-- **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns `ready_for_pickup`; Waybill, Update Status, Deploy Rider, Chat, Fleet, Zone, and Capacity features own their records and mutations. Courier UI is external/mobile-only.
-- **Subscription:** subscription billing and enforcement are deferred; an approved active Logistics account is not blocked by an unimplemented subscription status.
-- **Non-goals:** Seller processing, parcel/status mutation, waybill generation, scanning, Courier assignment/routing, Courier UI, multi-hub management, billing, and financial reporting.
+- **Purpose:** Give an approved active Logistics account a secure view of its organization and sole operational hub, then the parcels requiring action.
+- **Current implementation:** `GET /api/v1/logistics/dashboard` returns the authenticated hub's safe identity/address, `summary: null`, `orders: []`, and `freshness.state = scaffold`. The protected `/dashboard` SPA renders that scaffold with refresh, loading, and recoverable error states.
+- **MVP boundary:** One Logistics account operates one organization and exactly one hub/sorting center. Sub-hubs, hub selectors, multi-hub queues, and staff-account context are out of scope.
+- **Future queue:** Seller `ready_for_pickup` handoffs, hub work, and first-/final-mile task work become visible only after the shared operational schema and owning APIs exist.
+- **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns readiness; Deploy Rider owns assignment; Update Status owns validated state recovery; Waybill owns document access; Courier UI is external Flutter/mobile-only.
+- **Non-goals:** Seller processing, parcel mutation, waybill generation, scan validation, Courier assignment, route calculation, proof of delivery, billing, and financial reporting.
 
 ```text
 active Logistics session
 → resolve organization + sole hub
-→ read hub scaffold (current)
-→ future: Seller `ready_for_pickup` queue
-→ future: receive/waybill/sort/transfer/dispatch/rider actions
+→ read scaffold (current)
+→ future: scoped operational queue and task summaries
 ```
 
 ## MUST
 
-### Authentication and tenant scope
+### Authentication and scope
 
-- Require `auth:sanctum` and `logistics.active` for the endpoint and every future Dashboard data source.
-- Resolve `user → logistics_organization → sole hub` server-side. Never trust a client `organization_id`, `hub_id`, Seller ID, email, address text, or status flag.
-- Customer, Seller, Admin, Courier, pending, rejected, suspended, and deactivated accounts receive no Dashboard data, including when an email is shared with a Logistics account.
-- All rows, counts, links, events, cache keys, and private channels must be scoped to the authenticated organization's sole hub. IDOR-safe not-found/forbidden behavior must not disclose another organization's records.
-- Do not add subscription checks or a `subscription_required` state until a Subscription feature is approved; current access is governed by active account/status and an existing sole hub.
+- Require `auth:sanctum` and `logistics.active` for the dashboard and every future data source.
+- Derive `user → logistics_organization → sole hub` on the server. Reject client-supplied organization, hub, Seller, Order, Courier, or status authority.
+- Customer, Seller, Admin, Courier, pending, rejected, suspended, and deactivated accounts receive no dashboard data.
+- Scope every row, count, identifier, cache key, event, and private channel to the authenticated organization's sole hub. IDOR-safe not-found/forbidden behavior must not disclose another organization.
+- Do not add a subscription gate until a separate Subscription policy exists.
 
 ### Current scaffold contract
 
-- `GET /api/v1/logistics/dashboard` is read-only and returns:
-  - `hub`: the sole hub `id`, `name`, and safe barangay/city/municipality/province/region summary;
-  - `summary`: `null` until authoritative queue records exist;
-  - `orders`: an empty list until the queue contract exists; and
-  - `freshness`: server `generated_at` plus `state = scaffold`.
-- Return `Cache-Control: private, no-store`. Do not cache one organization's hub response for another account.
-- A null/unavailable section is not an authoritative zero. Future counts must distinguish `0`, empty, stale, and failed states.
-- Reads and refreshes never mutate Orders, Inventory, assignments, hub state, or status history.
+- Return `hub.id`, `hub.name`, and safe barangay/city/municipality/province/region summary only.
+- Return `summary: null`, an empty `orders` list, and server `generated_at` with `freshness.state = scaffold` until authoritative queue records exist.
+- Use `Cache-Control: private, no-store`; one organization's hub projection must never be shared-cached.
+- Distinguish unavailable, empty, zero, stale, partial, and failed sections. A null scaffold is not an authoritative zero.
+- Reads and refreshes never mutate Orders, Inventory, assignments, evidence, hub state, or history.
 
-### Future queue inclusion and canonical statuses
+### Queue and task projections
 
 - Include a row only when the pickup request's immutable Seller-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. The current provider-less rows remain transitional and cannot be claimed by any tenant.
 - Later rows may enter only through approved Shipment/Delivery Task ownership and transitions: first-mile `picked_up_from_seller`, hub `received_at_hub`/`sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, and final-mile `delivery_assigned`/`picked_up_from_hub`.
@@ -59,44 +54,72 @@ active Logistics session
 - Do not accept or persist a future/source status until the shared operational schema and transition service approve it. Dashboard display must not turn a label into state.
 - Exclude Cart rows, unaccepted/unpacked Orders, cancelled/rejected/payment-invalid records, completed history, and records outside the sole hub.
 
-### Future summary, filters, and rows
+### Planned queue contract (unavailable)
 
-- Counts must use the exact same organization, hub, status, and assignment predicates as the queue rows. A filter cannot alter authoritative state.
-- Use bounded server-side status/assignment filters, configured search fields, deterministic sorting, and bounded pagination. Never load the whole operational queue or calculate counts in React.
-- A future row may include opaque Order/Parcel/Waybill references, current machine status plus human label, safe Shop/Seller summary, pickup area, status time, schedule, and assigned/unassigned Courier state.
-- Do not expose full Customer/Seller profiles, payment credentials, private registration evidence, raw storage paths, unrestricted Courier location history, or unrelated Order IDs.
-- Every deep link must re-authorize in its owning feature; Dashboard navigation is not permission.
+- `GET /api/v1/logistics/dashboard/queue` is planned and unavailable until the shared operational schema and owning queue contract are implemented.
+- Query parameters, when approved, are limited to bounded status, assignment, evidence, date, search, and cursor/page filters; the server derives organization and hub scope.
+- A response contains `summary`, `rows`, `pagination`, `freshness`, and per-section error state. It never treats missing operational tables as zero work.
+- Errors distinguish unauthorized, forbidden/not-found, validation, rate-limit, timeout, and partial-source failure. Retrying a read is safe and cannot mutate operational state.
+- Row status includes both the machine value and human label, plus `status_at`; task exceptions include rejection time/reason and stale freshness without changing the Order status.
+- Evidence fields expose only safe state and references, never raw blob paths or private image bytes. `submitted` does not mean `validated` or physically received.
+- Pagination is deterministic and bounded. Repeated requests with the same cursor and scope return the same committed projection or an explicit freshness change.
 
-### Refresh, reliability, and UI
+### Open questions
 
-- Current SPA supports loading, hub scaffold, refresh, and recoverable API error/try-again states. Future queue UI must add authoritative empty, filtered-empty, stale/partial, unauthorized, and retry states without hiding the app shell.
-- Polling or a private broadcast may trigger refetches after the queue exists. Scope channels to the organization/sole hub and authorize subscriptions server-side; browser signals never create state.
-- Out-of-order refreshes, retries, and duplicate events must not duplicate rows or overwrite newer data with stale payloads. A notification/realtime failure cannot undo a committed operational decision.
-- Use responsive, keyboard-accessible list/table controls, visible focus, readable status labels, and non-color-only indicators.
+- Confirm queue page size/cursor, aging threshold, visible contact fields, and polling/private-realtime transport when the operational queue is implemented.
+- Confirm whether evidence filtering includes only validation state or also physical-event type; do not infer either choice from the scaffold.
+
+### DTO, refresh, and UI safety
+
+- Future rows may contain opaque Order/Parcel/Waybill references, status and status time, safe Shop/Seller summary, pickup/destination area, schedule, Courier assignment state, and provider-neutral `distance_km`/`estimated_duration_minutes` when authorized.
+- Exclude payment credentials, private registration/POD evidence, raw storage paths, unrestricted Courier location history, and unrelated personal data.
+- Polling or private realtime may trigger refetches only after an owning contract exists; authorize channels to the organization/hub.
+- Out-of-order refreshes, retries, and communication failures must not duplicate rows or roll back a committed Logistics decision.
+- Use responsive, keyboard-accessible controls, visible focus, readable text labels, and non-color-only state indicators.
+
+### Acceptance criteria
+
 - [x] An approved active Logistics account can access the protected hub scaffold.
-- [x] The response contains only the account's sole-hub summary and safe freshness metadata; no other tenant's data is returned.
-- [x] Current `summary: null`/empty queue and `freshness.state = scaffold` are truthful rather than fabricated counts.
-- [x] Refresh, loading, unauthorized, and recoverable error states are available in the SPA.
-- [ ] Seller-ready queue, counts/filters/search/pagination, shipment milestones, waybill/scan/task actions, and live operational updates are implemented.
+- [x] The current response contains only the account's sole-hub summary and safe freshness metadata.
+- [x] The scaffold truthfully returns null/empty data rather than fabricated queue counts.
+- [x] Loading, refresh, unauthorized, and recoverable error states are available in the SPA.
+- [ ] Seller-ready queue rows, rejected-task visibility/re-offer, stale display, evidence state, counts, filters, pagination, and operational updates are implemented.
 
 ## HOW
 
-### Current code and interfaces
+### Current interfaces
 
-- API route: `GET /api/v1/logistics/dashboard` in `src/api/routes/api.php`, protected by `auth:sanctum` and `logistics.active`.
-- Current controller: `src/api/app/Http/Controllers/Logistics/DashboardController.php`; it loads `logisticsOrganization.hub.address` through the authenticated User and returns a private no-store scaffold response.
-- Current SPA: `src/logistics/src/pages/DashboardPage.tsx`, `LogisticsLayout.tsx`, `ProtectedRoute.tsx`, and `auth/AuthContext.tsx`. The client uses credentialed requests and an explicit refresh button; it does not own queue authority.
-- The current foundation migration is `2026_09_05_000001_create_logistics_foundation_tables.php`; Shipment, Parcel, Waybill, Scan, Delivery Task, assignment, proof-of-delivery, availability, and capacity records remain deferred.
+- API route: `GET /api/v1/logistics/dashboard` in `src/api/routes/api.php`.
+- Controller: `src/api/app/Http/Controllers/Logistics/DashboardController.php`.
+- SPA: `src/logistics/src/pages/DashboardPage.tsx`, `LogisticsLayout.tsx`, `ProtectedRoute.tsx`, and `auth/AuthContext.tsx`.
+- Current migrations provide Logistics identity, organization, sole hub, pickup requests, shared waybills, schedules, and first-mile assignment/acceptance. Physical Shipment/Parcel/Scan/Delivery Task and final-mile records remain deferred.
+- No queue, evidence, rejection, re-offer, or stale-mutation route currently exists; these remain unavailable rather than implied by the scaffold.
+- Dashboard mutations are never a substitute for Deploy Rider or Update Status authorization.
 
-### Future implementation sequence
+### Future implementation
 
-- First reconcile `docs/workspace.md`, `docs/schema.md`, Seller Prepare Orders, and the Logistics/Courier operational specs. Do not implement Dashboard actions against guessed tables or statuses.
-- Add additive migrations for the complete shared operational records, including the immutable Order/Parcel link, selected Logistics organization, sole hub, first-/final-mile tasks, and append-only events.
-- Implement a scoped query/service and Resource that derives summary counts and rows from those records. Keep controller filters validated and use indexes matching organization/hub/status/activity predicates.
-- Deep-link Pickup work to `docs/features/orders/logistics-pickups/spec.md` and shared-waybill access to `docs/features/orders/waybill/spec.md`. Logistics creates schedules/tasks after Seller `ready_for_pickup`; first-/final-mile assignments remain independent.
-- Test role/status/tenant isolation, sole-hub scope, provider selection, inclusion/exclusion, count consistency, pagination, IDOR, DTO privacy, stale/reconnect behavior, duplicate events, and linked-feature authorization on SQLite/PostgreSQL.
+- Reconcile the shared Shipment/Fulfillment guide with `docs/schema.md` and each owning feature before adding queue actions.
+- Add additive migrations for the physical records and append-only event history. The Dashboard must consume, not redefine, transition rules.
+- Add an organization/hub-scoped query/resource with consistent predicates for summary and rows. Label planned endpoints unavailable until implemented.
+- Link rejected-task re-offer to Deploy Rider and evidence validation to Update Status; deep links must re-authorize in those features.
 
-### Open decisions and references
+### Observability and rollout
 
-- Still approve the exact organization-to-Order/fulfillment relation, queue aging/sort/page size, visible address/contact fields, map/location exposure, realtime driver/SLO, and subscription policy before operational rollout.
-- Related contracts: `docs/features/logistics/auth/spec.md`, Seller Prepare Orders, Waybill, Update Status, Deploy Rider, Chat/Messaging, Vehicle Fleet, Zone/Territory Mapping, Flexible Availability/Capacity, `docs/domains/Logistics.md`, `docs/workspace.md`, and `docs/schema.md`.
+- Record generated time, correlation ID, query scope, source freshness, and section failures without logging private evidence or unrestricted location history.
+- Enable operational sections only after their migrations and owning endpoints are deployed; the scaffold must remain truthful during partial rollout.
+
+### Contract status
+
+- This specification documents the current scaffold and the future queue projection; it does not authorize runtime routes or migrations by itself.
+- Any new queue action must name its owning feature, API version, migration, and test coverage before the Dashboard links to it.
+
+### User-facing states
+
+- The page must distinguish hub loaded, queue unavailable, authoritative empty, filtered empty, stale/partial, unauthorized, and retryable failure.
+- Rejected-task rows show why the offer is available for re-offer; stale rows show age and require an explicit Logistics action rather than automatic reassignment.
+- Evidence status uses text and accessible labels so a Logistics operator can tell “awaiting validation” from “validated” without relying on color.
+
+### Tests and references
+
+- Test role/status/tenant isolation, sole-hub scope, row/count consistency, pagination, IDOR, DTO privacy, rejected/re-offer, stale, evidence states, retry ordering, and notification/realtime failure.
+- Canonical references: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, and `docs/features/shared/shipment-fulfillment/spec.md`.

@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Models\AdminProfile;
 use App\Models\Permission;
 use App\Models\User;
+use App\Http\Middleware\Policy\EnsurePolicyConsent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -194,6 +195,9 @@ class PlatformSettingsTest extends TestCase
 
     private function adminWithSettingsPermissions(): User
     {
+        // These tests exercise Platform Settings authorization and versioning;
+        // the shared consent gate has dedicated coverage in PolicyConsentTest.
+        $this->withoutMiddleware(EnsurePolicyConsent::class);
         $admin = $this->admin();
         $this->grant($admin, 'platform-settings.view');
         $this->grant($admin, 'platform-settings.manage');

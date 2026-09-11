@@ -208,7 +208,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller order preparation/provider selection, first-mile pickup, Logistics hub processing, Shipment/Parcel/Waybill/Scan/Delivery Task records, final-mile assignment, Courier delivery, proof of delivery, route/ETA display, payment gateways, returns/refunds, reviews, Seller answer-management UI for Product Q&A, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain downstream/deferred. Product Q&A public read/ask, the owning-Seller answer API, and Q&A notifications are implemented.
+- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. Shared Shipment/Parcel/Scan/DeliveryTask records, Logistics hub processing, final-mile assignment/delivery, proof of delivery, Customer live route/ETA display, payment gateways, returns/refunds, reviews, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain deferred. Customer cancellation/address correction and Product Q&A public read/ask with notifications are implemented.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 
@@ -220,3 +220,5 @@ Future Customer-facing shipment fields must be provider-neutral, safe, and read-
 - `docs/references/user-registration-requirements.md` — Customer registration and approval requirements.
 - `docs/references/file-upload-requirements.md` — Profile, Product, and future Customer media upload rules.
 - `docs/features/customer/*/spec.md` — Feature-specific Customer implementation contracts.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.

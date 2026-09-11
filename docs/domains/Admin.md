@@ -89,7 +89,7 @@ Current protected routes are:
 - **Purpose:** Maintain platform announcements and the allow-listed Terms of Service, Privacy Policy, and Internal Platform Rules.
 - **Current state:** Authorized Admins can draft/edit/publish/archive announcements and create, view, edit, publish, and inspect versioned policy content through `/platform-settings`.
 - **Rules:** Announcements have explicit lifecycle/revision/expiration behavior and only active published records reach user-facing reads. A published policy version is immutable. Editing it creates or reopens one copied successor Draft; publishing that successor atomically supersedes the previous current version while preserving exact history. Ordinary policy views show only the current published version; authorized history views show prior published versions. Every mutation is revision-checked, audited, and followed by cache invalidation after commit.
-- **Boundary:** Platform Settings cannot modify `.env`, secrets, infrastructure, arbitrary key/value configuration, feature flags, legal policy outside the allow-list, or targeted push campaigns. User consent presentation/enforcement remains a separate integration decision.
+- **Boundary:** Platform Settings cannot modify `.env`, secrets, infrastructure, arbitrary key/value configuration, feature flags, legal policy outside the allow-list, or targeted push campaigns. Shared policy consent is enforced by the cross-role policy middleware; Platform Settings continues to own only policy records and publication.
 
 ### 7. Admin Notifications
 
@@ -169,7 +169,7 @@ Implemented Admin foundation:
 
 Deferred or dependent Admin operations:
 
-- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Chat/Messaging, Global Ban/Blocklist, Push/SMS campaign delivery, 2FA/preferences, and consent enforcement.
+- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Chat/Messaging, Global Ban/Blocklist, Push/SMS campaign delivery, and 2FA/preferences.
 
 Admin does not own Seller catalog, Customer Cart/Checkout, Logistics hub operations, or Courier mobile UI. It may receive safe notifications or review records from those domains only through explicit feature contracts.
 

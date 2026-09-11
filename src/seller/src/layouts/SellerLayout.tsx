@@ -3,6 +3,8 @@ import {
   FaArrowRightFromBracket,
   FaBars,
   FaClipboardList,
+  FaComments,
+  FaFileContract,
   FaGaugeHigh,
   FaBoxesStacked,
   FaTriangleExclamation,
@@ -16,6 +18,8 @@ import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { SellerAvatar } from '../components/SellerAvatar'
 import { NotificationBell } from '../components/notifications/NotificationBell'
+
+const storefrontUrl = (import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
@@ -79,6 +83,10 @@ export function SellerLayout() {
               <FaBoxOpen aria-hidden="true" />
               Products
             </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/product-questions">
+              <FaComments aria-hidden="true" />
+              Product Q&A
+            </NavLink>
             <div className="mt-1 flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               <FaClipboardList aria-hidden="true" />
               Orders
@@ -99,6 +107,10 @@ export function SellerLayout() {
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
               <FaUserGear aria-hidden="true" />
               Account settings
+            </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/policy-consent">
+              <FaFileContract aria-hidden="true" />
+              Policy consent
             </NavLink>
           </nav>
 
@@ -124,6 +136,10 @@ export function SellerLayout() {
             <FaArrowRightFromBracket aria-hidden="true" />
             {isSigningOut ? 'Signing out…' : 'Sign out'}
           </button>
+          <nav aria-label="Policy links" className="mt-3 flex gap-3 border-t border-zinc-200 px-2 pt-3 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-500">
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/terms_of_service`} rel="noreferrer" target="_blank">Terms</a>
+            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/privacy_policy`} rel="noreferrer" target="_blank">Privacy</a>
+          </nav>
         </div>
       </aside>
 
@@ -147,7 +163,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />

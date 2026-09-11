@@ -92,11 +92,13 @@ GET active Logistics options
 - Issue only the server-owned `courier` ability and return the plain-text token once. `/me` never returns the token.
 - Flutter stores the token only in OS secure storage and sends `Authorization: Bearer <token>`; it must not log or ordinary-cache tokens.
 - `/me` and logout require `auth:sanctum` and `courier.active`. Logout deletes only the current personal access token.
+- After active Courier and approved-affiliation checks, protected Courier APIs require current shared Terms of Service and Privacy Policy consent. `/me`, logout, policy status, and policy acceptance remain reachable so Flutter can present the consent flow.
 
 ### Stable errors and privacy
 
 - Invalid credentials return `422` with `INVALID_CREDENTIALS`; inactive status returns `403` with `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE`.
 - Invalid or missing affiliation returns `403` with `LOGISTICS_ASSOCIATION_INVALID`; wrong role returns `FORBIDDEN_ROLE`.
+- Missing current shared policy acceptance returns `403 POLICY_CONSENT_REQUIRED` with required policy/version descriptors and read/status/accept paths; Flutter must not treat it as invalid credentials.
 - Validation and file failures return `422`; login throttling returns `429` with `Retry-After`. Unknown organization and cross-organization IDs fail closed.
 - Auth DTOs may include Courier ID/email/role/status, profile first/last name/age, affiliation status, organization name, and hub name. They omit secrets, evidence, full address, reviewer notes, token hashes, and storage paths.
 

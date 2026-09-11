@@ -1,6 +1,7 @@
 ---
-role: Courier/Rider
-feature: Pick Up Order
+role: Courier / Rider
+feature: courier-pick-up-order
+title: Pick Up Order
 system: AISLEY
 type: Feature Specification
 version: 2.4

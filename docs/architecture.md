@@ -4,7 +4,7 @@
 
 A multi-domain e-commerce platform utilizing a monorepo architecture. It features a single centralized backend API serving multiple specialized frontend applications.
 
-The repository contains four frontend applications: the Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard. Courier functionality is consumed by an external Flutter/mobile application and is not a frontend application in this repository.
+The repository contains four frontend applications: the Customer storefront, Seller dashboard, Admin dashboard, and Logistics dashboard. Production Courier functionality is consumed by an external Flutter/mobile application. `src/couriermockup` is an existing development-only API harness, not a fifth production frontend.
 
 * **Authentication:** Laravel Sanctum
 * **Architecture Pattern:** Monorepo (pnpm workspace)

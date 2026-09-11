@@ -19,6 +19,9 @@ import { OrderApprovalPage } from './pages/OrderApprovalPage'
 import { OrderPickupPage } from './pages/OrderPickupPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { NotificationDetailPage } from './pages/NotificationDetailPage'
+import { ProductQuestionDetailPage } from './pages/ProductQuestionDetailPage'
+import { ProductQuestionsPage } from './pages/ProductQuestionsPage'
+import { PolicyConsentPage } from './pages/PolicyConsentPage'
 
 function App() {
   return (
@@ -39,6 +42,8 @@ function App() {
           <Route element={<OrderDetailPage preparation />} path="/orders/:orderId/prepare" />
           <Route element={<NotificationsPage />} path="/notifications" />
           <Route element={<NotificationDetailPage />} path="/notifications/:notificationId" />
+          <Route element={<ProductQuestionsPage />} path="/product-questions" />
+          <Route element={<ProductQuestionDetailPage />} path="/products/:productId/questions/:questionId" />
           <Route element={<ProductsPage />} path="/products" />
           <Route element={<ProductFormPage />} path="/products/new" />
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />
@@ -47,6 +52,7 @@ function App() {
           <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />
           <Route element={<LowStockAlertDetailPage />} path="/low-stock-alerts/:alertId" />
           <Route element={<AccountPage />} path="/account" />
+          <Route element={<PolicyConsentPage />} path="/policy-consent" />
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />
