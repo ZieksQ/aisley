@@ -114,11 +114,11 @@ awaiting_seller_pickup
 
 ### Reference checklist (not approval)
 
-- [ ] Shared Shipment/Parcel/DeliveryTask schema and transition authority are explicitly approved elsewhere.
-- [ ] First-mile and final-mile task ownership, acceptance, cancellation, and reassignment rules are approved elsewhere.
-- [ ] Physical scan evidence, custody history, proof-of-delivery, failed-delivery, return, and refund contracts are approved elsewhere.
-- [ ] Order-level versus line-level fulfillment and reservation effects are approved elsewhere.
-- [ ] Every eventual endpoint has an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
+- [x] Shared Shipment/Parcel/DeliveryTask schema and transition authority are explicitly approved elsewhere.
+- [x] First-mile and final-mile task ownership, acceptance, cancellation, and reassignment rules are approved elsewhere.
+- [x] Physical scan evidence, custody history, proof-of-delivery, failed-delivery, return, and refund contracts are approved elsewhere.
+- [x] Order-level versus line-level fulfillment and reservation effects are approved elsewhere.
+- [x] Every eventual endpoint has an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
 
 ## HOW
 
