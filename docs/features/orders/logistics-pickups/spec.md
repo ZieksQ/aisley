@@ -3,7 +3,7 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 1.1
+version: 1.2
 status: Implemented
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
@@ -57,9 +57,10 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 - In one locked transaction, revalidate Shop ownership, all Orders, chosen Logistics eligibility, reservation state, and a Seller-scoped idempotency key.
 - Commit one request, its Order links, each `seller_processing → ready_for_pickup` event, and one waybill per Order atomically.
 - Notify only the selected Logistics organization after commit; never broadcast a request to every Logistics account.
-- Logistics Pickups lists only requests whose immutable `logistics_organization_id` matches the authenticated account's server-derived organization and sole hub.
-- Support bounded pagination and allow-listed status/date/search filters with deterministic `created_at` and UUID ordering.
-- Each row shows safe request, Shop/pickup area, Order count, readiness time, schedule state, and Courier assignment; detail exposes only operationally necessary snapshots.
+- Logistics Pickups is schedule-first: its primary list contains only schedules whose `logistics_organization_id` and hub match the authenticated account's server-derived organization and sole hub.
+- Support bounded schedule pagination and allow-listed status/date/search filters with deterministic schedule ordering.
+- Each schedule row shows schedule reference/ID, assigned Courier, linked Seller pickup-request IDs, status, pickup window, total parcel count, and remaining parcels still in `assigned` or `accepted` first-mile task states.
+- **Create new schedule** opens the pending-parcel selector. It lists only unscheduled Orders for the tenant, groups them by Shop/pickup request, orders Shops by name and requests oldest-first, supports whole-request or individual parcel selection, and caps the selection at 30.
 - Keep `orders.status = ready_for_pickup` when scheduled; scheduling is not physical custody and does not consume Inventory.
 
 ### Courier assignment and schedule
@@ -88,6 +89,7 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 - [ ] Exact PSGC matches are recommended before proximity results, and displayed kilometres come only from a successful authoritative calculation.
 - [ ] Seller selection is validated and frozen; only that Logistics tenant receives and sees the request.
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
+- [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
 - [ ] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
 - [ ] Seller and Courier receive one assignment notification and at most one due reminder per schedule revision.
 - [ ] Provider, API, scheduler, and notification failures have truthful fallbacks without cross-tenant or duplicate effects.
@@ -111,9 +113,9 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 ### Interfaces and UI
 
 - Seller: `GET /api/v1/seller/logistics-options`, `POST /api/v1/seller/orders/pickup-requests`.
-- Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `POST /pickup-schedules`, and revision/cancel endpoints.
+- Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-schedules`, `POST /pickup-schedules`, and revision/cancel endpoints.
 - Courier API: read assigned first-mile tasks and acknowledge/accept under the existing mobile-only boundary.
-- Add Seller provider-selection states and packing handoff; add Logistics `/pickups` queue/detail/scheduling screens with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. The queue supports a cross-Seller selection capped at 30 parcels and summarizes Seller/request counts before assignment.
+- Add Seller provider-selection states and packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
 - API resources expose server-calculated capabilities; frontends never infer assignability, availability, distance validity, or tenant ownership.
 - Keep list selections across a recoverable refetch only while each Order remains eligible; announce selection counts and validation errors to assistive technology.
 - Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation.

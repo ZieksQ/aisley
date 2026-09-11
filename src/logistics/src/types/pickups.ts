@@ -3,13 +3,21 @@ export type PickupStatus = 'pending_logistics' | 'partially_scheduled' | 'schedu
 export type PickupSchedule = {
   id: string
   reference: string
-  status: 'scheduled' | 'cancelled'
+  status: 'scheduled' | 'completed' | 'cancelled'
   courier_id: string
   starts_at: string
   ends_at: string
   timezone: 'UTC'
   revision: number
   order_ids: string[] | null
+}
+
+export type PickupScheduleSummary = PickupSchedule & {
+  courier: CourierOption
+  pickup_requests: Array<{ id: string; shop: { id: string; name: string }; created_at: string; parcel_count: number }>
+  parcel_count: number
+  remaining_parcel_count: number
+  created_at: string
 }
 
 export type PickupOrder = {
@@ -37,4 +45,5 @@ export type Pickup = {
 }
 
 export type PickupPage = { data: Pickup[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }
+export type PickupSchedulePage = { data: PickupScheduleSummary[]; meta: PickupPage['meta'] }
 export type CourierOption = { id: string; name: string; email: string }

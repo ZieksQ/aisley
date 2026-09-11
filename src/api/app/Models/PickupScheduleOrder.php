@@ -21,4 +21,9 @@ class PickupScheduleOrder extends Model
     {
         return $this->belongsTo(Order::class);
     }
+
+    public function sellerPickupRequest(): BelongsTo
+    {
+        return $this->belongsTo(SellerPickupRequest::class);
+    }
 }

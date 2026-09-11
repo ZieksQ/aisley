@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Logistics;
 
 use App\Enums\CourierAffiliationStatus;
+use App\Enums\FirstMileTaskStatus;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\CancelPickupScheduleRequest;
 use App\Http\Requests\Logistics\CreatePickupScheduleRequest;
+use App\Http\Requests\Logistics\ListPickupSchedulesRequest;
 use App\Http\Requests\Logistics\ListPickupsRequest;
 use App\Http\Requests\Logistics\RevisePickupScheduleRequest;
 use App\Models\CourierLogisticsAffiliation;
@@ -25,20 +27,30 @@ class PickupController extends Controller
     {
         $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
         $data = $request->validated();
-        $paginator = SellerPickupRequest::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)
-            ->when($data['status'] ?? null, fn ($q, $value) => $q->where('status', $value))
-            ->when($data['date_from'] ?? null, fn ($q, $value) => $q->whereDate('created_at', '>=', $value))
-            ->when($data['date_to'] ?? null, fn ($q, $value) => $q->whereDate('created_at', '<=', $value))
+        $query = SellerPickupRequest::query()->where('seller_pickup_requests.logistics_organization_id', $org->id)->where('seller_pickup_requests.logistics_hub_id', $org->hub->id)
+            ->when($data['status'] ?? null, fn ($q, $value) => $q->where('seller_pickup_requests.status', $value))
+            ->when($data['has_unscheduled'] ?? false, fn ($q) => $q->whereHas('orders.order', fn ($orders) => $orders->whereDoesntHave('firstMileTask')))
+            ->when($data['date_from'] ?? null, fn ($q, $value) => $q->whereDate('seller_pickup_requests.created_at', '>=', $value))
+            ->when($data['date_to'] ?? null, fn ($q, $value) => $q->whereDate('seller_pickup_requests.created_at', '<=', $value))
             ->when($data['search'] ?? null, fn ($q, $value) => $q->where(function ($search) use ($value) {
                 if (Str::isUuid($value)) {
-                    $search->where('id', $value);
+                    $search->where('seller_pickup_requests.id', $value);
                 }
                 $method = Str::isUuid($value) ? 'orWhereHas' : 'whereHas';
                 $search->{$method}('waybills', fn ($waybills) => $waybills->where('reference', 'like', '%'.addcslashes($value, '%_').'%'))
                     ->orWhereHas('orders.order', fn ($orders) => $orders->where('reference', 'like', '%'.addcslashes($value, '%_').'%'));
-            }))
+            }));
+        if (($data['sort'] ?? 'newest') === 'shop_created') {
+            $query->join('shops', 'shops.id', '=', 'seller_pickup_requests.shop_id')
+                ->select('seller_pickup_requests.*')
+                ->orderBy('shops.name')->orderBy('seller_pickup_requests.created_at')->orderBy('seller_pickup_requests.id');
+        } else {
+            $query->orderByDesc('seller_pickup_requests.created_at')->orderByDesc('seller_pickup_requests.id');
+        }
+        $paginator = $query
             ->with(['waybills:id,seller_pickup_request_id,reference,created_at', 'orders.order:id,reference,status', 'orders.order.waybill.snapshot', 'orders.order.firstMileTask.schedule:id,reference,courier_id,status,starts_at,ends_at', 'shop:id,name'])
-            ->withCount('orders')->orderByDesc('created_at')->orderByDesc('id')->paginate($data['per_page'] ?? 25);
+            ->withCount('orders')
+            ->paginate($data['per_page'] ?? 25);
 
         $includeOrders = (bool) ($data['include_orders'] ?? false);
 
@@ -52,6 +64,36 @@ class PickupController extends Controller
             ->with(['shop:id,name,seller_id', 'orders.order:id,reference,status', 'orders.order.waybill.snapshot', 'orders.order.firstMileTask.schedule', 'orders.order.firstMileTask.courier.courierProfile'])->withCount('orders')->firstOrFail();
 
         return response()->json(['data' => $this->pickup($record, true)]);
+    }
+
+    public function schedules(ListPickupSchedulesRequest $request): JsonResponse
+    {
+        $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
+        $data = $request->validated();
+        $paginator = PickupSchedule::query()
+            ->where('logistics_organization_id', $org->id)
+            ->where('logistics_hub_id', $org->hub->id)
+            ->when($data['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($data['date_from'] ?? null, fn ($query, $date) => $query->whereDate('starts_at', '>=', $date))
+            ->when($data['date_to'] ?? null, fn ($query, $date) => $query->whereDate('starts_at', '<=', $date))
+            ->when($data['search'] ?? null, fn ($query, $search) => $query->where(function ($match) use ($search) {
+                $match->where('reference', 'like', '%'.addcslashes($search, '%_').'%')
+                    ->orWhereHas('courier', fn ($courier) => $courier->where('email', 'like', '%'.addcslashes($search, '%_').'%'));
+                if (Str::isUuid($search)) {
+                    $match->orWhere('pickup_schedules.id', $search)
+                        ->orWhereHas('orders', fn ($orders) => $orders->where('seller_pickup_request_id', $search));
+                }
+            }))
+            ->with(['courier.courierProfile', 'orders.sellerPickupRequest.shop:id,name'])
+            ->withCount('orders')
+            ->withCount(['tasks as remaining_parcel_count' => fn ($tasks) => $tasks->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted])])
+            ->orderByDesc('starts_at')->orderByDesc('id')
+            ->paginate($data['per_page'] ?? 25);
+
+        return response()->json([
+            'data' => collect($paginator->items())->map(fn (PickupSchedule $schedule) => $this->scheduleSummary($schedule)),
+            'meta' => ['current_page' => $paginator->currentPage(), 'last_page' => $paginator->lastPage(), 'per_page' => $paginator->perPage(), 'total' => $paginator->total()],
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function createSchedule(CreatePickupScheduleRequest $request, PickupScheduleService $service): JsonResponse
@@ -123,5 +165,35 @@ class PickupController extends Controller
     private function schedule(PickupSchedule $schedule): array
     {
         return ['id' => $schedule->id, 'reference' => $schedule->reference, 'status' => $schedule->status instanceof \BackedEnum ? $schedule->status->value : $schedule->status, 'courier_id' => $schedule->courier_id, 'starts_at' => $schedule->starts_at->toISOString(), 'ends_at' => $schedule->ends_at->toISOString(), 'timezone' => 'UTC', 'revision' => $schedule->revision, 'order_ids' => $schedule->relationLoaded('orders') ? $schedule->orders->pluck('order_id')->values() : null];
+    }
+
+    private function scheduleSummary(PickupSchedule $schedule): array
+    {
+        $profile = $schedule->courier?->courierProfile;
+        $pickupRequests = $schedule->orders
+            ->groupBy('seller_pickup_request_id')
+            ->map(function ($orders): array {
+                $pickup = $orders->first()->sellerPickupRequest;
+
+                return [
+                    'id' => $pickup->id,
+                    'shop' => ['id' => $pickup->shop_id, 'name' => $pickup->shop?->name],
+                    'created_at' => $pickup->created_at->toISOString(),
+                    'parcel_count' => $orders->count(),
+                ];
+            })->values();
+
+        return [
+            ...$this->schedule($schedule),
+            'courier' => [
+                'id' => $schedule->courier_id,
+                'name' => trim(($profile?->first_name ?? '').' '.($profile?->last_name ?? '')),
+                'email' => $schedule->courier?->email,
+            ],
+            'pickup_requests' => $pickupRequests,
+            'parcel_count' => (int) $schedule->orders_count,
+            'remaining_parcel_count' => (int) $schedule->remaining_parcel_count,
+            'created_at' => $schedule->created_at->toISOString(),
+        ];
     }
 }

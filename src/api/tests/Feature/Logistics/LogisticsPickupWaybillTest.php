@@ -239,6 +239,8 @@ class LogisticsPickupWaybillTest extends TestCase
     {
         [$firstSeller, $firstShop] = $this->sellerShop();
         [$secondSeller, $secondShop] = $this->sellerShop();
+        $firstShop->update(['name' => 'Zeta Shop']);
+        $secondShop->update(['name' => 'Alpha Shop']);
         $secondSeller->addresses()->firstOrFail()->update(['address_line_1' => '2 Seller Road', 'barangay' => 'Malate']);
         $firstOrders = collect([$this->order($firstShop), $this->order($firstShop)]);
         $secondOrders = collect([$this->order($secondShop), $this->order($secondShop)]);
@@ -260,9 +262,10 @@ class LogisticsPickupWaybillTest extends TestCase
                 'logistics_organization_id' => $organization->id,
             ])->assertOk()->json('data');
 
-        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickups?include_orders=1')
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickups?include_orders=1&has_unscheduled=1&sort=shop_created')
             ->assertOk()
             ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.shop.name', 'Alpha Shop')
             ->assertJsonCount(2, 'data.0.orders')
             ->assertJsonCount(2, 'data.1.orders');
 
@@ -288,7 +291,21 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->assertSame(2, $courierNotification->data['pickup_stop_count']);
         $this->assertSame($schedule['id'], $courierNotification->data['schedule_id']);
 
-        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+        $scheduleList = $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $schedule['id'])
+            ->assertJsonPath('data.0.courier.id', $courier->id)
+            ->assertJsonPath('data.0.courier.name', 'Cora Rider')
+            ->assertJsonPath('data.0.parcel_count', 4)
+            ->assertJsonPath('data.0.remaining_parcel_count', 4)
+            ->assertJsonCount(2, 'data.0.pickup_requests');
+        $this->assertStringContainsString('private', (string) $scheduleList->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', (string) $scheduleList->headers->get('Cache-Control'));
+        [$foreignLogistics] = $this->logistics('Foreign Schedule Logistics', 'Cebu City', 'Cebu');
+        $this->actingAs($foreignLogistics)->getJson('/api/v1/logistics/pickup-schedules')->assertOk()->assertJsonCount(0, 'data');
+
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())
             ->postJson('/api/v1/logistics/pickup-schedules', [
                 'order_ids' => collect(range(1, 31))->map(fn () => (string) Str::uuid())->all(),
                 'courier_id' => $courier->id,
