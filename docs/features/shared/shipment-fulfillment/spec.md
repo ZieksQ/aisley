@@ -184,18 +184,60 @@ Complete each unchecked question before creating physical operational migrations
 
 #### Transition and implementation questions
 
-- [ ] **Transition matrix:** For every allowed `from → to` state, record actor, preconditions/evidence, transaction side effects, retry result, and concurrent-conflict result in `docs/workspace.md` and the owning specs.
-      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
-- [ ] **Failure and cancellation boundary:** Which pre-`picked_up_from_seller` cancellation is implemented now? Confirm that post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until separately approved.
-      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
-- [ ] **Migration order and rollout gate:** What additive table, foreign-key, and index order is required, and what prevents unavailable endpoints from being enabled before the schema is deployed?
-      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
-- [ ] **Transition-service owner:** Which server service owns state validation, tenant/hub/role checks, locking or revision checks, idempotency, append-only history, and after-commit notifications?
-      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
-- [ ] **Endpoint ownership:** Which feature specification owns each scan, hub operation, final-mile task, and proof-of-delivery endpoint, and is each route implemented or unavailable?
-      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+- [x] **Transition matrix:** For every allowed `from → to` state, record actor, preconditions/evidence, transaction side effects, retry result, and concurrent-conflict result in `docs/workspace.md` and the owning specs.  
+       **Answer/owner:** The authoritative transition matrix is maintained in `docs/workspace.md` and mirrored in each owning feature specification. It uses the existing explicit lowercase `snake_case` states; no client may submit an arbitrary target status.
+  - `awaiting_seller_pickup → seller_pickup_assigned`: Logistics creates/offers the task after Seller readiness, selected-provider, hub, and waybill checks.
+  - `seller_pickup_assigned → seller_pickup_accepted`: The affiliated Courier accepts its own offer.
+  - `seller_pickup_assigned → rejected`: The Courier rejects the offer with a reason; the Order and custody state remain unchanged. Logistics may re-offer the same task.
+  - `seller_pickup_accepted → picked_up_from_seller`: The Courier scans/submits the waybill evidence; Logistics validates it and the transition service commits the first-mile handoff and approved inventory effect once.
+  - `picked_up_from_seller → received_at_hub`: Logistics validates receipt at its sole hub.
+  - `received_at_hub → sorted_at_hub → in_transfer → dispatched_from_hub`: Logistics performs and records these hub transitions.
+  - `dispatched_from_hub → delivery_assigned`: Logistics creates/offers the independent final-mile task.
+  - `delivery_assigned → delivery_accepted`: The assigned affiliated Courier accepts the offer.
+  - `delivery_accepted → picked_up_from_hub`: The Courier scans/submits handoff evidence; Logistics validates and records the hub pickup.
+  - `picked_up_from_hub → in_transit → out_for_delivery`: The final-mile Courier performs the movement.
+  - `out_for_delivery → delivered`: The Courier submits proof; Logistics validates the evidence, and the owning Complete Delivery transition commits `delivered`.
+
+  Every accepted transition appends immutable history, uses server-side authorization and idempotency, returns the committed projection on retry, and returns a conflict without
+  overwriting newer history when concurrent state is detected. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain unavailable until separately
+  approved.
+
+- [x] **Failure and cancellation boundary:** Which pre-`picked_up_from_seller` cancellation is implemented now? Confirm that post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until separately approved.  
+       **Answer/owner:** In the MVP, Customer cancellation and Seller rejection are allowed only while the Order is `placed`, before `picked_up_from_seller`. Each releases only that Order’s reserved SKU quantities once and transactionally. A Courier’s task rejection is assignment-level and does not cancel the Order. After `picked_up_from_seller`, automatic cancellation or inventory release is unavailable. Delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies, line-level records, and owning transitions are separately approved.
+- [x] **Migration order and rollout gate:** What additive table, foreign-key, and index order is required, and what prevents unavailable endpoints from being enabled before the schema is deployed?  
+       **Answer/owner:** Additive migrations will create Shipment, Parcel, DeliveryTask, assignment/offer history, scan/custody/evidence records, and proof-of-delivery references in dependency order, followed by indexes, uniqueness constraints, and any approved backfills. Existing migrations will not be modified, and enum-like values will remain string-backed. Physical-operation routes and the shared transition service remain disabled until all required migrations are deployed and a schema health check passes. Controllers fail closed while the schema is unavailable, and Flutter, web, and Logistics clients may consume only routes explicitly marked implemented.
+- [x] **Transition-service owner:** Which server service owns state validation, tenant/hub/role checks, locking or revision checks, idempotency, append-only history, and after-commit notifications?  
+       **Answer/owner:** Current high-level Order transitions remain owned by `src/api/app/Services/OrderTransitionService.php`. Future physical Shipment/Parcel/DeliveryTask transitions will be owned by one dedicated server-side fulfillment transition service. The service will validate the transition matrix, organization/sole-hub/role/Courier affiliation, evidence, row locks or revisions, idempotency, and append-only history in one transaction. It will apply only approved inventory effects and dispatch notifications after commit. Logistics remains the authoritative business recorder for Courier-submitted scans and evidence, but the transition service commits the state. Controllers and clients may submit requests only; they cannot set statuses directly. If the required schema is unavailable, the service fails closed and performs no write.
+- [x] **Endpoint ownership:** Which feature specification owns each scan, hub operation, final-mile task, and proof-of-delivery endpoint, and is each route implemented or unavailable?  
+       **Answer/owner:** Each operational endpoint has one owning feature specification. The owning specification defines its method, path, authorization, request, response, errors, retry behavior, and implementation status. Supporting specifications may reference the contract but must not redefine it.
+
+| Endpoint Area                                                 | Owning Specification                             | Status                                                             |
+| ------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| Courier QR/waybill scan and evidence submission               | docs/features/courier/pick-up-order/             | Unavailable until the operational schema exists                    |
+| Logistics scan validation and authoritative custody recording | docs/features/logistics/update-status/           | Unavailable                                                        |
+| Hub receipt, sorting, transfer, and dispatch                  | docs/features/logistics/update-status/           | Unavailable                                                        |
+| Final-mile task creation, assignment, and re-offer            | docs/features/logistics/deploy-rider/            | Unavailable                                                        |
+| Courier final-mile acceptance/rejection                       | docs/features/courier/accept-delivery-           | Unavailable; first-mile listing/acceptance is implemented          |
+| Proof-of-delivery submission                                  | docs/features/courier/proof-of-delivery/         | Unavailable                                                        |
+| Final delivered transition                                    | docs/features/courier/complete-delivery/specs.md | Unavailable until the shared transition service and contract exist |
+
 - [ ] **Verification plan:** Which SQLite/PostgreSQL migration and API tests cover IDOR, invalid sequence, retries, concurrency, evidence authority, inventory boundaries, and notification failure?
-      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+
+  **Answer/owner:** The backend fulfillment maintainer owns the verification plan. The migration and API suites must run against both the PHPUnit SQLite database and PostgreSQL which is the production database. Physical-operation coverage remains planned until the additive operational migrations are deployed.
+  - **Migration tests:** Verify migration order, Shipment/Parcel/DeliveryTask foreign keys, indexes, uniqueness constraints, string-backed status fields, sole-hub scope, append-only
+    history constraints, and schema-health checks on SQLite and PostgreSQL.
+  - **IDOR/tenant tests:** A Courier, Logistics account, Seller, or Customer cannot read or mutate another organization’s task, hub, Order, Parcel, waybill, scan, evidence, or history.
+  - **Invalid-sequence tests:** Reject transitions with the wrong current state, leg, actor, assignment, missing evidence, or invalid precondition without changing state.
+  - **Retry/idempotency tests:** Retrying the same mutation key returns the original committed projection and does not duplicate assignments, history, inventory effects, or
+    notifications. Reusing a key with different input returns a conflict.
+  - **Concurrency tests:** Simultaneous transitions use locking or revision checks; only one valid transition commits and the other receives a conflict without overwriting history.
+  - **Evidence-authority tests:** Couriers may submit scans/evidence only for their assigned task. Logistics validates and records the authoritative event; a QR scan or notification
+    alone cannot advance custody.
+  - **Inventory-boundary tests:** Cancellation or rejection before `picked_up_from_seller` releases the reservation once; pickup fulfillment commits it once; post-pickup cancellation,
+    returns, refunds, and partial fulfillment have no unapproved automatic inventory effect.
+  - **Notification-failure tests:** A notification or queue failure after commit does not roll back the transition, inventory effect, or audit history. Retrying delivery does not create
+    duplicate notifications.
+  - **Rollout gate:** These tests must pass and the schema-health check must succeed before physical-operation endpoints are marked implemented or consumed by any client.
 
 ## HOW
 
