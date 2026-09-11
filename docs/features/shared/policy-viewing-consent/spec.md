@@ -110,7 +110,7 @@ public current policy/history read
 - [x] The consent matrix requires initial acceptance for Customer, Seller, Admin, Logistics, and Courier and requires flagged re-consent for the exact current version; global blocking points remain deferred.
 - [x] A consent-status endpoint returns the same shared current versions plus server-derived required/accepted state without shared caching.
 - [x] Acceptance validates an explicit confirmation, authorizes a shared current published version, is idempotent, and never accepts on behalf of another User.
-- [ ] Customer, Seller, Admin, Logistics, and Courier auth/session owners enforce a shared-policy gate at an approved registration/login/session/protected-action point without preventing policy viewing or acceptance.
+- [x] Customer, Seller, Admin, Logistics, and Courier auth/session owners enforce a shared-policy gate at an approved registration/login/session/protected-action point without preventing policy viewing or acceptance.
 - [x] Webapp exposes accessible latest/history/exact-version pages and a Customer consent screen; Seller, Admin, and Logistics dashboards expose role-owned consent screens plus Terms/Privacy links to the webapp. Courier remains an external Flutter client.
 - [x] Backend tests cover public visibility, cache headers, history filtering, exact-version reads, and Internal Rules exclusion.
 
