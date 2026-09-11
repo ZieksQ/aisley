@@ -3,10 +3,10 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 1.3
-status: Cross-document decision guide; partial operational foundation exists; physical transitions require approved decisions and migrations
+version: 1.4
+status: Cross-document decision guide; partial operational foundation exists; physical transitions and schema implementation require worksheet sign-off and additive migrations
 roles: Customer, Seller, Logistics, Courier
-scope: Shared order-to-delivery vocabulary and future backend contract
+scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
 authority: cross_document_decision_guide
 canonical: true
 affects_other_documents: true
@@ -52,12 +52,12 @@ Customer places Order
 - [x] This guide is the shared decision record for Shipment/Parcel/DeliveryTask questions; “approved elsewhere” no longer means an unnamed document, and accepted rules go to `docs/schema.md` for records/constraints, `docs/workspace.md` for lifecycle, `docs/requirements.md` for role obligations, and domain/spec files for ownership and endpoints.
 - [x] Once propagated, an accepted decision supersedes stale wording in each affected document; the guide remains the traceable rationale for that revision.
 - [x] Existing implemented scope is limited to Seller pickup requests, selected-provider context, shared waybills/snapshots/access events, pickup schedules, and first-mile assignment/acceptance.
-- [x] Physical custody, physical scans, hub processing, final-mile tasks, and proof-of-delivery remain unavailable until their decisions are signed off and migrated.
+- [x] Physical custody, physical scans, hub processing, final-mile tasks, and proof-of-delivery remain unavailable until the readiness questions below are answered and the additive migrations are deployed.
 - [x] The MVP uses one Logistics organization with one operational hub; no sub-hub or multi-hub branch is introduced by this worksheet.
 - [x] First-mile and final-mile are separate task legs. Logistics owns creation/assignment; a Courier only accepts and acts on its own offer. The same or another eligible Courier may perform the second leg.
 - [x] For the MVP, one DeliveryTask represents one Order/Parcel. A pickup schedule may group many Orders, but it does not merge their tasks, waybills, snapshots, or histories.
 - [x] The existing high-level OrderStatus remains separate from detailed physical Shipment/DeliveryTask states; no source-only or uppercase label may be persisted as a new Order status.
-- [x] Physical scan actors/evidence, failed-delivery/reassignment/expiration, return/refund, and partial-fulfillment decisions are recorded below; every future operational endpoint still needs an owning feature specification before Flutter, web, or Logistics UI can consume it.
+- [x] Physical scan actors/evidence, failed-delivery/reassignment/expiration, return/refund, and partial-fulfillment decisions are recorded below; implementation questions remain in the readiness worksheet and every future operational endpoint still needs an owning feature specification before Flutter, web, or Logistics UI can consume it.
 
 ### Cross-document decisions: ownership boundaries
 
@@ -135,10 +135,72 @@ awaiting_seller_pickup
 - [x] The endpoint-ownership rule is recorded; each eventual endpoint still requires an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
 - [ ] `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and affected domains/specs have been updated from the accepted decisions.
 
+### Implementation-readiness worksheet
+
+Complete each unchecked question before creating physical operational migrations. A blank answer is an open contract decision; mark a question `[x]` only after the decision, owner, and affected canonical document are recorded. Keep detailed columns and constraints in `docs/schema.md`, lifecycle wording in `docs/workspace.md`, and endpoint details in the owning feature specification.
+
+#### Record contract questions
+
+- [x] **Shipment identity and relationship:** Is one Shipment created per Order, per Parcel, or per fulfillment instance? Which immutable Order/Parcel/waybill references and foreign keys are required?  
+       **Answer/owner:** Create exactly one Shipment per physical Parcel. Since the MVP has one Parcel per Order, each Order effectively has one Shipment. First-mile and final-mile are separate DeliveryTasks linked to that same Shipment. Courier reassignment, scans, and status changes append history; they do not create another Shipment.
+
+- [x] **Parcel identity and packaging:** What identifies the Parcel? Which dimensions/weight units, item-and-quantity snapshot, and waybill link are stored? Is more than one Parcel per Order allowed in a later version?  
+       **Answer/owner:** One Order produces one Parcel, containing all of its items, and one Shipment. The Parcel has a stable ID, package details, an immutable item/quantity snapshot, and one link to the shared waybill. First-mile and final-mile tasks reference this same Parcel; they do not create new Parcels. Multiple Parcels per Order require a future approved schema and waybill decision.
+
+- [x] **Leg:** Confirm that `first_mile` is Seller → the owning Logistics hub and `final_mile` is that hub → Customer. Identify the field that distinguishes the two legs.  
+       **Answer/owner:** Each `DeliveryTask` has a required server-controlled `leg` field with either `first_mile` or `final_mile`.  
+       - `first_mile`: Seller → the owning Logistics organization’s sole hub.  
+       - `final_mile`: that sole hub → Customer.
+
+- [x] **Current state:** Should the existing explicit lowercase `snake_case` enum values remain the complete state vocabulary? If any value is added, where is its transition and migration approved?  
+       **Answer/owner:** The project/domain owner approves the shared state vocabulary. Keep the existing explicit lowercase `snake_case` enum values. Any new value requires a documented transition in `docs/workspace.md`, a string-backed schema/migration change in `docs/schema.md`, and an update to its owning feature specification. Implementation is owned by the backend transition-service maintainer.
+- [x] **Logistics/hub scope:** Which owning Logistics organization and authorized account(s) may view, create, update, re-offer, or close an assignment? Which fields are protected, and how is cross-organization access denied?  
+       **Answer/owner:** Only the owning Logistics organization—the organization with which the assigned Courier is affiliated and that created the task—may access and manage the assignment. Its authorized accounts may view, create, update permitted assignment fields, re-offer, or close it. The Logistics organization, sole hub, Order/Parcel/waybill links, task leg, state transitions, actor data, timestamps, and historical events are server-controlled. Cross-organization access is denied through authenticated organization, hub, role, and Courier-affiliation checks; client-supplied organization IDs are not trusted.
+- [x] **Offer/acceptance:** How are offered, accepted, rejected, and re-offered Couriers represented? Confirm that a rejected offer stays in history and the same task may be offered again.  
+       **Answer/owner:**
+  - **Offered:** Logistics sends the task to a Courier; store the task, Courier, offer time, and expiry/state.
+  - **Accepted:** The Courier accepts the offer; the task’s current assignment becomes that Courier.
+  - **Rejected:** The Courier declines; store the rejection reason and timestamp. The Order and custody state do not change.
+  - **Re-offered:** Logistics offers the same `DeliveryTask` to another Courier by creating a new offer/assignment record. Do not create a new Order, Parcel, or Shipment.
+
+- [x] **Actor timestamps and presentation:** Which server timestamps and performing/validating/recording actors are required? Should a restricted Logistics/Admin audit log be separate from Customer/Courier milestone timelines?  
+       **Answer/owner:**
+      All event times are generated by the server in UTC and are immutable. Each event records the relevant actor:
+  - `offered_at` and the Logistics account that created the offer.
+  - `accepted_at` or `rejected_at`, the Courier, and any rejection reason.
+  - `performed_at` and the Courier who physically performed the action.
+  - `validated_at` and the Logistics account that validated the scan/evidence.
+  - `recorded_at` and the Logistics account that committed the authoritative event.
+  - `expires_at` for an offer where an expiry window applies.
+
+  A restricted Logistics/Admin audit log is separate from Customer and Courier milestone timelines. The same append-only event history may feed both views, but each role receives a different authorized projection. Audit logs may show actors, reasons, evidence references, and validation details; Customer/Courier timelines show only the safe milestones relevant to them.
+
+- [x] **Idempotency:** What scope makes a mutation key unique (task, action, actor, or request), and what canonical projection must a retry return?  
+       **Answer/owner:** Mutation idempotency is scoped to the authenticated actor, owning Logistics organization, `DeliveryTask`, action, and client-provided `Idempotency-Key`. The server stores the request hash and the committed result. Reusing the same key with the same request returns the original canonical projection, including the task state, current assignment, and committed event identifiers. It must not create duplicate assignments, scans, custody events, inventory effects, or notifications. Reusing the key with different request details returns a conflict. A new logical action or re-offer requires a new key; client-supplied actor or organization identifiers are never trusted.
+- [x] **Scan/evidence:** What QR/reference and approved evidence does the Courier submit? How is the owning Logistics organization notified, and does the scan only await validation or ever advance custody directly?  
+       **Answer/owner:** The Courier scans the opaque waybill QR in the Flutter app. The backend validates that it belongs to the Courier’s accepted task and owning Logistics organization, then stores an immutable scan event with the server timestamp, Courier, task leg, and idempotency key. The owning Logistics organization receives an after-commit in-app/dashboard notification. The scan is treated as Courier-submitted evidence pending Logistics validation; it does not independently advance custody. After validation, the shared transition service records the applicable pickup state.
+- [x] **Append-only history:** Which assignment, scan, evidence, custody, and re-offer events are immutable? Can a current assignment be closed without deleting its history?  
+       **Answer/owner:** Assignment offers, acceptances, rejections, expirations, re-offers, scan submissions, evidence decisions, custody transitions, actor details, timestamps, reasons, and idempotency results are immutable after commit. A current assignment may be closed only through an authorized state transition; closing it updates the current projection and appends a close event without deleting or rewriting prior history. Re-offering creates a new offer record for the same `DeliveryTask`, while the previous offer remains unchanged. Any correction is recorded as a new event rather than editing an old event.
+
+#### Transition and implementation questions
+
+- [ ] **Transition matrix:** For every allowed `from → to` state, record actor, preconditions/evidence, transaction side effects, retry result, and concurrent-conflict result in `docs/workspace.md` and the owning specs.
+      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+- [ ] **Failure and cancellation boundary:** Which pre-`picked_up_from_seller` cancellation is implemented now? Confirm that post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until separately approved.
+      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+- [ ] **Migration order and rollout gate:** What additive table, foreign-key, and index order is required, and what prevents unavailable endpoints from being enabled before the schema is deployed?
+      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+- [ ] **Transition-service owner:** Which server service owns state validation, tenant/hub/role checks, locking or revision checks, idempotency, append-only history, and after-commit notifications?
+      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+- [ ] **Endpoint ownership:** Which feature specification owns each scan, hub operation, final-mile task, and proof-of-delivery endpoint, and is each route implemented or unavailable?
+      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+- [ ] **Verification plan:** Which SQLite/PostgreSQL migration and API tests cover IDOR, invalid sequence, retries, concurrency, evidence authority, inventory boundaries, and notification failure?
+      **Answer/owner:** **\*\***\*\***\*\***\_\_**\*\***\*\***\*\***
+
 ## HOW
 
 - If implementation is explicitly requested, first read the current canonical requirements, workspace, schema, domain, and owning feature specs. Do not start from this file alone.
-- Resolve the remaining decisions below, record the rationale here, and propagate accepted rules into every affected canonical document before writing code. Keep those edits explicit and reviewable; do not leave a checked decision only in this guide.
+- Complete the unchecked readiness questions above, record the rationale here, and propagate accepted rules into every affected canonical document before writing code. Keep those edits explicit and reviewable; do not leave a checked decision only in this guide.
 - Add only additive migrations for approved Shipment, Parcel, DeliveryTask, assignment, Scan, custody, and proof records. Never edit an executed migration or add native PostgreSQL enum columns.
 - Implement transitions through a shared service with transactions, row locks/optimistic revisions, server-derived ownership, idempotency keys, and append-only history.
 - Dispatch notifications and audit/outbox work after commit so provider failures cannot roll back state. Laravel supports after-commit queued work for this boundary.
@@ -146,7 +208,7 @@ awaiting_seller_pickup
 - Test every approved transition on SQLite and PostgreSQL, including IDOR, stale/concurrent requests, retries, invalid sequence, tenant isolation, inventory boundaries, and notification failure.
 - Roll out schema and transition contracts before enabling physical custody actions; do not expose a conceptual endpoint as working API.
 
-### Remaining cross-document decisions for a future owner
+### Recorded cross-document decisions and deferred outcomes
 
 - [x] Task cardinality: one Order/Parcel per DeliveryTask; schedules may group Orders but do not create a multi-parcel task.
 - [x] Scan/evidence authority: the Courier scans the Order's waybill QR/reference in the app and submits the event/evidence; Logistics validates and records the authoritative event, preserving both the performing Courier and recording Logistics account. The QR/reference scan, Courier identity, and timestamp are the minimum evidence.
