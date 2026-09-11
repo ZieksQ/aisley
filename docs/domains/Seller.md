@@ -250,7 +250,7 @@ Implemented Seller foundation:
 
 Deferred or dependent Seller operations:
 
-- Seller order notification/queue implementation, Prepare Orders execution, provider selection, shared-waybill persistence, Shipment/Parcel/Scan/Delivery Task records, pickup scheduling/assignment, Logistics receipt/sorting/dispatch, Courier delivery, proof of delivery, delivery confirmation, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred.
+- Seller Q&A answer-management UI, Seller order notification/queue implementation, Prepare Orders execution, provider selection, shared-waybill persistence, Shipment/Parcel/Scan/Delivery Task records, pickup scheduling/assignment, Logistics receipt/sorting/dispatch, Courier delivery, proof of delivery, delivery confirmation, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred. The owning-Seller Product Q&A answer API and notifications are implemented for that future surface.
 
 Future status-like columns must be stored as strings and cast to PHP enums. Future fulfillment migrations must preserve one Seller/one Shop tenancy, immutable Order snapshots, the shared high-level OrderStatus contract, and the separate Shipment/Delivery Task milestones.
 

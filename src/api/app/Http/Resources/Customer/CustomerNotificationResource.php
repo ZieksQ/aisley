@@ -11,6 +11,7 @@ class CustomerNotificationResource extends JsonResource
     {
         $data = is_array($this->data) ? $this->data : [];
         $orderId = $this->value($data, 'order_id');
+        $destination = $this->destination($data, $orderId);
 
         return [
             'id' => $this->id,
@@ -22,8 +23,22 @@ class CustomerNotificationResource extends JsonResource
             'status' => $this->value($data, 'status'),
             'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
-            'destination' => $orderId ? "/orders/{$orderId}" : "/notifications/{$this->id}",
+            'resource_type' => $this->value($data, 'resource_type'),
+            'resource_id' => $this->value($data, 'resource_id'),
+            'product_id' => $this->value($data, 'product_id'),
+            'destination' => $destination,
         ];
+    }
+
+    private function destination(array $data, ?string $orderId): string
+    {
+        $destination = $this->value($data, 'destination');
+        if ($this->type === 'customer-product-qa.answered' && $destination !== null
+            && preg_match('~^/products/[0-9a-f-]{36}#product-qa$~i', $destination) === 1) {
+            return $destination;
+        }
+
+        return $orderId ? "/orders/{$orderId}" : "/notifications/{$this->id}";
     }
 
     private function string(array $data, string $key, string $fallback): string

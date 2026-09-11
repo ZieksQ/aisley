@@ -10,6 +10,12 @@ return [
         'birth_date' => env('APPROVED_CUSTOMER_BIRTH_DATE', '2000-01-01'),
     ],
 
+    'generic' => [
+        'count' => (int) env('CUSTOMER_GENERIC_COUNT', 20),
+        'email_prefix' => env('CUSTOMER_GENERIC_EMAIL_PREFIX', 'customer'),
+        'email_domain' => env('CUSTOMER_GENERIC_EMAIL_DOMAIN', 'example.com'),
+    ],
+
     'auth' => [
         'password_reset_url' => env('CUSTOMER_PASSWORD_RESET_URL', 'http://localhost:3000/reset-password'),
         'password_reset_expire_minutes' => (int) env('CUSTOMER_PASSWORD_RESET_EXPIRE_MINUTES', 60),

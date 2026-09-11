@@ -25,11 +25,13 @@ use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
+use App\Http\Controllers\Customer\ProductQAController as CustomerProductQAController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\HomepageAdvertisementImageController;
+use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
@@ -46,6 +48,7 @@ use App\Http\Controllers\Seller\NotificationController as SellerNotificationCont
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
+use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
@@ -203,6 +206,10 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
     Route::delete('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'destroy'])->whereUuid('address')->name('pickup-addresses.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
+    Route::post('/product-questions/{question}/answer', [SellerProductQAController::class, 'answer'])
+        ->whereUuid('question')
+        ->middleware('throttle:seller-product-qa-answer')
+        ->name('product-questions.answer');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::post('/product-uploads', [SellerProductUploadController::class, 'store'])->middleware('throttle:30,1')->name('product-uploads.store');
     Route::get('/product-uploads/{productUpload}', [SellerProductUploadController::class, 'show'])->whereUuid('productUpload')->name('product-uploads.show');
@@ -248,6 +255,19 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active'])->group(function () {
+    Route::get('/account', [LogisticsAccountController::class, 'show'])->name('account.show');
+    Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');
+    Route::put('/account/password', [LogisticsAccountController::class, 'updatePassword'])
+        ->middleware('throttle:logistics-account-password')
+        ->name('account.password.update');
+    Route::post('/account/profile-photo', [LogisticsAccountController::class, 'uploadProfilePhoto'])
+        ->middleware('throttle:logistics-profile-photo')
+        ->name('account.profile-photo.update');
+    Route::get('/account/profile-photo', [LogisticsAccountController::class, 'profilePhoto'])
+        ->name('account.profile-photo.show');
+    Route::delete('/account/profile-photo', [LogisticsAccountController::class, 'removeProfilePhoto'])
+        ->name('account.profile-photo.destroy');
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
@@ -381,6 +401,16 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
             ->name('orders.modify');
     });
 });
+
+Route::get('v1/products/{product}/questions', [CustomerProductQAController::class, 'index'])
+    ->whereUuid('product')
+    ->middleware('throttle:120,1')
+    ->name('products.questions.index');
+
+Route::post('v1/products/{product}/questions', [CustomerProductQAController::class, 'store'])
+    ->whereUuid('product')
+    ->middleware(['auth:sanctum', 'customer.active', 'throttle:customer-product-questions'])
+    ->name('products.questions.store');
 
 Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
     ->whereUuid('id')

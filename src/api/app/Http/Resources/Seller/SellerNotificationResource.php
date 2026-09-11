@@ -21,6 +21,9 @@ class SellerNotificationResource extends JsonResource
             'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'destination' => $this->destination($data),
+            'resource_type' => $this->value($data, 'resource_type'),
+            'resource_id' => $this->value($data, 'resource_id'),
+            'product_id' => $this->value($data, 'product_id'),
             'schedule' => $this->schedule($data),
         ];
     }
@@ -50,6 +53,12 @@ class SellerNotificationResource extends JsonResource
     private function destination(array $data): string
     {
         $destination = $this->value($data, 'destination');
+        if ($this->type === 'seller-product-qa.question-asked') {
+            return $destination !== null
+                && preg_match('~^/products/[0-9a-f-]{36}/questions/[0-9a-f-]{36}$~i', $destination) === 1
+                ? $destination
+                : '/notifications/'.$this->id;
+        }
         foreach (['/orders/', '/orders', '/products/', '/account', '/inventory/', '/low-stock-alerts/'] as $allowed) {
             if ($destination !== null && str_starts_with($destination, $allowed)) {
                 return $destination;

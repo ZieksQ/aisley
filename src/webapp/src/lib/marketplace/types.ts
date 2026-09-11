@@ -246,3 +246,31 @@ export type ProductDetail = {
     storefrontUrl: string;
   };
 };
+
+export type ProductQuestion = {
+  id: string;
+  question: string;
+  askedAt: string | null;
+  answer: string | null;
+  answeredAt: string | null;
+  sellerLabel: string | null;
+};
+
+export type ProductQuestionsResponse = {
+  data: ProductQuestion[];
+  links: {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
+  };
+  meta: {
+    current_page: number;
+    from: number | null;
+    last_page: number;
+    path: string;
+    per_page: number;
+    to: number | null;
+    total: number;
+  };
+};

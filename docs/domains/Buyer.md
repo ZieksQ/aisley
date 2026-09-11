@@ -182,7 +182,7 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 13. Product Q&A and Chat/Messaging
 
 - **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
-- **Status:** These are documented/deferred capabilities, not current Customer storefront implementations.
+- **Status:** Product Q&A Phase 1 is implemented in the Customer storefront and Laravel API. Chat/Messaging remains deferred.
 - **Boundary:** Future threads, questions, notifications, and unread counts must be Customer/Shop or relationship scoped. They must not expose registration evidence, private addresses, payment secrets, or unrelated users, and must not duplicate the order-status or Admin notification contracts.
 
 ## Data, privacy, and consistency invariants
@@ -208,7 +208,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller order preparation/provider selection, first-mile pickup, Logistics hub processing, Shipment/Parcel/Waybill/Scan/Delivery Task records, final-mile assignment, Courier delivery, proof of delivery, route/ETA display, payment gateways, returns/refunds, reviews, Product Q&A, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain downstream/deferred.
+- Seller order preparation/provider selection, first-mile pickup, Logistics hub processing, Shipment/Parcel/Waybill/Scan/Delivery Task records, final-mile assignment, Courier delivery, proof of delivery, route/ETA display, payment gateways, returns/refunds, reviews, Seller answer-management UI for Product Q&A, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain downstream/deferred. Product Q&A public read/ask, the owning-Seller answer API, and Q&A notifications are implemented.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 

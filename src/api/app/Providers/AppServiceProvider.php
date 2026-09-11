@@ -49,9 +49,41 @@ class AppServiceProvider extends ServiceProvider
             ]));
         });
 
+        RateLimiter::for('customer-product-questions', function (Request $request): Limit {
+            return Limit::perMinute(5)->by(implode('|', [
+                'customer-product-questions',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
+        RateLimiter::for('seller-product-qa-answer', function (Request $request): Limit {
+            return Limit::perMinute(30)->by(implode('|', [
+                'seller-product-qa-answer',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
         RateLimiter::for('courier-account-password', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [
                 'courier-account-password',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
+        RateLimiter::for('logistics-account-password', function (Request $request): Limit {
+            return Limit::perMinute(5)->by(implode('|', [
+                'logistics-account-password',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
+        RateLimiter::for('logistics-profile-photo', function (Request $request): Limit {
+            return Limit::perMinute(10)->by(implode('|', [
+                'logistics-profile-photo',
                 $request->user()?->getAuthIdentifier() ?? 'guest',
                 $request->ip(),
             ]));

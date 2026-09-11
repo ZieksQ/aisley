@@ -6,6 +6,7 @@ import type {
   HomepageData,
   HomepageRecommendations,
   ProductDetail,
+  ProductQuestionsResponse,
   ProductSummary,
   RecentlyViewedPage,
 } from "./types";
@@ -36,6 +37,37 @@ export async function fetchProductDetail(id: string, signal?: AbortSignal) {
   );
 
   return response.data;
+}
+
+export function fetchProductQuestions(
+  productId: string,
+  page = 1,
+  limit = 10,
+  signal?: AbortSignal,
+) {
+  const parameters = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  return apiRequest<ProductQuestionsResponse>(
+    `/api/v1/products/${encodeURIComponent(productId)}/questions?${parameters.toString()}`,
+    { signal, cache: "no-store" },
+  );
+}
+
+export async function askProductQuestion(productId: string, question: string) {
+  await initializeCsrf();
+
+  return apiRequest<{ data: ProductQuestionsResponse["data"][number] }>(
+    `/api/v1/products/${encodeURIComponent(productId)}/questions`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ question }),
+      cache: "no-store",
+    },
+  );
 }
 
 const recentlyViewedPath = "/api/v1/customer/recently-viewed";

@@ -22,6 +22,12 @@ return [
         'longitude' => env('INITIAL_LOGISTICS_LONGITUDE', 121.032077),
     ],
 
+    'generic' => [
+        'count' => (int) env('LOGISTICS_GENERIC_COUNT', 5),
+        'email_prefix' => env('LOGISTICS_GENERIC_EMAIL_PREFIX', 'logistics'),
+        'email_domain' => env('LOGISTICS_GENERIC_EMAIL_DOMAIN', 'example.com'),
+    ],
+
     'auth' => ['password_reset_url' => env('LOGISTICS_PASSWORD_RESET_URL', 'http://localhost:5176/reset-password'), 'password_reset_expire_minutes' => (int) env('LOGISTICS_PASSWORD_RESET_EXPIRE_MINUTES', 60), 'password_reset_throttle_seconds' => (int) env('LOGISTICS_PASSWORD_RESET_THROTTLE_SECONDS', 60)],
     'registration' => ['evidence_disk' => env('LOGISTICS_REGISTRATION_EVIDENCE_DISK') ?: env('FILESYSTEM_DISK', 'local')],
 ];

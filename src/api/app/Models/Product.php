@@ -88,6 +88,11 @@ class Product extends Model
         return $this->hasMany(RecentlyViewedProduct::class);
     }
 
+    public function questionsAndAnswers(): HasMany
+    {
+        return $this->hasMany(ProductQA::class);
+    }
+
     public function media(): HasMany
     {
         return $this->hasMany(ProductMedia::class)->orderBy('position');
