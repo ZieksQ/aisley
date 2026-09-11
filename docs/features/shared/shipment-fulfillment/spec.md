@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Cross-document decision guide; partial operational foundation exists; physical transitions require approved decisions and migrations
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary and future backend contract
@@ -57,7 +57,7 @@ Customer places Order
 - [x] First-mile and final-mile are separate task legs. Logistics owns creation/assignment; a Courier only accepts and acts on its own offer. The same or another eligible Courier may perform the second leg.
 - [x] For the MVP, one DeliveryTask represents one Order/Parcel. A pickup schedule may group many Orders, but it does not merge their tasks, waybills, snapshots, or histories.
 - [x] The existing high-level OrderStatus remains separate from detailed physical Shipment/DeliveryTask states; no source-only or uppercase label may be persisted as a new Order status.
-- [x] Physical scan actors/evidence, failed-delivery/reassignment/expiration, return/refund, and partial-fulfillment transitions still require explicit owner sign-off below; every future operational endpoint needs an owning feature specification before Flutter, web, or Logistics UI can consume it.
+- [x] Physical scan actors/evidence, failed-delivery/reassignment/expiration, return/refund, and partial-fulfillment decisions are recorded below; every future operational endpoint still needs an owning feature specification before Flutter, web, or Logistics UI can consume it.
 
 ### Cross-document decisions: ownership boundaries
 
@@ -100,7 +100,7 @@ awaiting_seller_pickup
 
 - These detailed values belong to the future Shipment/Delivery Task contract; they must not be added to `orders.status` by an individual feature.
 - Existing high-level `OrderStatus` compatibility values remain separate. `assigned` broadly represents Logistics hub receipt, and `picked_up` broadly represents final-mile pickup from the hub.
-- Exceptional outcomes such as `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` need their own approved transitions; this file does not define them.
+- Task-level `rejected` and informational `stale` outcomes follow the exception decision below and do not write a new `orders.status` value. Order-level `cancelled`, `delivery_failed`, `return_requested`, and `returned` transitions remain outside the MVP until separately implemented.
 
 ### Cross-document decisions: inventory and payment boundary
 
@@ -115,6 +115,7 @@ awaiting_seller_pickup
 - The current Seller pickup, Logistics scheduling, and first-mile Courier API contracts remain owned by their existing feature specifications.
 - Future physical transitions must use one server-owned transition service that validates the current state, tenant/hub ownership, actor authority, evidence, idempotency, and immutable history.
 - Courier remains mobile-only and external to this repository. A Flutter client may consume an explicitly implemented API contract but must not infer transitions from this reference file.
+- An authorized Courier may view the operational Order, parcel, waybill, pickup, destination, item, and delivery-instruction data needed for its offered or accepted task, plus provider-neutral `distance_km` and `estimated_duration_minutes`. Secrets, private evidence, raw storage paths, and unrelated personal data remain excluded.
 - Route optimization, distance calculations, map rendering, and provider credentials are separate concerns. No mapbox or other provider dependency is implied here.
 
 ### Cross-document decisions: safety rules
@@ -130,9 +131,9 @@ awaiting_seller_pickup
 - [x] Shared schema scope, one Order/Parcel per MVP task, one hub, and detailed-state separation are recorded in this worksheet.
 - [x] First-mile/final-mile ownership and independent assignment rules are recorded in this worksheet.
 - [x] Current inventory reservation boundary and the existing waybill/schedule/first-mile implementation boundary are recorded.
-- [x] Physical scan evidence, custody history, proof-of-delivery, failed-delivery, return, refund, and partial-fulfillment decisions are approved and copied into canonical documents.
-- [x] Every eventual endpoint has an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
-- [x] `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and affected domains/specs have been updated from the accepted decisions.
+- [x] Physical scan evidence, custody history, proof-of-delivery, failed-delivery, return, refund, and partial-fulfillment decisions are recorded in this guide; propagation into the affected canonical documents remains pending.
+- [x] The endpoint-ownership rule is recorded; each eventual endpoint still requires an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
+- [ ] `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and affected domains/specs have been updated from the accepted decisions.
 
 ## HOW
 
@@ -148,13 +149,12 @@ awaiting_seller_pickup
 ### Remaining cross-document decisions for a future owner
 
 - [x] Task cardinality: one Order/Parcel per DeliveryTask; schedules may group Orders but do not create a multi-parcel task.
-- [x] Scan/evidence authority: adopt the proposed split (Courier records Seller and hub handoff scans; Logistics records receipt/sort/dispatch scans; final-mile Courier records delivery/POD) and define mandatory evidence per event.
-- [x] Exception policy: define retry, reassignment, expiration, failed-delivery, return, refund, and post-pickup inventory transitions; no automatic post-pickup release is assumed.
-- [x] Courier route summary: decide which provider-neutral distance/ETA fields, if any, are safe before task acceptance; no map vendor is implied.
+- [x] Scan/evidence authority: the Courier scans the Order's waybill QR/reference in the app and submits the event/evidence; Logistics validates and records the authoritative event, preserving both the performing Courier and recording Logistics account. The QR/reference scan, Courier identity, and timestamp are the minimum evidence.
+- [x] Exception policy: returns, refunds, and partial fulfillment are deferred. A rejected Courier offer marks the task `rejected` without changing the Order; Logistics may offer the same task to another eligible Courier. An unfinished task becomes informationally `stale` and is not automatically cancelled or reassigned; no automatic post-pickup inventory release is assumed.
+- [x] Courier route summary: an authorized Courier may see provider-neutral `distance_km` and `estimated_duration_minutes` with the offered or accepted task; no map vendor or graphical route is implied.
 
 ### References
 
 - Canonical project documents: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/domains/Buyer.md`, `docs/domains/Logistics.md`, and `docs/domains/Courier.md`.
 - Existing order specs: `docs/features/orders/logistics-pickups/spec.md` and `docs/features/orders/waybill/spec.md`.
-- Owning role specs: Seller Prepare Orders, Logistics Dashboard/Deploy Rider, Courier pickup/delivery, Customer Order Status, and Customer Checkout.
-- Laravel references: [database transactions](https://laravel.com/framework/docs/12.x/database) and [queued work after database commit](https://laravel.com/framework/docs/12.x/queues).
+- Owning role specs: Seller Prepare Orders, Logistics Dashboard/Deploy Rider, Courier pickup/delivery, Customer Order Status, and Customer Checkout; Laravel references: [database transactions](https://laravel.com/framework/docs/12.x/database) and [queued work after database commit](https://laravel.com/framework/docs/12.x/queues).

@@ -77,4 +77,4 @@ Format:
 
 ## 2026-09-11
 
-- Revised the shared Shipment and Fulfillment document into an active cross-document decision and revision guide. It replaces ambiguous “approved elsewhere” language, directs synchronized updates to canonical requirements/workspace/schema/domain/spec files, and records the one-hub, one-Order/Parcel task, independent first-/final-mile assignment, status, inventory, and API-boundary decisions. Remaining scan/evidence and exception-policy decisions stay explicitly open; no runtime behavior or migration changed.
+- Revised the shared Shipment and Fulfillment document into an active cross-document decision and revision guide. It replaces ambiguous “approved elsewhere” language, directs synchronized updates to canonical requirements/workspace/schema/domain/spec files, and records the one-hub, one-Order/Parcel task, independent first-/final-mile assignment, status, inventory, scan/evidence authority, rejected-versus-stale task handling, deferred returns/refunds/partial fulfillment, and provider-neutral Courier distance/ETA decisions. Canonical-document propagation remains pending; no runtime behavior or migration changed.
