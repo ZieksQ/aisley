@@ -1,771 +1,200 @@
 ---
-role: Courier/Rider
-feature: Accept Delivery Requests
+role: Courier / Rider
+feature: courier-accept-delivery-requests
+title: Accept Delivery Requests
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
-scope: Flutter Courier Mobile Application / Delivery Task Acceptance
-source_coverage: Courier.md, Logistics.md, app.md
+version: 1.1
+status: First-mile read/accept API implemented; rejection/re-offer and operational schema deferred
+implementation_status: GET task list and POST accept are implemented; reject/re-offer is planned and unavailable
+canonical: true
+scope: External Flutter mobile client and Laravel Courier API
+backend_contract_commit: 5596fab
+backend_contract_version: courier-first-mile-accept-v1
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
-# Accept Delivery Requests Specification
-## 1. Purpose
-Accept Delivery Requests is AISLEY's Courier workflow for reviewing an available delivery task and accepting responsibility for it.
-`Courier.md` defines the Core Value as:
-```text
-Review Pickup and Delivery Details
-Accept Delivery Request
-```
-Its Expanded Definition describes a job-confirmation interface where the Courier can evaluate a request before taking it.
-Source-backed evaluation context includes:
-```text
-pickup location
-delivery location
-distance
-route
-package size
-```
-The source further states that acceptance:
-```text
-changes task status
-to ACCEPTED
 
-and assigns the task
-to the specific courier_id
-```
-This feature therefore owns the first explicit Courier-side commitment in the delivery lifecycle.
-A separate `flow.md` is required because the feature has a meaningful stateful sequence:
-```text
-available request
-→ review
-→ accept
-→ revalidate
-→ persist ACCEPTED / courier_id
-→ continue to pickup
-```
-## 2. Primary Actor
-Primary actor:
-```text
-COURIER / RIDER
-```
-The Courier uses the Flutter mobile application.
-## 3. Authentication
-Courier mobile authentication follows `app.md`:
-```text
-credentials + device_name
-→ /login
+# Accept Delivery Requests
 
-Laravel createToken()
-→ personal access token
+## WHAT
 
-Flutter:
-stores token in flutter_secure_storage
+- **Purpose:** Let a Courier review a Logistics-offered task and explicitly accept responsibility for one Order/Parcel leg.
+- **Actor:** The Courier uses the external Flutter application. This repository provides Laravel API endpoints only; no Courier web UI is built here.
+- **Current implementation:** `GET /api/v1/courier/first-mile-tasks` and `POST /api/v1/courier/first-mile-tasks/{task}/accept` exist for first-mile assigned/accepted tasks. Rejection, re-offer, final-mile tasks, and physical custody records are unavailable.
+- **Flow:** Seller confirms `ready_for_pickup` → Logistics creates/offers one first-mile task → Courier reviews → Courier accepts or rejects → accepted Courier proceeds to Pick Up Order.
+- **Task boundary:** One future Delivery Task represents exactly one Order/Parcel for one leg. First-mile and final-mile assignments are independent; first-mile completion never grants the final-mile task.
+- **Non-goals:** Logistics assignment authority, vehicle/zone CRUD, route optimization, QR scanning, physical pickup, hub processing, delivery, proof of delivery, returns, refunds, earnings, and chat.
 
-Requests:
-Authorization: Bearer <token>
-```
-Every acceptance request must resolve:
 ```text
-authenticated user_id
-+
-COURIER role
+Logistics offer
+→ Courier review
+→ explicit accept or reject
+→ accepted task / task-level rejected
+→ Pick Up Order or Logistics re-offer
 ```
-## 4. Identity Rule
-AISLEY account uniqueness is:
-```text
-unique(email, role)
+
+## MUST
+
+### Authentication and ownership
+
+- Require `auth:sanctum` and `courier.active`; Flutter sends `Authorization: Bearer <token>`.
+- Resolve the Courier from the bearer token. Never accept `courier_id`, role, organization, hub, task status, or assignment as client authority.
+- The account must be active, affiliated with the selected Logistics organization, and associated with its sole operational hub.
+- A same-email Customer, Seller, Logistics, or another Courier account cannot inherit access. Unknown or foreign task IDs fail closed.
+- The task and its Order/Parcel must belong to the authenticated Courier's authorized Logistics organization/hub at commit time.
+
+### Assignment and state authority
+
+- Logistics creates and offers/assigns the task. Courier acceptance confirms responsibility; it does not create a task or grant assignment authority.
+- Acceptance is required before physical handoff. An offer/assignment is not `seller_pickup_accepted`, `picked_up_from_seller`, `delivery_accepted`, or `picked_up_from_hub`.
+- First-mile states are `awaiting_seller_pickup` → `seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`.
+- Final-mile states are a separate leg: `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → transit and delivery states.
+- Generic Order `assigned` and `picked_up` values are broad projections, not acceptance actions. This feature must not write them directly.
+- The shared transition service is authoritative for state, actor, timestamp, task revision, and append-only history.
+
+### Review data and privacy
+
+- Before acceptance, return the task leg, safe pickup context, destination area, package/item summary, schedule, and server-provided approximate `distance_km` when available.
+- After acceptance, the owning task contract may reveal the exact street address and operational contact details required for pickup; do not expose more than necessary.
+- An authorized task projection may include provider-neutral `distance_km` and `estimated_duration_minutes`. They are advisory, server-calculated, and may be absent or explicitly unavailable.
+- Route metrics never decide eligibility, ownership, acceptance, or status. No specific routing vendor is required by this feature.
+- Exclude payment credentials, private registration/POD evidence, raw storage paths, unrestricted GPS history, and unrelated Customer/Seller data.
+- Package dimensions, vehicle compatibility, zone, capacity, and online availability are read from their owning Logistics features; do not duplicate their rules here.
+
+### Rejection, re-offer, and staleness
+
+- A deliberate Courier rejection records task-level `rejected`, the authenticated Courier, safe reason, and server time; it leaves the Order unchanged.
+- Logistics may re-offer the same task to another eligible Courier. Re-offer preserves the prior offer/rejection history and cannot create another Order, waybill, or merged task.
+- A rejection is not an Order-level `rejected` transition and does not release inventory by itself.
+- An unfinished offer may be displayed as informationally `stale`; staleness does not automatically cancel or reassign it in the MVP.
+- A Courier may not accept a task after it has been rejected, withdrawn, reassigned, or otherwise made unavailable; the API returns the current safe projection.
+
+### Accept action and reliability
+
+- Opening, scrolling, resolving, or viewing a task never accepts it. Flutter must require an explicit confirmation action.
+- At commit, revalidate task availability, Courier affiliation/status, sole-hub scope, current revision, and any hard eligibility supplied by owning features.
+- Accept under a transaction with row locking or an equivalent compare-and-update guard. The authenticated Courier is the only actor recorded.
+- Retrying an already successful accept returns the same accepted projection. A changed request or stale revision returns a conflict and never overwrites history.
+- Notification, push, or communication failure after acceptance or rejection does not roll back the committed task decision.
+- Offline acceptance is not allowed in the MVP; cached task data is reference-only and requires online revalidation.
+
+### Planned rejection contract
+
+- `POST /api/v1/courier/first-mile-tasks/{task}/reject` is planned and unavailable. It requires an approved Courier task, an allowed reason value, the expected task revision, and an idempotency key; exact reason values remain an open policy choice.
+- A successful future response will contain the same task reference, `status: rejected`, rejection actor/time, preserved offer history, and a safe next-action hint. It will not change the Order or waybill.
+
+## HOW
+
+### Endpoint contract
+
+- **Implemented** `GET /api/v1/courier/first-mile-tasks` — `auth:sanctum,courier.active`; optional `pickup_schedule_id` UUID and `per_page` 1–50; returns only the authenticated Courier's assigned/accepted first-mile tasks, ordered by `created_at,id`.
+- Its response contains `data[]` task ID, machine `status`, Order/waybill references, safe pickup details, destination area, and UTC schedule; `meta` contains `current_page`, `last_page`, and `total`. It is private Courier data and must not be shared-cached.
+- **Implemented** `POST /api/v1/courier/first-mile-tasks/{task}/accept` — same auth and server-derived scope; no client `courier_id` or status field; an empty JSON body is accepted; the response returns the committed task projection.
+- Accept is idempotent for the same Courier and returns `409` when the task is no longer acceptable. `401`, `403`, `404`, `409`, `422`, `429`, timeout, and server errors map to explicit Flutter states; a failed request never implies success.
+- **Planned/unavailable** rejection and re-offer endpoints must be labeled unavailable until the task-history schema and owning Courier/Logistics APIs are deployed. Flutter must not call conceptual paths.
+
+### Response and error details
+
+- The list response uses `data`, `meta`, and server-generated timestamps; absent operational sections are unavailable, never fabricated as an empty task.
+- A task projection contains only opaque `id`, machine `status`, `order.reference`, `waybill.reference`, pickup summary, destination area, and UTC schedule fields authorized for the Courier.
+- `GET` accepts no client ownership fields. Invalid `pickup_schedule_id` or `per_page` values return `422` field errors; the server still derives the Courier and organization.
+- A successful accept returns `data.id`, `data.status = accepted`, `data.order`, `data.waybill`, and the current task projection. It does not return a physical pickup timestamp.
+- `401` means signed out; `403` means wrong role, inactive account, revoked affiliation, or foreign organization; `404` hides an unknown task; `409` means stale/unavailable state.
+- `422` means malformed input or an invalid task action; `429` includes retry guidance; timeout/5xx are retryable reads or uncertain mutations and must be reconciled with a fresh GET.
+- Responses are private and use `Cache-Control: private, no-store` for task data; Flutter must clear cached projections after logout or authorization loss.
+
+```json
+{
+  "data": [{
+    "id": "task-uuid",
+    "status": "assigned",
+    "order": {"id": "order-uuid", "reference": "ORD-123"},
+    "waybill": {"reference": "WB-123"},
+    "destination_area": {"city_municipality": "Example", "province": "Example"},
+    "schedule": {"starts_at": "server-time", "ends_at": "server-time", "timezone": "UTC"}
+  }],
+  "meta": {"current_page": 1, "last_page": 1, "total": 1}
+}
 ```
-A same-email Buyer/Seller/Logistics account is a separate role-account.
-Acceptance must use the authenticated Courier `user_id`, not email.
-# Feature Responsibility
-## 5. Accept Delivery Requests Owns
-This feature owns:
-- opening an available delivery request
-- presenting pickup and delivery details
-- presenting route/distance context
-- presenting package-size context
-- letting the Courier explicitly accept
-- revalidating request availability at commit time
-- transitioning the delivery task to `ACCEPTED`
-- assigning `courier_id` according to the source model
-- preventing duplicate/conflicting acceptance
-- returning the newly accepted task state
-- handing off to Pick Up Order
-## 6. Does Not Own
-This feature does not own:
-- Logistics candidate ranking
-- Logistics Deploy Rider
-- parcel pickup confirmation
-- changing parcel/order state to `IN_TRANSIT`
-- navigation execution
-- Proof of Delivery
-- marking Order `DELIVERED`
-- delivery history
-- earnings calculation
-- chat persistence
-- incident reporting
-## 7. Core Boundary
-Acceptance means:
-```text
-Courier agrees to take the task
-```
-It does not mean:
-```text
-parcel has been physically picked up
-```
-# Source Request Review
-## 8. Pickup Details
-The Courier must be able to review the pickup location/context.
-Source-backed pickup origins elsewhere in `Courier.md` include:
-```text
-sorting center
-Seller location
-```
-## 9. Delivery Details
-The Courier must be able to review the delivery destination/details needed to evaluate the request.
-Only operationally necessary Buyer information should be exposed.
-## 10. Distance
-The source says the Courier can review:
-```text
-distance
-```
-before accepting.
-## 11. Route
-The source says the Courier can review:
-```text
-route
-```
-before accepting.
-## 12. Package Size
-The source says the Courier can review:
-```text
-package size
-```
-before accepting.
-## 13. No Invented Acceptance Criteria
-The source does not define:
-```text
-minimum earnings
-maximum route distance
-required vehicle class
-rating threshold
-acceptance score
-```
-Do not invent these as mandatory acceptance rules.
-# Logistics Handoff Ambiguity
-## 14. Logistics Source
-`Logistics.md` says Logistics may:
-```text
-manually assign tasks
-```
-or oversee automated dispatch.
-## 15. Courier Source
-`Courier.md` says Courier acceptance:
-```text
-changes task status to ACCEPTED
-and assigns task to courier_id
-```
-## 16. Ambiguity
-These descriptions do not fully define whether Logistics:
-```text
-offers a task
-```
-or:
-```text
-already assigns the task
-```
-before Courier acceptance.
-## 17. Recommended Model
-Recommended for consistency with `Courier.md`:
-```text
-Logistics dispatches/offers task
-→ Courier reviews request
-→ Courier accepts
-→ task = ACCEPTED
-→ courier_id finalized
-```
-This is a recommendation, not a finalized source rule.
-## 18. Alternative Model
-Possible alternative:
-```text
-Logistics assigns courier_id first
-→ Courier receives assigned task
-→ Courier acceptance confirms responsibility
-```
-If adopted, the source wording around `courier_id` assignment must be reconciled in the shared delivery-task model.
-# Request State
-## 19. Source-Backed Accepted State
-The explicit accepted state is:
-```text
-ACCEPTED
-```
-## 20. Pre-Acceptance State
-The source does not provide the exact state name for an available request.
-Possible conceptual states:
-```text
-AVAILABLE
-OFFERED
-PENDING
-```
-Open Decision.
-## 21. No Full Invented State Machine
-Do not create a large dispatch state enum from this source alone.
-The complete lifecycle spans:
-```text
-Logistics Deploy Rider
-Courier Accept Delivery Requests
-Pick Up Order
-Deliver Order
-Complete Delivery
-```
-# Request Availability
-## 22. Backend Authority
-The backend delivery-task/dispatch system is authoritative for whether a request is still available.
-## 23. Stale Request
-A request may become unavailable because:
-```text
-another Courier accepted it
-Logistics changed assignment
-order/task state changed
-```
-according to the final dispatch model.
-## 24. Revalidation
-At acceptance time, the backend must revalidate:
-```text
-task still available
-Courier still eligible
-Courier still authorized
-```
-## 25. No Client-Side Authority
-The mobile app must not decide availability from cached UI state alone.
-# Courier Eligibility
-## 26. Authorized Courier
-The authenticated Courier must be allowed to operate under the relevant Logistics organization.
-## 27. Online / Available
-`Logistics.md` defines Courier:
-```text
-Online / Available
-```
-via:
-```text
-Courier.is_online
-```
-Whether being online is strictly required at the exact acceptance transaction is not explicitly stated.
-Recommended:
-```text
-acceptance should require current operational availability
-```
-Open Decision.
-## 28. Zone Eligibility
-If Zone/Territory Mapping is implemented, the backend may already have filtered the request to eligible Couriers.
-Acceptance should not trust the client to assert zone eligibility.
-## 29. Vehicle Capacity
-If Vehicle Fleet Management is implemented, the backend may already have used capacity to filter the task.
-Acceptance should revalidate current hard eligibility where needed.
-## 30. GPS
-The source does not require live GPS to accept the task itself, only to support delivery/routing operations.
-Whether recent GPS is mandatory for acceptance is Open.
-# Route Integration
-## 31. Mapbox
-`app.md` explicitly selects:
-```text
-Mapbox Matrix and Optimization
-```
-for route optimization for:
-```text
-Logistics and Riders
-```
-## 32. Route Preview
-The request review may consume route/distance data generated from Mapbox.
-## 33. Mapbox Boundary
-Mapbox provides:
-```text
-route/distance/travel-time context
-```
-AISLEY decides:
-```text
-task availability
-Courier eligibility
-acceptance
-courier_id assignment
-```
-## 34. Provider Failure
-If route preview cannot load, acceptance behavior is not defined.
-Open Decision.
-Possible safe options:
-```text
-block acceptance
-allow acceptance with route unavailable
-retry route calculation
-```
-# Package Size Integration
-## 35. Source Requirement
-The Courier should be able to review:
-```text
-package size
-```
-## 36. Fleet Authority
-Vehicle Fleet Management owns:
-```text
-vehicle capacity
-```
-If size/capacity compatibility is a hard dispatch rule, the backend should have enforced it before acceptance.
-## 37. Missing Package Size
-Behavior is Open.
-Do not invent a default size.
-# Acceptance Action
-## 38. Explicit User Action
-Acceptance must require a deliberate Courier action.
-Recommended:
-```text
-Accept Delivery
-```
-button.
-## 39. Confirmation
-Because acceptance is consequential, a confirmation step is recommended.
-Example summary:
-```text
-Pickup
-Drop-off
-Distance
-Package
-```
-## 40. No Accidental Acceptance
-Opening or scrolling a request does not accept it.
-## 41. Double Tap Protection
-Repeated tap/network retry must not create duplicate acceptance events.
-# Atomicity
-## 42. Atomic Commit
-Recommended operation:
-```text
-validate current task state
-+
-validate Courier
-+
-set task = ACCEPTED
-+
-assign courier_id
-→ commit atomically
-```
-## 43. Conflict
-If another Courier wins first:
-```text
-reject acceptance
-→ return current authoritative state
-```
-## 44. Idempotency
-If the same Courier repeats the same acceptance request after success:
-```text
-return existing accepted state
-```
-or equivalent idempotent behavior.
-## 45. No Silent Substitution
-If acceptance fails:
-```text
-do not assign a different task
-```
-# Post-Acceptance Handoff
-## 46. Next Feature
-After successful acceptance:
-```text
-Accept Delivery Request
-→ Pick Up Order
-```
-## 47. Pickup Status
-Acceptance does not set:
-```text
-IN_TRANSIT
-```
-## 48. Pickup Confirmation
-`Courier.md` reserves physical handover confirmation for Pick Up Order.
-## 49. Dashboard Refresh
-After acceptance:
-```text
-available request
-→ removed from available queue
-→ appears as active/current task
-```
-according to Dashboard design.
-# Decline / Ignore
-## 50. Decline
-The source does not explicitly define:
-```text
-Decline Delivery Request
-```
-Open Decision.
-## 51. Ignore
-A Courier may potentially leave a request unaccepted.
-Behavior/expiry is Open.
-## 52. Offer Timeout
-Not defined.
-Open Decision.
-## 53. Acceptance Window
-Not defined.
-Open Decision.
-# API
-## 54. Request Detail
-Conceptual:
-```http
-GET /api/courier/delivery-requests/{taskId}
-```
-## 55. Accept
-Conceptual:
-```http
-POST /api/courier/delivery-requests/{taskId}/accept
-```
-No client-supplied `courier_id` should be authoritative.
-## 56. Response
-Recommended:
-```text
-task_id
-status = ACCEPTED
-courier_id
-accepted_at
-safe pickup/delivery summary
-```
-## 57. Decline Endpoint
-Only if decline is later specified:
-```http
-POST /api/courier/delivery-requests/{taskId}/decline
-```
-Not MVP-required by current source.
-# Authorization
-## 58. Bearer Token
-Every request requires a valid Courier Bearer token.
-## 59. Exact Role
-Backend verifies:
-```text
-role = COURIER
-```
-## 60. Request Visibility
-The Courier may accept only a request the backend has made available/authorized to them.
-## 61. IDOR
-Knowing:
-```text
-task_id
-order_id
-package_id
-```
-must not permit acceptance of an unauthorized task.
-## 62. Logistics Scope
-The request must belong to the Courier's permitted Logistics relationship.
-# Security and Privacy
-## 63. Buyer Information
-Before acceptance, reveal only the delivery information necessary to evaluate the task.
-Exact disclosure is Open.
-## 64. Seller Information
-Reveal only the pickup information necessary to evaluate the task.
-## 65. Payment Data
-Never expose Buyer payment credentials.
-## 66. Bearer Token
-Never expose/log the personal access token in responses or telemetry.
-## 67. Route Data
-Route data should not expose unrelated user locations.
-# Offline Behavior
-## 68. Offline Mode Boundary
-`Courier.md` defines Offline Mode separately.
-Acceptance changes assignment state and therefore normally requires current server coordination.
-## 69. Offline Acceptance
-Whether a request can be accepted offline is not source-defined.
-Recommended:
-```text
-acceptance requires connectivity
-```
-because request availability is highly concurrent.
-## 70. Cached Request
-A cached request must not be considered accept-able without server revalidation.
-# Realtime Behavior
-## 71. Dashboard Source
-Courier Dashboard uses:
-```text
-polling
-or
-WebSockets
-```
-to receive live request data.
-## 72. Acceptance Update
-After one Courier accepts, other Courier clients should eventually receive/refetch:
-```text
-request no longer available
-```
-## 73. No Realtime Authority
-Realtime events do not replace backend transaction checks.
-# Notifications
-## 74. In-App Result
-The accepting Courier should receive immediate in-app success/failure feedback.
-## 75. Logistics Visibility
-After acceptance, Logistics should be able to see the current accepted/assigned Courier state.
-Exact notification transport is Open.
-## 76. Email
-Brevo email is not required.
-## 77. Push
-No mobile Push provider is required for the acceptance transaction itself.
-# Logging / History
-## 78. Operational History
-Acceptance should preserve operational history sufficient to answer:
-```text
-which task
-which Courier
-when accepted
-previous state
-result
-```
-## 79. Actor
-The actor is the authenticated Courier.
-## 80. Admin Audit Boundary
-Do not duplicate every Courier acceptance into Admin System Audit Logs unless AISLEY later generalizes cross-role audit logging.
-# Performance
-## 81. Request Detail
-Request detail should load only necessary task/order/package relations.
-## 82. Route Preview
-If Mapbox is used, route requests should be bounded and cached where appropriate.
-## 83. Acceptance Latency
-Acceptance should use a direct, transactional backend path.
-Do not wait for unrelated external notifications before returning committed state.
-# UX
-## 84. Recommended Review Screen
-```text
-Delivery Request
-├── Pickup
-├── Drop-off
-├── Distance / Route
-├── Package Size
-└── Accept Delivery
-```
-## 85. Pickup
-Show a clear origin label:
-```text
-Seller Location
-Sorting Center
-```
-where applicable.
-## 86. Delivery
-Show safe destination context.
-## 87. Route
-Use map/route preview where available, but also show textual route/distance data.
-## 88. Package Size
-Show source-backed package-size information where available.
-## 89. Accept Button
-Use a clear primary action:
-```text
-Accept Delivery
-```
-## 90. Loading
-While acceptance is processing:
-```text
-disable duplicate submission
-show progress
-```
-## 91. Success
-On success:
-```text
-Delivery accepted
-→ navigate/show current task
-```
-## 92. Conflict
-Example:
-```text
-This request is no longer available.
-```
-## 93. Error
-Network/server failure should not claim success.
-## 94. Accessibility
-The mobile screen should:
-- support screen readers
-- provide large touch targets
-- expose pickup/delivery text
-- not rely on map/color alone
-- announce acceptance result
-# Third-Party Dependencies
-## 95. Core Acceptance
-No new third-party provider is required.
-Core uses:
-```text
-AISLEY backend
-delivery-task database
-Courier Bearer authentication
-```
-## 96. Mapbox
-Mapbox is an existing selected routing integration for route/distance preview.
-## 97. Brevo
-Not required.
-## 98. SMS / Push
-Not required for acceptance transaction.
-# MVP Scope
-## 99. Required
-- authenticated Courier access
-- exact Courier role authorization
-- request detail
-- pickup details
-- delivery details
-- distance/route context
-- package-size context
-- explicit Accept action
-- backend availability revalidation
-- backend Courier eligibility validation
-- atomic `ACCEPTED` mutation
-- `courier_id` assignment according to selected model
-- conflict handling
-- idempotency
-- Dashboard update/handoff
-- Pick Up Order handoff
-- Bearer-token security
-- PII minimization
-- loading/success/error/conflict states
-## 100. Recommended
-- confirmation step
-- route preview via Mapbox
-- accepted-at timestamp
-- operational acceptance history
-- current availability revalidation
-- Fleet/Zone hard-rule revalidation
-- immediate Dashboard reconciliation
-## 101. Not Required
-- decline action
-- timeout/expiry system
-- offline acceptance
-- email
-- SMS
-- Push
-- earnings preview
-- automatic pickup state
-- Proof of Delivery
-- arbitrary scoring formula
-- new third-party provider
-# Acceptance Criteria
-## 102. Access
-- Guest cannot open/accept Courier delivery requests.
-- Non-Courier token cannot accept.
-- Same-email other-role account does not inherit Courier access.
-- Acceptance uses authenticated Courier identity.
-## 103. Review
-- Courier can review pickup details.
-- Courier can review delivery details.
-- Courier can review distance/route context.
-- Courier can review package-size context.
-- Only necessary PII is exposed.
-## 104. Acceptance
-- Opening request does not accept it.
-- Explicit Accept action is required.
-- Backend revalidates request availability.
-- Backend revalidates Courier eligibility.
-- Successful acceptance changes task state to `ACCEPTED`.
-- Successful acceptance assigns `courier_id` according to the selected delivery-task model.
-- Acceptance does not mark parcel `IN_TRANSIT`.
-## 105. Concurrency
-- Two Couriers cannot both acquire the same exclusive request.
-- A stale request produces conflict/no acceptance.
-- Duplicate acceptance submissions are idempotent/safely constrained.
-## 106. Handoff
-- Accepted request leaves available queue.
-- Accepted task becomes current/active work.
-- Courier can continue to Pick Up Order.
-- Logistics can eventually observe accepted/assigned state.
-## 107. Security
-- Unauthorized task IDs cannot be accepted.
-- Cross-Logistics requests are denied.
-- Bearer token is protected.
-- Payment/security secrets are never exposed.
-## 108. Third-Party
-- Core acceptance works without new third-party service.
-- Mapbox may provide route context.
-- Brevo/SMS/Push are not required.
-# Tests
-## 109. Backend Tests
-Test:
-- missing/invalid token denied
-- Buyer/Seller/Logistics token denied
-- Courier token allowed
-- same-email role isolation
-- authorized request detail
-- unauthorized request denied
-- pickup/delivery data
-- route/distance data
-- package-size data
-- request still available
-- stale request
-- two-Courier concurrency
-- Courier eligibility revalidation
-- Zone/Fleet validation where enabled
-- successful `ACCEPTED`
-- correct `courier_id`
-- duplicate acceptance idempotency
-- accepted request removed from availability
-- no `IN_TRANSIT` mutation
-- safe PII
-- no token/payment-secret leakage
-## 110. Flutter Tests
-Test:
-- request detail screen
-- pickup summary
-- delivery summary
-- route/distance
-- package size
-- Accept button
-- confirmation if implemented
-- loading/disabled duplicate tap
-- success state
-- conflict state
-- network error
-- navigation to Pick Up Order
-- Dashboard reconciliation
-- accessibility labels
-- touch target size
-- usable textual route without map
-# Open Decisions
-## 111. Open Decisions
-The current sources do not define:
-1. exact pre-acceptance delivery-task state
-2. Logistics offer vs immediate assignment model
-3. exact meaning of `courier_id` before acceptance
-4. whether one request is exclusive to one Courier
-5. whether Courier must be `is_online = true` at acceptance
-6. whether recent GPS is required
-7. exact Zone/Fleet revalidation rules
-8. exact pickup fields
-9. exact delivery-address disclosure before acceptance
-10. distance metric
-11. route metric
-12. package-size representation
-13. Mapbox failure behavior
-14. acceptance confirmation UX
-15. request expiration
-16. acceptance window
-17. decline support
-18. ignore/timeout behavior
-19. multiple active-task support
-20. acceptance operational-history schema
-21. whether Logistics receives a realtime acceptance event
-22. offline acceptance policy
-23. exact API route names
-# Final Definition
-## 112. Final Definition
-AISLEY Accept Delivery Requests is:
-```text
-the Courier-side job confirmation workflow
-```
-where the Rider reviews:
-```text
-pickup
-delivery
-distance / route
-package size
-```
-then explicitly accepts the delivery task.
-Source-backed commit:
-```text
-accept
-→ task status = ACCEPTED
-→ courier_id assigned
-```
-Critical boundary:
-```text
-ACCEPTED
-≠
-IN_TRANSIT
-```
-Physical possession begins later in:
-```text
-Pick Up Order
-```
-Dispatch handoff remains an Open Decision because `Logistics.md` and `Courier.md` describe assignment timing differently.
+
+### Review and action states
+
+- The review screen must show the task leg, pickup origin, destination area, package/item summary, schedule, and advisory distance/ETA when supplied.
+- Before acceptance, exact street address and contact details remain hidden unless the owning task contract authorizes them; after acceptance, reveal only operationally necessary values.
+- The primary action is an explicit **Accept delivery** confirmation. Opening, scrolling, or resolving a waybill never accepts a task.
+- The rejection action is shown only when a future rejection endpoint is implemented. It requires a deliberate confirmation and an approved reason; it never appears to call a conceptual route.
+- On rejection, show `rejected`, reason, time, and “Logistics may offer this task again”; do not show the Order as rejected or cancelled.
+- A re-offered task returns as a new offer event for the same task ID. Preserve prior rejection history and display the current offer only when the server authorizes it.
+- An informational `stale` badge shows last server time and offers refresh; it never starts an automatic reassignment timer.
+
+### Assignment and eligibility details
+
+- Logistics owns candidate selection and task offering. Courier acceptance only confirms responsibility for the offered leg.
+- Revalidate active account, approved affiliation, sole-hub relationship, task revision, and task leg at the accept/reject commit.
+- Vehicle, zone, capacity, availability, and GPS freshness rules belong to their owning Logistics contracts. Missing advisory metrics are not an eligibility failure unless that owner says so.
+- First-mile acceptance leads to Pick Up Order; final-mile acceptance is a separate endpoint and task leg after hub dispatch.
+- A Courier may not accept two conflicting offers if the approved active-task limit is reached; return an authoritative conflict rather than silently dropping one.
+
+### History, notifications, and retention
+
+- Persist accepted/rejected/re-offered decisions as append-only task events with task, leg, Courier, Logistics organization, revision, reason, and server timestamp.
+- The Order, waybill, and inventory reservation are unchanged by acceptance or task rejection; physical pickup is recorded only by the later shared transition.
+- Queue assignment and decision notifications after commit. Delivery failure cannot undo acceptance, rejection, or re-offer and must be retried separately.
+- Do not duplicate every acceptance event into an unrelated Admin audit ledger unless a shared audit contract is approved.
+- Retain task/offer history according to the future Logistics operational retention policy; do not invent expiration or automatic reassignment.
+
+### Flutter contract tests
+
+- Parse nullable destination, route, and availability fields without converting missing values into zero or a false status.
+- Verify secure-token loading, logout invalidation, `401`/`403` mapping, `409` refresh, `422` field errors, throttling, timeout, and offline recovery.
+- Verify explicit acceptance confirmation, disabled duplicate taps, success navigation to Pick Up Order, and stale/rejected/re-offer copy.
+- Verify task IDs and machine statuses are preserved across pagination and refresh; never synthesize identity from labels.
+- Verify screen-reader labels, focus order, large touch targets, text alternatives to route/map context, and non-color-only status feedback.
+
+### Handoff and rollout
+
+- The available-task card may deep-link to this feature with only the opaque task ID; the server reloads the authoritative projection before accepting.
+- After a successful accept, refresh Dashboard and remove the task from the available list; the next action is Pick Up Order, not transit.
+- After a rejected offer, return to the Dashboard or wait for a server re-offer; do not locally create a replacement task.
+- Keep the current accept endpoint available while the additive rejection/history migration is rolled out; reject calls remain unavailable until that deployment is complete.
+- The Flutter copy must record `backend_contract_commit: 5596fab` and `backend_contract_version: courier-first-mile-accept-v1` beside its generated models.
+- Push or realtime delivery is only a refresh hint; the API response remains authoritative.
+
+### Backend implementation boundary
+
+- Current models persist first-mile assignment and acceptance only. Additive Shipment/Parcel/DeliveryTask, offer-history, rejection, evidence, and physical-transition migrations are prerequisites for the deferred behavior.
+- Use one shared assignment/transition service for tenant checks, revision locking, idempotency, actor history, and task-level exception states. Do not create a second state machine in Flutter.
+- Logistics remains the creator and re-offerer; Pick Up Order owns QR/evidence submission and Logistics validates/records physical pickup.
+- Any future final-mile acceptance must use the same Courier authorization rules but a separate task leg and owning endpoint.
+
+### Flutter handoff
+
+- Store the token only in OS secure storage and clear task snapshots on logout, denial, suspension, or invalid affiliation.
+- Map `401` to signed out, `403` to blocked/invalid affiliation, `404` to unavailable task, `409` to refresh/current state, `422` to validation, `429` to retry-after, and timeout/offline to retryable connectivity.
+- Screen states include checking session, loading, review, confirm, accepted, rejected, re-offer available, stale, unavailable, conflict, offline, and retryable failure.
+- Show machine states as human labels and retain the task leg. Do not infer physical pickup, final-mile assignment, or Order status locally.
+- Use accessible text, semantic labels, large touch targets, and non-color-only acceptance/rejection feedback. Route text remains usable without a map.
+
+### Tests, observability, and rollout
+
+- Test role/status/affiliation/sole-hub isolation, IDOR, safe pre/post-acceptance fields, task-leg separation, eligibility revalidation, stale revisions, duplicate accepts, rejection/re-offer history, and notification failure.
+- Test Flutter parsing, secure-token failure, loading/empty/stale/forbidden/offline/conflict states, disabled duplicate taps, and accessibility semantics.
+- Log correlation ID, task, Courier, Logistics organization/hub, leg, decision, revision, and timestamp; never log bearer tokens, private evidence, raw paths, or unrestricted GPS.
+- Keep rejection/re-offer unavailable until additive migrations, the shared transition service, and the Flutter contract are released together. Record API version `courier-first-mile-accept-v1` in the Flutter progress log.
+
+### Open decisions
+
+- Approve the bounded rejection reason vocabulary and whether a short note is retained.
+- Confirm hard versus advisory availability, vehicle, zone, and capacity checks at acceptance.
+- Confirm long-term task/offer-history retention; no automatic expiration or reassignment is assumed.
+
+### Acceptance criteria
+
+- [x] Authenticated Courier can list and explicitly accept its own assigned first-mile task through the implemented API.
+- [x] Acceptance is separate from physical pickup and does not directly write custody or generic Order status.
+- [ ] Courier can reject an offer with preserved reason/time and Logistics can re-offer the same task without changing the Order.
+- [ ] Stale unfinished offers are visible as informational state without automatic cancellation or reassignment.
+- [ ] Provider-neutral distance/ETA is advisory, server-derived, privacy-safe, and explicitly unavailable on calculation failure.
+- [ ] Concurrent/retried accepts, rejects, and re-offers cannot duplicate assignments or overwrite append-only history.
+
+**References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/features/orders/logistics-pickups/spec.md`, `docs/features/orders/waybill/spec.md`, `docs/features/courier/dashboard/specs.md`, and `docs/features/courier/pick-up-order/specs.md`.
