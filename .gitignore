@@ -13,3 +13,5 @@ coverage
 !/src/api/.env.example
 *.log
 
+# cabigan extra docs
+docs/cabigan/*
