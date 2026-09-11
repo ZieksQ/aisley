@@ -41,7 +41,7 @@ pending_payment
 
 Its current Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete and `picked_up` is the high-level projection of an explicit first-mile Courier confirmation from the Seller. `assigned` remains reserved for a later Logistics/final-mile assignment contract. The detailed `picked_up_from_seller` task event remains authoritative proof of custody.
 
-Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. The Customer's selected eligible Logistics organization is retained in the future fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
+Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. The Seller's selected eligible Logistics organization is retained in the future fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
 
 Detailed physical milestones belong to a separate Shipment/Delivery Task contract and must not be added to `orders.status` without an approved migration:
 
@@ -171,3 +171,5 @@ The current schema implements Logistics identity, organization, sole hub, Courie
 - `docs/workspace.md` — workflow and canonical status flow.
 - `docs/schema.md` — implemented foundation and deferred Shipment/Delivery Task vocabulary.
 - `docs/features/logistics/*/specs.md` — feature-specific implementation contracts.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.

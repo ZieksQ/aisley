@@ -115,7 +115,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - The Route Matrix free plan currently provides 3,000 credits/day; a 1×N matrix costs N baseline credits. Treat free capacity as a launch allowance, not an uptime guarantee.
 - Persist the distance value, unit, calculation time, coordinate fingerprints, mode, and provider status used for the recommendation; expire cached ranks when either address pin changes.
 - Do not send names, phone numbers, street lines, Order contents, or account IDs to the matrix API; only longitude/latitude pairs are needed.
-- Restore and approve the missing `docs/maps-location-api.md` before implementation; include Geoapify and OpenStreetMap attribution wherever distance is shown.
+- Follow the existing `docs/maps-location-api.md`; include Geoapify and OpenStreetMap attribution wherever distance is shown.
 - Sources: [Geoapify Route Matrix](https://apidocs.geoapify.com/docs/route-matrix/), [pricing](https://www.geoapify.com/pricing/), and [terms/attribution](https://www.geoapify.com/terms-and-conditions/).
 
 ### Interfaces and UI

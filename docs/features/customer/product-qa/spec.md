@@ -4,7 +4,7 @@ title: Customer Product Q&A
 system: AISLEY
 type: Feature Specification
 version: 1.2
-status: Implemented (Phase 1) — Customer public read/ask, owning Seller answer API, notifications, and Product Detail Q&A UI are implemented; Seller answer UI remains deferred
+status: Implemented (Phase 1) — Customer public read/ask, owning Seller answer API, notifications, and Product Detail Q&A UI are implemented; Seller answer UI is implemented under the Seller Product Q&A contract
 role: Customer
 scope: Customer storefront and owning Seller answer surface through the Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Buyer.md, docs/domains/Seller.md, docs/design.md
@@ -100,7 +100,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Concurrent/retried question and answer requests are idempotent and do not duplicate records or notifications.
 - [x] Notification delivery is after-commit and cannot reverse a committed Q&A decision.
 - [x] Customer Product Detail exposes accessible loading, empty, answered, validation, unauthorized, unavailable, pagination, and retry states.
-- [ ] A dedicated Seller answer-management UI is intentionally deferred until a Seller Q&A specification defines its surface; the Seller API contract is available now.
+- [x] The dedicated Seller queue/detail/answer UI is implemented and owned by `docs/features/seller/product-qa/spec.md`.
 - [x] Q&A remains separate from private Chat/Messaging and verified-purchase Reviews & Ratings.
 
 ## HOW

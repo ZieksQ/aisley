@@ -28,6 +28,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   ```
 - Creating, viewing, downloading, printing, or scanning a waybill does not itself change Order or custody status.
 - A Courier QR/reference scan is an ingress/access event, not a custody transition. Only the shared transition service may advance physical state after Logistics validates the submitted event/evidence.
+- The preceding validation rule is the accepted future scan contract. Current explicit Courier pickup confirmation already commits first-mile custody and Inventory after QR/manual verification; migrating it to Logistics validation must preserve existing confirmations and avoid duplicate effects.
 - MVP output is one A6 portrait PDF per Order; a bulk download may combine up to 30 A6 pages for one pickup request or schedule.
 - **Non-goals:** thermal-printer drivers, external carrier labels, parcel weight/dimensions, multiple parcels per Order, route mutation, status mutation by document generation, or public unauthenticated tracking.
 

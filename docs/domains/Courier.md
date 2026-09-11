@@ -234,7 +234,7 @@ Implemented foundation:
 
 Deferred until the shared shipment contract exists:
 
-- Physical Shipment/Parcel records, physical scan/custody events, final-mile delivery tasks/assignments, proof-of-delivery records, incidents, Courier availability/capacity, earnings, tips, metrics, and offline synchronization. Seller pickup requests, shared waybills, pickup schedules, and first-mile assignment/acceptance are implemented foundations; the accepted future contract adds Logistics-authoritative scan/evidence recording, task rejection/re-offer, informational staleness, and provider-neutral distance/ETA context. The complete shared schema must be approved and migrated additively before any physical Courier operational action is implemented.
+- Physical Shipment/Parcel records, physical scan/custody events, final-mile delivery tasks/assignments, proof-of-delivery records, incidents, Courier availability/capacity, earnings, tips, metrics, and offline synchronization. Seller pickup requests, shared waybills, pickup schedules, and first-mile assignment/acceptance are implemented foundations; the accepted future contract adds Logistics-authoritative scan/evidence recording, task rejection/re-offer, informational staleness, and provider-neutral distance/ETA context. Explicit first-mile QR/manual verification and Courier pickup confirmation, Inventory fulfillment, and schedule route manifests are already implemented. New Logistics-validated scan/custody, hub, and final-mile operations require the shared schema and additive migrations.
 
 Future status-like database columns must be stored as strings and cast to PHP enums. Future operational records must preserve the one-Logistics-organization/one-hub boundary and must not place detailed physical milestones directly in `orders.status` without an approved migration.
 
@@ -246,3 +246,5 @@ Future status-like database columns must be stored as strings and cast to PHP en
 - `docs/references/user-registration-requirements.md` — Courier registration fields and approval note.
 - `docs/references/file-upload-requirements.md` — evidence and proof upload policy.
 - `docs/features/courier/*/specs.md` — feature-specific implementation contracts.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.

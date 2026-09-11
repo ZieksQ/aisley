@@ -16,6 +16,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Let an authorized Logistics account validate operational evidence and commit an allowed Shipment/Delivery Task transition when scan automation needs recovery.
 - **Current implementation:** No physical Shipment/Parcel/Scan/Delivery Task tables or Update Status endpoint exists. The current waybill `resolve` action is an access event, not a physical scan or custody transition.
+- **Compatibility:** Existing explicit Courier first-mile confirmation already commits pickup and Inventory fulfillment without Logistics review. This future validation workflow must migrate that contract and preserve its history/effects without replay; the validation gate is not active yet.
 - **Authority:** Logistics validates and records the authoritative event. A Courier performs a physical scan/handoff and submits it; the shared transition service commits state only after validation.
 - **Flow:** Courier submits QR/reference/evidence → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
 - **Non-goals:** free-form status editing, assignment, Courier acceptance, waybill generation, address changes, proof-of-delivery bypass, returns/refunds, partial fulfillment, payment changes, subscription gating, and map-provider integration.
@@ -31,7 +32,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Canonical state contract
 
-- Keep high-level `OrderStatus` separate from detailed physical task states. Existing `assigned` broadly represents hub receipt and `picked_up` broadly represents final-mile hub pickup.
+- Keep high-level `OrderStatus` separate from detailed physical task states. `picked_up` projects first-mile Seller pickup; `assigned` is reserved for future final-mile assignment and never means hub receipt.
 - Detailed states use lowercase `snake_case`: `awaiting_seller_pickup`, `seller_pickup_assigned`, `seller_pickup_accepted`, `picked_up_from_seller`, `received_at_hub`, `sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, `delivery_assigned`, `delivery_accepted`, `picked_up_from_hub`, `in_transit`, `out_for_delivery`, and `delivered`.
 - Task-level `rejected` records an offered Courier's refusal without changing the Order; Logistics may re-offer the same task. Informational `stale` does not create an Order status and does not automatically cancel or reassign work.
 - Only the shared transition service may commit a state. No individual scanner, manual screen, or client may add source-only uppercase values or skip a required state.
@@ -40,7 +41,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - Seller owns `ready_for_pickup`; Courier actions submit first-mile `picked_up_from_seller` or final-mile `picked_up_from_hub` evidence.
 - Logistics owns validated hub milestones: `received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub`, plus final-mile task offering.
-- Customer-facing Order projections remain broad: `assigned` represents hub receipt and `picked_up` represents final-mile hub pickup. Detailed states belong to Shipment/Delivery Task records.
+- Customer-facing `picked_up` is backed by the first-mile confirmation; hub receipt and final-mile pickup require their own detailed Shipment/DeliveryTask events.
 - First-mile and final-mile assignments are independent. Update Status must not infer a second leg, acceptance, or pickup from a generic Order value.
 
 ### Courier scan and evidence authority

@@ -250,7 +250,7 @@ Implemented Seller foundation:
 
 Deferred or dependent Seller operations:
 
-- Seller order notification/queue implementation, Prepare Orders execution, provider selection, shared-waybill persistence, Shipment/Parcel/Scan/Delivery Task records, pickup scheduling/assignment, Logistics receipt/sorting/dispatch, Courier delivery, proof of delivery, delivery confirmation, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred. The owning-Seller Product Q&A queue/detail UI, answer API, and notifications are implemented; answer editing/history and moderation remain deferred by the Product Q&A contract.
+- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. Shared Shipment/Parcel/Scan/DeliveryTask records, Logistics receipt/sorting/dispatch, final-mile delivery, proof of delivery, delivery confirmation, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred. The owning-Seller Product Q&A queue/detail UI, answer API, and notifications are implemented; answer editing/history and moderation remain deferred by the Product Q&A contract.
 
 Future status-like columns must be stored as strings and cast to PHP enums. Future fulfillment migrations must preserve one Seller/one Shop tenancy, immutable Order snapshots, the shared high-level OrderStatus contract, and the separate Shipment/Delivery Task milestones.
 
@@ -263,3 +263,5 @@ Future status-like columns must be stored as strings and cast to PHP enums. Futu
 - `docs/references/file-upload-requirements.md` — registration, profile, gallery, and description-image policy.
 - `docs/references/seller-shop-catagories.md` — canonical Shop/Product Category taxonomy.
 - `docs/features/seller/*/spec.md` — feature-specific implementation contracts.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.

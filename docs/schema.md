@@ -1211,7 +1211,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 
 ## 13. Migration order
 
-Migrations currently run in this dependency order:
+Repository migrations are listed below in filename execution order; this inventory does not assert which migrations have been deployed in a particular environment:
 
 1. `0001_01_01_000000_create_users_table.php` — `users`, `password_reset_tokens`, `sessions`.
 2. `0001_01_01_000001_create_cache_table.php` — `cache`, `cache_locks`.
@@ -1255,24 +1255,38 @@ Migrations currently run in this dependency order:
 40. `2026_08_31_000131_create_seller_compliance_tables.php` — manual cases, immutable decisions, idempotent action keys, and active/revocable Product restrictions.
 41. `2026_09_02_000132_add_seller_product_authoring.php` — Seller product authoring asset metadata, temporary uploads, product descriptions, and Product retention fields.
 42. `2026_09_02_000133_add_product_gallery_defaults.php` — Seller-selected default Product gallery cover marker.
-43. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
-44. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
-45. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
-46. `2026_09_05_000001_create_logistics_foundation_tables.php` — Logistics personal profiles, one organization per Logistics account, and one sole operational hub per organization.
-47. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
-48. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
-49. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
-50. `2026_09_06_000004_create_seller_order_acceptances_table.php` — idempotent Seller Order acceptance history.
-51. `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php` — Seller rejection history and transitional grouped pickup requests.
-52. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
-53. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
-54. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
-55. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
-56. `2026_09_10_000011_create_product_qas_table.php` — Product-scoped Customer questions, one official Seller answer, actor-scoped idempotency keys, and public-read indexes.
-56. `2026_09_10_000010_create_courier_pickup_confirmations.php` — first-mile pickup timestamp plus immutable Courier-scoped confirmation, idempotency, transition, schedule-revision, and correlation history.
-57. `2026_09_10_000011_create_pickup_route_manifests.php` — maintained address-coordinate defaults and revision-scoped, immutable-history route manifest snapshots with metrics, grouped stops, GeoJSON, and failure state.
+43. `2026_09_02_000133_create_low_stock_alerts_table.php` — persistent SKU alert cycles and history.
+44. `2026_09_02_000134_add_soft_deletes_to_product_variants.php` — Soft deletion for Seller variants while retaining inventory and order history.
+45. `2026_09_02_000134_create_wishlist_items_table.php` — Customer-scoped unique Product saves.
+46. `2026_09_04_000135_add_customer_profile_photo_metadata.php` — configured-disk and validated image metadata for private Customer profile photos.
+47. `2026_09_05_000001_create_homepage_advertisement_configurations_table.php` — versioned homepage-advertisement configurations and assignments.
+48. `2026_09_05_000001_create_logistics_foundation_tables.php` — Logistics personal profiles, one organization per Logistics account, and one sole operational hub per organization.
+49. `2026_09_05_000002_create_courier_logistics_affiliations_table.php` — one Courier-to-Logistics organization/sole-hub affiliation with Logistics approval status and review attribution.
+50. `2026_09_05_000002_make_homepage_campaign_optional_fields_nullable.php` — optional legacy campaign copy and windows for advertisement authoring.
+51. `2026_09_05_000003_refine_homepage_advertisement_configuration.php` — internal advertisement tags, whole-layout scheduling, and persisted image filenames.
+52. `2026_09_06_000004_create_seller_order_acceptances_table.php` — idempotent Seller Order acceptance history.
+53. `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php` — Seller rejection history and transitional grouped pickup requests.
+54. `2026_09_08_000006_create_logistics_pickup_schedules_and_waybills.php` — selected-provider evidence, immutable shared waybills/snapshots/access events, pickup schedules/order links, first-mile assignments, revision history, and durable reminders.
+55. `2026_09_09_000007_add_pickup_addresses_to_seller_pickup_request_orders.php` — immutable Seller pickup-address snapshots and saved pickup-address references.
+56. `2026_09_10_000008_add_courier_profile_photo_metadata.php` — configured-disk and validated image metadata for private Courier profile photos.
+57. `2026_09_10_000009_create_customer_order_mutations.php` — versioned Order address snapshots, Customer cancellation/modification history, and Customer-scoped mutation idempotency records.
+58. `2026_09_10_000010_add_logistics_profile_photo_metadata.php` — private Logistics profile-photo storage metadata.
+59. `2026_09_10_000010_create_courier_pickup_confirmations.php` — first-mile pickup timestamp plus immutable Courier-scoped confirmation, idempotency, transition, schedule-revision, and correlation history.
+60. `2026_09_10_000011_create_pickup_route_manifests.php` — maintained address-coordinate defaults and revision-scoped, immutable-history route manifest snapshots with metrics, grouped stops, GeoJSON, and failure state.
+61. `2026_09_10_000011_create_product_qas_table.php` — Product-scoped Customer questions, one official Seller answer, actor-scoped idempotency keys, and public-read indexes.
 
 ## 14. Deferred schema
+
+### Accepted operational record design (not deployed)
+
+- One Order contains one physical Parcel and one Shipment in the MVP. Each Shipment belongs to that Parcel; first-mile and final-mile tasks reference the same immutable Order/Parcel/waybill identity. Re-offering never creates another Shipment or Parcel.
+- Each future DeliveryTask has a server-controlled `leg`: `first_mile` is Seller → owning organization's sole hub; `final_mile` is that hub → Customer. Each leg has independent offers/acceptance and may use a different eligible Courier.
+- Store offer, acceptance/rejection, re-offer, scan submission, evidence validation, and custody changes as append-only records. Current task/assignment state is a projection; closing an assignment cannot delete its history.
+- Preserve performing Courier and validating/recording Logistics actors with UTC timestamps. Restricted audit projections and role-safe Customer/Courier timelines may share history without sharing private payloads.
+- Scope future idempotency to actor, organization, task, action, and key; store request hash and original result. Identical retries replay that result; changed input conflicts. No duplicate inventory or notification effects are permitted.
+- Exact columns, foreign-key dependency order, package measurement units, backfill timing, and compatibility with existing first-mile confirmations must be specified before additive migrations. Existing migrations and immutable waybills must not be rewritten.
+
+### Deferred capabilities
 
 The following capabilities appear in requirements but have no migrations or models yet. Their names below are capability groupings, not approved table definitions.
 
@@ -1286,7 +1300,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
 | Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
-| Policy consent integration | User-facing consent presentation, acceptance endpoints, and login/application enforcement against the implemented version-specific acceptance schema                                         |
+| Policy consent integration | Status/acceptance APIs and role-owned web consent screens are implemented; only global login/session/protected-action enforcement remains deferred |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 
 Before adding these tables:
@@ -1303,3 +1317,5 @@ Before adding these tables:
 - keep COD placement at `placed` with `payment_status = pending`; retain `pending_payment` for a future online-payment path;
 - ensure every Seller-owned resource resolves to a shop for tenant isolation; and
 - update this document and `docs/PROGRESS.md` in the same change as the migrations.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.
