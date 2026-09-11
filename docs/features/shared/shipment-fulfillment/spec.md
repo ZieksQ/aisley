@@ -100,7 +100,6 @@ awaiting_seller_pickup
 → picked_up_from_seller
 → received_at_hub
 → sorted_at_hub
-→ in_transfer
 → dispatched_from_hub
 → delivery_assigned
 → delivery_accepted
@@ -152,14 +151,39 @@ awaiting_seller_pickup
 - [x] High-level `picked_up`/`assigned` mapping is consistent everywhere: first-mile projection versus future final-mile assignment.
 - [x] Seller/Buyer domain summaries and Seller Prepare Orders distinguish the implemented pickup/waybill/scheduling/first-mile foundation from deferred physical operations.
 - [x] `docs/schema.md` migration ledger includes every repository migration, uses unique documentation sequence numbers, and describes only the global policy-consent gate as deferred.
-- [x] Complete propagation of detailed schema columns/constraints, per-transition evidence/side effects, endpoint payloads, and the first-mile compatibility rollout into all owning specs. The selection, status, implementation summaries, and migration-ledger corrections are complete; this broader implementation gate remains open.
+- [ ] Complete propagation of detailed schema columns/constraints, per-transition evidence/side effects, endpoint payloads, and the first-mile compatibility rollout into all owning specs. The selection, status, implementation summaries, migration-ledger corrections, and shared migration plan are documented; this broader implementation gate remains open.
+
+### MVP re-offer, expiry, and internal transfer rules
+
+- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
+- Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
+- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
+
+### First-mile migration bridge (planned; no runtime change)
+
+The dependency-ordered table/constraint design, shared service ownership, deployment health gate, and stock-effect guards are specified in `docs/schema.md`, section 14. This is a documentation plan, not an implemented schema or a passing verification result. Courier Complete Delivery, Delivery History, and Seller Confirm Delivery now describe the target Logistics-validated final-mile outcome; their implementation criteria remain unchecked.
+
+1. Deploy additive operational tables and a one-to-one mapping from each legacy `first_mile_tasks.id` to the new DeliveryTask UUID. Retain legacy tables, IDs, enum values, QR hashes, waybill snapshots, and idempotency results.
+2. Backfill one Parcel and Shipment per existing pickup Order/waybill, without changing Order status or inventory. Enforce unique Order/waybill and legacy-task links so a rerun resumes safely.
+3. For an existing `courier_pickup_confirmations` row, import an immutable custody event with its original Courier, pickup time, correlation ID, and a unique source-confirmation reference. Mark its provenance `legacy_confirmation`; do not fabricate a Logistics validator or validation timestamp.
+4. Reconcile the imported pickup with its existing Order status event and Inventory fulfillment movements. Existing movement keys use `courier-pickup-{legacy_task_id}-{inventory_balance_id}`. Link these exact effects; importing history never calls `FulfillOrderReservation`.
+5. Missing/contradictory confirmations, status events, quantities, or movements fail the migration verification for that Order. Report them for repair; do not invent evidence, reset balances, or silently mark the import successful.
+6. Pause first-mile writes for final catch-up and reconciliation, then switch new evidence submissions to the Logistics-validation service. Existing accepted but unpicked tasks migrate as accepted, with no custody or Inventory effect.
+7. Preserve the old pickup endpoint's exact replay behavior for already-committed keys after normal authorization. For a new pickup attempt after cutover, return `409 PICKUP_VALIDATION_REQUIRED` with the new implemented submission contract; never return an old-style pickup success for merely pending evidence.
+8. New Courier submissions store evidence and notify Logistics after commit. Only the owning Logistics validation transaction can append pickup custody, project `orders.status = picked_up`, and consume the reservation once.
+9. Use one Order-level fulfillment-effect guard plus per-SKU movement uniqueness across legacy/new task IDs. Lock schedule/task/Order and balances in a consistent documented order; a retry or overlapping legacy/new request must not deduct stock twice.
+10. Once new operational writes exist, rollback means disabling those writes while retaining tables/history. Do not reopen the old direct-confirmation writer or destructively roll back custody tables. Resume through a corrected forward deployment.
+
+The bridge implementation must test concurrent confirmation during cutover, resumable backfill, legacy replay, accepted-unpicked tasks, inconsistent legacy records, cross-organization IDs, and unchanged stock/history checksums. Route availability stays disabled until these checks pass on SQLite and PostgreSQL.
 
 ### Remaining technical details
 
 - [x] Define exact Shipment/Parcel foreign keys, uniqueness, nullability, package measurement units/limits (or explicitly defer measurements), and creation/backfill timing in `docs/schema.md`.
 - [x] Define the compatibility rollout from `first_mile_tasks`/`courier_pickup_confirmations` to shared tasks and Logistics validation without creating duplicate custody or Inventory effects.
 - [x] Specify whether `in_transfer` is an internal sole-hub step and when it may be skipped; no inter-hub transfer is authorized.
-- [x] Define re-offer transition from rejected state, any offer expiry window, and stale threshold without automatic task cancellation/reassignment.
+- [x] Define re-offer transition from rejected state and defer automatic expiry. A concrete stale-display threshold remains owned by the Dashboard contract; until configured, expose the last activity timestamp rather than inventing a stale deadline.
 - [x] Complete every transition's preconditions, evidence, transactional effects, retry projection, and conflict response in the owning API contract before exposing it.
 
 ### Implementation-readiness worksheet
@@ -218,7 +242,7 @@ Complete each unchecked question before creating physical operational migrations
   - `seller_pickup_assigned → rejected`: The Courier rejects the offer with a reason; the Order and custody state remain unchanged. Logistics may re-offer the same task.
   - `seller_pickup_accepted → picked_up_from_seller`: The Courier scans/submits the waybill evidence; Logistics validates it and the transition service commits the first-mile handoff and approved inventory effect once.
   - `picked_up_from_seller → received_at_hub`: Logistics validates receipt at its sole hub.
-  - `received_at_hub → sorted_at_hub → in_transfer → dispatched_from_hub`: Logistics performs and records these hub transitions.
+  - `received_at_hub → sorted_at_hub → dispatched_from_hub`: Logistics records these sole-hub transitions. Internal transfer execution is deferred; no synthetic `in_transfer` event is required.
   - `dispatched_from_hub → delivery_assigned`: Logistics creates/offers the independent final-mile task.
   - `delivery_assigned → delivery_accepted`: The assigned affiliated Courier accepts the offer.
   - `delivery_accepted → picked_up_from_hub`: The Courier scans/submits handoff evidence; Logistics validates and records the hub pickup.
@@ -274,7 +298,7 @@ Complete each unchecked question before creating physical operational migrations
 - Complete the unchecked readiness questions above, record the rationale here, and propagate accepted rules into every affected canonical document before writing code. Keep those edits explicit and reviewable; do not leave a checked decision only in this guide.
 - Add only additive migrations for approved Shipment, Parcel, DeliveryTask, assignment, Scan, custody, and proof records. Never edit an executed migration or add native PostgreSQL enum columns.
 - Implement transitions through a shared service with transactions, row locks/optimistic revisions, server-derived ownership, idempotency keys, and append-only history.
-- Dispatch notifications and audit/outbox work after commit so provider failures cannot roll back state. Laravel supports after-commit queued work for this boundary.
+- Persist immutable audit events and durable notification/outbox work in the state transaction; dispatch external delivery after commit so provider failures cannot roll back state.
 - Keep Customer projections read-only and role-specific; keep Logistics UI in its dashboard and Courier UI in the external Flutter project.
 - Test every approved transition on SQLite and PostgreSQL, including IDOR, stale/concurrent requests, retries, invalid sequence, tenant isolation, inventory boundaries, and notification failure.
 - Roll out schema and transition contracts before enabling physical custody actions; do not expose a conceptual endpoint as working API.

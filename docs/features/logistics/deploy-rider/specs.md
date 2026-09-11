@@ -39,12 +39,14 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Status and leg boundary
 
 - First-mile task states are `awaiting_seller_pickup` → `seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`.
-- Hub states are recorded by Logistics: `received_at_hub` → `sorted_at_hub` → `in_transfer` → `dispatched_from_hub`.
+- Hub states are recorded by Logistics: `received_at_hub` → `sorted_at_hub` → `dispatched_from_hub`. Internal transfer execution is deferred; no dummy transfer is required.
 - Final-mile task states are `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → `in_transit` → `out_for_delivery` → `delivered`.
 - `assigned` and `picked_up` remain broad Order projections; Deploy Rider must not replace them with detailed task states or write them directly.
 - A Courier's acceptance is a separate Courier-owned action. First-mile completion does not grant or require final-mile assignment.
 
 ### Candidate data and route context
+
+- Automatic offer expiry is deferred; offers have no MVP expiry deadline. Re-offer after rejection appends a new offer on the same task and restores the leg-specific offered state, without changing custody or the Order.
 
 - Candidate discovery is limited to active Couriers affiliated with this Logistics organization and eligible for the task. Availability, capacity, zone, and vehicle rules are consumed from their owning features rather than duplicated here.
 - Pickup and destination come from immutable Seller/Customer snapshots and the task's authorized hub context; Deploy Rider cannot edit either address.

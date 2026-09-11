@@ -40,11 +40,13 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Transition ownership
 
 - Seller owns `ready_for_pickup`; Courier actions submit first-mile `picked_up_from_seller` or final-mile `picked_up_from_hub` evidence.
-- Logistics owns validated hub milestones: `received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub`, plus final-mile task offering.
+- Logistics owns validated hub milestones: `received_at_hub`, `sorted_at_hub`, and `dispatched_from_hub`, plus final-mile task offering. Internal `in_transfer` execution is deferred; dispatch requires sorting.
 - Customer-facing `picked_up` is backed by the first-mile confirmation; hub receipt and final-mile pickup require their own detailed Shipment/DeliveryTask events.
 - First-mile and final-mile assignments are independent. Update Status must not infer a second leg, acceptance, or pickup from a generic Order value.
 
 ### Courier scan and evidence authority
+
+- Final delivery requires Courier completion intent and validated proof under Courier Complete Delivery; the shared service atomically records task/Shipment/Order `delivered`. Manual recovery cannot bypass either requirement.
 
 - A Courier scans the Order's shared waybill QR/reference in the mobile app and submits the event/evidence to Logistics. The Courier does not directly write authoritative custody state.
 - Logistics validates the parcel/waybill link, task leg, current state, sole-hub scope, Courier authorization, evidence requirements, and idempotency key before recording the event.
@@ -122,7 +124,8 @@ The web client may refresh after a conflict or validation failure, but it must n
 ### Rollout boundary
 
 - Keep these endpoints unavailable until the shared operational migrations and transition service are deployed.
-- Enable scan submission, Logistics validation, and manual recovery together so evidence cannot be accepted without history.
+- Follow the dependency-ordered schema/service plan and legacy first-mile bridge in `docs/schema.md`. Preserve confirmations, replay results, and stock effects; new pickups cannot use the old direct-confirmation bypass after cutover.
+- Enable submission and validation together only after bridge reconciliation and SQLite/PostgreSQL checks pass. Manual recovery remains limited to transitions with an implemented evidence contract.
 
 ### References
 

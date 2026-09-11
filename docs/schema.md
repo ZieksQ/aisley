@@ -189,7 +189,6 @@ seller_pickup_accepted
 picked_up_from_seller
 received_at_hub
 sorted_at_hub
-in_transfer
 dispatched_from_hub
 delivery_assigned
 delivery_accepted
@@ -1284,7 +1283,55 @@ Repository migrations are listed below in filename execution order; this invento
 - Store offer, acceptance/rejection, re-offer, scan submission, evidence validation, and custody changes as append-only records. Current task/assignment state is a projection; closing an assignment cannot delete its history.
 - Preserve performing Courier and validating/recording Logistics actors with UTC timestamps. Restricted audit projections and role-safe Customer/Courier timelines may share history without sharing private payloads.
 - Scope future idempotency to actor, organization, task, action, and key; store request hash and original result. Identical retries replay that result; changed input conflicts. No duplicate inventory or notification effects are permitted.
-- Exact columns, foreign-key dependency order, package measurement units, backfill timing, and compatibility with existing first-mile confirmations must be specified before additive migrations. Existing migrations and immutable waybills must not be rewritten.
+- The additive dependency plan below defines the operational foundation and bridge. Existing migrations and immutable waybills must not be rewritten. Endpoint-specific payloads and mandatory proof combinations still require their owning contract before activation.
+
+### Additive migration and service plan (not implemented)
+
+All proposed application records use UUID primary/foreign keys, UTC timestamps, and string-backed enum fields with PHP casts. Names below are planned tables, not deployed API resources. Create parent tables before child foreign keys; add optional current-record pointers only after both tables exist.
+
+| Order | Planned records | Required identity, constraints, and purpose |
+| --- | --- | --- |
+| 1 | `parcels` | Unique `order_id` and existing waybill reference; immutable parcel UUID/reference and item/quantity snapshot. Preserve pickup/destination snapshots from the waybill. Optional measurements use decimal kilograms/centimeters; unknown values remain null, never invented from item count. |
+| 2 | `shipments` | Unique `parcel_id`, immutable reference, owning Logistics organization/sole-hub FKs, current physical state and revision. Order identity resolves through Parcel. |
+| 3 | `delivery_tasks` | Shipment FK, required `leg`, task state/revision; unique `(shipment_id, leg)` for one task per leg. Re-offering reuses this row. |
+| 4 | `delivery_task_offers` | Task/Courier/Logistics actor FKs and unique task offer sequence. Immutable offer and acceptance/rejection events; current offer projection is locked through the task. No MVP expiry deadline. |
+| 5 | `shipment_evidence` and validation events | Task/offer/waybill references, Courier, server submission/performance-observation timestamps, safe scan reference, request correlation; append-only Logistics decision with reason/time. Optional private media metadata inherits the shared upload policy. Legacy provenance permits absent Logistics validation without fabricating one. |
+| 6 | Completion intents and operational events | Intent links final-mile task/evidence/Courier. Append-only transition/custody records link Shipment/task/offer/evidence, before/after states, performing/validating/recording actors and server time. Unique successful milestone identity prevents repeated pickup/delivery effects. Proof-of-delivery uses evidence records, not a second public blob store. |
+| 7 | Idempotency, effect guards, and durable notification work | Unique `(organization_id, actor_id, task_id, action, key)` plus request hash/original status/body. One fulfillment-effect guard per Order, links to exact per-balance inventory movements, and unique event/recipient/type notification work. Preserve existing notification infrastructure. |
+| 8 | Legacy mapping and supporting indexes | Unique old first-mile task/new task mapping and source-confirmation/event mapping. Add scoped state/queue, Courier/leg, history timestamp/UUID, and evidence-review indexes; run the resumable bridge below before activation. |
+
+- FK existence alone is insufficient: validate Order/Parcel/waybill/provider/hub/Courier consistency transactionally; use composite uniqueness/FKs where supported consistently on both test databases.
+- Protect history from update/delete through the persistence layer and restricted write paths; test enforcement rather than assuming UUIDs or timestamps make rows immutable.
+- Planned `FulfillmentTransitionService` owns authorization, allowed transitions, evidence decisions, revisions, idempotency, history, inventory effects, and durable notification work. Reuse `OrderTransitionService` for approved high-level projections; controllers never bypass it.
+- Lock in one order across writers: legacy schedule where applicable → Shipment → task/current offer → Order → evidence/intent → inventory balances in deterministic key order. Recheck authorization/state after locks. Bridge cutover removes the old competing writer before enabling new custody writes.
+- Matching idempotent requests replay their stored status/body after authorization; changed payloads or stale/conflicting revisions return `409` without duplicate effects. External network delivery occurs only after commit.
+- Deploy additive tables first with physical routes disabled. Backfill/reconcile legacy records, run SQLite and PostgreSQL verification, and then enable evidence submission plus Logistics validation together. A schema-health check must verify required tables, columns, constraints, and bridge completion, not just database connectivity.
+- Feature activation is an explicit deployment gate, not a client flag. Disabled routes remain unavailable; a deployed controller encountering missing schema fails closed with a safe `503`, no writes, and operational diagnostics.
+- New final-mile delivery atomically commits task/Shipment/Order `delivered`, one event, and notification work after Logistics validates proof and Courier intent. It performs no additional Inventory fulfillment or payment mutation.
+- Record deployment/migration identities, bridge counts, stock reconciliation, and test results before declaring readiness. This plan neither creates migrations nor asserts that tests have passed.
+
+### MVP re-offer, expiry, and internal transfer rules
+
+- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
+- Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
+- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
+
+### First-mile migration bridge (planned; no runtime change)
+
+1. Deploy additive operational tables and a one-to-one mapping from each legacy `first_mile_tasks.id` to the new DeliveryTask UUID. Retain legacy tables, IDs, enum values, QR hashes, waybill snapshots, and idempotency results.
+2. Backfill one Parcel and Shipment per existing pickup Order/waybill, without changing Order status or inventory. Enforce unique Order/waybill and legacy-task links so a rerun resumes safely.
+3. For an existing `courier_pickup_confirmations` row, import an immutable custody event with its original Courier, pickup time, correlation ID, and a unique source-confirmation reference. Mark its provenance `legacy_confirmation`; do not fabricate a Logistics validator or validation timestamp.
+4. Reconcile the imported pickup with its existing Order status event and Inventory fulfillment movements. Existing movement keys use `courier-pickup-{legacy_task_id}-{inventory_balance_id}`. Link these exact effects; importing history never calls `FulfillOrderReservation`.
+5. Missing/contradictory confirmations, status events, quantities, or movements fail the migration verification for that Order. Report them for repair; do not invent evidence, reset balances, or silently mark the import successful.
+6. Pause first-mile writes for final catch-up and reconciliation, then switch new evidence submissions to the Logistics-validation service. Existing accepted but unpicked tasks migrate as accepted, with no custody or Inventory effect.
+7. Preserve the old pickup endpoint's exact replay behavior for already-committed keys after normal authorization. For a new pickup attempt after cutover, return `409 PICKUP_VALIDATION_REQUIRED` with the new implemented submission contract; never return an old-style pickup success for merely pending evidence.
+8. New Courier submissions store evidence and notify Logistics after commit. Only the owning Logistics validation transaction can append pickup custody, project `orders.status = picked_up`, and consume the reservation once.
+9. Use one Order-level fulfillment-effect guard plus per-SKU movement uniqueness across legacy/new task IDs. Lock schedule/task/Order and balances in a consistent documented order; a retry or overlapping legacy/new request must not deduct stock twice.
+10. Once new operational writes exist, rollback means disabling those writes while retaining tables/history. Do not reopen the old direct-confirmation writer or destructively roll back custody tables. Resume through a corrected forward deployment.
+
+The bridge implementation must test concurrent confirmation during cutover, resumable backfill, legacy replay, accepted-unpicked tasks, inconsistent legacy records, cross-organization IDs, and unchanged stock/history checksums. Route availability stays disabled until these checks pass on SQLite and PostgreSQL.
 
 ### Deferred capabilities
 

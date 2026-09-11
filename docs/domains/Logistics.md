@@ -52,7 +52,6 @@ awaiting_seller_pickup
 → picked_up_from_seller
 → received_at_hub
 → sorted_at_hub
-→ in_transfer
 → dispatched_from_hub
 → delivery_assigned
 → delivery_accepted
@@ -66,6 +65,8 @@ Task-level `rejected` records an offered Courier's refusal and is not an `OrderS
 
 ## Physical delivery flow
 
+Internal `in_transfer` execution and automatic offer expiry are deferred. Sorting is required before dispatch; no synthetic transfer event or extra hub is introduced.
+
 ```text
 Customer places the Order
 → Seller processes and prepares it
@@ -77,12 +78,12 @@ Customer places the Order
 → Logistics receives and validates it (`received_at_hub`)
 → Logistics views/scans the Seller-created shared waybill through the immutable Order/Parcel reference
 → Logistics sorts it (`sorted_at_hub`)
-→ Logistics transfers and dispatches it (`in_transfer` → `dispatched_from_hub`)
+→ Logistics dispatches the sorted parcel (`dispatched_from_hub`)
 → Logistics assigns a final-mile Courier (`delivery_assigned`)
 → final-mile Courier accepts (`delivery_accepted`)
 → Courier picks up from the hub (`picked_up_from_hub`)
 → Courier travels and delivers (`in_transit` → `out_for_delivery`)
-→ Courier completes delivery (`delivered`)
+→ Courier submits completion intent/proof; Logistics validates and the shared service commits `delivered`
 ```
 
 The first-mile and final-mile movements are separate task legs, even if the same Courier performs both. Each future Delivery Task represents one Order/Parcel for one leg; a pickup schedule may group Orders but never merge their tasks, waybills, snapshots, or histories. Each handoff requires its own assignment, actor, timestamp, location, and scan/event record. If an offered Courier rejects either leg, the task records task-level `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned in the MVP. The MVP has no alternate hub or sub-hub branch.
@@ -108,7 +109,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 ### 3. Update Status
 
 - **Core value:** Recover a valid parcel state when scanning automation fails.
-- **Definition:** Allow authorized Logistics personnel to validate Courier-submitted scans/evidence or perform validated manual transitions such as `received_at_hub`, `sorted_at_hub`, `in_transfer`, or `dispatched_from_hub` when operational evidence exists.
+- **Definition:** Allow authorized Logistics personnel to validate Courier-submitted scans/evidence or perform validated manual transitions such as `received_at_hub`, `sorted_at_hub`, or `dispatched_from_hub` when operational evidence exists. Internal `in_transfer` execution remains deferred in the MVP.
 - **System context:** A shared backend transition service validates current state, sole-hub ownership, actor authority, idempotency, and immutable history. Logistics is the authoritative recorder of the event while preserving the Courier who performed the physical action, when applicable. This is not free-form editing and must not fabricate a Courier pickup or proof of delivery.
 
 ### 4. Chat/Messaging

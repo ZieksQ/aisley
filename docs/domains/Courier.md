@@ -68,7 +68,6 @@ awaiting_seller_pickup
 → picked_up_from_seller
 → received_at_hub
 → sorted_at_hub
-→ in_transfer
 → dispatched_from_hub
 → delivery_assigned
 → delivery_accepted
@@ -83,7 +82,7 @@ Courier-performed task actions and transitions are:
 - **First mile:** `seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`.
 - **Final mile:** `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → `in_transit` → `out_for_delivery` → `delivered`.
 
-`received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub` are Logistics-side milestones. Courier physical actions are submitted for Logistics validation; the shared transition service commits the state after the authoritative event is recorded. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history.
+`received_at_hub`, `sorted_at_hub`, and `dispatched_from_hub` are Logistics-side milestones. Courier physical actions are submitted for Logistics validation; the shared transition service commits the state after the authoritative event is recorded. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history. Internal `in_transfer` execution remains deferred in the MVP.
 
 Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; this payment detail is read-only to Couriers. The Seller-selected Logistics organization owns both task legs, and a Courier may operate only assigned/offered tasks within that organization.
 

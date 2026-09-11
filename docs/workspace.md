@@ -356,7 +356,7 @@ Manually entering its QR/reference value.
 
 A successful operation shall submit an event to the shared transition service, which validates the current Shipment/Delivery Task state and commits the associated detailed state and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
 
-For the MVP, transfer does not mean movement between multiple hubs. It represents a controlled Logistics handoff or movement within the sole operational hub workflow and must use an explicit state such as `in_transfer`.
+Internal transfer execution is deferred in the one-hub MVP. The operational path requires receipt, sorting, and dispatch without an `in_transfer` event; no inter-hub movement is authorized.
 
 8.7 Dispatch
 
@@ -624,7 +624,7 @@ Logistics resolves the Seller-created shared waybill through its immutable Order
 ↓
 Logistics sorts the parcel (`sorted_at_hub`)
 ↓
-Logistics transfers and dispatches the parcel (`in_transfer` → `dispatched_from_hub`)
+Logistics dispatches the sorted parcel (`dispatched_from_hub`)
 ↓
 Logistics assigns a final-mile Courier (`delivery_assigned`)
 ↓
@@ -634,7 +634,7 @@ Courier picks the parcel up from the hub (`picked_up_from_hub`)
 ↓
 Courier transports and delivers the parcel (`in_transit` → `out_for_delivery`)
 ↓
-Courier submits proof of delivery and completes the task (`delivered`)
+Courier submits completion intent/proof; Logistics validates and the shared service commits `delivered`
 ↓
 Buyer may rate/review
 
@@ -674,7 +674,6 @@ seller_pickup_accepted
 picked_up_from_seller
 received_at_hub
 sorted_at_hub
-in_transfer
 dispatched_from_hub
 delivery_assigned
 delivery_accepted
@@ -700,16 +699,24 @@ These transitions describe the target operational contract. Today's first-mile t
 | --- | --- | --- |
 | `awaiting_seller_pickup → seller_pickup_assigned` | Owning Logistics offers a task after readiness and provider/hub checks | Existing scheduling implements the first-mile foundation; shared task migration pending |
 | `seller_pickup_assigned → seller_pickup_accepted` | Affiliated Courier accepts its own offer | Existing acceptance foundation; shared task migration pending |
-| Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task with a new offer record; Order unchanged | Deferred; exact re-offer/expiry states pending |
+| Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Contract defined below; endpoint implementation deferred |
 | `seller_pickup_accepted → picked_up_from_seller` | Target: Logistics validates Courier evidence before committing handoff/Inventory once | Direct Courier confirmation implemented; validation migration pending |
 | `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Deferred |
-| `received_at_hub → sorted_at_hub → in_transfer → dispatched_from_hub` | Owning Logistics records internal hub operations; no additional hub | Deferred; transfer requirement/skip rule pending |
+| `received_at_hub → sorted_at_hub → dispatched_from_hub` | Owning Logistics records receipt, sorting, and dispatch at its sole hub | Contract defined; internal transfer execution deferred |
 | `dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics offers an independent final-mile task; affiliated Courier accepts | Deferred |
 | `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Deferred |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the approved transition contract | Deferred |
 | `out_for_delivery → delivered` | Courier supplies proof; Logistics validates; server commits delivery | Deferred |
 
 Each future transition requires tenant/role checks, locked current state, immutable events, idempotent result replay, and a conflict on incompatible concurrent changes. Notifications follow commit. Owning endpoint specs must supply exact request/response/evidence and transaction effects before implementation. Returns, refunds, partial fulfillment, and post-pickup cancellation remain deferred; unfinished tasks may be informationally stale without automatic reassignment.
+
+### MVP re-offer, expiry, and internal transfer rules
+
+- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
+- Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
+- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
 
 11.3 Status History
 
