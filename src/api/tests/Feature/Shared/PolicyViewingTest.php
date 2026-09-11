@@ -8,6 +8,7 @@ use App\Models\AdminProfile;
 use App\Models\Permission;
 use App\Models\PlatformPolicy;
 use App\Models\User;
+use App\Http\Middleware\Policy\EnsurePolicyConsent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -69,6 +70,9 @@ class PolicyViewingTest extends TestCase
 
     private function adminWithSettingsPermissions(): User
     {
+        // Public policy read/history assertions create their own policy
+        // versions; protected-consent enforcement is covered separately.
+        $this->withoutMiddleware(EnsurePolicyConsent::class);
         $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
         AdminProfile::create(['user_id' => $admin->id, 'first_name' => 'Avery', 'last_name' => 'Admin']);
         foreach (['platform-settings.view', 'platform-settings.manage'] as $slug) {

@@ -132,6 +132,41 @@ class PolicyConsentTest extends TestCase
         $this->assertDatabaseCount('policy_acceptances', 2);
     }
 
+    public function test_protected_actions_require_consent_but_the_consent_flow_remains_available(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $policies = $this->publishSharedPolicies($admin);
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/admin/dashboard')
+            ->assertForbidden()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('code', 'POLICY_CONSENT_REQUIRED')
+            ->assertJsonPath('data.status_url', '/api/v1/policy-consent/status')
+            ->assertJsonPath('data.required_policies.0.type', 'terms_of_service')
+            ->assertJsonPath('data.required_policies.0.version', 1)
+            ->assertJsonPath('data.required_policies.0.read_url', '/api/v1/platform/policies/terms_of_service')
+            ->assertJsonPath('data.required_policies.0.accept_url', '/api/v1/policy-consent/terms_of_service/versions/1/accept');
+
+        $this->getJson('/api/v1/policy-consent/status')
+            ->assertOk()
+            ->assertJsonPath('data.all_required_accepted', false);
+
+        $this->postJson('/api/v1/policy-consent/terms_of_service/versions/1/accept', ['confirmation' => true])
+            ->assertOk();
+        $this->postJson('/api/v1/policy-consent/privacy_policy/versions/1/accept', ['confirmation' => true])
+            ->assertOk();
+
+        $this->getJson('/api/v1/admin/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.generated_at', fn ($value) => is_string($value));
+
+        $this->assertDatabaseHas('policy_acceptances', [
+            'user_id' => $admin->id,
+            'platform_policy_version_id' => $policies['terms_of_service']->current_version_id,
+        ]);
+    }
+
     public function test_inactive_accounts_cannot_use_consent(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);

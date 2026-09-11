@@ -51,6 +51,7 @@ register → pending User/Application/Shop/evidence
 ### Login, session, and recovery
 
 - Require `auth:sanctum` and the active Seller middleware for `/me`, logout, and every protected Seller endpoint. Pending, rejected, suspended, and deactivated accounts are denied at the API.
+- Protected Seller endpoints additionally require current shared Terms of Service and Privacy Policy consent. The Seller `/me`, logout, policy status, and policy acceptance routes remain available to complete consent.
 - Use first-party Sanctum cookie/session authentication: obtain CSRF, send credentialed cookies/XSRF, regenerate the session after login, and invalidate/regenerate it on logout.
 - Login resolves the Seller role-account, verifies the Laravel hash, checks active status, and returns a safe Seller DTO. Unknown email, wrong password, and another-role-only email use the same credential error.
 - Rate-limit login and reset requests. Forgot-password responses do not reveal account existence; reset tokens are hashed, expiring, single-use, and role-scoped.

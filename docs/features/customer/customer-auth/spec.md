@@ -56,6 +56,7 @@ register profile + credentials
 - A valid password for `pending`, `rejected`, `suspended`, or another inactive state returns `403` with the stable account-state code and never issues a credential.
 - Active web login uses the first-party Sanctum session: initialize CSRF, authenticate on the web guard, regenerate the session, and return a safe navigation DTO. If `device_name` is supplied, issue a scoped personal access token for the external mobile consumer instead of a web session.
 - `/me` and logout require `auth:sanctum` plus `customer.active`; middleware verifies persisted role and status on every protected request. Logout invalidates the current web session or deletes the current personal access token.
+- After the active Customer check, protected Customer APIs require current shared Terms of Service and Privacy Policy consent. `/me`, logout, policy status, and policy acceptance remain reachable so the Customer can complete consent.
 - Forgot-password is generic and rate-limited. Reset tokens are hashed, Customer-role scoped, expiring, single-use, and revoke personal access tokens after a successful reset.
 
 ### Safety, privacy, and acceptance

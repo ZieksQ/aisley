@@ -3,8 +3,8 @@ feature: manage-platform-settings
 title: Admin Manage Platform Settings
 system: AISLEY
 type: Feature Specification
-version: 1.3
-status: Implemented (Phase 2) — shared policy-consent status/acceptance is implemented; global enforcement remains deferred
+version: 1.4
+status: Implemented (Phase 3) — shared policy-consent status/acceptance and protected-action enforcement are implemented
 role: Admin
 scope: Admin Web Application and public policy API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Admin.md, docs/features/admin/content-customization/spec.md
@@ -117,7 +117,7 @@ POST  /policy-versions/{version}/publish
 - [x] Administrative mutations create safe audit entries and invalidate relevant caches after commit.
 - [x] The shared Terms/Privacy matrix requires initial acceptance for all five account roles while Internal Rules remain outside the shared flow.
 - [x] A version-specific acceptance API/UI is implemented by the shared Policy Viewing and Consent feature with explicit confirmation, authorization, idempotent retries, and safe error states.
-- [ ] Registration/login/session/protected-action integration enforces missing required consent without blocking policy viewing or acceptance; the exact blocking trigger remains an auth-owner decision.
+- [x] Protected-action integration enforces missing required consent without blocking login, session restoration, policy viewing, or acceptance. The shared policy middleware returns `403 POLICY_CONSENT_REQUIRED` with required version descriptors.
 
 ## HOW
 
@@ -127,18 +127,17 @@ POST  /policy-versions/{version}/publish
 - Keep existing Draft-only update and publish paths, but update the Admin page so Published Edit creates/opens a successor Draft. Do not change a Published version through `PATCH`.
 - Current public current/history resources and routes already enforce policy-type visibility and exclude Draft/Admin data. Cache only current Published policy payloads. Do not add consent fields to public history DTOs.
 - Reuse the shared `PolicyConsentService`, `PolicyConsentController`, and `policy.actor` middleware for status/acceptance. Use the existing `policy_acceptances` table with a transaction and unique user/version guard; do not add duplicate Platform Settings endpoints.
-- Add one reusable consent-status projection for future auth/session and protected-route consumers. Keep a user able to fetch/read the required policy and submit acceptance before applying a gate.
+- Reuse the shared consent-status projection in `policy.consent` protected route groups. Keep login/session bootstrap, logout, policy status, and acceptance outside the gate so users can fetch/read the required policy and submit acceptance.
 - Test Laravel authorization, allow-listing, immutable source, copied successor data, single-current invariant, stale revision conflicts, history visibility, exact acceptance, cache invalidation, and audit records.
-- Test the Admin UI’s successor-edit flow, Draft/publish states, conflict recovery, latest-only user view, history selection, and keyboard/error accessibility. Shared consent API/role-screen tests cover exact acceptance and safe error states; future gate tests belong to the owning auth features.
-- Roll out consent only after the user-facing policy/consent integration identifies who may see Internal Rules, which versions require acceptance, and where missing consent blocks access.
+- Test the Admin UI’s successor-edit flow, Draft/publish states, conflict recovery, latest-only user view, history selection, keyboard/error accessibility, and the protected dashboard/API redirect when consent is missing. Shared consent API/role-screen tests cover exact acceptance, gate details, and safe error states.
+- The protected-action gate is authoritative at the API boundary. SPA guards mirror it for navigation; the external Courier Flutter client consumes the same `403 POLICY_CONSENT_REQUIRED` contract.
 
 ### Open questions
 
 - Are Terms and Privacy public, authenticated-only, or role-specific?
 - Should a successor Draft be returned or rejected when another Admin already created one?
-- Should a published `requires_reconsent` version block at registration, login/session restoration, protected-action entry, or multiple points?
-- Should missing consent be checked at registration completion, login/session restoration, protected-feature entry, or more than one point? Should a second Admin approve publication?
-- Which auth/registration feature adds the future gate while reusing the shared acceptance contract?
+- **Resolved:** A published `requires_reconsent` version blocks protected-action entry after authentication; registration, login/session restoration, logout, status, and acceptance remain available.
+- **Resolved:** All role protected API groups apply the shared `policy.consent` middleware after role/status/affiliation checks. Each dashboard route guard checks status and routes missing consent to its role-owned screen.
 - What user-facing change-summary format and policy notification channel are desired?
 
 ### Sources

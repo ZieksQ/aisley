@@ -64,6 +64,7 @@ multipart register
 - Stable inactive codes are `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_INACTIVE`; do not reveal unrelated role/account state.
 - Reset tokens are hashed, Logistics-role scoped, expiring, single-use, and removed after success. Successful reset revokes personal access tokens without changing approval status.
 - `GET /me` and `POST /logout` require `auth:sanctum` plus `logistics.active`; every protected Logistics endpoint repeats role/status checks at the API boundary.
+- Protected Logistics endpoints additionally require current shared Terms of Service and Privacy Policy consent. `/me`, logout, policy status, and policy acceptance remain reachable so the organization account can complete consent.
 
 ### API contract and acceptance
 

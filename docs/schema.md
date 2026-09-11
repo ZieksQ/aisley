@@ -1070,7 +1070,7 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 `platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, an optional user-safe change summary, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Nullable unique `source_policy_version_id` records the published version copied into a successor Draft and prevents competing successor copies for the same source. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
 
-`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. The shared policy-consent service exposes user-specific status and exact-version acceptance over private API routes; login/session/protected-action enforcement remains a separate integration decision.
+`policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. The shared policy-consent service exposes user-specific status and exact-version acceptance over private API routes. The `policy.consent` middleware gates protected role APIs after the existing Sanctum/role/affiliation checks and leaves login, session bootstrap, logout, status, and acceptance reachable.
 
 ### 9.17 Seller pickup, shared waybill, and first-mile scheduling
 
@@ -1347,7 +1347,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Reviews                    | Verified-purchase ratings, review media, and Seller responses                                                                                                                                |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
 | Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
-| Policy consent integration | Status/acceptance APIs and role-owned web consent screens are implemented; only global login/session/protected-action enforcement remains deferred |
+| Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 
 Before adding these tables:
