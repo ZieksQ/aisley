@@ -63,7 +63,7 @@ scope: Seller Web Application
 - [x] Description assets are Product-owned, canonical, bounded, and rendered with `react-markdown`/`remark-gfm` without raw HTML.
 - [x] Product gallery and inline description images use separate asset lifecycles and safe visibility rules.
 - [x] Inventory, Admin compliance, Buyer storefront, and historical Order boundaries are not bypassed.
-- [ ] Purchased-order queue/packing, shared waybills, pickup scheduling, and delivery transitions are implemented in their owning features.
+- [x] Purchased-order queue/packing, shared waybills, pickup scheduling, and delivery transitions are implemented in their owning features.
 
 ## HOW
 

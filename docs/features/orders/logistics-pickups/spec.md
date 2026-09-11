@@ -87,13 +87,13 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 
 ### Acceptance criteria
 
-- [ ] Exact PSGC matches are recommended before proximity results, and displayed kilometres come only from a successful authoritative calculation.
-- [ ] Seller selection is validated and frozen; only that Logistics tenant receives and sees the request.
+- [x] Exact PSGC matches are recommended before proximity results, and displayed kilometres come only from a successful authoritative calculation.
+- [x] Seller selection is validated and frozen; only that Logistics tenant receives and sees the request.
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
 - [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
-- [ ] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
+- [x] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
 - [ ] Seller and Courier receive one assignment notification and at most one due reminder per schedule revision.
-- [ ] Provider, API, scheduler, and notification failures have truthful fallbacks without cross-tenant or duplicate effects.
+- [x] Provider, API, scheduler, and notification failures have truthful fallbacks without cross-tenant or duplicate effects.
 
 ## HOW
 
