@@ -2,7 +2,7 @@
 model: Seller
 type: Domain Context
 purpose: Shared Seller workflow and implementation context
-version: 1.2
+version: 1.3
 status: Revised — aligned with the approved order/Logistics flow and implemented catalog/inventory foundation
 ---
 
@@ -67,7 +67,6 @@ pending_payment
 → placed
 → seller_processing
 → ready_for_pickup
-→ assigned
 → picked_up
 → in_transit
 → out_for_delivery
@@ -104,7 +103,7 @@ The Seller does not write Logistics/Courier states. After `ready_for_pickup`, a 
 
 The Seller selects one eligible Logistics organization when requesting pickup. The API recommends exact city/province/country matches before Geoapify road-distance ranking, revalidates eligibility at commit, and freezes the selection. Seller cannot create a first-mile task or assign a Courier.
 
-For the high-level order projection, `assigned` means Logistics has received and accepted the Seller-ready parcel at its sole hub, while `picked_up` means the final-mile Courier has taken the parcel from that hub. Neither value represents the first-mile Seller pickup by itself.
+For the high-level Order projection, an explicit first-mile Courier confirmation advances `ready_for_pickup → picked_up`; the detailed `picked_up_from_seller` task event remains authoritative proof of that handoff. `assigned` remains reserved for a later Logistics/final-mile assignment contract and is not written by scheduling.
 
 ## Physical fulfillment flow
 
@@ -117,7 +116,7 @@ Customer places an Order (`placed`)
 → Aisley creates the immutable shared waybill and confirms `ready_for_pickup`
 → Seller prints and attaches the waybill
 → selected Logistics organization creates and offers the first-mile task to an eligible Courier
-→ first-mile Courier accepts and picks up from Seller (`picked_up_from_seller`)
+→ first-mile Courier accepts and confirms pickup from Seller (`picked_up_from_seller`; Order `picked_up`)
 → Courier transfers the parcel to Logistics' sole hub
 → Logistics receives the parcel (`received_at_hub`) using the same shared waybill reference
 → Logistics sorts, transfers, and dispatches it

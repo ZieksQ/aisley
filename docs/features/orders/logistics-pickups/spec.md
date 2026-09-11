@@ -3,7 +3,7 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
@@ -71,6 +71,7 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 - Store `starts_at` and `ends_at` in UTC, require `starts_at < ends_at`, reject past windows, and display in Asia/Manila unless the account later gains a timezone setting.
 - Lock selected Orders/request links and recheck schedule capacity and Courier conflicts before commit; return `409` for stale or competing assignment.
 - Create a first-mile task per Order under one schedule; assignment does not imply `seller_pickup_accepted` or `picked_up_from_seller`.
+- After task acceptance, a valid explicit Courier pickup confirmation advances that parcel task to `picked_up_from_seller` and its Order from `ready_for_pickup` to `picked_up`; scanning or typing an identifier alone remains read-only.
 - Retrying the same Logistics idempotency key returns the committed schedule; it must not duplicate tasks or notifications.
 - Editing or cancelling a future schedule requires an expected revision, reason, append-only history, and fresh notifications; it cannot silently overwrite custody history.
 - Open question: whether Courier acceptance is mandatory or only an acknowledgement before the pickup window; retain the existing accepted state until that mobile policy is approved.

@@ -135,6 +135,15 @@ export interface PickupConfirmationResponse {
   }
 }
 
+export interface WaybillResolveResponse {
+  data: {
+    waybill_reference: string
+    order_reference: string
+    task: FirstMileTask
+    matched: true
+  }
+}
+
 export interface PickupRouteStop {
   sequence: number
   node_id: string

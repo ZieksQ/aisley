@@ -3,7 +3,7 @@ import { Button, TextField } from '@aisley/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from './lib/api'
 import { PickupRouteMap } from './PickupRouteMap'
-import type { FirstMileTask, FirstMileTaskListResponse, PickupConfirmationResponse } from './types'
+import type { FirstMileTask, FirstMileTaskListResponse, PickupConfirmationResponse, WaybillResolveResponse } from './types'
 
 type IdentifierType = 'qr' | 'order_id'
 
@@ -136,24 +136,56 @@ export function PickupOrders({ token }: { token: string }) {
 
   async function confirmPickup() {
     if (!selected || !identifier.trim()) return
-    const payload = { identifier_type: identifierType, identifier: identifier.trim() }
-    const signature = JSON.stringify({ task: selected.id, ...payload })
-    if (retryRef.current?.signature !== signature) {
-      retryRef.current = { signature, key: crypto.randomUUID() }
+    const normalizedIdentifier = identifier.trim()
+    let target = selected
+
+    if (identifierType === 'order_id') {
+      const matchedTask = tasks.find((task) => task.schedule.id === selected.schedule.id
+        && task.order.reference.toLocaleUpperCase() === normalizedIdentifier.toLocaleUpperCase())
+      if (!matchedTask) {
+        setError('No parcel in this pickup schedule matches that Order reference.')
+
+        return
+      }
+      target = matchedTask
     }
+
+    const payload = { identifier_type: identifierType, identifier: identifier.trim() }
     setBusy('pickup')
     setError(null)
     try {
+      if (identifierType === 'qr') {
+        const resolved = await request<WaybillResolveResponse>(
+          '/api/v1/courier/waybills/resolve',
+          { method: 'POST', body: JSON.stringify({ payload: normalizedIdentifier }) },
+          token,
+        )
+        if (resolved.data.task.schedule.id !== selected.schedule.id) {
+          throw new Error('That waybill belongs to another pickup schedule. Open that schedule before confirming it.')
+        }
+        target = resolved.data.task
+        setTasks((current) => current.map((task) => task.id === target.id ? target : task))
+      }
+
+      setSelectedId(target.id)
+      if (target.status !== 'accepted') {
+        throw new Error('Accept the matched parcel task before confirming pickup.')
+      }
+
+      const signature = JSON.stringify({ task: target.id, ...payload })
+      if (retryRef.current?.signature !== signature) {
+        retryRef.current = { signature, key: crypto.randomUUID() }
+      }
       const response = await request<PickupConfirmationResponse>(
-        `/api/v1/courier/first-mile-tasks/${selected.id}/pickup`,
+        `/api/v1/courier/first-mile-tasks/${target.id}/pickup`,
         { method: 'POST', headers: { 'Idempotency-Key': retryRef.current.key }, body: JSON.stringify(payload) },
         token,
       )
       setConfirmation(response.data)
-      setTasks((current) => current.map((task) => task.id === selected.id
+      setTasks((current) => current.map((task) => task.id === target.id
         ? { ...task, status: 'picked_up_from_seller', picked_up_at: response.data.picked_up_at }
         : task))
-      setNotice('Pickup recorded by the server. The next step is Logistics parcel receipt (not implemented here).')
+      setNotice('Pickup recorded. The parcel task and Order status were updated by the server.')
     } catch (caught) {
       setError(messageFrom(caught))
     } finally {
@@ -244,7 +276,7 @@ export function PickupOrders({ token }: { token: string }) {
               {confirmation ? (
                 <div className="pickup-success" role="status">
                   <strong>Pickup confirmed</strong>
-                  <span>{formatManila(confirmation.picked_up_at)} PHT · Order remains {confirmation.order_status.replaceAll('_', ' ')}</span>
+                  <span>{formatManila(confirmation.picked_up_at)} PHT · Order is {confirmation.order_status.replaceAll('_', ' ')}</span>
                   <span>Next: Logistics receipt — N/A in this feature.</span>
                 </div>
               ) : null}

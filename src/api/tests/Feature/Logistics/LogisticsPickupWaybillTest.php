@@ -31,6 +31,7 @@ use App\Models\ShopCategory;
 use App\Models\User;
 use App\Services\Logistics\BuildPickupRouteManifest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -315,7 +316,7 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonValidationErrors('order_ids');
     }
 
-    public function test_courier_confirms_qr_and_manual_pickups_idempotently_without_changing_order_status(): void
+    public function test_courier_confirms_qr_and_manual_pickups_idempotently_and_changes_order_status(): void
     {
         [$seller, $shop] = $this->sellerShop();
         $manualOrder = $this->order($shop);
@@ -365,7 +366,7 @@ class LogisticsPickupWaybillTest extends TestCase
             ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", $manualPayload)
             ->assertOk()
             ->assertJsonPath('data.task_status', 'picked_up_from_seller')
-            ->assertJsonPath('data.order_status', 'ready_for_pickup')
+            ->assertJsonPath('data.order_status', 'picked_up')
             ->assertJsonPath('data.idempotent', false)
             ->assertJsonPath('data.next_step', 'logistics_receipt');
         $this->withHeader('Idempotency-Key', $manualKey)
@@ -390,7 +391,9 @@ class LogisticsPickupWaybillTest extends TestCase
             ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
                 'identifier_type' => 'qr',
                 'identifier' => 'AISLEY:WB:1:'.$qrReference,
-            ])->assertOk()->assertJsonPath('data.task_status', 'picked_up_from_seller');
+            ])->assertOk()
+            ->assertJsonPath('data.task_status', 'picked_up_from_seller')
+            ->assertJsonPath('data.order_status', 'picked_up');
 
         $this->assertDatabaseCount('courier_pickup_confirmations', 2);
         $this->assertDatabaseHas('courier_pickup_confirmations', [
@@ -399,8 +402,21 @@ class LogisticsPickupWaybillTest extends TestCase
             'new_status' => 'picked_up_from_seller',
             'schedule_revision' => 1,
         ]);
-        $this->assertSame(OrderStatus::ReadyForPickup, $manualOrder->fresh()->status);
-        $this->assertSame(OrderStatus::ReadyForPickup, $qrOrder->fresh()->status);
+        $this->assertSame(OrderStatus::PickedUp, $manualOrder->fresh()->status);
+        $this->assertSame(OrderStatus::PickedUp, $qrOrder->fresh()->status);
+        $this->assertSame(2, DB::table('order_status_events')->where('source', 'courier_first_mile_pickup')->count());
+        $this->assertDatabaseHas('order_status_events', [
+            'order_id' => $manualOrder->id,
+            'from_status' => 'ready_for_pickup',
+            'to_status' => 'picked_up',
+            'source' => 'courier_first_mile_pickup',
+        ]);
+        $this->assertDatabaseHas('order_status_events', [
+            'order_id' => $qrOrder->id,
+            'from_status' => 'ready_for_pickup',
+            'to_status' => 'picked_up',
+            'source' => 'courier_first_mile_pickup',
+        ]);
         $this->assertSame(0, (int) InventoryBalance::query()->sum('reserved'));
         $this->assertSame(18, (int) InventoryBalance::query()->sum('on_hand'));
         $this->assertDatabaseCount('inventory_movements', 4);

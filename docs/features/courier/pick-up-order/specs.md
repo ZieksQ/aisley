@@ -3,7 +3,7 @@ role: Courier/Rider
 feature: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.3
+version: 2.4
 status: Implemented Phase 2 pickup and Courier route-manifest flow
 implementation_status: Courier API and development web harness implemented; Flutter and Logistics dashboard map planned
 canonical: false
@@ -23,7 +23,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Actors:** Seller prepares Orders; Logistics selects one approved Courier and a pickup window; Courier performs the mobile pickup; the API remains authoritative for ownership and state.
 - **Scope:** Courier task receipt, schedule/address/order details, route-manifest consumption, QR/manual identifier verification, and first-mile pickup confirmation.
 - **Mobile boundary:** Production Courier screens, secure token storage, offline decoding, and device accessibility belong to the external Flutter app. `src/couriermockup` is a development-only React harness for verifying the same bearer-token API, camera/manual input states, and handoff behavior in a browser; it is not a deployable Courier web application.
-- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation records immutable idempotency/history data, sets `picked_up_from_seller`, and fulfills the Order's Inventory reservation without changing the high-level Order status. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier.
+- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation resolves the identifier to its matching parcel in the open schedule, records immutable idempotency/history data, sets the task to `picked_up_from_seller`, advances the Order to `picked_up`, and fulfills the Order's Inventory reservation atomically. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier.
 - **Not implemented yet:** The production Flutter screens, Courier notification read/push endpoint, turn-by-turn navigation, and the Logistics dashboard companion map.
 
 ### Scheduled bulk-pickup flow
@@ -37,6 +37,7 @@ Seller packs Orders and requests one Logistics provider
 → Courier scans the waybill QR or enters the displayed Order ID/reference
 → API validates the match and Courier explicitly confirms physical pickup
 → task = picked_up_from_seller
+→ Order = picked_up
 → Logistics receives the parcels (N/A; next feature)
 ```
 
@@ -72,7 +73,7 @@ Seller packs Orders and requests one Logistics provider
 - QR decoding treats the payload as untrusted text. It must accept only the Aisley waybill format mapped by the backend; arbitrary URLs/scripts are never opened or executed.
 - Scanning or typing only fills a verification candidate. An explicit **Confirm pickup** action is required before the physical-custody mutation.
 - At confirmation, atomically verify active waybill, identifier-to-Order mapping, task membership, selected Courier, organization/hub, accepted task status, schedule eligibility, and current transition.
-- Commit the detailed first-mile state `accepted → picked_up_from_seller`, actor, timestamp, and immutable event/history exactly once. Do not directly use generic `orders.status = picked_up` or invent `in_transit` for this Seller handoff.
+- Commit the detailed first-mile state `accepted → picked_up_from_seller`, the high-level Order transition `ready_for_pickup → picked_up`, actor, timestamp, and immutable event/history exactly once. The detailed task event remains the authoritative proof of Seller handoff; do not invent `in_transit`.
 - Return the server-authoritative task and Order statuses. The next operational transition is Logistics receipt; its status and endpoint are intentionally N/A here.
 - A copied QR, guessed Order ID, or task UUID cannot authorize pickup. A wrong or unknown identifier causes no mutation.
 
@@ -134,7 +135,7 @@ Seller packs Orders and requests one Logistics provider
 - [x] A scheduled 1–30 Order bulk pickup creates tasks only for the selected Courier and the Courier can retrieve schedule, pickup-address, and Order details.
 - [x] An assigned Courier can accept the task; an unrelated Courier, inactive account, wrong affiliation, or foreign ID cannot.
 - [x] QR and manual Order ID/reference input reach identical backend matching and validation rules.
-- [x] Only explicit confirmation changes the task to `picked_up_from_seller`; retries are idempotent and wrong/unknown identifiers have no side effects.
+- [x] Only explicit confirmation changes the task to `picked_up_from_seller` and the Order to `picked_up`; retries are idempotent and wrong/unknown identifiers have no side effects.
 - [x] Missing exact coordinates use the server-maintained address-default pair; missing both produces an honest unavailable manifest.
 - [x] A ready Courier route manifest includes grouped parcels, ordered stops, matrix metrics, and valid GeoJSON; the development harness renders the Logistics start, numbered pickups, Logistics return, visible route line, and accessible list.
 - [ ] The Logistics dashboard renders its separately authorized companion embedded map and accessible list.
@@ -162,7 +163,7 @@ Seller packs Orders and requests one Logistics provider
 
 - The implemented task-list response is `{ "data": [...], "meta": { "current_page", "last_page", "per_page", "total" } }`; each row retains the task UUID and nested `schedule`, `pickup`, `destination_area`, `order`, and `waybill` fields.
 - The list is bounded and ordered by task creation time then UUID. A changed or expired page is refreshed from page one; Flutter must not synthesize missing tasks from notifications.
-- The pickup response is `{ "data": { "task_id", "order", "waybill", "task_status", "order_status", "picked_up_at", "next_step", "idempotent" } }`. `order_status` is the unchanged server-owned high-level Order status, not a client prediction.
+- The pickup response is `{ "data": { "task_id", "order", "waybill", "task_status", "order_status", "picked_up_at", "next_step", "idempotent" } }`. `order_status` is the server-committed `picked_up` projection, not a client prediction.
 - The manifest response is `{ "data": { "status", "schedule", "revision", "coordinate_source", "summary", "stops", "geojson", "calculated_at", "reason", "map" } }`; `reason` is nullable only when `status = ready`.
 - `stops[]` includes sequence, `kind` (`hub` or `pickup`), grouped task/order/waybill references when applicable, safe address summary, latitude, longitude, coordinate source, leg distance/time, and reachability. GeoJSON properties use only opaque IDs, sequence, kind, and reachability.
 - All reads are private and should send `Cache-Control: private, no-store`; client caches, if approved for offline display, are encrypted, bounded, and invalidated after logout or authorization failure.
@@ -204,7 +205,7 @@ Example GeoJSON payload:
 
 ### Flutter handoff and UI states
 
-- `src/couriermockup` implements the temporary browser contract check with `@zxing/browser` and `maplibre-gl`, both loaded only when their scanner/map state opens. It groups tasks by schedule, renders the authorized GeoJSON and numbered stops, keeps the captured QR as an untrusted candidate until the explicit confirmation call, and always provides manual Order-reference entry.
+- `src/couriermockup` implements the temporary browser contract check with `@zxing/browser` and `maplibre-gl`, both loaded only when their scanner/map state opens. It groups tasks by schedule, renders the authorized GeoJSON and numbered stops, resolves a scanned QR or manual Order reference to the matching parcel in that open schedule, keeps the identifier as an untrusted candidate until the explicit confirmation call, and selects the matched task before showing the server result.
 - The mockup adds no provider/browser secret. `VITE_API_URL` remains a non-secret origin only; Geoapify calls and `GEOAPIFY_SERVER_API_KEY` remain server-side.
 - Flutter stores tokens only in OS secure storage and sends Bearer auth. It implements loading, empty, assigned, accepted, manifest-pending, manifest-ready, map-unavailable, permission-denied, mismatch, not-found, offline, retry, success, and stale-task states.
 - The scanner requests camera permission at use time, exposes a manual-entry fallback, announces textual results, uses adequate touch targets, and never relies on camera preview/color alone.
@@ -212,7 +213,7 @@ Example GeoJSON payload:
 
 ### Verification, rollout, and open decisions
 
-- API coverage verifies task receipt, schedule handling, QR/manual matching, wrong identifiers without side effects, idempotent replay, immutable confirmation history, unchanged Order status, Inventory fulfillment, and private/no-store reads. Dedicated concurrent database verification remains part of the production rollout gate.
+- API coverage verifies task receipt, schedule handling, QR/manual matching, wrong identifiers without side effects, idempotent replay, immutable confirmation and Order-status history, the `picked_up` Order transition, Inventory fulfillment, and private/no-store reads. Dedicated concurrent database verification remains part of the production rollout gate.
 - Current route fixtures cover exact/default/missing coordinates, same-address parcel grouping, cache reuse, matrix metrics, road geometry with Logistics return, sanitized GeoJSON, attribution, credential hiding, and tenant scope. Null-route, 31-node boundary, quota circuit-breaker, and dedicated PostgreSQL concurrency fixtures remain rollout work.
 - Add Logistics map tests for GeoJSON layers, ordered markers, accessible list fallback, stale revisions, and no map mutation. Add Flutter contract/widget tests for scanner fallback and server-error mapping.
 - Production rollout still requires the shared Shipment/Delivery Task transition contract, PostgreSQL verification, populated and reviewed address-coordinate defaults, and Geoapify usage monitoring; current list/accept/resolve behavior remains intact.

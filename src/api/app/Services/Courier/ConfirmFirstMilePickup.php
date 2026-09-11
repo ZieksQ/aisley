@@ -3,6 +3,7 @@
 namespace App\Services\Courier;
 
 use App\Enums\FirstMileTaskStatus;
+use App\Enums\OrderStatus;
 use App\Enums\PickupScheduleStatus;
 use App\Enums\WaybillStatus;
 use App\Exceptions\Courier\CourierPickupException;
@@ -11,6 +12,7 @@ use App\Models\FirstMileTask;
 use App\Models\PickupSchedule;
 use App\Models\User;
 use App\Services\Inventory\FulfillOrderReservation;
+use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,6 +22,7 @@ class ConfirmFirstMilePickup
     public function __construct(
         private readonly CreateWaybill $waybillHasher,
         private readonly FulfillOrderReservation $inventory,
+        private readonly OrderTransitionService $transitions,
     ) {}
 
     /** @return array{task: FirstMileTask, confirmation: CourierPickupConfirmation, idempotent: bool} */
@@ -71,9 +74,16 @@ class ConfirmFirstMilePickup
                 throw CourierPickupException::notFound();
             }
 
+            $order = $task->order()->lockForUpdate()->first();
+            if ($order === null || $order->status !== OrderStatus::ReadyForPickup) {
+                throw CourierPickupException::conflict('ORDER_PICKUP_STATUS_CONFLICT', 'This Order can no longer be confirmed as picked up.');
+            }
+            $task->setRelation('order', $order);
+
             $pickedUpAt = now();
             $correlationId = (string) Str::uuid();
             $this->inventory->handle($task->order, $courier, $task->id);
+            $this->transitions->transition($task->order, OrderStatus::ReadyForPickup, OrderStatus::PickedUp, 'courier_first_mile_pickup');
             $task->update([
                 'status' => FirstMileTaskStatus::PickedUp,
                 'picked_up_at' => $pickedUpAt,

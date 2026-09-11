@@ -2,7 +2,7 @@
 model: Buyer
 type: Domain Context
 purpose: Shared Customer/Buyer workflow and implementation context
-version: 1.2
+version: 1.3
 status: Revised — aligned with the approved Customer order/Logistics flow and implemented storefront foundation
 ---
 
@@ -54,7 +54,6 @@ pending_payment
 → placed
 → seller_processing
 → ready_for_pickup
-→ assigned
 → picked_up
 → in_transit
 → out_for_delivery
@@ -63,7 +62,7 @@ pending_payment
 
 Exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
 
-COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains an available shared status for a future online-payment flow. `assigned` means Logistics received and accepted the Seller-ready parcel at its sole hub. `picked_up` means the final-mile Courier took the parcel from that hub. A Customer can read these states but cannot advance or rewrite them.
+COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains an available shared status for a future online-payment flow. `picked_up` means the assigned first-mile Courier explicitly confirmed physical possession from the Seller, backed by the detailed `picked_up_from_seller` task event. `assigned` remains reserved for a later Logistics/final-mile assignment contract. A Customer can read these states but cannot advance or rewrite them.
 
 The physical flow is:
 
@@ -72,7 +71,7 @@ Customer places Order (`placed`)
 → Seller processes and confirms `ready_for_pickup`
 → Seller selects Logistics; the pickup transaction freezes a shared waybill with the immutable Order/Parcel reference and Customer destination snapshot
 → selected Logistics organization creates and offers the first-mile task to an eligible Courier
-→ first-mile Courier accepts and picks up from Seller
+→ first-mile Courier accepts and confirms pickup from Seller (`picked_up_from_seller`; Order `picked_up`)
 → Logistics receives the parcel at `received_at_hub` using the same shared waybill reference
 → Logistics sorts, transfers, and dispatches at its sole hub
 → Logistics assigns a final-mile Courier
