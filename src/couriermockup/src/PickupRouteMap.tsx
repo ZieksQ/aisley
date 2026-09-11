@@ -1,6 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Button } from '@aisley/ui'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { request } from './lib/api'
 import type { PickupRouteManifest, PickupRouteManifestResponse } from './types'
 
@@ -55,7 +55,7 @@ function isWebglFailure(error: unknown): boolean {
   return /webgl|gpu|canvas|graphics context|context lost/i.test(message)
 }
 
-export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; token: string }) {
+export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }: { scheduleId: string; token: string }) {
   const [manifest, setManifest] = useState<PickupRouteManifest | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -246,4 +246,4 @@ export function PickupRouteMap({ scheduleId, token }: { scheduleId: string; toke
       ) : null}
     </section>
   )
-}
+})

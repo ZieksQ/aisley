@@ -213,7 +213,7 @@ export function PickupOrders({ token }: { token: string }) {
                 <div><dt>Status</dt><dd>{selected.status.replaceAll('_', ' ')}</dd></div>
               </dl>
 
-              <PickupRouteMap scheduleId={selected.schedule.id} token={token} />
+              <PickupRouteMap key={selected.schedule.id} scheduleId={selected.schedule.id} token={token} />
 
               {selected.status === 'assigned' ? (
                 <Button className="min-h-11 rounded-md px-4 shadow-none" isLoading={busy === 'accept'} loadingLabel="Accepting" onClick={() => void acceptTask()} variant="secondary">Accept task</Button>
