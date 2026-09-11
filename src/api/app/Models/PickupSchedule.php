@@ -48,4 +48,9 @@ class PickupSchedule extends Model
     {
         return $this->hasMany(PickupScheduleReminder::class);
     }
+
+    public function routeManifests(): HasMany
+    {
+        return $this->hasMany(PickupRouteManifest::class);
+    }
 }

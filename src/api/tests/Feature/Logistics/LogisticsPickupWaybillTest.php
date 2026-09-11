@@ -14,6 +14,8 @@ use App\Enums\ProductStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Jobs\BuildPickupRouteManifestJob;
+use App\Models\AddressCoordinateDefault;
 use App\Models\Category;
 use App\Models\CheckoutBatch;
 use App\Models\CheckoutQuote;
@@ -21,12 +23,17 @@ use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\Order;
+use App\Models\PickupRouteManifest;
+use App\Models\PickupSchedule;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
+use App\Services\Logistics\BuildPickupRouteManifest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -227,6 +234,351 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonPath('message', 'The Courier already has an overlapping pickup schedule.');
         $this->assertDatabaseCount('pickup_schedules', 1);
         $this->assertDatabaseMissing('first_mile_tasks', ['order_id' => $secondOrder->id]);
+    }
+
+    public function test_one_schedule_combines_bulk_pickups_from_multiple_sellers_with_a_thirty_parcel_limit(): void
+    {
+        [$firstSeller, $firstShop] = $this->sellerShop();
+        [$secondSeller, $secondShop] = $this->sellerShop();
+        $firstShop->update(['name' => 'Zeta Shop']);
+        $secondShop->update(['name' => 'Alpha Shop']);
+        $secondSeller->addresses()->firstOrFail()->update(['address_line_1' => '2 Seller Road', 'barangay' => 'Malate']);
+        $firstOrders = collect([$this->order($firstShop), $this->order($firstShop)]);
+        $secondOrders = collect([$this->order($secondShop), $this->order($secondShop)]);
+        $orders = $firstOrders->concat($secondOrders);
+        $orders->each->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Multi Seller Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+
+        $firstPickup = $this->actingAs($firstSeller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => $firstOrders->pluck('id')->all(),
+                'pickup_address_id' => $firstSeller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+        $secondPickup = $this->actingAs($secondSeller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => $secondOrders->pluck('id')->all(),
+                'pickup_address_id' => $secondSeller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickups?include_orders=1&has_unscheduled=1&sort=shop_created')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.shop.name', 'Alpha Shop')
+            ->assertJsonCount(2, 'data.0.orders')
+            ->assertJsonCount(2, 'data.1.orders');
+
+        $schedule = $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => $orders->pluck('id')->all(),
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated()
+            ->assertJsonCount(4, 'data.order_ids')
+            ->json('data');
+
+        $this->assertDatabaseCount('pickup_schedules', 1);
+        $this->assertDatabaseCount('pickup_schedule_orders', 4);
+        $this->assertDatabaseCount('first_mile_tasks', 4);
+        $this->assertDatabaseHas('seller_pickup_requests', ['id' => $firstPickup['id'], 'status' => 'scheduled']);
+        $this->assertDatabaseHas('seller_pickup_requests', ['id' => $secondPickup['id'], 'status' => 'scheduled']);
+        $this->assertSame(2, $firstSeller->notifications()->where('type', 'pickup-schedule.assigned')->sole()->data['order_count']);
+        $this->assertSame(2, $secondSeller->notifications()->where('type', 'pickup-schedule.assigned')->sole()->data['order_count']);
+        $courierNotification = $courier->notifications()->where('type', 'pickup-schedule.assigned')->sole();
+        $this->assertSame(4, $courierNotification->data['order_count']);
+        $this->assertSame(2, $courierNotification->data['pickup_stop_count']);
+        $this->assertSame($schedule['id'], $courierNotification->data['schedule_id']);
+
+        $scheduleList = $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $schedule['id'])
+            ->assertJsonPath('data.0.courier.id', $courier->id)
+            ->assertJsonPath('data.0.courier.name', 'Cora Rider')
+            ->assertJsonPath('data.0.parcel_count', 4)
+            ->assertJsonPath('data.0.remaining_parcel_count', 4)
+            ->assertJsonCount(2, 'data.0.pickup_requests');
+        $this->assertStringContainsString('private', (string) $scheduleList->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', (string) $scheduleList->headers->get('Cache-Control'));
+        [$foreignLogistics] = $this->logistics('Foreign Schedule Logistics', 'Cebu City', 'Cebu');
+        $this->actingAs($foreignLogistics)->getJson('/api/v1/logistics/pickup-schedules')->assertOk()->assertJsonCount(0, 'data');
+
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => collect(range(1, 31))->map(fn () => (string) Str::uuid())->all(),
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(5)->toISOString(),
+                'ends_at' => now()->addHours(6)->toISOString(),
+            ])->assertUnprocessable()
+            ->assertJsonValidationErrors('order_ids');
+    }
+
+    public function test_courier_confirms_qr_and_manual_pickups_idempotently_and_changes_order_status(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $manualOrder = $this->order($shop);
+        $qrOrder = $this->order($shop);
+        $manualOrder->update(['status' => OrderStatus::SellerProcessing]);
+        $qrOrder->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Pickup Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        $pickup = $this->actingAs($seller)
+            ->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$manualOrder->id, $qrOrder->id],
+                'pickup_address_id' => $seller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+        $this->actingAs($logistics)
+            ->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => [$manualOrder->id, $qrOrder->id],
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated();
+
+        $taskResponse = $this->actingAs($courier)->getJson('/api/v1/courier/first-mile-tasks')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 25);
+        $this->assertStringContainsString('private', (string) $taskResponse->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', (string) $taskResponse->headers->get('Cache-Control'));
+        $tasks = $taskResponse->json('data');
+        foreach ($tasks as $task) {
+            $this->postJson("/api/v1/courier/first-mile-tasks/{$task['id']}/accept")->assertOk();
+        }
+        $manualTask = collect($tasks)->firstWhere('order.id', $manualOrder->id);
+        $qrTask = collect($tasks)->firstWhere('order.id', $qrOrder->id);
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", [
+                'identifier_type' => 'order_id',
+                'identifier' => 'WRONG-ORDER',
+            ])->assertNotFound();
+        $this->assertDatabaseCount('courier_pickup_confirmations', 0);
+
+        $manualKey = (string) Str::uuid();
+        $manualPayload = ['identifier_type' => 'order_id', 'identifier' => strtolower($manualOrder->reference)];
+        $this->withHeader('Idempotency-Key', $manualKey)
+            ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", $manualPayload)
+            ->assertOk()
+            ->assertJsonPath('data.task_status', 'picked_up_from_seller')
+            ->assertJsonPath('data.order_status', 'picked_up')
+            ->assertJsonPath('data.idempotent', false)
+            ->assertJsonPath('data.next_step', 'logistics_receipt');
+        $this->withHeader('Idempotency-Key', $manualKey)
+            ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", $manualPayload)
+            ->assertOk()
+            ->assertJsonPath('data.idempotent', true);
+
+        $unrelatedCourier = $this->courier($organization->id, $hub->id);
+        $this->actingAs($unrelatedCourier)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
+                'identifier_type' => 'order_id',
+                'identifier' => $qrOrder->reference,
+            ])->assertNotFound();
+        $this->actingAs($courier)->withHeader('Idempotency-Key', $manualKey)
+            ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
+                'identifier_type' => 'order_id',
+                'identifier' => $qrOrder->reference,
+            ])->assertConflict()->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+
+        $qrReference = collect($pickup['waybills'])->firstWhere('order_id', $qrOrder->id)['reference'];
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson("/api/v1/courier/first-mile-tasks/{$qrTask['id']}/pickup", [
+                'identifier_type' => 'qr',
+                'identifier' => 'AISLEY:WB:1:'.$qrReference,
+            ])->assertOk()
+            ->assertJsonPath('data.task_status', 'picked_up_from_seller')
+            ->assertJsonPath('data.order_status', 'picked_up');
+
+        $this->assertDatabaseCount('courier_pickup_confirmations', 2);
+        $this->assertDatabaseHas('courier_pickup_confirmations', [
+            'first_mile_task_id' => $manualTask['id'],
+            'previous_status' => 'accepted',
+            'new_status' => 'picked_up_from_seller',
+            'schedule_revision' => 1,
+        ]);
+        $this->assertSame(OrderStatus::PickedUp, $manualOrder->fresh()->status);
+        $this->assertSame(OrderStatus::PickedUp, $qrOrder->fresh()->status);
+        $this->assertSame(2, DB::table('order_status_events')->where('source', 'courier_first_mile_pickup')->count());
+        $this->assertDatabaseHas('order_status_events', [
+            'order_id' => $manualOrder->id,
+            'from_status' => 'ready_for_pickup',
+            'to_status' => 'picked_up',
+            'source' => 'courier_first_mile_pickup',
+        ]);
+        $this->assertDatabaseHas('order_status_events', [
+            'order_id' => $qrOrder->id,
+            'from_status' => 'ready_for_pickup',
+            'to_status' => 'picked_up',
+            'source' => 'courier_first_mile_pickup',
+        ]);
+        $this->assertSame(0, (int) InventoryBalance::query()->sum('reserved'));
+        $this->assertSame(18, (int) InventoryBalance::query()->sum('on_hand'));
+        $this->assertDatabaseCount('inventory_movements', 4);
+        $this->getJson('/api/v1/courier/first-mile-tasks')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($logistics)->postJson("/api/v1/logistics/pickup-schedules/{$manualTask['schedule']['id']}/cancel", [
+            'expected_revision' => 1,
+            'reason' => 'This must not erase recorded custody.',
+        ])->assertConflict()->assertJsonPath('code', 'SCHEDULE_CUSTODY_STARTED');
+    }
+
+    public function test_bulk_pickup_route_groups_parcels_and_returns_a_minimal_matrix_sequence(): void
+    {
+        [$seller, $shop] = $this->sellerShop(true);
+        $firstOrder = $this->order($shop);
+        $secondOrder = $this->order($shop);
+        $firstOrder->update(['status' => OrderStatus::SellerProcessing]);
+        $secondOrder->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Route Logistics', 'Makati City', 'Metro Manila', true);
+        $courier = $this->courier($organization->id, $hub->id);
+        config()->set('services.geoapify.server_key', 'server-secret');
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/v1/routematrix')) {
+                return Http::response(['sources_to_targets' => [
+                    [['distance' => 0, 'time' => 0], ['distance' => 5400, 'time' => 720]],
+                    [['distance' => 5100, 'time' => 680], ['distance' => 0, 'time' => 0]],
+                ]]);
+            }
+            if (str_contains($request->url(), '/v1/routing')) {
+                return Http::response(['type' => 'FeatureCollection', 'features' => [[
+                    'type' => 'Feature',
+                    'geometry' => ['type' => 'MultiLineString', 'coordinates' => [[
+                        [121.03, 14.65], [121.01, 14.63], [120.98, 14.6], [121.02, 14.62], [121.03, 14.65],
+                    ]]],
+                    'properties' => [],
+                ]]]);
+            }
+
+            return Http::response('tile-bytes', 200, ['Content-Type' => 'image/png']);
+        });
+
+        $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$firstOrder->id, $secondOrder->id],
+                'pickup_address_id' => $seller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk();
+        $schedule = $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => [$firstOrder->id, $secondOrder->id],
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated()->json('data');
+
+        app(BuildPickupRouteManifest::class)->handle($schedule['id'], 1);
+        $requestCount = count(Http::recorded());
+        app(BuildPickupRouteManifest::class)->handle($schedule['id'], 1);
+        $this->assertCount($requestCount, Http::recorded());
+        $response = $this->actingAs($courier)
+            ->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.summary.parcel_count', 2)
+            ->assertJsonPath('data.summary.pickup_stop_count', 1)
+            ->assertJsonPath('data.summary.distance_metres', 10500)
+            ->assertJsonPath('data.summary.duration_seconds', 1400)
+            ->assertJsonPath('data.summary.heuristic', 'nearest_next_stop')
+            ->assertJsonPath('data.stops.0.kind', 'hub')
+            ->assertJsonPath('data.stops.1.kind', 'pickup')
+            ->assertJsonCount(2, 'data.stops.1.tasks')
+            ->assertJsonPath('data.stops.2.kind', 'hub')
+            ->assertJsonPath('data.geojson.type', 'FeatureCollection')
+            ->assertJsonPath('data.geojson.features.0.properties.kind', 'route_line')
+            ->assertJsonPath('data.geojson.features.0.properties.geometry_source', 'geoapify_routing')
+            ->assertJsonCount(5, 'data.geojson.features.0.geometry.coordinates')
+            ->assertJsonPath('data.geojson.features.0.geometry.coordinates.0', [121.03, 14.65])
+            ->assertJsonPath('data.geojson.features.0.geometry.coordinates.4', [121.03, 14.65]);
+        $this->assertStringContainsString('private', (string) $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v1/routematrix')
+            && count($request['sources']) === 2
+            && count($request['targets']) === 2
+            && $request['sources'][0]['location'] === [121.03, 14.65]
+            && $request['sources'][1]['location'] === [120.98, 14.6]);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v1/routing')
+            && $request['waypoints'] === '14.65,121.03|14.6,120.98|14.65,121.03'
+            && $request['mode'] === 'drive');
+
+        $manifest = PickupRouteManifest::query()->where('pickup_schedule_id', $schedule['id'])->sole();
+        $legacyGeojson = $manifest->geojson;
+        $legacyGeojson['features'][0]['properties'] = ['kind' => 'stop_sequence_visual'];
+        $manifest->update(['coordinate_fingerprint' => 'legacy', 'geojson' => $legacyGeojson]);
+        Queue::fake();
+        $this->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.geojson.features.0.geometry.type', 'LineString')
+            ->assertJsonPath('data.geojson.features.0.properties.kind', 'stop_sequence_visual');
+        Queue::assertPushed(BuildPickupRouteManifestJob::class, fn ($job): bool => $job->scheduleId === $schedule['id'] && $job->revision === 1);
+
+        [$foreignUser, $foreignOrganization, $foreignHub] = $this->logistics('Foreign Route Logistics', 'Cebu City', 'Cebu');
+        $foreignCourier = $this->courier($foreignOrganization->id, $foreignHub->id);
+        $this->actingAs($foreignCourier)->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")->assertNotFound();
+        $this->actingAs($courier)->getJson('/api/v1/courier/map-style')
+            ->assertOk()
+            ->assertJsonPath('sources.geoapify.type', 'raster')
+            ->assertJsonMissing(['apiKey' => 'server-secret']);
+        $tile = $this->get('/api/v1/courier/map-tiles/1/1/1.png')->assertOk();
+        $this->assertStringNotContainsString('server-secret', (string) $tile->getContent());
+        $this->get('/api/v1/courier/map-tiles/1/1/1.png')->assertOk();
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'https://maps.geoapify.com/v1/tile/osm-carto/1/1/1.png')
+            && str_contains($request->url(), 'apiKey=server-secret'));
+        $tileRequests = Http::recorded()->filter(fn (array $pair): bool => str_contains($pair[0]->url(), 'maps.geoapify.com'));
+        $this->assertCount(1, $tileRequests);
+        unset($foreignUser);
+    }
+
+    public function test_route_manifest_uses_address_defaults_and_fails_honestly_when_none_exist(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $order = $this->order($shop);
+        $order->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Default Route Logistics', 'Makati City', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        AddressCoordinateDefault::create(['country' => 'ph', 'region' => 'ncr', 'province' => 'metro manila', 'city_municipality' => 'makati city', 'barangay' => 'poblacion', 'latitude' => 14.5547, 'longitude' => 121.0244]);
+        AddressCoordinateDefault::create(['country' => 'ph', 'region' => 'ncr', 'province' => 'metro manila', 'city_municipality' => 'manila', 'barangay' => 'ermita', 'latitude' => 14.5832, 'longitude' => 120.9822]);
+        config()->set('services.geoapify.server_key', 'server-secret');
+        Http::fake(['api.geoapify.com/*' => Http::response(['sources_to_targets' => [
+            [['distance' => 0, 'time' => 0], ['distance' => 3200, 'time' => 500]],
+            [['distance' => 3300, 'time' => 520], ['distance' => 0, 'time' => 0]],
+        ]])]);
+        $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$order->id],
+                'pickup_address_id' => $seller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk();
+        $schedule = $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => [$order->id],
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated()->json('data');
+
+        app(BuildPickupRouteManifest::class)->handle($schedule['id'], 1);
+        $this->actingAs($courier)->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.coordinate_source', 'address_default')
+            ->assertJsonPath('data.stops.1.coordinate_source', 'address_default')
+            ->assertJsonPath('data.geojson.features.0.properties.geometry_source', 'stop_sequence_fallback');
+
+        AddressCoordinateDefault::query()->where('city_municipality', 'manila')->delete();
+        $manifest = $schedule['id'];
+        $record = PickupSchedule::query()->findOrFail($manifest);
+        $record->update(['revision' => 2]);
+        app(BuildPickupRouteManifest::class)->handle($record->id, 2);
+        $this->getJson("/api/v1/courier/pickup-schedules/{$record->id}/route-manifest")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'unavailable')
+            ->assertJsonPath('data.reason', 'missing_pickup_coordinates');
     }
 
     private function sellerShop(bool $coordinates = false): array

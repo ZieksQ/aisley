@@ -19,7 +19,7 @@ export function ErrorNotice({ message, retry }: { message: string; retry?: () =>
 
 export function StatusLabel({ status }: { status: string }) {
   const label = status.replaceAll('_', ' ')
-  const tone = status === 'scheduled' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-300' : status === 'partially_scheduled' ? 'bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-200' : 'bg-zinc-100 text-zinc-700 dark:bg-white/10 dark:text-zinc-300'
+  const tone = status === 'scheduled' || status === 'completed' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-300' : status === 'partially_scheduled' ? 'bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-200' : status === 'cancelled' ? 'bg-red-50 text-red-800 dark:bg-red-400/10 dark:text-red-300' : 'bg-zinc-100 text-zinc-700 dark:bg-white/10 dark:text-zinc-300'
   return <span className={`inline-block rounded-md px-2 py-1 text-xs font-medium capitalize ${tone}`}>{label}</span>
 }
 

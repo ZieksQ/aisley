@@ -17,6 +17,9 @@ return [
         'province' => env('INITIAL_LOGISTICS_PROVINCE', 'Metro Manila'),
         'region' => env('INITIAL_LOGISTICS_REGION', 'National Capital Region (NCR)'),
         'postal_code' => env('INITIAL_LOGISTICS_POSTAL_CODE', '1200'),
+        // Barangay Poblacion, Makati City center: 14.565681, 121.032077.
+        'latitude' => env('INITIAL_LOGISTICS_LATITUDE', 14.565681),
+        'longitude' => env('INITIAL_LOGISTICS_LONGITUDE', 121.032077),
     ],
 
     'generic' => [

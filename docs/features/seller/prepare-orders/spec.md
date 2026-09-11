@@ -63,9 +63,9 @@ Seller opens Seller-scoped processing Order
 - [x] Seller can review Shop-scoped Order list/detail and immutable snapshots.
 - [x] Seller can approve/reject eligible COD Orders with locked idempotent transitions and reservation release on rejection.
 - [x] Seller can group up to 50 `seller_processing` Orders into a pending Logistics pickup request and transition them to `ready_for_pickup`.
-- [ ] Persist the Seller-selected Logistics organization and immutable shared waybill snapshots with audited reprints.
-- [ ] Create the shared Shipment/Parcel/DeliveryTask records and consume reservation at `picked_up_from_seller`.
-- [ ] Expose the shared waybill to Seller and selected Logistics from readiness; no Seller Courier assignment or delivery mutation.
+- [x] Persist the Seller-selected Logistics organization and immutable shared waybill snapshots with audited reprints.
+- [x] Create the shared Shipment/Parcel/DeliveryTask records and consume reservation at `picked_up_from_seller`.
+- [x] Expose the shared waybill to Seller and selected Logistics from readiness; no Seller Courier assignment or delivery mutation.
 
 ## HOW
 

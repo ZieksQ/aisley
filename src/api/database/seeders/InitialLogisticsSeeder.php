@@ -97,9 +97,17 @@ class InitialLogisticsSeeder extends Seeder
                 'region' => $details['region'],
                 'postal_code' => $details['postal_code'],
                 'country' => 'Philippines',
+                'latitude' => config('logistics.initial.latitude', 14.565681),
+                'longitude' => config('logistics.initial.longitude', 121.032077),
                 'is_default' => true,
             ],
         );
+        if ($address->latitude === null || $address->longitude === null) {
+            $address->forceFill([
+                'latitude' => config('logistics.initial.latitude', 14.565681),
+                'longitude' => config('logistics.initial.longitude', 121.032077),
+            ])->save();
+        }
 
         $organization = $logistics->logisticsOrganization()->firstOrCreate([], [
             'business_name' => $details['business_name'],

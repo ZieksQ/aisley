@@ -2,7 +2,7 @@
 model: Courier
 type: Domain Context
 purpose: Shared Courier workflow and implementation context
-version: 1.2
+version: 1.3
 status: Revised — aligned with the approved order/Logistics flow and implemented API foundation
 ---
 
@@ -51,7 +51,6 @@ pending_payment
 → placed
 → seller_processing
 → ready_for_pickup
-→ assigned
 → picked_up
 → in_transit
 → out_for_delivery
@@ -85,6 +84,8 @@ Courier-owned task transitions are:
 `received_at_hub`, `sorted_at_hub`, `in_transfer`, and `dispatched_from_hub` are Logistics-side milestones. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history.
 
 Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; this payment detail is read-only to Couriers. The Seller-selected Logistics organization owns both task legs, and a Courier may operate only assigned/offered tasks within that organization.
+
+For the current high-level projection, explicit first-mile confirmation advances the Order from `ready_for_pickup` to `picked_up`; the detailed `picked_up_from_seller` task event remains authoritative proof. `assigned` remains reserved for a later Logistics/final-mile assignment contract and is not written by pickup scheduling.
 
 ## Physical delivery flow
 

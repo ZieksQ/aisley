@@ -82,12 +82,12 @@ scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 
 ### Acceptance criteria
 
-- [ ] Request pickup creates one immutable waybill per eligible Order and no waybill for a failed transaction.
-- [ ] Seller and selected Logistics can view/download the same authorized PDF; unrelated tenants cannot infer it exists.
-- [ ] Every PDF is A6, contains the required snapshot fields, has a readable QR plus human reference, and exposes no product names or secrets.
-- [ ] Repeated generation/download/print returns the same identity and causes no Order, Inventory, task, or notification mutation.
-- [ ] Courier scans require assignment authorization and cannot directly advance custody state.
-- [ ] Dependencies are license-reviewed, patched, locked, and usable without paid services or added browser/server binaries.
+- [x] Request pickup creates one immutable waybill per eligible Order and no waybill for a failed transaction.
+- [x] Seller and selected Logistics can view/download the same authorized PDF; unrelated tenants cannot infer it exists.
+- [x] Every PDF is A6, contains the required snapshot fields, has a readable QR plus human reference, and exposes no product names or secrets.
+- [x] Repeated generation/download/print returns the same identity and causes no Order, Inventory, task, or notification mutation.
+- [x] Courier scans require assignment authorization and cannot directly advance custody state.
+- [x] Dependencies are license-reviewed, patched, locked, and usable without paid services or added browser/server binaries.
 
 ## HOW
 

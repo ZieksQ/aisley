@@ -3,7 +3,7 @@ feature: order-status
 title: Customer Order Monitoring and Logistics Tracking
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented read-only foundation; operational tracking deferred
 role: Customer
 scope: Customer storefront and Laravel API
@@ -52,9 +52,9 @@ Account menu → Orders → paginated Customer-owned list
 | Cancelled / Issue | `cancelled`, `rejected`, `delivery_failed`, `return_requested`, `returned` | Exceptional or terminal outcome. |
 
 - Current COD checkout skips `pending_payment` and starts at `placed`; retain the **To Pay** mapping for future payment methods.
-- `ready_for_pickup → assigned` is the normal high-level handoff when Logistics receives and accepts the parcel at its sole hub. `assigned` does not mean a Seller merely printed a label or proposed a Courier.
-- `assigned → picked_up → in_transit → out_for_delivery → delivered` is the compatibility sequence for final-mile progress. Invalid skipped/backward transitions belong to the owning transition service and return `409`.
-- Detailed Shipment/Delivery Task milestones are separate: `picked_up_from_seller`, `received_at_hub`, `sorted_at_hub`, `dispatched_from_hub`, `delivery_assigned`, and `picked_up_from_hub`. Do not persist or infer these from generic `picked_up` until the shared operational schema exists.
+- `ready_for_pickup → picked_up` is the current high-level projection when the assigned Courier explicitly confirms physical possession from the Seller. Scheduling, task acceptance, scanning, and typing remain read-only.
+- `picked_up → in_transit → out_for_delivery → delivered` is the current compatibility sequence for movement after pickup. `assigned` remains a compatibility value for a future Logistics/final-mile assignment contract and is not written by current schedule creation. Invalid skipped/backward transitions belong to the owning transition service and return `409`.
+- Detailed Shipment/Delivery Task milestones remain separate: `picked_up_from_seller`, `received_at_hub`, `sorted_at_hub`, `dispatched_from_hub`, `delivery_assigned`, and `picked_up_from_hub`. The detailed `picked_up_from_seller` event is authoritative proof for the high-level `picked_up` projection; the generic Order status alone must not be treated as scan or custody evidence.
 - First-mile and final-mile assignments are independent; a first-mile Courier is not automatically the final-mile Courier.
 
 ### Customer notification boundary

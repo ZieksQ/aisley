@@ -2,7 +2,7 @@
 model: Logistics
 type: Domain Context
 purpose: Shared Logistics workflow and implementation context
-version: 1.2
+version: 1.3
 status: Revised — aligned with the approved order/Logistics flow and implemented foundation
 ---
 
@@ -33,14 +33,13 @@ pending_payment
 → placed
 → seller_processing
 → ready_for_pickup
-→ assigned
 → picked_up
 → in_transit
 → out_for_delivery
 → delivered
 ```
 
-Its Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete, `assigned` is Logistics receipt/acceptance at the hub, and `picked_up` is final-mile Courier pickup from the hub.
+Its current Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete and `picked_up` is the high-level projection of an explicit first-mile Courier confirmation from the Seller. `assigned` remains reserved for a later Logistics/final-mile assignment contract. The detailed `picked_up_from_seller` task event remains authoritative proof of custody.
 
 Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. The Customer's selected eligible Logistics organization is retained in the future fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
 

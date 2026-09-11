@@ -15,6 +15,7 @@ use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Courier\DashboardController as CourierDashboardController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
+use App\Http\Controllers\Courier\PickupRouteManifestController;
 use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -275,6 +276,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/pickups/{pickup}/waybills', [LogisticsPickupController::class, 'waybills'])->whereUuid('pickup')->name('pickups.waybills');
     Route::get('/pickup-couriers', [LogisticsPickupController::class, 'couriers'])->name('pickup-couriers.index');
     Route::get('/waybills/{waybill}.pdf', [LogisticsPickupController::class, 'waybillPdf'])->whereUuid('waybill')->name('waybills.pdf');
+    Route::get('/pickup-schedules', [LogisticsPickupController::class, 'schedules'])->name('pickup-schedules.index');
     Route::post('/pickup-schedules', [LogisticsPickupController::class, 'createSchedule'])->name('pickup-schedules.store');
     Route::patch('/pickup-schedules/{schedule}', [LogisticsPickupController::class, 'reviseSchedule'])->whereUuid('schedule')->name('pickup-schedules.update');
     Route::post('/pickup-schedules/{schedule}/cancel', [LogisticsPickupController::class, 'cancelSchedule'])->whereUuid('schedule')->name('pickup-schedules.cancel');
@@ -306,7 +308,11 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         ->name('account.profile-photo.destroy');
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
+    Route::get('/pickup-schedules/{schedule}/route-manifest', [PickupRouteManifestController::class, 'show'])->whereUuid('schedule')->name('pickup-schedules.route-manifest.show');
+    Route::get('/map-style', [PickupRouteManifestController::class, 'style'])->name('map.style');
+    Route::get('/map-tiles/{z}/{x}/{y}.png', [PickupRouteManifestController::class, 'tile'])->whereNumber(['z', 'x', 'y'])->name('map.tiles');
     Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');
+    Route::post('/first-mile-tasks/{task}/pickup', [FirstMileTaskController::class, 'pickup'])->whereUuid('task')->name('first-mile-tasks.pickup');
     Route::post('/waybills/resolve', [FirstMileTaskController::class, 'resolveWaybill'])->middleware('throttle:60,1')->name('waybills.resolve');
 });
 

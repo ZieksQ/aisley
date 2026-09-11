@@ -33,6 +33,7 @@ function bindPrismLanguageComponents(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  envPrefix: ['VITE_', 'GEOAPIFY_API_KEY'],
   plugins: [bindPrismLanguageComponents(), react(), tailwindcss()],
   server: {
     proxy: {

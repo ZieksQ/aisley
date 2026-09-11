@@ -81,16 +81,16 @@ scope: Seller Web Application and Laravel API
 
 ### Acceptance criteria
 
-- [ ] A Seller sees only Orders belonging to the Seller's Shop.
-- [ ] A COD Order with `placed`/`pending` payment can be approved or rejected exactly once.
-- [ ] Approval transitions only `placed → seller_processing`; rejection transitions only `placed → rejected`, releases its reservation, and both append immutable history.
-- [ ] Notification read/open does not change Order status.
+- [x] A Seller sees only Orders belonging to the Seller's Shop.
+- [x] A COD Order with `placed`/`pending` payment can be approved or rejected exactly once.
+- [x] Approval transitions only `placed → seller_processing`; rejection transitions only `placed → rejected`, releases its reservation, and both append immutable history.
+- [x] Notification read/open does not change Order status.
 - [ ] Concurrent Customer cancellation and Seller approval cannot both commit incompatible transitions.
-- [ ] Approval does not mark payment paid, generate a waybill, assign a Courier, or mutate Inventory balances.
-- [ ] Seller readiness emits a committed Logistics handoff and supports downstream bulk pickup grouping without merging Orders.
-- [ ] Pickup readiness creates immutable waybills; Seller and selected Logistics can view them only through role-scoped endpoints.
-- [ ] The Seller can choose one owned saved pickup address for a solo or bulk pickup request, with the default address prefilled, and no foreign or missing address can be committed.
-- [ ] Provider selection uses a searchable modal that exposes provider name, operational hub address, current distance evidence, and applicable Default/Suggested/Near-you tags without preventing another eligible selection.
+- [x] Approval does not mark payment paid, generate a waybill, assign a Courier, or mutate Inventory balances.
+- [x] Seller readiness emits a committed Logistics handoff and supports downstream bulk pickup grouping without merging Orders.
+- [x] Pickup readiness creates immutable waybills; Seller and selected Logistics can view them only through role-scoped endpoints.
+- [x] The Seller can choose one owned saved pickup address for a solo or bulk pickup request, with the default address prefilled, and no foreign or missing address can be committed.
+- [x] Provider selection uses a searchable modal that exposes provider name, operational hub address, current distance evidence, and applicable Default/Suggested/Near-you tags without preventing another eligible selection.
 
 ## HOW
 
