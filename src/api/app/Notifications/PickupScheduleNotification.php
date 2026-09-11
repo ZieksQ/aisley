@@ -30,12 +30,30 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
-        $firstOrder = $this->schedule->orders()->with('order.waybill.snapshot')->first();
-        $pickup = $firstOrder?->seller_pickup_request_id;
+        $scheduleOrders = $this->schedule->orders()->with('order.waybill.snapshot')->get();
+        $sellerShopId = $notifiable->role === UserRole::Seller ? $notifiable->shop?->id : null;
+        $visibleOrders = $sellerShopId
+            ? $scheduleOrders->filter(fn ($scheduleOrder) => $scheduleOrder->order?->shop_id === $sellerShopId)
+            : $scheduleOrders;
+        $firstOrder = $visibleOrders->first();
+        $pickupIds = $visibleOrders->pluck('seller_pickup_request_id')->unique()->values();
+        $pickup = $pickupIds->count() === 1 ? $pickupIds->first() : null;
         $address = $firstOrder?->order?->waybill?->snapshot?->payload['pickup'] ?? null;
         $startsAt = Carbon::parse($this->schedule->starts_at)->timezone('Asia/Manila');
         $endsAt = Carbon::parse($this->schedule->ends_at)->timezone('Asia/Manila');
-        $orderCount = $this->schedule->orders()->count();
+        $orderCount = $visibleOrders->count();
+        $pickupStopCount = $visibleOrders
+            ->map(fn ($scheduleOrder) => $scheduleOrder->order?->waybill?->snapshot?->payload['pickup'] ?? null)
+            ->filter()
+            ->unique(fn (array $pickupAddress) => implode('|', [
+                $pickupAddress['address_line_1'] ?? '',
+                $pickupAddress['barangay'] ?? '',
+                $pickupAddress['city_municipality'] ?? '',
+                $pickupAddress['province'] ?? '',
+                $pickupAddress['latitude'] ?? '',
+                $pickupAddress['longitude'] ?? '',
+            ]))
+            ->count();
         $window = sprintf('%s–%s PHT', $startsAt->format('M j, Y g:i A'), $endsAt->format('g:i A'));
         $labels = [
             'assigned' => ['Pickup scheduled', "Pickup schedule {$this->schedule->reference} is set for {$window}"],
@@ -55,9 +73,10 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
             'ends_at' => $this->schedule->ends_at->toISOString(),
             'timezone' => 'Asia/Manila',
             'order_count' => $orderCount,
-            'pickup_area' => $address ? ['city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region']] : null,
+            'pickup_stop_count' => $pickupStopCount,
+            'pickup_area' => $address && $pickupStopCount === 1 ? ['city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region']] : null,
             'api_reference' => $notifiable->role === UserRole::Seller
-                ? "/api/v1/seller/pickup-requests/{$pickup}/waybills.pdf"
+                ? ($pickup ? "/api/v1/seller/pickup-requests/{$pickup}/waybills.pdf" : '/api/v1/seller/orders?status=ready_for_pickup')
                 : "/api/v1/courier/first-mile-tasks?pickup_schedule_id={$this->schedule->id}",
             'resource_type' => 'pickup_schedule',
             'resource_id' => $this->schedule->id,

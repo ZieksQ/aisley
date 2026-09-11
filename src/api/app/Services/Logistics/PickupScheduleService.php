@@ -54,10 +54,6 @@ class PickupScheduleService
                 if ($links->count() !== count($data['order_ids'])) {
                     throw new LogisticsPickupException('PICKUP_ORDERS_UNAVAILABLE', 'One or more Orders are not available for scheduling.');
                 }
-                if ($links->pluck('sellerPickupRequest.shop_id')->unique()->count() !== 1) {
-                    throw new LogisticsPickupException('PICKUP_WINDOW_MIXED_ORIGINS', 'One pickup schedule may contain Orders from only one Shop pickup origin.');
-                }
-
                 $schedule = PickupSchedule::create(['logistics_organization_id' => $org->id, 'logistics_hub_id' => $org->hub->id, 'courier_id' => $data['courier_id'], 'reference' => $this->reference(), 'status' => PickupScheduleStatus::Scheduled, 'starts_at' => $starts, 'ends_at' => $ends, 'revision' => 1, 'idempotency_key' => $key]);
                 foreach ($links as $link) {
                     if (! $link->order->waybill) {

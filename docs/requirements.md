@@ -101,7 +101,7 @@ MVP responsibilities:
 - Create the first-mile pickup task after the Seller marks the Order `ready_for_pickup`, then offer or assign it to an eligible Courier.
 - Receive parcels transferred from Sellers by a first-mile Courier.
 - View/download the Seller-created shared waybill and use it for pickup, hub, sorting, transfer, and dispatch operations.
-- View only pickup requests explicitly addressed to the authenticated Logistics organization, assign one approved affiliated Courier to a pickup schedule, and limit each schedule to 30 Orders.
+- View only pickup requests explicitly addressed to the authenticated Logistics organization, combine solo or bulk pickup requests from multiple Sellers into one pickup schedule, assign one approved affiliated Courier, and limit each schedule to 30 Orders/parcels.
 - Notify the Seller and assigned Courier of the committed pickup date/time and run idempotent scheduled reminders.
 - Sort parcels.
 - Transfer parcels by scanning or entering waybill QR/reference numbers.

@@ -16,15 +16,18 @@ export type PickupOrder = {
   id: string
   reference: string
   status: string
+  pickup_area: PickupArea | null
   scheduled: boolean
   schedule: PickupSchedule | null
   waybill: { id: string; reference: string } | null
 }
 
+export type PickupArea = { city_municipality: string; province: string; region: string }
+
 export type Pickup = {
   id: string
   status: PickupStatus
-  shop: { name: string; pickup_area: { city_municipality: string; province: string; region: string } | null }
+  shop: { id: string; name: string; pickup_area: PickupArea | null; pickup_areas: PickupArea[] }
   order_count: number
   unscheduled_count: number
   ready_at: string

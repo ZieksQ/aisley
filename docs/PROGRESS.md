@@ -50,3 +50,4 @@ Format:
 
 - Hardened Courier pickup route-map loading with bounded pending-manifest polling, truthful MapLibre/tile error fallback, retry-state reset, invalid-line protection, and Courier mockup CORS defaults; focused route coverage passes 2 tests/48 assertions and the mockup build/lint pass.
 - Aligned Seller Geoapify pinning with the configured `GEOAPIFY_API_KEY` variable, explicitly exposed that browser-key prefix through Vite, and updated the map policy reference; Seller type-check/lint and seven order-action tests pass.
+- Enabled one Courier pickup schedule to combine solo or bulk handoffs from multiple Sellers while retaining tenant isolation, conflict checks, per-parcel tasks, Seller-specific notifications, route-stop grouping, and the 30-parcel cap. Added cross-Seller batch selection and confirmation to the Logistics Pickups queue; focused API coverage passes 9 tests/197 assertions and the Logistics build/lint pass.

@@ -235,6 +235,69 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->assertDatabaseMissing('first_mile_tasks', ['order_id' => $secondOrder->id]);
     }
 
+    public function test_one_schedule_combines_bulk_pickups_from_multiple_sellers_with_a_thirty_parcel_limit(): void
+    {
+        [$firstSeller, $firstShop] = $this->sellerShop();
+        [$secondSeller, $secondShop] = $this->sellerShop();
+        $secondSeller->addresses()->firstOrFail()->update(['address_line_1' => '2 Seller Road', 'barangay' => 'Malate']);
+        $firstOrders = collect([$this->order($firstShop), $this->order($firstShop)]);
+        $secondOrders = collect([$this->order($secondShop), $this->order($secondShop)]);
+        $orders = $firstOrders->concat($secondOrders);
+        $orders->each->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Multi Seller Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+
+        $firstPickup = $this->actingAs($firstSeller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => $firstOrders->pluck('id')->all(),
+                'pickup_address_id' => $firstSeller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+        $secondPickup = $this->actingAs($secondSeller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => $secondOrders->pluck('id')->all(),
+                'pickup_address_id' => $secondSeller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickups?include_orders=1')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonCount(2, 'data.0.orders')
+            ->assertJsonCount(2, 'data.1.orders');
+
+        $schedule = $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => $orders->pluck('id')->all(),
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated()
+            ->assertJsonCount(4, 'data.order_ids')
+            ->json('data');
+
+        $this->assertDatabaseCount('pickup_schedules', 1);
+        $this->assertDatabaseCount('pickup_schedule_orders', 4);
+        $this->assertDatabaseCount('first_mile_tasks', 4);
+        $this->assertDatabaseHas('seller_pickup_requests', ['id' => $firstPickup['id'], 'status' => 'scheduled']);
+        $this->assertDatabaseHas('seller_pickup_requests', ['id' => $secondPickup['id'], 'status' => 'scheduled']);
+        $this->assertSame(2, $firstSeller->notifications()->where('type', 'pickup-schedule.assigned')->sole()->data['order_count']);
+        $this->assertSame(2, $secondSeller->notifications()->where('type', 'pickup-schedule.assigned')->sole()->data['order_count']);
+        $courierNotification = $courier->notifications()->where('type', 'pickup-schedule.assigned')->sole();
+        $this->assertSame(4, $courierNotification->data['order_count']);
+        $this->assertSame(2, $courierNotification->data['pickup_stop_count']);
+        $this->assertSame($schedule['id'], $courierNotification->data['schedule_id']);
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => collect(range(1, 31))->map(fn () => (string) Str::uuid())->all(),
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(5)->toISOString(),
+                'ends_at' => now()->addHours(6)->toISOString(),
+            ])->assertUnprocessable()
+            ->assertJsonValidationErrors('order_ids');
+    }
+
     public function test_courier_confirms_qr_and_manual_pickups_idempotently_without_changing_order_status(): void
     {
         [$seller, $shop] = $this->sellerShop();
