@@ -20,4 +20,6 @@ source_coverage: Logistics.md, app.md
 
 ## Logistics Courier Approval / Management
 
+- Specification: [Courier Application Review and Approval](courier-approval/spec.md). Phase 1 review UI, private evidence delivery, completeness checks, and atomic decisions are implemented; notifications, reversal, and browser automation remain deferred.
+
 ## Shared Logistics Operational History / Audit
