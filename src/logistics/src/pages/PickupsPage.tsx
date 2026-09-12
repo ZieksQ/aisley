@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { FaArrowsRotate, FaMagnifyingGlass, FaPlus } from 'react-icons/fa6'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ScheduleFields, toUtc } from '../components/PickupScheduleDialog'
+import { ScheduleFields } from '../components/PickupScheduleDialog'
 import { ActionButton, ErrorNotice, PrimaryButton, StatusLabel, field, link, manilaDate, panel } from '../components/PickupUi'
 import { ApiError, csrf, request } from '../lib/api'
-import type { CourierOption, Pickup, PickupOrder, PickupPage, PickupSchedulePage } from '../types/pickups'
+import { getPickupCouriers } from '../lib/pickupCouriers'
+import { toUtc, type ScheduleWindow } from '../lib/pickupSchedule'
+import type { CourierAvailabilityOption, Pickup, PickupOrder, PickupPage, PickupSchedulePage } from '../types/pickups'
 
 type SelectedParcel = Pick<PickupOrder, 'id' | 'reference'> & { pickupId: string; shopId: string }
 
@@ -24,11 +26,14 @@ export function PickupsPage() {
   const [dateTo, setDateTo] = useState(params.get('date_to') ?? '')
   const [schedules, setSchedules] = useState<PickupSchedulePage | null>(null)
   const [pending, setPending] = useState<PickupPage | null>(null)
-  const [couriers, setCouriers] = useState<CourierOption[]>([])
+  const [couriers, setCouriers] = useState<CourierAvailabilityOption[]>([])
   const [selected, setSelected] = useState<SelectedParcel[]>([])
   const [courierId, setCourierId] = useState('')
-  const [startsAt, setStartsAt] = useState('')
-  const [endsAt, setEndsAt] = useState('')
+  const [pickupDate, setPickupDate] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+  const [courierLoading, setCourierLoading] = useState(false)
+  const [courierError, setCourierError] = useState('')
   const [loading, setLoading] = useState(true)
   const [pendingLoading, setPendingLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -36,6 +41,7 @@ export function PickupsPage() {
   const [pendingError, setPendingError] = useState('')
   const [scheduleError, setScheduleError] = useState('')
   const [notice, setNotice] = useState('')
+  const courierRequest = useRef(0)
   const page = Number(params.get('page') ?? '1')
   const status = params.get('status') ?? ''
 
@@ -47,12 +53,53 @@ export function PickupsPage() {
     if (params.get('date_from')) search.set('date_from', params.get('date_from')!)
     if (params.get('date_to')) search.set('date_to', params.get('date_to')!)
     try {
-      const [scheduleResult, courierResult] = await Promise.all([request<PickupSchedulePage>(`/api/v1/logistics/pickup-schedules?${search}`), request<{ data: CourierOption[] }>('/api/v1/logistics/pickup-couriers')])
+      const [scheduleResult, courierResult] = await Promise.all([request<PickupSchedulePage>(`/api/v1/logistics/pickup-schedules?${search}`), getPickupCouriers()])
       setSchedules(scheduleResult); setCouriers(courierResult.data)
-      setCourierId((current) => current || (courierResult.data.length === 1 ? courierResult.data[0].id : ''))
+      setCourierId((current) => {
+        const selectedCourier = courierResult.data.find((courier) => courier.id === current)
+        if (selectedCourier && selectedCourier.availability !== 'scheduled') return current
+        const onlyCourier = courierResult.data.length === 1 ? courierResult.data[0] : null
+        return onlyCourier && onlyCourier.availability !== 'scheduled' ? onlyCourier.id : ''
+      })
     } catch (reason) { setError(reason instanceof ApiError ? reason.message : 'Pickup schedules could not be loaded.') }
     finally { setLoading(false) }
   }, [page, params, status])
+
+  const loadCouriers = useCallback(async (window?: ScheduleWindow) => {
+    const requestId = ++courierRequest.current
+    setCourierLoading(true); setCourierError('')
+    try {
+      const result = await getPickupCouriers(window)
+      if (requestId !== courierRequest.current) return
+      setCouriers(result.data)
+      setCourierId((current) => {
+        const selectedCourier = result.data.find((courier) => courier.id === current)
+        if (selectedCourier && selectedCourier.availability !== 'scheduled') return current
+        const onlyCourier = result.data.length === 1 ? result.data[0] : null
+        return onlyCourier && onlyCourier.availability !== 'scheduled' ? onlyCourier.id : ''
+      })
+    } catch (reason) {
+      if (requestId === courierRequest.current) setCourierError(reason instanceof ApiError ? reason.message : 'Courier availability could not be checked.')
+    } finally {
+      if (requestId === courierRequest.current) setCourierLoading(false)
+    }
+  }, [])
+
+  const handleWindowChange = useCallback((window: ScheduleWindow) => {
+    if (!window.date || !window.startTime || !window.endTime) {
+      courierRequest.current += 1
+      setCourierLoading(false); setCourierError('')
+      setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] })))
+      return
+    }
+    void loadCouriers(window)
+  }, [loadCouriers])
+
+  const refreshCourierAvailability = useCallback(() => {
+    const window = { date: pickupDate, startTime, endTime }
+    if (window.date && window.startTime && window.endTime) void loadCouriers(window)
+    else void loadCouriers()
+  }, [endTime, loadCouriers, pickupDate, startTime])
 
   const loadPending = useCallback(async () => {
     setPendingLoading(true); setPendingError('')
@@ -71,7 +118,7 @@ export function PickupsPage() {
 
   function submitFilters(event: FormEvent) { event.preventDefault(); const next = new URLSearchParams(params); next.delete('page'); if (query.trim()) next.set('search', query.trim()); else next.delete('search'); if (dateFrom) next.set('date_from', dateFrom); else next.delete('date_from'); if (dateTo) next.set('date_to', dateTo); else next.delete('date_to'); setParams(next) }
   function filter(nextStatus: string) { const next = new URLSearchParams(params); next.delete('page'); if (nextStatus) next.set('status', nextStatus); else next.delete('status'); setParams(next) }
-  function openCreate() { setSelected([]); setScheduleError(''); setPending(null); createDialog.current?.showModal(); void loadPending() }
+  function openCreate() { setSelected([]); setScheduleError(''); setCourierError(''); setPending(null); setCourierId(''); setPickupDate(''); setStartTime(''); setEndTime(''); setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] }))); createDialog.current?.showModal(); void loadPending() }
   function toggleParcel(pickup: Pickup, order: PickupOrder) {
     setSelected((current) => current.some((parcel) => parcel.id === order.id)
       ? current.filter((parcel) => parcel.id !== order.id)
@@ -85,6 +132,8 @@ export function PickupsPage() {
     setSelected((current) => [...current, ...available.slice(0, remaining).map((order) => ({ id: order.id, reference: order.reference, pickupId: pickup.id, shopId: pickup.shop.id }))])
   }
   async function createSchedule() {
+    const startsAt = toUtc(pickupDate, startTime)
+    const endsAt = toUtc(pickupDate, endTime)
     if (!selected.length || !courierId || !startsAt || !endsAt) return
     setBusy(true); setScheduleError('')
     const orderIds = selected.map((parcel) => parcel.id).sort()
@@ -92,7 +141,7 @@ export function PickupsPage() {
     let idempotencyKey = sessionStorage.getItem(storageKey)
     if (!idempotencyKey) { idempotencyKey = crypto.randomUUID(); sessionStorage.setItem(storageKey, idempotencyKey) }
     try {
-      await csrf(); await request('/api/v1/logistics/pickup-schedules', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ order_ids: orderIds, courier_id: courierId, starts_at: toUtc(startsAt), ends_at: toUtc(endsAt) }) })
+      await csrf(); await request('/api/v1/logistics/pickup-schedules', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ order_ids: orderIds, courier_id: courierId, starts_at: startsAt, ends_at: endsAt }) })
       sessionStorage.removeItem(storageKey); createDialog.current?.close(); setSelected([]); setNotice(`Schedule created with ${orderIds.length} parcels.`); await load()
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 409) await loadPending()
@@ -143,11 +192,11 @@ export function PickupsPage() {
           })}</ul> : !pendingLoading ? <div className="p-8 text-center"><h4 className="font-medium">No pending parcels</h4><p className="mt-1 text-sm text-zinc-500">All available Seller parcels are already scheduled.</p></div> : null}
           {pending && pending.meta.last_page > 1 ? <p className="border-t border-zinc-200 px-5 py-3 text-xs text-amber-700 dark:border-white/10 dark:text-amber-300">Showing the first 50 Shop pickup requests, ordered oldest first within each Shop.</p> : null}
         </section>
-        <aside className="p-5"><h4 className="font-semibold">Assignment</h4><ScheduleFields couriers={couriers} courierId={courierId} setCourierId={setCourierId} startsAt={startsAt} setStartsAt={setStartsAt} endsAt={endsAt} setEndsAt={setEndsAt} />
+        <aside className="p-5"><h4 className="font-semibold">Assignment</h4><ScheduleFields couriers={couriers} courierId={courierId} setCourierId={setCourierId} pickupDate={pickupDate} setPickupDate={setPickupDate} startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={handleWindowChange} onRefreshCouriers={refreshCourierAvailability} idPrefix="new-schedule" />
           <div className="mt-4 border-y border-zinc-200 py-3 text-sm dark:border-white/10"><div className="flex justify-between"><span>Selected parcels</span><strong>{selected.length} / 30</strong></div><div className="mt-2 flex justify-between"><span>Shops</span><strong>{new Set(selected.map((parcel) => parcel.shopId)).size}</strong></div></div>
           {scheduleError ? <p className="mt-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{scheduleError}</p> : null}
           <p className="mt-4 text-xs leading-5 text-zinc-500">Pickup times use Philippine Time (Asia/Manila). The API rechecks parcel availability, Courier eligibility, schedule overlap, and the 30-parcel capacity before saving.</p>
-          <div className="mt-5 flex justify-end gap-2"><ActionButton onClick={() => createDialog.current?.close()}>Cancel</ActionButton><PrimaryButton busy={busy} disabled={!selected.length || !courierId || !startsAt || !endsAt} onClick={() => void createSchedule()}>Create schedule</PrimaryButton></div>
+          <div className="mt-5 flex justify-end gap-2"><ActionButton onClick={() => createDialog.current?.close()} type="button">Cancel</ActionButton><PrimaryButton busy={busy} disabled={!selected.length || !courierId || !pickupDate || !startTime || !endTime || courierLoading} onClick={() => void createSchedule()} type="button">Create schedule</PrimaryButton></div>
         </aside>
       </div>
     </dialog>

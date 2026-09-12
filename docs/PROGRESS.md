@@ -106,3 +106,4 @@ Format:
 ## 2026-09-13
 
 - Added Courier mockup Terms of Service and Privacy Policy consent flow: status-first login/session restoration, public current-policy reading, explicit acceptance of only unaccepted current versions, bearer-token preservation while consent is pending, and protected workspace loading after verified completion. Added authenticated main-page policy viewers and documented the development harness flow; Courier remains mobile-only in production.
+- Updated Logistics pickup schedule creation and editing with browser-compatible separate Philippine-date/start/end-time controls and a tenant-scoped Courier picker showing active account status, contact information, same-day schedules, and overlapping-window availability; added the private no-store availability query and regression coverage.

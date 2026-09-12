@@ -47,3 +47,10 @@ export type Pickup = {
 export type PickupPage = { data: Pickup[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }
 export type PickupSchedulePage = { data: PickupScheduleSummary[]; meta: PickupPage['meta'] }
 export type CourierOption = { id: string; name: string; email: string }
+export type CourierSchedule = { id: string; reference: string; starts_at: string; ends_at: string }
+export type CourierAvailabilityOption = CourierOption & {
+  contact_number: string | null
+  status: string
+  availability: 'available' | 'scheduled' | 'not_checked'
+  schedules: CourierSchedule[]
+}

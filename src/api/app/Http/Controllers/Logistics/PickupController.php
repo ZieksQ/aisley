@@ -8,6 +8,7 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\CancelPickupScheduleRequest;
 use App\Http\Requests\Logistics\CreatePickupScheduleRequest;
+use App\Http\Requests\Logistics\ListPickupCouriersRequest;
 use App\Http\Requests\Logistics\ListPickupSchedulesRequest;
 use App\Http\Requests\Logistics\ListPickupsRequest;
 use App\Http\Requests\Logistics\RevisePickupScheduleRequest;
@@ -17,6 +18,7 @@ use App\Models\SellerPickupRequest;
 use App\Models\Waybill;
 use App\Services\Logistics\PickupScheduleService;
 use App\Services\Waybills\WaybillPdfService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -119,9 +121,30 @@ class PickupController extends Controller
         return response()->json(['data' => $record->waybills()->orderBy('created_at')->orderBy('id')->get()->map(fn (Waybill $waybill) => ['id' => $waybill->id, 'order_id' => $waybill->order_id, 'reference' => $waybill->reference, 'created_at' => $waybill->created_at->toISOString(), 'printable' => true, 'pdf_url' => "/api/v1/logistics/waybills/{$waybill->id}.pdf"])]);
     }
 
-    public function couriers(Request $request): JsonResponse
+    public function couriers(ListPickupCouriersRequest $request): JsonResponse
     {
         $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
+        $data = $request->validated();
+        $startsAt = isset($data['starts_at']) ? CarbonImmutable::parse($data['starts_at'])->utc() : null;
+        $endsAt = isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc() : null;
+        $schedulesByCourier = collect();
+
+        if ($startsAt && $endsAt) {
+            $dayStart = $startsAt->setTimezone('Asia/Manila')->startOfDay()->utc();
+            $dayEnd = $dayStart->addDay();
+            $schedulesByCourier = PickupSchedule::query()
+                ->where('logistics_organization_id', $org->id)
+                ->where('logistics_hub_id', $org->hub->id)
+                ->where('status', 'scheduled')
+                ->where('starts_at', '<', $dayEnd)
+                ->where('ends_at', '>', $dayStart)
+                ->when($data['exclude_schedule_id'] ?? null, fn ($query, $id) => $query->whereKeyNot($id))
+                ->orderBy('starts_at')
+                ->orderBy('id')
+                ->get()
+                ->groupBy('courier_id');
+        }
+
         $couriers = CourierLogisticsAffiliation::query()
             ->where('logistics_organization_id', $org->id)
             ->where('logistics_hub_id', $org->hub->id)
@@ -130,13 +153,27 @@ class PickupController extends Controller
             ->with('courier.courierProfile')
             ->orderBy('created_at')
             ->get()
-            ->map(fn ($affiliation) => [
-                'id' => $affiliation->courier_id,
-                'name' => trim(($affiliation->courier->courierProfile?->first_name ?? '').' '.($affiliation->courier->courierProfile?->last_name ?? '')),
-                'email' => $affiliation->courier->email,
-            ]);
+            ->map(function ($affiliation) use ($schedulesByCourier, $startsAt, $endsAt): array {
+                $schedules = $schedulesByCourier->get($affiliation->courier_id, collect());
+                $hasConflict = $startsAt && $endsAt && $schedules->contains(fn (PickupSchedule $schedule): bool => $schedule->starts_at->lt($endsAt) && $schedule->ends_at->gt($startsAt));
 
-        return response()->json(['data' => $couriers]);
+                return [
+                    'id' => $affiliation->courier_id,
+                    'name' => trim(($affiliation->courier->courierProfile?->first_name ?? '').' '.($affiliation->courier->courierProfile?->last_name ?? '')),
+                    'email' => $affiliation->courier->email,
+                    'contact_number' => $affiliation->courier->courierProfile?->contact_number,
+                    'status' => $affiliation->courier->status instanceof UserStatus ? $affiliation->courier->status->value : $affiliation->courier->status,
+                    'availability' => $startsAt && $endsAt ? ($hasConflict ? 'scheduled' : 'available') : 'not_checked',
+                    'schedules' => $schedules->map(fn (PickupSchedule $schedule): array => [
+                        'id' => $schedule->id,
+                        'reference' => $schedule->reference,
+                        'starts_at' => $schedule->starts_at->toISOString(),
+                        'ends_at' => $schedule->ends_at->toISOString(),
+                    ])->values(),
+                ];
+            });
+
+        return response()->json(['data' => $couriers])->header('Cache-Control', 'private, no-store');
     }
 
     public function waybillPdf(Request $request, string $waybill, WaybillPdfService $pdf)
