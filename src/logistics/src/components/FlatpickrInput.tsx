@@ -7,6 +7,27 @@ import { inputStyles } from './Field'
 
 type FlatpickrOptions = Omit<Options, 'onChange'>
 
+function positionPicker(picker: Instance) {
+  const inputBounds = picker._positionElement.getBoundingClientRect()
+  const calendar = picker.calendarContainer
+  const gap = 8
+  const calendarHeight = calendar.offsetHeight
+  const calendarWidth = calendar.offsetWidth
+  const roomAbove = inputBounds.top >= calendarHeight + gap
+  const roomBelow = window.innerHeight - inputBounds.bottom >= calendarHeight + gap
+  const placeAbove = !roomBelow && roomAbove
+  const top = placeAbove ? inputBounds.top - calendarHeight - gap : inputBounds.bottom + gap
+  const left = Math.min(Math.max(gap, inputBounds.left), Math.max(gap, window.innerWidth - calendarWidth - gap))
+
+  calendar.style.position = 'fixed'
+  calendar.style.top = `${Math.max(gap, top)}px`
+  calendar.style.left = `${left}px`
+  calendar.style.right = 'auto'
+  calendar.style.zIndex = '2147483647'
+  calendar.classList.toggle('arrowTop', !placeAbove)
+  calendar.classList.toggle('arrowBottom', placeAbove)
+}
+
 export type FlatpickrInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'defaultValue' | 'onChange' | 'type' | 'value'> & {
   value?: string
   onChange: (value: string) => void
@@ -26,8 +47,10 @@ export function FlatpickrInput({ className = '', onChange, options, value = '', 
       animate: false,
       disableMobile: true,
       ...options,
+      appendTo: input.current.closest('dialog') ?? undefined,
       defaultDate: value || options?.defaultDate,
       onChange: (_dates, dateString) => onChangeRef.current(dateString),
+      position: positionPicker,
     })
     instance.current = picker
     return () => { picker.destroy(); instance.current = null }

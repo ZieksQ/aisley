@@ -6,7 +6,7 @@ import { ActionButton, ErrorNotice, PrimaryButton, StatusLabel, field, link, man
 import { ScheduleDialog, ScheduleFields } from '../components/PickupScheduleDialog'
 import { ApiError, csrf, pdf, request } from '../lib/api'
 import { getPickupCouriers } from '../lib/pickupCouriers'
-import { localParts, toUtc, type ScheduleWindow } from '../lib/pickupSchedule'
+import { formatPhtDateTime, localDateTime, toUtc, type ScheduleWindow } from '../lib/pickupSchedule'
 import type { CourierAvailabilityOption, Pickup, PickupSchedule } from '../types/pickups'
 
 async function openPdf(path: string, mode: 'preview' | 'download' | 'print', filename: string) {
@@ -32,9 +32,8 @@ export function PickupDetailPage() {
   const [couriers, setCouriers] = useState<CourierAvailabilityOption[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [courierId, setCourierId] = useState('')
-  const [pickupDate, setPickupDate] = useState('')
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
+  const [startDateTime, setStartDateTime] = useState('')
+  const [endDateTime, setEndDateTime] = useState('')
   const [activeSchedule, setActiveSchedule] = useState<PickupSchedule | null>(null)
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(true)
@@ -84,7 +83,7 @@ export function PickupDetailPage() {
   }, [])
 
   const updateCourierAvailability = useCallback((window: ScheduleWindow, excludeScheduleId?: string) => {
-    if (!window.date || !window.startTime || !window.endTime) {
+    if (!window.startDateTime || !window.endDateTime) {
       courierRequest.current += 1
       setCourierLoading(false); setCourierError('')
       setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] })))
@@ -94,18 +93,18 @@ export function PickupDetailPage() {
   }, [loadCouriers])
 
   const refreshCourierAvailability = useCallback((excludeScheduleId?: string) => {
-    const window = { date: pickupDate, startTime, endTime }
-    if (window.date && window.startTime && window.endTime) void loadCouriers(window, excludeScheduleId)
+    const window = { startDateTime, endDateTime }
+    if (window.startDateTime && window.endDateTime) void loadCouriers(window, excludeScheduleId)
     else void loadCouriers(undefined, excludeScheduleId)
-  }, [endTime, loadCouriers, pickupDate, startTime])
+  }, [endDateTime, loadCouriers, startDateTime])
   useEffect(() => { document.title = 'Pickup details | Aisley Logistics'; void load() }, [load])
   const unscheduled = pickup?.orders?.filter((order) => !order.scheduled) ?? []
   const schedules = useMemo(() => Array.from(new Map((pickup?.orders ?? []).flatMap((order) => order.schedule ? [[order.schedule.id, order.schedule] as const] : [])).values()), [pickup])
   function toggle(id: string) { setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : current.length < 30 ? [...current, id] : current) }
-  function openCreate() { setReason(''); setScheduleError(''); setCourierError(''); setCourierId(''); setPickupDate(''); setStartTime(''); setEndTime(''); setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] }))); dialog.current?.showModal() }
+  function openCreate() { setReason(''); setScheduleError(''); setCourierError(''); setCourierId(''); setStartDateTime(''); setEndDateTime(''); setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] }))); dialog.current?.showModal() }
   async function createSchedule() {
-    const startsAt = toUtc(pickupDate, startTime)
-    const endsAt = toUtc(pickupDate, endTime)
+    const startsAt = toUtc(startDateTime)
+    const endsAt = toUtc(endDateTime)
     if (!selected.length || !courierId || !startsAt || !endsAt) return
     setBusy(true); setScheduleError('')
     const storageKey = `logistics-pickup-schedule:${pickupId}:${[...selected].sort().join(':')}:${courierId}:${startsAt}:${endsAt}`
@@ -120,18 +119,18 @@ export function PickupDetailPage() {
     finally { setBusy(false) }
   }
   function beginEdit(schedule: PickupSchedule) {
-    const starts = localParts(schedule.starts_at)
-    const ends = localParts(schedule.ends_at)
-    setActiveSchedule(schedule); setCourierId(schedule.courier_id); setPickupDate(starts.date); setStartTime(starts.time); setEndTime(ends.time); setCourierError(''); setReason('')
-    void loadCouriers({ date: starts.date, startTime: starts.time, endTime: ends.time }, schedule.id)
+    const starts = localDateTime(schedule.starts_at)
+    const ends = localDateTime(schedule.ends_at)
+    setActiveSchedule(schedule); setCourierId(schedule.courier_id); setStartDateTime(starts); setEndDateTime(ends); setCourierError(''); setReason('')
+    void loadCouriers({ startDateTime: starts, endDateTime: ends }, schedule.id)
     editDialog.current?.showModal()
   }
   async function revise(event: FormEvent) {
     event.preventDefault()
     if (!activeSchedule) return
-    const startsAt = toUtc(pickupDate, startTime)
-    const endsAt = toUtc(pickupDate, endTime)
-    if (!startsAt || !endsAt) { setError('Choose a pickup date, start time, and end time.'); return }
+    const startsAt = toUtc(startDateTime)
+    const endsAt = toUtc(endDateTime)
+    if (!startsAt || !endsAt) { setError('Choose a start and end date/time.'); return }
     setBusy(true); setError('')
     try { await csrf(); await request(`/api/v1/logistics/pickup-schedules/${activeSchedule.id}`, { method: 'PATCH', body: JSON.stringify({ expected_revision: activeSchedule.revision, reason, courier_id: courierId, starts_at: startsAt, ends_at: endsAt }) }); editDialog.current?.close(); setNotice('Pickup schedule updated.'); await load() } catch (caught) { setError(caught instanceof ApiError ? caught.message : 'The schedule could not be updated.'); editDialog.current?.close(); await load() } finally { setBusy(false) }
   }
@@ -148,11 +147,11 @@ export function PickupDetailPage() {
           {unscheduled.length > 0 ? <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-sm dark:border-white/10 dark:bg-white/[0.03]"><label className="inline-flex items-center gap-2"><input type="checkbox" className="size-4 accent-[#4C1268]" checked={selected.length === Math.min(unscheduled.length, 30)} onChange={(event) => setSelected(event.target.checked ? unscheduled.slice(0, 30).map((order) => order.id) : [])} />Select first {Math.min(unscheduled.length, 30)} unscheduled</label></div> : null}
           <ul className="divide-y divide-zinc-200 dark:divide-white/10">{pickup.orders?.map((order) => <li className="grid gap-3 px-4 py-3 sm:grid-cols-[1.5rem_minmax(10rem,1fr)_auto] sm:items-center" key={order.id}><input aria-label={`Select ${order.reference}`} checked={selected.includes(order.id)} className="size-4 accent-[#4C1268]" disabled={order.scheduled} onChange={() => toggle(order.id)} type="checkbox" /><div><p className="font-medium">{order.reference}</p><p className="mt-0.5 text-xs text-zinc-500">{order.scheduled ? `Scheduled · ${order.schedule?.reference}` : 'Ready to schedule'}{order.waybill ? ` · ${order.waybill.reference}` : ' · Waybill unavailable'}</p></div>{order.waybill ? <div className="flex flex-wrap gap-1"><ActionButton aria-label={`Preview waybill ${order.waybill.reference}`} busy={pdfBusy === `${order.waybill.id}:preview`} onClick={() => void waybill(order.waybill!.id, order.waybill!.reference, 'preview')}><FaEye aria-hidden="true" />Preview</ActionButton><ActionButton aria-label={`Download waybill ${order.waybill.reference}`} busy={pdfBusy === `${order.waybill.id}:download`} onClick={() => void waybill(order.waybill!.id, order.waybill!.reference, 'download')}><FaDownload aria-hidden="true" /></ActionButton><ActionButton aria-label={`Print waybill ${order.waybill.reference}`} busy={pdfBusy === `${order.waybill.id}:print`} onClick={() => void waybill(order.waybill!.id, order.waybill!.reference, 'print')}><FaPrint aria-hidden="true" /></ActionButton></div> : null}</li>)}</ul>
         </section>
-        <aside className="space-y-4"><section className={`${panel} p-4`}><h3 className="font-semibold">Pickup origin</h3><p className="mt-2 text-sm leading-6">{pickup.shop.pickup_area ? [pickup.shop.pickup_area.city_municipality, pickup.shop.pickup_area.province, pickup.shop.pickup_area.region].join(', ') : 'Area unavailable'}</p></section><section className={`${panel} p-4`}><h3 className="font-semibold">Schedules</h3>{schedules.length ? <ul className="mt-3 divide-y divide-zinc-200 dark:divide-white/10">{schedules.map((schedule) => <li className="py-3 first:pt-0 last:pb-0" key={schedule.id}><div className="flex items-center justify-between gap-2"><span className="text-sm font-medium">{schedule.reference}</span><StatusLabel status={schedule.status} /></div><p className="mt-1 text-xs leading-5 text-zinc-500">{manilaDate(schedule.starts_at)}–{new Intl.DateTimeFormat('en-PH', { timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(schedule.ends_at))} PHT<br />{couriers.find((courier) => courier.id === schedule.courier_id)?.name || 'Assigned Courier'}</p>{schedule.status === 'scheduled' ? <div className="mt-2 flex gap-3 text-sm"><button className={link} onClick={() => beginEdit(schedule)} type="button">Edit</button><button className="font-medium text-red-700 hover:underline dark:text-red-300" onClick={() => { setActiveSchedule(schedule); setReason(''); cancelDialog.current?.showModal() }} type="button">Cancel</button></div> : null}</li>)}</ul> : <p className="mt-2 text-sm text-zinc-500">No pickup window has been scheduled.</p>}</section>{couriers.length === 0 ? <section className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200"><h3 className="font-semibold">No eligible Courier</h3><p className="mt-1">Approve and activate a Courier before scheduling this pickup.</p></section> : null}</aside>
+        <aside className="space-y-4"><section className={`${panel} p-4`}><h3 className="font-semibold">Pickup origin</h3><p className="mt-2 text-sm leading-6">{pickup.shop.pickup_area ? [pickup.shop.pickup_area.city_municipality, pickup.shop.pickup_area.province, pickup.shop.pickup_area.region].join(', ') : 'Area unavailable'}</p></section><section className={`${panel} p-4`}><h3 className="font-semibold">Schedules</h3>{schedules.length ? <ul className="mt-3 divide-y divide-zinc-200 dark:divide-white/10">{schedules.map((schedule) => <li className="py-3 first:pt-0 last:pb-0" key={schedule.id}><div className="flex items-center justify-between gap-2"><span className="text-sm font-medium">{schedule.reference}</span><StatusLabel status={schedule.status} /></div><p className="mt-1 text-xs leading-5 text-zinc-500">{formatPhtDateTime(schedule.starts_at)}–{formatPhtDateTime(schedule.ends_at)} PHT<br />{couriers.find((courier) => courier.id === schedule.courier_id)?.name || 'Assigned Courier'}</p>{schedule.status === 'scheduled' ? <div className="mt-2 flex gap-3 text-sm"><button className={link} onClick={() => beginEdit(schedule)} type="button">Edit</button><button className="font-medium text-red-700 hover:underline dark:text-red-300" onClick={() => { setActiveSchedule(schedule); setReason(''); cancelDialog.current?.showModal() }} type="button">Cancel</button></div> : null}</li>)}</ul> : <p className="mt-2 text-sm text-zinc-500">No pickup window has been scheduled.</p>}</section>{couriers.length === 0 ? <section className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200"><h3 className="font-semibold">No eligible Courier</h3><p className="mt-1">Approve and activate a Courier before scheduling this pickup.</p></section> : null}</aside>
       </div>
     </> : null}
-    <ScheduleDialog dialog={dialog} busy={busy} error={scheduleError} couriers={couriers} courierId={courierId} setCourierId={setCourierId} pickupDate={pickupDate} setPickupDate={setPickupDate} startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={(window) => updateCourierAvailability(window)} onRefreshCouriers={() => refreshCourierAvailability()} idPrefix="new-schedule" title="Confirm pickup schedule" description={`${selected.length} ${selected.length === 1 ? 'Order' : 'Orders'} will be assigned. The Seller and Courier will be notified.`} submitLabel="Create schedule" submit={() => void createSchedule()} />
-    <dialog ref={editDialog} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white"><form className="p-5" onSubmit={revise}><h3 className="text-lg font-semibold">Edit pickup schedule</h3><ScheduleFields couriers={couriers} courierId={courierId} setCourierId={setCourierId} pickupDate={pickupDate} setPickupDate={setPickupDate} startTime={startTime} setStartTime={setStartTime} endTime={endTime} setEndTime={setEndTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={(window) => updateCourierAvailability(window, activeSchedule?.id)} onRefreshCouriers={() => refreshCourierAvailability(activeSchedule?.id)} idPrefix="edit-schedule" /><label className="mt-3 block text-sm font-medium" htmlFor="edit-reason">Reason</label><textarea className={`${field} mt-1 h-20 py-2`} id="edit-reason" maxLength={1000} required value={reason} onChange={(event) => setReason(event.target.value)} /><div className="mt-5 flex justify-end gap-2"><ActionButton onClick={() => editDialog.current?.close()} type="button">Keep current</ActionButton><PrimaryButton busy={busy} disabled={courierLoading || !courierId || !pickupDate || !startTime || !endTime} type="submit">Save changes</PrimaryButton></div></form></dialog>
+    <ScheduleDialog dialog={dialog} busy={busy} error={scheduleError} couriers={couriers} courierId={courierId} setCourierId={setCourierId} startDateTime={startDateTime} setStartDateTime={setStartDateTime} endDateTime={endDateTime} setEndDateTime={setEndDateTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={(window) => updateCourierAvailability(window)} onRefreshCouriers={() => refreshCourierAvailability()} idPrefix="new-schedule" title="Confirm pickup schedule" description={`${selected.length} ${selected.length === 1 ? 'Order' : 'Orders'} will be assigned. The Seller and Courier will be notified.`} submitLabel="Create schedule" submit={() => void createSchedule()} />
+    <dialog ref={editDialog} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white"><form className="p-5" onSubmit={revise}><h3 className="text-lg font-semibold">Edit pickup schedule</h3><ScheduleFields couriers={couriers} courierId={courierId} setCourierId={setCourierId} startDateTime={startDateTime} setStartDateTime={setStartDateTime} endDateTime={endDateTime} setEndDateTime={setEndDateTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={(window) => updateCourierAvailability(window, activeSchedule?.id)} onRefreshCouriers={() => refreshCourierAvailability(activeSchedule?.id)} idPrefix="edit-schedule" /><label className="mt-3 block text-sm font-medium" htmlFor="edit-reason">Reason</label><textarea className={`${field} mt-1 h-20 py-2`} id="edit-reason" maxLength={1000} required value={reason} onChange={(event) => setReason(event.target.value)} /><div className="mt-5 flex justify-end gap-2"><ActionButton onClick={() => editDialog.current?.close()} type="button">Keep current</ActionButton><PrimaryButton busy={busy} disabled={courierLoading || !courierId || !startDateTime || !endDateTime} type="submit">Save changes</PrimaryButton></div></form></dialog>
     <dialog ref={cancelDialog} className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-zinc-200 bg-white p-5 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white"><form onSubmit={cancel}><h3 className="text-lg font-semibold">Cancel pickup schedule?</h3><p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">The Seller and Courier will be notified. The Orders can be scheduled again.</p><label className="mt-3 block text-sm font-medium" htmlFor="cancel-reason">Reason</label><textarea className={`${field} mt-1 h-20 py-2`} id="cancel-reason" maxLength={1000} required value={reason} onChange={(event) => setReason(event.target.value)} /><div className="mt-5 flex justify-end gap-2"><ActionButton onClick={() => cancelDialog.current?.close()}>Keep schedule</ActionButton><ActionButton busy={busy} className="border-red-700! bg-red-700! text-white hover:bg-red-800!" type="submit">Cancel schedule</ActionButton></div></form></dialog>
   </div>
 }

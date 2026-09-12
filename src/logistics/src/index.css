@@ -9,6 +9,7 @@ button, a, input, select { transition: background-color 160ms ease, border-color
 button:not(:disabled), a { cursor: pointer; }
 ::selection { color: white; background: #e6007a; }
 .flatpickr-calendar { border: 1px solid #d4d4d8; border-radius: 8px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); font-family: inherit; overflow: hidden; }
+.flatpickr-calendar.open { z-index: 2147483647 !important; }
 .flatpickr-calendar .flatpickr-day { border-radius: 6px; }
 .flatpickr-calendar .flatpickr-day.selected, .flatpickr-calendar .flatpickr-day.selected:hover { background: #4c1268; border-color: #4c1268; }
 .flatpickr-calendar .flatpickr-day.today { border-color: #e6007a; }

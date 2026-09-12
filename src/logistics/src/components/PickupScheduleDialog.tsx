@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { FaMagnifyingGlass, FaTruckFast, FaXmark } from 'react-icons/fa6'
 import type { CourierAvailabilityOption } from '../types/pickups'
-import { formatPhtDate, formatPhtTime, localParts, PICKUP_TIME_ZONE, toUtc, type ScheduleWindow } from '../lib/pickupSchedule'
+import { formatPhtDateTime, localParts, PICKUP_TIME_ZONE, type ScheduleWindow } from '../lib/pickupSchedule'
 import { FlatpickrInput } from './FlatpickrInput'
 import { ActionButton, PrimaryButton, field } from './PickupUi'
 
@@ -10,12 +10,10 @@ type ScheduleFieldsProps = {
   couriers: CourierAvailabilityOption[]
   courierId: string
   setCourierId: (value: string) => void
-  pickupDate: string
-  setPickupDate: (value: string) => void
-  startTime: string
-  setStartTime: (value: string) => void
-  endTime: string
-  setEndTime: (value: string) => void
+  startDateTime: string
+  setStartDateTime: (value: string) => void
+  endDateTime: string
+  setEndDateTime: (value: string) => void
   courierLoading?: boolean
   courierError?: string
   onWindowChange?: (window: ScheduleWindow) => void
@@ -27,12 +25,10 @@ export function ScheduleFields({
   couriers,
   courierId,
   setCourierId,
-  pickupDate,
-  setPickupDate,
-  startTime,
-  setStartTime,
-  endTime,
-  setEndTime,
+  startDateTime,
+  setStartDateTime,
+  endDateTime,
+  setEndDateTime,
   courierLoading = false,
   courierError = '',
   onWindowChange,
@@ -40,29 +36,26 @@ export function ScheduleFields({
   idPrefix = 'schedule',
 }: ScheduleFieldsProps) {
   const earliest = localParts(new Date(Date.now() + 60_000).toISOString())
-  const minStartTime = pickupDate === earliest.date ? earliest.time : undefined
+  const earliestDateTime = `${earliest.date} ${earliest.time}`
+  const minimumEndDateTime = startDateTime || earliestDateTime
 
   function updateWindow(next: Partial<ScheduleWindow>) {
-    const window = { date: pickupDate, startTime, endTime, ...next }
+    const window = { startDateTime, endDateTime, ...next }
     onWindowChange?.(window)
   }
 
   return <div className="mt-4 grid gap-3 sm:grid-cols-2">
-    <label className="text-sm font-medium sm:col-span-2" htmlFor={`${idPrefix}-date`}>
-      Pickup date (PHT)
-      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-date`} placeholder="Select pickup date" required value={pickupDate} onChange={(value) => { setPickupDate(value); updateWindow({ date: value }) }} options={{ dateFormat: 'Y-m-d', minDate: earliest.date }} />
+    <label className="text-sm font-medium" htmlFor={`${idPrefix}-start`}>
+      Start date &amp; time (PHT)
+      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-start`} placeholder="Select start date and time" required value={startDateTime} onChange={(value) => { setStartDateTime(value); updateWindow({ startDateTime: value }) }} options={{ dateFormat: 'Y-m-d H:i', enableTime: true, minDate: earliestDateTime, minuteIncrement: 1, time_24hr: true }} />
     </label>
-    <label className="text-sm font-medium" htmlFor={`${idPrefix}-start-time`}>
-      Start time (PHT)
-      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-start-time`} placeholder="Select start time" required value={startTime} onChange={(value) => { setStartTime(value); updateWindow({ startTime: value }) }} options={{ dateFormat: 'H:i', enableTime: true, minTime: minStartTime, minuteIncrement: 1, noCalendar: true, time_24hr: true }} />
+    <label className="text-sm font-medium" htmlFor={`${idPrefix}-end`}>
+      End date &amp; time (PHT)
+      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-end`} placeholder="Select end date and time" required value={endDateTime} onChange={(value) => { setEndDateTime(value); updateWindow({ endDateTime: value }) }} options={{ dateFormat: 'Y-m-d H:i', enableTime: true, minDate: minimumEndDateTime, minuteIncrement: 1, time_24hr: true }} />
     </label>
-    <label className="text-sm font-medium" htmlFor={`${idPrefix}-end-time`}>
-      End time (PHT)
-      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-end-time`} placeholder="Select end time" required value={endTime} onChange={(value) => { setEndTime(value); updateWindow({ endTime: value }) }} options={{ dateFormat: 'H:i', enableTime: true, minTime: startTime || undefined, minuteIncrement: 1, noCalendar: true, time_24hr: true }} />
-    </label>
-    <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">Choose the date separately from the time so the schedule works consistently across browsers. The API stores the selected window in UTC.</p>
+    <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">Choose the start and end date/time together. Flatpickr keeps the picker consistent across browsers, while the API stores the selected window in UTC.</p>
     <div className="sm:col-span-2">
-      <CourierPicker couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endTime={endTime} idPrefix={idPrefix} onRefreshCouriers={onRefreshCouriers} pickupDate={pickupDate} setCourierId={setCourierId} startTime={startTime} />
+      <CourierPicker couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endDateTime={endDateTime} idPrefix={idPrefix} onRefreshCouriers={onRefreshCouriers} setCourierId={setCourierId} startDateTime={startDateTime} />
     </div>
   </div>
 }
@@ -73,14 +66,13 @@ type CourierPickerProps = {
   setCourierId: (value: string) => void
   courierLoading: boolean
   courierError: string
-  pickupDate: string
-  startTime: string
-  endTime: string
+  startDateTime: string
+  endDateTime: string
   onRefreshCouriers?: () => void
   idPrefix: string
 }
 
-function CourierPicker({ couriers, courierId, setCourierId, courierLoading, courierError, pickupDate, startTime, endTime, onRefreshCouriers, idPrefix }: CourierPickerProps) {
+function CourierPicker({ couriers, courierId, setCourierId, courierLoading, courierError, startDateTime, endDateTime, onRefreshCouriers, idPrefix }: CourierPickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const trigger = useRef<HTMLButtonElement>(null)
@@ -99,7 +91,7 @@ function CourierPicker({ couriers, courierId, setCourierId, courierLoading, cour
     </button>
     {selected ? <p className="mt-1 text-xs text-zinc-500">{selected.contact_number ? `${selected.contact_number} · ` : ''}{selected.status === 'active' ? 'Account active' : `Account ${selected.status}`}</p> : null}
     {courierError ? <p className="mt-2 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{courierError}</p> : null}
-    {open ? <CourierPickerModal couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endTime={endTime} id={idPrefix} onClose={close} onRefreshCouriers={onRefreshCouriers} onSelect={(id) => { setCourierId(id); close() }} pickupDate={pickupDate} search={search} setSearch={setSearch} startTime={startTime} /> : null}
+    {open ? <CourierPickerModal couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endDateTime={endDateTime} id={idPrefix} onClose={close} onRefreshCouriers={onRefreshCouriers} onSelect={(id) => { setCourierId(id); close() }} startDateTime={startDateTime} search={search} setSearch={setSearch} /> : null}
   </>
 }
 
@@ -108,9 +100,8 @@ type CourierPickerModalProps = {
   courierId: string
   courierLoading: boolean
   courierError: string
-  pickupDate: string
-  startTime: string
-  endTime: string
+  startDateTime: string
+  endDateTime: string
   id: string
   onClose: () => void
   onRefreshCouriers?: () => void
@@ -119,7 +110,7 @@ type CourierPickerModalProps = {
   setSearch: (value: string) => void
 }
 
-function CourierPickerModal({ couriers, courierId, courierLoading, courierError, pickupDate, startTime, endTime, id, onClose, onRefreshCouriers, onSelect, search, setSearch }: CourierPickerModalProps) {
+function CourierPickerModal({ couriers, courierId, courierLoading, courierError, startDateTime, endDateTime, id, onClose, onRefreshCouriers, onSelect, search, setSearch }: CourierPickerModalProps) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     document.addEventListener('keydown', closeOnEscape)
@@ -131,8 +122,8 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
     if (!needle) return couriers
     return couriers.filter((courier) => `${courier.name} ${courier.email} ${courier.contact_number ?? ''}`.toLowerCase().includes(needle))
   }, [couriers, search])
-  const checkedWindow = Boolean(pickupDate && startTime && endTime)
-  const windowLabel = checkedWindow ? `${formatPhtDate(pickupDate)} · ${formatPhtTime(toUtc(pickupDate, startTime))}–${formatPhtTime(toUtc(pickupDate, endTime))} PHT` : ''
+  const checkedWindow = Boolean(startDateTime && endDateTime)
+  const windowLabel = checkedWindow ? `${formatPhtDateTime(startDateTime)}–${formatPhtDateTime(endDateTime)} PHT` : ''
 
   return <div aria-labelledby={`${id}-courier-picker-title`} aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" id={`${id}-courier-picker`} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }} role="dialog">
     <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#18181b]">
@@ -164,7 +155,7 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
                   <span className="flex flex-wrap items-start justify-between gap-3"><strong className="font-medium">{courier.name || 'Courier'}</strong><span className={`text-xs font-semibold ${courier.status === 'active' ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>{courier.status === 'active' ? 'Active' : courier.status}</span></span>
                   <span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-300">{courier.email}{courier.contact_number ? ` · ${courier.contact_number}` : ''}</span>
                   <span className={`mt-2 block text-xs font-medium ${courier.availability === 'available' ? 'text-emerald-700 dark:text-emerald-300' : courier.availability === 'scheduled' ? 'text-amber-700 dark:text-amber-300' : 'text-zinc-500'}`}>{availabilityLabel(courier.availability)}</span>
-                  {courier.schedules.length > 0 ? <span className="mt-2 block text-xs leading-5 text-zinc-500"><span className="font-medium text-zinc-700 dark:text-zinc-300">Schedules on this date:</span> {courier.schedules.map((schedule) => `${formatPhtTime(schedule.starts_at)}–${formatPhtTime(schedule.ends_at)}`).join(' · ')}</span> : null}
+                  {courier.schedules.length > 0 ? <span className="mt-2 block text-xs leading-5 text-zinc-500"><span className="font-medium text-zinc-700 dark:text-zinc-300">Schedules affecting these dates:</span> {courier.schedules.map((schedule) => `${formatPhtDateTime(schedule.starts_at)}–${formatPhtDateTime(schedule.ends_at)} PHT`).join(' · ')}</span> : null}
                 </span>
               </div>
             </button>
@@ -184,7 +175,7 @@ function availabilityLabel(value: CourierAvailabilityOption['availability']): st
 }
 
 export function ScheduleDialog({ dialog, busy, error, title, description, submitLabel, submit, ...fields }: ScheduleFieldsProps & { dialog: RefObject<HTMLDialogElement | null>; busy: boolean; error: string; title: string; description: string; submitLabel: string; submit: () => void }) {
-  const canSubmit = Boolean(fields.courierId && fields.pickupDate && fields.startTime && fields.endTime) && !fields.courierLoading
+  const canSubmit = Boolean(fields.courierId && fields.startDateTime && fields.endDateTime) && !fields.courierLoading
 
   return <dialog ref={dialog} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg border border-zinc-200 bg-white p-5 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white">
     <h3 className="text-lg font-semibold">{title}</h3><p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{description}</p><ScheduleFields {...fields} />

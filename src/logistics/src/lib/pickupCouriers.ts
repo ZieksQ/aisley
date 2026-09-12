@@ -6,8 +6,8 @@ export type PickupCouriersResponse = { data: CourierAvailabilityOption[] }
 
 export function getPickupCouriers(window?: ScheduleWindow, excludeScheduleId?: string): Promise<PickupCouriersResponse> {
   const params = new URLSearchParams()
-  const startsAt = window && window.date && window.startTime ? toUtc(window.date, window.startTime) : ''
-  const endsAt = window && window.date && window.endTime ? toUtc(window.date, window.endTime) : ''
+  const startsAt = window?.startDateTime ? toUtc(window.startDateTime) : ''
+  const endsAt = window?.endDateTime ? toUtc(window.endDateTime) : ''
 
   if (startsAt && endsAt) {
     params.set('starts_at', startsAt)

@@ -1,16 +1,18 @@
 export const PICKUP_TIME_ZONE = 'Asia/Manila'
 
 export type ScheduleWindow = {
-  date: string
-  startTime: string
-  endTime: string
+  startDateTime: string
+  endDateTime: string
 }
 
-export function toUtc(date: string, time: string): string {
-  if (!date || !time) return ''
+export function toUtc(date: string, time: string): string
+export function toUtc(dateTime: string): string
+export function toUtc(dateOrDateTime: string, time?: string): string {
+  if (!dateOrDateTime || (time !== undefined && !time)) return ''
 
-  const normalizedTime = /^\d{2}:\d{2}$/.test(time) ? `${time}:00` : time
-  const parsed = new Date(`${date}T${normalizedTime}+08:00`)
+  const localDateTime = time ? `${dateOrDateTime}T${/^\d{2}:\d{2}$/.test(time) ? `${time}:00` : time}` : dateOrDateTime.replace(' ', 'T')
+  const normalizedDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(localDateTime) ? `${localDateTime}:00` : localDateTime
+  const parsed = new Date(`${normalizedDateTime}+08:00`)
 
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString()
 }
@@ -37,6 +39,18 @@ export function formatPhtDate(value: string): string {
   return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeZone: PICKUP_TIME_ZONE }).format(new Date(`${value}T12:00:00+08:00`))
 }
 
+export function formatPhtDateTime(value: string): string {
+  const parsed = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? new Date(value) : new Date(toUtc(value))
+
+  return Number.isNaN(parsed.getTime()) ? '' : new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: PICKUP_TIME_ZONE }).format(parsed)
+}
+
 export function formatPhtTime(value: string): string {
   return new Intl.DateTimeFormat('en-PH', { timeStyle: 'short', timeZone: PICKUP_TIME_ZONE }).format(new Date(value))
+}
+
+export function localDateTime(value: string): string {
+  const parts = localParts(value)
+
+  return `${parts.date} ${parts.time}`
 }

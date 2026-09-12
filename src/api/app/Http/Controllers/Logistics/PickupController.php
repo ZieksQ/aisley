@@ -131,7 +131,7 @@ class PickupController extends Controller
 
         if ($startsAt && $endsAt) {
             $dayStart = $startsAt->setTimezone('Asia/Manila')->startOfDay()->utc();
-            $dayEnd = $dayStart->addDay();
+            $dayEnd = $endsAt->setTimezone('Asia/Manila')->startOfDay()->addDay()->utc();
             $schedulesByCourier = PickupSchedule::query()
                 ->where('logistics_organization_id', $org->id)
                 ->where('logistics_hub_id', $org->hub->id)
