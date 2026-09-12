@@ -14,7 +14,7 @@ scope: Seller Web Application
 ## WHAT
 
 - **Purpose:** Let a Seller verify and pack purchased Shop Orders, select an eligible Logistics organization, request pickup, and print each resulting shared waybill.
-- **Current implementation:** Order list/detail, COD approval/rejection, saved pickup addresses, eligible Logistics selection, grouping up to 50 processing Orders, immutable shared-waybill creation/PDF reads, and notifications are implemented. The pickup transaction moves `seller_processing → ready_for_pickup`. Physical Shipment/Parcel records and package measurements remain deferred; a Logistics schedule separately has a 30-parcel cap.
+- **Current implementation:** Order list/detail, COD approval/rejection, saved pickup addresses, eligible Logistics selection, grouping up to 50 processing Orders, immutable shared-waybill creation/PDF reads, and notifications are implemented. The pickup transaction moves `seller_processing → ready_for_pickup`. The additive physical Shipment/Parcel/DeliveryTask records are deployed for downstream hub/final-mile processing; package measurements remain deferred and a Logistics schedule separately has a 30-parcel cap.
 - **Ownership boundary:** Order Approval owns `placed → seller_processing`; Prepare Orders owns packing, provider selection, readiness, and shared-waybill creation; Logistics owns scheduling/hub operations; Courier owns assigned tasks in the external mobile app.
 - **Provider rule:** Seller selects one server-validated eligible Logistics organization during pickup request; the committed provider and selected pickup-address snapshot are retained by the implemented pickup records.
 - **Waybill rule:** The pickup transaction creates one immutable waybill per Order; Seller and selected Logistics view the same artifact.
@@ -72,11 +72,11 @@ Seller opens Seller-scoped processing Order
 
 - Current Seller routes include `POST /orders/pickup-requests` and a fail-closed `/orders/{order}/waybill`; the latter becomes available after the pickup transaction creates its waybill.
 - Current implementation is `OrderController`, `SellerOrderService`, `AcceptSellerOrder`, `RejectSellerOrder`, `RequestSellerPickup`, and the Seller Orders/Approval/Pickup pages. Provider selection, pickup requests, and shared waybills are implemented; preserve them when adding the operational schema.
-- For future physical package/custody actions, add approved `Shipment`, `Parcel`, `Scan`, and `DeliveryTask` records linked to the existing immutable waybill and first-mile history; do not recreate the working waybill feature. Keep enum-like columns as strings with PHP enum casts and use additive migrations only.
+- Downstream physical package/custody actions use the deployed `Shipment`, `Parcel`, `DeliveryTask`, evidence, and event records linked to the existing immutable waybill and first-mile history; Seller must not recreate or mutate those records. Keep enum-like columns as strings with PHP enum casts and use additive migrations for future extensions only.
 - Recommended records are one immutable shared waybill snapshot per Order plus separate append-only print, route, assignment, and scan events.
 - Readiness transaction: lock Seller-scoped Order → validate `seller_processing`, payment, package, label, reservation, and idempotency → write status/event/pickup association → commit → dispatch Logistics/Buyer notifications after commit.
 - Tests cover Seller isolation, snapshots, stale/cancelled/payment-invalid rejection, package limits, label privacy/versioning/reprint, readiness races/retries, selected-provider scope, after-commit failure, and the `picked_up_from_seller` Inventory handoff. Run API tests on SQLite/PostgreSQL and Seller lint, TypeScript, and build.
-- Do not enable the future physical Shipment/Parcel/custody extension until `docs/workspace.md` and `docs/schema.md` agree with the applicable domain/spec contracts and the shared operational migration is approved.
+- The deployed physical Shipment/Parcel/custody extension is downstream-only for Seller. Keep Seller actions limited to readiness and waybill work; hub/final-mile transitions remain owned by Logistics/Courier APIs.
 
 ### State and ownership matrix
 
@@ -112,7 +112,7 @@ Seller opens Seller-scoped processing Order
 - `GET /api/v1/seller/orders/{order}/preparation` should return immutable snapshots, package state, the immutable shared waybill, capabilities, and safe errors.
 - Pickup/waybill creation uses Seller-scoped Form Requests and UUID idempotency keys; submitted Logistics IDs are always revalidated for eligibility.
 - Seller and selected Logistics read endpoints expose the same waybill from readiness. DTOs must not expose Courier phone, private evidence, route secrets, or raw storage paths.
-- Existing first-mile task/confirmation records own `picked_up_from_seller`; future Shipment/DeliveryTask records will own hub and later custody milestones without replaying existing pickup or Inventory effects.
+- Existing first-mile task/confirmation records own `picked_up_from_seller`; deployed Shipment/DeliveryTask records own hub and later custody milestones without replaying existing pickup or Inventory effects.
 - A Seller-facing “waybill unavailable” response is truthful until the pickup transaction has created the waybill; it must not synthesize one from mutable browser data.
 - Any later label/waybill read must use the immutable Order/Parcel link and enforce Seller ownership before returning a document or route detail.
 - Package and label APIs must return capabilities derived from the locked current state, so the UI cannot infer readiness from stale status text.

@@ -4,9 +4,9 @@ feature: courier-pick-up-order
 title: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.4
-status: Implemented Phase 2 pickup and Courier route-manifest flow
-implementation_status: Courier API and development web harness implemented; Flutter and Logistics dashboard map planned
+version: 2.5
+status: Implemented first-mile pickup and shared final-mile handoff bridge
+implementation_status: First-mile Courier API, route-manifest API, and final-mile companion backend are implemented; Flutter remains external
 canonical: false
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
 backend_contract_commit: 360769009665705bcd21ecd22a8dc7d7c5ec4375
@@ -24,8 +24,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Actors:** Seller prepares Orders; Logistics selects one approved Courier and a pickup window; Courier performs the mobile pickup; the API remains authoritative for ownership and state.
 - **Scope:** Courier task receipt, schedule/address/order details, route-manifest consumption, QR/manual identifier verification, and first-mile pickup confirmation.
 - **Mobile boundary:** Production Courier screens, secure token storage, offline decoding, and device accessibility belong to the external Flutter app. `src/couriermockup` is a development-only React harness for verifying the same bearer-token API, camera/manual input states, and handoff behavior in a browser; it is not a deployable Courier web application.
-- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation resolves the identifier to its matching parcel in the open schedule, records immutable idempotency/history data, sets the task to `picked_up_from_seller`, advances the Order to `picked_up`, and fulfills the Order's Inventory reservation atomically. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier.
-- **Not implemented yet:** The production Flutter screens, Courier notification read/push endpoint, turn-by-turn navigation, and the Logistics dashboard companion map.
+- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation resolves the identifier to its matching parcel in the open schedule, records immutable idempotency/history data, sets the task to `picked_up_from_seller`, advances the Order to `picked_up`, and fulfills the Order's Inventory reservation atomically. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier. The additive fulfillment bridge creates one shared Parcel/Shipment and links the legacy first-mile task without replaying Inventory; Logistics can then receive, sort, and dispatch the parcel, offer an independent final-mile task, and validate final-mile QR handoff/delivery completion through the owning operational APIs.
+- **Not implemented yet:** The production Flutter screens, Courier notification read/push endpoint, turn-by-turn navigation, Logistics dashboard UI for the new operational routes, photo/signature proof, and location telemetry.
 
 ### Scheduled bulk-pickup flow
 
@@ -39,7 +39,7 @@ Seller packs Orders and requests one Logistics provider
 → API validates the match and Courier explicitly confirms physical pickup
 → task = picked_up_from_seller
 → Order = picked_up
-→ Logistics receives the parcels (N/A; next feature)
+→ Logistics receives, sorts, and dispatches each parcel through Update Status
 ```
 
 - A Seller request may contain up to 50 Orders, but Logistics must split it into schedules of at most 30 Orders.
@@ -75,7 +75,7 @@ Seller packs Orders and requests one Logistics provider
 - Scanning or typing only fills a verification candidate. An explicit **Confirm pickup** action is required before the physical-custody mutation.
 - At confirmation, atomically verify active waybill, identifier-to-Order mapping, task membership, selected Courier, organization/hub, accepted task status, schedule eligibility, and current transition.
 - Commit the detailed first-mile state `accepted → picked_up_from_seller`, the high-level Order transition `ready_for_pickup → picked_up`, actor, timestamp, and immutable event/history exactly once. The detailed task event remains the authoritative proof of Seller handoff; do not invent `in_transit`.
-- Return the server-authoritative task and Order statuses. The next operational transition is Logistics receipt; its status and endpoint are intentionally N/A here.
+- Return the server-authoritative task and Order statuses. Logistics receipt is owned by Update Status and is now available through its separate organization-scoped API; this feature remains responsible only for the first-mile handoff.
 - A copied QR, guessed Order ID, or task UUID cannot authorize pickup. A wrong or unknown identifier causes no mutation.
 
 ### State contract
@@ -141,7 +141,7 @@ Seller packs Orders and requests one Logistics provider
 - [x] A ready Courier route manifest includes grouped parcels, ordered stops, matrix metrics, and valid GeoJSON; the development harness renders the Logistics start, numbered pickups, Logistics return, visible route line, and accessible list.
 - [x] The Logistics dashboard renders its separately authorized companion embedded map and accessible list.
 - [x] The implementation remains on the free/open-source dependency path, honors attribution, and continues task/pickup operation when map or quota services fail.
-- [x] The next state, Logistics parcel receipt, is recorded as N/A and is not implemented by this feature.
+- [x] The next state, Logistics parcel receipt, is delegated to the implemented Update Status API and is not duplicated by this feature.
 
 ## HOW
 

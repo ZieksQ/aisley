@@ -4,7 +4,7 @@ title: Seller Delivery Confirmation
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Revised target contract; delivered-event integration deferred
+status: P0 delivered-event notification integration implemented; Seller UI verification remains
 role: Seller
 scope: Laravel API and Seller React dashboard
 ---
@@ -16,7 +16,7 @@ scope: Laravel API and Seller React dashboard
 - Inform the Seller when authoritative final-mile delivery reaches `delivered`.
 - This is a read/notification feature, not Seller approval of Buyer receipt.
 - Existing Seller notification and Order-detail infrastructure is implemented.
-- Physical final-mile completion and its delivery-specific notification integration are not implemented.
+- Physical final-mile completion is owned by Logistics/Courier; the backend now emits the delivery-specific Seller notification after committed completion.
 - Courier submits completion intent and proof; Logistics validates; the shared service commits delivery.
 - Seller and Customer consume the same committed Order milestone.
 - Use the existing Seller React/TypeScript dashboard, not a new Next.js app.
@@ -65,7 +65,7 @@ Courier completion intent + proof
 ### Safe delivery projection
 
 - Proposed delivery extension: Order reference, `delivered`, `delivered_at`, event reference, and safe proof status.
-- These delivery-specific fields are planned; existing endpoints do not guarantee them today.
+- Delivery-specific fields remain read-only projections; the Seller notification endpoint exposes the committed Order status without private proof media.
 - Use immutable Order/item/address snapshots for history, not current profile or catalog fields.
 - A delivered timestamp must come from its event, not `updated_at` or inbox read time.
 - Seller and Customer timelines must agree on the same completion event.

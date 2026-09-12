@@ -4,7 +4,7 @@ title: Deploy Rider
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Deferred — operational Shipment/Delivery Task schema and endpoints unavailable
+status: Implemented final-mile candidate and offer API; advanced dispatch policy deferred
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,9 +15,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account select and offer an eligible Courier for one operational task.
-- **Current implementation:** No Deploy Rider API or operational UI is implemented. The Logistics dashboard is a scaffold; physical Shipment/Parcel/Delivery Task records remain deferred.
+- **Current implementation:** Logistics can list eligible affiliated Couriers and offer/re-offer a final-mile DeliveryTask after hub dispatch. The API is organization/sole-hub scoped and idempotent; the Logistics dashboard remains a scaffold and route/availability ranking is deferred.
 - **Core flow:** Seller confirms `ready_for_pickup` → selected Logistics creates/offers the first-mile task → Courier accepts or rejects → Logistics receives/sorts/dispatches → Logistics creates/offers the independent final-mile task → Courier accepts.
-- **Task boundary:** Each future Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders but never merges their tasks, waybills, snapshots, or history.
+- **Task boundary:** Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders but never merges their tasks, waybills, snapshots, or history.
 - **Non-goals:** Courier registration/approval, availability management, vehicle or zone CRUD, waybill generation, physical scans, pickup confirmation, proof of delivery, route navigation, billing, and multi-hub operations.
 
 ## MUST
@@ -61,10 +61,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - An unfinished task may be displayed as informationally `stale`. It is not automatically cancelled or reassigned in the MVP.
 - Concurrent or retried offer/re-offer requests must return the committed projection or a conflict, never duplicate active offers or overwrite history.
 
-### Planned API contract (unavailable)
+### Implemented API contract
 
-- `GET /api/v1/logistics/deploy-rider/tasks/{task}/candidates` — **planned and unavailable**. Auth: active Logistics; returns a bounded list of eligible Couriers with safe identity, availability, location freshness, optional vehicle/zone result, and provider-neutral distance/ETA.
-- `POST /api/v1/logistics/deploy-rider/tasks/{task}/offers` — **planned and unavailable**. Auth: active Logistics; request contains `courier_id`, `expected_task_revision`, and an idempotency key. It creates an offer or re-offers the same task after rejection.
+- `GET /api/v1/logistics/deploy-rider/tasks/{task}/candidates` — implemented; returns active approved affiliated Couriers with safe identity and explicit unavailable route metrics.
+- `POST /api/v1/logistics/deploy-rider/tasks/{task}/offers` — implemented; accepts `courier_id`, `expected_task_revision`, and a UUID `Idempotency-Key`; creates or re-offers the same final-mile task after rejection.
 - A successful offer response contains the task reference, leg, offer/assignment state, Courier reference, server-calculated distance/ETA when available, and immutable event identifiers. It does not claim physical pickup.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid task/Courier, `429`, and provider-unavailable context. Retrying the same idempotency key is safe; a changed payload conflicts.
 
@@ -111,7 +111,7 @@ The dispatch confirmation must show the task/leg, pickup and destination summari
 
 ### Rollout boundary
 
-- Keep Deploy Rider unavailable until additive operational migrations, transition ownership, and Courier acceptance endpoints are deployed together.
+- Keep advanced candidate ranking and dashboard controls deferred, but keep the implemented candidate/offer API on the shared transition service.
 - A feature flag may expose candidate read-only previews first, but previews must use the same tenant predicates and must not create offers.
 - Re-offer and stale behavior must be enabled atomically with task-history persistence so a rejected offer cannot disappear from the queue.
 - Record rollout/API version in the Logistics client contract so external Courier clients can distinguish unavailable from implemented offers.

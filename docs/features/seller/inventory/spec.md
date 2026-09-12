@@ -76,7 +76,7 @@ available = on_hand - reserved
 - Current backend is `InventoryService`, `InventoryController`, `SellerShopService`, `InventorySku`, `InventoryBalance`, `InventoryMovement`, Checkout reservation code, Seller rejection release, and `LowStockAlertService`.
 - Mutation pattern is transaction → lock balance → validate ownership/idempotency/invariants → append movement → update balance/legacy quantity → commit → schedule evaluator/events after commit. Never perform network work while a balance is locked.
 - Keep enum-like migration columns as strings with PHP enum casts and never modify executed migrations. Additive migrations are required for future reservation/fulfillment references, reconciliation metadata, or multi-location support.
-- Existing Courier confirmation invokes the Inventory fulfillment path transactionally. Future Shipment/DeliveryTask transitions must reuse its exactly-once effect and preserve existing movement references. Do not infer fulfillment from `ready_for_pickup` or final delivery.
+- Existing Courier confirmation invokes the Inventory fulfillment path transactionally. Deployed Shipment/DeliveryTask transitions reuse its exactly-once effect and preserve existing movement references. Do not infer fulfillment from `ready_for_pickup` or final delivery.
 - Tests cover Shop isolation, all adjustment rules, oversell races, duplicate keys, reservation/release/fulfillment idempotency, movement immutability, archive history, low-stock evaluator retries, and after-commit behavior. Run API tests on SQLite/PostgreSQL plus Seller lint, TypeScript, and build.
 - Keep return/refund, reservation expiry, reconciliation cadence, quantity limits, and multi-location semantics as explicit decisions before implementation.
 

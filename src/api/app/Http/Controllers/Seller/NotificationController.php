@@ -14,6 +14,7 @@ class NotificationController extends Controller
 {
     private const TYPES = [
         'seller-order.actionable',
+        'seller-order.delivered',
         'inventory.low-stock',
         'seller-compliance.action',
         'pickup-schedule.assigned',

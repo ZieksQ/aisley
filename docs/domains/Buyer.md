@@ -14,7 +14,7 @@ Buyer is Aisley's marketplace customer role. **Customer** is the canonical API a
 
 Guests may browse public storefront content. An active, approved Customer is required for account data, Cart, Wishlist, Recently Viewed synchronization, checkout, order history, and other protected actions. The Buyer app never decides ownership, price, stock, eligibility, or fulfillment status from client-provided values.
 
-Aisley uses first-party Logistics organizations and their sole operational hubs for fulfillment. Customer checkout remains provider-neutral; the Seller selects one eligible Logistics organization when requesting pickup, and that committed selection is retained downstream. Customer tracking consumes safe read-only projections of shared Order and future Shipment/Delivery Task contracts.
+Aisley uses first-party Logistics organizations and their sole operational hubs for fulfillment. Customer checkout remains provider-neutral; the Seller selects one eligible Logistics organization when requesting pickup, and that committed selection is retained downstream. Customer tracking consumes safe read-only projections of shared Order and deployed Shipment/Delivery Task contracts.
 
 ## Account and access boundary
 
@@ -208,7 +208,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. Shared Shipment/Parcel/Scan/DeliveryTask records, Logistics hub processing, final-mile assignment/delivery, proof of delivery, Customer live route/ETA display, payment gateways, returns/refunds, reviews, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain deferred. Customer cancellation/address correction and Product Q&A public read/ask with notifications are implemented.
+- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, QR evidence, and the Customer's high-level delivered projection. Customer live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds, reviews, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain deferred. Customer cancellation/address correction and Product Q&A public read/ask with notifications are implemented.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 
@@ -216,9 +216,9 @@ Future Customer-facing shipment fields must be provider-neutral, safe, and read-
 
 - `docs/requirements.md` — Buyer responsibilities, approval boundary, address/order requirements, and first-party fulfillment flow.
 - `docs/workspace.md` — Customer journeys, canonical Order status meanings, and the sole-hub Logistics flow.
-- `docs/schema.md` — Users, addresses, catalog, Cart, checkout, Order snapshots/status history, and deferred fulfillment schema boundary.
+- `docs/schema.md` — Users, addresses, catalog, Cart, checkout, Order snapshots/status history, deployed P0 fulfillment records, and deferred extensions.
 - `docs/references/user-registration-requirements.md` — Customer registration and approval requirements.
 - `docs/references/file-upload-requirements.md` — Profile, Product, and future Customer media upload rules.
 - `docs/features/customer/*/spec.md` — Feature-specific Customer implementation contracts.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; Customer-facing route/location telemetry, media proof presentation, returns, and exceptional recovery remain future extensions.

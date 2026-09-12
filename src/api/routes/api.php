@@ -13,9 +13,13 @@ use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
+use App\Http\Controllers\Courier\CompleteDeliveryController;
 use App\Http\Controllers\Courier\DashboardController as CourierDashboardController;
+use App\Http\Controllers\Courier\DeliveryHistoryController;
+use App\Http\Controllers\Courier\FinalMileTaskController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
 use App\Http\Controllers\Courier\PickupRouteManifestController;
+use App\Http\Controllers\Courier\ProofOfDeliveryController;
 use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -35,6 +39,8 @@ use App\Http\Controllers\Logistics\AccountController as LogisticsAccountControll
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
+use App\Http\Controllers\Logistics\DeployRiderController;
+use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
@@ -288,6 +294,11 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/pickup-schedules', [LogisticsPickupController::class, 'createSchedule'])->name('pickup-schedules.store');
     Route::patch('/pickup-schedules/{schedule}', [LogisticsPickupController::class, 'reviseSchedule'])->whereUuid('schedule')->name('pickup-schedules.update');
     Route::post('/pickup-schedules/{schedule}/cancel', [LogisticsPickupController::class, 'cancelSchedule'])->whereUuid('schedule')->name('pickup-schedules.cancel');
+    Route::get('/update-status/records/{reference}', [FulfillmentStatusController::class, 'show'])->name('update-status.records.show');
+    Route::post('/update-status/transitions', [FulfillmentStatusController::class, 'transition'])->name('update-status.transitions');
+    Route::post('/update-status/scan-events', [FulfillmentStatusController::class, 'transition'])->name('update-status.scan-events');
+    Route::get('/deploy-rider/tasks/{task}/candidates', [DeployRiderController::class, 'candidates'])->whereUuid('task')->name('deploy-rider.candidates');
+    Route::post('/deploy-rider/tasks/{task}/offers', [DeployRiderController::class, 'offer'])->whereUuid('task')->name('deploy-rider.offers');
 });
 
 Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
@@ -322,6 +333,20 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
     Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');
     Route::post('/first-mile-tasks/{task}/pickup', [FirstMileTaskController::class, 'pickup'])->whereUuid('task')->name('first-mile-tasks.pickup');
     Route::post('/waybills/resolve', [FirstMileTaskController::class, 'resolveWaybill'])->middleware('throttle:60,1')->name('waybills.resolve');
+    Route::get('/final-mile-tasks', [FinalMileTaskController::class, 'index'])->name('final-mile-tasks.index');
+    Route::get('/final-mile-tasks/{task}', [FinalMileTaskController::class, 'show'])->whereUuid('task')->name('final-mile-tasks.show');
+    Route::post('/final-mile-tasks/{task}/accept', [FinalMileTaskController::class, 'accept'])->whereUuid('task')->name('final-mile-tasks.accept');
+    Route::post('/final-mile-tasks/{task}/reject', [FinalMileTaskController::class, 'reject'])->whereUuid('task')->name('final-mile-tasks.reject');
+    Route::post('/final-mile-tasks/{task}/pickup', [FinalMileTaskController::class, 'pickup'])->whereUuid('task')->name('final-mile-tasks.pickup');
+    Route::post('/tasks/{task}/pickup', [FinalMileTaskController::class, 'pickup'])->whereUuid('task')->name('tasks.pickup');
+    Route::post('/tasks/{task}/scan-events', [FinalMileTaskController::class, 'pickup'])->whereUuid('task')->name('tasks.scan-events');
+    Route::post('/final-mile-tasks/{task}/status', [FinalMileTaskController::class, 'status'])->whereUuid('task')->name('final-mile-tasks.status');
+    Route::get('/tasks/{task}/delivery', [FinalMileTaskController::class, 'delivery'])->whereUuid('task')->name('tasks.delivery.show');
+    Route::post('/tasks/{task}/proof-of-delivery', [ProofOfDeliveryController::class, 'store'])->whereUuid('task')->name('tasks.proof-of-delivery.store');
+    Route::get('/tasks/{task}/completion', [CompleteDeliveryController::class, 'show'])->whereUuid('task')->name('tasks.completion.show');
+    Route::post('/tasks/{task}/completion', [CompleteDeliveryController::class, 'store'])->whereUuid('task')->name('tasks.completion.store');
+    Route::get('/delivery-history', [DeliveryHistoryController::class, 'index'])->name('delivery-history.index');
+    Route::get('/delivery-history/{task}', [DeliveryHistoryController::class, 'show'])->whereUuid('task')->name('delivery-history.show');
 });
 
 Route::get('v1/product-description-assets/{asset}', ProductDescriptionAssetController::class)

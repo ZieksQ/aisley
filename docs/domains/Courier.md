@@ -231,19 +231,19 @@ Implemented foundation:
 - One current `CourierLogisticsAffiliation` linking the Courier to the selected organization and derived sole hub, with Logistics reviewer, decision, reason, and timestamp.
 - Registration applications, private evidence documents, addresses, Sanctum tokens, Courier auth endpoints, and Logistics approval endpoints.
 
-Deferred until the shared shipment contract exists:
+Deferred or dependent Courier operations:
 
-- Physical Shipment/Parcel records, physical scan/custody events, final-mile delivery tasks/assignments, proof-of-delivery records, incidents, Courier availability/capacity, earnings, tips, metrics, and offline synchronization. Seller pickup requests, shared waybills, pickup schedules, and first-mile assignment/acceptance are implemented foundations; the accepted future contract adds Logistics-authoritative scan/evidence recording, task rejection/re-offer, informational staleness, and provider-neutral distance/ETA context. Explicit first-mile QR/manual verification and Courier pickup confirmation, Inventory fulfillment, and schedule route manifests are already implemented. New Logistics-validated scan/custody, hub, and final-mile operations require the shared schema and additive migrations.
+- Photo/signature proof media, incidents, Courier availability/capacity, earnings, tips, metrics, route/location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/manual verification and pickup confirmation, Inventory fulfillment, and schedule route manifests are implemented. The additive shared Shipment/Parcel/DeliveryTask records now provide Logistics-authoritative hub/final-mile QR evidence, task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history; advanced recovery remains deferred.
 
-Future status-like database columns must be stored as strings and cast to PHP enums. Future operational records must preserve the one-Logistics-organization/one-hub boundary and must not place detailed physical milestones directly in `orders.status` without an approved migration.
+Status-like database columns are stored as strings and cast to PHP enums. Operational records preserve the one-Logistics-organization/one-hub boundary and never place detailed physical milestones directly in `orders.status`.
 
 ## Shared contracts
 
 - `docs/requirements.md` — Courier responsibilities and registration boundary.
 - `docs/workspace.md` — external mobile boundary, approval flow, physical delivery flow, and canonical status vocabulary.
-- `docs/schema.md` — implemented Courier foundation and deferred operational entities.
+- `docs/schema.md` — implemented Courier foundation, deployed P0 operational entities, and deferred extensions.
 - `docs/references/user-registration-requirements.md` — Courier registration fields and approval note.
 - `docs/references/file-upload-requirements.md` — evidence and proof upload policy.
 - `docs/features/courier/*/specs.md` — feature-specific implementation contracts.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile transitions use the Logistics-authoritative `FulfillmentTransitionService`; photo/signature proof media, route/location telemetry, and exceptional recovery remain future extensions.

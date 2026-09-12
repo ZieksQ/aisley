@@ -50,6 +50,11 @@ class Waybill extends Model
         return $this->hasOne(WaybillSnapshot::class);
     }
 
+    public function parcel(): HasOne
+    {
+        return $this->hasOne(Parcel::class);
+    }
+
     public function firstMileTask(): HasOne
     {
         return $this->hasOne(FirstMileTask::class)->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted, FirstMileTaskStatus::PickedUp]);
