@@ -284,6 +284,8 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         ->name('account.profile-photo.destroy');
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
+    Route::get('/courier-applications/{affiliation}', [CourierApprovalController::class, 'show'])->whereUuid('affiliation')->name('courier-applications.show');
+    Route::get('/courier-applications/{affiliation}/documents/{document}', [CourierApprovalController::class, 'document'])->whereUuid('affiliation')->whereUuid('document')->name('courier-applications.documents.show');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
     Route::get('/pickups', [LogisticsPickupController::class, 'index'])->name('pickups.index');
     Route::get('/pickups/{pickup}', [LogisticsPickupController::class, 'show'])->whereUuid('pickup')->name('pickups.show');
