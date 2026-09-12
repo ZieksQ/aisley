@@ -104,7 +104,7 @@ export function HubLocationPicker({ address, getAddress, apiKey, latitude, longi
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><p className="text-sm font-semibold">Pin the operational hub</p><p className="mt-1 text-xs leading-5 text-zinc-500">The address text remains authoritative. Place the pin at the actual hub entrance, then confirm it.</p></div>
       <div className="flex flex-wrap gap-2">
-        <button className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#4C1268] px-3 text-sm font-semibold text-white hover:bg-[#38104D] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:cursor-not-allowed disabled:opacity-55" disabled={geocoding || !apiKey} onClick={() => void suggestLocation()} type="button"><FaLocationDot />{geocoding ? 'Finding…' : hasPin ? 'Suggest again' : 'Suggest location'}</button>
+        <button className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#4C1268] px-3 text-sm font-semibold text-white hover:bg-[#38104D] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:cursor-not-allowed disabled:opacity-55" disabled={geocoding || !apiKey} onClick={() => void suggestLocation()} type="button"><FaLocationDot />{geocoding ? 'Finding…' : hasPin ? 'Suggest again' : 'Pin hub location'}</button>
         <button className="inline-flex min-h-10 items-center gap-2 rounded-md border border-zinc-300 px-3 text-sm font-semibold hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-55" disabled={locating} onClick={useCurrentLocation} type="button"><FaSatelliteDish />{locating ? 'Locating…' : 'Use device location'}</button>
       </div>
     </div>

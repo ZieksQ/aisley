@@ -266,7 +266,7 @@ export function AccountPage() {
   const initials = `${account.profile.first_name?.[0] ?? ''}${account.profile.last_name?.[0] ?? ''}` || 'L'
 
   return <div className="max-w-5xl space-y-5 p-5 sm:p-7">
-    <div><h2 className="text-xl font-semibold">Account settings</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">Maintain the approved Logistics account and the identity of its one operational hub. Email, approval status, and hub relocation are managed outside this screen.</p></div>
+    <div><h2 className="text-xl font-semibold">Account settings</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">Maintain the approved Logistics account and the identity of its one operational hub. Email, approval status, and physical hub relocation are managed outside this screen.</p></div>
 
     <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6">
       <div className="flex items-start justify-between gap-4"><div><h3 className="font-semibold">Personal profile</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Only your profile fields can be changed here.</p></div><span className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-white/10">{account.status}</span></div>
