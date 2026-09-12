@@ -110,6 +110,7 @@ GET active Logistics options
 - `ACCOUNT_REJECTED` maps to a rejection screen; do not invent resubmission or appeal controls.
 - `ACCOUNT_SUSPENDED`, `ACCOUNT_INACTIVE`, and `LOGISTICS_ASSOCIATION_INVALID` clear operational session state and explain that access is blocked.
 - A successful login stores the returned token once, then calls `/me` only to restore identity on later launches.
+- The development-only Courier mockup mirrors the Flutter consent lifecycle after login: it checks `/api/v1/policy-consent/status`, fetches the current public Terms/Privacy documents, displays only policies whose current version still requires acceptance, posts explicit acceptance for each exact version, and loads protected Courier data only after the status response confirms completion. A valid bearer token is preserved while consent is pending.
 - A `401` clears secure storage and returns to sign-in; a `403` preserves the reason-specific blocked state.
 - A timeout or offline error preserves unsent registration form data but never queues login or approval bypass actions.
 - A `429` honors `Retry-After`; retries must not submit duplicate registrations or passwords automatically.
