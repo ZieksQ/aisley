@@ -3,7 +3,7 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
@@ -99,6 +99,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
 - [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
 - [x] Schedule creation uses separate Philippine-date, start-time, and end-time controls, and Courier selection is a searchable popup showing active status, same-day schedules, and overlapping-window availability.
+- [x] Logistics date and time picker inputs use Flatpickr with date-only and 24-hour time-only configurations, including schedule filters, account birthday fields, and pickup schedule create/edit controls.
 - [x] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
 - [ ] Seller and Courier receive one assignment notification and at most one due reminder per schedule revision.
 - [x] Provider, API, scheduler, and notification failures have truthful fallbacks without cross-tenant or duplicate effects.
@@ -127,7 +128,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Add Seller provider-selection states and packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
 - API resources expose server-calculated capabilities; frontends never infer assignability, availability, distance validity, or tenant ownership.
 - Keep list selections across a recoverable refetch only while each Order remains eligible; announce selection counts and validation errors to assistive technology.
-- Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation. Date and time inputs remain separate for browser compatibility; the Courier picker shows contact information, account status, schedules on the selected date, and whether the requested window is open.
+- Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation. Date and time inputs remain separate for browser compatibility and use Flatpickr date-only/time-only widgets with the mobile fallback disabled; the Courier picker shows contact information, account status, schedules on the selected date, and whether the requested window is open.
 
 ### Verification and rollout
 

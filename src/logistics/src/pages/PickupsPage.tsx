@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { FaArrowsRotate, FaMagnifyingGlass, FaPlus } from 'react-icons/fa6'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ScheduleFields } from '../components/PickupScheduleDialog'
+import { FlatpickrInput } from '../components/FlatpickrInput'
 import { ActionButton, ErrorNotice, PrimaryButton, StatusLabel, field, link, manilaDate, panel } from '../components/PickupUi'
 import { ApiError, csrf, request } from '../lib/api'
 import { getPickupCouriers } from '../lib/pickupCouriers'
@@ -157,8 +158,8 @@ export function PickupsPage() {
     <form className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_12rem_10rem_10rem_auto]" onSubmit={submitFilters}>
       <label className="relative"><span className="sr-only">Search schedules</span><FaMagnifyingGlass className="pointer-events-none absolute left-3 top-3 text-zinc-400" aria-hidden="true" /><input className={`${field} pl-9`} onChange={(event) => setQuery(event.target.value)} placeholder="Schedule, Courier email, or Pickup ID" value={query} /></label>
       <label><span className="sr-only">Filter by status</span><select className={field} onChange={(event) => filter(event.target.value)} value={status}><option value="">All statuses</option><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
-      <label><span className="sr-only">Pickup date from</span><input aria-label="Pickup date from" className={field} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} type="date" value={dateFrom} /></label>
-      <label><span className="sr-only">Pickup date to</span><input aria-label="Pickup date to" className={field} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} type="date" value={dateTo} /></label>
+      <label><span className="sr-only">Pickup date from</span><FlatpickrInput aria-label="Pickup date from" className={field} onChange={setDateFrom} options={{ dateFormat: 'Y-m-d', maxDate: dateTo || undefined }} placeholder="Date from" value={dateFrom} /></label>
+      <label><span className="sr-only">Pickup date to</span><FlatpickrInput aria-label="Pickup date to" className={field} onChange={setDateTo} options={{ dateFormat: 'Y-m-d', minDate: dateFrom || undefined }} placeholder="Date to" value={dateTo} /></label>
       <ActionButton type="submit">Apply</ActionButton>
     </form>
     {error ? <div className="mt-4"><ErrorNotice message={error} retry={() => void load()} /></div> : null}

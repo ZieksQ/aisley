@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { FaMagnifyingGlass, FaTruckFast, FaXmark } from 'react-icons/fa6'
 import type { CourierAvailabilityOption } from '../types/pickups'
 import { formatPhtDate, formatPhtTime, localParts, PICKUP_TIME_ZONE, toUtc, type ScheduleWindow } from '../lib/pickupSchedule'
+import { FlatpickrInput } from './FlatpickrInput'
 import { ActionButton, PrimaryButton, field } from './PickupUi'
 
 type ScheduleFieldsProps = {
@@ -49,15 +50,15 @@ export function ScheduleFields({
   return <div className="mt-4 grid gap-3 sm:grid-cols-2">
     <label className="text-sm font-medium sm:col-span-2" htmlFor={`${idPrefix}-date`}>
       Pickup date (PHT)
-      <input className={`${field} mt-1`} id={`${idPrefix}-date`} min={earliest.date} required type="date" value={pickupDate} onChange={(event) => { setPickupDate(event.target.value); updateWindow({ date: event.target.value }) }} />
+      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-date`} placeholder="Select pickup date" required value={pickupDate} onChange={(value) => { setPickupDate(value); updateWindow({ date: value }) }} options={{ dateFormat: 'Y-m-d', minDate: earliest.date }} />
     </label>
     <label className="text-sm font-medium" htmlFor={`${idPrefix}-start-time`}>
       Start time (PHT)
-      <input className={`${field} mt-1`} id={`${idPrefix}-start-time`} min={minStartTime} required step="60" type="time" value={startTime} onChange={(event) => { setStartTime(event.target.value); updateWindow({ startTime: event.target.value }) }} />
+      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-start-time`} placeholder="Select start time" required value={startTime} onChange={(value) => { setStartTime(value); updateWindow({ startTime: value }) }} options={{ dateFormat: 'H:i', enableTime: true, minTime: minStartTime, minuteIncrement: 1, noCalendar: true, time_24hr: true }} />
     </label>
     <label className="text-sm font-medium" htmlFor={`${idPrefix}-end-time`}>
       End time (PHT)
-      <input className={`${field} mt-1`} id={`${idPrefix}-end-time`} min={startTime || undefined} required step="60" type="time" value={endTime} onChange={(event) => { setEndTime(event.target.value); updateWindow({ endTime: event.target.value }) }} />
+      <FlatpickrInput className={`${field} mt-1`} id={`${idPrefix}-end-time`} placeholder="Select end time" required value={endTime} onChange={(value) => { setEndTime(value); updateWindow({ endTime: value }) }} options={{ dateFormat: 'H:i', enableTime: true, minTime: startTime || undefined, minuteIncrement: 1, noCalendar: true, time_24hr: true }} />
     </label>
     <p className="text-xs leading-5 text-zinc-500 sm:col-span-2">Choose the date separately from the time so the schedule works consistently across browsers. The API stores the selected window in UTC.</p>
     <div className="sm:col-span-2">
