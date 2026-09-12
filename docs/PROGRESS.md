@@ -105,6 +105,7 @@ Format:
 
 ## 2026-09-13
 
+- Tightened the Logistics pickup schedules page spacing and converted schedule rows into compact expandable summaries that reveal Courier, revision, creation, parcel, Shop, and linked pickup-request details without leaving the table. Logistics lint and production build pass.
 - Added Courier mockup Terms of Service and Privacy Policy consent flow: status-first login/session restoration, public current-policy reading, explicit acceptance of only unaccepted current versions, bearer-token preservation while consent is pending, and protected workspace loading after verified completion. Added authenticated main-page policy viewers and documented the development harness flow; Courier remains mobile-only in production.
 - Updated Logistics pickup schedule creation and editing with browser-compatible separate Philippine-date/start/end-time controls and a tenant-scoped Courier picker showing active account status, contact information, same-day schedules, and overlapping-window availability; added the private no-store availability query and regression coverage.
 - Replaced every Logistics native date/time picker with Flatpickr: date-only and 24-hour time-only controls now use the same cross-browser widget for pickup scheduling, schedule filters, account birth dates, and Logistics registration.
