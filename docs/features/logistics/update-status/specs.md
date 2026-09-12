@@ -3,8 +3,8 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Implemented hub and final-mile transition/validation API; exceptional recovery deferred
+version: 1.2
+status: Implemented hub/final-mile transition API and Logistics review UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account validate operational evidence and commit an allowed Shipment/Delivery Task transition when scan automation needs recovery.
-- **Current implementation:** The additive fulfillment migration and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort/dispatch, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. Waybill `resolve` remains an access event and is not treated as a physical scan.
+- **Current implementation:** The additive fulfillment migration and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort/dispatch, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. `FulfillmentOperationsPage` consumes these projections with confirmation, revision-conflict refresh, evidence/completion review, and retry states. Waybill `resolve` remains an access event and is not treated as a physical scan.
 - **Compatibility:** Existing explicit Courier first-mile confirmation still commits Seller pickup and Inventory fulfillment on its legacy contract, then idempotently bridges the result into shared physical records. New hub/final-mile custody transitions use Logistics validation and never replay that Inventory effect.
 - **Authority:** Logistics validates and records the authoritative event. A Courier performs a physical scan/handoff and submits it; the shared transition service commits state only after validation.
 - **Flow:** Courier submits QR/reference/evidence → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
@@ -77,8 +77,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - `POST /api/v1/logistics/update-status/transitions` — implemented; accepts an authorized target state, reference, expected Shipment revision, optional evidence UUID/reason, and UUID `Idempotency-Key`.
 - Responses return safe current projections, immutable event identifiers, evidence status, and any permitted Order projection. They never return secrets, private raw paths, or unrelated PII.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid evidence/transition, `429`, and provider/notification delivery failure. Retrying an identical idempotency key returns the committed projection; changed details conflict.
+- The Logistics Hub operations UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) uses the lookup response's `allowed_transitions` rather than a free-form status selector. It offers explicit confirmation, evidence selection, completion-intent checks, and authoritative refresh after a commit or conflict.
 
-The planned responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
+The deployed responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
 
 ### Open questions
 
@@ -87,23 +88,22 @@ The planned responses are safe for the Logistics dashboard and external Courier 
 
 ### Acceptance criteria
 
-- [ ] Only the owning Logistics organization and sole hub can resolve or update a record.
-- [ ] Unsupported, uppercase, skipped, or stale transitions are rejected without mutation.
-- [ ] Courier-submitted scans/evidence are validated and recorded by Logistics with performing and recording actors preserved.
-- [ ] A scan/access event alone does not advance custody; only the shared transition service commits state.
-- [ ] Evidence status is visible separately from current custody/status.
-- [ ] Task rejection leaves the Order unchanged, and informational staleness does not auto-cancel/reassign.
-- [ ] History is append-only, idempotent, concurrency-safe, and includes event/evidence references.
+- [x] Only the owning Logistics organization and sole hub can resolve or update a record.
+- [x] Unsupported, uppercase, skipped, or stale transitions are rejected without mutation.
+- [x] Courier-submitted scans/evidence are validated and recorded by Logistics with performing and recording actors preserved.
+- [x] A scan/access event alone does not advance custody; only the shared transition service commits state.
+- [x] Evidence status is visible separately from current custody/status.
+- [x] Task rejection leaves the Order unchanged, and informational staleness does not auto-cancel/reassign.
+- [x] History is append-only, idempotent, concurrency-safe, and includes event/evidence references.
 - [ ] Notification failure cannot undo a committed state change.
-- [ ] Manual recovery cannot fabricate pickup, delivery, proof, or another organization's record.
-- [ ] DTOs and logs exclude secrets, raw storage paths, private evidence, and unrelated PII.
+- [x] Manual recovery cannot fabricate pickup, delivery, proof, or another organization's record.
+- [x] DTOs and logs exclude secrets, raw storage paths, private evidence, and unrelated PII.
 
 ## HOW
 
 ### Implementation boundary
 
-- Reconcile `docs/features/shared/shipment-fulfillment/spec.md` with `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and owning role specs before implementation.
-- Additive migrations must introduce Shipment/Parcel/Scan/Delivery Task/custody history and actor/evidence fields; never modify executed migrations or native PostgreSQL enum columns.
+- The deployed UI and API consume the additive Shipment/Parcel/DeliveryTask migration; they do not add a competing state machine or modify executed migrations.
 - Use one transition service for scan/manual validation, state machine rules, sole-hub ownership, row locking or revisions, idempotency, and append-only history. The Dashboard and Courier app consume its projections.
 - Courier Pick Up Order owns mobile submission; Update Status owns Logistics-side validation and authoritative recording. Do not create a second competing state machine in either client.
 - Keep physical scan submission available to the external Flutter Courier client only through an implemented, versioned API; this repository contains no Courier UI.

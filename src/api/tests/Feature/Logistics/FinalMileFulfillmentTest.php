@@ -54,6 +54,20 @@ class FinalMileFulfillmentTest extends TestCase
 
         $record = $this->actingAs($logistics)->getJson('/api/v1/logistics/update-status/records/'.$pickup['waybills'][0]['reference'])->assertOk()->json('data');
         $this->assertSame('picked_up_from_seller', $record['status']);
+        $this->actingAs($logistics)
+            ->getJson('/api/v1/logistics/dashboard/queue?search='.$pickup['waybills'][0]['reference'])
+            ->assertOk()
+            ->assertJsonPath('freshness.state', 'authoritative')
+            ->assertJsonPath('summary.total', 1)
+            ->assertJsonPath('data.0.shipment_id', $record['shipment_id']);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/dashboard/queue?per_page=26')->assertStatus(422);
+        [$otherLogistics] = $this->logistics();
+        $this->actingAs($otherLogistics)
+            ->getJson('/api/v1/logistics/dashboard/queue')
+            ->assertOk()
+            ->assertJsonPath('summary.total', 0)
+            ->assertJsonCount(0, 'data');
+        $this->actingAs($logistics);
         $revision = $record['revision'];
         foreach (['received_at_hub', 'sorted_at_hub', 'dispatched_from_hub'] as $state) {
             $record = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
@@ -80,6 +94,9 @@ class FinalMileFulfillmentTest extends TestCase
             'courier_id' => $courier->id, 'expected_task_revision' => $rejected['revision'],
         ])->assertCreated()->json('data');
         $this->assertSame(2, $offer['offer']['sequence']);
+        $this->assertCount(2, $offer['task']['offer_history']);
+        $this->assertSame('rejected', $offer['task']['offer_history'][0]['status']);
+        $this->assertSame('Unavailable for this route', $offer['task']['offer_history'][0]['rejection_reason']);
         $final = $offer['task'];
         $this->actingAs($courier)->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/accept")->assertOk();
         $final = $this->actingAs($courier)->getJson('/api/v1/courier/final-mile-tasks')->assertOk()->json('data.0');
@@ -104,6 +121,9 @@ class FinalMileFulfillmentTest extends TestCase
         $intent = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", ['expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true])->assertStatus(202)->json('data');
         $this->assertSame('awaiting_validation', $intent['completion_status']);
         $record = $this->actingAs($logistics)->getJson('/api/v1/logistics/update-status/records/'.$pickup['waybills'][0]['reference'])->json('data');
+        $queuedFinal = collect($record['tasks'])->firstWhere('leg', 'final_mile');
+        $this->assertSame('awaiting_validation', collect($queuedFinal['evidence'])->firstWhere('id', $proof['proof_id'])['status']);
+        $this->assertSame('awaiting_validation', $queuedFinal['completion_intents'][0]['status']);
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
             'reference' => $pickup['waybills'][0]['reference'], 'target_state' => 'delivered', 'expected_revision' => $record['revision'], 'evidence_id' => $proof['proof_id'],
         ])->assertOk()->assertJsonPath('data.status', 'delivered');

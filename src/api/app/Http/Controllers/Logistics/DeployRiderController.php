@@ -28,7 +28,7 @@ class DeployRiderController extends Controller
 
         return response()->json([
             'data' => [
-                'task' => $service->taskProjection($result['task']),
+                'task' => $service->taskProjection($result['task'], true),
                 'offer' => [
                     'id' => $result['offer']->id,
                     'status' => $result['offer']->status->value,

@@ -445,6 +445,68 @@ class FulfillmentTransitionService
         return $shipment;
     }
 
+    /**
+     * Return the bounded, organization-scoped operational queue used by the
+     * Logistics dashboard. Queue reads only include shared Shipment records
+     * that already exist; they never lazily create physical records.
+     *
+     * @return array{paginator: \Illuminate\Contracts\Pagination\LengthAwarePaginator, summary: array<string, mixed>}
+     */
+    public function logisticsQueue(User $logistics, array $filters): array
+    {
+        $org = $this->logisticsOrganization($logistics);
+        $query = Shipment::query()
+            ->where('logistics_organization_id', $org->id)
+            ->where('logistics_hub_id', $org->hub->id)
+            ->whereNotIn('status', [ShipmentStatus::Delivered->value])
+            ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status instanceof ShipmentStatus ? $status->value : $status))
+            ->when($filters['evidence_status'] ?? null, fn ($builder, $status) => $builder->whereHas('tasks.evidence', fn ($evidence) => $evidence->where('status', $status instanceof ShipmentEvidenceStatus ? $status->value : $status)))
+            ->when($filters['search'] ?? null, function ($builder, $search): void {
+                $term = mb_strtolower(trim((string) $search));
+                $like = '%'.addcslashes($term, '%_').'%';
+                $builder->where(function ($match) use ($term, $like): void {
+                    if (Str::isUuid($term)) {
+                        $match->where('shipments.id', $term)
+                            ->orWhereHas('parcel', fn ($parcel) => $parcel->where('id', $term))
+                            ->orWhereHas('parcel', fn ($parcel) => $parcel->whereRaw('LOWER(reference) LIKE ?', [$like]));
+                    } else {
+                        $match->whereHas('parcel', fn ($parcel) => $parcel->whereRaw('LOWER(reference) LIKE ?', [$like]));
+                    }
+                    $match->orWhereHas('parcel.order', fn ($order) => $order->whereRaw('LOWER(reference) LIKE ?', [$like]))
+                        ->orWhereHas('parcel.waybill', fn ($waybill) => $waybill->whereRaw('LOWER(reference) LIKE ?', [$like]));
+                });
+            });
+
+        $byStatus = (clone $query)
+            ->select('status', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($count): int => (int) $count)
+            ->all();
+        $pendingEvidence = (clone $query)
+            ->whereHas('tasks.evidence', fn ($evidence) => $evidence->whereIn('status', [ShipmentEvidenceStatus::Submitted->value, ShipmentEvidenceStatus::AwaitingValidation->value]))
+            ->count();
+        $pendingCompletion = (clone $query)
+            ->whereHas('tasks.completionIntents', fn ($intent) => $intent->where('status', ShipmentEvidenceStatus::AwaitingValidation->value))
+            ->count();
+
+        $paginator = $query
+            ->with($this->shipmentRelations())
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate((int) ($filters['per_page'] ?? 25));
+
+        return [
+            'paginator' => $paginator,
+            'summary' => [
+                'total' => (int) $paginator->total(),
+                'by_status' => $byStatus,
+                'pending_evidence' => (int) $pendingEvidence,
+                'pending_completion' => (int) $pendingCompletion,
+            ],
+        ];
+    }
+
     public function ownedFinalTask(User $courier, string $taskId, bool $lock = false): DeliveryTask
     {
         $affiliation = $this->courierAffiliation($courier);
@@ -487,7 +549,7 @@ class FulfillmentTransitionService
     }
 
     /** @return array<string, mixed> */
-    public function taskProjection(DeliveryTask $task): array
+    public function taskProjection(DeliveryTask $task, bool $operator = false): array
     {
         $task->loadMissing($this->taskRelations());
         $parcel = $task->shipment?->parcel;
@@ -496,11 +558,15 @@ class FulfillmentTransitionService
         $snapshot = $parcel?->snapshot ?? [];
         $pickup = $snapshot['waybill']['logistics']['hub_area'] ?? $snapshot['waybill']['pickup'] ?? null;
         $destination = $snapshot['destination'] ?? $snapshot['waybill']['recipient'] ?? null;
-        $offer = $task->offers->sortByDesc('sequence')->first();
-        $proof = $task->evidence->where('purpose', ShipmentEvidencePurpose::DeliveryProof->value)->sortByDesc('submitted_at')->first();
-        $intent = $task->completionIntents->sortByDesc('confirmed_at')->first();
+        $offers = $task->offers->sortBy('sequence')->values();
+        $offer = $offers->sortByDesc('sequence')->first();
+        $evidence = $task->evidence->sortByDesc('submitted_at')->values();
+        $proof = $evidence->first(fn (ShipmentEvidence $item): bool => ($item->purpose instanceof ShipmentEvidencePurpose ? $item->purpose->value : $item->purpose) === ShipmentEvidencePurpose::DeliveryProof->value);
+        $hubPickup = $evidence->first(fn (ShipmentEvidence $item): bool => ($item->purpose instanceof ShipmentEvidencePurpose ? $item->purpose->value : $item->purpose) === ShipmentEvidencePurpose::HubPickup->value);
+        $intents = $task->completionIntents->sortBy('confirmed_at')->values();
+        $intent = $intents->sortByDesc('confirmed_at')->first();
 
-        return [
+        $projection = [
             'task_id' => $task->id,
             'leg' => $task->leg instanceof FulfillmentTaskLeg ? $task->leg->value : $task->leg,
             'status' => $task->status instanceof FulfillmentTaskStatus ? $task->status->value : $task->status,
@@ -529,6 +595,34 @@ class FulfillmentTransitionService
             'evidence_id' => $proof?->id,
             'completion_status' => $intent?->status instanceof ShipmentEvidenceStatus ? $intent->status->value : ($intent?->status ?? null),
         ];
+
+        if ($operator) {
+            $projection['courier'] = $this->courierProjection($task->courier);
+            $projection['offer_history'] = $offers->map(fn (DeliveryTaskOffer $item): array => [
+                'id' => $item->id,
+                'status' => $item->status instanceof FulfillmentOfferStatus ? $item->status->value : $item->status,
+                'courier_id' => $item->courier_id,
+                'courier' => $this->courierProjection($item->courier),
+                'sequence' => $item->sequence,
+                'offered_at' => $item->offered_at?->toISOString(),
+                'responded_at' => $item->responded_at?->toISOString(),
+                'rejection_reason' => $item->rejection_reason,
+            ])->all();
+            $projection['evidence'] = $evidence->map(fn (ShipmentEvidence $item): array => $this->evidenceProjection($item))->all();
+            $projection['completion_intents'] = $intents->map(fn (CompletionIntent $item): array => [
+                'id' => $item->id,
+                'evidence_id' => $item->shipment_evidence_id,
+                'courier_id' => $item->courier_id,
+                'expected_revision' => $item->expected_revision,
+                'status' => $item->status instanceof ShipmentEvidenceStatus ? $item->status->value : $item->status,
+                'confirmed_at' => $item->confirmed_at?->toISOString(),
+                'validated_at' => $item->validated_at?->toISOString(),
+            ])->all();
+            $projection['hub_pickup_evidence'] = $hubPickup ? $this->evidenceProjection($hubPickup) : null;
+            $projection['delivery_proof'] = $proof ? $this->evidenceProjection($proof) : null;
+        }
+
+        return $projection;
     }
 
     /**
@@ -580,10 +674,52 @@ class FulfillmentTransitionService
             'shipment_id' => $shipment->id,
             'status' => $shipment->status instanceof ShipmentStatus ? $shipment->status->value : $shipment->status,
             'revision' => $shipment->revision,
-            'parcel' => $shipment->parcel ? ['id' => $shipment->parcel->id, 'reference' => $shipment->parcel->reference, 'order_id' => $shipment->parcel->order_id, 'waybill_reference' => $shipment->parcel->waybill?->reference, 'item_count' => $shipment->parcel->item_count] : null,
-            'tasks' => $tasks->map(fn (DeliveryTask $task): array => $this->taskProjection($task))->values()->all(),
+            'last_activity_at' => $this->lastActivityAt($shipment, $tasks),
+            'parcel' => $shipment->parcel ? ['id' => $shipment->parcel->id, 'reference' => $shipment->parcel->reference, 'order_id' => $shipment->parcel->order_id, 'order_reference' => $shipment->parcel->order?->reference, 'waybill_reference' => $shipment->parcel->waybill?->reference, 'item_count' => $shipment->parcel->item_count] : null,
+            'tasks' => $tasks->map(fn (DeliveryTask $task): array => $this->taskProjection($task, true))->values()->all(),
             'allowed_transitions' => $allowed,
         ];
+    }
+
+    /** @return array{id: string, name: string, email: string}|null */
+    private function courierProjection(?User $courier): ?array
+    {
+        if ($courier === null) {
+            return null;
+        }
+
+        $name = trim(implode(' ', array_filter([
+            $courier->courierProfile?->first_name,
+            $courier->courierProfile?->middle_name,
+            $courier->courierProfile?->last_name,
+        ])));
+
+        return ['id' => $courier->id, 'name' => $name !== '' ? $name : $courier->email, 'email' => $courier->email];
+    }
+
+    /** @return array<string, mixed> */
+    private function evidenceProjection(ShipmentEvidence $evidence): array
+    {
+        return [
+            'id' => $evidence->id,
+            'purpose' => $evidence->purpose instanceof ShipmentEvidencePurpose ? $evidence->purpose->value : $evidence->purpose,
+            'type' => $evidence->type,
+            'safe_reference' => $evidence->safe_reference,
+            'status' => $evidence->status instanceof ShipmentEvidenceStatus ? $evidence->status->value : $evidence->status,
+            'courier_id' => $evidence->courier_id,
+            'submitted_at' => $evidence->submitted_at?->toISOString(),
+            'validated_at' => $evidence->validated_at?->toISOString(),
+            'rejection_reason' => $evidence->rejection_reason,
+        ];
+    }
+
+    /** @param Collection<int, DeliveryTask> $tasks */
+    private function lastActivityAt(Shipment $shipment, Collection $tasks): ?string
+    {
+        return collect([$shipment->updated_at, ...$tasks->pluck('updated_at')->all()])
+            ->filter()
+            ->sortByDesc(fn ($value) => $value->getTimestamp())
+            ->first()?->toISOString();
     }
 
     /** @return array<string, string|null> */
@@ -832,13 +968,13 @@ class FulfillmentTransitionService
     /** @return array<int, string> */
     private function shipmentRelations(): array
     {
-        return ['parcel.order.items', 'parcel.order.address', 'parcel.waybill.snapshot', 'hub.address', 'tasks.offers.courier.courierProfile', 'tasks.evidence', 'tasks.completionIntents.evidence'];
+        return ['parcel.order.items', 'parcel.order.address', 'parcel.waybill.snapshot', 'hub.address', 'tasks.courier.courierProfile', 'tasks.offers.courier.courierProfile', 'tasks.evidence', 'tasks.completionIntents.evidence'];
     }
 
     /** @return array<int, string> */
     private function taskRelations(): array
     {
-        return ['shipment.parcel.order.items', 'shipment.parcel.order.address', 'shipment.parcel.waybill.snapshot', 'shipment.hub.address', 'shipment.tasks.offers.courier.courierProfile', 'offers.courier.courierProfile', 'evidence', 'completionIntents.evidence'];
+        return ['shipment.parcel.order.items', 'shipment.parcel.order.address', 'shipment.parcel.waybill.snapshot', 'shipment.hub.address', 'shipment.tasks.offers.courier.courierProfile', 'offers.courier.courierProfile', 'courier.courierProfile', 'evidence', 'completionIntents.evidence'];
     }
 
     /** @return array<int, string> */

@@ -283,6 +283,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         ->name('account.profile-photo.show');
     Route::delete('/account/profile-photo', [LogisticsAccountController::class, 'removeProfilePhoto'])
         ->name('account.profile-photo.destroy');
+    Route::get('/dashboard/queue', [LogisticsDashboardController::class, 'queue'])->name('dashboard.queue');
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
     Route::get('/courier-applications/{affiliation}', [CourierApprovalController::class, 'show'])->whereUuid('affiliation')->name('courier-applications.show');

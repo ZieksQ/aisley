@@ -95,10 +95,10 @@ Implemented hub-location capability: Logistics may confirm its actual sole-hub p
 ### 1. Dashboard
 
 - **Core value:** View Seller-confirmed parcels that require Logistics attention.
-- **Definition:** A secure, organization- and sole-hub-scoped queue for Orders whose selected Logistics organization is this organization. It covers Seller `ready_for_pickup` handoffs and, once the operational shipment schema exists, later receipt, sorting, transfer, dispatch, and assignment work. Rejected offers remain visible for re-offer; unfinished work may show informationally as `stale` without automatic cancellation or reassignment.
+- **Definition:** A secure, organization- and sole-hub-scoped queue for already-created shared Shipment records whose selected Logistics organization is this organization. It covers receipt, sorting, dispatch, final-mile assignment, and evidence/completion review. Rejected offers remain visible for re-offer; unfinished work exposes last activity without inventing a stale deadline or automatically cancelling/reassigning.
 - **System context:** Read-only aggregation over authoritative Order/Shipment/Delivery Task records. Counts, rows, filters, caches, and events must never cross Logistics organizations or imply that assignment is physical pickup.
 - Courier-submitted waybill QR/reference scans and handoff evidence are validated and recorded by an authorized Logistics account. The event preserves the Courier who performed the physical action, the Logistics account that recorded it, and the event timestamp; a scan or waybill access event alone never advances custody.
-- The current protected authentication and dashboard scaffold exists; the operational parcel queue remains dependent on the deferred shipment/task schema.
+- The protected authentication and hub scaffold remain available at `/dashboard`; the deployed `/dashboard/queue` projection and `/operations` Hub operations page consume the additive Shipment/Parcel/DeliveryTask schema. Advanced ranking, realtime, and stale-threshold policy remain deferred.
 
 Subscription status is not a dashboard or operational gate in the MVP. Billing, provider, subscription records, and enforcement remain deferred; an approved active Logistics account with its sole hub is sufficient for current access.
 
