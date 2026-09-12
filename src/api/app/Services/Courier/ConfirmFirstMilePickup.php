@@ -11,6 +11,7 @@ use App\Models\CourierPickupConfirmation;
 use App\Models\FirstMileTask;
 use App\Models\PickupSchedule;
 use App\Models\User;
+use App\Services\Fulfillment\FulfillmentTransitionService;
 use App\Services\Inventory\FulfillOrderReservation;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
@@ -23,6 +24,7 @@ class ConfirmFirstMilePickup
         private readonly CreateWaybill $waybillHasher,
         private readonly FulfillOrderReservation $inventory,
         private readonly OrderTransitionService $transitions,
+        private readonly FulfillmentTransitionService $fulfillment,
     ) {}
 
     /** @return array{task: FirstMileTask, confirmation: CourierPickupConfirmation, idempotent: bool} */
@@ -101,6 +103,9 @@ class ConfirmFirstMilePickup
                 'correlation_id' => $correlationId,
                 'picked_up_at' => $pickedUpAt,
             ]);
+            // Bridge the legacy first-mile confirmation into the shared physical
+            // shipment projection without replaying the inventory effect.
+            $this->fulfillment->syncLegacyFirstMile($task);
 
             return ['task' => $task->fresh($this->relations()), 'confirmation' => $confirmation, 'idempotent' => false];
         }, 3);

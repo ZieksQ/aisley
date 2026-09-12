@@ -4,7 +4,7 @@ title: Logistics Dashboard
 system: AISLEY
 type: Feature Specification
 version: 1.4
-status: Implemented scaffold; operational queue deferred
+status: Implemented scaffold; operational queue UI deferred
 role: Logistics
 scope: Logistics React SPA and Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -17,7 +17,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Purpose:** Give an approved active Logistics account a secure view of its organization and sole operational hub, then the parcels requiring action.
 - **Current implementation:** `GET /api/v1/logistics/dashboard` returns the authenticated hub's safe identity/address, `summary: null`, `orders: []`, and `freshness.state = scaffold`. The protected `/dashboard` SPA renders that scaffold with refresh, loading, and recoverable error states.
 - **MVP boundary:** One Logistics account operates one organization and exactly one hub/sorting center. Sub-hubs, hub selectors, multi-hub queues, and staff-account context are out of scope.
-- **Future queue:** Seller `ready_for_pickup` handoffs, hub work, and first-/final-mile task work become visible only after the shared operational schema and owning APIs exist.
+- **Future queue:** Seller `ready_for_pickup` handoffs, hub work, and first-/final-mile task work will be surfaced in this scaffold after the deployed owning APIs are integrated into the dashboard UI.
 - **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns readiness; Deploy Rider owns assignment; Update Status owns validated state recovery; Waybill owns document access; Courier UI is external Flutter/mobile-only.
 - **Non-goals:** Seller processing, parcel mutation, waybill generation, scan validation, Courier assignment, route calculation, proof of delivery, billing, and financial reporting.
 
@@ -92,15 +92,14 @@ active Logistics session
 - API route: `GET /api/v1/logistics/dashboard` in `src/api/routes/api.php`.
 - Controller: `src/api/app/Http/Controllers/Logistics/DashboardController.php`.
 - SPA: `src/logistics/src/pages/DashboardPage.tsx`, `LogisticsLayout.tsx`, `ProtectedRoute.tsx`, and `auth/AuthContext.tsx`.
-- Current migrations provide Logistics identity, organization, sole hub, pickup requests, shared waybills, schedules, and first-mile assignment/acceptance. Physical Shipment/Parcel/Scan/Delivery Task and final-mile records remain deferred.
-- No queue, evidence, rejection, re-offer, or stale-mutation route currently exists; these remain unavailable rather than implied by the scaffold.
+- Current migrations provide Logistics identity, organization, sole hub, pickup requests, shared waybills, schedules, first-mile assignment/acceptance, and the additive Shipment/Parcel/DeliveryTask final-mile records.
+- Queue and operational mutations remain owned by Update Status and Deploy Rider; the scaffold does not imply unsupported filters, ranking, expiry, or stale-mutation behavior.
 - Dashboard mutations are never a substitute for Deploy Rider or Update Status authorization.
 
-### Future implementation
+### Deferred dashboard work
 
-- Reconcile the shared Shipment/Fulfillment guide with `docs/schema.md` and each owning feature before adding queue actions.
-- Add additive migrations for the physical records and append-only event history. The Dashboard must consume, not redefine, transition rules.
-- Add an organization/hub-scoped query/resource with consistent predicates for summary and rows. Label planned endpoints unavailable until implemented.
+- Consume the deployed Shipment/Parcel/DeliveryTask projections from Update Status and Deploy Rider; the Dashboard must consume, not redefine, transition rules.
+- Add an organization/hub-scoped queue query/resource with consistent predicates for summary and rows. Label unsupported filters, ranking, expiry, and stale actions unavailable until implemented.
 - Link rejected-task re-offer to Deploy Rider and evidence validation to Update Status; deep links must re-authorize in those features.
 
 ### Observability and rollout

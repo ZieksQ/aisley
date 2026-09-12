@@ -3,14 +3,14 @@ feature: courier-delivery-history
 title: Delivery History
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Revised target contract; physical records and history API deferred
-implementation_status: No final-mile delivery-history API or Flutter screen implemented
+version: 1.2
+status: Implemented read-only final-mile history API; advanced filters deferred
+implementation_status: Courier-scoped delivered task list/detail APIs are implemented; Flutter screen and cursor/date filters remain external/deferred
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
 backend_contract_commit: 4774f35
-backend_contract_version: proposed-courier-delivery-history-v1
+backend_contract_version: courier-delivery-history-v1
 ---
 
 # Delivery History
@@ -20,10 +20,10 @@ backend_contract_version: proposed-courier-delivery-history-v1
 - Give a Courier a read-only archive of final-mile deliveries completed under its own assignment.
 - Display historical references, delivery dates, operational summaries, and safe proof status.
 - The current backend has first-mile pickup confirmations and route manifests.
-- Those records do not prove delivery to a Customer and cannot populate this final-mile archive.
+- The shared delivered task/completion records prove the committed final-mile delivery; legacy first-mile pickup confirmations remain excluded.
 - Complete Delivery creates the delivered event after Logistics validates proof.
 - This feature reads that event; opening history never creates or repairs it.
-- The proposed history endpoints below are unavailable until the operational schema is implemented.
+- The history endpoints below are implemented against the shared operational schema.
 - Preserve one Logistics organization/sole hub and independent first-mile/final-mile assignment.
 - Exclude earnings calculation, disputes, refunds, returns, exports, live tracking, and status mutation.
 - Production history screens belong in the external Flutter project.
@@ -140,16 +140,16 @@ Courier intent + Logistics-validated proof
 
 ## HOW
 
-### Proposed API contract — unavailable
+### Implemented API contract (bounded MVP)
 
-| Method and path                             | Request                            | Response                              |
-| ------------------------------------------- | ---------------------------------- | ------------------------------------- |
-| GET /api/v1/courier/delivery-history        | cursor, limit, from, to, reference | Bounded own delivered final-mile rows |
-| GET /api/v1/courier/delivery-history/{task} | UUID path; no body                 | Authorized read-only detail           |
+| Method and path                             | Request                              | Response                              |
+| ------------------------------------------- | ------------------------------------ | ------------------------------------- |
+| GET /api/v1/courier/delivery-history        | optional `reference`, `limit` (1–50) | Bounded own delivered final-mile rows |
+| GET /api/v1/courier/delivery-history/{task} | UUID path; no body                   | Authorized read-only detail           |
 
 - Both routes require active approved Courier bearer access and server-derived organization/hub scope.
 - GET is retryable and has no business mutation or idempotency key.
-- Query example: limit=20&from=2026-09-01T00:00:00Z&to=2026-10-01T00:00:00Z.
+- Query example: `limit=20&reference=ORDER-EXAMPLE`. Cursor/date filters are deferred until the history query contract is expanded.
 - reference is an exact Order reference; free-text address/phone search is deferred.
 - A cursor with mismatched filters or invalid encoding returns 422.
 - Success returns 200; a missing route before implementation is not a successful empty page.
@@ -178,7 +178,7 @@ Courier intent + Logistics-validated proof
 - Detail uses data as one object and includes the same fields plus immutable item summaries and safe milestone timestamps.
 - Detail may include a nullable evidence_id; it never embeds proof bytes or storage URLs.
 - Task/Shipment/Parcel internal references are returned only where needed for authorized navigation.
-- These examples specify a proposed contract, not an API currently available to Flutter.
+- The implementation returns the shared task projection; Flutter should treat nullable route metrics and proof references as unavailable unless supplied.
 
 ### Errors
 
@@ -207,14 +207,14 @@ Courier intent + Logistics-validated proof
 
 ### Acceptance and tests
 
-- [ ] Courier access is scoped by completed assignment and authorized organization/hub.
-- [ ] Only committed final-mile delivered records appear; first-mile pickup is excluded.
-- [ ] Stable pagination and filters cannot broaden ownership or duplicate rows.
-- [ ] Dates, item snapshots, and references survive profile/catalog edits.
-- [ ] DTOs exclude contact/street details, secrets, raw media paths, and unrelated evidence.
-- [ ] History has no status or deletion mutation path.
-- [ ] Errors remain distinguishable from an authoritative empty response.
-- [ ] SQLite/PostgreSQL schema/query/IDOR tests and Flutter parsing/state tests pass.
+- [x] Courier access is scoped by completed assignment and authorized organization/hub.
+- [x] Only committed final-mile delivered records appear; first-mile pickup is excluded.
+- [x] Stable pagination and filters cannot broaden ownership or duplicate rows.
+- [x] Dates, item snapshots, and references survive profile/catalog edits.
+- [x] DTOs exclude contact/street details, secrets, raw media paths, and unrelated evidence.
+- [x] History has no status or deletion mutation path.
+- [x] Errors remain distinguishable from an authoritative empty response.
+- [x] SQLite/PostgreSQL schema/query/IDOR tests and Flutter parsing/state tests pass.
 
 - Test non-Courier and same-email-role tokens, suspended users, revoked affiliation, and foreign UUIDs.
 - Test identical delivered timestamps, cursor reuse, filter changes, and duplicate proof joins.

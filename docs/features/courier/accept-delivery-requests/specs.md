@@ -4,13 +4,13 @@ feature: courier-accept-delivery-requests
 title: Accept Delivery Requests
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: First-mile read/accept API implemented; rejection/re-offer and operational schema deferred
-implementation_status: GET task list and POST accept are implemented; reject/re-offer is planned and unavailable
+version: 1.2
+status: First-mile and final-mile offer acceptance/rejection implemented
+implementation_status: First-mile listing/acceptance and final-mile listing, accept, reject, and Logistics re-offer are implemented
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: 5596fab
-backend_contract_version: courier-first-mile-accept-v1
+backend_contract_version: courier-first-and-final-mile-accept-v1
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
@@ -20,9 +20,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Let a Courier review a Logistics-offered task and explicitly accept responsibility for one Order/Parcel leg.
 - **Actor:** The Courier uses the external Flutter application. This repository provides Laravel API endpoints only; no Courier web UI is built here.
-- **Current implementation:** `GET /api/v1/courier/first-mile-tasks` and `POST /api/v1/courier/first-mile-tasks/{task}/accept` exist for first-mile assigned/accepted tasks. Rejection, re-offer, final-mile tasks, and physical custody records are unavailable.
+- **Current implementation:** `GET /api/v1/courier/first-mile-tasks` and `POST /api/v1/courier/first-mile-tasks/{task}/accept` remain available for first-mile tasks. Final-mile task listing/detail, accept, reject, and Logistics re-offer are implemented on the shared Shipment/DeliveryTask records; physical pickup and delivery remain separate evidence/transition actions.
 - **Flow:** Seller confirms `ready_for_pickup` → Logistics creates/offers one first-mile task → Courier reviews → Courier accepts or rejects → accepted Courier proceeds to Pick Up Order.
-- **Task boundary:** One future Delivery Task represents exactly one Order/Parcel for one leg. First-mile and final-mile assignments are independent; first-mile completion never grants the final-mile task.
+- **Task boundary:** One deployed Delivery Task represents exactly one Order/Parcel for one leg. First-mile and final-mile assignments are independent; first-mile completion never grants the final-mile task.
 - **Non-goals:** Logistics assignment authority, vehicle/zone CRUD, route optimization, QR scanning, physical pickup, hub processing, delivery, proof of delivery, returns, refunds, earnings, and chat.
 
 ```text
@@ -78,10 +78,10 @@ Logistics offer
 - Notification, push, or communication failure after acceptance or rejection does not roll back the committed task decision.
 - Offline acceptance is not allowed in the MVP; cached task data is reference-only and requires online revalidation.
 
-### Planned rejection contract
+### Final-mile rejection contract
 
-- `POST /api/v1/courier/first-mile-tasks/{task}/reject` is planned and unavailable. It requires an approved Courier task, an allowed reason value, the expected task revision, and an idempotency key; exact reason values remain an open policy choice.
-- A successful future response will contain the same task reference, `status: rejected`, rejection actor/time, preserved offer history, and a safe next-action hint. It will not change the Order or waybill.
+- `POST /api/v1/courier/final-mile-tasks/{task}/reject` is implemented. It requires an approved Courier offer, a reason, and an idempotency key; the rejected offer remains in history and the same task may be re-offered by Logistics.
+- A successful response contains the same task reference, `status: rejected`, rejection actor/time, preserved offer history, and a safe next-action hint. It does not change the Order or waybill.
 
 ## HOW
 
@@ -91,7 +91,7 @@ Logistics offer
 - Its response contains `data[]` task ID, machine `status`, Order/waybill references, safe pickup details, destination area, and UTC schedule; `meta` contains `current_page`, `last_page`, and `total`. It is private Courier data and must not be shared-cached.
 - **Implemented** `POST /api/v1/courier/first-mile-tasks/{task}/accept` — same auth and server-derived scope; no client `courier_id` or status field; an empty JSON body is accepted; the response returns the committed task projection.
 - Accept is idempotent for the same Courier and returns `409` when the task is no longer acceptable. `401`, `403`, `404`, `409`, `422`, `429`, timeout, and server errors map to explicit Flutter states; a failed request never implies success.
-- **Planned/unavailable** rejection and re-offer endpoints must be labeled unavailable until the task-history schema and owning Courier/Logistics APIs are deployed. Flutter must not call conceptual paths.
+- `GET /api/v1/courier/final-mile-tasks`, `GET /api/v1/courier/final-mile-tasks/{task}`, and `POST /api/v1/courier/final-mile-tasks/{task}/accept` are implemented for active final-mile work. Logistics owns `GET .../deploy-rider/tasks/{task}/candidates` and `POST .../offers`; those routes append offers for the same final-mile task.
 
 ### Response and error details
 
@@ -105,15 +105,24 @@ Logistics offer
 
 ```json
 {
-  "data": [{
-    "id": "task-uuid",
-    "status": "assigned",
-    "order": {"id": "order-uuid", "reference": "ORD-123"},
-    "waybill": {"reference": "WB-123"},
-    "destination_area": {"city_municipality": "Example", "province": "Example"},
-    "schedule": {"starts_at": "server-time", "ends_at": "server-time", "timezone": "UTC"}
-  }],
-  "meta": {"current_page": 1, "last_page": 1, "total": 1}
+  "data": [
+    {
+      "id": "task-uuid",
+      "status": "assigned",
+      "order": { "id": "order-uuid", "reference": "ORD-123" },
+      "waybill": { "reference": "WB-123" },
+      "destination_area": {
+        "city_municipality": "Example",
+        "province": "Example"
+      },
+      "schedule": {
+        "starts_at": "server-time",
+        "ends_at": "server-time",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "meta": { "current_page": 1, "last_page": 1, "total": 1 }
 }
 ```
 
@@ -156,13 +165,13 @@ Logistics offer
 - The available-task card may deep-link to this feature with only the opaque task ID; the server reloads the authoritative projection before accepting.
 - After a successful accept, refresh Dashboard and remove the task from the available list; the next action is Pick Up Order, not transit.
 - After a rejected offer, return to the Dashboard or wait for a server re-offer; do not locally create a replacement task.
-- Keep the current accept endpoint available while the additive rejection/history migration is rolled out; reject calls remain unavailable until that deployment is complete.
+- Keep the current first-mile accept endpoint available while the additive final-mile task/history migration is rolled out; final-mile reject/re-offer calls require that migration and the authenticated Courier/Logistics scopes.
 - The Flutter copy must record `backend_contract_commit: 5596fab` and `backend_contract_version: courier-first-mile-accept-v1` beside its generated models.
 - Push or realtime delivery is only a refresh hint; the API response remains authoritative.
 
 ### Backend implementation boundary
 
-- Current models persist first-mile assignment and acceptance only. Additive Shipment/Parcel/DeliveryTask, offer-history, rejection, evidence, and physical-transition migrations are prerequisites for the deferred behavior.
+- Current models persist legacy first-mile assignment/acceptance plus shared Shipment/Parcel/DeliveryTask offer, rejection, evidence, and physical-transition records for final-mile work. Advanced expiry, availability, and location policies remain deferred.
 - Use one shared assignment/transition service for tenant checks, revision locking, idempotency, actor history, and task-level exception states. Do not create a second state machine in Flutter.
 - Logistics remains the creator and re-offerer; Pick Up Order owns QR/evidence submission and Logistics validates/records physical pickup.
 - Any future final-mile acceptance must use the same Courier authorization rules but a separate task leg and owning endpoint.
@@ -180,7 +189,7 @@ Logistics offer
 - Test role/status/affiliation/sole-hub isolation, IDOR, safe pre/post-acceptance fields, task-leg separation, eligibility revalidation, stale revisions, duplicate accepts, rejection/re-offer history, and notification failure.
 - Test Flutter parsing, secure-token failure, loading/empty/stale/forbidden/offline/conflict states, disabled duplicate taps, and accessibility semantics.
 - Log correlation ID, task, Courier, Logistics organization/hub, leg, decision, revision, and timestamp; never log bearer tokens, private evidence, raw paths, or unrestricted GPS.
-- Keep rejection/re-offer unavailable until additive migrations, the shared transition service, and the Flutter contract are released together. Record API version `courier-first-mile-accept-v1` in the Flutter progress log.
+- Keep only advanced expiry/availability policies unavailable. The deployed final-mile accept/reject/re-offer contract uses the shared transition service; record its API revision separately from the legacy `courier-first-mile-accept-v1` contract in Flutter progress.
 
 ### Open decisions
 
@@ -192,9 +201,9 @@ Logistics offer
 
 - [x] Authenticated Courier can list and explicitly accept its own assigned first-mile task through the implemented API.
 - [x] Acceptance is separate from physical pickup and does not directly write custody or generic Order status.
-- [ ] Courier can reject an offer with preserved reason/time and Logistics can re-offer the same task without changing the Order.
-- [ ] Stale unfinished offers are visible as informational state without automatic cancellation or reassignment.
-- [ ] Provider-neutral distance/ETA is advisory, server-derived, privacy-safe, and explicitly unavailable on calculation failure.
-- [ ] Concurrent/retried accepts, rejects, and re-offers cannot duplicate assignments or overwrite append-only history.
+- [x] Courier can reject a final-mile offer with preserved reason/time and Logistics can re-offer the same task without changing the Order.
+- [x] Stale unfinished offers are visible as informational state without automatic cancellation or reassignment.
+- [x] Provider-neutral distance/ETA is advisory, server-derived, privacy-safe, and explicitly unavailable on calculation failure.
+- [x] Concurrent/retried final-mile accepts, rejects, and re-offers cannot duplicate assignments or overwrite append-only history.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/features/orders/logistics-pickups/spec.md`, `docs/features/orders/waybill/spec.md`, `docs/features/courier/dashboard/specs.md`, and `docs/features/courier/pick-up-order/specs.md`.

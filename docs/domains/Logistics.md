@@ -86,7 +86,7 @@ Customer places the Order
 → Courier submits completion intent/proof; Logistics validates and the shared service commits `delivered`
 ```
 
-The first-mile and final-mile movements are separate task legs, even if the same Courier performs both. Each future Delivery Task represents one Order/Parcel for one leg; a pickup schedule may group Orders but never merge their tasks, waybills, snapshots, or histories. Each handoff requires its own assignment, actor, timestamp, location, and scan/event record. If an offered Courier rejects either leg, the task records task-level `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned in the MVP. The MVP has no alternate hub or sub-hub branch.
+The first-mile and final-mile movements are separate task legs, even if the same Courier performs both. Each deployed Delivery Task represents one Order/Parcel for one leg; a pickup schedule may group Orders but never merge their tasks, waybills, snapshots, or histories. Each handoff requires its own assignment, actor, timestamp, location, and scan/event record. If an offered Courier rejects either leg, the task records task-level `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned in the MVP. The MVP has no alternate hub or sub-hub branch.
 
 ## Core features
 
@@ -164,13 +164,13 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 
 ## Deferred operational data
 
-The current schema implements Logistics identity, organization, sole hub, Courier affiliation, Seller pickup requests, shared waybills, pickup schedules, and first-mile assignment/acceptance. Physical Shipment/Parcel/Scan/Delivery Task, assignment beyond the current first-mile foundation, proof-of-delivery, availability, capacity, and earnings tables remain deferred. The accepted future contract requires Logistics-authoritative scan/evidence records, task-level rejection/re-offer, informational staleness, and provider-neutral distance/ETA context; no physical operational migration exists yet. Future additive migrations must preserve the one-organization/one-hub invariant, immutable Seller-selected provider context, one shared waybill, append-only actor/evidence history, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
+The current schema implements Logistics identity, organization, sole hub, Courier affiliation, Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, and the additive Shipment/Parcel/DeliveryTask operational records. Logistics can record hub receipt/sorting/dispatch, offer/re-offer independent final-mile tasks, validate QR hub-pickup and delivery evidence, and commit final delivery through the shared transition service. Availability, capacity, earnings, photo/signature media, route/location telemetry, returns, and exceptional recovery remain deferred. Operational records preserve the one-organization/one-hub invariant, immutable Seller-selected provider context, one shared waybill, append-only actor/evidence history, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
 
 ## Shared contracts
 
 - `docs/requirements.md` — high-level Logistics responsibilities.
 - `docs/workspace.md` — workflow and canonical status flow.
-- `docs/schema.md` — implemented foundation and deferred Shipment/Delivery Task vocabulary.
+- `docs/schema.md` — implemented foundation, deployed Shipment/Delivery Task records, and deferred extensions.
 - `docs/features/logistics/*/specs.md` — feature-specific implementation contracts.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` currently validates the accepted Courier task and commits Seller pickup, Order `picked_up`, and Inventory fulfillment without a separate Logistics review. The accepted target requires Courier evidence submission followed by Logistics validation and a server-owned transition. That target is not implemented. Its rollout must explicitly migrate the current confirmation contract, preserve existing confirmations and stock movements, and never replay pickup or fulfill stock twice.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; advanced proof media, route/location telemetry, and exceptional recovery remain future extensions.

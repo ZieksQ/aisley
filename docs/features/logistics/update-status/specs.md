@@ -4,7 +4,7 @@ title: Update Status
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Deferred — physical operational schema and endpoints unavailable
+status: Implemented hub and final-mile transition/validation API; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,8 +15,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account validate operational evidence and commit an allowed Shipment/Delivery Task transition when scan automation needs recovery.
-- **Current implementation:** No physical Shipment/Parcel/Scan/Delivery Task tables or Update Status endpoint exists. The current waybill `resolve` action is an access event, not a physical scan or custody transition.
-- **Compatibility:** Existing explicit Courier first-mile confirmation already commits pickup and Inventory fulfillment without Logistics review. This future validation workflow must migrate that contract and preserve its history/effects without replay; the validation gate is not active yet.
+- **Current implementation:** The additive fulfillment migration and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort/dispatch, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. Waybill `resolve` remains an access event and is not treated as a physical scan.
+- **Compatibility:** Existing explicit Courier first-mile confirmation still commits Seller pickup and Inventory fulfillment on its legacy contract, then idempotently bridges the result into shared physical records. New hub/final-mile custody transitions use Logistics validation and never replay that Inventory effect.
 - **Authority:** Logistics validates and records the authoritative event. A Courier performs a physical scan/handoff and submits it; the shared transition service commits state only after validation.
 - **Flow:** Courier submits QR/reference/evidence → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
 - **Non-goals:** free-form status editing, assignment, Courier acceptance, waybill generation, address changes, proof-of-delivery bypass, returns/refunds, partial fulfillment, payment changes, subscription gating, and map-provider integration.
@@ -69,12 +69,12 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - If evidence validation fails, record the rejection reason where permitted and keep custody unchanged. Manual recovery still requires an explicit valid basis.
 - Notification, communication, or route-provider failure is handled separately from the committed state transition.
 
-### Planned API contract (unavailable)
+### Implemented API contract
 
-- `GET /api/v1/logistics/update-status/records/{reference}` — **planned and unavailable**. Auth: active Logistics. Resolves an authorized Order/Parcel/waybill and returns current detailed/high-level state, evidence status, allowed transitions, safe summary, and latest event time.
-- `POST /api/v1/courier/tasks/{task}/scan-events` — **planned and unavailable; owning Courier pickup API**. Auth: approved Courier on its offered/accepted task; accepts the task leg, QR/reference value, evidence metadata, expected revision, and idempotency key. The backend routes the submission to the owning Logistics validation/recording service.
-- `POST /api/v1/logistics/update-status/scan-events` — **planned and unavailable**. Auth: active Logistics recorder; validates or manually records the routed Courier event and preserves the performing Courier plus recording Logistics account.
-- `POST /api/v1/logistics/update-status/transitions` — **planned and unavailable**. Auth: active Logistics; accepts an authorized target state, reference, expected revision, reason, and idempotency key for manual recovery.
+- `GET /api/v1/logistics/update-status/records/{reference}` — implemented; returns the scoped Shipment/Parcel/task projection and allowed transitions.
+- `POST /api/v1/courier/tasks/{task}/scan-events` — implemented alias for final-mile hub-pickup QR/reference evidence submission; Logistics validation still owns the custody transition.
+- `POST /api/v1/logistics/update-status/scan-events` — implemented alias for the Logistics transition endpoint.
+- `POST /api/v1/logistics/update-status/transitions` — implemented; accepts an authorized target state, reference, expected Shipment revision, optional evidence UUID/reason, and UUID `Idempotency-Key`.
 - Responses return safe current projections, immutable event identifiers, evidence status, and any permitted Order projection. They never return secrets, private raw paths, or unrelated PII.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid evidence/transition, `429`, and provider/notification delivery failure. Retrying an identical idempotency key returns the committed projection; changed details conflict.
 
@@ -123,7 +123,7 @@ The web client may refresh after a conflict or validation failure, but it must n
 
 ### Rollout boundary
 
-- Keep these endpoints unavailable until the shared operational migrations and transition service are deployed.
+- Keep exceptional transitions, returns, and unsupported evidence methods unavailable; the documented hub/final-mile transition routes are deployed with the additive migration and shared service.
 - Follow the dependency-ordered schema/service plan and legacy first-mile bridge in `docs/schema.md`. Preserve confirmations, replay results, and stock effects; new pickups cannot use the old direct-confirmation bypass after cutover.
 - Enable submission and validation together only after bridge reconciliation and SQLite/PostgreSQL checks pass. Manual recovery remains limited to transitions with an implemented evidence contract.
 

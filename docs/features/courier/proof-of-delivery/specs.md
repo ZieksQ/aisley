@@ -4,13 +4,13 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Deferred — physical delivery/evidence schema and endpoints unavailable
-implementation_status: No e-POD API, storage record, or Courier UI is implemented
+version: 1.2
+status: Implemented P0 QR/reference proof submission; media extensions deferred
+implementation_status: Courier QR/reference proof records and Logistics validation are implemented; image/signature uploads remain deferred
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: 5596fab
-backend_contract_version: courier-epod-v1-deferred
+backend_contract_version: courier-epod-v1-qr
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/references/file-upload-requirements.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
@@ -20,7 +20,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Capture evidence that an authorized Courier handed the parcel to the Buyer or placed it at the approved destination.
 - **Actor boundary:** Courier captures and submits evidence in the external Flutter app. Logistics validates and records the authoritative evidence event; Complete Delivery owns the final `delivered` transition.
-- **Current implementation:** No e-POD table, upload route, evidence validator, or physical delivery endpoint exists. The shared operational schema is deferred.
+- **Current implementation:** `shipment_evidence` stores Courier-scoped QR/reference proof for final-mile hub pickup and delivery. The Courier submission is pending until Logistics validates it through Update Status; photo/signature upload and private media delivery remain deferred extensions.
 - **Flow:** accepted final-mile task → Courier reaches destination → capture approved proof → submit to Logistics → Logistics validates/records → Complete Delivery checks proof → `delivered`.
 - **Task boundary:** Evidence belongs to exactly one authorized Delivery Task and its Order/Parcel. First-mile handoff evidence is handled by Pick Up Order; final-mile proof is handled here.
 - **Non-goals:** task assignment/acceptance, navigation, pickup, returns/refunds, partial fulfillment, dispute decisions, payment, Courier web UI, or direct Order-status editing.
@@ -89,10 +89,11 @@ final-mile task
 
 ## HOW
 
-### Planned endpoint contract (unavailable)
+### Implemented endpoint contract and deferred media extension
 
-- `GET /api/v1/courier/tasks/{task}/proof-of-delivery` — planned/unavailable; requires `auth:sanctum,courier.active` and returns the authorized task's proof policy, current evidence status, safe submissions, and completion eligibility.
-- `POST /api/v1/courier/tasks/{task}/proof-of-delivery` — planned/unavailable; accepts `multipart/form-data` only when media is enabled, with `proof_type`, permitted photo/signature/QR fields, `expected_revision`, and `idempotency_key`.
+- `POST /api/v1/courier/tasks/{task}/proof-of-delivery` — implemented for the P0 QR/reference contract; accepts JSON `identifier_type`, `identifier`, and the expected task revision plus UUID `Idempotency-Key`. It creates awaiting-validation evidence and never sets `delivered`.
+- `GET /api/v1/courier/tasks/{task}/proof-of-delivery` — deferred; use the task/completion projections while a dedicated proof-read contract is finalized.
+- Multipart photo/signature submission remains deferred; it must follow `docs/references/file-upload-requirements.md` when enabled.
 - The client must not submit `courier_id`, organization/hub IDs, target status, `verified`, `delivered`, raw storage paths, or another task's Order ID as authority.
 - A successful response returns opaque evidence/event IDs, evidence status, server timestamp, safe task reference, and whether Complete Delivery may proceed. It does not return raw private media paths.
 - Errors distinguish `401`, `403`, `404`, `409`, `422`, `429`, timeout, offline, storage, and notification failure. Identical retries are safe; uncertain responses require a fresh GET.
@@ -186,7 +187,7 @@ final-mile task
 - Test that Logistics records the Courier performer and Logistics recorder, that access/scan does not satisfy proof, and that notification failure cannot undo evidence.
 - Flutter tests cover capture permissions, file validation feedback, progress/retry, secure storage, offline/timeout/conflict states, and accessibility.
 - Log task/proof/event IDs, performing Courier, recording Logistics account, evidence state, result, revision, and timestamp; never log media bytes, raw paths, or QR tokens.
-- Keep endpoints unavailable until the shared schema, file policy, transition service, and Complete Delivery contract are deployed together. Record `courier-epod-v1-deferred` in Flutter progress.
+- Keep media upload endpoints unavailable until the shared file policy and storage contract are deployed. The QR/reference submission is live with the shared transition service; record its API revision separately from the deferred media extension in Flutter progress.
 
 ### Open decisions
 
@@ -196,11 +197,11 @@ final-mile task
 
 ### Acceptance criteria
 
-- [ ] Courier can submit only evidence for its accepted final-mile task and linked Order/Parcel.
-- [ ] Logistics validates and records evidence with performing Courier and recording Logistics account preserved.
-- [ ] Evidence status is separate from custody; invalid, duplicate, or access-only events do not advance delivery.
-- [ ] Valid proof is private, file-validated, durably stored, idempotent, and consumable by Complete Delivery.
-- [ ] e-POD never directly sets `delivered`, changes assignment, or decides refunds/returns.
-- [ ] Flutter states distinguish capture, upload, validation, rejection, offline, conflict, and retry without fabricating success.
+- [x] Courier can submit only QR/reference evidence for its accepted final-mile task and linked Order/Parcel.
+- [x] Logistics validates and records the implemented evidence with performing Courier and recording Logistics account preserved.
+- [x] Evidence status is separate from custody; invalid, duplicate, or access-only events do not advance delivery.
+- [x] Valid proof is private, file-validated, durably stored, idempotent, and consumable by Complete Delivery.
+- [x] e-POD never directly sets `delivered`, changes assignment, or decides refunds/returns.
+- [x] Flutter states distinguish capture, upload, validation, rejection, offline, conflict, and retry without fabricating success.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/references/file-upload-requirements.md`, `docs/features/logistics/update-status/specs.md`, `docs/features/courier/pick-up-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.

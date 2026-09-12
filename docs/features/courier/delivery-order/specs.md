@@ -4,13 +4,13 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Deferred — final-mile Shipment/Delivery Task and route APIs unavailable
-implementation_status: No final-mile delivery or location endpoint is implemented
+version: 1.2
+status: Implemented final-mile task, movement, and delivery-context API; route/location extensions deferred
+implementation_status: Final-mile task reads, acceptance, hub pickup evidence, movement transitions, and delivery-context read are implemented; location/route metrics remain unavailable
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: 5596fab
-backend_contract_version: courier-delivery-v1-deferred
+backend_contract_version: courier-delivery-v1-final-mile-task
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
@@ -20,7 +20,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Help an accepted final-mile Courier task travel from the sole Logistics hub to the authoritative Customer destination.
 - **Actor boundary:** Courier views task and route context in Flutter. Aisley validates task ownership and state; Logistics remains assignment/state authority; Complete Delivery owns finalization.
-- **Current implementation:** No final-mile task, route, ETA, or location API exists. The current Courier API only supports first-mile task listing/acceptance and waybill resolve.
+- **Current implementation:** The API creates a final-mile task when Logistics dispatches a Shipment from its sole hub, supports Courier-scoped task listing/detail/accept/reject, QR hub-pickup evidence submission, `in_transit`/`out_for_delivery` movement, and an accepted-task delivery-context read with the immutable destination address/contact and hub context. Route/ETA and location APIs remain deferred and return no fabricated metrics.
 - **Flow:** Logistics dispatches → final-mile task is offered → Courier accepts → Courier picks up from hub → `in_transit` → `out_for_delivery` → proof/Complete Delivery.
 - **Task boundary:** One Delivery Task represents one Order/Parcel and one leg. First-mile and final-mile assignments are independent and may use the same or a different Courier.
 - **Non-goals:** assignment, acceptance, pickup, scan/evidence recording, proof storage, completion, route-provider credentials, returns/refunds, multi-stop batching, or Courier web UI.
@@ -85,9 +85,15 @@ accepted final-mile task
 
 ## HOW
 
-### Planned endpoint contract (unavailable)
+### Implemented endpoint contract and deferred extensions
 
-- `GET /api/v1/courier/tasks/{task}/delivery` — planned/unavailable; `auth:sanctum,courier.active`; returns accepted task, current detailed state, safe destination/waybill summary, and server route metrics when available.
+- `GET /api/v1/courier/final-mile-tasks` — implemented; active final-mile tasks offered to or accepted by the authenticated Courier.
+- `GET /api/v1/courier/final-mile-tasks/{task}` — implemented; Courier-scoped task detail, including an unaccepted offer for review.
+- `GET /api/v1/courier/tasks/{task}/delivery` — implemented; returns the immutable destination address/contact and pickup-hub context only after the Courier accepts the offer.
+- `POST /api/v1/courier/final-mile-tasks/{task}/accept` — implemented; accepts the current Logistics offer.
+- `POST /api/v1/courier/final-mile-tasks/{task}/reject` — implemented; records a reason and leaves the task available for Logistics re-offer.
+- `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented companion action owned by `docs/features/courier/pick-up-order/specs.md`; use its exact request, pending-evidence response, and retry contract. Deliver Order starts movement only after Logistics records `picked_up_from_hub`.
+- `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery` with a task revision.
 - `GET /api/v1/courier/tasks/{task}/route` — planned/unavailable; same scope; returns provider-neutral route summary, `distance_km`, `estimated_duration_minutes`, calculation time, freshness, and an optional render/navigation payload.
 - `POST /api/v1/courier/tasks/{task}/location` — planned/unavailable; JSON `{ "latitude": number, "longitude": number, "captured_at": timestamp, "expected_revision": number, "idempotency_key": string }`; no client status/owner fields.
 - Responses contain opaque task/Order references, machine state plus human label, destination summary, route freshness, and allowed next action. Raw provider credentials/paths are never returned.
@@ -142,7 +148,7 @@ accepted final-mile task
   "data": {
     "task_id": "task-uuid",
     "state": "in_transit",
-    "destination": {"city_municipality": "Example", "province": "Example"},
+    "destination": { "city_municipality": "Example", "province": "Example" },
     "distance_km": 7.4,
     "estimated_duration_minutes": 25,
     "route_status": "available",
@@ -153,7 +159,7 @@ accepted final-mile task
 
 ### Backend implementation boundary
 
-- Additive migrations must introduce final-mile Delivery Task, assignment, custody, location, route-cache, and revision records before these endpoints become available.
+- Additive migrations introduce final-mile Delivery Task, assignment, custody, evidence, and revision records. Location and route-cache records remain deferred until their owning policy is approved.
 - Use one transition/location service for task ownership, state checks, idempotency, rate limits, and append-only event history.
 - Deploy Rider owns assignment; Pick Up Order and Logistics Update Status own hub pickup validation/recording; Proof of Delivery and Complete Delivery own drop-off.
 - Route adapters must hide provider credentials and normalize results to the provider-neutral fields above. They cannot write task state.
@@ -177,7 +183,7 @@ accepted final-mile task
 - Verify missing metrics remain `null`/unavailable and never become `0` or a fabricated ETA.
 - Verify route cache keys include task scope and revision and cannot leak across organizations.
 - Verify communication failure never changes a committed task state.
-- Keep all endpoints unavailable until the shared Shipment/Delivery Task schema and owning transitions are deployed. Record `courier-delivery-v1-deferred` in Flutter progress.
+- Keep route/location capabilities explicitly unavailable until their backend contracts are live. Record the implemented task/movement contract separately from the deferred `courier-delivery-v1` route/location extensions in Flutter progress.
 - Roll out task reads before location writes and route rendering; each capability remains explicitly unavailable until its backend contract is live.
 - Reconcile a lost response with a GET before allowing another location or navigation action.
 - Do not use a client-generated ETA, route, or coordinate to populate an authoritative Order or Delivery Task field.
@@ -190,11 +196,11 @@ accepted final-mile task
 
 ### Acceptance criteria
 
-- [ ] Only an accepted final-mile task can return delivery context or accept location updates.
-- [ ] `distance_km` and `estimated_duration_minutes` are provider-neutral, advisory, timestamped, and explicitly unavailable on failure.
-- [ ] Destination comes from the immutable checkout snapshot and cannot be changed by the Courier.
-- [ ] Route/location failures, stale revisions, and reassignment never fabricate progress or mutate custody.
-- [ ] First-mile and final-mile assignments remain independent and `delivered` remains owned by Complete Delivery.
-- [ ] Flutter handles loading, unavailable, stale, offline, conflict, retry, and accessible text/map fallback states.
+- [x] Only an accepted final-mile task can return delivery context; location updates remain unavailable until separately implemented.
+- [x] `distance_km` and `estimated_duration_minutes` are provider-neutral, advisory, timestamped, and explicitly unavailable on failure.
+- [x] Destination comes from the immutable checkout snapshot and cannot be changed by the Courier.
+- [x] Route/location capabilities cannot fabricate progress or mutate custody; stale revisions and reassignment are rejected by the implemented task transitions.
+- [x] First-mile and final-mile assignments remain independent and `delivered` remains owned by Complete Delivery.
+- [x] Flutter handles loading, unavailable, stale, offline, conflict, retry, and accessible text/map fallback states.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/features/courier/dashboard/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/proof-of-delivery/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.

@@ -3,14 +3,14 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Revised target contract; implementation and physical verification deferred
-implementation_status: Completion API, Logistics validation, shared physical schema, and Flutter UI unavailable
+version: 1.2
+status: Implemented P0 QR completion flow; advanced proof methods deferred
+implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
 canonical: false
 role: Courier
 scope: Laravel API and external Flutter application
 backend_contract_commit: 4774f35
-backend_contract_version: proposed-courier-completion-v1
+backend_contract_version: courier-completion-v1-qr
 ---
 
 # Complete Delivery
@@ -20,8 +20,8 @@ backend_contract_version: proposed-courier-completion-v1
 - Finalize a final-mile delivery after Courier intent and Logistics-validated proof.
 - Courier submits completion intent; Logistics validates the evidence and records the authoritative decision.
 - The shared fulfillment transition service owns the atomic final state change.
-- Current code implements first-mile pickup only; its success never means Buyer delivery.
-- These proposed routes are unavailable and must not be called by Flutter until implemented.
+- Final-mile completion is implemented through the shared fulfillment transition service; first-mile pickup still never means Buyer delivery.
+- Courier completion and Logistics transition routes are available only after the additive migration has been applied and the authenticated role/affiliation checks pass.
 - Preserve one Shipment/Parcel per Order and independent first-mile/final-mile assignments.
 - Seller receives the result and never marks an Order delivered.
 - Proof of Delivery owns capture, uploads, validation records, and private media delivery.
@@ -127,13 +127,13 @@ out_for_delivery
 
 ## HOW
 
-### Proposed endpoints — unavailable
+### Implemented endpoints
 
-| Method and path | Actor | Purpose |
-| --- | --- | --- |
-| GET /api/v1/courier/tasks/{task}/completion | Assigned Courier | Read eligibility, intent, proof, and committed result |
-| POST /api/v1/courier/tasks/{task}/completion | Assigned Courier | Submit explicit completion intent |
-| POST /api/v1/logistics/update-status/transitions | Owning Logistics | Existing planned Update Status contract invokes finalization |
+| Method and path                                  | Actor            | Purpose                                               |
+| ------------------------------------------------ | ---------------- | ----------------------------------------------------- |
+| GET /api/v1/courier/tasks/{task}/completion      | Assigned Courier | Read eligibility, intent, proof, and committed result |
+| POST /api/v1/courier/tasks/{task}/completion     | Assigned Courier | Submit explicit completion intent                     |
+| POST /api/v1/logistics/update-status/transitions | Owning Logistics | Validate QR proof and atomically finalize delivery    |
 
 - The Logistics route is owned by Update Status; this spec does not create a second validation endpoint.
 - Courier POST uses application/json plus a UUID Idempotency-Key header.
@@ -168,25 +168,25 @@ out_for_delivery
 ```
 
 - completion_status is a response/intent field, not a new OrderStatus.
-- After finalization GET returns delivered task/order states, completion_status delivered, and delivered_at.
+- After finalization GET returns delivered task/order states, `completion_status: validated`, and `delivered_at`; the task/Shipment/Order `delivered` state is authoritative.
 - The implementation must document its concrete throttling limit before release; no client relies on an invented limit.
 
 ### Proposed errors
 
-| HTTP | Code | Client action |
-| --- | --- | --- |
-| 401 | UNAUTHENTICATED | Restore authentication |
-| 403 | COURIER_ACCESS_DENIED | Clear protected state and show account restriction |
-| 404 | TASK_NOT_FOUND | Stop exposing the task |
-| 409 | COMPLETION_STATE_CONFLICT | Refetch current projection |
-| 409 | IDEMPOTENCY_KEY_REUSED | Retain original request; fix conflicting input |
-| 409 | PROOF_NOT_VALIDATED | Show pending/required proof state |
-| 422 | VALIDATION_FAILED | Show field errors |
-| 429 | TOO_MANY_REQUESTS | Respect Retry-After |
-| 503 | FULFILLMENT_UNAVAILABLE | Show unavailable; no local completion |
+| HTTP | Code                      | Client action                                      |
+| ---- | ------------------------- | -------------------------------------------------- |
+| 401  | UNAUTHENTICATED           | Restore authentication                             |
+| 403  | COURIER_ACCESS_DENIED     | Clear protected state and show account restriction |
+| 404  | TASK_NOT_FOUND            | Stop exposing the task                             |
+| 409  | COMPLETION_STATE_CONFLICT | Refetch current projection                         |
+| 409  | IDEMPOTENCY_KEY_REUSED    | Retain original request; fix conflicting input     |
+| 409  | PROOF_NOT_VALIDATED       | Show pending/required proof state                  |
+| 422  | VALIDATION_FAILED         | Show field errors                                  |
+| 429  | TOO_MANY_REQUESTS         | Respect Retry-After                                |
+| 503  | FULFILLMENT_UNAVAILABLE   | Show unavailable; no local completion              |
 
 - Error envelopes use message, code, and optional field-addressable errors.
-- Before route deployment, a missing route is unavailable, not an empty completion response.
+- A missing route or unapplied migration is unavailable, not an empty completion response.
 - Network timeout does not prove either transaction failure or success.
 
 ### Implementation and verification gate
@@ -208,13 +208,13 @@ out_for_delivery
 
 ### Acceptance criteria
 
-- [ ] Only the eligible final-mile Courier submits completion intent.
-- [ ] Logistics validation and required proof gate delivered.
-- [ ] Task, Shipment, Order, history, and durable notifications commit atomically.
-- [ ] Retries/concurrency cannot duplicate delivery or Inventory effects.
-- [ ] Flutter distinguishes pending evidence from confirmed delivery.
-- [ ] Private DTOs and history remain scoped and immutable.
-- [ ] SQLite/PostgreSQL verification and client contract tests pass.
+- [x] Only the eligible final-mile Courier submits completion intent.
+- [x] Logistics validation and required QR proof gate delivered.
+- [x] Task, Shipment, Order, history, and notification work commit atomically.
+- [x] Retries/concurrency cannot duplicate delivery or Inventory effects.
+- [x] Flutter distinguishes pending evidence from confirmed delivery.
+- [x] Private DTOs and history remain scoped and immutable.
+- [x] SQLite/PostgreSQL verification and client contract tests pass.
 
 ### Deferred extensions
 
