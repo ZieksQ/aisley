@@ -139,7 +139,7 @@ Seller packs Orders and requests one Logistics provider
 - [x] Only explicit confirmation changes the task to `picked_up_from_seller` and the Order to `picked_up`; retries are idempotent and wrong/unknown identifiers have no side effects.
 - [x] Missing exact coordinates use the server-maintained address-default pair; missing both produces an honest unavailable manifest.
 - [x] A ready Courier route manifest includes grouped parcels, ordered stops, matrix metrics, and valid GeoJSON; the development harness renders the Logistics start, numbered pickups, Logistics return, visible route line, and accessible list.
-- [ ] The Logistics dashboard renders its separately authorized companion embedded map and accessible list.
+- [x] The Logistics dashboard renders its separately authorized companion embedded map and accessible list.
 - [x] The implementation remains on the free/open-source dependency path, honors attribution, and continues task/pickup operation when map or quota services fail.
 - [x] The next state, Logistics parcel receipt, is recorded as N/A and is not implemented by this feature.
 
@@ -147,15 +147,15 @@ Seller packs Orders and requests one Logistics provider
 
 ### Existing and planned API contract
 
-| Endpoint | Status | Contract |
-| --- | --- | --- |
-| `GET /api/v1/courier/first-mile-tasks` | Implemented | Optional `pickup_schedule_id`, `per_page` 1–50; returns private/no-store paginated `assigned`/`accepted` tasks with schedule, pickup, destination area, Order, and waybill references. |
-| `POST /api/v1/courier/first-mile-tasks/{task}/accept` | Implemented | No client ownership fields; locked, Courier-scoped accept/acknowledge; repeat accepted result is safe; `409` when no longer acceptable. |
-| `POST /api/v1/courier/waybills/resolve` | Implemented | Throttled; body `{ "payload": "opaque-waybill-qr" }`; read-only authorized match; `404` for unknown/foreign/inactive waybill. |
-| `POST /api/v1/courier/first-mile-tasks/{task}/pickup` | Implemented | UUID `Idempotency-Key`; body `{ "identifier_type": "qr/order_id", "identifier": "..." }`; atomically validates custody, fulfills reserved Inventory, records immutable confirmation history, and returns task/order status, `picked_up_at`, and next step. |
-| `GET /api/v1/courier/pickup-schedules/{schedule}/route-manifest` | Implemented | No mutable query fields; only a task-owning Courier receives the current revision, grouped/ordered stops, metrics, coordinate sources, status, and GeoJSON. |
-| `GET /api/v1/courier/map-style` | Implemented | Returns a private inline MapLibre raster style whose tile URL points back to the authenticated API; contains no provider key. |
-| `GET /api/v1/courier/map-tiles/{z}/{x}/{y}.png` | Implemented | Validates bounded XYZ coordinates and proxies server-cached Geoapify `osm-carto` tiles with a daily safety limit and the server-only credential. |
+| Endpoint                                                         | Status      | Contract                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/courier/first-mile-tasks`                           | Implemented | Optional `pickup_schedule_id`, `per_page` 1–50; returns private/no-store paginated `assigned`/`accepted` tasks with schedule, pickup, destination area, Order, and waybill references.                                                                     |
+| `POST /api/v1/courier/first-mile-tasks/{task}/accept`            | Implemented | No client ownership fields; locked, Courier-scoped accept/acknowledge; repeat accepted result is safe; `409` when no longer acceptable.                                                                                                                    |
+| `POST /api/v1/courier/waybills/resolve`                          | Implemented | Throttled; body `{ "payload": "opaque-waybill-qr" }`; read-only authorized match; `404` for unknown/foreign/inactive waybill.                                                                                                                              |
+| `POST /api/v1/courier/first-mile-tasks/{task}/pickup`            | Implemented | UUID `Idempotency-Key`; body `{ "identifier_type": "qr/order_id", "identifier": "..." }`; atomically validates custody, fulfills reserved Inventory, records immutable confirmation history, and returns task/order status, `picked_up_at`, and next step. |
+| `GET /api/v1/courier/pickup-schedules/{schedule}/route-manifest` | Implemented | No mutable query fields; only a task-owning Courier receives the current revision, grouped/ordered stops, metrics, coordinate sources, status, and GeoJSON.                                                                                                |
+| `GET /api/v1/courier/map-style`                                  | Implemented | Returns a private inline MapLibre raster style whose tile URL points back to the authenticated API; contains no provider key.                                                                                                                              |
+| `GET /api/v1/courier/map-tiles/{z}/{x}/{y}.png`                  | Implemented | Validates bounded XYZ coordinates and proxies server-cached Geoapify `osm-carto` tiles with a daily safety limit and the server-only credential.                                                                                                           |
 
 - The route-manifest resource has `pending`, `ready`, and `unavailable` states, stable reason codes, revision/fingerprint metadata, and no provider credential.
 - Logistics needs a separately documented organization-scoped companion route; it must use the same service and not call a Courier route with a Logistics session.
@@ -188,8 +188,26 @@ Example GeoJSON payload:
 {
   "type": "FeatureCollection",
   "features": [
-    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [121.0, 14.5] }, "properties": { "kind": "hub", "sequence": 0 } },
-    { "type": "Feature", "geometry": { "type": "LineString", "coordinates": [[121.0, 14.5], [121.1, 14.6], [121.0, 14.5]] }, "properties": { "kind": "route_line", "geometry_source": "geoapify_routing" } }
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [121.0, 14.5] },
+      "properties": { "kind": "hub", "sequence": 0 }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [121.0, 14.5],
+          [121.1, 14.6],
+          [121.0, 14.5]
+        ]
+      },
+      "properties": {
+        "kind": "route_line",
+        "geometry_source": "geoapify_routing"
+      }
+    }
   ]
 }
 ```
