@@ -345,14 +345,29 @@ Each approved Logistics user owns one organization. That organization owns exact
 | `logistics_organization_id` | UUID            | No       | Unique FK → `logistics_organizations.id`; `ON DELETE CASCADE` |
 | `address_id`                | UUID            | No       | Unique FK → the Logistics user's `addresses.id`; `ON DELETE RESTRICT` |
 | `name`                      | VARCHAR         | No       | Operational hub display name                                  |
+| `location_revision`         | VARCHAR(64)     | Yes      | Opaque expected revision for hub-pin corrections; legacy rows may be `NULL` |
 | `created_at`                | TIMESTAMP       | Yes      | Managed by Eloquent                                           |
 | `updated_at`                | TIMESTAMP       | Yes      | Managed by Eloquent                                           |
 
 The database unique constraints enforce at-most-one organization per Logistics user and at-most-one hub per organization. Active operational access additionally requires the authenticated Logistics account, active organization, and existing sole hub.
 
-### 5.3 `personal_access_tokens`
+#### Hub location coordinates and corrections
 
-Planned Logistics pin extension: reuse `logistics_hubs.address_id` → `addresses.latitude`/`longitude` for the operator-confirmed hub location. Both columns already exist; do not duplicate them on profiles or create another hub. Registration/account coordinate writes are not implemented by this documentation change. Store complete finite pairs only; legacy/unpinned addresses remain nullable. Add location revision/audit metadata through a new migration if required for safe corrections; retain old/new coordinates, actor, reason, and UTC time without altering immutable waybill or manifest snapshots. No seed/default coordinate is proof of an operator-confirmed pin.
+Logistics hub pinning reuses `logistics_hubs.address_id` → `addresses.latitude`/`longitude` for the operator-confirmed hub location. Both columns already exist; do not duplicate them on profiles or create another hub. Registration accepts an optional complete finite pair, and Account Settings corrects the pair with an opaque `location_revision`, optimistic conflict check, and reason. Legacy/unpinned addresses remain nullable. `logistics_hub_location_changes` retains old/new coordinates, actor, reason, and UTC time without altering immutable waybill or manifest snapshots. No seed/default coordinate is proof of an operator-confirmed pin.
+
+#### `logistics_hub_location_changes`
+
+| Column | PostgreSQL type | Nullable | Notes |
+| --- | --- | --- | --- |
+| `id` | UUID | No | Primary key |
+| `logistics_hub_id` | UUID | No | FK → `logistics_hubs.id`; `ON DELETE CASCADE` |
+| `actor_id` | UUID | Yes | FK → `users.id`; the authenticated Logistics actor, null on account deletion |
+| `previous_latitude` / `previous_longitude` | NUMERIC(10,7) | Yes | Prior complete pair, or `NULL` for the first pin |
+| `latitude` / `longitude` | NUMERIC(10,7) | No | New complete finite pair |
+| `reason` | TEXT | No | Same-premises correction reason |
+| `created_at` | TIMESTAMP | No | UTC correction time |
+
+### 5.3 `personal_access_tokens`
 
 **Model:** `App\Models\PersonalAccessToken`
 
@@ -492,7 +507,7 @@ Indexes:
 
 The database does not yet enforce one default address per user/type. That invariant must be maintained transactionally by the address service.
 
-PSGC names and manually reviewed address fields are authoritative. `latitude`/`longitude` are optional coordinates captured from a confirmed Customer pin; Geoapify suggestions and provider identifiers are assistive metadata only and are not persisted as address identity. The address/map contract uses bundled PSGC data, optional Geoapify assistance, and Leaflet rendering; Mapbox is not used.
+PSGC names and manually reviewed address fields are authoritative. `latitude`/`longitude` are optional coordinates captured from a confirmed Customer, Seller, or Logistics hub pin; Geoapify suggestions and provider identifiers are assistive metadata only and are not persisted as address identity. The address/map contract uses bundled PSGC data, optional Geoapify assistance, and Leaflet rendering; Mapbox is not used.
 
 ## 7. Admin authorization
 
@@ -1306,6 +1321,8 @@ Repository migrations are listed below in filename execution order; this invento
 60. `2026_09_10_000011_create_pickup_route_manifests.php` — maintained address-coordinate defaults and revision-scoped, immutable-history route manifest snapshots with metrics, grouped stops, GeoJSON, and failure state.
 61. `2026_09_10_000011_create_product_qas_table.php` — Product-scoped Customer questions, one official Seller answer, actor-scoped idempotency keys, and public-read indexes.
 62. `2026_09_12_000001_create_fulfillment_operations.php` — UUID Parcel/Shipment/DeliveryTask records, independent Courier offers, QR evidence/completion intents, append-only physical events, and legacy first-mile linkage.
+63. `2026_09_12_000002_create_logistics_hub_location_changes.php` — append-only same-premises hub-pin corrections with previous/new coordinates, reason, actor, and UTC timestamp.
+64. `2026_09_12_000003_add_location_revision_to_logistics_hubs.php` — opaque optimistic-concurrency revision for Logistics hub-pin writes.
 
 ## 14. Fulfillment schema and deferred extensions
 

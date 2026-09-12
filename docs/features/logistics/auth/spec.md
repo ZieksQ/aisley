@@ -3,8 +3,8 @@ feature: logistics-auth
 title: Logistics Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.3
-status: Implemented auth foundation; hub-pin capture specified but not implemented
+version: 1.4
+status: Implemented auth foundation and Logistics hub-pin capture
 role: Logistics
 scope: Logistics React SPA and Laravel API
 ---
@@ -43,13 +43,13 @@ multipart register
 
 - Validate first/last name, optional one-character middle name, contact number, sex, birth date, business name, email, and the project password/confirmation rules.
 - Calculate age from the persisted birth date through the shared age accessor. The Logistics UI may display a calculated age, but age is not client input or a persisted authority.
-- Require the **Operational hub/sorting-center address** fields: address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; registration currently does not accept coordinates.
+- Require the **Operational hub/sorting-center address** fields: address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; coordinates remain optional.
 - Use bundled `@aisley/psgc-address-data` Region → Province → City/Municipality → Barangay controls in the SPA, with manual text fallback. PSGC codes/provider IDs are lookup-only and are not persisted.
-- Planned hub pin: after completing PSGC/manual address fields, choose **Pin hub location**, geocode intentionally with Geoapify, then click/drag the Leaflet pin and explicitly confirm the actual hub entrance/location. No Mapbox or geocoding while typing.
+- Hub pin capture: after completing PSGC/manual address fields, choose **Pin hub location**, geocode intentionally with Geoapify, then click/drag the Leaflet pin and explicitly confirm the actual hub entrance/location. No Mapbox or geocoding while typing.
 - Extend multipart registration with optional `latitude` and `longitude`; require both finite numeric values together, latitude -90..90 and longitude -180..180. Persist the user-confirmed pair on the sole hub's linked Address, not a personal address or second hub.
 - Text changes invalidate the draft coordinate pair and require pin confirmation again. Geocoding suggestions and device GPS are aids, not proof of a hub's location; GPS requires permission and explicit confirmation.
 - If geocoding/map services fail, preserve entered fields and permit manual registration without a pin; show **Hub location not pinned** and offer completion in Account Settings. Do not substitute `0,0`, seed coordinates, or a barangay centroid as a confirmed exact pin.
-- These fields and controls are a planned extension, not an existing API guarantee. Registration and account access gain no new coordinate-based gate.
+- The pin is an optional registration aid and never gates account approval or access. A text-only registration remains valid when the provider is unavailable; the committed coordinate pair is used only as an operator-confirmed routing input.
 - Persist User, LogisticsProfile, pending RegistrationApplication, one default hub Address, one LogisticsOrganization, and one LogisticsHub in a logical transaction. A failed database write removes any stored evidence objects.
 
 ### Evidence and Admin approval
@@ -88,7 +88,7 @@ multipart register
 ### Current code and data
 
 - Laravel routes live in `src/api/routes/api.php`. The implementation uses `App\Http\Controllers\Logistics\AuthController`, Logistics Form Requests, `LogisticsUserResource`, `EnsureActiveLogistics`, `RegistrationEvidenceService`, and the shared Admin registration-review/notification services.
-- The foundation migration is `2026_09_05_000001_create_logistics_foundation_tables.php`; it adds UUID `logistics_profiles`, `logistics_organizations`, and `logistics_hubs`. The existing `users`, `addresses`, `registration_applications`, and `documents` tables are reused; migrations remain additive.
+- The foundation migration is `2026_09_05_000001_create_logistics_foundation_tables.php`; it adds UUID `logistics_profiles`, `logistics_organizations`, and `logistics_hubs`. The additive `2026_09_12_000002_create_logistics_hub_location_changes.php` and `2026_09_12_000003_add_location_revision_to_logistics_hubs.php` migrations retain correction history and opaque revisions. The existing `users`, `addresses`, `registration_applications`, and `documents` tables are reused.
 - The SPA lives in `src/logistics`: `AuthContext`, `ProtectedRoute`, AuthShell, registration/login/recovery pages, PSGC address fields, and the protected Dashboard layout. It sends credentialed requests and keeps no Logistics bearer token in browser storage.
 - `LogisticsUserResource` exposes safe profile age and organization/hub names; hub address details are returned by the separate Dashboard scaffold, not as private evidence.
 

@@ -22,4 +22,8 @@ source_coverage: Logistics.md, app.md
 
 - Specification: [Courier Application Review and Approval](courier-approval/spec.md). Phase 1 review UI, private evidence delivery, completeness checks, and atomic decisions are implemented; notifications, reversal, and browser automation remain deferred.
 
+## Logistics sole-hub map pin
+
+- Registration and Account Settings now support optional confirmed coordinates through PSGC/manual address fields, intentional Geoapify assistance, Leaflet click/drag, device-location/manual fallback, and private API persistence. Same-premises corrections use an opaque revision, durable history, and do not rewrite operational snapshots. Physical relocation remains deferred.
+
 ## Shared Logistics Operational History / Audit

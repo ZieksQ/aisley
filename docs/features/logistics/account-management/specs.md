@@ -3,8 +3,8 @@ feature: logistics-account-management
 title: Logistics Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.5
-status: Implemented profile/account foundation; business-logo and hub-pin extensions specified but not implemented
+version: 1.6
+status: Implemented profile/account foundation and hub-pin correction; business-logo extension specified but not implemented
 role: Logistics
 scope: Logistics React SPA and Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/references/file-upload-requirements.md
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an approved active Logistics account view and maintain its own personal profile and the operational identity of its organization and sole hub.
-- **Current implementation:** Logistics registration, Admin approval, web Sanctum login/session, `/auth/me`, logout, password recovery, dashboard scaffold, pickup views, the protected account API, and the Account Settings page exist. The account API returns a safe private projection and supports allow-listed profile, organization, sole-hub-label, password, and personal profile-photo changes. Organization-logo storage, delivery, and UI are not implemented yet.
+- **Current implementation:** Logistics registration, Admin approval, web Sanctum login/session, `/auth/me`, logout, password recovery, dashboard scaffold, pickup views, the protected account API, and the Account Settings page exist. The account API returns a safe private projection and supports allow-listed profile, organization, sole-hub-label, password, personal profile-photo, and same-premises hub-pin changes. Organization-logo storage, delivery, and UI are not implemented yet.
 - **Canonical identity:** `users.role = logistics`; the authenticated `user_id` resolves exactly one `LogisticsProfile`, one `LogisticsOrganization`, and one `LogisticsHub`.
 - **MVP cardinality:** one Logistics account → one organization → exactly one operational hub/sorting center. Account Management cannot create, select, rename into, or move to a second hub or sub-hub.
 - The registration field **Operational hub/sorting-center address** represents the sole hub address. Any relocation or coordinate change is an operational change, not an ordinary personal-profile edit.
@@ -47,12 +47,12 @@ active Logistics session
 - Ordinary profile updates may change only the personal fields that the product policy approves. Role, account status, approval/application state, password hash, reviewer fields, and relationships are never editable here.
 - Organization `business_name` and hub display name are organization-owned values. A change must be authorized for this account and must not affect another organization or Courier affiliation.
 - Do not allow an address edit, hub reassignment, second address, or second hub in the initial account feature. If relocation is later approved, use an additive, reviewable address/version workflow and retain the old operational snapshot; never overwrite a committed pickup/waybill address.
-- Hub-pin capture/correction is approved as a planned extension for the existing hub, separate from personal-profile editing. Reuse PSGC/manual address, intentional Geoapify geocoding, and Leaflet click/drag confirmation; Mapbox is not used.
-- Planned `PUT /api/v1/logistics/account/hub-location` accepts JSON `{latitude, longitude, expected_updated_at, reason}` with active Logistics/session/CSRF/consent checks. Both finite coordinates are required; validate latitude -90..90, longitude -180..180, nonempty reason up to 2,000 characters, and an opaque server-issued location revision in `expected_updated_at`. This endpoint is not implemented yet.
+- Hub-pin capture/correction is implemented for the existing hub, separate from personal-profile editing. Reuse PSGC/manual address, intentional Geoapify geocoding, and Leaflet click/drag confirmation; Mapbox is not used.
+- `PUT /api/v1/logistics/account/hub-location` accepts JSON `{latitude, longitude, expected_updated_at, reason}` with active Logistics/session/CSRF/consent checks. Both finite coordinates are required; validate latitude -90..90, longitude -180..180, nonempty reason up to 2,000 characters, and an opaque server-issued location revision in `expected_updated_at`.
 - Extend the private account projection with `hub.location = {latitude, longitude, expected_updated_at}`; null coordinates mean unpinned. A successful save returns `200` with the refreshed account projection. Reject unknown fields/invalid coordinates with `422`, missing relationships with `404`, and conflicting revisions with `409`; keep existing auth/consent error handling.
-- Derive and lock the organization's sole hub and linked Address; save the pair atomically, recording previous/new values, reason, actor, and UTC time. After timeout refetch; do not blindly replay with a stale revision. Add revision/audit metadata through additive migrations if needed.
+- Derive and lock the organization's sole hub and linked Address; save the pair atomically, recording previous/new values, reason, actor, and UTC time in `logistics_hub_location_changes`. The additive hub `location_revision` migration provides the opaque expected revision. After timeout refetch; do not blindly replay with a stale revision.
 - Pin correction cannot change textual address, hub identity, Courier affiliation, or existing waybill/Order snapshots. Physical relocation remains deferred. Coordinate proximity alone cannot establish whether relocation occurred; UI explicitly asks the operator to confirm the same registered premises.
-- Invalidate future route/ranking caches by coordinate fingerprint after commit. Preserve committed manifest/history snapshots; rebuilding an active route requires its owning operational workflow, not a silent Account Settings rewrite.
+- Invalidate future route/ranking caches by coordinate fingerprint after commit. Existing distance and route-manifest calculations include the coordinate pair in their fingerprints, so a new committed pin naturally bypasses prior derived values. Preserve committed manifest/history snapshots; rebuilding an active route requires its owning operational workflow, not a silent Account Settings rewrite.
 - Map/provider failure preserves the saved pair and editable draft; no GPS permission is required. Show unpinned, locating, pin-confirmation, saving, conflict, and retry states. No new subscription, approval, or dispatch gate is introduced.
 - Email change, phone verification, staff accounts, and organization-level permission delegation remain separate decisions. Personal profile-photo upload is implemented below. The organization business-logo extension below is specified but not implemented; do not expose it as an available control until its API and migration exist.
 
@@ -143,7 +143,7 @@ active Logistics session
 
 - Existing routes are `POST /api/v1/logistics/auth/register`, `/login`, `/forgot-password`, `/reset-password`, protected `GET /api/v1/logistics/auth/me`/`POST /logout`, `GET /api/v1/logistics/dashboard`, pickup/Courier-approval routes, and the account routes below.
 - Existing implementation uses `Logistics\\AuthController`, `LogisticsUserResource`, `LogisticsProfile`, `LogisticsOrganization`, `LogisticsHub`, `EnsureActiveLogistics`, and `2026_09_05_000001_create_logistics_foundation_tables.php`.
-- Implemented routes are `GET /api/v1/logistics/account`, `PATCH /api/v1/logistics/account/profile`, `PATCH /api/v1/logistics/account/organization`, throttled `PUT /api/v1/logistics/account/password`, and the throttled/private profile-photo routes. The organization payload may update `business_name` and the sole hub's display `hub_name`; it cannot change the linked address or hub relationship.
+- Implemented routes are `GET /api/v1/logistics/account`, `PATCH /api/v1/logistics/account/profile`, `PATCH /api/v1/logistics/account/organization`, `PUT /api/v1/logistics/account/hub-location`, throttled `PUT /api/v1/logistics/account/password`, and the throttled/private profile-photo routes. The organization payload may update `business_name` and the sole hub's display `hub_name`; the location payload changes only the complete coordinate pair and cannot change textual address or the hub relationship.
 - Responses return a private/no-store JSON projection with safe personal fields, a profile-photo capability path, organization name, sole-hub name, and approved address summary. Never return raw database/storage paths or client-controlled ownership fields.
 
 ### Implementation and data flow

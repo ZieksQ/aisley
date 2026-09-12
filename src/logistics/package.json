@@ -13,6 +13,7 @@
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/ui": "workspace:*",
     "flatpickr": "^4.6.13",
+    "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
+    "@types/leaflet": "^1.9.22",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",

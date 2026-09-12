@@ -27,6 +27,11 @@ export type LogisticsAccount = {
       postal_code: string | null
       country: string | null
     } | null
+    location: {
+      latitude: number | null
+      longitude: number | null
+      expected_updated_at: string | null
+    } | null
   }
   security: {
     email_editable: boolean
@@ -34,6 +39,7 @@ export type LogisticsAccount = {
     organization_editable: boolean
     hub_name_editable: boolean
     hub_address_editable: boolean
+    hub_location_editable: boolean
   }
 }
 

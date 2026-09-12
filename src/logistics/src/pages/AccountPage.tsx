@@ -6,6 +6,7 @@ import { useAuth } from '../auth/useAuth'
 import { Field, SelectField } from '../components/Field'
 import { FlatpickrField } from '../components/FlatpickrInput'
 import { LogisticsAvatar } from '../components/LogisticsAvatar'
+import { HubLocationPicker, type HubCoordinates, type HubAddress } from '../components/HubLocationPicker'
 import { ApiError, request, uploadForm } from '../lib/api'
 import type { AccountResponse, LogisticsAccount } from '../types/account'
 
@@ -62,6 +63,13 @@ export function AccountPage() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [photoMessage, setPhotoMessage] = useState<string | null>(null)
+  const [hubLocation, setHubLocation] = useState<HubCoordinates | null>(null)
+  const [hubLocationConfirmed, setHubLocationConfirmed] = useState(false)
+  const [hubLocationReason, setHubLocationReason] = useState('')
+  const [hubLocationError, setHubLocationError] = useState<string | null>(null)
+  const [hubLocationMessage, setHubLocationMessage] = useState<string | null>(null)
+  const [hubLocationSaving, setHubLocationSaving] = useState(false)
+  const geoapifyApiKey = import.meta.env.GEOAPIFY_API_KEY ?? ''
 
   useEffect(() => { document.title = 'Account settings | Aisley' }, [])
 
@@ -79,6 +87,15 @@ export function AccountPage() {
       business_name: next.organization.business_name ?? '',
       hub_name: next.hub.name ?? '',
     })
+    const location = next.hub.location
+    if (location && location.latitude !== null && location.longitude !== null) {
+      setHubLocation({ latitude: location.latitude, longitude: location.longitude })
+      setHubLocationConfirmed(true)
+    } else {
+      setHubLocation(null)
+      setHubLocationConfirmed(false)
+    }
+    setHubLocationReason('')
   }
 
   async function load() {
@@ -204,6 +221,25 @@ export function AccountPage() {
     } finally { setOrganizationSaving(false) }
   }
 
+  async function saveHubLocation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setHubLocationError(null); setHubLocationMessage(null)
+    if (!account) return
+    if (!hubLocation || !hubLocationConfirmed) { setHubLocationError('Choose the exact hub pin and confirm it before saving.'); return }
+    if (!account.hub.location?.expected_updated_at) { setHubLocationError('The hub location revision is unavailable. Reload the account and try again.'); return }
+    if (hubLocationReason.trim().length < 3) { setHubLocationError('Give a short reason for this same-premises pin correction.'); return }
+    setHubLocationSaving(true)
+    try {
+      const data = await request<AccountResponse>('/api/v1/logistics/account/hub-location', { method: 'PUT', body: JSON.stringify({ latitude: hubLocation.latitude, longitude: hubLocation.longitude, expected_updated_at: account.hub.location.expected_updated_at, reason: hubLocationReason.trim() }) })
+      applyAccount(data.account); await refresh().catch(() => undefined); setHubLocationMessage(data.message ?? 'Hub location updated successfully.')
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 401) { await logout().catch(() => undefined); navigate('/login', { replace: true }); return }
+      if (caught instanceof ApiError && caught.status === 409) { setHubLocationError('This hub location changed in another session. Reloaded the latest pin; review it and try again.'); await load(); return }
+      const result = formError(caught, 'We could not save the hub location. Try again.')
+      setHubLocationError(result.message)
+    } finally { setHubLocationSaving(false) }
+  }
+
   async function savePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPasswordErrors({})
@@ -225,7 +261,8 @@ export function AccountPage() {
 
   if (loadingError || !account) return <div className="max-w-2xl p-5 sm:p-7"><section className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"><p>{loadingError ?? 'The account projection is unavailable.'}</p><button className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-current px-3 font-semibold" onClick={() => void load()} type="button"><FaArrowsRotate />Try again</button></section></div>
 
-  const address = account.hub.address
+    const address = account.hub.address
+  const hubAddress: HubAddress | undefined = address ? { addressLine1: address.address_line_1 ?? '', barangay: address.barangay ?? '', cityMunicipality: address.city_municipality ?? '', province: address.province ?? '', region: address.region ?? '', postalCode: address.postal_code ?? '', country: address.country ?? 'Philippines' } : undefined
   const initials = `${account.profile.first_name?.[0] ?? ''}${account.profile.last_name?.[0] ?? ''}` || 'L'
 
   return <div className="max-w-5xl space-y-5 p-5 sm:p-7">
@@ -265,8 +302,8 @@ export function AccountPage() {
     </section>
 
     <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6">
-      <div><h3 className="font-semibold">Operational hub</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">This is the approved address for the sole operational hub/sorting center. Address relocation requires a separate review.</p></div>
-      {address ? <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-zinc-500">Address line</dt><dd className="mt-1 font-medium">{[address.address_line_1, address.address_line_2].filter(Boolean).join(', ') || '—'}</dd></div><div><dt className="text-zinc-500">Barangay</dt><dd className="mt-1 font-medium">{address.barangay || '—'}</dd></div><div><dt className="text-zinc-500">City / municipality</dt><dd className="mt-1 font-medium">{address.city_municipality || '—'}</dd></div><div><dt className="text-zinc-500">Province / region</dt><dd className="mt-1 font-medium">{[address.province, address.region].filter(Boolean).join(', ') || '—'}</dd></div><div><dt className="text-zinc-500">Postal code</dt><dd className="mt-1 font-medium">{address.postal_code || '—'}</dd></div><div><dt className="text-zinc-500">Country</dt><dd className="mt-1 font-medium">{address.country || '—'}</dd></div></dl> : <p className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">The approved hub address is unavailable. Contact an administrator before using Logistics operations.</p>}
+      <div><h3 className="font-semibold">Operational hub</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">This is the approved address for the sole operational hub/sorting center. Text relocation requires a separate review; this screen only corrects the pin on the same premises.</p></div>
+      {address ? <><dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-zinc-500">Address line</dt><dd className="mt-1 font-medium">{[address.address_line_1, address.address_line_2].filter(Boolean).join(', ') || '—'}</dd></div><div><dt className="text-zinc-500">Barangay</dt><dd className="mt-1 font-medium">{address.barangay || '—'}</dd></div><div><dt className="text-zinc-500">City / municipality</dt><dd className="mt-1 font-medium">{address.city_municipality || '—'}</dd></div><div><dt className="text-zinc-500">Province / region</dt><dd className="mt-1 font-medium">{[address.province, address.region].filter(Boolean).join(', ') || '—'}</dd></div><div><dt className="text-zinc-500">Postal code</dt><dd className="mt-1 font-medium">{address.postal_code || '—'}</dd></div><div><dt className="text-zinc-500">Country</dt><dd className="mt-1 font-medium">{address.country || '—'}</dd></div></dl><div className="mt-6 border-t border-zinc-200 pt-5 dark:border-white/10"><form className="space-y-4" onSubmit={(event) => void saveHubLocation(event)}><div><h4 className="font-semibold">Hub map pin</h4><p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Review or correct the exact entrance. A reason is required and the server rejects stale edits.</p></div><HubLocationPicker address={hubAddress} apiKey={geoapifyApiKey} confirmed={hubLocationConfirmed} latitude={hubLocation?.latitude ?? null} longitude={hubLocation?.longitude ?? null} onChange={(coordinates) => { setHubLocation(coordinates); setHubLocationConfirmed(false); setHubLocationMessage(null) }} onConfirm={() => { setHubLocationConfirmed(true); setHubLocationMessage(null) }} /><label className="block text-sm font-medium" htmlFor="hub-location-reason">Reason for same-premises correction *<textarea className="mt-1 min-h-24 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-pink-500/15 dark:border-white/15 dark:bg-[#171719]" id="hub-location-reason" maxLength={2000} onChange={(event) => setHubLocationReason(event.target.value)} placeholder="Example: corrected the pin to the loading entrance." required value={hubLocationReason} /></label>{hubLocationError ? <p className="text-sm text-red-700 dark:text-red-300" role="alert">{hubLocationError}</p> : null}{hubLocationMessage ? <p className="text-sm text-green-700 dark:text-green-300" role="status">{hubLocationMessage}</p> : null}<button className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] disabled:cursor-not-allowed disabled:opacity-60" disabled={hubLocationSaving || !hubLocation || !hubLocationConfirmed} type="submit"><FaFloppyDisk />{hubLocationSaving ? 'Saving…' : 'Save hub pin'}</button></form></div></> : <p className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300">The approved hub address is unavailable. Contact an administrator before using Logistics operations.</p>}
     </section>
 
     <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6">

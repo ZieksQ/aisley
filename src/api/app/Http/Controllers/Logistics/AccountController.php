@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\UpdateAccountOrganizationRequest;
 use App\Http\Requests\Logistics\UpdateAccountPasswordRequest;
 use App\Http\Requests\Logistics\UpdateAccountProfileRequest;
+use App\Http\Requests\Logistics\UpdateHubLocationRequest;
 use App\Http\Requests\Logistics\UploadAccountProfilePhotoRequest;
 use App\Http\Resources\Logistics\LogisticsAccountResource;
 use App\Models\User;
@@ -57,6 +58,23 @@ class AccountController extends Controller
 
         return $this->privateResponse([
             'message' => 'Organization details updated successfully.',
+            'account' => new LogisticsAccountResource($logistics),
+        ]);
+    }
+
+    public function updateHubLocation(UpdateHubLocationRequest $request): JsonResponse
+    {
+        $logistics = $this->accounts->updateHubLocation(
+            $this->logistics($request),
+            (float) $request->validated('latitude'),
+            (float) $request->validated('longitude'),
+            (string) $request->validated('expected_updated_at'),
+            (string) $request->validated('reason'),
+            $this->context($request),
+        );
+
+        return $this->privateResponse([
+            'message' => 'Hub location updated successfully.',
             'account' => new LogisticsAccountResource($logistics),
         ]);
     }

@@ -272,6 +272,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/account', [LogisticsAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');
+    Route::put('/account/hub-location', [LogisticsAccountController::class, 'updateHubLocation'])->name('account.hub-location.update');
     Route::put('/account/password', [LogisticsAccountController::class, 'updatePassword'])
         ->middleware('throttle:logistics-account-password')
         ->name('account.password.update');
