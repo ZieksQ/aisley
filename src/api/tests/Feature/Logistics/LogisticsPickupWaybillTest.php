@@ -30,6 +30,7 @@ use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
 use App\Services\Logistics\BuildPickupRouteManifest;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -234,6 +235,48 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonPath('message', 'The Courier already has an overlapping pickup schedule.');
         $this->assertDatabaseCount('pickup_schedules', 1);
         $this->assertDatabaseMissing('first_mile_tasks', ['order_id' => $secondOrder->id]);
+    }
+
+    public function test_pickup_couriers_show_active_status_same_day_schedules_and_window_availability(): void
+    {
+        [$logistics, $organization, $hub] = $this->logistics('Availability Logistics', 'Manila', 'Metro Manila');
+        $busyCourier = $this->courier($organization->id, $hub->id);
+        $openCourier = $this->courier($organization->id, $hub->id);
+        $day = CarbonImmutable::now('Asia/Manila')->addDays(2)->startOfDay();
+        $existing = PickupSchedule::create([
+            'logistics_organization_id' => $organization->id,
+            'logistics_hub_id' => $hub->id,
+            'courier_id' => $busyCourier->id,
+            'reference' => 'PUS-'.strtoupper(Str::random(12)),
+            'status' => 'scheduled',
+            'starts_at' => $day->setTime(10, 0)->utc(),
+            'ends_at' => $day->setTime(12, 0)->utc(),
+            'revision' => 1,
+            'idempotency_key' => Str::uuid(),
+        ]);
+        $path = '/api/v1/logistics/pickup-couriers?'.http_build_query([
+            'starts_at' => $day->setTime(11, 0)->utc()->toISOString(),
+            'ends_at' => $day->setTime(13, 0)->utc()->toISOString(),
+        ]);
+
+        $this->actingAs($logistics)->getJson($path)
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $busyCourier->id)
+            ->assertJsonPath('data.0.status', 'active')
+            ->assertJsonPath('data.0.availability', 'scheduled')
+            ->assertJsonPath('data.0.contact_number', '09173333333')
+            ->assertJsonPath('data.0.schedules.0.id', $existing->id)
+            ->assertJsonPath('data.1.id', $openCourier->id)
+            ->assertJsonPath('data.1.status', 'active')
+            ->assertJsonPath('data.1.availability', 'available')
+            ->assertJsonCount(0, 'data.1.schedules');
+
+        $this->actingAs($logistics)->getJson($path.'&exclude_schedule_id='.$existing->id)
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $busyCourier->id)
+            ->assertJsonPath('data.0.availability', 'available')
+            ->assertJsonCount(0, 'data.0.schedules');
     }
 
     public function test_one_schedule_combines_bulk_pickups_from_multiple_sellers_with_a_thirty_parcel_limit(): void

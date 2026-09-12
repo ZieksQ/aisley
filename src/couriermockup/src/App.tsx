@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Button, TextField } from '@aisley/ui'
 import { ApiError, apiOriginLabel, request } from './lib/api'
 import { PickupOrders } from './PickupOrders'
+import { PolicyConsentView, PolicyDocumentPanel } from './Policies'
 import type {
   AccountResponse,
   CourierAccount,
@@ -10,6 +11,9 @@ import type {
   CourierUser,
   LoginResponse,
   MeResponse,
+  PolicyConsentStatus,
+  PolicyConsentStatusResponse,
+  PolicyType,
 } from './types'
 
 const TOKEN_STORAGE_KEY = 'couriermockup.bearer_token'
@@ -87,6 +91,8 @@ function App() {
   const [courier, setCourier] = useState<CourierUser | null>(null)
   const [account, setAccount] = useState<CourierAccount | null>(null)
   const [dashboard, setDashboard] = useState<CourierDashboard | null>(null)
+  const [consentStatus, setConsentStatus] = useState<PolicyConsentStatus | null>(null)
+  const [policyViewer, setPolicyViewer] = useState<PolicyType | null>(null)
   const [restoring, setRestoring] = useState(() => Boolean(readStoredToken()))
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -117,6 +123,8 @@ function App() {
       setCourier(null)
       setAccount(null)
       setDashboard(null)
+      setConsentStatus(null)
+      setPolicyViewer(null)
       setRestoring(false)
       setProfileForm(emptyProfile)
       setPasswordForm(emptyPassword)
@@ -141,6 +149,11 @@ function App() {
     }
   }, [])
 
+  const loadConsentStatus = useCallback(async (activeToken: string) => {
+    const response = await request<PolicyConsentStatusResponse>('/api/v1/policy-consent/status', {}, activeToken)
+    return response.data
+  }, [])
+
   useEffect(() => {
     if (!token) {
       setRestoring(false)
@@ -150,21 +163,53 @@ function App() {
     let cancelled = false
     setRestoring(true)
     setAuthError(null)
+    setAccount(null)
+    setDashboard(null)
+    setConsentStatus(null)
 
     void request<MeResponse>('/api/v1/courier/auth/me', {}, token)
       .then(async (response) => {
-        const protectedData = await loadProtectedData(token)
         if (cancelled) {
           return
         }
 
         setCourier(response.courier)
+        const nextConsentStatus = await loadConsentStatus(token)
+        if (cancelled) {
+          return
+        }
+
+        setConsentStatus(nextConsentStatus)
+        if (!nextConsentStatus.all_required_accepted) {
+          return
+        }
+
+        const protectedData = await loadProtectedData(token)
+        if (cancelled) {
+          return
+        }
+
         setAccount(protectedData.account)
         setDashboard(protectedData.dashboard)
         setProfileForm(profileFormFromAccount(protectedData.account))
       })
       .catch((error: unknown) => {
         if (cancelled) {
+          return
+        }
+
+        if (error instanceof ApiError && error.code === 'POLICY_CONSENT_REQUIRED') {
+          void loadConsentStatus(token)
+            .then((nextConsentStatus) => {
+              if (!cancelled) {
+                setConsentStatus(nextConsentStatus)
+              }
+            })
+            .catch((consentError: unknown) => {
+              if (!cancelled) {
+                clearSession(errorMessage(consentError))
+              }
+            })
           return
         }
 
@@ -183,7 +228,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [clearSession, loadProtectedData, token])
+  }, [clearSession, loadConsentStatus, loadProtectedData, token])
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -201,6 +246,10 @@ function App() {
         }),
       })
 
+      setRestoring(true)
+      setConsentStatus(null)
+      setAccount(null)
+      setDashboard(null)
       persistToken(response.token)
       setCourier(response.courier)
       setLoginForm((current) => ({ ...current, password: '' }))
@@ -211,6 +260,29 @@ function App() {
       setBusyAction(null)
     }
   }
+
+  const handleConsentComplete = useCallback(async (nextStatus: PolicyConsentStatus) => {
+    if (!token) {
+      return
+    }
+
+    try {
+      const protectedData = await loadProtectedData(token)
+      setConsentStatus(nextStatus)
+      setAccount(protectedData.account)
+      setDashboard(protectedData.dashboard)
+      setProfileForm(profileFormFromAccount(protectedData.account))
+      setAuthError(null)
+      setNotice('Policy acceptance saved. Courier workspace loaded.')
+    } catch (error: unknown) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession('This bearer token is no longer valid. Sign in again.')
+        return
+      }
+
+      throw error
+    }
+  }, [clearSession, loadProtectedData, token])
 
   async function handleRefresh() {
     if (!token) {
@@ -229,6 +301,21 @@ function App() {
     } catch (error: unknown) {
       if (error instanceof ApiError && error.status === 401) {
         clearSession('This bearer token is no longer valid. Sign in again.')
+      } else if (error instanceof ApiError && error.code === 'POLICY_CONSENT_REQUIRED') {
+        try {
+          const nextConsentStatus = await loadConsentStatus(token)
+          if (nextConsentStatus.all_required_accepted) {
+            await handleConsentComplete(nextConsentStatus)
+          } else {
+            setConsentStatus(nextConsentStatus)
+            setAccount(null)
+            setDashboard(null)
+            setAuthError(null)
+            setNotice(null)
+          }
+        } catch (consentError: unknown) {
+          setAuthError(errorMessage(consentError))
+        }
       } else {
         setAuthError(errorMessage(error))
       }
@@ -332,7 +419,7 @@ function App() {
     return <LoadingView message="Checking the stored bearer token…" />
   }
 
-  if (!token || !courier || !account || !dashboard) {
+  if (!token || !courier) {
     return (
       <LoginView
         authError={authError}
@@ -343,6 +430,23 @@ function App() {
         onSubmit={handleLogin}
       />
     )
+  }
+
+  if (consentStatus && !consentStatus.all_required_accepted) {
+    return (
+      <PolicyConsentView
+        onComplete={handleConsentComplete}
+        onSignOut={() => void handleLogout()}
+        onStatusChange={setConsentStatus}
+        signingOut={busyAction === 'logout'}
+        status={consentStatus}
+        token={token}
+      />
+    )
+  }
+
+  if (!account || !dashboard) {
+    return <LoadingView message="Loading the Courier workspace…" />
   }
 
   return (
@@ -384,6 +488,18 @@ function App() {
             </Button>
           </div>
         </div>
+
+        <nav className="policy-links" aria-label="Platform policies">
+          <span className="policy-links-label">View policies</span>
+          <button className="plain-link policy-link" onClick={() => setPolicyViewer('terms_of_service')} type="button">
+            Terms of Service
+          </button>
+          <button className="plain-link policy-link" onClick={() => setPolicyViewer('privacy_policy')} type="button">
+            Privacy Policy
+          </button>
+        </nav>
+
+        {policyViewer ? <PolicyDocumentPanel onClose={() => setPolicyViewer(null)} type={policyViewer} /> : null}
 
         {notice ? <p className="notice" role="status">{notice}</p> : null}
         {authError ? <p className="error-message" role="alert">{authError}</p> : null}
@@ -554,6 +670,9 @@ function App() {
           </div>
           <ul className="request-list">
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/auth/me</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/policy-consent/status</span></li>
+            <li><span className="request-method">POST</span><span className="request-path">/api/v1/policy-consent/:type/versions/:version/accept</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/platform/policies/:type</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/account</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/dashboard</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/first-mile-tasks</span></li>
