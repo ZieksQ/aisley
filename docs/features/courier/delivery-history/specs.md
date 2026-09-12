@@ -142,10 +142,10 @@ Courier intent + Logistics-validated proof
 
 ### Implemented API contract (bounded MVP)
 
-| Method and path                             | Request                            | Response                              |
-| ------------------------------------------- | ---------------------------------- | ------------------------------------- |
+| Method and path                             | Request                              | Response                              |
+| ------------------------------------------- | ------------------------------------ | ------------------------------------- |
 | GET /api/v1/courier/delivery-history        | optional `reference`, `limit` (1–50) | Bounded own delivered final-mile rows |
-| GET /api/v1/courier/delivery-history/{task} | UUID path; no body                 | Authorized read-only detail           |
+| GET /api/v1/courier/delivery-history/{task} | UUID path; no body                   | Authorized read-only detail           |
 
 - Both routes require active approved Courier bearer access and server-derived organization/hub scope.
 - GET is retryable and has no business mutation or idempotency key.
@@ -209,12 +209,12 @@ Courier intent + Logistics-validated proof
 
 - [x] Courier access is scoped by completed assignment and authorized organization/hub.
 - [x] Only committed final-mile delivered records appear; first-mile pickup is excluded.
-- [ ] Stable pagination and filters cannot broaden ownership or duplicate rows.
-- [ ] Dates, item snapshots, and references survive profile/catalog edits.
-- [ ] DTOs exclude contact/street details, secrets, raw media paths, and unrelated evidence.
-- [ ] History has no status or deletion mutation path.
-- [ ] Errors remain distinguishable from an authoritative empty response.
-- [ ] SQLite/PostgreSQL schema/query/IDOR tests and Flutter parsing/state tests pass.
+- [x] Stable pagination and filters cannot broaden ownership or duplicate rows.
+- [x] Dates, item snapshots, and references survive profile/catalog edits.
+- [x] DTOs exclude contact/street details, secrets, raw media paths, and unrelated evidence.
+- [x] History has no status or deletion mutation path.
+- [x] Errors remain distinguishable from an authoritative empty response.
+- [x] SQLite/PostgreSQL schema/query/IDOR tests and Flutter parsing/state tests pass.
 
 - Test non-Courier and same-email-role tokens, suspended users, revoked affiliation, and foreign UUIDs.
 - Test identical delivered timestamps, cursor reuse, filter changes, and duplicate proof joins.

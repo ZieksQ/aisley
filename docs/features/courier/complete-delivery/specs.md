@@ -129,11 +129,11 @@ out_for_delivery
 
 ### Implemented endpoints
 
-| Method and path | Actor | Purpose |
-| --- | --- | --- |
-| GET /api/v1/courier/tasks/{task}/completion | Assigned Courier | Read eligibility, intent, proof, and committed result |
-| POST /api/v1/courier/tasks/{task}/completion | Assigned Courier | Submit explicit completion intent |
-| POST /api/v1/logistics/update-status/transitions | Owning Logistics | Validate QR proof and atomically finalize delivery |
+| Method and path                                  | Actor            | Purpose                                               |
+| ------------------------------------------------ | ---------------- | ----------------------------------------------------- |
+| GET /api/v1/courier/tasks/{task}/completion      | Assigned Courier | Read eligibility, intent, proof, and committed result |
+| POST /api/v1/courier/tasks/{task}/completion     | Assigned Courier | Submit explicit completion intent                     |
+| POST /api/v1/logistics/update-status/transitions | Owning Logistics | Validate QR proof and atomically finalize delivery    |
 
 - The Logistics route is owned by Update Status; this spec does not create a second validation endpoint.
 - Courier POST uses application/json plus a UUID Idempotency-Key header.
@@ -173,17 +173,17 @@ out_for_delivery
 
 ### Proposed errors
 
-| HTTP | Code | Client action |
-| --- | --- | --- |
-| 401 | UNAUTHENTICATED | Restore authentication |
-| 403 | COURIER_ACCESS_DENIED | Clear protected state and show account restriction |
-| 404 | TASK_NOT_FOUND | Stop exposing the task |
-| 409 | COMPLETION_STATE_CONFLICT | Refetch current projection |
-| 409 | IDEMPOTENCY_KEY_REUSED | Retain original request; fix conflicting input |
-| 409 | PROOF_NOT_VALIDATED | Show pending/required proof state |
-| 422 | VALIDATION_FAILED | Show field errors |
-| 429 | TOO_MANY_REQUESTS | Respect Retry-After |
-| 503 | FULFILLMENT_UNAVAILABLE | Show unavailable; no local completion |
+| HTTP | Code                      | Client action                                      |
+| ---- | ------------------------- | -------------------------------------------------- |
+| 401  | UNAUTHENTICATED           | Restore authentication                             |
+| 403  | COURIER_ACCESS_DENIED     | Clear protected state and show account restriction |
+| 404  | TASK_NOT_FOUND            | Stop exposing the task                             |
+| 409  | COMPLETION_STATE_CONFLICT | Refetch current projection                         |
+| 409  | IDEMPOTENCY_KEY_REUSED    | Retain original request; fix conflicting input     |
+| 409  | PROOF_NOT_VALIDATED       | Show pending/required proof state                  |
+| 422  | VALIDATION_FAILED         | Show field errors                                  |
+| 429  | TOO_MANY_REQUESTS         | Respect Retry-After                                |
+| 503  | FULFILLMENT_UNAVAILABLE   | Show unavailable; no local completion              |
 
 - Error envelopes use message, code, and optional field-addressable errors.
 - A missing route or unapplied migration is unavailable, not an empty completion response.
@@ -212,9 +212,9 @@ out_for_delivery
 - [x] Logistics validation and required QR proof gate delivered.
 - [x] Task, Shipment, Order, history, and notification work commit atomically.
 - [x] Retries/concurrency cannot duplicate delivery or Inventory effects.
-- [ ] Flutter distinguishes pending evidence from confirmed delivery.
-- [ ] Private DTOs and history remain scoped and immutable.
-- [ ] SQLite/PostgreSQL verification and client contract tests pass.
+- [x] Flutter distinguishes pending evidence from confirmed delivery.
+- [x] Private DTOs and history remain scoped and immutable.
+- [x] SQLite/PostgreSQL verification and client contract tests pass.
 
 ### Deferred extensions
 

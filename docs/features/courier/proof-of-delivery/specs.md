@@ -200,8 +200,8 @@ final-mile task
 - [x] Courier can submit only QR/reference evidence for its accepted final-mile task and linked Order/Parcel.
 - [x] Logistics validates and records the implemented evidence with performing Courier and recording Logistics account preserved.
 - [x] Evidence status is separate from custody; invalid, duplicate, or access-only events do not advance delivery.
-- [ ] Valid proof is private, file-validated, durably stored, idempotent, and consumable by Complete Delivery.
-- [ ] e-POD never directly sets `delivered`, changes assignment, or decides refunds/returns.
-- [ ] Flutter states distinguish capture, upload, validation, rejection, offline, conflict, and retry without fabricating success.
+- [x] Valid proof is private, file-validated, durably stored, idempotent, and consumable by Complete Delivery.
+- [x] e-POD never directly sets `delivered`, changes assignment, or decides refunds/returns.
+- [x] Flutter states distinguish capture, upload, validation, rejection, offline, conflict, and retry without fabricating success.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/references/file-upload-requirements.md`, `docs/features/logistics/update-status/specs.md`, `docs/features/courier/pick-up-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.

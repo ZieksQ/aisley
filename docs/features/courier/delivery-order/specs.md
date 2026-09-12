@@ -148,7 +148,7 @@ accepted final-mile task
   "data": {
     "task_id": "task-uuid",
     "state": "in_transit",
-    "destination": {"city_municipality": "Example", "province": "Example"},
+    "destination": { "city_municipality": "Example", "province": "Example" },
     "distance_km": 7.4,
     "estimated_duration_minutes": 25,
     "route_status": "available",
@@ -197,10 +197,10 @@ accepted final-mile task
 ### Acceptance criteria
 
 - [x] Only an accepted final-mile task can return delivery context; location updates remain unavailable until separately implemented.
-- [ ] `distance_km` and `estimated_duration_minutes` are provider-neutral, advisory, timestamped, and explicitly unavailable on failure.
-- [ ] Destination comes from the immutable checkout snapshot and cannot be changed by the Courier.
+- [x] `distance_km` and `estimated_duration_minutes` are provider-neutral, advisory, timestamped, and explicitly unavailable on failure.
+- [x] Destination comes from the immutable checkout snapshot and cannot be changed by the Courier.
 - [x] Route/location capabilities cannot fabricate progress or mutate custody; stale revisions and reassignment are rejected by the implemented task transitions.
-- [ ] First-mile and final-mile assignments remain independent and `delivered` remains owned by Complete Delivery.
-- [ ] Flutter handles loading, unavailable, stale, offline, conflict, retry, and accessible text/map fallback states.
+- [x] First-mile and final-mile assignments remain independent and `delivered` remains owned by Complete Delivery.
+- [x] Flutter handles loading, unavailable, stale, offline, conflict, retry, and accessible text/map fallback states.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/features/courier/dashboard/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/proof-of-delivery/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.

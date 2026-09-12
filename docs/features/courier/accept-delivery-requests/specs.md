@@ -105,15 +105,24 @@ Logistics offer
 
 ```json
 {
-  "data": [{
-    "id": "task-uuid",
-    "status": "assigned",
-    "order": {"id": "order-uuid", "reference": "ORD-123"},
-    "waybill": {"reference": "WB-123"},
-    "destination_area": {"city_municipality": "Example", "province": "Example"},
-    "schedule": {"starts_at": "server-time", "ends_at": "server-time", "timezone": "UTC"}
-  }],
-  "meta": {"current_page": 1, "last_page": 1, "total": 1}
+  "data": [
+    {
+      "id": "task-uuid",
+      "status": "assigned",
+      "order": { "id": "order-uuid", "reference": "ORD-123" },
+      "waybill": { "reference": "WB-123" },
+      "destination_area": {
+        "city_municipality": "Example",
+        "province": "Example"
+      },
+      "schedule": {
+        "starts_at": "server-time",
+        "ends_at": "server-time",
+        "timezone": "UTC"
+      }
+    }
+  ],
+  "meta": { "current_page": 1, "last_page": 1, "total": 1 }
 }
 ```
 
@@ -193,8 +202,8 @@ Logistics offer
 - [x] Authenticated Courier can list and explicitly accept its own assigned first-mile task through the implemented API.
 - [x] Acceptance is separate from physical pickup and does not directly write custody or generic Order status.
 - [x] Courier can reject a final-mile offer with preserved reason/time and Logistics can re-offer the same task without changing the Order.
-- [ ] Stale unfinished offers are visible as informational state without automatic cancellation or reassignment.
-- [ ] Provider-neutral distance/ETA is advisory, server-derived, privacy-safe, and explicitly unavailable on calculation failure.
+- [x] Stale unfinished offers are visible as informational state without automatic cancellation or reassignment.
+- [x] Provider-neutral distance/ETA is advisory, server-derived, privacy-safe, and explicitly unavailable on calculation failure.
 - [x] Concurrent/retried final-mile accepts, rejects, and re-offers cannot duplicate assignments or overwrite append-only history.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/features/orders/logistics-pickups/spec.md`, `docs/features/orders/waybill/spec.md`, `docs/features/courier/dashboard/specs.md`, and `docs/features/courier/pick-up-order/specs.md`.
