@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { FaArrowsRotate, FaChevronDown, FaMagnifyingGlass, FaPlus } from 'react-icons/fa6'
+import { FaArrowsRotate, FaChevronRight, FaMagnifyingGlass, FaPlus } from 'react-icons/fa6'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ScheduleFields } from '../components/PickupScheduleDialog'
 import { FlatpickrInput } from '../components/FlatpickrInput'
-import { ActionButton, ErrorNotice, PrimaryButton, StatusLabel, field, link, manilaDate, panel } from '../components/PickupUi'
+import { ActionButton, ErrorNotice, PrimaryButton, StatusLabel, field, manilaDate, panel } from '../components/PickupUi'
 import { ApiError, csrf, request } from '../lib/api'
 import { getPickupCouriers } from '../lib/pickupCouriers'
 import { formatPhtDateTime, toUtc, type ScheduleWindow } from '../lib/pickupSchedule'
@@ -41,7 +41,6 @@ export function PickupsPage() {
   const [pendingError, setPendingError] = useState('')
   const [scheduleError, setScheduleError] = useState('')
   const [notice, setNotice] = useState('')
-  const [openScheduleId, setOpenScheduleId] = useState<string | null>(null)
   const courierRequest = useRef(0)
   const page = Number(params.get('page') ?? '1')
   const status = params.get('status') ?? ''
@@ -167,21 +166,17 @@ export function PickupsPage() {
     <section className={`${panel} mt-3 overflow-hidden`} aria-busy={loading}>
       <div className="hidden grid-cols-[minmax(10rem,1.1fr)_minmax(10rem,1fr)_minmax(8rem,.8fr)_7rem_minmax(11rem,1fr)_7rem_1.5rem] gap-3 border-b border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-400 lg:grid"><span>Schedule</span><span>Courier</span><span>Pickups</span><span>Status</span><span>Pickup window</span><span>Parcels left</span><span className="sr-only">Details</span></div>
       {loading && !schedules ? <div className="p-4 text-sm" role="status">Loading pickup schedules…</div> : schedules?.data.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{schedules.data.map((schedule) => {
-        const isOpen = openScheduleId === schedule.id
-        return <li className="group" key={schedule.id}>
-        <div className="grid cursor-pointer grid-cols-2 gap-x-3 gap-y-3 px-3 py-3 hover:bg-zinc-50 dark:hover:bg-white/[0.03] lg:grid-cols-[minmax(10rem,1.1fr)_minmax(10rem,1fr)_minmax(8rem,.8fr)_7rem_minmax(11rem,1fr)_7rem_1.5rem] lg:items-center lg:gap-3 lg:py-2.5" onClick={() => setOpenScheduleId(isOpen ? null : schedule.id)}>
+        const pickup = schedule.pickup_requests[0]
+        return <li key={schedule.id}>
+        <Link aria-label={`Open ${schedule.reference} pickup information`} className="grid grid-cols-2 gap-x-3 gap-y-3 px-3 py-3 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#4C1268] dark:hover:bg-white/[0.03] lg:grid-cols-[minmax(10rem,1.1fr)_minmax(10rem,1fr)_minmax(8rem,.8fr)_7rem_minmax(11rem,1fr)_7rem_1.5rem] lg:items-center lg:gap-3 lg:py-2.5" to={`/pickups/${pickup.id}`}>
         <div><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Schedule</span><p className="font-medium">{schedule.reference}</p><p className="font-mono text-xs text-zinc-500" title={schedule.id}>{schedule.id.slice(0, 8)}</p></div>
         <div className="min-w-0"><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Courier</span><p className="truncate text-sm font-medium">{schedule.courier.name || 'Courier'}</p><p className="truncate text-xs text-zinc-500">{schedule.courier.email}</p></div>
-        <div><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Pickups</span><p className="text-sm tabular-nums">{schedule.pickup_requests.length} {schedule.pickup_requests.length === 1 ? 'request' : 'requests'}</p></div>
+        <div><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Pickups</span><p className="font-mono text-xs">{pickup.id.slice(0, 8)}</p>{schedule.pickup_requests.length > 1 ? <p className="text-xs text-zinc-500">+{schedule.pickup_requests.length - 1} more</p> : null}</div>
         <div><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Status</span><StatusLabel status={schedule.status} /></div>
         <p className="text-sm leading-5"><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Pickup window</span>{formatPhtDateTime(schedule.starts_at)}<br /><span className="text-xs text-zinc-500">to {formatPhtDateTime(schedule.ends_at)} PHT</span></p>
         <p className="text-sm tabular-nums"><span className="mb-1 block text-xs font-medium text-zinc-500 lg:hidden">Parcels left</span><strong className="text-base">{schedule.remaining_parcel_count}</strong> of {schedule.parcel_count}</p>
-        <button aria-expanded={isOpen} aria-label={`${isOpen ? 'Close' : 'Open'} ${schedule.reference} details`} className="self-center justify-self-end rounded p-1 text-zinc-500 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-[#4C1268] dark:hover:text-white" onClick={(event) => { event.stopPropagation(); setOpenScheduleId(isOpen ? null : schedule.id) }} type="button"><FaChevronDown className={`transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" /></button>
-        </div>
-        {isOpen ? <div className="border-t border-zinc-200 bg-zinc-50 px-3 py-3 text-sm dark:border-white/10 dark:bg-white/[0.025]">
-          <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-3"><div><dt className="text-xs text-zinc-500">Created</dt><dd>{formatPhtDateTime(schedule.created_at)} PHT</dd></div><div><dt className="text-xs text-zinc-500">Revision</dt><dd className="tabular-nums">{schedule.revision}</dd></div><div><dt className="text-xs text-zinc-500">Courier</dt><dd>{schedule.courier.name || schedule.courier.email}</dd></div></dl>
-          <div className="mt-3 border-t border-zinc-200 pt-2 dark:border-white/10"><p className="text-xs font-medium text-zinc-500">Pickup requests</p><ul className="mt-1 grid gap-x-6 gap-y-1 sm:grid-cols-2">{schedule.pickup_requests.map((pickup) => <li className="flex min-w-0 items-center justify-between gap-3" key={pickup.id}><span className="truncate">{pickup.shop.name} · {pickup.parcel_count} {pickup.parcel_count === 1 ? 'parcel' : 'parcels'}</span><Link className={`${link} shrink-0 font-mono text-xs`} onClick={(event) => event.stopPropagation()} title={pickup.id} to={`/pickups/${pickup.id}`}>{pickup.id.slice(0, 8)}</Link></li>)}</ul></div>
-        </div> : null}
+        <FaChevronRight className="self-center justify-self-end text-xs text-zinc-400" aria-hidden="true" />
+        </Link>
       </li>})}</ul> : <div className="p-6 text-center"><h3 className="font-medium">No pickup schedules found</h3><p className="mt-1 text-sm text-zinc-500">Create a schedule when Seller parcels are ready for pickup.</p></div>}
     </section>
     {schedules && schedules.meta.last_page > 1 ? <nav aria-label="Schedule pagination" className="mt-4 flex items-center justify-between text-sm"><ActionButton disabled={page <= 1} onClick={() => { const next = new URLSearchParams(params); next.set('page', String(page - 1)); setParams(next) }}>Previous</ActionButton><span>Page {schedules.meta.current_page} of {schedules.meta.last_page}</span><ActionButton disabled={page >= schedules.meta.last_page} onClick={() => { const next = new URLSearchParams(params); next.set('page', String(page + 1)); setParams(next) }}>Next</ActionButton></nav> : null}
