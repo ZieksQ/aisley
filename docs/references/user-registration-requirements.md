@@ -89,6 +89,10 @@ role: Seller, Customer, Courier
   - Dropdown: Province, Municipality, Barangay
   - Manual entry: Street, House number, etc.
 - Business name
+- Operational hub map pin (planned)
+  - After completing the hub address, use Geoapify assistance and Leaflet to confirm the actual hub location; save latitude and longitude together.
+  - No Mapbox. Map failure preserves text-only registration and shows an unpinned state; complete the pin later in Logistics Account Settings.
+  - The pin refers to the organization's sole hub, not the applicant's residence; coordinate correction does not authorize relocation.
 - Upload ID
 - Upload business/DTI permit
 

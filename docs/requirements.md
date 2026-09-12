@@ -97,7 +97,7 @@ MVP responsibilities:
 - Sign in after approval.
 - Own exactly one operational hub/sorting center per Logistics organization for the MVP. Sub-hubs, additional hubs, and multi-hub operations are out of scope as a deliberate simplification of the real-world model.
 - For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
-- If an exact operational-hub pin is collected, use the same PSGC/manual/Geoapify/Leaflet flow as the Customer Address Book; manual/PSGC fields remain authoritative and Mapbox is not used.
+- Planned Logistics hub pinning: let the operator confirm the actual sole hub location during registration or in Account Settings using PSGC/manual fields, intentional Geoapify assistance, and a Leaflet click/drag pin. Persist both latitude and longitude on the linked hub Address. Manual registration remains available during map failure; unpinned is not an invented coordinate. Same-premises pin correction preserves historical snapshots; physical relocation remains separately controlled. Mapbox is not used.
 - Subscription billing and enforcement are deferred from the MVP; an approved active Logistics account is not subscription-gated until a Subscription policy exists.
 - View Seller-confirmed Orders whose selected Logistics organization is this organization.
 - Create the first-mile pickup task after the Seller marks the Order `ready_for_pickup`, then offer or assign it to an eligible Courier.

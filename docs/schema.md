@@ -352,6 +352,8 @@ The database unique constraints enforce at-most-one organization per Logistics u
 
 ### 5.3 `personal_access_tokens`
 
+Planned Logistics pin extension: reuse `logistics_hubs.address_id` → `addresses.latitude`/`longitude` for the operator-confirmed hub location. Both columns already exist; do not duplicate them on profiles or create another hub. Registration/account coordinate writes are not implemented by this documentation change. Store complete finite pairs only; legacy/unpinned addresses remain nullable. Add location revision/audit metadata through a new migration if required for safe corrections; retain old/new coordinates, actor, reason, and UTC time without altering immutable waybill or manifest snapshots. No seed/default coordinate is proof of an operator-confirmed pin.
+
 **Model:** `App\Models\PersonalAccessToken`
 
 This is a customized Laravel Sanctum table so both the token row and the polymorphic owner key are UUID-compatible.

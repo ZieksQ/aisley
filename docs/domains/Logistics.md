@@ -90,6 +90,8 @@ The first-mile and final-mile movements are separate task legs, even if the same
 
 ## Core features
 
+Planned hub-location capability: Logistics confirms its actual sole-hub pin at registration or through Account Settings using the Customer/Seller PSGC/manual, Geoapify, and Leaflet flow. Laravel stores the complete latitude/longitude pair on the linked hub Address. Text-only fallback remains available with an explicit unpinned state. Same-premises corrections are audited and preserve committed operational snapshots; relocation remains separately controlled. This documentation defines the extension, not an implemented coordinate-write API.
+
 ### 1. Dashboard
 
 - **Core value:** View Seller-confirmed parcels that require Logistics attention.

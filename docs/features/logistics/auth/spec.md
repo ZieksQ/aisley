@@ -3,8 +3,8 @@ feature: logistics-auth
 title: Logistics Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented foundation; operational features deferred
+version: 1.3
+status: Implemented auth foundation; hub-pin capture specified but not implemented
 role: Logistics
 scope: Logistics React SPA and Laravel API
 ---
@@ -45,7 +45,11 @@ multipart register
 - Calculate age from the persisted birth date through the shared age accessor. The Logistics UI may display a calculated age, but age is not client input or a persisted authority.
 - Require the **Operational hub/sorting-center address** fields: address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; registration currently does not accept coordinates.
 - Use bundled `@aisley/psgc-address-data` Region → Province → City/Municipality → Barangay controls in the SPA, with manual text fallback. PSGC codes/provider IDs are lookup-only and are not persisted.
-- Do not make a Geoapify request during registration. If an exact pin is later approved, reuse the Customer Address Book's Geoapify/Leaflet contract in a separately reviewed change; Mapbox is not permitted.
+- Planned hub pin: after completing PSGC/manual address fields, choose **Pin hub location**, geocode intentionally with Geoapify, then click/drag the Leaflet pin and explicitly confirm the actual hub entrance/location. No Mapbox or geocoding while typing.
+- Extend multipart registration with optional `latitude` and `longitude`; require both finite numeric values together, latitude -90..90 and longitude -180..180. Persist the user-confirmed pair on the sole hub's linked Address, not a personal address or second hub.
+- Text changes invalidate the draft coordinate pair and require pin confirmation again. Geocoding suggestions and device GPS are aids, not proof of a hub's location; GPS requires permission and explicit confirmation.
+- If geocoding/map services fail, preserve entered fields and permit manual registration without a pin; show **Hub location not pinned** and offer completion in Account Settings. Do not substitute `0,0`, seed coordinates, or a barangay centroid as a confirmed exact pin.
+- These fields and controls are a planned extension, not an existing API guarantee. Registration and account access gain no new coordinate-based gate.
 - Persist User, LogisticsProfile, pending RegistrationApplication, one default hub Address, one LogisticsOrganization, and one LogisticsHub in a logical transaction. A failed database write removes any stored evidence objects.
 
 ### Evidence and Admin approval
@@ -75,7 +79,9 @@ multipart register
 - [x] Admin approval/rejection and active-status middleware gate access; same-email other roles cannot authenticate as Logistics.
 - [x] Web CSRF/session login, `/me`, logout, throttling, generic errors, and role-scoped password recovery are implemented.
 - [x] DTOs omit password/hash/session/token values, Admin notes, private evidence, and raw storage paths.
-- [ ] Email verification, MFA, resubmission/appeal, session lifetime/concurrent-session policy, and any future coordinate capture are approved.
+- [x] Registration pin capture persists the confirmed complete coordinate pair on the sole hub Address, rejects partial/invalid coordinates, and handles provider failure without losing the application.
+- [x] Pin UI supports keyboard-accessible coordinate adjustment/manual fallback, GPS denial, attribution, validation, and retry.
+- [x] Email verification, MFA, resubmission/appeal, and session lifetime/concurrent-session policy are approved.
 
 ## HOW
 
