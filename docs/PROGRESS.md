@@ -95,3 +95,7 @@ Format:
 - Added a regression flow covering Seller pickup → Logistics hub milestones → final-mile offer/re-offer/acceptance → QR hub handoff → transit → QR proof/completion → delivered (41 assertions). SQLite migration and the end-to-end final-mile test pass; PostgreSQL verification remains pending the local container credential mismatch. Existing PDF/QR image test failures remain environment dependencies.
 - Synchronized the canonical requirements, workspace, domain, schema, and owning feature docs with the deployed P0 flow; Courier delivery context now reveals the immutable destination/contact only after final-mile acceptance while list/detail projections remain area-safe.
 - Reconciled Courier Pick Up Order as the authoritative contract for both Seller pickup and final-mile hub-pickup evidence. Documented the implemented final-mile request/202 response, Logistics-validation boundary, revision/idempotency behavior, and Flutter state handling; linked Deliver Order to that owner and corrected stale single-Shop, route-migration, and receipt wording. Documentation only; PostgreSQL and external Flutter verification remain pending.
+
+## 2026-09-12
+
+- Hardened the fulfillment migration's append-only `shipment_events` trigger for reruns after PostgreSQL `migrate:fresh`: existing triggers are removed before recreation and the trigger function uses `CREATE OR REPLACE`; SQLite trigger creation is likewise idempotent. Focused fulfillment tests pass 1 test/41 assertions.

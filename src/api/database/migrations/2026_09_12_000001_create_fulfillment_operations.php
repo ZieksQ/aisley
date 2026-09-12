@@ -133,7 +133,9 @@ return new class extends Migration
 
         if (DB::getDriverName() === 'pgsql') {
             DB::unprepared(<<<'SQL'
-                CREATE FUNCTION prevent_shipment_events_mutation() RETURNS trigger AS $$
+                DROP TRIGGER IF EXISTS shipment_events_append_only ON shipment_events;
+
+                CREATE OR REPLACE FUNCTION prevent_shipment_events_mutation() RETURNS trigger AS $$
                 BEGIN
                     RAISE EXCEPTION 'shipment_events is append-only';
                 END;
@@ -147,6 +149,9 @@ return new class extends Migration
 
         if (DB::getDriverName() === 'sqlite') {
             DB::unprepared(<<<'SQL'
+                DROP TRIGGER IF EXISTS shipment_events_prevent_update;
+                DROP TRIGGER IF EXISTS shipment_events_prevent_delete;
+
                 CREATE TRIGGER shipment_events_prevent_update
                 BEFORE UPDATE ON shipment_events
                 BEGIN
