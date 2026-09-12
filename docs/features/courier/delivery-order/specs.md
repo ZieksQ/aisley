@@ -92,7 +92,7 @@ accepted final-mile task
 - `GET /api/v1/courier/tasks/{task}/delivery` — implemented; returns the immutable destination address/contact and pickup-hub context only after the Courier accepts the offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/accept` — implemented; accepts the current Logistics offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/reject` — implemented; records a reason and leaves the task available for Logistics re-offer.
-- `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented; submits QR/reference hub-handoff evidence for Logistics validation.
+- `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented companion action owned by `docs/features/courier/pick-up-order/specs.md`; use its exact request, pending-evidence response, and retry contract. Deliver Order starts movement only after Logistics records `picked_up_from_hub`.
 - `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery` with a task revision.
 - `GET /api/v1/courier/tasks/{task}/route` — planned/unavailable; same scope; returns provider-neutral route summary, `distance_km`, `estimated_duration_minutes`, calculation time, freshness, and an optional render/navigation payload.
 - `POST /api/v1/courier/tasks/{task}/location` — planned/unavailable; JSON `{ "latitude": number, "longitude": number, "captured_at": timestamp, "expected_revision": number, "idempotency_key": string }`; no client status/owner fields.
