@@ -41,6 +41,7 @@ use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
+use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
@@ -269,6 +270,12 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [LogisticsNotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [LogisticsNotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{notification}', [LogisticsNotificationController::class, 'show'])->whereUuid('notification')->name('show');
+        Route::post('/{notification}/read', [LogisticsNotificationController::class, 'markRead'])->whereUuid('notification')->name('read');
+    });
     Route::get('/account', [LogisticsAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');

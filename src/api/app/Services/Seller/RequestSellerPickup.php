@@ -6,7 +6,6 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ShopStatus;
-use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Exceptions\Seller\SellerOrderException;
 use App\Models\LogisticsOrganization;
@@ -14,8 +13,8 @@ use App\Models\Order;
 use App\Models\SellerPickupRequest;
 use App\Models\Shop;
 use App\Models\User;
-use App\Notifications\Logistics\SellerPickupRequestedNotification;
 use App\Services\Logistics\EligibleLogisticsQuery;
+use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +26,7 @@ class RequestSellerPickup
         private readonly SellerOrderInventory $inventory,
         private readonly EligibleLogisticsQuery $eligibleLogistics,
         private readonly CreateWaybill $createWaybill,
+        private readonly LogisticsNotificationService $notifications,
     ) {}
 
     public function handle(User $seller, array $orderIds, string $pickupAddressId, string $logisticsOrganizationId, string $key): SellerPickupRequest
@@ -89,15 +89,7 @@ class RequestSellerPickup
                 $this->createWaybill->handle($order, $request, $pickupAddress);
             }
 
-            DB::afterCommit(function () use ($request): void {
-                try {
-                    User::query()->where('role', UserRole::Logistics)->where('status', UserStatus::Active)
-                        ->whereHas('logisticsOrganization', fn ($query) => $query->whereKey($request->logistics_organization_id))
-                        ->first()?->notify(new SellerPickupRequestedNotification($request->loadMissing('orders')));
-                } catch (\Throwable $exception) {
-                    report($exception);
-                }
-            });
+            $this->notifications->queuePickupRequested($request);
 
             return $request->load(['orders', 'waybills']);
         }, 3);

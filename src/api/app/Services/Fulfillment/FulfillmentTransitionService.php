@@ -26,8 +26,10 @@ use App\Models\ShipmentEvidence;
 use App\Models\User;
 use App\Models\Waybill;
 use App\Notifications\Seller\SellerOrderDeliveredNotification;
+use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -37,6 +39,7 @@ class FulfillmentTransitionService
     public function __construct(
         private readonly OrderTransitionService $orderTransitions,
         private readonly CreateWaybill $waybillHasher,
+        private readonly LogisticsNotificationService $notifications,
     ) {}
 
     /**
@@ -197,6 +200,7 @@ class FulfillmentTransitionService
             $offer->update(['status' => FulfillmentOfferStatus::Rejected, 'rejection_reason' => trim($reason), 'responded_at' => now()]);
             $task->update(['status' => FulfillmentTaskStatus::Rejected, 'courier_id' => null, 'revision' => $task->revision + 1]);
             $this->event($task->shipment, $task, 'final_mile_rejection', $before, FulfillmentTaskStatus::Rejected->value, $courier->id, null, $offer, null, ['reason' => trim($reason)], $idempotencyKey);
+            $this->notifications->queueOfferRejected($offer);
 
             return $task->fresh($this->taskRelations());
         }, 3);
@@ -244,6 +248,7 @@ class FulfillmentTransitionService
                 'metadata' => ['identifier_type' => $input['identifier_type']],
                 'submitted_at' => now(),
             ]);
+            $this->notifications->queueEvidenceSubmitted($evidence);
 
             return $evidence->fresh($this->evidenceRelations());
         }, 3);
@@ -320,7 +325,7 @@ class FulfillmentTransitionService
                 throw FulfillmentException::conflict('PROOF_NOT_VALIDATED', 'The delivery proof cannot be used for completion.');
             }
 
-            return CompletionIntent::create([
+            $intent = CompletionIntent::create([
                 'delivery_task_id' => $task->id,
                 'shipment_evidence_id' => $evidence->id,
                 'courier_id' => $courier->id,
@@ -329,7 +334,10 @@ class FulfillmentTransitionService
                 'idempotency_key' => $idempotencyKey,
                 'request_hash' => $requestHash,
                 'confirmed_at' => now(),
-            ])->fresh($this->completionRelations());
+            ]);
+            $this->notifications->queueCompletionRequested($intent);
+
+            return $intent->fresh($this->completionRelations());
         }, 3);
     }
 
@@ -450,7 +458,7 @@ class FulfillmentTransitionService
      * Logistics dashboard. Queue reads only include shared Shipment records
      * that already exist; they never lazily create physical records.
      *
-     * @return array{paginator: \Illuminate\Contracts\Pagination\LengthAwarePaginator, summary: array<string, mixed>}
+     * @return array{paginator: LengthAwarePaginator, summary: array<string, mixed>}
      */
     public function logisticsQueue(User $logistics, array $filters): array
     {

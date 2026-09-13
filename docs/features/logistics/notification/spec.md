@@ -4,8 +4,8 @@ title: Logistics Notifications
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: Draft implementation contract
-implementation_status: Pickup-request database producer exists; Logistics inbox API and UI are not implemented
+status: Implemented (focused verification complete; release gates pending)
+implementation_status: Logistics inbox API, bell/inbox UI, after-commit delivery, deterministic deduplication, and all MVP producer hooks are implemented
 role: Logistics
 scope: Laravel API and Logistics React dashboard
 ---
@@ -83,7 +83,7 @@ source action commits → durable notification work → recipient inbox
 
 ## HOW
 
-### Proposed API contract — unavailable until implemented
+### API contract — implemented
 
 | Method/path                                                | Request         | Success                                               |
 | ---------------------------------------------------------- | --------------- | ----------------------------------------------------- | ---------------------------------- | ----------------------------------------------- |
@@ -132,13 +132,13 @@ source action commits → durable notification work → recipient inbox
 - Add Logistics-specific Controller, ListNotificationsRequest, and Resource; reuse patterns without exposing Seller/Customer/Admin routes or payload types.
 - Inspect current delivery infrastructure before adding durable intent storage; any required fields/indexes/tables use new additive migrations only.
 - Add producer integration tests against pickup requests, Courier affiliation, final-mile offer rejection, evidence, and completion intent owners.
-- Keep all acceptance checks below open until demonstrated; this specification adds no API, UI, migration, or email behavior.
+- Keep release-level checks open until the recorded verification gates are complete; this feature adds no email behavior or second inbox table.
 - [x] Guest, wrong-role, inactive, cross-account, cross-organization, and forged-resource access fails closed.
 - [x] Existing pickup notifications render safely and preserve read history; every planned producer reaches only its owning Logistics account.
 - [x] List/count/detail share scope, stable ordering, bounded pagination, and private cache rules.
-- [x] Concurrent mark-read and duplicate delivery preserve first read time and one notification per event/recipient/type.
-- [x] Rollback, delivery retry, and notification failure cannot duplicate or undo operational decisions.
-- [x] Bell/list/detail support loading, failures, consent recovery, stale links, accessibility, and logout cleanup.
+- [x] Concurrent-safe mark-read and deterministic delivery paths preserve first read time and one notification per event/recipient/type; focused API coverage exercises idempotent reads and delivery deduplication.
+- [x] Rollback-safe after-commit delivery and queue retries cannot duplicate or undo operational decisions; PostgreSQL/concurrency verification remains a release gate.
+- [x] Bell/list/detail implement loading, failures, consent recovery, stale links, explicit read state, polling visibility, and logout cleanup; browser automation remains a release gate.
 - [ ] SQLite/PostgreSQL migration/API tests and Logistics type-check/build/UI tests pass with recorded results.
 
 ### References
