@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PlatformPolicyType;
 use App\Enums\PlatformPolicyVersionStatus;
 use App\Exceptions\PolicyConsentConflict;
+use App\Models\PlatformFeatureControl;
 use App\Models\PlatformPolicy;
 use App\Models\PlatformPolicyVersion;
 use App\Models\PolicyAcceptance;
@@ -21,6 +22,8 @@ class PolicyConsentService
         PlatformPolicyType::PrivacyPolicy,
     ];
 
+    public function __construct(private readonly PlatformFeatureControlService $featureControls) {}
+
     /**
      * @return array{policies: array<int, array<string, mixed>>, all_required_accepted: bool}
      */
@@ -28,8 +31,12 @@ class PolicyConsentService
     {
         $policies = $this->sharedPolicies();
         $acceptances = $this->acceptancesFor($user, $policies);
+        $consentEnforced = $this->featureControls->isEnabled(
+            PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT,
+            config('policy-consent.initial_acceptance_required', true),
+        );
 
-        $projections = $policies->map(function (PlatformPolicy $policy) use ($acceptances): array {
+        $projections = $policies->map(function (PlatformPolicy $policy) use ($acceptances, $consentEnforced): array {
             $current = $policy->currentVersion;
             $policyAcceptances = $acceptances->get($policy->id, collect());
             $exact = $current
@@ -37,7 +44,7 @@ class PolicyConsentService
                 : null;
             $latest = $policyAcceptances->sortByDesc('accepted_at')->first();
             $hasAcceptedAny = $policyAcceptances->isNotEmpty();
-            $requiresAction = $current !== null && (
+            $requiresAction = $consentEnforced && $current !== null && (
                 (! $hasAcceptedAny && config('policy-consent.initial_acceptance_required', true))
                 || (config('policy-consent.reconsent_required_when_flagged', true) && $current->requires_reconsent && ! $exact)
             );

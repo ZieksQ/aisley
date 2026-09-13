@@ -9,6 +9,7 @@ use App\Enums\PlatformPolicyType;
 use App\Enums\PlatformPolicyVersionStatus;
 use App\Jobs\Customer\DeliverAnnouncementNotifications;
 use App\Models\Announcement;
+use App\Models\PlatformFeatureControl;
 use App\Models\PlatformPolicy;
 use App\Models\PlatformPolicyVersion;
 use App\Models\User;
@@ -181,6 +182,42 @@ class PlatformSettingsService
         return $result;
     }
 
+    /**
+     * Update a declared platform feature control with optimistic concurrency.
+     *
+     * @param  array{enabled: bool, revision: int}  $data
+     */
+    public function updateFeatureControl(User $admin, string $key, array $data, array $context): PlatformFeatureControl
+    {
+        return DB::transaction(function () use ($admin, $key, $data, $context): PlatformFeatureControl {
+            $control = PlatformFeatureControl::query()
+                ->where('key', $key)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->assertRevision($control->revision, (int) $data['revision']);
+            $before = ['enabled' => (bool) $control->enabled, 'revision' => $control->revision];
+            $control->update([
+                'enabled' => (bool) $data['enabled'],
+                'revision' => $control->revision + 1,
+                'updated_by_admin_id' => $admin->id,
+            ]);
+            $control->refresh();
+
+            $this->audit(
+                $admin,
+                AdminAuditAction::FeatureControlUpdated,
+                $control,
+                $context,
+                ['key' => $control->key, 'enabled' => $control->enabled],
+                $before,
+                ['enabled' => (bool) $control->enabled, 'revision' => $control->revision],
+            );
+
+            return $control;
+        });
+    }
+
     private function assertRevision(int $current, int $submitted): void
     {
         if ($current !== $submitted) {
@@ -188,8 +225,16 @@ class PlatformSettingsService
         }
     }
 
-    private function audit(User $admin, AdminAuditAction $action, $target, array $context, array $metadata): void
+    private function audit(
+        User $admin,
+        AdminAuditAction $action,
+        $target,
+        array $context,
+        array $metadata,
+        array $before = [],
+        array $after = [],
+    ): void
     {
-        $this->auditService->record(actor: $admin, action: $action, sourceFeature: AuditSourceFeature::PlatformSettings, target: $target, targetSnapshot: ['id' => $target->id], metadata: $metadata, ipAddress: $context['ip_address'] ?? null, userAgent: $context['user_agent'] ?? null, requestId: $context['request_id'] ?? null);
+        $this->auditService->record(actor: $admin, action: $action, sourceFeature: AuditSourceFeature::PlatformSettings, target: $target, before: $before, after: $after, targetSnapshot: ['id' => $target->id], metadata: $metadata, ipAddress: $context['ip_address'] ?? null, userAgent: $context['user_agent'] ?? null, requestId: $context['request_id'] ?? null);
     }
 }

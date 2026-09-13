@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FeatureControlController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
@@ -131,6 +132,11 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::post('/announcements/{announcement}/publish', [PlatformSettingsController::class, 'publishAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.publish');
         Route::post('/announcements/{announcement}/archive', [PlatformSettingsController::class, 'archiveAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.archive');
         Route::get('/policies', [PlatformSettingsController::class, 'policies'])->middleware('admin.permission:platform-settings.view')->name('policies.index');
+        Route::get('/feature-controls', [FeatureControlController::class, 'index'])->middleware('admin.permission:platform-settings.view')->name('feature-controls.index');
+        Route::patch('/feature-controls/{key}', [FeatureControlController::class, 'update'])
+            ->middleware('admin.permission:platform-settings.manage')
+            ->where('key', '[a-z0-9._-]+')
+            ->name('feature-controls.update');
         Route::post('/policies/{type}/versions', [PlatformSettingsController::class, 'storePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->name('policies.versions.store');
         Route::post('/policy-versions/{version}/successor', [PlatformSettingsController::class, 'createPolicySuccessor'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.successor');
         Route::patch('/policy-versions/{version}', [PlatformSettingsController::class, 'updatePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.update');
