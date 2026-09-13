@@ -50,7 +50,7 @@ The rules keep the backend contract, the copied Flutter documentation, and the e
 - Do not describe a feature as implemented because a UI mock, seed record, or draft route exists.
 - Use `status`, `implementation_status`, and `canonical` metadata to distinguish contract maturity from code completion.
 - Mark a spec `canonical: true` only when it is the reviewed source contract for that feature.
-- Mark an unimplemented or conceptual spec `canonical: false` and state that it cannot be used to invent API behavior.
+- Canonical authority is not implementation completion: a reviewed target may be `canonical: true` while its endpoints remain unavailable. Reserve `canonical: false` for unreviewed/non-authoritative proposals; always state actual endpoint availability separately.
 - Increment the spec version when the contract, endpoint, field, permission, or state behavior changes materially.
 - Add `backend_contract_commit` or an equivalent API-version field when the spec is consumed by Flutter.
 

@@ -3,13 +3,13 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 2.1
 status: Implemented foundation; dedicated coverage and recovery completion deferred
-implementation_status: foundation implemented; operational work unavailable
+implementation_status: Auth foundation implemented; first- and final-mile APIs exist under their owning specs; external Flutter implementation unverified
 canonical: true
 role: Courier / Rider
 scope: Laravel API consumed by an external Flutter mobile client
-backend_contract_commit: d817a10
+backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md
 ---
 
@@ -22,7 +22,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 - **Client boundary:** Courier screens belong to the separate Flutter project. This repository provides API behavior only; do not add a Courier React page, browser-cookie flow, or web dashboard under `src/`.
 - **MVP cardinality:** one Courier has one current Logistics affiliation. The selected organization owns exactly one operational hub; the server derives that hub and the client cannot select a sub-hub.
 - **Approval authority:** The associated active Logistics organization approves or rejects the Courier affiliation. Admin may suspend, restore, or deactivate an account through the separate lifecycle feature, but Admin does not approve the affiliation.
-- **Deferred:** reset-token delivery/completion, email verification, MFA, affiliation history/revocation, session-device policy, and all shipment, pickup, delivery, scan, routing, proof, earnings, and offline endpoints.
+- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile QR evidence, movement, completion, and history APIs exist under their owning specs; media proof, final-mile routing, earnings, and offline mutations remain deferred.
 
 ```text
 GET active Logistics options
@@ -124,14 +124,14 @@ GET active Logistics options
 - [x] Accepted image types and the strict under-10-MiB boundary are enforced server-side.
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
 - [x] Bearer login, `/me`, current-token logout, generic recovery response, and DTO redaction exist.
-- [x] Dedicated Courier auth tests, stable concurrent duplicate response, reset completion/delivery, and affiliation-history/revocation exist.
-- [x] Operational Courier endpoints remain unavailable until the shared Shipment/Delivery Task schema is approved and migrated.
+- [x] Complete recovery delivery/reset and affiliation-history/revocation, and verify concurrent duplicate registration; existing foundation tests do not establish these extensions.
+- [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
 ## HOW
 
 ### Implemented API contract
 
-The validated backend baseline is commit `d817a10`; the following routes are the current contract.
+The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; this documentation review does not certify external Flutter or PostgreSQL release tests.
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
@@ -188,7 +188,7 @@ The validated backend baseline is commit `d817a10`; the following routes are the
 
 ### Data, Flutter handoff, and testing
 
-- Current tables are `users`, `courier_profiles`, `addresses`, `vehicles`, `registration_applications`, `documents`, `courier_logistics_affiliations`, and Sanctum tokens. Operational shipment tables do not exist.
+- Auth uses `users`, `courier_profiles`, `addresses`, `vehicles`, `registration_applications`, `documents`, `courier_logistics_affiliations`, and Sanctum tokens. The additive fulfillment migration also defines operational records; apply it before consuming final-mile APIs.
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.
 - Registration upload UI must show accepted formats and the under-10-MiB limit, progress/cancel/retry, and server field errors. Client checks are convenience only.
