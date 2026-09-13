@@ -2,7 +2,10 @@
 
 namespace App\Services\Logistics;
 
+use App\Exceptions\Logistics\HubLocationConflictException;
 use App\Models\Address;
+use App\Models\LogisticsHub;
+use App\Models\LogisticsHubLocationChange;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
@@ -74,6 +77,51 @@ class LogisticsAccountService
 
             return $this->load($lockedLogistics);
         });
+    }
+
+    /** @param array<string, string|null> $context */
+    public function updateHubLocation(User $logistics, float $latitude, float $longitude, string $expectedUpdatedAt, string $reason, array $context = []): User
+    {
+        DB::transaction(function () use ($logistics, $latitude, $longitude, $expectedUpdatedAt, $reason, $context): void {
+            $lockedLogistics = User::query()->lockForUpdate()->findOrFail($logistics->id);
+            $organization = $lockedLogistics->logisticsOrganization()->lockForUpdate()->firstOrFail();
+            $hub = $organization->hub()->lockForUpdate()->firstOrFail();
+            $address = $hub->address()->lockForUpdate()->firstOrFail();
+            $this->assertAddressOwner($lockedLogistics, $address);
+
+            $currentRevision = $this->locationRevision($hub, $address);
+            $expectedRevision = $expectedUpdatedAt;
+            if ($currentRevision === null || ! hash_equals($currentRevision, $expectedRevision)) {
+                throw new HubLocationConflictException([
+                    'latitude' => $address->latitude === null ? null : (float) $address->latitude,
+                    'longitude' => $address->longitude === null ? null : (float) $address->longitude,
+                    'expected_updated_at' => $currentRevision,
+                ]);
+            }
+
+            $previousLatitude = $address->latitude === null ? null : (float) $address->latitude;
+            $previousLongitude = $address->longitude === null ? null : (float) $address->longitude;
+            $address->forceFill(['latitude' => $latitude, 'longitude' => $longitude])->save();
+            $hub->forceFill(['location_revision' => (string) Str::uuid7()])->save();
+            LogisticsHubLocationChange::create([
+                'logistics_hub_id' => $hub->id,
+                'actor_id' => $lockedLogistics->id,
+                'previous_latitude' => $previousLatitude,
+                'previous_longitude' => $previousLongitude,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'reason' => $reason,
+                'created_at' => now('UTC'),
+            ]);
+            $this->logMutation($lockedLogistics, 'hub_location', ['latitude', 'longitude'], $context);
+            Log::info('Logistics hub location changed; future coordinate-fingerprint calculations will use the new pin.', [
+                'logistics_id' => $lockedLogistics->id,
+                'hub_id' => $hub->id,
+                'request_id' => $context['request_id'] ?? null,
+            ]);
+        });
+
+        return $this->load($logistics->fresh());
     }
 
     /** @param array<string, string|null> $context */
@@ -205,6 +253,11 @@ class LogisticsAccountService
         if ($address->user_id !== $logistics->id) {
             throw (new ModelNotFoundException)->setModel(User::class, [$logistics->id]);
         }
+    }
+
+    private function locationRevision(LogisticsHub $hub, Address $address): ?string
+    {
+        return $hub->location_revision ?? $address->updated_at?->copy()->utc()->format('Y-m-d\\TH:i:s.u\\Z');
     }
 
     /** @return array{mime: string, extension: string, size: int, width: int, height: int} */

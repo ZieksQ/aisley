@@ -4,12 +4,13 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.4
 status: Implemented final-mile task, movement, and delivery-context API; route/location extensions deferred
 implementation_status: Final-mile task reads, acceptance, hub pickup evidence, movement transitions, and delivery-context read are implemented; location/route metrics remain unavailable
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
-backend_contract_commit: 5596fab
+backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-delivery-v1-final-mile-task
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
@@ -36,7 +37,7 @@ accepted final-mile task
 
 ### Authentication and task scope
 
-- Require `auth:sanctum` and `courier.active`; Flutter sends `Authorization: Bearer <token>`.
+- Require `auth:sanctum`, `courier.active`, and `policy.consent`; Flutter sends `Authorization: Bearer <token>`.
 - Derive Courier, accepted final-mile task, Order/Parcel, selected Logistics organization, and sole hub server-side.
 - Reject foreign task IDs, inactive accounts, revoked affiliations, reassigned tasks, and guessed `courier_id`/organization/hub fields without tenant disclosure.
 - The task must be in `delivery_accepted` or a later server-authorized transit state before delivery context is returned.
@@ -93,14 +94,16 @@ accepted final-mile task
 - `POST /api/v1/courier/final-mile-tasks/{task}/accept` — implemented; accepts the current Logistics offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/reject` — implemented; records a reason and leaves the task available for Logistics re-offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented companion action owned by `docs/features/courier/pick-up-order/specs.md`; use its exact request, pending-evidence response, and retry contract. Deliver Order starts movement only after Logistics records `picked_up_from_hub`.
-- `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery` with a task revision.
+- `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery`. Send JSON `{ "target_state": "in_transit", "expected_revision": 4 }` and a UUID `Idempotency-Key` header.
+- Current `FinalMileStatusRequest` also accepts `status` as an alias for `target_state`, and `revision` for `expected_revision`; canonical fields take precedence when both are supplied. The Flutter handoff's `{status, expected_revision}` is supported. Revision must be at least 1; unknown fields fail `422`.
+- Movement returns `200 {data: <task projection>}`; invalid sequence/stale revision gives `409 TASK_STATE_CONFLICT`, reused key with changed payload gives `409 IDEMPOTENCY_KEY_REUSED`. Retain the same key/payload after timeout and refetch state; this review does not add or change the endpoint.
 - `GET /api/v1/courier/tasks/{task}/route` — planned/unavailable; same scope; returns provider-neutral route summary, `distance_km`, `estimated_duration_minutes`, calculation time, freshness, and an optional render/navigation payload.
 - `POST /api/v1/courier/tasks/{task}/location` — planned/unavailable; JSON `{ "latitude": number, "longitude": number, "captured_at": timestamp, "expected_revision": number, "idempotency_key": string }`; no client status/owner fields.
-- Responses contain opaque task/Order references, machine state plus human label, destination summary, route freshness, and allowed next action. Raw provider credentials/paths are never returned.
+- Implemented task DTOs use `task_id`, `leg`, `status`, `revision`, current offer, Order/Parcel/waybill and area summaries; delivery adds authorized destination/hub context. Human labels, route freshness, metrics, and next-action fields are not guaranteed current fields.
 - `401` signs out; `403` means inactive/unauthorized task; `404` hides foreign task existence; `409` means stale/reassigned state; `422` means invalid coordinates; `429`, timeout, offline, and provider failure are explicit retryable states.
 - Task and location responses are private, `Cache-Control: private, no-store`, and never shared across Courier accounts.
 
-### Route payload contract
+### Deferred route payload contract — not a live response
 
 - `distance_km` is a non-negative decimal with an explicit unit; `estimated_duration_minutes` is a non-negative integer or `null` when unavailable.
 - `calculated_at` and a freshness state accompany every metric. A stale metric may be displayed as advisory but cannot be treated as a current guarantee.
@@ -109,7 +112,7 @@ accepted final-mile task
 - A route response is scoped to the accepted task and its immutable pickup/destination snapshots. It cannot be requested for a guessed coordinate pair outside that task.
 - Repeated route reads are safe and may use short-lived server caching keyed by task/revision and coordinate fingerprints; private data is never shared-cached.
 
-### Location submission contract
+### Deferred location submission contract — do not call
 
 - If location updates are enabled, latitude and longitude are validated for range, precision, timestamp skew, and task scope; client status and destination fields are ignored.
 - The server may reject locations that are too old, too frequent, outside the active task window, or associated with a changed revision.
@@ -147,7 +150,7 @@ accepted final-mile task
 {
   "data": {
     "task_id": "task-uuid",
-    "state": "in_transit",
+    "status": "in_transit",
     "destination": { "city_municipality": "Example", "province": "Example" },
     "distance_km": 7.4,
     "estimated_duration_minutes": 25,
@@ -159,7 +162,7 @@ accepted final-mile task
 
 ### Backend implementation boundary
 
-- Additive migrations introduce final-mile Delivery Task, assignment, custody, evidence, and revision records. Location and route-cache records remain deferred until their owning policy is approved.
+- The additive fulfillment migration already defines final-mile task, offer, evidence, revision and history records. Location and route-cache extensions remain deferred.
 - Use one transition/location service for task ownership, state checks, idempotency, rate limits, and append-only event history.
 - Deploy Rider owns assignment; Pick Up Order and Logistics Update Status own hub pickup validation/recording; Proof of Delivery and Complete Delivery own drop-off.
 - Route adapters must hide provider credentials and normalize results to the provider-neutral fields above. They cannot write task state.
@@ -197,10 +200,10 @@ accepted final-mile task
 ### Acceptance criteria
 
 - [x] Only an accepted final-mile task can return delivery context; location updates remain unavailable until separately implemented.
-- [x] `distance_km` and `estimated_duration_minutes` are provider-neutral, advisory, timestamped, and explicitly unavailable on failure.
+- [ ] Implement and verify final-mile route metrics/fallback under the deferred route contract; first-mile schedule metrics do not satisfy this criterion.
 - [x] Destination comes from the immutable checkout snapshot and cannot be changed by the Courier.
 - [x] Route/location capabilities cannot fabricate progress or mutate custody; stale revisions and reassignment are rejected by the implemented task transitions.
 - [x] First-mile and final-mile assignments remain independent and `delivered` remains owned by Complete Delivery.
-- [x] Flutter handles loading, unavailable, stale, offline, conflict, retry, and accessible text/map fallback states.
+- [ ] Verify external Flutter loading, unavailable, stale, offline, conflict, retry, and accessible fallback states.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/features/courier/dashboard/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/proof-of-delivery/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.

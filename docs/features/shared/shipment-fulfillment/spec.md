@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 1.7
+version: 1.8
 status: Cross-document decision and reconciliation guide; shared physical schema and P0 final-mile transitions implemented
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
@@ -267,6 +267,7 @@ Complete each unchecked question before creating physical operational migrations
 | Courier first-mile QR/manual verification and pickup confirm  | `docs/features/courier/pick-up-order/specs.md`            | Implemented; bridges legacy confirmation into shared physical records               |
 | Physical Courier QR evidence submission for final custody     | `docs/features/courier/proof-of-delivery/specs.md`        | Implemented P0; photo/signature media remains deferred                             |
 | Logistics scan validation and authoritative custody recording | `docs/features/logistics/update-status/specs.md`          | Implemented for hub/final-mile P0 transitions                                      |
+| Logistics bounded operational queue and Hub operations      | `docs/features/logistics/dashboard/specs.md`              | Implemented; active scoped rows/counts; stale threshold/realtime deferred         |
 | Hub receipt, sorting, transfer, and dispatch                  | `docs/features/logistics/update-status/specs.md`          | Implemented receipt/sort/dispatch; internal transfer execution deferred             |
 | Final-mile task creation, assignment, and re-offer            | `docs/features/logistics/deploy-rider/specs.md`           | Implemented final-mile candidate/offer API; advanced ranking deferred               |
 | Courier final-mile acceptance/rejection                       | `docs/features/courier/accept-delivery-requests/specs.md` | Implemented; first-mile listing/acceptance remains available                         |

@@ -4,9 +4,10 @@ feature: courier-pick-up-order
 title: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.6
+version: 2.7
 status: Implemented first-mile pickup and shared final-mile handoff bridge
 implementation_status: First-mile Courier API, route-manifest API, and final-mile companion backend are implemented; Flutter remains external
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
 backend_contract_commit: d5c160d4a5a21272e487b6f46a82de35e81395cb
@@ -24,7 +25,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Scope:** Courier task receipt, schedule/address/order details, route-manifest consumption, QR/manual identifier verification, first-mile pickup confirmation, and final-mile hub-handoff evidence submission.
 - **Mobile boundary:** Production Courier screens, secure token storage, offline decoding, and device accessibility belong to the external Flutter app. `src/couriermockup` is a development-only React harness for verifying the same bearer-token API, camera/manual input states, and handoff behavior in a browser; it is not a deployable Courier web application.
 - **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with either the QR payload or printed Order reference. Confirmation resolves the identifier to its matching parcel in the open schedule, records immutable idempotency/history data, sets the task to `picked_up_from_seller`, advances the Order to `picked_up`, and fulfills the Order's Inventory reservation atomically. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier. The additive fulfillment bridge creates one shared Parcel/Shipment and links the legacy first-mile task without replaying Inventory; Logistics can then receive, sort, and dispatch the parcel, offer an independent final-mile task, and validate final-mile QR handoff/delivery completion through the owning operational APIs.
-- **Not implemented yet:** The production Flutter screens, Courier notification read/push endpoint, turn-by-turn navigation, Logistics dashboard UI for the new operational routes, photo/signature proof, and location telemetry.
+- **Flutter handoff (2026-09-13):** Both-leg pickup screens, keyboard/pasted QR or manual references, and ordered first-mile manifests are reported implemented. Camera decoding, Flutter map/navigation, media proof, and telemetry remain deferred; Logistics operations UI now exists.
 
 ### Scheduled bulk-pickup flow
 
@@ -185,17 +186,14 @@ Seller packs Orders and requests one Logistics provider
 Example implemented first-mile confirmation request:
 
 ```json
-{
-  "identifier_type": "qr",
-  "identifier": "AISLEY:WB:1:WB-EXAMPLE"
-}
+{"identifier_type":"qr","identifier":"AISLEY:WB:1:WB-EXAMPLE"}
 ```
 
 `identifier_type = order_id` means the printed human-readable Order reference in the UI; it is not permission to submit an arbitrary database UUID. QR and manual input are normalized only for lookup, while the immutable waybill/order mapping remains authoritative.
 
 Example GeoJSON geometry (first-mile manifest only):
 ```json
-{"type":"Feature","geometry":{"type":"LineString","coordinates":[[121.0,14.5],[121.1,14.6],[121.0,14.5]]},"properties":{"kind":"route_line","geometry_source":"geoapify_routing"}}
+{"type":"Feature","geometry":{"type":"LineString","coordinates":[[121,14.5],[121.1,14.6],[121,14.5]]},"properties":{"kind":"route_line","geometry_source":"geoapify_routing"}}
 ```
 - Real manifests include numbered pickup points and the bounded feature collection; this example is not a live route.
 

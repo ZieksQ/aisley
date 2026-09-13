@@ -29,6 +29,8 @@ class RegisterRequest extends FormRequest
             'address.barangay' => ['required', 'string', 'max:255'], 'address.city_municipality' => ['required', 'string', 'max:255'],
             'address.province' => ['required', 'string', 'max:255'], 'address.region' => ['required', 'string', 'max:255'],
             'address.postal_code' => ['required', 'string', 'max:10'], 'address.latitude' => ['prohibited'], 'address.longitude' => ['prohibited'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude', $this->finiteCoordinate('latitude')],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude', $this->finiteCoordinate('longitude')],
             'government_id' => $this->evidenceRules(), 'business_permit' => $this->evidenceRules(),
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
@@ -46,6 +48,18 @@ class RegisterRequest extends FormRequest
                 }
             },
         ];
+    }
+
+    private function finiteCoordinate(string $field): Closure
+    {
+        return static function (string $attribute, mixed $value, Closure $fail) use ($field): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+            if (! is_numeric($value) || ! is_finite((float) $value)) {
+                $fail("The {$field} must be a finite number.");
+            }
+        };
     }
 
     protected function prepareForValidation(): void

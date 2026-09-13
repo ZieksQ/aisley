@@ -49,6 +49,11 @@ class LogisticsAccountResource extends JsonResource
                     'postal_code' => $address->postal_code,
                     'country' => $address->country,
                 ] : null,
+                'location' => $address ? [
+                    'latitude' => $address->latitude === null ? null : (float) $address->latitude,
+                    'longitude' => $address->longitude === null ? null : (float) $address->longitude,
+                    'expected_updated_at' => $hub?->location_revision ?? $address->updated_at?->copy()->utc()->format('Y-m-d\\TH:i:s.u\\Z'),
+                ] : null,
             ],
             'security' => [
                 'email_editable' => false,
@@ -57,6 +62,7 @@ class LogisticsAccountResource extends JsonResource
                 'organization_editable' => true,
                 'hub_name_editable' => true,
                 'hub_address_editable' => false,
+                'hub_location_editable' => true,
             ],
         ];
     }

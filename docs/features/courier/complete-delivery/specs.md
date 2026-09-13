@@ -3,13 +3,14 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.4
 status: Implemented P0 QR completion flow; advanced proof methods deferred
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
-canonical: false
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
+canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
-backend_contract_commit: 4774f35
+backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-completion-v1-qr
 ---
 
@@ -41,7 +42,7 @@ out_for_delivery
 
 ### Identity and authority
 
-- Courier requests require Sanctum bearer authentication and courier.active.
+- Courier requests require Sanctum bearer authentication, courier.active, and policy.consent; `POLICY_CONSENT_REQUIRED` opens acceptance without discarding a valid token.
 - Recheck active account, approved affiliation, active Logistics organization, and sole hub.
 - Scope each task to the authenticated Courier and its current final-mile assignment.
 - Use UUID task references; same-email accounts under another role have no Courier authority.
@@ -78,7 +79,7 @@ out_for_delivery
 ### Reliability and history
 
 - Use a task/actor/organization/action-scoped Idempotency-Key and request hash.
-- Matching retries replay the original result after current authorization checks.
+- Matching retries reuse the same intent and reload its current related state after route-level authorization; the response is not a byte-identical original snapshot.
 - A reused key with changed payload returns 409 IDEMPOTENCY_KEY_REUSED.
 - Store completion intent separately from physical state.
 - Only one successful delivered event may exist per Shipment/final-mile task.
@@ -137,34 +138,19 @@ out_for_delivery
 
 - The Logistics route is owned by Update Status; this spec does not create a second validation endpoint.
 - Courier POST uses application/json plus a UUID Idempotency-Key header.
-- Request fields: expected_revision (nonnegative integer), evidence_id (UUID), confirmed (must be true).
+- Request fields: expected_revision (integer at least 1), evidence_id (UUID), confirmed (must be true).
 - Reject unknown authority fields and unrelated evidence references.
 - GET has no body and no client-controlled ownership parameters.
-- New intent returns 202 with pending validation; replay returns the stored original response.
+- New intent and matching replay return 202. Replay may reflect updated intent/task state but still returns `delivered_at: null`; use GET for the authoritative completion projection and timestamp.
 - Finalization is visible through a fresh GET, not inferred from an earlier 202.
 - Initial GET may return intent_id null and delivered_at null.
 
 ```json
-{
-  "expected_revision": 4,
-  "evidence_id": "00000000-0000-4000-8000-000000000001",
-  "confirmed": true
-}
+{"expected_revision":4,"evidence_id":"00000000-0000-4000-8000-000000000001","confirmed":true}
 ```
 
 ```json
-{
-  "data": {
-    "task_id": "00000000-0000-4000-8000-000000000002",
-    "intent_id": "00000000-0000-4000-8000-000000000003",
-    "task_status": "out_for_delivery",
-    "order_status": "out_for_delivery",
-    "evidence_status": "awaiting_validation",
-    "completion_status": "awaiting_validation",
-    "delivered_at": null,
-    "revision": 5
-  }
-}
+{"data":{"task_id":"00000000-0000-4000-8000-000000000002","intent_id":"00000000-0000-4000-8000-000000000003","task_status":"out_for_delivery","order_status":"out_for_delivery","evidence_status":"awaiting_validation","completion_status":"awaiting_validation","delivered_at":null,"revision":5}}
 ```
 
 - completion_status is a response/intent field, not a new OrderStatus.
@@ -191,7 +177,7 @@ out_for_delivery
 
 ### Implementation and verification gate
 
-- Add Shipment/Parcel/task/assignment/evidence/intent/history records before enabling routes.
+- These records and routes exist through the additive fulfillment migration; deploy that migration before client integration rather than recreating the schema.
 - Follow the first-mile migration bridge in docs/schema.md; do not replay historical fulfillment.
 - Use the shared transition service; controllers and Flutter never directly assign status.
 - Keep unavailable routes disabled until migrations and schema-health checks pass.
@@ -212,9 +198,9 @@ out_for_delivery
 - [x] Logistics validation and required QR proof gate delivered.
 - [x] Task, Shipment, Order, history, and notification work commit atomically.
 - [x] Retries/concurrency cannot duplicate delivery or Inventory effects.
-- [x] Flutter distinguishes pending evidence from confirmed delivery.
+- [ ] Verify external Flutter distinguishes pending evidence from confirmed delivery; this repository cannot certify its screens.
 - [x] Private DTOs and history remain scoped and immutable.
-- [x] SQLite/PostgreSQL verification and client contract tests pass.
+- [ ] Complete PostgreSQL release verification and external Flutter contract tests; recorded SQLite coverage alone does not satisfy this gate.
 
 ### Deferred extensions
 

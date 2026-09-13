@@ -3,8 +3,8 @@ feature: logistics-deploy-rider
 title: Deploy Rider
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Implemented final-mile candidate and offer API; advanced dispatch policy deferred
+version: 1.2
+status: Implemented final-mile candidate/offer API and Logistics UI; advanced dispatch policy deferred
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account select and offer an eligible Courier for one operational task.
-- **Current implementation:** Logistics can list eligible affiliated Couriers and offer/re-offer a final-mile DeliveryTask after hub dispatch. The API is organization/sole-hub scoped and idempotent; the Logistics dashboard remains a scaffold and route/availability ranking is deferred.
+- **Current implementation:** Logistics can list eligible affiliated Couriers and offer/re-offer a final-mile DeliveryTask after hub dispatch. The API is organization/sole-hub scoped and idempotent; `/operations` consumes the authoritative projection, shows unavailable route metrics explicitly, preserves rejected history, and refreshes after commit. Route/availability ranking remains deferred.
 - **Core flow:** Seller confirms `ready_for_pickup` → selected Logistics creates/offers the first-mile task → Courier accepts or rejects → Logistics receives/sorts/dispatches → Logistics creates/offers the independent final-mile task → Courier accepts.
 - **Task boundary:** Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders but never merges their tasks, waybills, snapshots, or history.
 - **Non-goals:** Courier registration/approval, availability management, vehicle or zone CRUD, waybill generation, physical scans, pickup confirmation, proof of delivery, route navigation, billing, and multi-hub operations.
@@ -65,6 +65,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - `GET /api/v1/logistics/deploy-rider/tasks/{task}/candidates` — implemented; returns active approved affiliated Couriers with safe identity and explicit unavailable route metrics.
 - `POST /api/v1/logistics/deploy-rider/tasks/{task}/offers` — implemented; accepts `courier_id`, `expected_task_revision`, and a UUID `Idempotency-Key`; creates or re-offers the same final-mile task after rejection.
+- The Logistics Hub operations UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) calls these routes only after a server-scoped task lookup. It shows candidate loading/empty/error states, provider-neutral unavailable distance/ETA, explicit acceptance/pickup boundaries, and rejected offer history before allowing a re-offer.
 - A successful offer response contains the task reference, leg, offer/assignment state, Courier reference, server-calculated distance/ETA when available, and immutable event identifiers. It does not claim physical pickup.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid task/Courier, `429`, and provider-unavailable context. Retrying the same idempotency key is safe; a changed payload conflicts.
 
@@ -82,28 +83,29 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Acceptance criteria
 
-- [ ] Only the owning Logistics organization can list candidates or offer a task.
-- [ ] First-mile offering requires `ready_for_pickup`; final-mile offering requires approved hub dispatch.
-- [ ] Candidate eligibility is server-derived and revalidated at commit time.
-- [ ] Distance/ETA fields are provider-neutral, advisory, and absent or explicitly unavailable when calculation fails.
-- [ ] A rejected offer is visible to Logistics, leaves the Order unchanged, and permits re-offer of the same task.
+- [x] Only the owning Logistics organization can list candidates or offer a task.
+- [x] Final-mile offering requires approved hub dispatch; first-mile offering remains owned by its existing pickup workflow.
+- [x] Candidate eligibility is server-derived and revalidated at commit time.
+- [x] Distance/ETA fields are provider-neutral, advisory, and explicitly unavailable when calculation is not configured.
+- [x] A rejected offer is visible to Logistics, leaves the Order unchanged, and permits re-offer of the same task.
 - [ ] Informational `stale` does not automatically cancel or reassign unfinished work.
-- [ ] First-mile and final-mile assignments remain independent and Courier acceptance is separate from Logistics offering.
-- [ ] Retries/concurrency cannot duplicate active offers or overwrite append-only assignment history.
-- [ ] Offering a Courier never records physical pickup or bypasses scan/evidence validation.
-- [ ] DTOs and logs exclude secrets, raw storage paths, unrestricted location history, and unrelated PII.
+- [x] First-mile and final-mile assignments remain independent and Courier acceptance is separate from Logistics offering.
+- [x] Retries/concurrency cannot duplicate active offers or overwrite append-only assignment history.
+- [x] Offering a Courier never records physical pickup or bypasses scan/evidence validation.
+- [x] DTOs and logs exclude secrets, raw storage paths, unrestricted location history, and unrelated PII.
+- [ ] Automated ranking/expiry, stale threshold, and PostgreSQL/concurrency release verification remain open.
 
 ## HOW
 
 ### Implementation boundary
 
-- Do not implement this feature against the current scaffold's `summary: null` or against guessed status columns. Add the shared Shipment/Parcel/Delivery Task schema through new migrations only after the canonical documents and owning operational specs are reconciled.
+- The deployed UI consumes the shared Shipment/Parcel/DeliveryTask projection and does not create or redefine status columns. The additive fulfillment migration remains the schema source of truth.
 - Use one transition/assignment service for readiness checks, sole-hub scope, eligibility, revision locking, idempotency, and append-only offer history. The Dashboard consumes its projection.
 - Keep Courier acceptance in the Courier feature/API. A successful Logistics offer makes a task available to that external Flutter client; it does not mark acceptance.
 
 ### UI and reliability
 
-- The Logistics UI must show candidate loading, empty/no-eligible, unavailable distance/ETA, stale candidate, rejection/re-offer, conflict, success, and retry states with text and keyboard-accessible controls.
+- The Logistics UI shows candidate loading, empty/no-eligible, unavailable distance/ETA, rejection/re-offer, conflict, success, and retry states with text and keyboard-accessible controls. A concrete stale threshold remains deferred; last activity is shown by the Dashboard contract.
 - Refresh after a committed offer; communication or notification failure must not roll back the assignment decision.
 - Keep route calculations and credentials behind a server adapter; do not make a map vendor a schema or state authority.
 
@@ -111,7 +113,7 @@ The dispatch confirmation must show the task/leg, pickup and destination summari
 
 ### Rollout boundary
 
-- Keep advanced candidate ranking and dashboard controls deferred, but keep the implemented candidate/offer API on the shared transition service.
+- Keep advanced candidate ranking, expiry, and dashboard automation deferred, but keep the implemented candidate/offer API on the shared transition service.
 - A feature flag may expose candidate read-only previews first, but previews must use the same tenant predicates and must not create offers.
 - Re-offer and stale behavior must be enabled atomically with task-history persistence so a rejected offer cannot disappear from the queue.
 - Record rollout/API version in the Logistics client contract so external Courier clients can distinguish unavailable from implemented offers.

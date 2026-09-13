@@ -20,7 +20,7 @@ PSGC names and manually reviewed address fields remain authoritative. Coordinate
 
 ## Address pinning flow
 
-The Customer and Seller Address Book flow is:
+The Customer, Seller, and Logistics sole-hub flow is:
 
 ```text
 Select cascading PSGC address
@@ -35,6 +35,11 @@ Select cascading PSGC address
 There is no provider request while the user types. Changing a populated textual location field clears the coordinate pair; the user must pin again. Manual saving remains available when Geoapify is unavailable.
 
 ## Route Matrix ranking
+
+- Logistics hub coordinates are operator-confirmed routing inputs, not GPS-certified evidence. Save a complete validated pair on the hub's linked Address; unknown remains null.
+- Registration may fall back to text-only with an unpinned message; existing Logistics accounts add/correct their pin through the protected Account Settings endpoint. No extra hub/address or access gate is created.
+- Same-premises corrections preserve committed waybill/Order/manifest snapshots and invalidate future coordinate-fingerprint caches. Relocation and active-route replanning require their owning workflow.
+- Reuse origin-restricted browser credentials for intentional geocoding/tiles; never expose the server Route Matrix/Routing credential. Provide attribution and accessible coordinate adjustment when drag interaction is unavailable.
 
 - Call `POST https://api.geoapify.com/v1/routematrix` only from Laravel, using `GEOAPIFY_SERVER_API_KEY`; never expose this server credential to a browser bundle.
 - Send one source and only bounded eligible hub targets. Each location uses GeoJSON order `[longitude, latitude]`; no names, phone numbers, street lines, Order contents, user IDs, or account IDs are sent.
