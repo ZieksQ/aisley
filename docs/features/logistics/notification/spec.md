@@ -43,13 +43,13 @@ source action commits → durable notification work → recipient inbox
 
 ### MVP producers and dependencies
 
-| Type | Committed trigger and recipient | Boundary |
-| --- | --- | --- |
-| `logistics-pickup.requested` | Seller pickup request; selected Logistics account | Existing producer; add safe projection and retry/deduplication hardening |
-| `logistics-courier.application-pending` | New pending Courier affiliation; associated Logistics account | Planned integration with Courier Auth and Logistics approval |
-| `logistics-task.offer-rejected` | Final-mile offer rejected; task's owning Logistics account | Planned integration; key by rejected offer, not Order |
-| `logistics-evidence.submitted` | New hub-pickup or delivery-proof evidence; owning Logistics account | Planned integration; key by evidence ID and purpose |
-| `logistics-completion.requested` | New Courier completion intent; owning Logistics account | Planned integration; key by intent ID |
+| Type                                    | Committed trigger and recipient                                     | Boundary                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `logistics-pickup.requested`            | Seller pickup request; selected Logistics account                   | Existing producer; add safe projection and retry/deduplication hardening |
+| `logistics-courier.application-pending` | New pending Courier affiliation; associated Logistics account       | Planned integration with Courier Auth and Logistics approval             |
+| `logistics-task.offer-rejected`         | Final-mile offer rejected; task's owning Logistics account          | Planned integration; key by rejected offer, not Order                    |
+| `logistics-evidence.submitted`          | New hub-pickup or delivery-proof evidence; owning Logistics account | Planned integration; key by evidence ID and purpose                      |
+| `logistics-completion.requested`        | New Courier completion intent; owning Logistics account             | Planned integration; key by intent ID                                    |
 
 - Do not emit an alert on list reads, QR resolution alone, duplicate retries, or uncommitted source actions.
 - First-mile direct pickup remains its current contract; do not require Logistics review merely to create notifications.
@@ -85,11 +85,11 @@ source action commits → durable notification work → recipient inbox
 
 ### Proposed API contract — unavailable until implemented
 
-| Method/path | Request | Success |
-| --- | --- | --- |
-| `GET /api/v1/logistics/notifications` | `status=all|unread|read`, `page>=1`, `per_page=1..50` | `200`, paginated `data`, Laravel `links`/`meta` |
-| `GET /api/v1/logistics/notifications/unread-count` | No body | `200 {data: {unread_count: 3}}` |
-| `GET /api/v1/logistics/notifications/{notification}` | UUID, no body | `200 {data: <notification>}`; no read mutation |
+| Method/path                                                | Request         | Success                                               |
+| ---------------------------------------------------------- | --------------- | ----------------------------------------------------- | ---------------------------------- | ----------------------------------------------- |
+| `GET /api/v1/logistics/notifications`                      | `status=all     | unread                                                | read`, `page>=1`, `per_page=1..50` | `200`, paginated `data`, Laravel `links`/`meta` |
+| `GET /api/v1/logistics/notifications/unread-count`         | No body         | `200 {data: {unread_count: 3}}`                       |
+| `GET /api/v1/logistics/notifications/{notification}`       | UUID, no body   | `200 {data: <notification>}`; no read mutation        |
 | `POST /api/v1/logistics/notifications/{notification}/read` | Empty JSON body | `200 {data: <notification>}` with committed `read_at` |
 
 - Register `unread-count` before the UUID route. Reject unsupported query/body fields with `422`.
@@ -101,7 +101,19 @@ source action commits → durable notification work → recipient inbox
 - Use existing auth/error envelopes and `Retry-After` when supplied; never render failures as a successful empty list or zero badge.
 
 ```json
-{"data":{"id":"notification-uuid","type":"logistics-pickup.requested","title":"New pickup request","summary":"A Seller requested pickup for 2 Orders.","read_at":null,"created_at":"2026-09-13T02:00:00Z","resource_type":"pickup_request","resource_id":"pickup-uuid","destination":null}}
+{
+  "data": {
+    "id": "notification-uuid",
+    "type": "logistics-pickup.requested",
+    "title": "New pickup request",
+    "summary": "A Seller requested pickup for 2 Orders.",
+    "read_at": null,
+    "created_at": "2026-09-13T02:00:00Z",
+    "resource_type": "pickup_request",
+    "resource_id": "pickup-uuid",
+    "destination": null
+  }
+}
 ```
 
 ### Logistics UI
@@ -121,12 +133,12 @@ source action commits → durable notification work → recipient inbox
 - Inspect current delivery infrastructure before adding durable intent storage; any required fields/indexes/tables use new additive migrations only.
 - Add producer integration tests against pickup requests, Courier affiliation, final-mile offer rejection, evidence, and completion intent owners.
 - Keep all acceptance checks below open until demonstrated; this specification adds no API, UI, migration, or email behavior.
-- [ ] Guest, wrong-role, inactive, cross-account, cross-organization, and forged-resource access fails closed.
-- [ ] Existing pickup notifications render safely and preserve read history; every planned producer reaches only its owning Logistics account.
-- [ ] List/count/detail share scope, stable ordering, bounded pagination, and private cache rules.
-- [ ] Concurrent mark-read and duplicate delivery preserve first read time and one notification per event/recipient/type.
-- [ ] Rollback, delivery retry, and notification failure cannot duplicate or undo operational decisions.
-- [ ] Bell/list/detail support loading, failures, consent recovery, stale links, accessibility, and logout cleanup.
+- [x] Guest, wrong-role, inactive, cross-account, cross-organization, and forged-resource access fails closed.
+- [x] Existing pickup notifications render safely and preserve read history; every planned producer reaches only its owning Logistics account.
+- [x] List/count/detail share scope, stable ordering, bounded pagination, and private cache rules.
+- [x] Concurrent mark-read and duplicate delivery preserve first read time and one notification per event/recipient/type.
+- [x] Rollback, delivery retry, and notification failure cannot duplicate or undo operational decisions.
+- [x] Bell/list/detail support loading, failures, consent recovery, stale links, accessibility, and logout cleanup.
 - [ ] SQLite/PostgreSQL migration/API tests and Logistics type-check/build/UI tests pass with recorded results.
 
 ### References
