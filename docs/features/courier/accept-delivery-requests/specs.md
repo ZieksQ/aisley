@@ -4,9 +4,10 @@ feature: courier-accept-delivery-requests
 title: Accept Delivery Requests
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: First-mile and final-mile offer acceptance/rejection implemented
 implementation_status: First-mile listing/acceptance and final-mile listing, accept, reject, and Logistics re-offer are implemented
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378

@@ -4,9 +4,10 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Implemented final-mile task, movement, and delivery-context API; route/location extensions deferred
 implementation_status: Final-mile task reads, acceptance, hub pickup evidence, movement transitions, and delivery-context read are implemented; location/route metrics remain unavailable
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
@@ -93,7 +94,9 @@ accepted final-mile task
 - `POST /api/v1/courier/final-mile-tasks/{task}/accept` — implemented; accepts the current Logistics offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/reject` — implemented; records a reason and leaves the task available for Logistics re-offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented companion action owned by `docs/features/courier/pick-up-order/specs.md`; use its exact request, pending-evidence response, and retry contract. Deliver Order starts movement only after Logistics records `picked_up_from_hub`.
-- `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery` with a task revision.
+- `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery`. Send JSON `{ "target_state": "in_transit", "expected_revision": 4 }` and a UUID `Idempotency-Key` header.
+- Current `FinalMileStatusRequest` also accepts `status` as an alias for `target_state`, and `revision` for `expected_revision`; canonical fields take precedence when both are supplied. The Flutter handoff's `{status, expected_revision}` is supported. Revision must be at least 1; unknown fields fail `422`.
+- Movement returns `200 {data: <task projection>}`; invalid sequence/stale revision gives `409 TASK_STATE_CONFLICT`, reused key with changed payload gives `409 IDEMPOTENCY_KEY_REUSED`. Retain the same key/payload after timeout and refetch state; this review does not add or change the endpoint.
 - `GET /api/v1/courier/tasks/{task}/route` — planned/unavailable; same scope; returns provider-neutral route summary, `distance_km`, `estimated_duration_minutes`, calculation time, freshness, and an optional render/navigation payload.
 - `POST /api/v1/courier/tasks/{task}/location` — planned/unavailable; JSON `{ "latitude": number, "longitude": number, "captured_at": timestamp, "expected_revision": number, "idempotency_key": string }`; no client status/owner fields.
 - Implemented task DTOs use `task_id`, `leg`, `status`, `revision`, current offer, Order/Parcel/waybill and area summaries; delivery adds authorized destination/hub context. Human labels, route freshness, metrics, and next-action fields are not guaranteed current fields.

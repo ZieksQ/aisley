@@ -3,9 +3,10 @@ feature: courier-dashboard
 title: Courier Dashboard
 system: AISLEY
 type: Feature Specification
-version: 2.3
+version: 2.5
 status: Implemented scaffold; operational task sections deferred
 implementation_status: read-only API scaffold implemented; operational sections unavailable
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 role: Courier / Rider
 scope: External Flutter mobile client and Laravel read API scaffold
@@ -103,15 +104,15 @@ approved Courier session
 - [x] The repository exposes only a read-only Courier dashboard scaffold and builds no Courier web UI.
 - [x] The specification identifies the dashboard as read-only and separates each mutation-owning Courier feature.
 - [x] One-organization/one-hub scope and independent first-/final-mile assignments are explicit.
-- [x] Implemented task APIs are distinguished from the dashboard's unavailable aggregation; no external Flutter completion is claimed.
+- [x] Implemented task APIs are distinguished from the dashboard's unavailable aggregation; the supplied handoff reports navigation to both-leg screens, not completed dashboard aggregation.
 - [x] The protected dashboard scaffold returns bounded empty data, explicit unavailable section reasons, freshness metadata, and private cache headers.
 - [x] The scaffold's guest, wrong-role, pending-account, privacy, and no-operational-data behavior is covered by API tests.
-- [x] An operational API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
-- [x] Offered task rows identify first-mile or final-mile leg, expose only authorized operational Order data, and include provider-neutral distance/ETA when available.
-- [x] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task without changing the Order or duplicating task/waybill history.
-- [x] Unfinished work can display informational `stale` with freshness metadata and is never automatically cancelled or reassigned.
-- [x] Flutter consumes live operational DTOs, cursors, and task-state responses.
-- [x] Duplicate events, stale responses, retries, reconnection, and partial operational failures are covered by tests.
+- [ ] An operational API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
+- [ ] Offered task rows identify first-mile or final-mile leg, expose only authorized operational Order data, and include provider-neutral distance/ETA when available.
+- [ ] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task without changing the Order or duplicating task/waybill history.
+- [ ] Unfinished work can display informational `stale` with freshness metadata and is never automatically cancelled or reassigned.
+- [ ] Flutter consumes live operational DTOs, cursors, and task-state responses.
+- [ ] Duplicate events, stale responses, retries, reconnection, and partial operational failures are covered by tests.
 
 ## HOW
 
@@ -139,29 +140,7 @@ approved Courier session
 - Include a minimal JSON fixture only after the backend shape is approved; fixtures must not be mistaken for a live route.
 
 ```json
-{
-  "data": [],
-  "meta": { "next_cursor": null, "generated_at": "server-time" },
-  "sections": {
-    "notifications": {
-      "state": "unavailable",
-      "reason": "OPERATIONAL_SCHEMA_DEFERRED"
-    },
-    "available_tasks": {
-      "state": "unavailable",
-      "reason": "OPERATIONAL_SCHEMA_DEFERRED"
-    },
-    "active_tasks": {
-      "state": "unavailable",
-      "reason": "OPERATIONAL_SCHEMA_DEFERRED"
-    }
-  },
-  "freshness": {
-    "state": "scaffold",
-    "reason": "OPERATIONAL_SCHEMA_DEFERRED",
-    "generated_at": "server-time"
-  }
-}
+{"data":[],"meta":{"next_cursor":null,"generated_at":"server-time"},"sections":{"notifications":{"state":"unavailable","reason":"OPERATIONAL_SCHEMA_DEFERRED"},"available_tasks":{"state":"unavailable","reason":"OPERATIONAL_SCHEMA_DEFERRED"},"active_tasks":{"state":"unavailable","reason":"OPERATIONAL_SCHEMA_DEFERRED"}},"freshness":{"state":"scaffold","reason":"OPERATIONAL_SCHEMA_DEFERRED","generated_at":"server-time"}}
 ```
 
 - `OPERATIONAL_SCHEMA_DEFERRED` is a legacy reason literal still returned by this controller, not evidence that tables/routes are absent. Preserve wire compatibility; changing that reason requires a backend change.

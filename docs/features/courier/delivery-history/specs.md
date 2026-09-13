@@ -3,9 +3,10 @@ feature: courier-delivery-history
 title: Delivery History
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.5
 status: Implemented read-only final-mile history API; advanced filters deferred
-implementation_status: Courier-scoped delivered task list/detail APIs are implemented; Flutter screen and cursor/date filters remain external/deferred
+implementation_status: Courier-scoped delivered task list/detail APIs are implemented; Flutter list/detail is reported implemented; cursor/date filters remain deferred
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
@@ -155,40 +156,7 @@ Courier intent + Logistics-validated proof
 - Success returns 200; a missing route before implementation is not a successful empty page.
 
 ```json
-{
-  "data": [
-    {
-      "task_id": "00000000-0000-4000-8000-000000000001",
-      "leg": "final_mile",
-      "order": {
-        "id": "order-uuid",
-        "reference": "ORDER-EXAMPLE",
-        "status": "delivered"
-      },
-      "status": "delivered",
-      "delivered_at": "2026-09-11T08:00:00Z",
-      "pickup_area": {
-        "city_municipality": "Makati City",
-        "province": null,
-        "region": "NCR"
-      },
-      "destination_area": {
-        "city_municipality": "Pasig City",
-        "province": null,
-        "region": "NCR"
-      },
-      "parcel": {
-        "id": "parcel-uuid",
-        "reference": "PARCEL-EXAMPLE",
-        "item_count": 2
-      },
-      "evidence_status": "validated",
-      "completion_status": "validated",
-      "evidence_id": "evidence-uuid"
-    }
-  ],
-  "meta": { "next_cursor": null, "has_more": false }
-}
+{"data":[{"task_id":"00000000-0000-4000-8000-000000000001","leg":"final_mile","order":{"id":"order-uuid","reference":"ORDER-EXAMPLE","status":"delivered"},"status":"delivered","delivered_at":"2026-09-11T08:00:00Z","pickup_area":{"city_municipality":"Makati City","province":null,"region":"NCR"},"destination_area":{"city_municipality":"Pasig City","province":null,"region":"NCR"},"parcel":{"id":"parcel-uuid","reference":"PARCEL-EXAMPLE","item_count":2},"evidence_status":"validated","completion_status":"validated","evidence_id":"evidence-uuid"}],"meta":{"next_cursor":null,"has_more":false}}
 ```
 
 - The JSON example is a partial task projection; detail uses the same task projection as one `data` object, not a separate item-detail/route DTO.
@@ -225,7 +193,7 @@ Courier intent + Logistics-validated proof
 
 - [x] Courier access is scoped by completed assignment and authorized organization/hub.
 - [x] Only committed final-mile delivered records appear; first-mile pickup is excluded.
-- [x] Implement stable cursor pagination/date filters; current `limit`/exact-reference bounded reads are not a complete pagination contract.
+- [ ] Implement stable cursor pagination/date filters; current `limit`/exact-reference bounded reads are not a complete pagination contract.
 - [x] Dates, item snapshots, and references survive profile/catalog edits.
 - [x] DTOs exclude contact/street details, secrets, raw media paths, and unrelated evidence.
 - [x] History has no status or deletion mutation path.

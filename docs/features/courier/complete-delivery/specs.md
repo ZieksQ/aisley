@@ -3,9 +3,10 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Implemented P0 QR completion flow; advanced proof methods deferred
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
+flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
@@ -145,26 +146,11 @@ out_for_delivery
 - Initial GET may return intent_id null and delivered_at null.
 
 ```json
-{
-  "expected_revision": 4,
-  "evidence_id": "00000000-0000-4000-8000-000000000001",
-  "confirmed": true
-}
+{"expected_revision":4,"evidence_id":"00000000-0000-4000-8000-000000000001","confirmed":true}
 ```
 
 ```json
-{
-  "data": {
-    "task_id": "00000000-0000-4000-8000-000000000002",
-    "intent_id": "00000000-0000-4000-8000-000000000003",
-    "task_status": "out_for_delivery",
-    "order_status": "out_for_delivery",
-    "evidence_status": "awaiting_validation",
-    "completion_status": "awaiting_validation",
-    "delivered_at": null,
-    "revision": 5
-  }
-}
+{"data":{"task_id":"00000000-0000-4000-8000-000000000002","intent_id":"00000000-0000-4000-8000-000000000003","task_status":"out_for_delivery","order_status":"out_for_delivery","evidence_status":"awaiting_validation","completion_status":"awaiting_validation","delivered_at":null,"revision":5}}
 ```
 
 - completion_status is a response/intent field, not a new OrderStatus.
