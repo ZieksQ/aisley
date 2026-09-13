@@ -18,6 +18,7 @@ use App\Http\Resources\Courier\CourierUserResource;
 use App\Models\Document;
 use App\Models\LogisticsOrganization;
 use App\Models\User;
+use App\Services\Logistics\LogisticsNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,8 @@ use Throwable;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly LogisticsNotificationService $notifications) {}
+
     public function options(Request $request): JsonResponse
     {
         $query = trim((string) $request->input('search', ''));
@@ -53,7 +56,8 @@ class AuthController extends Controller
                 $address = $request->validated('address');
                 $user->addresses()->create(['type' => AddressType::Both, 'label' => 'Courier address', 'recipient_name' => trim($request->input('first_name').' '.$request->input('last_name')), 'contact_number' => $request->input('contact_number'), 'address_line_1' => $address['address_line_1'], 'address_line_2' => $address['address_line_2'] ?? null, 'barangay' => $address['barangay'], 'city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region'], 'postal_code' => $address['postal_code'], 'country' => 'Philippines', 'is_default' => true]);
                 $application = $user->registrationApplications()->create(['application_type' => UserRole::Courier, 'status' => ApplicationStatus::Pending, 'submitted_at' => now()]);
-                $user->courierLogisticsAffiliation()->create(['logistics_organization_id' => $org->id, 'logistics_hub_id' => $org->hub->id, 'status' => CourierAffiliationStatus::Pending]);
+                $affiliation = $user->courierLogisticsAffiliation()->create(['logistics_organization_id' => $org->id, 'logistics_hub_id' => $org->hub->id, 'status' => CourierAffiliationStatus::Pending]);
+                $this->notifications->queueCourierApplicationPending($affiliation);
                 $profile->vehicles()->create(['plate_number' => $request->input('plate_number'), 'type' => $request->input('vehicle_type'), 'status' => VehicleStatus::Active]);
                 foreach (['government_id' => DocumentType::GovernmentId, 'vehicle_registration' => DocumentType::VehicleRegistration] as $field => $type) {
                     $file = $request->file($field);

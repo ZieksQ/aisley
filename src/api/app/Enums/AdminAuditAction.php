@@ -20,6 +20,7 @@ enum AdminAuditAction: string
     case PolicySuccessorCreated = 'platform_settings.policy_successor_created';
     case PolicyVersionUpdated = 'platform_settings.policy_version_updated';
     case PolicyVersionPublished = 'platform_settings.policy_version_published';
+    case FeatureControlUpdated = 'platform_settings.feature_control_updated';
     case HomepageAdvertisementDraftCreated = 'platform_settings.homepage_advertisement_draft_created';
     case HomepageAdvertisementDraftUpdated = 'platform_settings.homepage_advertisement_draft_updated';
     case HomepageAdvertisementDraftDeleted = 'platform_settings.homepage_advertisement_draft_deleted';
@@ -56,6 +57,7 @@ enum AdminAuditAction: string
             self::PolicySuccessorCreated => 'Policy successor draft created',
             self::PolicyVersionUpdated => 'Policy version updated',
             self::PolicyVersionPublished => 'Policy version published',
+            self::FeatureControlUpdated => 'Feature control updated',
             self::HomepageAdvertisementDraftCreated => 'Homepage advertisement draft created',
             self::HomepageAdvertisementDraftUpdated => 'Homepage advertisement draft updated',
             self::HomepageAdvertisementDraftDeleted => 'Homepage advertisement draft deleted',

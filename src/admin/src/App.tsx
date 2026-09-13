@@ -16,6 +16,7 @@ import { UserDetailPage } from './pages/UserDetailPage'
 import { SellerCompliancePage } from './pages/SellerCompliancePage'
 import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
+import { FeatureControlsPage } from './pages/FeatureControlsPage'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route element={<AccountPage />} path="/account" />
           <Route element={<PolicyConsentPage />} path="/policy-consent" />
           <Route element={<PlatformSettingsPage />} path="/platform-settings" />
+          <Route element={<FeatureControlsPage />} path="/feature-controls" />
           <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/new" />
           <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/:configurationId/edit" />
           <Route element={<RegistrationsPage />} path="/registrations" />

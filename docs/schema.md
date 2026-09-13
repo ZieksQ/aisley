@@ -1093,7 +1093,7 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 ### 9.16 Platform announcements and policies
 
-**Models:** `Announcement`, `PlatformPolicy`, `PlatformPolicyVersion`, `PolicyAcceptance`
+**Models:** `Announcement`, `PlatformPolicy`, `PlatformPolicyVersion`, `PolicyAcceptance`, `PlatformFeatureControl`
 
 `announcements` stores one platform-wide plain-text announcement with a draft/published/archived lifecycle, optional expiration, Admin creator/updater references, and an incrementing `revision` used to reject stale edits and transitions. Published-read queries require `published_at <= now` and no elapsed expiration.
 
@@ -1102,6 +1102,8 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 `platform_policy_versions` preserves immutable published history. Versions are unique within a policy and contain title, bounded plain-text content, an optional user-safe change summary, draft/published/superseded status, explicit `requires_reconsent`, concurrency revision, author/publisher references, and publication timestamp. Nullable unique `source_policy_version_id` records the published version copied into a successor Draft and prevents competing successor copies for the same source. Publishing locks the policy and version, supersedes the previous current version, and changes the current pointer atomically.
 
 `policy_acceptances` is the UUID-backed version-specific consent record. Unique (`user_id`, `platform_policy_version_id`) makes later acceptance idempotent; no user is implicitly accepted when a version is published. The shared policy-consent service exposes user-specific status and exact-version acceptance over private API routes. The `policy.consent` middleware gates protected role APIs after the existing Sanctum/role/affiliation checks and leaves login, session bootstrap, logout, status, and acceptance reachable.
+
+`platform_feature_controls` stores explicitly declared, platform-wide boolean switches with a stable unique key, label/description, enabled value, optimistic `revision`, and the last Admin updater. The seeded `policy_consent_enforcement` control governs whether the shared `policy.consent` middleware blocks protected actions; disabling it does not alter policy versions or immutable acceptance history. Admin updates are revision-checked and audited through the existing audit outbox.
 
 ### 9.17 Seller pickup, shared waybill, and first-mile scheduling
 
@@ -1232,7 +1234,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 32. Final placement locks inventory balances in stable SKU order, revalidates the quote, and reserves stock atomically with all Orders and selected-Cart cleanup.
 33. Shop vouchers apply only to their issuer's Order. At most one App voucher is redeemed per batch and only against its explicit eligible target Shop; distinct-benefit stacking requires reciprocal stored permission.
 34. A Customer-scoped idempotency key returns the original batch only for the identical placement request. A reused key with different details is a conflict.
-35. Platform Settings exposes only allow-listed announcement and policy records; it cannot mutate environment variables, secrets, or infrastructure configuration.
+35. Platform Settings exposes only allow-listed announcement, policy, and declared feature-control records; it cannot mutate environment variables, secrets, arbitrary settings, or infrastructure configuration.
 36. Published policy versions are immutable, and each policy has at most one current version through `platform_policies.current_version_id`.
 37. Announcement and policy mutations require matching persisted revisions so stale Admin clients cannot silently overwrite newer state.
 38. A policy successor Draft must copy the current Published version without modifying its source; unique `source_policy_version_id` permits at most one successor lineage for that source.
@@ -1323,6 +1325,7 @@ Repository migrations are listed below in filename execution order; this invento
 62. `2026_09_12_000001_create_fulfillment_operations.php` — UUID Parcel/Shipment/DeliveryTask records, independent Courier offers, QR evidence/completion intents, append-only physical events, and legacy first-mile linkage.
 63. `2026_09_12_000002_create_logistics_hub_location_changes.php` — append-only same-premises hub-pin corrections with previous/new coordinates, reason, actor, and UTC timestamp.
 64. `2026_09_12_000003_add_location_revision_to_logistics_hubs.php` — opaque optimistic-concurrency revision for Logistics hub-pin writes.
+65. `2026_09_14_000001_create_platform_feature_controls_table.php` — declared platform-wide boolean controls with revision and last-Admin updater metadata.
 
 ## 14. Fulfillment schema and deferred extensions
 

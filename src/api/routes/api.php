@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FeatureControlController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
+use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
@@ -130,6 +132,11 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::post('/announcements/{announcement}/publish', [PlatformSettingsController::class, 'publishAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.publish');
         Route::post('/announcements/{announcement}/archive', [PlatformSettingsController::class, 'archiveAnnouncement'])->middleware('admin.permission:platform-settings.manage')->whereUuid('announcement')->name('announcements.archive');
         Route::get('/policies', [PlatformSettingsController::class, 'policies'])->middleware('admin.permission:platform-settings.view')->name('policies.index');
+        Route::get('/feature-controls', [FeatureControlController::class, 'index'])->middleware('admin.permission:platform-settings.view')->name('feature-controls.index');
+        Route::patch('/feature-controls/{key}', [FeatureControlController::class, 'update'])
+            ->middleware('admin.permission:platform-settings.manage')
+            ->where('key', '[a-z0-9._-]+')
+            ->name('feature-controls.update');
         Route::post('/policies/{type}/versions', [PlatformSettingsController::class, 'storePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->name('policies.versions.store');
         Route::post('/policy-versions/{version}/successor', [PlatformSettingsController::class, 'createPolicySuccessor'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.successor');
         Route::patch('/policy-versions/{version}', [PlatformSettingsController::class, 'updatePolicyVersion'])->middleware('admin.permission:platform-settings.manage')->whereUuid('version')->name('policies.versions.update');
@@ -269,6 +276,12 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [LogisticsNotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [LogisticsNotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{notification}', [LogisticsNotificationController::class, 'show'])->whereUuid('notification')->name('show');
+        Route::post('/{notification}/read', [LogisticsNotificationController::class, 'markRead'])->whereUuid('notification')->name('read');
+    });
     Route::get('/account', [LogisticsAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');

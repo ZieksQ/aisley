@@ -17,7 +17,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Let people read one platform-wide Terms of Service and one platform-wide Privacy Policy, inspect their published history, and let authenticated account holders record explicit acceptance of the shared versions.
 - **Ownership:** Admin Manage Platform Settings authors, versions, publishes, and preserves policy content. This feature consumes those published records and owns user-facing reads, acceptance status, and integration contracts; it does not edit policy text.
-- **Current baseline:** Laravel exposes public current/history reads for Terms and Privacy, private status/acceptance routes for authenticated account roles, and a protected-action gate for all role APIs. The webapp provides current/history/exact-version and Customer consent pages, and Seller/Admin/Logistics dashboards provide role-owned consent pages plus public links. `policy_acceptances` stores immutable user/version/timestamp rows. Authenticated users may sign in and reach their role-owned consent screen, but protected feature APIs and dashboard routes remain unavailable until the required versions are accepted.
+- **Current baseline:** Laravel exposes public current/history reads for Terms and Privacy, private status/acceptance routes for authenticated account roles, and a persisted Admin-controlled protected-action gate for all role APIs. The webapp provides current/history/exact-version and Customer consent pages, and Seller/Admin/Logistics dashboards provide role-owned consent pages plus public links. `policy_acceptances` stores immutable user/version/timestamp rows. When `policy_consent_enforcement` is enabled, authenticated users may sign in and reach their role-owned consent screen, but protected feature APIs and dashboard routes remain unavailable until the required versions are accepted.
 - **Audience:** Guests may read the same public Terms and Privacy. Every account role—Customer, Seller, Admin, Logistics, and Courier—uses the same current version for each policy; there are no role-specific or tenant-specific variants in the MVP. Internal Platform Rules remain Admin-only and are not part of the shared user policy set.
 - **Product rule:** Each shared policy has one stable policy identity and one integer version stream. Ordinary views show the same current published version to every audience; history is a separate view.
 - **Non-goals:** Admin policy authoring, legal advice, automatic acceptance, editing published rows, Internal Rules publication, subscription consent, marketing preferences, email/push delivery, or a Courier web UI.
@@ -49,7 +49,7 @@ public current policy/history read
 
 ### Consent matrix and acceptance
 
-- The consent matrix applies to the two shared Terms/Privacy identities. The current implementation requires initial acceptance from Customer, Seller, Admin, Logistics, and Courier accounts, but it does not create role-specific policy content or version streams.
+- The consent matrix applies to the two shared Terms/Privacy identities. When the declared `policy_consent_enforcement` control is enabled, the current implementation requires initial acceptance from Customer, Seller, Admin, Logistics, and Courier accounts; disabling the control bypasses the protected-action block without changing the matrix or acceptance history. It does not create role-specific policy content or version streams.
 - A current version marked `requires_reconsent` is required again for every role that has not accepted that exact version. A current version without that flag is covered by a prior acceptance.
 - Status, acceptance, and protected-action enforcement are implemented. Login, session restoration, logout, and the consent status/acceptance routes remain available so an authenticated user can reach and complete consent.
 - `requires_reconsent` describes a specific published successor. It does not by itself decide whether initial acceptance is mandatory or which role must accept it.
@@ -65,7 +65,7 @@ public current policy/history read
 
 ### Enforcement and role integration
 
-- The Customer, Seller, Admin, Logistics, and Courier authentication owners enforce the gate at protected-feature entry. Role differences affect only the route guard and UX; every role uses the same policy content and current version. Registration, sign-in, session restoration, logout, policy status, and policy acceptance remain available.
+- The Customer, Seller, Admin, Logistics, and Courier authentication owners enforce the gate at protected-feature entry when the Admin-managed `policy_consent_enforcement` control is enabled. Role differences affect only the route guard and UX; every role uses the same policy content and current version. Registration, sign-in, session restoration, logout, policy status, and policy acceptance remain available in either mode.
 - A missing required acceptance is represented by `required: true` and `all_required_accepted: false` in the private status projection. Protected API routes return HTTP `403` with the stable machine-readable `POLICY_CONSENT_REQUIRED` code, required policy/version descriptors, and linkable read/status/accept paths; it must not look like invalid credentials.
 - A gate must still permit the user to fetch and read the required policy and submit acceptance. Do not create a redirect loop that prevents consent.
 - Authenticated acceptance requires the role/status/affiliation checks of the owning auth contract. A suspended, deactivated, wrong-role, or orphaned account cannot accept on behalf of another identity.
@@ -91,6 +91,7 @@ public current policy/history read
 - **Implemented acceptance:** `POST /api/v1/policy-consent/{type}/versions/{version}/accept`; `type` can target only a shared Terms/Privacy identity; requires the same active-role/affiliation guard but is exempt from the consent gate; body is `{ "confirmation": true }` only. The server derives User, policy, version, and timestamp and returns the canonical accepted version with `Cache-Control: private, no-store`.
 - Acceptance returns the canonical policy/version and acceptance timestamp. A same-version retry returns the existing result; invalid confirmation is `422`, unauthenticated is `401`, unauthorized audience is `403`, stale/unavailable version is `409` or `404` per the owning auth contract, and throttling is `429` with `Retry-After`.
 - Protected role APIs and feature actions use `auth:sanctum`, their existing role/status/affiliation middleware, and `policy.consent`. When consent is missing they return `403 POLICY_CONSENT_REQUIRED` with `data.required_policies`, each current version, `read_url`, `accept_url`, and `status_url`; the response is private and non-cacheable.
+- `policy.consent` reads the persisted `policy_consent_enforcement` platform control on each status evaluation and fails closed to enabled when that declared control is unavailable. The Admin Feature Controls API is the only supported way to change it.
 - Clients may call the implemented routes after authentication. A stale or unavailable version returns `409` with `POLICY_VERSION_STALE`; clients should refresh status/current content and let the user retry. Do not treat `requires_reconsent` as a separate endpoint.
 
 ### Client behavior
@@ -114,6 +115,7 @@ public current policy/history read
 - [x] Customer, Seller, Admin, Logistics, and Courier protected-action owners enforce a shared-policy gate without preventing login, session restoration, policy viewing, or acceptance; Courier receives the same API contract for its external Flutter client.
 - [x] Webapp exposes accessible latest/history/exact-version pages and a Customer consent screen; Seller, Admin, and Logistics dashboards expose role-owned consent screens plus Terms/Privacy links to the webapp. Courier remains an external Flutter client.
 - [x] Backend tests cover public visibility, cache headers, history filtering, exact-version reads, Internal Rules exclusion, protected-action denial, machine-readable gate details, and post-acceptance access.
+- [x] Admin can temporarily disable and re-enable the protected-action gate through the audited, revision-protected `policy_consent_enforcement` control without deleting acceptance history.
 
 ## HOW
 

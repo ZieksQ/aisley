@@ -3,7 +3,7 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented P0 QR completion flow; advanced proof methods deferred
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
@@ -58,13 +58,13 @@ out_for_delivery
 - Final-mile task and Shipment must be out_for_delivery before a new completion intent is accepted.
 - Proof must belong to the same task, Parcel, Order, and assigned Courier.
 - Required proof must be durably stored and validated by Logistics before finalization.
-- Missing, rejected, pending, or inaccessible evidence keeps delivery state unchanged.
+- Missing, rejected, or inaccessible evidence blocks finalization. Pending evidence may be validated inside Logistics finalization; pending proof does not block Courier intent submission.
 - Mandatory proof type/combination remains owned by the Proof of Delivery policy.
 - Do not silently choose photo, signature, OTP, or recipient QR as universally required.
 - A configured proof policy must exist before enabling completion.
 - Courier submits an opaque evidence UUID, never storage credentials or raw blob paths.
-- Proof submission may precede completion intent; either alone cannot set delivered.
-- Finalization consumes a validated proof decision and an explicit Courier completion intent.
+- Submit QR/reference proof first, retain HTTP 202 `proof_id`, then submit completion with that UUID as `evidence_id`, current task revision, `confirmed: true`, and a distinct UUID Idempotency-Key. Do not wait for `completion_eligible: true` or prior Logistics validation.
+- Logistics finalization requires the same proof's Courier intent and validates pending proof atomically with delivery. It is not a separate pre-intent proof-approval workflow.
 - Use delivered for the target final-mile task, Shipment, and high-level Order projection.
 - Do not introduce a separate completed database value solely for history filtering.
 - The UI may label delivered as “Completed.”
@@ -143,7 +143,7 @@ out_for_delivery
 - GET has no body and no client-controlled ownership parameters.
 - New intent and matching replay return 202. Replay may reflect updated intent/task state but still returns `delivered_at: null`; use GET for the authoritative completion projection and timestamp.
 - Finalization is visible through a fresh GET, not inferred from an earlier 202.
-- Initial GET may return intent_id null and delivered_at null.
+- Initial GET may return `intent_id: null`, `completion_status: null`, `evidence_id: null`, and `delivered_at: null`; no intent is a valid state, not a parsing error.
 
 ```json
 {"expected_revision":4,"evidence_id":"00000000-0000-4000-8000-000000000001","confirmed":true}
@@ -154,6 +154,9 @@ out_for_delivery
 ```
 
 - completion_status is a response/intent field, not a new OrderStatus.
+- An older completion projection must not replace a newly submitted proof ID; compare task/proof identity and refetch. An intent for another proof does not satisfy the selected proof's handoff.
+- Courier `expected_revision` is the task revision. Logistics uses the Shipment revision from its own fresh lookup, never the Courier task revision.
+- The Laravel controller returns a `data` envelope for GET and POST. Flutter's direct-DTO/empty-202 fallback is defensive compatibility, not a new server guarantee; recover with GET and never fabricate an accepted intent.
 - After finalization GET returns delivered task/order states, `completion_status: validated`, and `delivered_at`; the task/Shipment/Order `delivered` state is authoritative.
 - The implementation must document its concrete throttling limit before release; no client relies on an invented limit.
 

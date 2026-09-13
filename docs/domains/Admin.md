@@ -87,9 +87,9 @@ Current protected routes are:
 ### 6. Manage Platform Settings
 
 - **Purpose:** Maintain platform announcements and the allow-listed Terms of Service, Privacy Policy, and Internal Platform Rules.
-- **Current state:** Authorized Admins can draft/edit/publish/archive announcements and create, view, edit, publish, and inspect versioned policy content through `/platform-settings`.
+- **Current state:** Authorized Admins can draft/edit/publish/archive announcements, create/view/edit/publish/inspect versioned policy content through `/platform-settings`, and manage declared platform feature controls through `/feature-controls`.
 - **Rules:** Announcements have explicit lifecycle/revision/expiration behavior and only active published records reach user-facing reads. A published policy version is immutable. Editing it creates or reopens one copied successor Draft; publishing that successor atomically supersedes the previous current version while preserving exact history. Ordinary policy views show only the current published version; authorized history views show prior published versions. Every mutation is revision-checked, audited, and followed by cache invalidation after commit.
-- **Boundary:** Platform Settings cannot modify `.env`, secrets, infrastructure, arbitrary key/value configuration, feature flags, legal policy outside the allow-list, or targeted push campaigns. Shared policy consent is enforced by the cross-role policy middleware; Platform Settings continues to own only policy records and publication.
+- **Boundary:** Platform Settings cannot modify `.env`, secrets, infrastructure, arbitrary key/value configuration, undeclared feature flags, legal policy outside the allow-list, or targeted push campaigns. The declared `policy_consent_enforcement` control can temporarily disable the cross-role protected-action gate; it does not alter policy versions or acceptance history.
 
 ### 7. Admin Notifications
 
