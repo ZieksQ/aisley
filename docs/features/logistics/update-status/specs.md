@@ -3,7 +3,7 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented hub/final-mile transition API and Logistics review UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
@@ -46,7 +46,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Courier scan and evidence authority
 
-- Final delivery requires Courier completion intent and validated proof under Courier Complete Delivery; the shared service atomically records task/Shipment/Order `delivered`. Manual recovery cannot bypass either requirement.
+- Final delivery requires a Courier intent for the selected delivery proof and current task revision. The shared service accepts awaiting-validation or validated proof, validates it inside the transaction, then atomically records task/Shipment/Order `delivered`; there is no required separate pre-intent proof approval.
 
 - A Courier scans the Order's shared waybill QR/reference in the mobile app and submits the event/evidence to Logistics. The Courier does not directly write authoritative custody state.
 - Logistics validates the parcel/waybill link, task leg, current state, sole-hub scope, Courier authorization, evidence requirements, and idempotency key before recording the event.
@@ -81,7 +81,17 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 The deployed responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
 
-### Open questions
+### Completion handoff and blocked-action diagnosis
+
+- Courier first submits delivery proof at `out_for_delivery`, then explicitly submits a completion intent using its returned `proof_id` as `evidence_id`; HTTP 202 alone never means delivered.
+- Refresh the Logistics record through `GET /api/v1/logistics/update-status/records/{reference}` after Courier submission. Select `delivery_proof` evidence, not `hub_pickup` evidence, and its matching `completion_intents[].evidence_id`.
+- The current UI disables delivery validation when selected proof has no matching awaiting-validation/validated intent. Another proof's intent does not satisfy this condition; old loaded detail may require refresh.
+- Submit `POST /api/v1/logistics/update-status/transitions` with JSON `{ "reference": "waybill-or-order-reference", "target_state": "delivered", "expected_revision": 7, "evidence_id": "selected-proof-uuid" }` and a UUID `Idempotency-Key`. The example revision must be replaced by the fresh Shipment revision.
+- `COMPLETION_INTENT_REQUIRED` means no matching Courier intent. `COMPLETION_STATE_CONFLICT` may mean the task is not ready or the intent has an old task revision; refetch and have the Courier explicitly reconfirm with the current revision and a new attempt key if necessary.
+- `SHIPMENT_STATE_CONFLICT` requires fresh Logistics Shipment state/revision. `PROOF_NOT_FOUND`, `PROOF_NOT_VALIDATED`, and `ORDER_STATE_CONFLICT` require correcting the linked evidence/state, never bypassing validation.
+- A notification read does not validate delivery. Investigate the selected proof, linked intent, task/Shipment/Order states, safe error code, and request correlation before attributing a live failure to documentation.
+
+### Remaining policy questions
 
 - Confirm the configured manual-recovery reason values, evidence retention period, and exact transition-specific notification recipients/channels.
 - Confirm whether Logistics may recover any exceptional transition; no rollback, delivery, return, refund, or partial-fulfillment rule is assumed here.

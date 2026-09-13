@@ -4,7 +4,7 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented P0 QR/reference proof submission; media extensions deferred
 implementation_status: Courier QR/reference proof records and Logistics validation are implemented; image/signature uploads remain deferred
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
@@ -97,6 +97,7 @@ final-mile task
 - Multipart photo/signature submission remains deferred; it must follow `docs/references/file-upload-requirements.md` when enabled.
 - The client must not submit `courier_id`, organization/hub IDs, target status, `verified`, `delivered`, raw storage paths, or another task's Order ID as authority.
 - HTTP 202 returns `data.task_id`, `proof_id`, `evidence_status`, `custody_state`, `completion_eligible: false`, and `submitted_at`. Map this `proof_id` to completion's `evidence_id`; unlike hub pickup, the response names it `proof_id`.
+- After that response, enable the separate explicit completion-intent action while proof is `awaiting_validation`. Waiting for Logistics to approve proof first creates a circular dependency: Logistics needs an intent for that same proof before finalization.
 - Errors distinguish `401`, `403`, `404`, `409`, `422`, `429`, timeout, offline, storage, and notification failure. Identical retries are safe; uncertain responses require a fresh GET.
 - All responses are private and `Cache-Control: private, no-store`; signed/capability media delivery, if approved, is short-lived and authorization-checked.
 
