@@ -416,6 +416,12 @@ class LogisticsPickupWaybillTest extends TestCase
             ->postJson("/api/v1/courier/first-mile-tasks/{$manualTask['id']}/pickup", $manualPayload)
             ->assertOk()
             ->assertJsonPath('data.idempotent', true);
+        $this->assertDatabaseHas('pickup_schedules', ['id' => $manualTask['schedule']['id'], 'status' => 'scheduled']);
+        $this->assertDatabaseHas('pickup_schedule_reminders', ['pickup_schedule_id' => $manualTask['schedule']['id'], 'status' => 'pending']);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules')
+            ->assertOk()
+            ->assertJsonPath('data.0.status', 'scheduled')
+            ->assertJsonPath('data.0.remaining_parcel_count', 1);
 
         $unrelatedCourier = $this->courier($organization->id, $hub->id);
         $this->actingAs($unrelatedCourier)->withHeader('Idempotency-Key', (string) Str::uuid())
@@ -437,6 +443,11 @@ class LogisticsPickupWaybillTest extends TestCase
             ])->assertOk()
             ->assertJsonPath('data.task_status', 'picked_up_from_seller')
             ->assertJsonPath('data.order_status', 'picked_up');
+
+        $this->assertDatabaseHas('pickup_schedules', ['id' => $manualTask['schedule']['id'], 'status' => 'completed']);
+        $this->assertDatabaseHas('pickup_schedule_reminders', ['pickup_schedule_id' => $manualTask['schedule']['id'], 'status' => 'suppressed']);
+        $this->assertDatabaseCount('pickup_schedule_history', 2);
+        $this->assertDatabaseHas('pickup_schedule_history', ['pickup_schedule_id' => $manualTask['schedule']['id'], 'action' => 'completed']);
 
         $this->assertDatabaseCount('courier_pickup_confirmations', 2);
         $this->assertDatabaseHas('courier_pickup_confirmations', [
@@ -467,7 +478,56 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->actingAs($logistics)->postJson("/api/v1/logistics/pickup-schedules/{$manualTask['schedule']['id']}/cancel", [
             'expected_revision' => 1,
             'reason' => 'This must not erase recorded custody.',
-        ])->assertConflict()->assertJsonPath('code', 'SCHEDULE_CUSTODY_STARTED');
+        ])->assertConflict()->assertJsonPath('code', 'SCHEDULE_STALE');
+    }
+
+    public function test_existing_all_picked_schedule_reconciles_once_without_replaying_side_effects(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $order = $this->order($shop);
+        $order->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Reconciliation Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        $pickup = $this->actingAs($seller)
+            ->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$order->id],
+                'pickup_address_id' => $seller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk()->json('data');
+        $schedule = $this->actingAs($logistics)
+            ->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => [$order->id],
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated()->json('data');
+
+        DB::table('first_mile_tasks')->where('pickup_schedule_id', $schedule['id'])->update([
+            'status' => 'picked_up_from_seller',
+            'picked_up_at' => now(),
+        ]);
+        $this->assertSame('scheduled', PickupSchedule::query()->findOrFail($schedule['id'])->status->value);
+
+        $this->artisan('pickups:reconcile-schedules')
+            ->assertSuccessful()
+            ->expectsOutputToContain("Completed {$schedule['id']}.");
+        $this->assertDatabaseHas('pickup_schedules', ['id' => $schedule['id'], 'status' => 'completed']);
+        $this->assertDatabaseHas('pickup_schedule_reminders', ['pickup_schedule_id' => $schedule['id'], 'status' => 'suppressed']);
+        $this->assertDatabaseHas('pickup_schedule_history', ['pickup_schedule_id' => $schedule['id'], 'action' => 'completed']);
+        $this->assertSame(1, DB::table('pickup_schedule_history')->where('pickup_schedule_id', $schedule['id'])->where('action', 'completed')->count());
+        $this->assertSame(1, (int) InventoryBalance::query()->sum('reserved'));
+        $this->assertSame('ready_for_pickup', $order->fresh()->status->value);
+
+        $this->artisan('pickups:reconcile-schedules')->assertSuccessful();
+        $this->assertSame(1, DB::table('pickup_schedule_history')->where('pickup_schedule_id', $schedule['id'])->where('action', 'completed')->count());
+
+        DB::table('pickup_schedule_reminders')->where('pickup_schedule_id', $schedule['id'])->update(['status' => 'pending', 'due_at' => now()]);
+        $notificationCount = DB::table('notifications')->count();
+        $this->artisan('pickups:dispatch-reminders')->assertSuccessful();
+        $this->assertDatabaseHas('pickup_schedule_reminders', ['pickup_schedule_id' => $schedule['id'], 'status' => 'suppressed']);
+        $this->assertSame($notificationCount, DB::table('notifications')->count());
     }
 
     public function test_bulk_pickup_route_groups_parcels_and_returns_a_minimal_matrix_sequence(): void

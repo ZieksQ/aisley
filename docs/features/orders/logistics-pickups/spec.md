@@ -3,8 +3,8 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 1.7
-status: Scheduling implemented; canonical schedule completion and existing-data reconciliation require implementation
+version: 1.8
+status: Implemented (scheduling, schedule lifecycle, and bounded reconciliation)
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -89,7 +89,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - A partial schedule remains `scheduled` while any task is `assigned` or `accepted`. Zero remaining is a reconciliation candidate, not sufficient proof of completion if tasks are missing, cancelled, or inconsistent.
 - Completed schedules remain historical but are excluded from Courier overlap/availability checks, cannot be revised/cancelled, and suppress pending reminders; claimed/retried reminder work must recheck schedule eligibility before delivery.
 - Schedule completion means first-mile Seller collection is finished, not hub receipt or final-mile `delivered`; it must not repeat Inventory fulfillment or change final-mile assignments/statuses.
-- **Current gap:** `PickupScheduleService` creates `scheduled` and checks that status for overlap/revision/cancellation; `ConfirmFirstMilePickup` records per-task pickup but does not complete the parent schedule. Completion/reminder guards and reconciliation are required, not implemented by this documentation edit.
+- `PickupScheduleLifecycleService` completes the parent in the final pickup transaction, suppresses pending or claimed reminders, and exposes a bounded `pickups:reconcile-schedules` command for existing zero-remaining candidates. Reconciliation only completes schedules whose membership is complete and every linked task is already `picked_up_from_seller`; empty, missing, cancelled, or partial task sets are reported without replaying pickup or Inventory effects.
 
 ### Notifications and cron
 
@@ -110,9 +110,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Schedule creation uses combined Philippine date/time controls for separate start and end window endpoints, and Courier selection is a searchable popup showing active status, schedules affecting the requested dates, and overlapping-window availability.
 - [x] Logistics schedule endpoints use Flatpickr combined date/time controls for start and end, while schedule filters, account birthday fields, and registration birthday fields use date-only Flatpickr controls; the mobile fallback is disabled.
 - [x] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
-- [ ] Partial pickup preserves `scheduled` and the exact assigned/accepted remaining count; the last successful pickup completes the parent schedule exactly once under concurrent/retried confirmation.
-- [ ] Completed schedules remain readable history, do not block Courier overlap/availability, reject revision/cancellation, and leave no active pending/retried reminders.
-- [ ] Existing zero-remaining `scheduled` rows reconcile safely only after confirming all linked tasks were picked up; no Inventory, pickup, or final-mile effects are replayed.
+- [x] Partial pickup preserves `scheduled` and the exact assigned/accepted remaining count; the last successful pickup completes the parent schedule exactly once under concurrent/retried confirmation.
+- [x] Completed schedules remain readable history, do not block Courier overlap/availability, reject revision/cancellation, and leave no active pending/retried reminders.
+- [x] Existing zero-remaining `scheduled` rows reconcile safely only after confirming all linked tasks were picked up; no Inventory, pickup, or final-mile effects are replayed.
 - [ ] Seller and Courier receive one assignment notification and at most one due reminder per schedule revision.
 - [x] Provider, API, scheduler, and notification failures have truthful fallbacks without cross-tenant or duplicate effects.
 
@@ -125,6 +125,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Add UUID `pickup_schedules`, `pickup_schedule_orders`, first-mile tasks, revision/history, and notification-reminder/outbox records.
 - Store every status/type as a string and cast it to a PHP enum; add unique active-Order scheduling and `(organization_id, status, starts_at)` indexes.
 - Implement `EligibleLogisticsQuery`, `LogisticsDistanceService`, `CreatePickupRequest`, `CreatePickupSchedule`, and `DispatchPickupReminders` services.
+- Implement `PickupScheduleLifecycleService` for transactional completion and the bounded, rerunnable `pickups:reconcile-schedules` command for existing-data reconciliation.
 - Call Geoapify Route Matrix server-side with one Seller source and bounded hub targets; keep the secret out of browser bundles, enforce timeout/circuit breaker, cache by coordinate pairs, and meter credits.
 - The Route Matrix free plan currently provides 3,000 credits/day; a 1×N matrix costs N baseline credits. Treat free capacity as a launch allowance, not an uptime guarantee.
 - Persist the distance value, unit, calculation time, coordinate fingerprints, mode, and provider status used for the recommendation; expire cached ranks when either address pin changes.
@@ -144,8 +145,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Verification and rollout
 
-- Reconcile existing data in place with a bounded, rerunnable backfill: identify zero-remaining `scheduled` candidates, lock/recheck the schedule and complete task membership, require every linked task to be `picked_up_from_seller`, then complete and suppress pending reminders atomically. Report inconsistent/empty/cancelled-task candidates without marking them complete; preserve historical references, confirmations, and Inventory movements. Fresh migration or reseeding is not the solution; no backfill runs in this documentation task.
-- Verify all-picked versus partial/cancelled/missing-task cases, repeat backfill runs, last-pickup/reminder races, completed overlap exclusion and edit/cancel rejection on SQLite/PostgreSQL before claiming lifecycle completion implemented.
+- Reconcile existing data in place with the bounded, rerunnable `pickups:reconcile-schedules` command: identify zero-remaining `scheduled` candidates, lock/recheck the schedule and complete task membership, require every linked task to be `picked_up_from_seller`, then complete and suppress pending reminders atomically. Report inconsistent/empty/cancelled-task candidates without marking them complete; preserve historical references, confirmations, and Inventory movements. Fresh migration or reseeding is not the solution.
+- Verify all-picked versus partial/cancelled/missing-task cases, repeat backfill runs, last-pickup/reminder races, completed overlap exclusion and edit/cancel rejection on SQLite/PostgreSQL before production rollout. Focused SQLite lifecycle coverage is implemented; PostgreSQL remains a release gate.
 - Test role/status/Shop/organization IDOR, eligibility tiers, Geoapify success/timeout/quota fallback, deterministic ranks, and absent coordinates.
 - Test 30-Order bounds, idempotency, request/schedule races, Courier affiliation, overlap checks, UTC conversion, revisions, cancellation, and no Inventory effect.
 - Test explicit acceptance gating, task-level rejection/re-offer, preserved offer history, stale display, and notification failure without Order or custody mutation.
