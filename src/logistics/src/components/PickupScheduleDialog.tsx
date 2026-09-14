@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
-import { FaMagnifyingGlass, FaTruckFast, FaXmark } from 'react-icons/fa6'
+import { FaArrowsRotate, FaMagnifyingGlass, FaTruckFast, FaXmark } from 'react-icons/fa6'
 import type { CourierAvailabilityOption } from '../types/pickups'
 import { formatPhtDateTime, localParts, PICKUP_TIME_ZONE, type ScheduleWindow } from '../lib/pickupSchedule'
 import { FlatpickrInput } from './FlatpickrInput'
@@ -60,7 +60,7 @@ export function ScheduleFields({
   </div>
 }
 
-type CourierPickerProps = {
+export type CourierPickerProps = {
   couriers: CourierAvailabilityOption[]
   courierId: string
   setCourierId: (value: string) => void
@@ -70,9 +70,12 @@ type CourierPickerProps = {
   endDateTime: string
   onRefreshCouriers?: () => void
   idPrefix: string
+  modalDescription?: string
+  uncheckedAvailabilityText?: string
+  modalFootnote?: string
 }
 
-function CourierPicker({ couriers, courierId, setCourierId, courierLoading, courierError, startDateTime, endDateTime, onRefreshCouriers, idPrefix }: CourierPickerProps) {
+export function CourierPicker({ couriers, courierId, setCourierId, courierLoading, courierError, startDateTime, endDateTime, onRefreshCouriers, idPrefix, modalDescription, uncheckedAvailabilityText, modalFootnote }: CourierPickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const trigger = useRef<HTMLButtonElement>(null)
@@ -91,7 +94,7 @@ function CourierPicker({ couriers, courierId, setCourierId, courierLoading, cour
     </button>
     {selected ? <p className="mt-1 text-xs text-zinc-500">{selected.contact_number ? `${selected.contact_number} · ` : ''}{selected.status === 'active' ? 'Account active' : `Account ${selected.status}`}</p> : null}
     {courierError ? <p className="mt-2 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{courierError}</p> : null}
-    {open ? <CourierPickerModal couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endDateTime={endDateTime} id={idPrefix} onClose={close} onRefreshCouriers={onRefreshCouriers} onSelect={(id) => { setCourierId(id); close() }} startDateTime={startDateTime} search={search} setSearch={setSearch} /> : null}
+    {open ? <CourierPickerModal couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endDateTime={endDateTime} id={idPrefix} modalDescription={modalDescription} modalFootnote={modalFootnote} onClose={close} onRefreshCouriers={onRefreshCouriers} onSelect={(id) => { setCourierId(id); close() }} startDateTime={startDateTime} search={search} setSearch={setSearch} uncheckedAvailabilityText={uncheckedAvailabilityText} /> : null}
   </>
 }
 
@@ -108,9 +111,12 @@ type CourierPickerModalProps = {
   onSelect: (id: string) => void
   search: string
   setSearch: (value: string) => void
+  modalDescription?: string
+  uncheckedAvailabilityText?: string
+  modalFootnote?: string
 }
 
-function CourierPickerModal({ couriers, courierId, courierLoading, courierError, startDateTime, endDateTime, id, onClose, onRefreshCouriers, onSelect, search, setSearch }: CourierPickerModalProps) {
+function CourierPickerModal({ couriers, courierId, courierLoading, courierError, startDateTime, endDateTime, id, modalDescription, modalFootnote, onClose, onRefreshCouriers, onSelect, search, setSearch, uncheckedAvailabilityText }: CourierPickerModalProps) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     document.addEventListener('keydown', closeOnEscape)
@@ -125,30 +131,30 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
   const checkedWindow = Boolean(startDateTime && endDateTime)
   const windowLabel = checkedWindow ? `${formatPhtDateTime(startDateTime)}–${formatPhtDateTime(endDateTime)} PHT` : ''
 
-  return <div aria-labelledby={`${id}-courier-picker-title`} aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" id={`${id}-courier-picker`} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }} role="dialog">
-    <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#18181b]">
-      <div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5 dark:border-white/10">
+  return <div aria-labelledby={`${id}-courier-picker-title`} aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-black/55 p-3 sm:grid sm:place-items-center sm:p-4" id={`${id}-courier-picker`} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }} role="dialog">
+    <div className="my-3 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col rounded-lg border border-zinc-200 bg-white shadow-lg sm:my-0 sm:max-h-[90vh] dark:border-white/10 dark:bg-[#18181b]">
+      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-200 p-4 dark:border-white/10 sm:p-5">
         <div>
           <h3 className="text-lg font-semibold" id={`${id}-courier-picker-title`}>Choose a Courier</h3>
-          <p className="mt-1 text-sm text-zinc-500">Active, approved Couriers from this Logistics hub. Check the selected date and time for schedule conflicts.</p>
+          <p className="mt-1 text-sm text-zinc-500">{modalDescription ?? 'Active, approved Couriers from this Logistics hub. Check the selected date and time for schedule conflicts.'}</p>
         </div>
         <button aria-label="Close Courier picker" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10" onClick={onClose} type="button"><FaXmark aria-hidden="true" /></button>
       </div>
-      <div className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs leading-5 text-zinc-500">{checkedWindow ? `Requested window: ${windowLabel}. Availability is checked against it.` : 'Choose a date and both times to check availability.'} Attendance tracking is not enabled yet, so account status is shown as active for now.</p>
-          {onRefreshCouriers ? <ActionButton busy={courierLoading} onClick={onRefreshCouriers}>Refresh</ActionButton> : null}
-        </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <p className="text-xs leading-5 text-zinc-500">{checkedWindow ? `Requested window: ${windowLabel}. Availability is checked against it.` : uncheckedAvailabilityText ?? 'Choose a date and both times to check availability.'} Attendance tracking is not enabled yet, so account status is shown as active for now.</p>
         {courierError ? <p className="mt-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{courierError}</p> : null}
-        <label className="relative mt-4 block">
-          <span className="sr-only">Search Couriers</span>
-          <FaMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 text-zinc-400" />
-          <input autoFocus className={`${field} h-11 pl-10`} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or contact number" type="search" value={search} />
-        </label>
-        {courierLoading && couriers.length === 0 ? <p className="p-5 text-sm" role="status">Checking active Couriers…</p> : <div className="mt-4 max-h-[55vh] divide-y divide-zinc-200 overflow-y-auto border-y border-zinc-200 dark:divide-white/10 dark:border-white/10">
+        <div className="mt-3 flex items-center gap-2">
+          <label className="relative min-w-0 flex-1">
+            <span className="sr-only">Search Couriers</span>
+            <FaMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-3 top-3 text-zinc-400" />
+            <input autoFocus className={`${field} pl-10`} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or contact number" type="search" value={search} />
+          </label>
+          {onRefreshCouriers ? <button aria-label="Refresh Couriers" aria-busy={courierLoading} className="grid size-10 shrink-0 place-items-center rounded-md border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:bg-transparent dark:text-zinc-300 dark:hover:bg-white/10" disabled={courierLoading} onClick={onRefreshCouriers} title="Refresh Couriers" type="button"><FaArrowsRotate className={courierLoading ? 'animate-spin' : ''} aria-hidden="true" /></button> : null}
+        </div>
+        {courierLoading && couriers.length === 0 ? <p className="p-4 text-sm" role="status">Checking active Couriers…</p> : <div className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-white/10 dark:border-white/10">
           {filtered.map((courier) => {
             const unavailable = courier.status !== 'active' || courier.availability === 'scheduled'
-            return <button className={`block w-full p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4C1268] ${unavailable ? 'cursor-not-allowed opacity-65' : 'hover:bg-zinc-50 dark:hover:bg-white/5'} ${courierId === courier.id ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`} disabled={unavailable || courierLoading} key={courier.id} onClick={() => onSelect(courier.id)} type="button">
+            return <button className={`block w-full p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4C1268] sm:p-4 ${unavailable ? 'cursor-not-allowed opacity-65' : 'hover:bg-zinc-50 dark:hover:bg-white/5'} ${courierId === courier.id ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`} disabled={unavailable || courierLoading} key={courier.id} onClick={() => onSelect(courier.id)} type="button">
               <div className="flex items-start gap-3">
                 <FaTruckFast aria-hidden="true" className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" />
                 <span className="min-w-0 flex-1">
@@ -160,9 +166,9 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
               </div>
             </button>
           })}
-          {filtered.length === 0 ? <p className="p-5 text-sm text-zinc-500">No Couriers match your search.</p> : null}
+          {filtered.length === 0 ? <p className="p-4 text-sm text-zinc-500">No Couriers match your search.</p> : null}
         </div>}
-        <p className="mt-3 text-[11px] text-zinc-500">All times use {PICKUP_TIME_ZONE}. The API rechecks Courier status and overlapping schedules before assigning work.</p>
+        <p className="mt-2 pb-1 text-[11px] text-zinc-500">{modalFootnote ?? `All times use ${PICKUP_TIME_ZONE}. The API rechecks Courier status and overlapping schedules before assigning work.`}</p>
       </div>
     </div>
   </div>

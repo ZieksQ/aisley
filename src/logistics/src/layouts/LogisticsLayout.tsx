@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FaArrowRightFromBracket, FaBarcode, FaBars, FaBell, FaBoxesPacking, FaFileContract, FaGaugeHigh, FaTruckFast, FaUserCheck, FaUserGear, FaWarehouse, FaXmark } from 'react-icons/fa6'
+import { FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaFileContract, FaGaugeHigh, FaTruckFast, FaUserCheck, FaUserGear, FaWarehouse, FaXmark } from 'react-icons/fa6'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
@@ -53,9 +53,9 @@ export function LogisticsLayout() {
       <nav aria-label="Logistics navigation" className="mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto">
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dashboard"><FaGaugeHigh />Dashboard</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/operations"><FaWarehouse />Hub operations</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBarcode />Receive at hub</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Dispatch parcels</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/pickups"><FaBoxesPacking />Pickups</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Dispatch parcels</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/notifications"><FaBell />Notifications</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/account"><FaUserGear />Account settings</NavLink>
