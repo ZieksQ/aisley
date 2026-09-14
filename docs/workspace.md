@@ -644,6 +644,12 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 
 Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders operationally, but it does not merge their tasks, waybills, snapshots, or histories.
 
+**Canonical first-mile PickupSchedule lifecycle:** A schedule starts as `scheduled`. Its `remaining_parcel_count` counts linked first-mile tasks still `assigned` or `accepted`. Partial schedules remain `scheduled` while any such task remains; once every linked task reaches `picked_up_from_seller`, the still-scheduled parent becomes `completed`. This is completion of Seller collection, not hub receipt or final-mile Buyer delivery.
+
+Completed schedules are historical: exclude them from Courier overlap/availability checks, reject revision/cancellation, and suppress pending reminders. Reminder dispatch/retry must recheck eligibility so completed work does not generate new pickup reminders. Completion must be transactional and retry-safe without repeating pickup, Inventory, or final-mile effects.
+
+The inspected first-mile confirmation currently records per-task pickup but does not complete the parent schedule; this lifecycle is the canonical requirement pending implementation. Existing `scheduled` rows with zero remaining parcels need safe in-place reconciliation/backfill. Recheck locked status and complete membership, require all linked tasks picked up, complete/suppress reminders once, and report empty/missing/cancelled/inconsistent task sets instead of guessing. Preserve history and stock movements; fresh migration or database reseeding is not a remedy. See the Pickup Scheduling spec and schema completion section for verification requirements.
+
 11.2 Canonical Order and Shipment State Model
 
 Use lowercase `snake_case` for persisted and API values, PascalCase for PHP enum cases, and human-readable labels only in the UI. Do not persist source-only uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER`.
