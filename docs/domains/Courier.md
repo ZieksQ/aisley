@@ -86,7 +86,7 @@ Courier-performed task actions and transitions are:
 
 Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; this payment detail is read-only to Couriers. The Seller-selected Logistics organization owns both task legs, and a Courier may operate only assigned/offered tasks within that organization.
 
-For the current high-level projection, explicit first-mile confirmation advances the Order from `ready_for_pickup` to `picked_up`; the detailed `picked_up_from_seller` task event remains authoritative proof. `assigned` remains reserved for a later Logistics/final-mile assignment contract and is not written by pickup scheduling.
+For the high-level projection, explicit first-mile confirmation advances `ready_for_pickup → picked_up`; later Logistics dispatch scheduling advances `picked_up → assigned` after creating the final-mile offer. Pickup scheduling does not write that final-mile projection.
 
 ## Physical delivery flow
 
@@ -100,7 +100,7 @@ Seller prepares the Order and confirms `ready_for_pickup`
 → Courier transfers the parcel to the Logistics organization's sole hub
 → Logistics receives the parcel (`received_at_hub`) using the same shared waybill
 → Logistics sorts, transfers, and dispatches it
-→ Logistics assigns a final-mile Courier (`delivery_assigned`)
+→ Logistics schedules the sorted parcel with a final-mile Courier (`delivery_assigned`)
 → final-mile Courier accepts (`delivery_accepted`)
 → Courier verifies and scans the parcel at the hub
 → Courier confirms `picked_up_from_hub`

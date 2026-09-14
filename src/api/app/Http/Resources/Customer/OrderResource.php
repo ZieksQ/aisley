@@ -15,6 +15,10 @@ class OrderResource extends JsonResource
     {
         $statuses = app(CustomerOrderStatusMapper::class);
         $group = $statuses->groupFor($this->status);
+        $deliveryTask = $this->parcel?->shipment?->tasks?->first();
+        $courier = $deliveryTask?->courier;
+        $courierProfile = $courier?->courierProfile;
+        $courierName = trim(implode(' ', array_filter([$courierProfile?->first_name, $courierProfile?->middle_name, $courierProfile?->last_name])));
 
         return [
             'id' => $this->id,
@@ -85,6 +89,13 @@ class OrderResource extends JsonResource
             'timelineCount' => $this->status_events_count,
             'timelineHasMore' => $this->status_events_count > $this->statusEvents->count(),
             'trackingUrl' => '/api/v1/customer/orders/'.$this->id.'/tracking',
+            'delivery' => $deliveryTask === null ? null : [
+                'status' => $deliveryTask->status->value,
+                'courier' => $courier === null ? null : [
+                    'name' => $courierName !== '' ? $courierName : 'Assigned Courier',
+                    'contactNumber' => $courierProfile?->contact_number,
+                ],
+            ],
             'map' => [
                 'available' => false,
                 'state' => 'unavailable',

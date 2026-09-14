@@ -90,7 +90,7 @@ Seller opens Seller-scoped processing Order
 | `picked_up_from_hub` / delivery     | Final-mile Delivery Task/Courier     | Read-only downstream status                              |
 
 - First-mile and final-mile assignments are independent. A Courier who completes first-mile pickup is not automatically assigned final-mile delivery.
-- `picked_up` currently projects first-mile Seller handoff; `assigned` is reserved for future final-mile assignment. Existing task/confirmation records retain first-mile detail; hub/final-mile detail requires the future shared schema.
+- `picked_up` projects first-mile Seller handoff; `assigned` projects a committed scheduled final-mile assignment. Existing Shipment/task records retain the detailed hub and final-mile states.
 
 ### Waybill safety
 

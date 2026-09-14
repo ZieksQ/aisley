@@ -3,8 +3,8 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.3
-status: Implemented hub/final-mile transition API and Logistics review UI; exceptional recovery deferred
+version: 1.4
+status: Implemented dedicated offline receiving and Hub operations recovery UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account validate operational evidence and commit an allowed Shipment/Delivery Task transition when scan automation needs recovery.
-- **Current implementation:** The additive fulfillment migration and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort/dispatch, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. `FulfillmentOperationsPage` consumes these projections with confirmation, revision-conflict refresh, evidence/completion review, and retry states. Waybill `resolve` remains an access event and is not treated as a physical scan.
+- **Current implementation:** The additive fulfillment migration and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. `/receive-at-hub` owns Code 128/QR/manual receipt capture with a Dexie outbox and partial-result bulk sync; `/operations` retains sorting, evidence review, and recovery. Scheduled dispatch is owned by Deploy Rider on `/dispatch`.
 - **Compatibility:** Existing explicit Courier first-mile confirmation still commits Seller pickup and Inventory fulfillment on its legacy contract, then idempotently bridges the result into shared physical records. New hub/final-mile custody transitions use Logistics validation and never replay that Inventory effect.
 - **Authority:** Logistics validates and records the authoritative event. A Courier performs a physical scan/handoff and submits it; the shared transition service commits state only after validation.
 - **Flow:** Courier submits QR/reference/evidence → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
@@ -32,7 +32,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Canonical state contract
 
-- Keep high-level `OrderStatus` separate from detailed physical task states. `picked_up` projects first-mile Seller pickup; `assigned` is reserved for future final-mile assignment and never means hub receipt.
+- Keep high-level `OrderStatus` separate from detailed physical task states. `picked_up` projects first-mile Seller pickup; `assigned` now projects a committed scheduled final-mile Courier assignment and never means hub receipt.
 - Detailed states use lowercase `snake_case`: `awaiting_seller_pickup`, `seller_pickup_assigned`, `seller_pickup_accepted`, `picked_up_from_seller`, `received_at_hub`, `sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, `delivery_assigned`, `delivery_accepted`, `picked_up_from_hub`, `in_transit`, `out_for_delivery`, and `delivered`.
 - Task-level `rejected` records an offered Courier's refusal without changing the Order; Logistics may re-offer the same task. Informational `stale` does not create an Order status and does not automatically cancel or reassign work.
 - Only the shared transition service may commit a state. No individual scanner, manual screen, or client may add source-only uppercase values or skip a required state.
@@ -40,7 +40,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Transition ownership
 
 - Seller owns `ready_for_pickup`; Courier actions submit first-mile `picked_up_from_seller` or final-mile `picked_up_from_hub` evidence.
-- Logistics owns validated hub milestones: `received_at_hub`, `sorted_at_hub`, and `dispatched_from_hub`, plus final-mile task offering. Internal `in_transfer` execution is deferred; dispatch requires sorting.
+- Logistics owns validated hub milestones. Dedicated Receiving commits `received_at_hub`; Hub operations commits `sorted_at_hub`; Deploy Rider atomically commits scheduled `dispatched_from_hub` plus the final-mile Courier offer for up to 15 sorted parcels. Internal `in_transfer` execution is deferred.
 - Customer-facing `picked_up` is backed by the first-mile confirmation; hub receipt and final-mile pickup require their own detailed Shipment/DeliveryTask events.
 - First-mile and final-mile assignments are independent. Update Status must not infer a second leg, acceptance, or pickup from a generic Order value.
 
@@ -75,9 +75,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - `POST /api/v1/courier/tasks/{task}/scan-events` — implemented alias for final-mile hub-pickup QR/reference evidence submission; Logistics validation still owns the custody transition.
 - `POST /api/v1/logistics/update-status/scan-events` — implemented alias for the Logistics transition endpoint.
 - `POST /api/v1/logistics/update-status/transitions` — implemented; accepts an authorized target state, reference, expected Shipment revision, optional evidence UUID/reason, and UUID `Idempotency-Key`.
+- `POST /api/v1/logistics/receiving/batches` — implemented; accepts 1–100 offline-captured references with stable client UUIDs and capture times, commits each receipt independently, and returns per-item success/failure so successful Dexie entries can be removed safely.
 - Responses return safe current projections, immutable event identifiers, evidence status, and any permitted Order projection. They never return secrets, private raw paths, or unrelated PII.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid evidence/transition, `429`, and provider/notification delivery failure. Retrying an identical idempotency key returns the committed projection; changed details conflict.
-- The Logistics Hub operations UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) uses the lookup response's `allowed_transitions` rather than a free-form status selector. It offers explicit confirmation, evidence selection, completion-intent checks, and authoritative refresh after a commit or conflict.
+- The Logistics Hub operations UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) deliberately excludes receiving and dispatch controls. It uses the remaining allowed transitions for sorting, evidence selection, completion-intent checks, and authoritative refresh after a commit or conflict.
 
 The deployed responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
 
@@ -108,6 +109,8 @@ The deployed responses are safe for the Logistics dashboard and external Courier
 - [ ] Notification failure cannot undo a committed state change.
 - [x] Manual recovery cannot fabricate pickup, delivery, proof, or another organization's record.
 - [x] DTOs and logs exclude secrets, raw storage paths, private evidence, and unrelated PII.
+- [x] Receiving has its own responsive page with Code 128/QR camera scanning, manual fallback, Dexie persistence, ten-item/five-minute/reconnect auto-sync, and an immediate post button.
+- [x] A mixed bulk result clears only committed receipts; failed receipts stay on-device with their server reason and stable idempotency key.
 
 ## HOW
 

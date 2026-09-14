@@ -39,7 +39,7 @@ pending_payment
 → delivered
 ```
 
-Its current Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete and `picked_up` is the high-level projection of an explicit first-mile Courier confirmation from the Seller. `assigned` remains reserved for a later Logistics/final-mile assignment contract. The detailed `picked_up_from_seller` task event remains authoritative proof of custody.
+Its Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete, `picked_up` projects explicit first-mile confirmation, and `assigned` projects a committed dispatch schedule/final-mile Courier offer. Detailed task events remain authoritative proof of custody.
 
 Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. The Seller's selected eligible Logistics organization is retained in the future fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
 
@@ -78,8 +78,8 @@ Customer places the Order
 → Logistics receives and validates it (`received_at_hub`)
 → Logistics views/scans the Seller-created shared waybill through the immutable Order/Parcel reference
 → Logistics sorts it (`sorted_at_hub`)
-→ Logistics dispatches the sorted parcel (`dispatched_from_hub`)
-→ Logistics assigns a final-mile Courier (`delivery_assigned`)
+→ the sorted parcel enters **Ready to dispatch**
+→ Logistics schedules up to 15 parcels with one Courier; dispatch and per-parcel final-mile offers commit together (`dispatched_from_hub` → `delivery_assigned`)
 → final-mile Courier accepts (`delivery_accepted`)
 → Courier picks up from the hub (`picked_up_from_hub`)
 → Courier travels and delivers (`in_transit` → `out_for_delivery`)

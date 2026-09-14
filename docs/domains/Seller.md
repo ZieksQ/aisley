@@ -103,7 +103,7 @@ The Seller does not write Logistics/Courier states. After `ready_for_pickup`, a 
 
 The Seller selects one eligible Logistics organization when requesting pickup. The API recommends exact city/province/country matches before Geoapify road-distance ranking, revalidates eligibility at commit, and freezes the selection. Seller cannot create a first-mile task or assign a Courier.
 
-For the high-level Order projection, an explicit first-mile Courier confirmation advances `ready_for_pickup → picked_up`; the detailed `picked_up_from_seller` task event remains authoritative proof of that handoff. `assigned` remains reserved for a later Logistics/final-mile assignment contract and is not written by scheduling.
+For the high-level Order projection, explicit first-mile confirmation advances `ready_for_pickup → picked_up`; the detailed `picked_up_from_seller` task event remains authoritative. Later Logistics dispatch scheduling may advance `picked_up → assigned`; pickup scheduling never writes that final-mile projection.
 
 ## Physical fulfillment flow
 
@@ -120,7 +120,7 @@ Customer places an Order (`placed`)
 → Courier transfers the parcel to Logistics' sole hub
 → Logistics receives the parcel (`received_at_hub`) using the same shared waybill reference
 → Logistics sorts, transfers, and dispatches it
-→ Logistics assigns a final-mile Courier
+→ Logistics schedules the sorted parcel with a final-mile Courier
 → final-mile Courier picks up from the hub and delivers to the Customer
 ```
 

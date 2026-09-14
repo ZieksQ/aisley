@@ -109,7 +109,7 @@ approved Courier session
 - [x] The scaffold's guest, wrong-role, pending-account, privacy, and no-operational-data behavior is covered by API tests.
 - [ ] An operational API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
 - [ ] Offered task rows identify first-mile or final-mile leg, expose only authorized operational Order data, and include provider-neutral distance/ETA when available.
-- [ ] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task without changing the Order or duplicating task/waybill history.
+- [x] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task from the dedicated Dispatch page without changing the Order or duplicating task/waybill history.
 - [ ] Unfinished work can display informational `stale` with freshness metadata and is never automatically cancelled or reassigned.
 - [ ] Flutter consumes live operational DTOs, cursors, and task-state responses.
 - [ ] Duplicate events, stale responses, retries, reconnection, and partial operational failures are covered by tests.
@@ -169,7 +169,7 @@ approved Courier session
 
 - Seller confirms `ready_for_pickup`; selected Logistics creates and offers the first-mile task. The dashboard reads that offer only after the shared task record exists.
 - A first-mile Courier accepts through Accept Delivery Requests, then Pick Up Order confirms `picked_up_from_seller`.
-- Logistics receives/sorts/dispatches the parcel at its sole hub and creates a separate final-mile assignment.
+- Logistics receives and sorts the parcel at its sole hub, then one dispatch schedule atomically records dispatch and creates the separate final-mile assignment.
 - Final-mile pickup submits evidence with HTTP 202; only Logistics validation establishes `picked_up_from_hub`. Deliver Order owns movement, and completion intent likewise waits for Logistics finalization.
 - Dashboard refreshes after mutation responses or authorized events; it never predicts a transition from a tap or local timer.
 - Every read query must use organization/hub/Courier predicates and indexes appropriate to status, assignment, and activity timestamps.

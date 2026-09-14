@@ -706,6 +706,15 @@ function DeliveryPanel({ order }: { order: OrderDetail }) {
           Delivery address
         </h2>
       </div>
+      {order.delivery?.courier ? (
+        <dl className="border-b border-[#E9E3EB] px-4 py-4 text-sm">
+          <div>
+            <dt className="text-[#746978]">Courier handling delivery</dt>
+            <dd className="mt-1 font-semibold text-[#342838]">{order.delivery.courier.name}</dd>
+            <dd className="mt-0.5 text-[#655A69]">{order.delivery.courier.contactNumber ?? "Contact number unavailable"}</dd>
+          </div>
+        </dl>
+      ) : null}
       <address className="px-4 py-4 text-sm not-italic leading-6 text-[#655A69]">
         <strong className="font-semibold text-[#342838]">{address.recipientName}</strong>
         <br />

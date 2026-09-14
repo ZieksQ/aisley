@@ -118,6 +118,10 @@ class FulfillmentTransitionService
             $task->update(['status' => FulfillmentTaskStatus::DeliveryAssigned, 'courier_id' => $courierId, 'revision' => $task->revision + 1]);
             if ($shipment->status === ShipmentStatus::DispatchedFromHub) {
                 $shipment->update(['status' => ShipmentStatus::DeliveryAssigned, 'revision' => $shipment->revision + 1]);
+                $order = $shipment->parcel->order()->lockForUpdate()->firstOrFail();
+                if ($order->status === OrderStatus::PickedUp) {
+                    $this->orderTransitions->transition($order, OrderStatus::PickedUp, OrderStatus::Assigned, 'logistics_dispatch_schedule');
+                }
             }
             $this->event($shipment, $task, 'final_mile_offer', $before, FulfillmentTaskStatus::DeliveryAssigned->value, null, $logistics->id, $offer, null, ['courier_id' => $courierId, 'sequence' => $sequence], $idempotencyKey);
 
@@ -281,7 +285,7 @@ class FulfillmentTransitionService
                 throw FulfillmentException::conflict('SHIPMENT_STATE_CONFLICT', 'The shipment and task states are inconsistent.');
             }
             $order = $shipment->parcel->order()->lockForUpdate()->firstOrFail();
-            $orderFrom = $target === FulfillmentTaskStatus::InTransit->value ? OrderStatus::PickedUp : OrderStatus::InTransit;
+            $orderFrom = $target === FulfillmentTaskStatus::InTransit->value ? OrderStatus::Assigned : OrderStatus::InTransit;
             $orderTo = $target === FulfillmentTaskStatus::InTransit->value ? OrderStatus::InTransit : OrderStatus::OutForDelivery;
             if ($order->status !== $orderFrom) {
                 throw FulfillmentException::conflict('ORDER_STATE_CONFLICT', 'The Order is not ready for this delivery transition.');
@@ -418,7 +422,7 @@ class FulfillmentTransitionService
             $this->assertTaskTransition($task, $target);
             $order = $shipment->parcel->order()->lockForUpdate()->firstOrFail();
             $orderProjection = match ($target) {
-                ShipmentStatus::InTransit->value => [OrderStatus::PickedUp, OrderStatus::InTransit],
+                ShipmentStatus::InTransit->value => [OrderStatus::Assigned, OrderStatus::InTransit],
                 ShipmentStatus::OutForDelivery->value => [OrderStatus::InTransit, OrderStatus::OutForDelivery],
                 default => null,
             };
@@ -437,6 +441,49 @@ class FulfillmentTransitionService
             $event = $this->event($shipment, $task, 'logistics_transition', $from->value, $target, $task?->courier_id, $logistics->id, null, null, ['request_hash' => $requestHash], $idempotencyKey, $input['reason'] ?? null);
 
             return ['shipment' => $shipment->fresh($this->shipmentRelations()), 'task' => $task?->fresh($this->taskRelations()), 'event' => $event];
+        }, 3);
+    }
+
+    /** @return array{shipment: Shipment, task: DeliveryTask, event: ShipmentEvent} */
+    public function receiveAtHub(User $logistics, string $reference, string $idempotencyKey, string $scannedAt): array
+    {
+        $normalizedReference = trim($reference);
+        $requestHash = $this->hash(['reference' => mb_strtolower($normalizedReference), 'target_state' => ShipmentStatus::ReceivedAtHub->value]);
+
+        return DB::transaction(function () use ($logistics, $normalizedReference, $idempotencyKey, $requestHash, $scannedAt): array {
+            $prior = ShipmentEvent::query()->where('recorded_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+            if ($prior !== null) {
+                if (($prior->metadata['request_hash'] ?? null) !== $requestHash) {
+                    throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This receiving identifier was already used for another parcel.');
+                }
+                $shipment = Shipment::query()->whereKey($prior->shipment_id)->with($this->shipmentRelations())->firstOrFail();
+                $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
+
+                return ['shipment' => $shipment, 'task' => $task, 'event' => $prior];
+            }
+
+            $org = $this->logisticsOrganization($logistics);
+            $waybill = $this->resolveWaybill($org, $normalizedReference);
+            $shipment = $this->ensureForWaybillInTransaction($waybill);
+            $shipment = Shipment::query()->whereKey($shipment->id)->with($this->shipmentRelations())->lockForUpdate()->firstOrFail();
+            if ($shipment->status === ShipmentStatus::ReceivedAtHub) {
+                $event = $shipment->events()->where('to_state', ShipmentStatus::ReceivedAtHub->value)->latest('occurred_at')->firstOrFail();
+                $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
+
+                return ['shipment' => $shipment, 'task' => $task, 'event' => $event];
+            }
+            if ($shipment->status !== ShipmentStatus::PickedUpFromSeller) {
+                throw FulfillmentException::conflict('HUB_RECEIPT_STATE_CONFLICT', 'Only a parcel picked up from the Seller can be received at this hub.');
+            }
+            $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
+            if ($task === null || $task->status !== FulfillmentTaskStatus::PickedUpFromSeller) {
+                throw FulfillmentException::conflict('HUB_STATE_CONFLICT', 'The first-mile task is not ready for hub receipt.');
+            }
+
+            $shipment->update(['status' => ShipmentStatus::ReceivedAtHub, 'revision' => $shipment->revision + 1]);
+            $event = $this->event($shipment, $task, 'hub_receipt', ShipmentStatus::PickedUpFromSeller->value, ShipmentStatus::ReceivedAtHub->value, $task->courier_id, $logistics->id, null, null, ['request_hash' => $requestHash, 'captured_at' => $scannedAt], $idempotencyKey);
+
+            return ['shipment' => $shipment->fresh($this->shipmentRelations()), 'task' => $task, 'event' => $event];
         }, 3);
     }
 
@@ -668,9 +715,9 @@ class FulfillmentTransitionService
         $shipment->loadMissing($this->shipmentRelations());
         $tasks = $shipment->tasks->sortBy(fn (DeliveryTask $task): string => $task->leg instanceof FulfillmentTaskLeg ? $task->leg->value : (string) $task->leg)->values();
         $allowed = match ($shipment->status) {
-            ShipmentStatus::PickedUpFromSeller => ['received_at_hub'],
+            ShipmentStatus::PickedUpFromSeller => [],
             ShipmentStatus::ReceivedAtHub => ['sorted_at_hub'],
-            ShipmentStatus::SortedAtHub => ['dispatched_from_hub'],
+            ShipmentStatus::SortedAtHub => [],
             ShipmentStatus::DeliveryAccepted => ['picked_up_from_hub'],
             ShipmentStatus::PickedUpFromHub => ['in_transit'],
             ShipmentStatus::InTransit => ['out_for_delivery'],
@@ -923,8 +970,13 @@ class FulfillmentTransitionService
     private function resolveWaybill(LogisticsOrganization $org, string $reference): Waybill
     {
         $query = Waybill::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id);
-        $waybill = Str::isUuid($reference) ? (clone $query)->whereKey($reference)->first() : (clone $query)->where(function ($match) use ($reference) {
-            $match->where('reference', $reference)->orWhereHas('order', fn ($order) => $order->where('reference', $reference));
+        $waybill = (clone $query)->where(function ($match) use ($reference): void {
+            $match->where('reference', $reference)
+                ->orWhereHas('order', fn ($order) => $order->where('reference', $reference))
+                ->orWhereHas('parcel', fn ($parcel) => Str::isUuid($reference) ? $parcel->whereKey($reference) : $parcel->where('reference', $reference));
+            if (Str::isUuid($reference)) {
+                $match->orWhereKey($reference);
+            }
         })->first();
         if ($waybill === null) {
             throw FulfillmentException::notFound('FULFILLMENT_NOT_FOUND', 'This parcel is not available to this Logistics organization.');

@@ -3,8 +3,8 @@ feature: logistics-deploy-rider
 title: Deploy Rider
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented final-mile candidate/offer API and Logistics UI; advanced dispatch policy deferred
+version: 1.3
+status: Implemented sorted-parcel dispatch schedules and final-mile offers; advanced routing deferred
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,8 +15,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account select and offer an eligible Courier for one operational task.
-- **Current implementation:** Logistics can list eligible affiliated Couriers and offer/re-offer a final-mile DeliveryTask after hub dispatch. The API is organization/sole-hub scoped and idempotent; `/operations` consumes the authoritative projection, shows unavailable route metrics explicitly, preserves rejected history, and refreshes after commit. Route/availability ranking remains deferred.
-- **Core flow:** Seller confirms `ready_for_pickup` → selected Logistics creates/offers the first-mile task → Courier accepts or rejects → Logistics receives/sorts/dispatches → Logistics creates/offers the independent final-mile task → Courier accepts.
+- **Current implementation:** `/dispatch` lists only `sorted_at_hub` parcels and lets Logistics select 1–15 parcels, one active approved affiliated Courier, and one future delivery time. `POST /api/v1/logistics/dispatch/schedules` atomically creates the schedule, dispatch milestones, one final-mile task/offer per parcel, and the Customer-facing `assigned` projection. Existing single-task candidate/offer routes remain available for rejected-offer recovery.
+- **Core flow:** Logistics sorts parcels → they enter **Ready to dispatch** → Logistics creates one schedule for one Courier and at most 15 parcels → each parcel receives its own final-mile task/offer → Courier accepts each task.
 - **Task boundary:** Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders but never merges their tasks, waybills, snapshots, or history.
 - **Non-goals:** Courier registration/approval, availability management, vehicle or zone CRUD, waybill generation, physical scans, pickup confirmation, proof of delivery, route navigation, billing, and multi-hub operations.
 
@@ -32,7 +32,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Task readiness and assignment ownership
 
 - First-mile offering is allowed only after Seller `ready_for_pickup` and one valid selected Logistics organization exist. Creation is at most one active task per Order/Parcel leg and is idempotent.
-- Final-mile offering is allowed only after the parcel has reached the approved hub-dispatch boundary (`dispatched_from_hub`). Final-mile assignment is independent of first-mile assignment.
+- Scheduled final-mile offering is allowed only from `sorted_at_hub`. The schedule transaction records `dispatched_from_hub` and the final-mile offer together; a half-created schedule or unassigned dispatched parcel cannot commit.
 - Logistics creates and offers/assigns work. A Courier may accept only its own offer and cannot assign itself or another Courier.
 - Offering or assigning a Courier never means the parcel was physically picked up and must not directly write `picked_up_from_seller`, `picked_up_from_hub`, or a generic Order `picked_up`.
 
@@ -65,7 +65,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - `GET /api/v1/logistics/deploy-rider/tasks/{task}/candidates` — implemented; returns active approved affiliated Couriers with safe identity and explicit unavailable route metrics.
 - `POST /api/v1/logistics/deploy-rider/tasks/{task}/offers` — implemented; accepts `courier_id`, `expected_task_revision`, and a UUID `Idempotency-Key`; creates or re-offers the same final-mile task after rejection.
-- The Logistics Hub operations UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) calls these routes only after a server-scoped task lookup. It shows candidate loading/empty/error states, provider-neutral unavailable distance/ETA, explicit acceptance/pickup boundaries, and rejected offer history before allowing a re-offer.
+- `GET /api/v1/logistics/dispatch/couriers` — implemented; returns only active approved Couriers affiliated with the authenticated organization/sole hub, including operational contact number.
+- `GET /api/v1/logistics/dispatch/schedules` and `POST /api/v1/logistics/dispatch/schedules` — implemented; list the 50 latest scoped schedules and create an idempotent future schedule for 1–15 unique sorted Shipment UUIDs.
+- The dedicated Dispatch UI (`src/logistics/src/pages/DispatchPage.tsx`) owns initial scheduled offers and rejected-offer recovery. It shows only sorted parcels as ready for a new schedule, preserves rejected offer history, and reuses the single-task offer endpoint for re-offer without creating another schedule or parcel.
 - A successful offer response contains the task reference, leg, offer/assignment state, Courier reference, server-calculated distance/ETA when available, and immutable event identifiers. It does not claim physical pickup.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid task/Courier, `429`, and provider-unavailable context. Retrying the same idempotency key is safe; a changed payload conflicts.
 
@@ -93,6 +95,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Retries/concurrency cannot duplicate active offers or overwrite append-only assignment history.
 - [x] Offering a Courier never records physical pickup or bypasses scan/evidence validation.
 - [x] DTOs and logs exclude secrets, raw storage paths, unrestricted location history, and unrelated PII.
+- [x] Sorted parcels appear in a dedicated Ready to dispatch queue and cannot be dispatched from Hub operations.
+- [x] One schedule assigns one eligible Courier to at most 15 parcels while retaining one Shipment, Parcel, waybill, task, offer, and history per Order.
+- [x] Schedule creation is atomic and idempotent; all selected parcels dispatch and receive offers or none do.
+- [x] Customer Order detail shows the committed delivery state plus the assigned Courier name and contact number.
 - [ ] Automated ranking/expiry, stale threshold, and PostgreSQL/concurrency release verification remain open.
 
 ## HOW

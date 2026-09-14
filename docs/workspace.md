@@ -182,7 +182,7 @@ The current high-level `OrderStatus` values are:
 
 The exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
 
-`picked_up` means the assigned first-mile Courier explicitly confirmed physical possession from the Seller. `assigned` remains reserved for the later Logistics/final-mile assignment contract and is not written by current pickup scheduling. Detailed first-mile, hub, and assignment milestones belong to the Shipment/Delivery Task state described in section 11.2.
+`picked_up` means the assigned first-mile Courier explicitly confirmed physical possession from the Seller. `assigned` means Logistics committed a dispatch schedule and final-mile Courier offer; pickup scheduling does not write it. Detailed first-mile, hub, and assignment milestones belong to the Shipment/Delivery Task state described in section 11.2.
 
 Only the owning domain may advance a status, and every transition must be validated and recorded in status history. A Customer can read these states but cannot mutate them.
 
@@ -624,9 +624,9 @@ Logistics resolves the Seller-created shared waybill through its immutable Order
 ↓
 Logistics sorts the parcel (`sorted_at_hub`)
 ↓
-Logistics dispatches the sorted parcel (`dispatched_from_hub`)
+The parcel enters the Logistics **Ready to dispatch** queue
 ↓
-Logistics assigns a final-mile Courier (`delivery_assigned`)
+Logistics chooses one Courier and schedule for up to 15 parcels; dispatch and each final-mile offer commit atomically (`dispatched_from_hub` → `delivery_assigned`)
 ↓
 Final-mile Courier accepts the task (`delivery_accepted`)
 ↓
@@ -656,6 +656,7 @@ pending_payment
 → seller_processing
 → ready_for_pickup
 → picked_up
+→ assigned
 → in_transit
 → out_for_delivery
 → delivered
@@ -663,7 +664,7 @@ pending_payment
 
 Current COD placement skips `pending_payment`: it creates `placed` with `payment_status = pending` and reserves inventory. `pending_payment` remains a future online-payment state.
 
-The current Courier first-mile confirmation projects `ready_for_pickup → picked_up` while recording `picked_up_from_seller` as the authoritative detailed handoff. `assigned` remains reserved for the later Logistics/final-mile assignment contract. Customer labels map `placed`, `seller_processing`, and `ready_for_pickup` to **To Prepare**; `assigned`, `picked_up`, and `in_transit` to **To Ship**; `out_for_delivery` to **Out for Delivery**; and `delivered` to **Completed**.
+The current Courier first-mile confirmation projects `ready_for_pickup → picked_up` while recording `picked_up_from_seller` as the authoritative detailed handoff. Creating a dispatch schedule projects `picked_up → assigned` and exposes only the assigned Courier's safe name/contact to that Customer. Customer labels map `placed`, `seller_processing`, and `ready_for_pickup` to **To Prepare**; `picked_up`, `assigned`, and `in_transit` to **To Ship**; `out_for_delivery` to **Out for Delivery**; and `delivered` to **Completed**.
 
 The deployed `ShipmentStatus` / Delivery Task vocabulary uses explicit physical states:
 
@@ -702,8 +703,8 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 | Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Final-mile rejection/re-offer implemented; first-mile rejection remains legacy scope |
 | `seller_pickup_accepted → picked_up_from_seller` | Compatibility first-mile confirmation commits handoff/Inventory once and bridges shared records | Implemented on legacy confirmation contract |
 | `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Implemented P0 transition |
-| `received_at_hub → sorted_at_hub → dispatched_from_hub` | Owning Logistics records receipt, sorting, and dispatch at its sole hub | Implemented P0; internal transfer execution deferred |
-| `dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics offers an independent final-mile task; affiliated Courier accepts | Implemented final-mile task/offer/acceptance |
+| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; Hub operations records sorting | Implemented with Dexie bulk receipt sync; internal transfer deferred |
+| `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
 | `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented QR P0 evidence transition |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |
 | `out_for_delivery → delivered` | Courier supplies proof and completion intent; Logistics validates; server commits delivery | Implemented QR P0 completion |

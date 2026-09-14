@@ -64,7 +64,7 @@ class CustomerOrderStatusMapper
             OrderStatus::Placed => 'Order placed',
             OrderStatus::SellerProcessing => 'Seller is preparing your order',
             OrderStatus::ReadyForPickup => 'Awaiting logistics handoff',
-            OrderStatus::Assigned => 'Parcel received by logistics',
+            OrderStatus::Assigned => 'Scheduled for delivery',
             OrderStatus::PickedUp => 'Parcel picked up',
             OrderStatus::InTransit => 'In transit',
             OrderStatus::OutForDelivery => 'Out for delivery',

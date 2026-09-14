@@ -19,7 +19,7 @@ class TransitionFulfillmentRequest extends FormRequest
         return [
             'reference' => ['required', 'string', 'max:128'],
             'target_state' => ['required', Rule::in([
-                'received_at_hub', 'sorted_at_hub', 'dispatched_from_hub',
+                'sorted_at_hub',
                 'picked_up_from_hub', 'in_transit', 'out_for_delivery', 'delivered',
             ])],
             'expected_revision' => ['required', 'integer', 'min:1'],

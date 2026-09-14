@@ -44,6 +44,7 @@ class OrderTrackingService
                     ->orderByDesc('occurred_at')
                     ->orderByDesc('id')
                     ->limit(25),
+                'parcel.shipment.tasks' => fn ($query) => $query->where('leg', 'final_mile')->with('courier.courierProfile'),
             ])
             ->withCount('statusEvents')
             ->withMax('statusEvents as latest_tracking_at', 'occurred_at')

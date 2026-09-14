@@ -33,6 +33,57 @@ class FinalMileFulfillmentTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_offline_receiving_batch_and_dispatch_schedule_assign_delivery_courier(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $order = $this->order($shop);
+        $order->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics();
+        $courier = $this->courier($organization->id, $hub->id);
+        $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', [
+            'order_ids' => [$order->id], 'pickup_address_id' => $seller->addresses()->sole()->id, 'logistics_organization_id' => $organization->id,
+        ])->assertOk()->json('data');
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/pickup-schedules', [
+            'order_ids' => [$order->id], 'courier_id' => $courier->id, 'starts_at' => now()->addHours(3)->toISOString(), 'ends_at' => now()->addHours(4)->toISOString(),
+        ])->assertCreated();
+        $first = $this->actingAs($courier)->getJson('/api/v1/courier/first-mile-tasks')->assertOk()->json('data.0');
+        $this->postJson("/api/v1/courier/first-mile-tasks/{$first['id']}/accept")->assertOk();
+        $reference = $pickup['waybills'][0]['reference'];
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/first-mile-tasks/{$first['id']}/pickup", [
+            'identifier_type' => 'qr', 'identifier' => 'AISLEY:WB:1:'.$reference,
+        ])->assertOk();
+
+        $receiptId = (string) Str::uuid();
+        $this->actingAs($logistics)->postJson('/api/v1/logistics/receiving/batches', ['receipts' => [[
+            'client_id' => $receiptId, 'reference' => $reference, 'scanned_at' => now()->subMinute()->toISOString(),
+        ]]])->assertOk()->assertJsonPath('summary.received', 1)->assertJsonPath('data.0.status', 'received');
+        $this->postJson('/api/v1/logistics/receiving/batches', ['receipts' => [[
+            'client_id' => $receiptId, 'reference' => $reference, 'scanned_at' => now()->subMinute()->toISOString(),
+        ]]])->assertOk()->assertJsonPath('summary.received', 1);
+
+        $record = $this->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->json('data');
+        $record = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
+            'reference' => $reference, 'target_state' => 'sorted_at_hub', 'expected_revision' => $record['revision'],
+        ])->assertOk()->json('data');
+
+        $this->getJson('/api/v1/logistics/dispatch/couriers')->assertOk()->assertJsonPath('data.0.contact_number', '09173333333');
+        $dispatchKey = (string) Str::uuid();
+        $schedule = $this->withHeader('Idempotency-Key', $dispatchKey)->postJson('/api/v1/logistics/dispatch/schedules', [
+            'shipment_ids' => [$record['shipment_id']], 'courier_id' => $courier->id, 'scheduled_for' => now()->addHour()->toISOString(),
+        ])->assertCreated()->assertJsonPath('data.parcel_count', 1)->assertJsonPath('data.courier.contact_number', '09173333333')->json('data');
+        $this->assertDatabaseHas('dispatch_schedules', ['id' => $schedule['id'], 'parcel_count' => 1, 'status' => 'scheduled']);
+        $this->assertSame(OrderStatus::Assigned, $order->fresh()->status);
+        $this->actingAs($order->customer)->getJson('/api/v1/customer/orders/'.$order->id)
+            ->assertOk()->assertJsonPath('data.statusLabel', 'Scheduled for delivery')
+            ->assertJsonPath('data.delivery.courier.name', 'Cora Rider')
+            ->assertJsonPath('data.delivery.courier.contactNumber', '09173333333');
+
+        $tooMany = array_map(fn () => (string) Str::uuid(), range(1, 16));
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/dispatch/schedules', [
+            'shipment_ids' => $tooMany, 'courier_id' => $courier->id, 'scheduled_for' => now()->addHour()->toISOString(),
+        ])->assertStatus(422)->assertJsonValidationErrors('shipment_ids');
+    }
+
     public function test_final_mile_moves_from_hub_to_delivered_with_logistics_validation(): void
     {
         [$seller, $shop] = $this->sellerShop();
@@ -72,21 +123,21 @@ class FinalMileFulfillmentTest extends TestCase
             ->assertJsonPath('summary.total', 0)
             ->assertJsonCount(0, 'data');
         $this->actingAs($logistics);
-        $revision = $record['revision'];
-        foreach (['received_at_hub', 'sorted_at_hub', 'dispatched_from_hub'] as $state) {
-            $record = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
-                'reference' => $pickup['waybills'][0]['reference'], 'target_state' => $state, 'expected_revision' => $revision,
-            ])->assertOk()->json('data');
-            $revision = $record['revision'];
-        }
+        $this->postJson('/api/v1/logistics/receiving/batches', ['receipts' => [[
+            'client_id' => (string) Str::uuid(), 'reference' => $pickup['waybills'][0]['reference'], 'scanned_at' => now()->toISOString(),
+        ]]])->assertOk()->assertJsonPath('summary.received', 1);
+        $record = $this->getJson('/api/v1/logistics/update-status/records/'.$pickup['waybills'][0]['reference'])->json('data');
+        $record = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
+            'reference' => $pickup['waybills'][0]['reference'], 'target_state' => 'sorted_at_hub', 'expected_revision' => $record['revision'],
+        ])->assertOk()->json('data');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/dispatch/schedules', [
+            'shipment_ids' => [$record['shipment_id']], 'courier_id' => $courier->id, 'scheduled_for' => now()->addHour()->toISOString(),
+        ])->assertCreated();
+        $record = $this->getJson('/api/v1/logistics/update-status/records/'.$pickup['waybills'][0]['reference'])->json('data');
         $final = collect($record['tasks'])->firstWhere('leg', 'final_mile');
         $this->assertSame('delivery_assigned', $final['status']);
 
         $this->actingAs($logistics)->getJson("/api/v1/logistics/deploy-rider/tasks/{$final['task_id']}/candidates")->assertOk()->assertJsonPath('data.0.courier_id', $courier->id);
-        $offer = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/logistics/deploy-rider/tasks/{$final['task_id']}/offers", [
-            'courier_id' => $courier->id, 'expected_task_revision' => $final['revision'],
-        ])->assertCreated()->json('data');
-        $final = $offer['task'];
         $this->actingAs($courier)->getJson("/api/v1/courier/tasks/{$final['task_id']}/delivery")->assertStatus(409)->assertJsonPath('code', 'TASK_NOT_ACCEPTED');
         $rejected = $this->actingAs($courier)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/reject", [
             'reason' => 'Unavailable for this route',

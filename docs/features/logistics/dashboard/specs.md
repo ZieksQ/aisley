@@ -3,7 +3,7 @@ feature: logistics-dashboard
 title: Logistics Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implemented hub scaffold and bounded operational queue; stale threshold/realtime deferred
 role: Logistics
 scope: Logistics React SPA and Laravel API
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Give an approved active Logistics account a secure view of its organization and sole operational hub, then the parcels requiring action.
-- **Current implementation:** `GET /api/v1/logistics/dashboard` remains the safe hub identity scaffold. `GET /api/v1/logistics/dashboard/queue` now returns a private, organization/sole-hub scoped Shipment queue with real summary counts, bounded pagination, filters, safe task/evidence projections, and authoritative freshness metadata. The protected `/dashboard` SPA renders the hub and real queue counts, while `/operations` provides lookup, transition, evidence-review, and final-mile offer controls.
+- **Current implementation:** `GET /api/v1/logistics/dashboard` remains the safe hub identity scaffold. `GET /api/v1/logistics/dashboard/queue` returns the private scoped Shipment queue used by the dashboard and role-specific workspaces. `/operations` provides sorting/evidence/recovery controls, while `/receive-at-hub` and `/dispatch` own receipt and scheduled dispatch respectively.
 - **MVP boundary:** One Logistics account operates one organization and exactly one hub/sorting center. Sub-hubs, hub selectors, multi-hub queues, and staff-account context are out of scope.
 - **Queue boundary:** Only already-created shared Shipment records are listed. Queue reads never lazily create a Shipment or infer readiness; reference lookup remains the owning Update Status operation.
 - **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns readiness; Deploy Rider owns assignment; Update Status owns validated state recovery; Waybill owns document access; Courier UI is external Flutter/mobile-only.
@@ -50,7 +50,7 @@ active Logistics session
 
 - Include a row only when the pickup request's immutable Seller-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. The current provider-less rows remain transitional and cannot be claimed by any tenant.
 - Later rows may enter only through approved Shipment/Delivery Task ownership and transitions: first-mile `picked_up_from_seller`, hub `received_at_hub`/`sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, and final-mile `delivery_assigned`/`picked_up_from_hub`.
-- Keep high-level Order values lowercase `snake_case`: `ready_for_pickup`, `picked_up` (explicit first-mile Seller handoff projection), `assigned` (reserved for a later Logistics/final-mile assignment contract), `in_transit`, and `out_for_delivery`. Uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER` are source/UI wording only.
+- Keep high-level Order values lowercase `snake_case`: `ready_for_pickup`, `picked_up` (explicit first-mile Seller handoff projection), `assigned` (committed scheduled final-mile assignment), `in_transit`, and `out_for_delivery`. Uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER` are source/UI wording only.
 - Do not accept or persist a future/source status until the shared operational schema and transition service approve it. Dashboard display must not turn a label into state.
 - Exclude Cart rows, unaccepted/unpacked Orders, cancelled/rejected/payment-invalid records, completed history, and records outside the sole hub.
 
@@ -84,7 +84,7 @@ active Logistics session
 - [x] The scaffold truthfully returns null/empty data rather than fabricated queue counts.
 - [x] Loading, refresh, unauthorized, and recoverable error states are available in the SPA.
 - [x] Organization/sole-hub scoped queue rows, real counts, status/search/evidence filters, bounded pagination, authoritative freshness, and truthful empty/error states are implemented.
-- [x] Rejected final-mile offers, evidence status, completion intents, and current allowed transitions are visible in the Hub operations UI; re-offer and transitions use their owning APIs.
+- [x] Evidence status, completion intents, and recovery transitions remain visible in Hub operations; receipt and scheduled dispatch are separated into their own navigation and pages.
 - [ ] A configured stale threshold, private realtime transport, advanced ranking, date filters, and automatic reassignment remain deferred.
 
 ## HOW
