@@ -88,19 +88,19 @@ class PickupScheduleLifecycleService
      */
     private function assessment(PickupSchedule $schedule): array
     {
-        $orderCount = PickupScheduleOrder::query()
+        $orderLinks = PickupScheduleOrder::query()
             ->where('pickup_schedule_id', $schedule->id)
             ->lockForUpdate()
-            ->count();
+            ->get(['id']);
         $tasks = FirstMileTask::query()
             ->where('pickup_schedule_id', $schedule->id)
             ->lockForUpdate()
             ->get(['id', 'status']);
 
-        if ($orderCount === 0 || $tasks->isEmpty()) {
+        if ($orderLinks->isEmpty() || $tasks->isEmpty()) {
             return ['ready' => false, 'reason' => 'empty_schedule'];
         }
-        if ($tasks->count() !== $orderCount) {
+        if ($tasks->count() !== $orderLinks->count()) {
             return ['ready' => false, 'reason' => 'task_membership_mismatch'];
         }
         if ($tasks->contains(fn (FirstMileTask $task): bool => $task->status === FirstMileTaskStatus::Cancelled)) {
