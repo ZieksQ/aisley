@@ -3,7 +3,7 @@ feature: logistics-deploy-rider
 title: Deploy Rider
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Implemented sorted-parcel dispatch schedules and final-mile offers; advanced routing deferred
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
@@ -15,8 +15,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account select and offer an eligible Courier for one operational task.
-- **Current implementation:** `/dispatch` lists only `sorted_at_hub` parcels and lets Logistics select 1–15 parcels, one active approved affiliated Courier, and one future delivery time. `POST /api/v1/logistics/dispatch/schedules` atomically creates the schedule, dispatch milestones, one final-mile task/offer per parcel, and the Customer-facing `assigned` projection. Existing single-task candidate/offer routes remain available for rejected-offer recovery.
-- **Core flow:** Logistics sorts parcels → they enter **Ready to dispatch** → Logistics creates one schedule for one Courier and at most 15 parcels → each parcel receives its own final-mile task/offer → Courier accepts each task.
+- **Current implementation:** `/dispatch` lists only server-committed `sorted_at_hub` parcels and lets Logistics select 1–15 parcels, one active approved affiliated Courier, and one future delivery time. The dedicated `/sorting` workspace commits that prerequisite only after successful standard-lane synchronization. `POST /api/v1/logistics/dispatch/schedules` atomically creates the schedule, dispatch milestones, one final-mile task/offer per parcel, and the Customer-facing `assigned` projection. Existing single-task candidate/offer routes remain available for rejected-offer recovery.
+- **Core flow:** Logistics resolves a received parcel through a standard Sorting lane → it enters **Ready to dispatch** after server synchronization → Logistics creates one schedule for one Courier and at most 15 parcels → each parcel receives its own final-mile task/offer → Courier accepts each task.
 - **Task boundary:** Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders but never merges their tasks, waybills, snapshots, or history.
 - **Non-goals:** Courier registration/approval, availability management, vehicle or zone CRUD, waybill generation, physical scans, pickup confirmation, proof of delivery, route navigation, billing, and multi-hub operations.
 

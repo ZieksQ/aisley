@@ -3,7 +3,7 @@ feature: seller-created-pickup-waybill
 title: Seller-Created Pickup Waybill
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: API, one-page A6 QR/Code 128 PDF, and Seller/Logistics UI implemented
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API
@@ -75,6 +75,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - A scan resolves the waybill and returns a minimal authorized parcel/task match; the Courier submits the scan/evidence to the owning Logistics organization through a separate, versioned task-transition API.
 - Logistics validates the waybill/Order/Parcel link, task leg, current state, Courier authorization, and idempotency before recording the authoritative event. The event preserves the performing Courier, recording Logistics account, timestamp, and safe reference/evidence metadata.
 - A scan or waybill-access event alone never advances custody or `OrderStatus`; a validated event must pass the shared transition service.
+- Logistics Receiving and Sorting scan the same parcel waybill into separate device-local outboxes. A Sorting lane label is an internal location selector and never creates or replaces the parcel's immutable waybill.
 - A copied QR code is not proof of possession, delivery, identity, or permission and cannot bypass task assignment.
 
 ### Courier scan and custody boundary
@@ -120,7 +121,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - Seller: `GET /api/v1/seller/orders/{order}/waybill` and `GET /pickup-requests/{pickup}/waybills.pdf`.
 - Logistics: `GET /api/v1/logistics/pickups/{pickup}/waybills` and `GET /waybills/{waybill}.pdf`.
-- Courier API: `POST /api/v1/courier/waybills/resolve` remains access-only; implemented task-scan endpoints submit QR/reference evidence. Logistics uses `POST /api/v1/logistics/receiving/batches` for idempotent offline-captured hub receipts. These mutations still pass the shared Shipment/DeliveryTask transition rules.
+- Courier API: `POST /api/v1/courier/waybills/resolve` remains access-only; implemented task-scan endpoints submit QR/reference evidence. Logistics uses `POST /api/v1/logistics/receiving/batches` for idempotent hub receipts and `/api/v1/logistics/sorting/sessions/{session}/batches` for idempotent standard/exception lane captures. These mutations still pass the shared Shipment/DeliveryTask transition rules.
 - JSON metadata exposes reference, created time, printable capability, and authorized links; PDF bytes use dedicated streamed responses.
 - Seller UI follows `docs/design.md` and shared `@aisley/ui`; Logistics shows waybill actions within its role-isolated Pickups screens.
 - Preview must use the same backend-rendered PDF as Download/Print so browser HTML cannot diverge from the physical label.

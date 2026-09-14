@@ -344,7 +344,7 @@ The logistics workflow shall support:
 
 receive order → waybill → sort
 
-The system shall persist the parcel's current Shipment/Delivery Task state, including `received_at_hub` and `sorted_at_hub`, through the shared transition service after Logistics validates the supporting scan/evidence. The event must retain the Courier who performed a handoff when applicable and the Logistics account that recorded it.
+The system shall persist the parcel's current Shipment/Delivery Task state, including `received_at_hub` and `sorted_at_hub`, through the shared transition service after Logistics validates the supporting scan/evidence. Dedicated **Sorting** snapshots up to 100 oldest received parcels into one open sole-hub session, uses configurable standard/exception lanes and printable Code 128 lane labels, and retains Code 128/QR/manual captures in a device-local Dexie outbox until batch sync. Standard-lane sync records session/lane/capture metadata and commits `sorted_at_hub`; exception-lane sync records an operational hold while custody remains `received_at_hub`. The event must retain the Courier who performed a handoff when applicable and the Logistics account that recorded it.
 
 8.6 Transfer
 
@@ -622,7 +622,7 @@ Logistics receives and validates the parcel (`received_at_hub`)
 ↓
 Logistics resolves the Seller-created shared waybill through its immutable Order/Parcel reference
 ↓
-Logistics sorts the parcel (`sorted_at_hub`)
+Logistics selects/scans a Sorting lane and synchronizes the parcel (`sorted_at_hub`)
 ↓
 The parcel enters the Logistics **Ready to dispatch** queue
 ↓
@@ -703,7 +703,7 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 | Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Final-mile rejection/re-offer implemented; first-mile rejection remains legacy scope |
 | `seller_pickup_accepted → picked_up_from_seller` | Compatibility first-mile confirmation commits handoff/Inventory once and bridges shared records | Implemented on legacy confirmation contract |
 | `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Implemented P0 transition |
-| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; Hub operations records sorting | Implemented with Dexie bulk receipt sync; internal transfer deferred |
+| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting records standard-lane placement, while exception lanes hold custody at receipt | Implemented with separate Dexie batch receipt/sort sync; internal transfer deferred |
 | `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
 | `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented QR P0 evidence transition |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |

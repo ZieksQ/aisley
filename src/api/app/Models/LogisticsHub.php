@@ -27,4 +27,14 @@ class LogisticsHub extends Model
     {
         return $this->hasMany(LogisticsHubLocationChange::class, 'logistics_hub_id');
     }
+
+    public function sortingLanes(): HasMany
+    {
+        return $this->hasMany(SortingLane::class, 'logistics_hub_id');
+    }
+
+    public function sortingSessions(): HasMany
+    {
+        return $this->hasMany(SortingSession::class, 'logistics_hub_id');
+    }
 }

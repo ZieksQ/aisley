@@ -33,7 +33,7 @@ class FinalMileFulfillmentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_offline_receiving_batch_and_dispatch_schedule_assign_delivery_courier(): void
+    public function test_offline_receiving_sorting_and_dispatch_schedule_assign_delivery_courier(): void
     {
         [$seller, $shop] = $this->sellerShop();
         $order = $this->order($shop);
@@ -61,10 +61,26 @@ class FinalMileFulfillmentTest extends TestCase
             'client_id' => $receiptId, 'reference' => $reference, 'scanned_at' => now()->subMinute()->toISOString(),
         ]]])->assertOk()->assertJsonPath('summary.received', 1);
 
-        $record = $this->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->json('data');
-        $record = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
-            'reference' => $reference, 'target_state' => 'sorted_at_hub', 'expected_revision' => $record['revision'],
-        ])->assertOk()->json('data');
+        $lane = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'CEB-01', 'name' => 'Cebu staging', 'type' => 'standard'])
+            ->assertCreated()->assertJsonPath('data.code', 'CEB-01')->json('data');
+        $this->get('/api/v1/logistics/sorting/lanes/'.$lane['id'].'/label')->assertOk()->assertHeader('Content-Type', 'image/svg+xml; charset=UTF-8');
+        $session = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/sessions')
+            ->assertCreated()->assertJsonPath('data.expected_count', 1)->json('data');
+        $sortId = (string) Str::uuid();
+        $sortCapturedAt = now()->toISOString();
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [[
+            'client_id' => $sortId, 'lane_id' => $lane['id'], 'reference' => $reference,
+            'expected_revision' => $session['items'][0]['expected_revision'], 'source' => 'barcode', 'captured_at' => $sortCapturedAt,
+        ]]])->assertOk()->assertJsonPath('summary.sorted', 1)->assertJsonPath('data.0.status', 'sorted');
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [[
+            'client_id' => $sortId, 'lane_id' => $lane['id'], 'reference' => $reference,
+            'expected_revision' => $session['items'][0]['expected_revision'], 'source' => 'barcode', 'captured_at' => $sortCapturedAt,
+        ]]])->assertOk()->assertJsonPath('summary.sorted', 1)->assertJsonPath('data.0.status', 'sorted');
+        $overview = $this->getJson('/api/v1/logistics/sorting')->assertOk()->assertJsonPath('data.session.counts.sorted', 1)->json('data');
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/close", ['expected_revision' => $overview['session']['revision']])
+            ->assertOk()->assertJsonPath('data.status', 'closed');
+        $record = $this->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->assertJsonPath('data.status', 'sorted_at_hub')->json('data');
+        $this->assertDatabaseHas('shipment_events', ['shipment_id' => $record['shipment_id'], 'event_type' => 'hub_sort', 'recorded_by_logistics_id' => $logistics->id]);
 
         $this->getJson('/api/v1/logistics/dispatch/couriers')->assertOk()->assertJsonPath('data.0.contact_number', '09173333333');
         $dispatchKey = (string) Str::uuid();
@@ -82,6 +98,62 @@ class FinalMileFulfillmentTest extends TestCase
         $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/dispatch/schedules', [
             'shipment_ids' => $tooMany, 'courier_id' => $courier->id, 'scheduled_for' => now()->addHour()->toISOString(),
         ])->assertStatus(422)->assertJsonValidationErrors('shipment_ids');
+    }
+
+    public function test_sorting_exception_requires_resolution_and_is_tenant_scoped(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $order = $this->order($shop);
+        $order->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics();
+        $courier = $this->courier($organization->id, $hub->id);
+        $pickup = $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/seller/orders/pickup-requests', [
+            'order_ids' => [$order->id], 'pickup_address_id' => $seller->addresses()->sole()->id, 'logistics_organization_id' => $organization->id,
+        ])->assertOk()->json('data');
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/pickup-schedules', [
+            'order_ids' => [$order->id], 'courier_id' => $courier->id, 'starts_at' => now()->addHours(3)->toISOString(), 'ends_at' => now()->addHours(4)->toISOString(),
+        ])->assertCreated();
+        $first = $this->actingAs($courier)->getJson('/api/v1/courier/first-mile-tasks')->assertOk()->json('data.0');
+        $this->postJson("/api/v1/courier/first-mile-tasks/{$first['id']}/accept")->assertOk();
+        $reference = $pickup['waybills'][0]['reference'];
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/first-mile-tasks/{$first['id']}/pickup", [
+            'identifier_type' => 'qr', 'identifier' => 'AISLEY:WB:1:'.$reference,
+        ])->assertOk();
+        $this->actingAs($logistics)->postJson('/api/v1/logistics/receiving/batches', ['receipts' => [[
+            'client_id' => (string) Str::uuid(), 'reference' => $reference, 'scanned_at' => now()->toISOString(),
+        ]]])->assertOk()->assertJsonPath('summary.received', 1);
+
+        $standard = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'STD-01', 'name' => 'Standard staging', 'type' => 'standard'])->assertCreated()->json('data');
+        $exception = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'EX-01', 'name' => 'Needs review', 'type' => 'exception'])->assertCreated()->json('data');
+        $session = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/sessions')->assertCreated()->json('data');
+        $item = $session['items'][0];
+        $exceptionCapture = [
+            'client_id' => (string) Str::uuid(), 'lane_id' => $exception['id'], 'reference' => $reference,
+            'expected_revision' => $item['expected_revision'], 'source' => 'manual', 'captured_at' => now()->toISOString(),
+            'exception_code' => 'damaged', 'reason' => 'Outer packaging needs review.',
+        ];
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [$exceptionCapture]])
+            ->assertOk()->assertJsonPath('summary.exception', 1)->assertJsonPath('data.0.status', 'exception');
+        $this->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->assertJsonPath('data.status', 'received_at_hub');
+        $overview = $this->getJson('/api/v1/logistics/sorting')->assertOk()->assertJsonPath('data.session.counts.exception', 1)->json('data');
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/close", ['expected_revision' => $overview['session']['revision']])
+            ->assertConflict()->assertJsonPath('code', 'SORT_SESSION_UNRESOLVED');
+
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [[
+            'client_id' => (string) Str::uuid(), 'lane_id' => $standard['id'], 'reference' => $reference,
+            'expected_revision' => $item['expected_revision'], 'source' => 'barcode', 'captured_at' => now()->toISOString(),
+        ]]])->assertOk()->assertJsonPath('summary.sorted', 1);
+        $overview = $this->getJson('/api/v1/logistics/sorting')->assertOk()->assertJsonPath('data.session.counts.sorted', 1)->json('data');
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/close", ['expected_revision' => $overview['session']['revision']])->assertOk();
+        $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [[
+            'client_id' => (string) Str::uuid(), 'lane_id' => $standard['id'], 'reference' => $reference,
+            'expected_revision' => $item['expected_revision'], 'source' => 'barcode', 'captured_at' => now()->toISOString(),
+        ]]])->assertOk()->assertJsonPath('data.0.code', 'SORT_SESSION_CLOSED');
+
+        [$otherLogistics] = $this->logistics();
+        $this->actingAs($otherLogistics)->getJson('/api/v1/logistics/sorting')->assertOk()->assertJsonCount(0, 'data.lanes');
+        $this->get('/api/v1/logistics/sorting/lanes/'.$standard['id'].'/label')->assertNotFound();
+        $this->patchJson('/api/v1/logistics/sorting/lanes/'.$standard['id'], ['expected_revision' => $standard['revision'], 'is_active' => false])->assertNotFound();
     }
 
     public function test_final_mile_moves_from_hub_to_delivered_with_logistics_validation(): void

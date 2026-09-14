@@ -2,26 +2,24 @@
 
 namespace App\Models;
 
-use App\Enums\ShipmentStatus;
+use App\Enums\Logistics\SortingLaneType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Shipment extends Model
+class SortingLane extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision'];
+    protected $fillable = [
+        'logistics_organization_id', 'logistics_hub_id', 'created_by_logistics_id', 'code', 'name',
+        'type', 'is_active', 'position', 'revision',
+    ];
 
     protected function casts(): array
     {
-        return ['status' => ShipmentStatus::class, 'revision' => 'integer'];
-    }
-
-    public function parcel(): BelongsTo
-    {
-        return $this->belongsTo(Parcel::class);
+        return ['type' => SortingLaneType::class, 'is_active' => 'boolean', 'position' => 'integer', 'revision' => 'integer'];
     }
 
     public function organization(): BelongsTo
@@ -34,17 +32,7 @@ class Shipment extends Model
         return $this->belongsTo(LogisticsHub::class, 'logistics_hub_id');
     }
 
-    public function tasks(): HasMany
-    {
-        return $this->hasMany(DeliveryTask::class);
-    }
-
-    public function events(): HasMany
-    {
-        return $this->hasMany(ShipmentEvent::class);
-    }
-
-    public function sortingItems(): HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(SortingSessionItem::class);
     }

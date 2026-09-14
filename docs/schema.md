@@ -1116,11 +1116,11 @@ The reserved quantity is converted to fulfilled/committed inventory exactly once
 
 Scheduling, Courier acknowledgement, scanning, and typing do not mutate `orders.status`, custody, payment, or Inventory. Explicit `picked_up_from_seller` confirmation records custody in the detailed task/confirmation records, appends `ready_for_pickup → picked_up` to Order status history, and converts the Order's reservation to an Inventory fulfillment movement in one transaction.
 
-The additive fulfillment migration creates one immutable `parcels` row and one `shipments` row per Order/waybill, then one independent `delivery_tasks` row per leg. `shipments.status` and task status remain detailed physical state, while the high-level Order projection is updated only by `FulfillmentTransitionService`. Receiving batches use stable client UUIDs and commit parcel results independently. After sorting, `dispatch_schedules` groups 1–15 Shipments for one approved Courier and future time; `dispatch_schedule_shipments` retains per-parcel and final-task links. Schedule creation atomically records dispatch, creates each final-mile task/offer, and projects each Order to `assigned`. Courier offers are accepted independently, hub-pickup and delivery QR evidence is stored privately, and Logistics validates evidence before `picked_up_from_hub` or `delivered` is committed.
+The additive fulfillment migration creates one immutable `parcels` row and one `shipments` row per Order/waybill, then one independent `delivery_tasks` row per leg. `shipments.status` and task status remain detailed physical state, while the high-level Order projection is updated only by `FulfillmentTransitionService`. Receiving and Sorting batches use stable client UUIDs and commit parcel results independently. Sorting snapshots up to 100 oldest `received_at_hub` Shipments into one open sole-hub session; standard lanes commit `sorted_at_hub`, while exception lanes retain receipt custody until resolution. After sorting, `dispatch_schedules` groups 1–15 Shipments for one approved Courier and future time; `dispatch_schedule_shipments` retains per-parcel and final-task links. Schedule creation atomically records dispatch, creates each final-mile task/offer, and projects each Order to `assigned`. Courier offers are accepted independently, hub-pickup and delivery QR evidence is stored privately, and Logistics validates evidence before `picked_up_from_hub` or `delivered` is committed.
 
 ### 9.18 Shared shipment, parcel, task, evidence, and history records
 
-**Models:** `Parcel`, `Shipment`, `DeliveryTask`, `DeliveryTaskOffer`, `DispatchSchedule`, `DispatchScheduleShipment`, `ShipmentEvidence`, `CompletionIntent`, and `ShipmentEvent`.
+**Models:** `Parcel`, `Shipment`, `DeliveryTask`, `DeliveryTaskOffer`, `DispatchSchedule`, `DispatchScheduleShipment`, `SortingLane`, `SortingSession`, `SortingSessionItem`, `SortingScan`, `ShipmentEvidence`, `CompletionIntent`, and `ShipmentEvent`.
 
 | Table | Purpose and constraints |
 | --- | --- |
@@ -1130,11 +1130,17 @@ The additive fulfillment migration creates one immutable `parcels` row and one `
 | `delivery_task_offers` | Immutable Courier offers/rejections/acceptance sequence, Logistics actor, request hash, and actor-scoped idempotency key. Re-offer reuses the task and appends a sequence. |
 | `dispatch_schedules` | One organization/sole-hub schedule for one active approved Courier, future time, 1–15 parcels, revision, status, and Logistics-actor idempotency. |
 | `dispatch_schedule_shipments` | Unique Shipment and final-mile task membership with stable sequence; preserves one task/offer/history per parcel. |
+| `sorting_lanes` | Organization/sole-hub lane definitions with unique code, standard/exception type, active flag, position, creator, and optimistic revision. |
+| `sorting_sessions` | One open session per organization/hub through nullable unique `open_key`; stores human reference, 100-item maximum expected count, actors, lifecycle, revision, and open-request idempotency. |
+| `sorting_session_items` | Session snapshot membership and current pending/sorted/exception reconciliation state; stores expected Shipment revision, selected lane, exception context, and completion time. |
+| `sorting_scans` | Append-style idempotent capture results scoped by organization/hub/session/item/lane/Shipment; stores stable client UUID, request hash, source, captured/processed times, actor, and optional exception context. |
 | `shipment_evidence` | Private QR/reference evidence for hub pickup or delivery proof; stores only safe waybill reference, hashes, status, actors, timestamps, and metadata. |
 | `completion_intents` | Explicit Courier completion intent linked to one delivery proof; remains awaiting validation until Logistics finalizes delivery. |
 | `shipment_events` | Append-only physical transition history with before/after states, performing Courier, validating Logistics account, evidence/offer links, correlation, and idempotency references. |
 
 Logistics and Courier routes are private, tenant-scoped, and no-store. A final delivery changes the final-mile task, Shipment, and Order to `delivered` in one transaction after a validated QR proof and Courier completion intent; it does not fulfill Inventory again or change payment fields.
+
+Sorting lane/session/item/scan enum-like columns remain PostgreSQL-safe strings with Logistics-scoped PHP enum casts. The dedicated sort transition appends a `hub_sort` Shipment event containing the session UUID, lane UUID, source, device capture time, request hash, and Logistics actor. A Sorting exception updates only the session item's operational hold; it does not add an Order status or advance Shipment custody.
 
 ## 10. Framework infrastructure tables
 
@@ -1330,6 +1336,7 @@ Repository migrations are listed below in filename execution order; this invento
 64. `2026_09_12_000003_add_location_revision_to_logistics_hubs.php` — opaque optimistic-concurrency revision for Logistics hub-pin writes.
 65. `2026_09_14_000001_create_platform_feature_controls_table.php` — declared platform-wide boolean controls with revision and last-Admin updater metadata.
 66. `2026_09_14_000002_create_dispatch_schedules.php` — organization/sole-hub dispatch schedules plus unique per-Shipment/final-task membership, capped by the API at 15 parcels.
+67. `2026_09_14_000003_create_sorting_operations.php` — organization/sole-hub Sorting lanes, one open bounded session, snapshot reconciliation items, and idempotent standard/exception scan results.
 
 ## 14. Fulfillment schema and deferred extensions
 

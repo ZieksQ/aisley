@@ -487,6 +487,72 @@ class FulfillmentTransitionService
         }, 3);
     }
 
+    /** @return array{shipment: Shipment, task: DeliveryTask, event: ShipmentEvent} */
+    public function sortAtHub(User $logistics, string $reference, int $expectedRevision, string $idempotencyKey, string $sessionId, string $laneId, string $source, string $capturedAt): array
+    {
+        $normalizedReference = trim($reference);
+        $requestHash = $this->hash([
+            'reference' => mb_strtolower($normalizedReference),
+            'target_state' => ShipmentStatus::SortedAtHub->value,
+            'expected_revision' => $expectedRevision,
+            'sorting_session_id' => $sessionId,
+            'sorting_lane_id' => $laneId,
+            'source' => $source,
+            'captured_at' => $capturedAt,
+        ]);
+
+        return DB::transaction(function () use ($logistics, $normalizedReference, $expectedRevision, $idempotencyKey, $sessionId, $laneId, $source, $capturedAt, $requestHash): array {
+            $prior = ShipmentEvent::query()->where('recorded_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+            if ($prior !== null) {
+                if (($prior->metadata['request_hash'] ?? null) !== $requestHash) {
+                    throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This sorting identifier was already used for another operation.');
+                }
+                $shipment = Shipment::query()->whereKey($prior->shipment_id)->with($this->shipmentRelations())->firstOrFail();
+                $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
+
+                return ['shipment' => $shipment, 'task' => $task, 'event' => $prior];
+            }
+
+            $org = $this->logisticsOrganization($logistics);
+            $waybill = $this->resolveWaybill($org, $normalizedReference);
+            $shipment = $this->ensureForWaybillInTransaction($waybill);
+            $shipment = Shipment::query()->whereKey($shipment->id)->with($this->shipmentRelations())->lockForUpdate()->firstOrFail();
+            if ($shipment->revision !== $expectedRevision) {
+                throw FulfillmentException::conflict('SORT_SHIPMENT_REVISION_CONFLICT', 'The parcel changed after this sorting session was loaded. Refresh before sorting it.');
+            }
+            if ($shipment->status !== ShipmentStatus::ReceivedAtHub) {
+                throw FulfillmentException::conflict('SORT_SHIPMENT_STATE_CONFLICT', 'Only a parcel received at this hub can be sorted.');
+            }
+            $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
+            if ($task === null || $task->status !== FulfillmentTaskStatus::PickedUpFromSeller) {
+                throw FulfillmentException::conflict('HUB_STATE_CONFLICT', 'The first-mile task is not ready for hub sorting.');
+            }
+
+            $shipment->update(['status' => ShipmentStatus::SortedAtHub, 'revision' => $shipment->revision + 1]);
+            $event = $this->event(
+                $shipment,
+                $task,
+                'hub_sort',
+                ShipmentStatus::ReceivedAtHub->value,
+                ShipmentStatus::SortedAtHub->value,
+                $task->courier_id,
+                $logistics->id,
+                null,
+                null,
+                [
+                    'request_hash' => $requestHash,
+                    'sorting_session_id' => $sessionId,
+                    'sorting_lane_id' => $laneId,
+                    'source' => $source,
+                    'captured_at' => $capturedAt,
+                ],
+                $idempotencyKey,
+            );
+
+            return ['shipment' => $shipment->fresh($this->shipmentRelations()), 'task' => $task, 'event' => $event];
+        }, 3);
+    }
+
     public function recordForLogistics(User $logistics, string $reference): Shipment
     {
         $org = $this->logisticsOrganization($logistics);

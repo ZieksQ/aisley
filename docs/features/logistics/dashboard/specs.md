@@ -3,7 +3,7 @@ feature: logistics-dashboard
 title: Logistics Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.7
 status: Implemented hub scaffold and bounded operational queue; stale threshold/realtime deferred
 role: Logistics
 scope: Logistics React SPA and Laravel API
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Give an approved active Logistics account a secure view of its organization and sole operational hub, then the parcels requiring action.
-- **Current implementation:** `GET /api/v1/logistics/dashboard` remains the safe hub identity scaffold. `GET /api/v1/logistics/dashboard/queue` returns the private scoped Shipment queue used by the dashboard and role-specific workspaces. `/operations` provides sorting/evidence/recovery controls, while `/receive-at-hub` and `/dispatch` own receipt and scheduled dispatch respectively.
+- **Current implementation:** `GET /api/v1/logistics/dashboard` remains the safe hub identity scaffold. `GET /api/v1/logistics/dashboard/queue` returns the private scoped Shipment queue used by the dashboard and role-specific workspaces. `/receive-at-hub`, `/sorting`, and `/dispatch` own receipt, normal sortation, and scheduled dispatch respectively; `/operations` provides evidence review and exceptional recovery compatibility.
 - **MVP boundary:** One Logistics account operates one organization and exactly one hub/sorting center. Sub-hubs, hub selectors, multi-hub queues, and staff-account context are out of scope.
 - **Queue boundary:** Only already-created shared Shipment records are listed. Queue reads never lazily create a Shipment or infer readiness; reference lookup remains the owning Update Status operation.
 - **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns readiness; Deploy Rider owns assignment; Update Status owns validated state recovery; Waybill owns document access; Courier UI is external Flutter/mobile-only.
@@ -84,7 +84,7 @@ active Logistics session
 - [x] The scaffold truthfully returns null/empty data rather than fabricated queue counts.
 - [x] Loading, refresh, unauthorized, and recoverable error states are available in the SPA.
 - [x] Organization/sole-hub scoped queue rows, real counts, status/search/evidence filters, bounded pagination, authoritative freshness, and truthful empty/error states are implemented.
-- [x] Evidence status, completion intents, and recovery transitions remain visible in Hub operations; receipt and scheduled dispatch are separated into their own navigation and pages.
+- [x] Evidence status, completion intents, and recovery transitions remain visible in Hub operations; receipt, sorting, and scheduled dispatch are separated into their own navigation and pages.
 - [ ] A configured stale threshold, private realtime transport, advanced ranking, date filters, and automatic reassignment remain deferred.
 
 ## HOW
