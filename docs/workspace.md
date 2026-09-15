@@ -644,6 +644,12 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 
 Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders operationally, but it does not merge their tasks, waybills, snapshots, or histories.
 
+**Canonical first-mile PickupSchedule lifecycle:** A schedule starts as `scheduled`. Its `remaining_parcel_count` counts linked first-mile tasks still `assigned` or `accepted`. Partial schedules remain `scheduled` while any such task remains; once every linked task reaches `picked_up_from_seller`, the still-scheduled parent becomes `completed`. This is completion of Seller collection, not hub receipt or final-mile Buyer delivery.
+
+Completed schedules are historical: exclude them from Courier overlap/availability checks, reject revision/cancellation, and suppress pending reminders. Reminder dispatch/retry must recheck eligibility so completed work does not generate new pickup reminders. Completion must be transactional and retry-safe without repeating pickup, Inventory, or final-mile effects.
+
+`PickupScheduleLifecycleService` now completes the parent from the final first-mile pickup transaction, records one append-only completion history row, and suppresses pending or claimed reminders without replaying pickup, Inventory, or final-mile effects. Existing `scheduled` rows with zero remaining parcels can be reconciled safely by the bounded, rerunnable `pickups:reconcile-schedules` command: it locks and rechecks membership, completes only all-picked task sets, and reports empty/missing/cancelled/inconsistent candidates instead of guessing. Fresh migration or database reseeding is not a remedy; PostgreSQL execution remains a release gate. See the Pickup Scheduling spec and schema completion section for verification requirements.
+
 11.2 Canonical Order and Shipment State Model
 
 Use lowercase `snake_case` for persisted and API values, PascalCase for PHP enum cases, and human-readable labels only in the UI. Do not persist source-only uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER`.
