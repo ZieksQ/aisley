@@ -284,7 +284,7 @@ Each profile has a UUID primary key and a unique UUID `user_id`, enforcing at mo
 Additional relationships:
 
 - `SellerProfile.shop` resolves the shop through the profile's `user_id`.
-- `CourierProfile.vehicles` returns the Courier's registered vehicles.
+- `CourierProfile.vehicles` currently returns a collection. The MVP target is exactly one vehicle per Courier; additive database uniqueness and required-record checks remain to be implemented.
 - Age is calculated from `birth_date`; it is not stored as a column.
 
 A Customer, Seller, and Courier profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). Each profile table stores nullable `profile_photo_disk`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height` metadata alongside the generated relative `profile_photo_path`. The APIs never expose these storage fields; authenticated delivery uses each role's current-account profile-photo endpoint with private, no-store response headers. Courier photo metadata is added by `2026_09_10_000008_add_courier_profile_photo_metadata.php` without modifying the executed Courier-profile creation migration.
@@ -675,7 +675,7 @@ Indexes support account history, actor history, and optional source-reference lo
 | `status`                     | VARCHAR         | No       | `active`        | Cast to `VehicleStatus`                                |
 | `make`                       | VARCHAR         | Yes      | `NULL`          | Vehicle make                                           |
 | `model`                      | VARCHAR         | Yes      | `NULL`          | Vehicle model                                          |
-| `capacity`                   | NUMERIC(10,2)   | Yes      | `NULL`          | Capacity value; unit must be defined by API validation |
+| `capacity`                   | NUMERIC(10,2)   | Yes      | `NULL`          | Legacy nullable field; values/units and matching deferred |
 | `registration_document_path` | TEXT            | Yes      | `NULL`          | Vehicle-registration object path                       |
 | `created_at`                 | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                    |
 | `updated_at`                 | TIMESTAMP       | Yes      | `NULL`          | Managed by Eloquent                                    |
@@ -685,6 +685,8 @@ Constraints and indexes:
 - Unique: `plate_number`.
 - Index: (`courier_profile_id`, `status`).
 - Index: `type`.
+
+Vehicle MVP clarification: each Courier must have exactly one vehicle with required type/plate and private OR/CR registration evidence. The deployed vehicle FK/index and ER diagram represent a has-many schema, not enforced one-to-one cardinality. Add unique `vehicles.courier_profile_id` only after auditing missing/duplicate rows and approving a non-destructive correction plan; required existence also needs transactional registration/approval checks. Do not modify executed migrations or reseed. Preserve globally unique plates and existing IDs/documents. Maintenance, vehicle history, capacity values/units/matching, and vehicle replacement are deferred; retain existing columns/enums and operational audit records without enabling those features. The current single `vehicle_registration` upload is not a separate-OR/CR API.
 
 ### 8.2 `courier_logistics_affiliations`
 
@@ -1229,7 +1231,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 6. `shops.seller_id` must reference a Seller user, and every seller-owned query must derive the shop from the authenticated Seller rather than trust a client-provided `shop_id`.
 7. Email addresses should be normalized to lowercase before persistence because PostgreSQL's ordinary unique index is case-sensitive.
 8. Only one address should be marked default for a given user and applicable address type; updates should occur transactionally.
-9. Vehicle capacity must be nonnegative and use one API-defined unit.
+9. Vehicle capacity values, units, validation for new capacity workflows, and dispatch matching are deferred; nullable legacy capacity does not imply unlimited capacity or a new dispatch gate.
 10. Category ancestry must not contain cycles.
 11. Enum transitions and values must be validated before persistence because the database columns are strings without native enum or `CHECK` constraints.
 12. Hard deletion should not replace account suspension/deactivation workflows.

@@ -67,9 +67,10 @@ role: Seller, Customer, Courier
 - **Address (API)**
   - Dropdown: Province, Municipality, Barangay
   - Manual entry: Street, House number, etc.
-- **Choose vehicle**
-- **Enter plate number**
-- **Upload OR/CR**
+- **Vehicle type (required)** — exactly one vehicle per Courier; current types are motorcycle, car, and van.
+- **Plate number (required)** — identifies that same sole vehicle.
+- **Upload OR/CR (required)** — Official Receipt and Certificate of Registration for that vehicle, subject to the shared file-upload policy and private Logistics review. The current API accepts one `vehicle_registration` image; separate OR/CR files require an additive API contract, not invented multipart fields.
+- Maintenance, vehicle history, capacity values/units, multiple vehicles, and vehicle replacement are deferred. Existing registration decisions and shipment history remain preserved.
 - **Upload ID/driver’s license**
 
 > **Note:** After submitting your registration, please wait for the Logistic's approval, which will be sent to your email.

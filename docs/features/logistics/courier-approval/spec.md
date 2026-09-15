@@ -3,7 +3,7 @@ feature: logistics-courier-approval
 title: Courier Application Review and Approval
 system: AISLEY
 type: Feature Specification
-version: 1.1
+version: 1.2
 status: Implemented (Phase 1): scoped review, private evidence, and atomic decisions
 canonical: true
 role: Logistics
@@ -49,6 +49,7 @@ Courier registers under Logistics → pending affiliation
 - Detail shows submitted identity/contact, address, vehicle/plate, and document presence/preview status.
 - Never substitute the Logistics hub address for the Courier's submitted address.
 - Required ID/license and OR/CR evidence must be readable through authorized delivery before the UI claims document review is complete.
+- MVP requires exactly one vehicle with required type/plate and matching OR/CR. Current active-vehicle/file-presence checks do not establish one-vehicle database uniqueness or verify both OR/CR contents; harden these checks before claiming full compliance. Maintenance, vehicle history, and capacity values/units are deferred and must not block approval.
 - Approval hardening rejects incomplete required registration records and preserves independent suspension/deactivation decisions.
 - Approve sets affiliation/application to `approved` and Courier account to `active` in one transaction.
 - Reject sets affiliation/application/account to `rejected`; require a meaningful reason of at most 2,000 characters.
@@ -88,6 +89,7 @@ Courier registers under Logistics → pending affiliation
 - [x] Logistics can review only its organization's pending applications and authorized evidence.
 - [x] Existing approval APIs are reused rather than duplicated.
 - [x] Required-document completeness and account-lifecycle races are checked before approval.
+- [ ] Approval enforces exactly one vehicle and review confirms readable OR/CR for it; duplicate vehicles are not silently resolved by selecting the first row.
 - [x] Approval/rejection commits all related statuses, reviewer, and time atomically.
 - [x] Duplicate/concurrent decisions cannot overwrite an earlier decision or independent suspension.
 - [ ] Full browser timeout/offline automation is deferred; the UI times out, refetches the recorded detail, and does not claim a decision without the returned state.
