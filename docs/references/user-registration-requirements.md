@@ -69,8 +69,10 @@ role: Seller, Customer, Courier
   - Manual entry: Street, House number, etc.
 - **Vehicle type (required)** — exactly one vehicle per Courier; current types are motorcycle, car, and van.
 - **Plate number (required)** — identifies that same sole vehicle.
-- **Upload OR/CR (required)** — Official Receipt and Certificate of Registration for that vehicle, subject to the shared file-upload policy and private Logistics review. The current API accepts one `vehicle_registration` image; separate OR/CR files require an additive API contract, not invented multipart fields.
-- Maintenance, vehicle history, capacity values/units, multiple vehicles, and vehicle replacement are deferred. Existing registration decisions and shipment history remain preserved.
+- **Make/model (optional)** — editable vehicle details alongside required type/plate.
+- **Upload OR (required)** and **Upload CR (required)** — separate Official Receipt and Certificate of Registration images under the shared upload policy. Planned registration keys are `official_receipt` and `certificate_of_registration`; current production accepts combined `vehicle_registration` until the coordinated API/client rollout.
+- After initial approval, the Courier may edit type, plate, make, model and replace OR or CR independently without reapproval. Notify associated Logistics after every committed change; omission preserves the other document and removal without replacement is not supported.
+- Maintenance, vehicle history, capacity values/units, and multiple/shared vehicles remain deferred. Existing registration decisions and shipment history remain preserved.
 - **Upload ID/driver’s license**
 
 > **Note:** After submitting your registration, please wait for the Logistic's approval, which will be sent to your email.

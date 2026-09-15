@@ -3,9 +3,9 @@ feature: logistics-notification
 title: Logistics Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Implemented (focused verification complete; release gates pending)
-implementation_status: Logistics inbox API, bell/inbox UI, after-commit delivery, deterministic deduplication, and all MVP producer hooks are implemented
+implementation_status: Existing Logistics inbox and operational producers implemented; Courier vehicle-update producer is planned
 role: Logistics
 scope: Laravel API and Logistics React dashboard
 ---
@@ -50,6 +50,7 @@ source action commits → durable notification work → recipient inbox
 | `logistics-task.offer-rejected`         | Final-mile offer rejected; task's owning Logistics account          | Planned integration; key by rejected offer, not Order                    |
 | `logistics-evidence.submitted`          | New hub-pickup or delivery-proof evidence; owning Logistics account | Planned integration; key by evidence ID and purpose                      |
 | `logistics-completion.requested`        | New Courier completion intent; owning Logistics account             | Planned integration; key by intent ID                                    |
+| `logistics-courier.vehicle-updated` | Committed vehicle field or independent OR/CR replacement; associated Logistics account | New unimplemented producer; deduplicate by vehicle revision/recipient; informational, no approval action |
 
 - Do not emit an alert on list reads, QR resolution alone, duplicate retries, or uncommitted source actions.
 - First-mile direct pickup remains its current contract; do not require Logistics review merely to create notifications.
@@ -57,6 +58,7 @@ source action commits → durable notification work → recipient inbox
 - Re-offering the same task may later produce another rejection alert only for a new committed offer.
 - Evidence and completion alerts may both exist: they represent distinct review steps, not duplicate events.
 - Existing pickup, approval, and operations queues remain usable if notification delivery fails.
+- Vehicle-change notifications contain Courier/vehicle references, changed field names and time only; no evidence/plates/private old/new values. Retried delivery never reruns the edit, no-op saves do not notify, and failure cannot reset approval or undo saved information. Deep-link only to an implemented tenant-scoped current-vehicle view; otherwise retain a null destination.
 
 ### Persistence, delivery, and history
 
@@ -140,6 +142,7 @@ source action commits → durable notification work → recipient inbox
 - [x] Rollback-safe after-commit delivery and queue retries cannot duplicate or undo operational decisions; PostgreSQL/concurrency verification remains a release gate.
 - [x] Bell/list/detail implement loading, failures, consent recovery, stale links, explicit read state, polling visibility, and logout cleanup; browser automation remains a release gate.
 - [ ] SQLite/PostgreSQL migration/API tests and Logistics type-check/build/UI tests pass with recorded results.
+- [ ] Vehicle/OR/CR edits notify only the associated Logistics account once per changed revision without reapproval, private-data leakage, or rollback on delivery failure.
 
 ### References
 

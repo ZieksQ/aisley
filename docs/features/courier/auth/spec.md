@@ -3,7 +3,7 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.2
+version: 2.3
 status: Implemented foundation; dedicated coverage and recovery completion deferred
 implementation_status: Auth foundation implemented; first- and final-mile APIs exist under their owning specs; external Flutter implementation unverified
 canonical: true
@@ -70,7 +70,8 @@ GET active Logistics options
 
 ### Evidence and transaction rules
 
-- Current multipart fields are `government_id` and `vehicle_registration`; both are required images. The latter supplies the sole vehicle's required OR/CR for Logistics review, not automatic content verification. Separate OR/CR uploads or a distinct `drivers_license` field need an additive contract.
+- Current multipart fields are `government_id` and `vehicle_registration`; both are required images. Planned registration replaces the combined image with required `official_receipt` and `certificate_of_registration`, plus optional make/model, under the registry contract. These inputs are not live; a distinct `drivers_license` field remains separate work.
+- After initial approval, planned Courier vehicle endpoints permit type/plate/make/model edits and independent OR/CR replacement without reapproval, notifying associated Logistics after commit. Preserve initial approval evidence; deploy separate-document backend support before switching Flutter registration fields, and reject mixed legacy/new forms.
 - Apply [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md): JPEG/JPG, PNG, or WebP only, strictly under 10 MiB, with detected MIME/signature/decode validation.
 - Store generated private object keys and document metadata. Never return bytes, raw paths, credentials, or predictable URLs in the Courier resource.
 - Create User, CourierProfile, address, pending RegistrationApplication, pending affiliation, Vehicle, and Document rows in one logical transaction.

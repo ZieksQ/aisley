@@ -3,7 +3,7 @@ feature: logistics-courier-approval
 title: Courier Application Review and Approval
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented (Phase 1): scoped review, private evidence, and atomic decisions
 canonical: true
 role: Logistics
@@ -49,6 +49,7 @@ Courier registers under Logistics → pending affiliation
 - Detail shows submitted identity/contact, address, vehicle/plate, and document presence/preview status.
 - Never substitute the Logistics hub address for the Courier's submitted address.
 - Required ID/license and OR/CR evidence must be readable through authorized delivery before the UI claims document review is complete.
+- Planned extension: initial registration requires separate OR and CR; existing combined-document API compatibility remains until coordinated rollout. Later Courier vehicle/document edits need no reapproval and must not reopen the application or overwrite its evidence/decision. Show current vehicle documents separately from reviewed registration evidence; Logistics receives informational change notifications.
 - MVP requires exactly one vehicle with required type/plate and matching OR/CR. Current active-vehicle/file-presence checks do not establish one-vehicle database uniqueness or verify both OR/CR contents; harden these checks before claiming full compliance. Maintenance, vehicle history, and capacity values/units are deferred and must not block approval.
 - Approval hardening rejects incomplete required registration records and preserves independent suspension/deactivation decisions.
 - Approve sets affiliation/application to `approved` and Courier account to `active` in one transaction.

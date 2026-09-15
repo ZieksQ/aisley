@@ -166,7 +166,7 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 
 - **Purpose:** Maintain the authenticated Courier's personal profile, security credentials, and current vehicle information.
 - **Owns:** Allow-listed self-service changes, password/session controls, and vehicle detail updates when permitted.
-- **Rules:** Every mutation uses the authenticated `user_id`; email alone, another role's record, arbitrary profile IDs, or a client-selected affiliation cannot authorize an update. License, vehicle, payout, or other sensitive changes may require Logistics review before becoming operational.
+- **Rules:** Every mutation uses the authenticated `user_id`; email alone, another role's record, arbitrary profile IDs, or a client-selected affiliation cannot authorize an update. Approved vehicle target permits editing type/plate/make/model and independent OR/CR replacement without reapproval, with associated Logistics notified after commit. Vehicle endpoints remain unimplemented; license and payout changes retain their separate policy boundaries.
 
 ### 10. Delivery History
 
