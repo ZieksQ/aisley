@@ -73,6 +73,14 @@ class AppServiceProvider extends ServiceProvider
             ]));
         });
 
+        RateLimiter::for('courier-vehicle-documents', function (Request $request): Limit {
+            return Limit::perMinute(10)->by(implode('|', [
+                'courier-vehicle-documents',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
         RateLimiter::for('logistics-account-password', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [
                 'logistics-account-password',

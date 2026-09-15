@@ -17,7 +17,7 @@ The Courier works under one selected Logistics organization. The organization op
 ## Registration, affiliation, and access boundary
 
 - Registration collects the required personal fields, Philippine address, vehicle type, plate number, OR/CR, and ID/driver's-license evidence from `docs/references/user-registration-requirements.md`.
-- MVP: exactly one vehicle per Courier, with required type/plate and private OR/CR for associated Logistics review. Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred. Vehicle changes are not enabled by the existing account API; registration/operational audit history remains intact.
+- MVP: exactly one vehicle per Courier, with required type/plate and private OR/CR for associated Logistics review. Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred. The vehicle registry API now supports post-approval detail edits and independent OR/CR replacement; registration/operational audit history remains intact.
 - Age is calculated from `birth_date` by the API; a client-supplied age is never authoritative.
 - Address selectors use the bundled PSGC Region → Province → City/Municipality → Barangay flow with manual street/house details and a complete manual fallback. If an exact pin is required, reuse the Customer Address Book flow: optional Geoapify suggestions/coordinates after **Pin location** and a Leaflet map rendered with Geoapify tiles. Mapbox is not used.
 - The applicant selects an eligible active Logistics organization. The API derives that organization's sole hub; the client cannot submit or select a hub/sub-hub ID.
@@ -166,7 +166,7 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 
 - **Purpose:** Maintain the authenticated Courier's personal profile, security credentials, and current vehicle information.
 - **Owns:** Allow-listed self-service changes, password/session controls, and vehicle detail updates when permitted.
-- **Rules:** Every mutation uses the authenticated `user_id`; email alone, another role's record, arbitrary profile IDs, or a client-selected affiliation cannot authorize an update. Approved vehicle target permits editing type/plate/make/model and independent OR/CR replacement without reapproval, with associated Logistics notified after commit. Vehicle endpoints remain unimplemented; license and payout changes retain their separate policy boundaries.
+- **Rules:** Every mutation uses the authenticated `user_id`; email alone, another role's record, arbitrary profile IDs, or a client-selected affiliation cannot authorize an update. Approved vehicle endpoints permit editing type/plate/make/model and independent OR/CR replacement without reapproval, with associated Logistics notified after commit. License and payout changes retain their separate policy boundaries.
 
 ### 10. Delivery History
 
@@ -228,7 +228,7 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 Implemented foundation:
 
 - `users` Courier role and `CourierProfile` with server-derived age.
-- One initial `Vehicle` per registration, with string-backed `VehicleType` and `VehicleStatus` casts. The target is exactly one vehicle per Courier; the existing has-many relationship is not proof of an enforced unique Courier constraint. See the additive hardening plan in `docs/schema.md`.
+- One initial `Vehicle` per registration, with string-backed `VehicleType` and `VehicleStatus` casts. An additive migration enforces one vehicle per Courier after a duplicate preflight; service operations still fail closed if cardinality is ambiguous. See `docs/schema.md`.
 - One current `CourierLogisticsAffiliation` linking the Courier to the selected organization and derived sole hub, with Logistics reviewer, decision, reason, and timestamp.
 - Registration applications, private evidence documents, addresses, Sanctum tokens, Courier auth endpoints, and Logistics approval endpoints.
 

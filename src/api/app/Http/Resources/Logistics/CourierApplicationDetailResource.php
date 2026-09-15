@@ -37,10 +37,8 @@ class CourierApplicationDetailResource extends JsonResource
             ?->sortByDesc('created_at')
             ->sortByDesc(fn ($item): int => (int) $item->is_default)
             ->first();
-        $vehicle = $profile?->vehicles
-            ?->sortByDesc('created_at')
-            ->sortByDesc(fn ($item): int => $item->status?->value === 'active' ? 1 : 0)
-            ->first();
+        $vehicles = $profile?->vehicles ?? collect();
+        $vehicle = $vehicles->count() === 1 ? $vehicles->first() : null;
         $documents = $application?->documents ?? collect();
         $profilePresent = $profile
             && filled($profile->first_name)
@@ -54,7 +52,7 @@ class CourierApplicationDetailResource extends JsonResource
             && filled($address->province)
             && filled($address->region)
             && filled($address->postal_code);
-        $vehiclePresent = $vehicle && $vehicle->status?->value === 'active';
+        $vehiclePresent = $vehicles->count() === 1 && $vehicle?->status?->value === 'active';
         $hasIdentityDocument = $documents->contains(fn ($document): bool => in_array($document->type, self::IDENTITY_DOCUMENT_TYPES, true)
             && $document->status !== DocumentStatus::Rejected
             && filled($document->path));

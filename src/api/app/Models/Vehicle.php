@@ -22,6 +22,9 @@ class Vehicle extends Model
         'model',
         'capacity',
         'registration_document_path',
+        'official_receipt_document_id',
+        'certificate_of_registration_document_id',
+        'revision',
     ];
 
     /**
@@ -33,11 +36,22 @@ class Vehicle extends Model
             'type' => VehicleType::class,
             'status' => VehicleStatus::class,
             'capacity' => 'decimal:2',
+            'revision' => 'integer',
         ];
     }
 
     public function courierProfile(): BelongsTo
     {
         return $this->belongsTo(CourierProfile::class);
+    }
+
+    public function officialReceiptDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'official_receipt_document_id');
+    }
+
+    public function certificateOfRegistrationDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'certificate_of_registration_document_id');
     }
 }

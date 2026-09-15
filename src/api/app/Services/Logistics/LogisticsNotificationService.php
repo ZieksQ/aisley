@@ -28,6 +28,7 @@ class LogisticsNotificationService
         'logistics-task.offer-rejected',
         'logistics-evidence.submitted',
         'logistics-completion.requested',
+        'logistics-courier.vehicle-updated',
     ];
 
     /** @return MorphMany<DatabaseNotification> */
@@ -85,6 +86,12 @@ class LogisticsNotificationService
     {
         $id = $intent instanceof CompletionIntent ? (string) $intent->id : $intent;
         $this->afterCommit(fn () => $this->deliverCompletion($id));
+    }
+
+    /** @param list<string> $changedFields */
+    public function queueVehicleUpdated(string $vehicleId, string $courierId, int $revision, array $changedFields): void
+    {
+        $this->afterCommit(fn () => $this->deliverVehicleUpdated($vehicleId, $courierId, $revision, $changedFields));
     }
 
     private function deliverPickup(string $id): void
@@ -206,6 +213,34 @@ class LogisticsNotificationService
         ]);
     }
 
+    /** @param list<string> $changedFields */
+    private function deliverVehicleUpdated(string $vehicleId, string $courierId, int $revision, array $changedFields): void
+    {
+        $affiliation = CourierLogisticsAffiliation::query()
+            ->where('courier_id', $courierId)
+            ->where('status', 'approved')
+            ->first();
+        if ($affiliation === null) {
+            return;
+        }
+        $recipient = $this->recipient($affiliation->logistics_organization_id, $affiliation->logistics_hub_id);
+        if ($recipient === null) {
+            return;
+        }
+
+        $this->dispatch($recipient, 'logistics-courier.vehicle-updated', "vehicle:{$vehicleId}:revision:{$revision}", now(), [
+            'vehicle_id' => $vehicleId,
+            'courier_id' => $courierId,
+            'revision' => $revision,
+            'changed_fields' => array_values(array_unique($changedFields)),
+            'updated_at' => now()->utc()->toIso8601String(),
+            'title' => 'Courier vehicle updated',
+            'summary' => 'An affiliated Courier updated vehicle details or registration evidence.',
+            'resource_type' => 'courier_vehicle',
+            'resource_id' => $vehicleId,
+        ]);
+    }
+
     /** @param Carbon|null $eventAt @param array<string, mixed> $payload */
     private function dispatch(User $recipient, string $type, string $sourceKey, ?Carbon $eventAt, array $payload): void
     {
@@ -275,6 +310,7 @@ class LogisticsNotificationService
             'logistics-task.offer-rejected' => $this->taskContext($data, $orgId, $hubId),
             'logistics-evidence.submitted' => $this->evidenceContext($data, $orgId, $hubId),
             'logistics-completion.requested' => $this->completionContext($data, $orgId, $hubId),
+            'logistics-courier.vehicle-updated' => $this->vehicleContext($data, $orgId, $hubId),
             default => $this->emptyContext(),
         };
     }
@@ -324,6 +360,20 @@ class LogisticsNotificationService
         return $intent ? $this->taskKnown($intent->task, 'completion_intent', $intent->id) : $this->emptyContext();
     }
 
+    /** @return array{resource_type: string|null, resource_id: string|null, destination: string|null} */
+    private function vehicleContext(array $data, string $orgId, string $hubId): array
+    {
+        $id = $this->uuid($data['courier_id'] ?? null);
+        $affiliation = $id === null ? null : CourierLogisticsAffiliation::query()
+            ->where('courier_id', $id)
+            ->where('logistics_organization_id', $orgId)
+            ->where('logistics_hub_id', $hubId)
+            ->where('status', 'approved')
+            ->first();
+
+        return $affiliation ? $this->known('courier_vehicle', (string) ($data['vehicle_id'] ?? $data['resource_id'] ?? ''), "/couriers/{$id}/vehicle") : $this->emptyContext();
+    }
+
     private function scopedTask(?string $id, string $orgId, string $hubId): ?DeliveryTask
     {
         return $id === null ? null : DeliveryTask::query()->whereKey($id)->whereHas('shipment', fn ($query) => $query->where('logistics_organization_id', $orgId)->where('logistics_hub_id', $hubId))->with('shipment.parcel.waybill')->first();
@@ -362,6 +412,7 @@ class LogisticsNotificationService
             'logistics-task.offer-rejected' => ['Final-mile offer rejected', 'A Courier rejected a final-mile offer and the task can be re-offered.'],
             'logistics-evidence.submitted' => ['Evidence submitted', $this->evidenceSummary($data)],
             'logistics-completion.requested' => ['Delivery completion requested', 'A Courier requested delivery completion validation.'],
+            'logistics-courier.vehicle-updated' => ['Courier vehicle updated', 'An affiliated Courier updated vehicle details or registration evidence.'],
             default => ['Notification', 'An update is available.'],
         };
 

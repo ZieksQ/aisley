@@ -126,7 +126,7 @@ MVP responsibilities:
 - Search/select an eligible Logistics company during registration. Its single operational hub is associated automatically; selecting a sub-hub is not supported.
 - Register under that Logistics account.
 - Provide exactly one vehicle per Courier with required vehicle type, plate number, and private OR/CR evidence for Logistics review. Maintenance, vehicle history, and vehicle capacity values/units or matching are deferred; existing operational history and schedule limits are unchanged.
-- Approved target, not yet implemented: Courier may edit type, plate, optional make/model, and independently replace separate OR and CR images without Logistics reapproval. Notify the associated Logistics account after saving; failures/retries cannot undo changes or duplicate notifications. Ownership/status are not editable and initial registration approval remains required.
+- Implemented backend target: after approval, Courier may edit type, plate, optional make/model, and independently replace separate OR and CR images without Logistics reapproval. The associated Logistics account receives one durable informational notification per committed revision; failures/retries cannot undo changes or duplicate notifications. Ownership/status are not editable and initial registration approval remains required. External Flutter rollout remains separate.
 - Sign in after Logistics approval.
 - Use the external mobile application to view delivery notifications and first-mile pickup/final-mile delivery requests created or offered by Logistics.
 - Review pickup and delivery details.
