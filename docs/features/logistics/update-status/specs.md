@@ -3,8 +3,8 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.5
-status: Implemented dedicated offline receiving/sorting and Parcel search recovery UI; exceptional recovery deferred
+version: 1.6
+status: Implemented dedicated offline receiving/sorting, offline-first barcode Parcel search, and recovery UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account validate operational evidence and commit an allowed Shipment/Delivery Task transition when scan automation needs recovery.
-- **Current implementation:** The additive fulfillment migrations and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. `/receive-at-hub` owns receipt capture, `/sorting` owns normal lane/session sortation, and both use Dexie outboxes with partial-result bulk sync. `/operations` retains evidence review and exceptional recovery compatibility. Scheduled dispatch is owned by Deploy Rider on `/dispatch`.
+- **Current implementation:** The additive fulfillment migrations and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and QR-gated delivery finalization. `/receive-at-hub` owns receipt capture, `/sorting` owns normal lane/session sortation, and both use Dexie outboxes with partial-result bulk sync. `/operations` retains evidence review and exceptional recovery compatibility, and now decodes barcode/QR parcel fields locally before attempting authoritative online lookup. Scheduled dispatch is owned by Deploy Rider on `/dispatch`.
 - **Compatibility:** Existing explicit Courier first-mile confirmation still commits Seller pickup and Inventory fulfillment on its legacy contract, then idempotently bridges the result into shared physical records. New hub/final-mile custody transitions use Logistics validation and never replay that Inventory effect.
 - **Authority:** Logistics validates and records the authoritative event. A Courier performs a physical scan/handoff and submits it; the shared transition service commits state only after validation.
 - **Flow:** Courier submits QR/reference/evidence → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
@@ -80,6 +80,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Responses return safe current projections, immutable event identifiers, evidence status, and any permitted Order projection. They never return secrets, private raw paths, or unrelated PII.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid evidence/transition, `429`, and provider/notification delivery failure. Retrying an identical idempotency key returns the committed projection; changed details conflict.
 - The Logistics Parcel search UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) deliberately excludes normal receiving, sorting, and dispatch controls. It links received parcels to Sorting and retains evidence selection, completion-intent checks, exceptional recovery compatibility, and authoritative refresh after a commit or conflict.
+- Parcel search requests ten queue rows per online page. It caches safe, organization/hub-scoped queue and detail projections in Dexie, uses ZXing camera scanning plus manual fallback, and labels offline results as read-only because barcode-encoded status and cached custody are not authoritative.
 
 The deployed responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
 
@@ -113,6 +114,7 @@ The deployed responses are safe for the Logistics dashboard and external Courier
 - [x] Receiving has its own responsive page with Code 128/QR camera scanning, manual fallback, Dexie persistence, ten-item/five-minute/reconnect auto-sync, an immediate **Sync scans** button, and dot-only online/connecting/offline feedback.
 - [x] A mixed bulk result clears only committed receipts; failed receipts stay on-device with their server reason and stable idempotency key.
 - [x] Sorting has its own compact page with standard/exception lanes, one bounded session, printable lane labels, offline partial-result sync, and authoritative reconciliation.
+- [x] Parcel search decodes barcode/QR data locally, displays encoded parcel hints, attempts online authoritative detail/status lookup, falls back to tenant-scoped cached results offline, paginates online results at ten rows, and provides camera/manual lookup with an accessible icon-only queue refresh.
 
 ## HOW
 

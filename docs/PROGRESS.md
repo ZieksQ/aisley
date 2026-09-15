@@ -138,3 +138,4 @@ Format:
 ## 2026-09-16
 
 - Refined Logistics operations UI with dot-only online/connecting/offline feedback, consistent **Sync scans** actions for Receiving and Sorting, a Sorting instructions dialog, and the renamed **Parcel search** workspace. Pickup schedules now default to Scheduled, support validated ascending/descending pickup-window ordering, and retain the existing all-parcels-picked completion lifecycle. Focused pickup coverage passes 12 tests/263 assertions; Logistics build/lint and PHP formatting pass.
+- Added offline-first Logistics Parcel search with tenant-scoped cached queue/detail projections, local barcode/QR decoding followed by authoritative online lookup, ten-row online pagination, camera scanning, read-only cached fallback, and an accessible icon-only queue refresh. Logistics lint and production build pass.

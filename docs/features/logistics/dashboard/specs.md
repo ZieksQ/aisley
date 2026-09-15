@@ -3,8 +3,8 @@ feature: logistics-dashboard
 title: Logistics Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.7
-status: Implemented hub scaffold and bounded operational queue; stale threshold/realtime deferred
+version: 1.8
+status: Implemented hub scaffold, bounded operational queue, and offline-first Parcel search; stale threshold/realtime deferred
 role: Logistics
 scope: Logistics React SPA and Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -16,6 +16,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Give an approved active Logistics account a secure view of its organization and sole operational hub, then the parcels requiring action.
 - **Current implementation:** `GET /api/v1/logistics/dashboard` remains the safe hub identity scaffold. `GET /api/v1/logistics/dashboard/queue` returns the private scoped Shipment queue used by the dashboard and role-specific workspaces. `/receive-at-hub`, `/sorting`, and `/dispatch` own receipt, normal sortation, and scheduled dispatch respectively; `/operations` provides evidence review and exceptional recovery compatibility.
+- **Parcel search behavior:** `/operations` requests ten online queue rows at a time and uses the existing server pagination contract. It stores only safe queue/detail projections in a browser cache keyed by the authenticated organization and sole hub. Barcode/QR values are decoded locally first; online lookup then supplies authoritative parcel details and status, while offline views are explicitly read-only cached projections.
 - **MVP boundary:** One Logistics account operates one organization and exactly one hub/sorting center. Sub-hubs, hub selectors, multi-hub queues, and staff-account context are out of scope.
 - **Queue boundary:** Only already-created shared Shipment records are listed. Queue reads never lazily create a Shipment or infer readiness; reference lookup remains the owning Update Status operation.
 - **Ownership:** Dashboard reads and aggregates. Seller Prepare Orders owns readiness; Deploy Rider owns assignment; Update Status owns validated state recovery; Waybill owns document access; Courier UI is external Flutter/mobile-only.
@@ -63,6 +64,7 @@ active Logistics session
 - Row status includes the machine value, revision, last activity, allowed next states, and task projections. Rejected offer history includes reason/time; the UI exposes last activity without inventing a stale deadline.
 - Evidence fields expose only safe state and opaque references, never raw blob paths or private image bytes. `submitted`/`awaiting_validation` does not mean `validated` or physically received.
 - Pagination is deterministic and bounded. Repeated requests with the same page, filters, and scope return the same committed projection or an explicit freshness change.
+- The Parcel search UI requests `per_page=10`, renders server pagination, and labels offline cache results separately from authoritative responses.
 
 ### Open questions
 
@@ -84,6 +86,7 @@ active Logistics session
 - [x] The scaffold truthfully returns null/empty data rather than fabricated queue counts.
 - [x] Loading, refresh, unauthorized, and recoverable error states are available in the SPA.
 - [x] Organization/sole-hub scoped queue rows, real counts, status/search/evidence filters, bounded pagination, authoritative freshness, and truthful empty/error states are implemented.
+- [x] Parcel search has tenant-scoped offline queue/detail cache, local barcode/QR decoding with online authoritative lookup, ten-row online pagination, camera scanning, and read-only cached fallback.
 - [x] Evidence status, completion intents, and recovery transitions remain visible in Hub operations; receipt, sorting, and scheduled dispatch are separated into their own navigation and pages.
 - [ ] A configured stale threshold, private realtime transport, advanced ranking, date filters, and automatic reassignment remain deferred.
 
