@@ -72,6 +72,7 @@ class PickupController extends Controller
     {
         $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
         $data = $request->validated();
+        $sort = $data['sort'] ?? 'desc';
         $paginator = PickupSchedule::query()
             ->where('logistics_organization_id', $org->id)
             ->where('logistics_hub_id', $org->hub->id)
@@ -89,7 +90,7 @@ class PickupController extends Controller
             ->with(['courier.courierProfile', 'orders.sellerPickupRequest.shop:id,name'])
             ->withCount('orders')
             ->withCount(['tasks as remaining_parcel_count' => fn ($tasks) => $tasks->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted])])
-            ->orderByDesc('starts_at')->orderByDesc('id')
+            ->orderBy('starts_at', $sort)->orderBy('id', $sort)
             ->paginate($data['per_page'] ?? 25);
 
         return response()->json([

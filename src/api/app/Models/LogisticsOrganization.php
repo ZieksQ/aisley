@@ -28,4 +28,14 @@ class LogisticsOrganization extends Model
     {
         return $this->hasMany(CourierLogisticsAffiliation::class);
     }
+
+    public function sortingLanes(): HasMany
+    {
+        return $this->hasMany(SortingLane::class);
+    }
+
+    public function sortingSessions(): HasMany
+    {
+        return $this->hasMany(SortingSession::class);
+    }
 }

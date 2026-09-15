@@ -3,8 +3,8 @@ feature: seller-created-pickup-waybill
 title: Seller-Created Pickup Waybill
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: API, A6 PDF, and Seller/Logistics UI implemented; physical scan transition deferred
+version: 1.3
+status: API, one-page A6 QR/Code 128 PDF, and Seller/Logistics UI implemented
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -28,8 +28,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   ```
 - Creating, viewing, downloading, printing, or scanning a waybill does not itself change Order or custody status.
 - A Courier QR/reference scan is an ingress/access event, not a custody transition. Only the shared transition service may advance physical state after Logistics validates the submitted event/evidence.
-- The preceding validation rule is the accepted future scan contract. Current explicit Courier pickup confirmation already commits first-mile custody and Inventory after QR/manual verification; migrating it to Logistics validation must preserve existing confirmations and avoid duplicate effects.
-- MVP output is one A6 portrait PDF per Order; a bulk download may combine up to 30 A6 pages for one pickup request or schedule.
+- Current explicit Courier pickup confirmation commits first-mile custody and Inventory after QR/manual verification. Logistics hub receiving now scans the same QR/Code 128/manual reference into a device-local outbox and commits `received_at_hub` through the dedicated bulk endpoint without replaying Inventory effects.
+- MVP output is one A6 portrait PDF per Order with both the existing QR and a Code 128 barcode of the human waybill reference; a bulk download may combine up to 30 one-page A6 labels for one pickup request or schedule.
 - **Non-goals:** thermal-printer drivers, external carrier labels, parcel weight/dimensions, multiple parcels per Order, route mutation, status mutation by document generation, or public unauthenticated tracking.
 
 ## MUST
@@ -50,7 +50,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Content and privacy
 
 - Render from a server-owned `WaybillSnapshot`, never from arbitrary HTML, filenames, URLs, or printable fields submitted by a browser.
-- Show waybill and Order references, created timestamp, Shop name, safe Seller pickup details, recipient/delivery address snapshot, selected Logistics business/hub, COD marker/collectible amount, item quantity count, and QR code.
+- Show waybill and Order references, created timestamp, Shop name, safe Seller pickup details, recipient/delivery address snapshot, selected Logistics business/hub, COD marker/collectible amount, item quantity count, QR code, and Code 128 barcode.
 - Do not print product names or SKUs in MVP; the parcel exterior should not reveal purchase contents.
 - Print only the contact numbers operationally required for pickup/delivery; mask them in ordinary JSON DTOs and authorize full display only in the PDF.
 - Never include credentials, payment-card data, private registration documents, internal notes, raw storage paths, database IDs, or QR secrets in logs.
@@ -75,6 +75,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - A scan resolves the waybill and returns a minimal authorized parcel/task match; the Courier submits the scan/evidence to the owning Logistics organization through a separate, versioned task-transition API.
 - Logistics validates the waybill/Order/Parcel link, task leg, current state, Courier authorization, and idempotency before recording the authoritative event. The event preserves the performing Courier, recording Logistics account, timestamp, and safe reference/evidence metadata.
 - A scan or waybill-access event alone never advances custody or `OrderStatus`; a validated event must pass the shared transition service.
+- Logistics Receiving and Sorting scan the same parcel waybill into separate device-local outboxes. A Sorting lane label is an internal location selector and never creates or replaces the parcel's immutable waybill.
 - A copied QR code is not proof of possession, delivery, identity, or permission and cannot bypass task assignment.
 
 ### Courier scan and custody boundary
@@ -89,6 +90,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Add `barryvdh/laravel-dompdf:^3.1.2` for Laravel 13 integration and explicitly constrain `dompdf/dompdf:^3.1.6` or newer patched 3.x.
 - Dompdf is free/open source under LGPL-2.1; the Laravel wrapper is MIT and supports Laravel 13.
 - Add `bacon/bacon-qr-code:^3.1` and use its SVG backend; it is BSD-2-Clause, supports PHP `^8.1`, and avoids a new GD/Imagick runtime dependency.
+- Add `picqer/php-barcode-generator:^3.2` (resolved to 3.3.0) and render Code 128 as an embedded SVG. Picqer is LGPL-3.0-or-later and runs locally without a paid or hosted barcode service.
 - Review all transitive licenses and run `composer audit` at implementation/CI time; lock exact resolved versions in `composer.lock`.
 - Keep Dompdf remote access disabled, restrict local paths, bound render time/memory, and never render untrusted HTML or images.
 - Sources: [Laravel Dompdf package](https://github.com/barryvdh/laravel-dompdf), [patched Dompdf release](https://packagist.org/packages/dompdf/dompdf), and [BaconQrCode package](https://packagist.org/packages/bacon/bacon-qr-code).
@@ -97,7 +99,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - [x] Request pickup creates one immutable waybill per eligible Order and no waybill for a failed transaction.
 - [x] Seller and selected Logistics can view/download the same authorized PDF; unrelated tenants cannot infer it exists.
-- [x] Every PDF is A6, contains the required snapshot fields, has a readable QR plus human reference, and exposes no product names or secrets.
+- [x] Every PDF remains one A6 page, contains the required snapshot fields, has a readable QR, Code 128 barcode, and human reference, and exposes no product names or secrets.
 - [x] Repeated generation/download/print returns the same identity and causes no Order, Inventory, task, or notification mutation.
 - [x] Courier scans require assignment authorization and cannot directly advance custody state.
 - [x] Dependencies are license-reviewed, patched, locked, and usable without paid services or added browser/server binaries.
@@ -119,7 +121,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - Seller: `GET /api/v1/seller/orders/{order}/waybill` and `GET /pickup-requests/{pickup}/waybills.pdf`.
 - Logistics: `GET /api/v1/logistics/pickups/{pickup}/waybills` and `GET /waybills/{waybill}.pdf`.
-- Courier API: `POST /api/v1/courier/waybills/resolve` is an access-only resolve operation. A separate versioned Courier task-scan endpoint submits QR/reference/evidence to Logistics; the physical transition endpoint is unavailable until the shared Shipment/DeliveryTask schema and owning Courier/Logistics specs are implemented.
+- Courier API: `POST /api/v1/courier/waybills/resolve` remains access-only; implemented task-scan endpoints submit QR/reference evidence. Logistics uses `POST /api/v1/logistics/receiving/batches` for idempotent hub receipts and `/api/v1/logistics/sorting/sessions/{session}/batches` for idempotent standard/exception lane captures. These mutations still pass the shared Shipment/DeliveryTask transition rules.
 - JSON metadata exposes reference, created time, printable capability, and authorized links; PDF bytes use dedicated streamed responses.
 - Seller UI follows `docs/design.md` and shared `@aisley/ui`; Logistics shows waybill actions within its role-isolated Pickups screens.
 - Preview must use the same backend-rendered PDF as Download/Print so browser HTML cannot diverge from the physical label.

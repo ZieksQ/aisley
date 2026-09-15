@@ -10,6 +10,7 @@ use App\Enums\InventorySkuStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\PickupScheduleStatus;
 use App\Enums\ProductStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
@@ -357,6 +358,48 @@ class LogisticsPickupWaybillTest extends TestCase
                 'ends_at' => now()->addHours(6)->toISOString(),
             ])->assertUnprocessable()
             ->assertJsonValidationErrors('order_ids');
+    }
+
+    public function test_logistics_can_sort_pickup_schedules_by_pickup_window(): void
+    {
+        [$logistics, $organization, $hub] = $this->logistics('Sorted Pickup Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        $later = PickupSchedule::create([
+            'logistics_organization_id' => $organization->id,
+            'logistics_hub_id' => $hub->id,
+            'courier_id' => $courier->id,
+            'reference' => 'PU-LATER',
+            'status' => PickupScheduleStatus::Scheduled,
+            'starts_at' => now()->addDays(2),
+            'ends_at' => now()->addDays(2)->addHour(),
+            'revision' => 1,
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $earlier = PickupSchedule::create([
+            'logistics_organization_id' => $organization->id,
+            'logistics_hub_id' => $hub->id,
+            'courier_id' => $courier->id,
+            'reference' => 'PU-EARLIER',
+            'status' => PickupScheduleStatus::Scheduled,
+            'starts_at' => now()->addDay(),
+            'ends_at' => now()->addDay()->addHour(),
+            'revision' => 1,
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules?sort=asc')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $earlier->id)
+            ->assertJsonPath('data.1.id', $later->id);
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules?sort=desc')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $later->id)
+            ->assertJsonPath('data.1.id', $earlier->id);
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules?sort=sideways')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('sort');
     }
 
     public function test_courier_confirms_qr_and_manual_pickups_idempotently_and_changes_order_status(): void

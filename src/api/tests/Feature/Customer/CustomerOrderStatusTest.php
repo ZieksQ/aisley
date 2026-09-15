@@ -170,7 +170,7 @@ class CustomerOrderStatusTest extends TestCase
             ->assertJsonPath('data.deliveryAddress.recipientName', 'Ada Buyer')
             ->assertJsonPath('data.payment.method', 'cod')
             ->assertJsonPath('data.totals.payable', '20.00')
-            ->assertJsonPath('data.timeline.1.label', 'Parcel received by logistics')
+            ->assertJsonPath('data.timeline.1.label', 'Scheduled for delivery')
             ->assertJsonPath('data.map.available', false)
             ->assertJsonPath('data.map.state', 'unavailable')
             ->assertJsonPath('data.map.currentPosition', null)

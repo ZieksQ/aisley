@@ -64,6 +64,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Notify only the selected Logistics organization after commit; never broadcast a request to every Logistics account.
 - Logistics Pickups is schedule-first: its primary list contains only schedules whose `logistics_organization_id` and hub match the authenticated account's server-derived organization and sole hub.
 - Support bounded schedule pagination and allow-listed status/date/search filters with deterministic schedule ordering.
+- The Logistics schedule list defaults to `scheduled`, lets the operator explicitly include completed/cancelled history, and supports allow-listed ascending or descending pickup-window ordering.
 - Each schedule row shows schedule reference/ID, assigned Courier, linked Seller pickup-request IDs, status, pickup window, total parcel count, and remaining parcels still in `assigned` or `accepted` first-mile task states.
 - **Create new schedule** opens the pending-parcel selector. It lists only unscheduled Orders for the tenant, groups them by Shop/pickup request, orders Shops by name and requests oldest-first, supports whole-request or individual parcel selection, and caps the selection at 30.
 - Keep `orders.status = ready_for_pickup` when scheduled; scheduling is not physical custody and does not consume Inventory.
@@ -107,6 +108,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Seller selection is validated and frozen; only that Logistics tenant receives and sees the request.
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
 - [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
+- [x] The schedule list defaults to scheduled work and supports ascending or descending pickup-window sorting.
 - [x] Schedule creation uses combined Philippine date/time controls for separate start and end window endpoints, and Courier selection is a searchable popup showing active status, schedules affecting the requested dates, and overlapping-window availability.
 - [x] Logistics schedule endpoints use Flatpickr combined date/time controls for start and end, while schedule filters, account birthday fields, and registration birthday fields use date-only Flatpickr controls; the mobile fallback is disabled.
 - [x] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.

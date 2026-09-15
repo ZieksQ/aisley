@@ -43,4 +43,9 @@ class Shipment extends Model
     {
         return $this->hasMany(ShipmentEvent::class);
     }
+
+    public function sortingItems(): HasMany
+    {
+        return $this->hasMany(SortingSessionItem::class);
+    }
 }

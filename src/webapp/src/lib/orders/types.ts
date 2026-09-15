@@ -160,6 +160,10 @@ export type OrderDetail = {
   timelineCount: number;
   timelineHasMore: boolean;
   trackingUrl: string;
+  delivery: {
+    status: string;
+    courier: { name: string; contactNumber: string | null } | null;
+  } | null;
   map: OrderMap;
   actions: OrderActions;
 };

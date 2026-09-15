@@ -18,6 +18,7 @@
         .reference-cell { padding: 2.5mm 3mm; text-align: center; vertical-align: middle !important; }
         .ref { font-size: 11pt; font-weight: bold; letter-spacing: .5pt; }
         .order { margin-top: 1mm; font-size: 6.5pt; }
+        .barcode { display: block; width: 72mm; height: 10mm; margin: 1.5mm auto 0; }
         .delivery-cell { padding: 2.2mm 3mm; }
         .route-cell { padding: 2.2mm 3mm; }
         .footer-cell { padding: 2.5mm 3mm; }
@@ -41,7 +42,7 @@
         <colgroup><col style="width: 50%"><col style="width: 50%"></colgroup>
         <tbody>
             <tr><td class="header-cell" colspan="2"><table class="header-grid"><tr><td><span class="brand">AISLEY</span></td><td class="service">STANDARD DELIVERY</td></tr></table></td></tr>
-            <tr><td class="reference-cell" colspan="2"><div class="ref">{{ $s['waybill_reference'] }}</div><div class="order">ORDER {{ $s['order_reference'] }} · CREATED {{ $s['created_at'] }}</div></td></tr>
+            <tr><td class="reference-cell" colspan="2"><div class="ref">{{ $s['waybill_reference'] }}</div><img class="barcode" src="{{ $label['barcode'] }}" alt=""><div class="order">CODE 128 · ORDER {{ $s['order_reference'] }} · CREATED {{ $s['created_at'] }}</div></td></tr>
             <tr><td class="delivery-cell" colspan="2"><div class="title">Deliver to</div><div class="recipient">{{ $s['recipient']['name'] }}</div><div>{{ $s['recipient']['contact_number'] }}</div><div class="address">{{ $s['recipient']['address_line_1'] }}@if($s['recipient']['address_line_2']), {{ $s['recipient']['address_line_2'] }}@endif<br>{{ $s['recipient']['barangay'] }}, {{ $s['recipient']['city_municipality'] }}, {{ $s['recipient']['province'] }}@if($s['recipient']['postal_code']) {{ $s['recipient']['postal_code'] }}@endif<br>{{ $s['recipient']['region'] }}, {{ $s['recipient']['country'] }}</div></td></tr>
             <tr><td class="route-cell"><div class="title">Seller pickup</div><strong>{{ $s['shop']['name'] }}</strong><br>{{ $s['pickup']['contact_number'] }}<div class="address">{{ $s['pickup']['address_line_1'] }}@if($s['pickup']['address_line_2']), {{ $s['pickup']['address_line_2'] }}@endif<br>{{ $s['pickup']['barangay'] }}, {{ $s['pickup']['city_municipality'] }}, {{ $s['pickup']['province'] }}@if($s['pickup']['postal_code']) {{ $s['pickup']['postal_code'] }}@endif</div></td><td class="route-cell"><div class="title">Sort through</div><strong>{{ $s['logistics']['business_name'] }}</strong><br>{{ $s['logistics']['hub_name'] }}<div class="address">{{ $s['logistics']['hub_area']['city_municipality'] }}, {{ $s['logistics']['hub_area']['province'] }}</div></td></tr>
             <tr><td class="footer-cell"><span class="cod">COD</span><div class="amount">{{ $s['payment']['currency'] }} {{ number_format((float) $s['payment']['collectible_amount'], 2) }}</div><div class="quantity">Parcel item quantity<br><strong>{{ $s['item_quantity'] }}</strong></div><div class="small handling">Keep this label flat, dry, and fully visible.</div></td><td class="footer-cell qr"><img src="{{ $label['qr'] }}" alt=""><div class="small">Scan in the authorized Aisley app<br>{{ $s['waybill_reference'] }}</div></td></tr>

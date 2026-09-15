@@ -20,6 +20,7 @@ class ListPickupSchedulesRequest extends FormRequest
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
             'search' => ['sometimes', 'string', 'max:100'],
+            'sort' => ['sometimes', Rule::in(['asc', 'desc'])],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ];
     }

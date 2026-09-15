@@ -62,7 +62,7 @@ pending_payment
 
 Exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
 
-COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains an available shared status for a future online-payment flow. `picked_up` means the assigned first-mile Courier explicitly confirmed physical possession from the Seller, backed by the detailed `picked_up_from_seller` task event. `assigned` remains reserved for a later Logistics/final-mile assignment contract. A Customer can read these states but cannot advance or rewrite them.
+COD placement currently creates an Order at `placed` with `payment_status = pending`; `pending_payment` remains available for a future online-payment flow. `picked_up` means first-mile possession was explicitly confirmed. `assigned` means Logistics committed a delivery schedule and final-mile Courier offer; the Customer may then see that Courier's name and contact number. A Customer can read these states but cannot advance or rewrite them.
 
 The physical flow is:
 
@@ -74,7 +74,7 @@ Customer places Order (`placed`)
 → first-mile Courier accepts and confirms pickup from Seller (`picked_up_from_seller`; Order `picked_up`)
 → Logistics receives the parcel at `received_at_hub` using the same shared waybill reference
 → Logistics sorts, transfers, and dispatches at its sole hub
-→ Logistics assigns a final-mile Courier
+→ Logistics schedules up to 15 sorted parcels with one final-mile Courier
 → final-mile Courier picks up from hub and delivers to Customer
 → Order becomes `delivered`
 → Customer may review an eligible delivered Product

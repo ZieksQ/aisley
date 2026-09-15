@@ -13,6 +13,7 @@ use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Picqer\Barcode\BarcodeGeneratorSVG;
 use Symfony\Component\HttpFoundation\Response;
 
 class WaybillPdfService
@@ -23,12 +24,15 @@ class WaybillPdfService
         abort_if($waybills->isEmpty() || $waybills->count() > 30, 422, 'A waybill PDF must contain between 1 and 30 labels.');
         $renderer = new ImageRenderer(new RendererStyle(320, 4), new SvgImageBackEnd);
         $writer = new Writer($renderer);
-        $labels = $waybills->map(function (Waybill $waybill) use ($writer): array {
+        $barcodeGenerator = new BarcodeGeneratorSVG;
+        $labels = $waybills->map(function (Waybill $waybill) use ($writer, $barcodeGenerator): array {
             $waybill->loadMissing('snapshot');
             $payload = $waybill->snapshot->payload;
             $svg = $writer->writeString($payload['qr_payload']);
 
-            return ['waybill' => $waybill, 'snapshot' => $payload, 'qr' => 'data:image/svg+xml;base64,'.base64_encode($svg)];
+            $barcode = $barcodeGenerator->getBarcode($waybill->reference, $barcodeGenerator::TYPE_CODE_128, 2, 42);
+
+            return ['waybill' => $waybill, 'snapshot' => $payload, 'qr' => 'data:image/svg+xml;base64,'.base64_encode($svg), 'barcode' => 'data:image/svg+xml;base64,'.base64_encode($barcode)];
         });
         $pdf = Pdf::setOptions([
             'isRemoteEnabled' => false,

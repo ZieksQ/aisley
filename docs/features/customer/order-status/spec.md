@@ -3,8 +3,8 @@ feature: order-status
 title: Customer Order Monitoring and Logistics Tracking
 system: AISLEY
 type: Feature Specification
-version: 1.3
-status: Implemented read-only foundation; operational tracking deferred
+version: 1.4
+status: Implemented read-only tracking and scheduled-delivery Courier projection; live map deferred
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -14,12 +14,12 @@ scope: Customer storefront and Laravel API
 ## WHAT
 
 - **Purpose:** Let an authenticated Customer list, inspect, and track only their own Shop Orders after checkout.
-- **Current implementation:** Paginated history, server-side group filters, Order detail, chronological tracking history, safe DTOs, private no-store responses, and the responsive `/orders` and `/orders/{order}` pages are implemented.
+- **Current implementation:** Paginated history, server-side group filters, Order detail, chronological tracking history, safe DTOs, and responsive pages are implemented. A committed dispatch schedule projects `assigned` as **Scheduled for delivery** and exposes the assigned Courier's name/contact number to that Order's Customer.
 - This tracking projection is read-only. Customer pages never advance fulfillment, assign a Courier, scan a parcel, or choose a route; the narrowly scoped cancellation and delivery-address actions belong to Customer Order Modification and Cancellation.
 - Checkout creates `placed`; Seller Order Approval/Prepare Orders owns `seller_processing` and `ready_for_pickup`. Logistics and Courier operations are future owners of detailed physical milestones.
 - High-level `OrderStatus` values remain the compatibility contract. The Customer-facing **To Ship** tab is a label for Logistics-owned progress, not a new database status.
 - An Order from each Shop remains independently trackable even when several Orders share one checkout batch.
-- **Non-goals:** Seller packing, Logistics/Courier web UI, status mutation, route optimization, live courier contact/GPS, returns/refunds, and third-party carrier webhooks.
+- **Non-goals:** Seller packing, Logistics/Courier UI, Customer-side status mutation, route optimization, live Courier GPS, returns/refunds, and third-party carrier webhooks.
 
 ```text
 Account menu → Orders → paginated Customer-owned list
@@ -53,7 +53,7 @@ Account menu → Orders → paginated Customer-owned list
 
 - Current COD checkout skips `pending_payment` and starts at `placed`; retain the **To Pay** mapping for future payment methods.
 - `ready_for_pickup → picked_up` is the current high-level projection when the assigned Courier explicitly confirms physical possession from the Seller. Scheduling, task acceptance, scanning, and typing remain read-only.
-- `picked_up → in_transit → out_for_delivery → delivered` is the current compatibility sequence for movement after pickup. `assigned` remains a compatibility value for a future Logistics/final-mile assignment contract and is not written by current schedule creation. Invalid skipped/backward transitions belong to the owning transition service and return `409`.
+- `picked_up → assigned → in_transit → out_for_delivery → delivered` is the current compatibility sequence. Dispatch schedule creation writes `assigned`; pickup scheduling and scan capture do not. Invalid skipped/backward transitions belong to the owning transition service and return `409`.
 - Detailed Shipment/Delivery Task milestones remain separate: `picked_up_from_seller`, `received_at_hub`, `sorted_at_hub`, `dispatched_from_hub`, `delivery_assigned`, and `picked_up_from_hub`. The detailed `picked_up_from_seller` event is authoritative proof for the high-level `picked_up` projection; the generic Order status alone must not be treated as scan or custody evidence.
 - First-mile and final-mile assignments are independent; a first-mile Courier is not automatically the final-mile Courier.
 
@@ -75,7 +75,7 @@ Account menu → Orders → paginated Customer-owned list
 
 ### Map and freshness boundary
 
-- The current API returns an explicit unavailable map state because Shipment/Delivery Task/location records are not implemented. Do not fabricate a position, route, ETA, or courier identity.
+- The current API returns an explicit unavailable map state because live location records are not implemented. Courier identity is returned only from the committed final-mile task; do not fabricate a position, route, or ETA.
 - Future map DTOs must be provider-neutral, read-only, authorization-checked, rounded/freshness-labeled, and limited to an active task (`assigned`, `picked_up`, `in_transit`, or `out_for_delivery`).
 - Stop active location exposure after delivery, cancellation, return, or task completion; preserve safe historical events.
 - Map rendering/provider choice belongs to the Logistics/location feature, not this Customer read model. The Customer Address Book's Geoapify/Leaflet pin is unrelated to parcel tracking.
@@ -90,7 +90,8 @@ Account menu → Orders → paginated Customer-owned list
 - [x] Detail and tracking endpoints enforce ownership and return safe immutable snapshots/events.
 - [x] Current map/action DTOs truthfully report unavailable map and server-derived Customer action capabilities; `placed` mutation capabilities are defined by Customer Order Modification and Cancellation.
 - [x] Responsive pages provide accessible loading, empty, error, retry, pagination, and status text states.
-- [ ] Logistics receipt, Shipment/Parcel/Waybill, Delivery Task, scan, assignment, live map, and final-mile events are implemented.
+- [x] Logistics receipt, Shipment/Parcel/Waybill, Delivery Task, scan, scheduled assignment, and assigned-Courier Customer projection are implemented.
+- [ ] Live map/location telemetry and a complete safe detailed Shipment-event timeline remain deferred.
 
 ## HOW
 

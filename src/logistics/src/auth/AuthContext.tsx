@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import { ApiError, csrf, request } from '../lib/api'
+import { clearParcelSearchCache } from '../lib/parcelSearchDb'
+import { sortingDb } from '../lib/sortingDb'
 import type { AuthResponse, LogisticsUser } from '../types/auth'
 import { AuthContext } from './context'
 
@@ -31,7 +33,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setLogistics(data.logistics)
     },
     logout: async () => {
-      try { await request('/api/v1/logistics/auth/logout', { method: 'POST' }) } finally { setLogistics(null) }
+      try { await request('/api/v1/logistics/auth/logout', { method: 'POST' }) } finally {
+        await Promise.all([
+          sortingDb.captures.clear().catch(() => undefined),
+          clearParcelSearchCache().catch(() => undefined),
+        ])
+        setLogistics(null)
+      }
     },
   }), [logistics, loading, refresh])
 
