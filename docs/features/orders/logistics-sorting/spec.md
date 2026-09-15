@@ -71,7 +71,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Support Code 128, the existing waybill QR payload, and manual reference fallback.
 - Store `client_id`, session, lane, reference, expected Shipment revision, source, capture time, exception code, and reason in Dexie.
 - Prevent a duplicate parcel from being queued twice on the same device; do not silently replace pending work.
-- Bulk-sync 1-100 entries on ten queued entries, five minutes, reconnect, or explicit post.
+- Bulk-sync 1-100 entries on ten queued entries, five minutes, reconnect, or explicit **Sync scans** action.
 - The batch response reports `sorted`, `exception`, or `failed` per entry; clear only committed entries.
 - Failed entries remain local with stable client IDs and the server's safe code/message.
 - Matching client-ID retries replay the committed result; changed payloads return an idempotency conflict.
@@ -83,7 +83,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Add the sidebar label **Sorting** between **Receive at hub** and **Dispatch parcels**.
 - Use a compact, scan-first layout without hero treatment, excessive whitespace, large padding, or decorative cards.
 - Use icon-only controls with accessible labels/tooltips for refresh, print, edit, deactivate, remove-local-entry, and camera start/stop where the icon is unambiguous.
-- Keep words for consequential actions such as Start session, Close session, Post scans, and Save lane.
+- Keep words for consequential actions such as Start session, Close session, Sync scans, and Save lane.
 - Show selected lane, online/offline state, local pending count, session counts, and sync failures without relying on color alone.
 - Require confirmation before session close or lane deactivation; camera denial retains manual entry.
 - Clear private Sorting data on logout/account change and isolate IndexedDB records by organization/hub/session.
@@ -110,6 +110,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Lane labels are printable and scanner-selectable without a new dependency.
 - [x] Dispatch shows only successfully synchronized sorted parcels.
 - [x] The responsive page is compact, accessible, dark-mode compatible, and named **Sorting** in the sidebar.
+- [x] The page uses dot-only online/connecting/offline feedback, consistently labels manual upload as **Sync scans**, and provides an operator-instructions dialog from the header.
 - [x] Focused Laravel tests plus Logistics TypeScript, lint, and production build pass.
 
 ## HOW
@@ -120,7 +121,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Reuse waybill resolution, first-mile task validation, Shipment revision checks, database transactions, and row locking.
 - Seed no production lanes; Logistics creates lanes explicitly because physical layouts differ.
 - Add a `sortingDb` Dexie database and a dedicated React page using the existing API/scanner/UI utilities.
-- Keep the generic Hub operations sort action as recovery compatibility, but direct normal sortation to the Sorting page.
+- Keep the generic Parcel search recovery action for compatibility, but direct normal sortation to the Sorting page.
 - Update Dispatch, Update Status, workspace/schema/domain/WIP contracts where Sorting ownership changes presentation.
 - Verify migration rollback, tenant isolation, idempotent replay, exception resolution, session close conflicts, and dispatch handoff.
 - Deferred extensions remain documented here for later approval and must not be implied by the MVP UI or API.

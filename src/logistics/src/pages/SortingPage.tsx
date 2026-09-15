@@ -2,7 +2,8 @@ import type { IScannerControls } from '@zxing/browser'
 import Dexie from 'dexie'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaLinkSlash, FaPen, FaPlus, FaPowerOff, FaPrint, FaStop, FaTrashCan, FaWarehouse, FaWifi, FaXmark } from 'react-icons/fa6'
+import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPen, FaPlus, FaPowerOff, FaPrint, FaStop, FaTrashCan, FaWarehouse, FaXmark } from 'react-icons/fa6'
+import { ConnectionStatus } from '../components/ConnectionStatus'
 import { ActionButton, ErrorNotice, PrimaryButton, field, manilaDate, panel } from '../components/PickupUi'
 import { ApiError, blob as requestBlob, csrf, request, requestWithTimeout } from '../lib/api'
 import { sortingDb, type PendingSortCapture } from '../lib/sortingDb'
@@ -50,6 +51,7 @@ export function SortingPage() {
   const [laneType, setLaneType] = useState<SortingLane['type']>('standard')
   const [lanePosition, setLanePosition] = useState('1')
   const laneDialog = useRef<HTMLDialogElement>(null)
+  const helpDialog = useRef<HTMLDialogElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerControls = useRef<IScannerControls | null>(null)
   const lastScan = useRef('')
@@ -144,7 +146,7 @@ export function SortingPage() {
       setNotice(`${response.summary.sorted} sorted · ${response.summary.exception} exception${response.summary.exception === 1 ? '' : 's'}${response.summary.failed ? ` · ${response.summary.failed} need review` : ''}.`)
       await load()
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Queued captures remain saved offline. Try posting again when connected.')
+      setError(caught instanceof ApiError ? caught.message : 'Queued captures remain saved offline. Try syncing again when connected.')
       await loadCaptures(context, session.id)
     } finally {
       setSyncBusy(false)
@@ -270,7 +272,7 @@ export function SortingPage() {
   return <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-5">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
       <div className="flex items-center gap-3"><FaWarehouse className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><div><h2 className="text-xl font-semibold">Sorting</h2><p className="text-sm text-zinc-500">Receive → sort lane → dispatch</p></div></div>
-      <div className="flex items-center gap-2"><span className="flex items-center gap-2 text-sm text-zinc-500">{online ? <FaWifi aria-hidden="true" /> : <FaLinkSlash aria-hidden="true" />}{online ? 'Online' : 'Offline'}</span><button aria-label="Refresh sorting" className={iconButton} disabled={loading} onClick={() => void load()} title="Refresh" type="button"><FaArrowsRotate className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button></div>
+      <div className="flex items-center gap-2"><ConnectionStatus online={online} syncing={syncBusy} /><button aria-label="How to use Sorting" className={iconButton} onClick={() => helpDialog.current?.showModal()} title="How to use Sorting" type="button"><span className="text-base font-semibold" aria-hidden="true">?</span></button><button aria-label="Refresh sorting" className={iconButton} disabled={loading} onClick={() => void load()} title="Refresh" type="button"><FaArrowsRotate className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button></div>
     </div>
 
     {error ? <div className="mt-3"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
@@ -290,8 +292,8 @@ export function SortingPage() {
         </section>
 
         <section className={`${panel} overflow-hidden`}>
-          <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({captures.length})</h3><p className="text-xs text-zinc-500">Posts at 10 scans, after five minutes, or on reconnect.</p></div><PrimaryButton busy={syncBusy} disabled={!online || captures.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Post scans</PrimaryButton></div>
-          {captures.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{captures.map((capture) => { const lane = overview?.lanes.find((item) => item.id === capture.laneId); return <li className="flex items-start justify-between gap-3 px-3 py-2.5" key={capture.id}><div className="min-w-0"><p className="truncate font-mono text-sm font-medium">{capture.reference}</p><p className="text-xs text-zinc-500">{lane?.code ?? 'Lane unavailable'} · {capture.source === 'barcode' ? 'scanned' : 'manual'} · {manilaDate(capture.capturedAt)}</p>{capture.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{capture.error}</p> : null}</div><button aria-label={`Remove ${capture.reference} from this device`} className={iconButton} onClick={() => void sortingDb.captures.delete(capture.id).then(() => loadCaptures(context, session?.id))} title="Remove local capture" type="button"><FaTrashCan aria-hidden="true" /></button></li> })}</ul> : <p className="px-3 py-5 text-center text-sm text-zinc-500">No captures waiting to post.</p>}
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({captures.length})</h3><p className="text-xs text-zinc-500">Syncs at 10 scans, after five minutes, or on reconnect.</p></div><PrimaryButton busy={syncBusy} disabled={!online || captures.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PrimaryButton></div>
+          {captures.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{captures.map((capture) => { const lane = overview?.lanes.find((item) => item.id === capture.laneId); return <li className="flex items-start justify-between gap-3 px-3 py-2.5" key={capture.id}><div className="min-w-0"><p className="truncate font-mono text-sm font-medium">{capture.reference}</p><p className="text-xs text-zinc-500">{lane?.code ?? 'Lane unavailable'} · {capture.source === 'barcode' ? 'scanned' : 'manual'} · {manilaDate(capture.capturedAt)}</p>{capture.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{capture.error}</p> : null}</div><button aria-label={`Remove ${capture.reference} from this device`} className={iconButton} onClick={() => void sortingDb.captures.delete(capture.id).then(() => loadCaptures(context, session?.id))} title="Remove local capture" type="button"><FaTrashCan aria-hidden="true" /></button></li> })}</ul> : <p className="px-3 py-5 text-center text-sm text-zinc-500">No captures waiting to sync.</p>}
         </section>
       </div>
 
@@ -312,6 +314,19 @@ export function SortingPage() {
       <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="mr-auto font-semibold">Session reconciliation</h3><label><span className="sr-only">Search session parcels</span><input className={`${field} w-60`} onChange={(event) => setItemSearch(event.target.value)} placeholder="Search reference or area" value={itemSearch} /></label><label><span className="sr-only">Filter session status</span><select className={`${field} w-36`} onChange={(event) => setItemStatus(event.target.value)} value={itemStatus}><option value="">All statuses</option><option value="pending">Pending</option><option value="sorted">Sorted</option><option value="exception">Exception</option></select></label></div>
       <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-white/10 dark:bg-white/[0.03]"><tr><th className="px-3 py-2 font-medium">Parcel</th><th className="px-3 py-2 font-medium">Destination</th><th className="px-3 py-2 font-medium">Lane</th><th className="px-3 py-2 font-medium">Status</th></tr></thead><tbody className="divide-y divide-zinc-200 dark:divide-white/10">{filteredItems.map((item) => { const lane = overview?.lanes.find((candidate) => candidate.id === item.lane_id); return <tr key={item.id}><td className="px-3 py-2"><p className="font-mono font-medium">{item.reference}</p><p className="text-xs text-zinc-500">{item.order_reference}</p></td><td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{destination(item)}</td><td className="px-3 py-2 font-mono text-xs">{lane?.code ?? '—'}</td><td className={`px-3 py-2 capitalize ${statusTone(item.status)}`}><p className="font-medium">{item.status}</p>{item.exception_code ? <p className="text-xs">{item.exception_code.replaceAll('_', ' ')}{item.exception_reason ? ` · ${item.exception_reason}` : ''}</p> : null}</td></tr> })}</tbody></table>{!filteredItems.length ? <p className="px-3 py-5 text-center text-sm text-zinc-500">No session parcels match the filters.</p> : null}</div>
     </section> : null}
+
+    <dialog className="m-auto w-[min(92vw,34rem)] border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
+      <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">How to use Sorting</h3><button aria-label="Close sorting instructions" className={iconButton} onClick={() => helpDialog.current?.close()} title="Close" type="button"><FaXmark aria-hidden="true" /></button></div>
+      <ol className="list-decimal space-y-3 px-5 py-4 pl-10 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <li>Create at least one standard lane. Add an exception lane if parcels may need review, then print and place the lane labels.</li>
+        <li>Start a session. It loads up to 100 of the oldest parcels already received at this hub.</li>
+        <li>Scan a lane label or select a lane from the list before scanning parcel waybills.</li>
+        <li>Scan each parcel or enter its reference manually. Offline captures stay saved on this device.</li>
+        <li>Use <strong>Sync scans</strong> when needed. Captures also sync at 10 scans, after five minutes, or when the connection returns.</li>
+        <li>Move exceptions to a standard lane after review, reconcile every parcel, then close the session.</li>
+      </ol>
+      <div className="flex justify-end border-t border-zinc-200 px-4 py-3 dark:border-white/10"><PrimaryButton onClick={() => helpDialog.current?.close()} type="button">Got it</PrimaryButton></div>
+    </dialog>
 
     <dialog className="m-auto w-[min(92vw,30rem)] border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={laneDialog}>
       <form onSubmit={(event) => void saveLane(event)}><div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">{editingLane ? 'Edit lane' : 'Add lane'}</h3><button aria-label="Close lane form" className={iconButton} onClick={() => laneDialog.current?.close()} title="Close" type="button"><FaXmark aria-hidden="true" /></button></div><div className="grid gap-3 p-4 sm:grid-cols-2"><label className="text-sm font-medium">Code<input autoFocus className={`${field} mt-1 uppercase`} maxLength={24} onChange={(event) => setLaneCode(event.target.value)} placeholder="NCR-01" required value={laneCode} /></label><label className="text-sm font-medium">Position<input className={`${field} mt-1`} min="1" max="999" onChange={(event) => setLanePosition(event.target.value)} required type="number" value={lanePosition} /></label><label className="text-sm font-medium sm:col-span-2">Name<input className={`${field} mt-1`} maxLength={80} onChange={(event) => setLaneName(event.target.value)} placeholder="NCR staging lane" required value={laneName} /></label><label className="text-sm font-medium sm:col-span-2">Type<select className={`${field} mt-1`} onChange={(event) => setLaneType(event.target.value as SortingLane['type'])} value={laneType}><option value="standard">Standard — marks parcel sorted</option><option value="exception">Exception — holds parcel for review</option></select></label></div><div className="flex justify-end gap-2 border-t border-zinc-200 px-4 py-3 dark:border-white/10"><ActionButton onClick={() => laneDialog.current?.close()} type="button">Cancel</ActionButton><PrimaryButton busy={busy} type="submit">Save lane</PrimaryButton></div></form>

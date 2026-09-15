@@ -134,3 +134,7 @@ Format:
 
 - Refined Logistics Dispatch Courier selection to reuse the Pickup Scheduler’s searchable modal, moved refresh into a compact icon action beside search, fixed small-screen modal scrolling so the final Courier details and footer remain reachable, tightened Dispatch spacing, reordered Pickups → Receive at hub → Dispatch parcels in the sidebar, and changed the Receive at hub icon. Logistics build and lint pass.
 - Implemented dedicated Logistics Sorting between hub receipt and dispatch: tenant-scoped standard/exception lanes with printable Code 128 labels, one bounded 100-parcel session, offline Dexie Code 128/QR/manual capture with idempotent partial batch sync, exception resolution, reconciliation, and shared-service `sorted_at_hub` events. Synchronized affected flow/schema/domain and feature specs, and documented advanced automation/containerization as deferred. The full Logistics API suite passes 47 tests/693 assertions; Logistics lint and production build pass.
+
+## 2026-09-16
+
+- Refined Logistics operations UI with dot-only online/connecting/offline feedback, consistent **Sync scans** actions for Receiving and Sorting, a Sorting instructions dialog, and the renamed **Parcel search** workspace. Pickup schedules now default to Scheduled, support validated ascending/descending pickup-window ordering, and retain the existing all-parcels-picked completion lifecycle. Focused pickup coverage passes 12 tests/263 assertions; Logistics build/lint and PHP formatting pass.

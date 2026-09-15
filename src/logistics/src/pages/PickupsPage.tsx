@@ -43,12 +43,14 @@ export function PickupsPage() {
   const [notice, setNotice] = useState('')
   const courierRequest = useRef(0)
   const page = Number(params.get('page') ?? '1')
-  const status = params.get('status') ?? ''
+  const status = params.get('status') ?? 'scheduled'
+  const sort = params.get('sort') ?? 'desc'
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
     const search = new URLSearchParams({ per_page: '25', page: String(page) })
-    if (status) search.set('status', status)
+    if (status !== 'all') search.set('status', status)
+    search.set('sort', sort)
     if (params.get('search')) search.set('search', params.get('search')!)
     if (params.get('date_from')) search.set('date_from', params.get('date_from')!)
     if (params.get('date_to')) search.set('date_to', params.get('date_to')!)
@@ -63,7 +65,7 @@ export function PickupsPage() {
       })
     } catch (reason) { setError(reason instanceof ApiError ? reason.message : 'Pickup schedules could not be loaded.') }
     finally { setLoading(false) }
-  }, [page, params, status])
+  }, [page, params, sort, status])
 
   const loadCouriers = useCallback(async (window?: ScheduleWindow) => {
     const requestId = ++courierRequest.current
@@ -117,7 +119,8 @@ export function PickupsPage() {
   const selectedIds = useMemo(() => new Set(selected.map((parcel) => parcel.id)), [selected])
 
   function submitFilters(event: FormEvent) { event.preventDefault(); const next = new URLSearchParams(params); next.delete('page'); if (query.trim()) next.set('search', query.trim()); else next.delete('search'); if (dateFrom) next.set('date_from', dateFrom); else next.delete('date_from'); if (dateTo) next.set('date_to', dateTo); else next.delete('date_to'); setParams(next) }
-  function filter(nextStatus: string) { const next = new URLSearchParams(params); next.delete('page'); if (nextStatus) next.set('status', nextStatus); else next.delete('status'); setParams(next) }
+  function filter(nextStatus: string) { const next = new URLSearchParams(params); next.delete('page'); next.set('status', nextStatus); setParams(next) }
+  function changeSort(nextSort: string) { const next = new URLSearchParams(params); next.delete('page'); next.set('sort', nextSort); setParams(next) }
   function openCreate() { setSelected([]); setScheduleError(''); setCourierError(''); setPending(null); setCourierId(''); setStartDateTime(''); setEndDateTime(''); setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] }))); createDialog.current?.showModal(); void loadPending() }
   function toggleParcel(pickup: Pickup, order: PickupOrder) {
     setSelected((current) => current.some((parcel) => parcel.id === order.id)
@@ -154,9 +157,10 @@ export function PickupsPage() {
       <div><h2 className="text-xl font-semibold">Pickup schedules</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Courier runs and their remaining first-mile parcels.</p></div>
       <div className="flex flex-wrap gap-2"><ActionButton busy={loading} onClick={() => void load()}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton><PrimaryButton disabled={couriers.length === 0} onClick={openCreate}><FaPlus aria-hidden="true" />Create new schedule</PrimaryButton></div>
     </div>
-    <form className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_12rem_10rem_10rem_auto]" onSubmit={submitFilters}>
+    <form className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_12rem_12rem_10rem_10rem_auto]" onSubmit={submitFilters}>
       <label className="relative"><span className="sr-only">Search schedules</span><FaMagnifyingGlass className="pointer-events-none absolute left-3 top-3 text-zinc-400" aria-hidden="true" /><input className={`${field} pl-9`} onChange={(event) => setQuery(event.target.value)} placeholder="Schedule, Courier email, or Pickup ID" value={query} /></label>
-      <label><span className="sr-only">Filter by status</span><select className={field} onChange={(event) => filter(event.target.value)} value={status}><option value="">All statuses</option><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+      <label><span className="sr-only">Filter by status</span><select className={field} onChange={(event) => filter(event.target.value)} value={status}><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="all">All statuses</option></select></label>
+      <label><span className="sr-only">Sort by pickup window</span><select className={field} onChange={(event) => changeSort(event.target.value)} value={sort}><option value="asc">Pickup window: ascending</option><option value="desc">Pickup window: descending</option></select></label>
       <label><span className="sr-only">Pickup date from</span><FlatpickrInput aria-label="Pickup date from" className={field} onChange={setDateFrom} options={{ dateFormat: 'Y-m-d', maxDate: dateTo || undefined }} placeholder="Date from" value={dateFrom} /></label>
       <label><span className="sr-only">Pickup date to</span><FlatpickrInput aria-label="Pickup date to" className={field} onChange={setDateTo} options={{ dateFormat: 'Y-m-d', minDate: dateFrom || undefined }} placeholder="Date to" value={dateTo} /></label>
       <ActionButton type="submit">Apply</ActionButton>

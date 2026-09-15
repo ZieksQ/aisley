@@ -4,7 +4,7 @@ title: Update Status
 system: AISLEY
 type: Feature Specification
 version: 1.5
-status: Implemented dedicated offline receiving/sorting and Hub operations recovery UI; exceptional recovery deferred
+status: Implemented dedicated offline receiving/sorting and Parcel search recovery UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -40,7 +40,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Transition ownership
 
 - Seller owns `ready_for_pickup`; Courier actions submit first-mile `picked_up_from_seller` or final-mile `picked_up_from_hub` evidence.
-- Logistics owns validated hub milestones. Dedicated Receiving commits `received_at_hub`; dedicated Sorting commits `sorted_at_hub`; Deploy Rider atomically commits scheduled `dispatched_from_hub` plus the final-mile Courier offer for up to 15 sorted parcels. Hub operations retains only authorized evidence/recovery transitions. Internal `in_transfer` execution is deferred.
+- Logistics owns validated hub milestones. Dedicated Receiving commits `received_at_hub`; dedicated Sorting commits `sorted_at_hub`; Deploy Rider atomically commits scheduled `dispatched_from_hub` plus the final-mile Courier offer for up to 15 sorted parcels. Parcel search retains only authorized evidence/recovery transitions. Internal `in_transfer` execution is deferred.
 - Customer-facing `picked_up` is backed by the first-mile confirmation; hub receipt and final-mile pickup require their own detailed Shipment/DeliveryTask events.
 - First-mile and final-mile assignments are independent. Update Status must not infer a second leg, acceptance, or pickup from a generic Order value.
 
@@ -79,7 +79,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - `GET /api/v1/logistics/sorting` plus lane, label, session, close, and batch routes under `/api/v1/logistics/sorting/*` — implemented; owns standard/exception lane setup, one bounded open session, idempotent offline capture, and reconciliation as specified in `docs/features/orders/logistics-sorting/spec.md`.
 - Responses return safe current projections, immutable event identifiers, evidence status, and any permitted Order projection. They never return secrets, private raw paths, or unrelated PII.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid evidence/transition, `429`, and provider/notification delivery failure. Retrying an identical idempotency key returns the committed projection; changed details conflict.
-- The Logistics Hub operations UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) deliberately excludes normal receiving, sorting, and dispatch controls. It links received parcels to Sorting and retains evidence selection, completion-intent checks, exceptional recovery compatibility, and authoritative refresh after a commit or conflict.
+- The Logistics Parcel search UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) deliberately excludes normal receiving, sorting, and dispatch controls. It links received parcels to Sorting and retains evidence selection, completion-intent checks, exceptional recovery compatibility, and authoritative refresh after a commit or conflict.
 
 The deployed responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
 
@@ -110,7 +110,7 @@ The deployed responses are safe for the Logistics dashboard and external Courier
 - [ ] Notification failure cannot undo a committed state change.
 - [x] Manual recovery cannot fabricate pickup, delivery, proof, or another organization's record.
 - [x] DTOs and logs exclude secrets, raw storage paths, private evidence, and unrelated PII.
-- [x] Receiving has its own responsive page with Code 128/QR camera scanning, manual fallback, Dexie persistence, ten-item/five-minute/reconnect auto-sync, and an immediate post button.
+- [x] Receiving has its own responsive page with Code 128/QR camera scanning, manual fallback, Dexie persistence, ten-item/five-minute/reconnect auto-sync, an immediate **Sync scans** button, and dot-only online/connecting/offline feedback.
 - [x] A mixed bulk result clears only committed receipts; failed receipts stay on-device with their server reason and stable idempotency key.
 - [x] Sorting has its own compact page with standard/exception lanes, one bounded session, printable lane labels, offline partial-result sync, and authoritative reconciliation.
 

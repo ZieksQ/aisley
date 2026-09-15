@@ -32,8 +32,8 @@ export function LogisticsLayout() {
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')
       ? 'Dispatch parcels'
-      : location.pathname.startsWith('/operations')
-    ? 'Hub operations'
+    : location.pathname.startsWith('/operations')
+    ? 'Parcel search'
     : location.pathname.startsWith('/pickups')
       ? 'Pickups'
       : location.pathname.startsWith('/courier-applications')
@@ -54,7 +54,7 @@ export function LogisticsLayout() {
       </div>
       <nav aria-label="Logistics navigation" className="mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto">
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dashboard"><FaGaugeHigh />Dashboard</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/operations"><FaWarehouse />Hub operations</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/operations"><FaWarehouse />Parcel search</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/pickups"><FaBoxesPacking />Pickups</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sorting"><FaArrowDownShortWide />Sorting</NavLink>

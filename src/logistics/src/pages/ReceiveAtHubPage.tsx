@@ -1,7 +1,8 @@
 import type { IScannerControls } from '@zxing/browser'
 import Dexie from 'dexie'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FaBarcode, FaCloudArrowUp, FaKeyboard, FaTrashCan, FaWifi } from 'react-icons/fa6'
+import { FaBarcode, FaCloudArrowUp, FaKeyboard, FaTrashCan } from 'react-icons/fa6'
+import { ConnectionStatus } from '../components/ConnectionStatus'
 import { ActionButton, ErrorNotice, PrimaryButton, field, panel } from '../components/PickupUi'
 import { ApiError, csrf, request } from '../lib/api'
 import { receivingDb, type PendingReceipt } from '../lib/receivingDb'
@@ -76,9 +77,9 @@ export function ReceiveAtHubPage() {
         await receivingDb.receipts.update(failed.client_id, { error: failed.message ?? 'The hub receipt was rejected.' })
       }
       await loadReceipts()
-      setNotice(`${response.summary.received} parcel${response.summary.received === 1 ? '' : 's'} posted.${response.summary.failed ? ` ${response.summary.failed} need review.` : ''}`)
+      setNotice(`${response.summary.received} parcel${response.summary.received === 1 ? '' : 's'} synced.${response.summary.failed ? ` ${response.summary.failed} need review.` : ''}`)
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'The queued receipts remain saved offline. Try posting again when connected.')
+      setError(caught instanceof ApiError ? caught.message : 'The queued receipts remain saved offline. Try syncing again when connected.')
     } finally {
       setBusy(false)
     }
@@ -124,8 +125,8 @@ export function ReceiveAtHubPage() {
 
   return <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-4 dark:border-white/10">
-      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the Code 128 barcode on each waybill or enter its parcel reference. Scans stay on this device until posted.</p></div>
-      <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400"><FaWifi aria-hidden="true" />{online ? 'Online' : 'Offline — scans are safe on this device'}</div>
+      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the Code 128 barcode on each waybill or enter its parcel reference. Scans stay on this device until synced.</p></div>
+      <ConnectionStatus online={online} syncing={busy} offlineLabel="Offline — scans are safe on this device" />
     </div>
 
     {error ? <div className="mt-4"><ErrorNotice message={error} /></div> : null}
@@ -150,8 +151,8 @@ export function ReceiveAtHubPage() {
     </div>
 
     <section className={`${panel} mt-4 overflow-hidden`}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({receipts.length})</h3><p className="mt-1 text-xs text-zinc-500">Auto-posts at 10 parcels, when connection returns, or every 5 minutes.</p></div><PrimaryButton busy={busy} disabled={!online || receipts.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Post now</PrimaryButton></div>
-      {receipts.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{receipts.map((receipt) => <li key={receipt.id} className="flex items-start justify-between gap-3 px-4 py-3"><div><p className="font-mono text-sm font-medium">{receipt.reference}</p><p className="mt-1 text-xs text-zinc-500">{receipt.source === 'barcode' ? 'Scanned' : 'Entered manually'} · {formatDate(receipt.scannedAt)}</p>{receipt.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{receipt.error}</p> : null}</div><button type="button" aria-label={`Remove ${receipt.reference}`} className="grid size-9 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-red-700 dark:hover:bg-white/10" onClick={() => void receivingDb.receipts.delete(receipt.id).then(loadReceipts)}><FaTrashCan aria-hidden="true" /></button></li>)}</ul> : <p className="px-4 py-8 text-center text-sm text-zinc-500">No parcels are waiting to post.</p>}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({receipts.length})</h3><p className="mt-1 text-xs text-zinc-500">Auto-syncs at 10 parcels, when connection returns, or every 5 minutes.</p></div><PrimaryButton busy={busy} disabled={!online || receipts.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PrimaryButton></div>
+      {receipts.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{receipts.map((receipt) => <li key={receipt.id} className="flex items-start justify-between gap-3 px-4 py-3"><div><p className="font-mono text-sm font-medium">{receipt.reference}</p><p className="mt-1 text-xs text-zinc-500">{receipt.source === 'barcode' ? 'Scanned' : 'Entered manually'} · {formatDate(receipt.scannedAt)}</p>{receipt.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{receipt.error}</p> : null}</div><button type="button" aria-label={`Remove ${receipt.reference}`} className="grid size-9 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-red-700 dark:hover:bg-white/10" onClick={() => void receivingDb.receipts.delete(receipt.id).then(loadReceipts)}><FaTrashCan aria-hidden="true" /></button></li>)}</ul> : <p className="px-4 py-8 text-center text-sm text-zinc-500">No parcels are waiting to sync.</p>}
     </section>
   </div>
 }
