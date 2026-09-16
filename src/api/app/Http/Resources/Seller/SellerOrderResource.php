@@ -90,6 +90,7 @@ class SellerOrderResource extends JsonResource
             'waybill' => $this->waybill === null ? null : [
                 'id' => $this->waybill->id,
                 'reference' => $this->waybill->reference,
+                'tracking_id' => $this->waybill->reference,
                 'created_at' => $this->waybill->created_at->toISOString(),
                 'pdf_url' => "/api/v1/seller/orders/{$this->id}/waybill",
             ],

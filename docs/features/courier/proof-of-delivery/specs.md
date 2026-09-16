@@ -4,14 +4,14 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.5
-status: Implemented P0 QR/reference proof submission; media extensions deferred
-implementation_status: Courier QR/reference proof records and Logistics validation are implemented; image/signature uploads remain deferred
+version: 1.6
+status: Implemented P0 QR/tracking-ID/Order-reference proof submission; media extensions deferred
+implementation_status: Courier QR/tracking-ID/Order-reference proof records and Logistics validation are implemented; image/signature uploads remain deferred
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
-backend_contract_version: courier-epod-v1-qr
+backend_contract_version: courier-epod-v1-qr-tracking-id
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/references/file-upload-requirements.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
@@ -21,7 +21,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - **Purpose:** Capture evidence that an authorized Courier handed the parcel to the Buyer or placed it at the approved destination.
 - **Actor boundary:** Courier captures and submits evidence in the external Flutter app. Logistics validates and records the authoritative evidence event; Complete Delivery owns the final `delivered` transition.
-- **Current implementation:** `shipment_evidence` stores Courier-scoped QR/reference proof for final-mile hub pickup and delivery. The Courier submission is pending until Logistics validates it through Update Status; photo/signature upload and private media delivery remain deferred extensions.
+- **Current implementation:** `shipment_evidence` stores Courier-scoped QR/tracking-ID/Order-reference proof for final-mile hub pickup and delivery. The Courier submission is pending until Logistics validates it through Update Status; photo/signature upload and private media delivery remain deferred extensions.
 - **Flow:** accepted final-mile task → Courier reaches destination → capture approved proof → submit to Logistics → Logistics validates/records → Complete Delivery checks proof → `delivered`.
 - **Task boundary:** Evidence belongs to exactly one authorized Delivery Task and its Order/Parcel. First-mile handoff evidence is handled by Pick Up Order; final-mile proof is handled here.
 - **Non-goals:** task assignment/acceptance, navigation, pickup, returns/refunds, partial fulfillment, dispute decisions, payment, Courier web UI, or direct Order-status editing.
@@ -47,7 +47,7 @@ final-mile task
 
 ### Logistics validation and recording authority
 
-- Courier captures photo, signature, delivery QR/reference, or another method only when the approved proof policy permits it.
+- Courier captures photo, signature, delivery QR/tracking-ID/Order-reference, or another method only when the approved proof policy permits it.
 - Courier submits the evidence to the owning Logistics organization; the client does not mark proof `verified`, change custody, or set `delivered`.
 - Logistics validates task/Order/Parcel linkage, final-mile leg, current state, Courier authorization, evidence type, required fields, storage confirmation, and idempotency.
 - Logistics records the authoritative evidence event with the performing Courier, recording Logistics account, server timestamp, task/Order references, and safe evidence metadata.
@@ -57,7 +57,7 @@ final-mile task
 
 ### Evidence methods and upload policy
 
-- The implemented method is QR/Order-reference submission at `out_for_delivery`; photo/signature methods and combinations are deferred, not selectable production methods.
+- The implemented method is QR/tracking-ID/Order-reference submission at `out_for_delivery`; photo/signature methods and combinations are deferred, not selectable production methods.
 - If an image is enabled, inherit `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, detected MIME/signature/decode validation, generated object key, and private authorized delivery.
 - Store bytes in the configured private filesystem/object-storage abstraction (Azure-compatible in this project); store only generated path and required metadata in the database.
 - Never expose raw disk/blob paths, cloud credentials, bearer tokens, or public predictable evidence URLs.
@@ -92,7 +92,7 @@ final-mile task
 
 ### Implemented endpoint contract and deferred media extension
 
-- `POST /api/v1/courier/tasks/{task}/proof-of-delivery` — implemented for the P0 QR/reference contract; accepts JSON `identifier_type`, `identifier`, and the expected task revision plus UUID `Idempotency-Key`. It creates awaiting-validation evidence and never sets `delivered`.
+- `POST /api/v1/courier/tasks/{task}/proof-of-delivery` — implemented for the P0 QR/tracking-ID/Order-reference contract; accepts JSON `identifier_type`, `identifier`, and the expected task revision plus UUID `Idempotency-Key`. It creates awaiting-validation evidence and never sets `delivered`.
 - `GET /api/v1/courier/tasks/{task}/proof-of-delivery` — deferred; use the task/completion projections while a dedicated proof-read contract is finalized.
 - Multipart photo/signature submission remains deferred; it must follow `docs/references/file-upload-requirements.md` when enabled.
 - The client must not submit `courier_id`, organization/hub IDs, target status, `verified`, `delivered`, raw storage paths, or another task's Order ID as authority.
@@ -103,11 +103,11 @@ final-mile task
 
 ### Submission details
 
-- JSON accepts only `identifier_type` (`qr` or `order_id`), `identifier` (string, at most 128 characters), and `expected_revision` (integer at least 1); a UUID `Idempotency-Key` is required in the header.
+- JSON accepts only `identifier_type` (`qr`, `tracking_id`, or `order_id`), `identifier` (string, at most 128 characters), and `expected_revision` (integer at least 1); a UUID `Idempotency-Key` is required in the header.
 - The task ID, Order/Parcel link, Courier identity, Logistics organization, and current delivery state are derived server-side.
 - Multipart image fields use the shared upload policy; filenames, extensions, and browser MIME values are hints only and never authorization.
 - A signature is submitted as a bounded vector or image representation only when the policy and endpoint permit it; it is linked to this task and cannot be reused.
-- A QR/reference submission proves only the configured recipient/handoff verification. It is not automatically the shared waybill resolve event.
+- A QR/tracking-ID/Order-reference submission proves only the configured recipient/handoff verification. It is not automatically the shared waybill resolve event.
 - `expected_revision` belongs in JSON and the UUID belongs in the `Idempotency-Key` header, not an `idempotency_key` JSON field. Retain the exact attempt across uncertain retries.
 - A new submission returns `awaiting_validation`; matching retries reuse the evidence record with refreshed related state. Neither a scan nor HTTP 202 alone means delivered.
 
@@ -188,7 +188,7 @@ final-mile task
 - Test that Logistics records the Courier performer and Logistics recorder, that access/scan does not satisfy proof, and that notification failure cannot undo evidence.
 - Flutter tests cover capture permissions, file validation feedback, progress/retry, secure storage, offline/timeout/conflict states, and accessibility.
 - Log task/proof/event IDs, performing Courier, recording Logistics account, evidence state, result, revision, and timestamp; never log media bytes, raw paths, or QR tokens.
-- Keep media upload endpoints unavailable until the shared file policy and storage contract are deployed. The QR/reference submission is live with the shared transition service; record its API revision separately from the deferred media extension in Flutter progress.
+- Keep media upload endpoints unavailable until the shared file policy and storage contract are deployed. The QR/tracking-ID/Order-reference submission is live with the shared transition service; record its API revision separately from the deferred media extension in Flutter progress.
 
 ### Open decisions
 
@@ -198,7 +198,7 @@ final-mile task
 
 ### Acceptance criteria
 
-- [x] Courier can submit only QR/reference evidence for its accepted final-mile task and linked Order/Parcel.
+- [x] Courier can submit only QR/tracking-ID/Order-reference evidence for its accepted final-mile task and linked Order/Parcel.
 - [x] Logistics validates and records the implemented evidence with performing Courier and recording Logistics account preserved.
 - [x] Evidence status is separate from custody; invalid, duplicate, or access-only events do not advance delivery.
 - [x] QR evidence is scoped, persisted, idempotent, and consumable by Complete Delivery; file validation/storage is deferred with media proof.

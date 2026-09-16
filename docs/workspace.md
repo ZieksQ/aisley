@@ -330,13 +330,13 @@ If the offered Courier rejects the task, the task records `rejected`, the Order 
 
 Logistics shall be able to view, download, print, and scan the shared waybill created by the Seller pickup transaction.
 
-The Seller-created shared waybill shall include a stable, system-generated, scannable or enterable identifier such as:
+The Seller-created shared waybill shall include a stable, system-generated, scannable or enterable tracking ID, with:
 
-QR code, and/or
+Thin 1D Code 128 barcode containing the tracking ID, and
 
-Reference number.
+QR compatibility identifier and printed tracking ID/reference.
 
-The shared waybill identifier, snapshot, selected Logistics organization, and Order/Parcel link are immutable from the Seller pickup-request transaction at `ready_for_pickup`. Routing and Courier assignments may change before physical handoff only through append-only events; after pickup, assignment and custody history cannot be overwritten. A Courier may submit a waybill QR/reference scan or handoff evidence through its assigned task; Logistics validates and records the authoritative event while preserving the performing Courier, recording Logistics account, and timestamp. Printing, reprinting, access, or scan submission does not independently advance an Order status.
+The shared tracking ID, snapshot, selected Logistics organization, and Order/Parcel link are immutable from the Seller pickup-request transaction at `ready_for_pickup`. Routing and Courier assignments may change before physical handoff only through append-only events; after pickup, assignment and custody history cannot be overwritten. A Courier may submit a waybill QR/tracking-ID/Order-reference scan or handoff evidence through its assigned task; Logistics validates and records the authoritative event while preserving the performing Courier, recording Logistics account, and timestamp. Printing, reprinting, access, or scan submission does not independently advance an Order status.
 
 8.5 Receiving and Sorting
 
@@ -344,15 +344,15 @@ The logistics workflow shall support:
 
 receive order → waybill → sort
 
-The system shall persist the parcel's current Shipment/Delivery Task state, including `received_at_hub` and `sorted_at_hub`, through the shared transition service after Logistics validates the supporting scan/evidence. Dedicated **Sorting** snapshots up to 100 oldest received parcels into one open sole-hub session, uses configurable standard/exception lanes and printable Code 128 lane labels, and retains Code 128/QR/manual captures in a device-local Dexie outbox until batch sync. Standard-lane sync records session/lane/capture metadata and commits `sorted_at_hub`; exception-lane sync records an operational hold while custody remains `received_at_hub`. The event must retain the Courier who performed a handoff when applicable and the Logistics account that recorded it.
+The system shall persist the parcel's current Shipment/Delivery Task state, including `received_at_hub` and `sorted_at_hub`, through the shared transition service after Logistics validates the supporting scan/evidence. Dedicated **Sorting** snapshots up to 100 oldest received parcels into one open sole-hub session, while the separate **Sort plan** page lets each Logistics organization create plans, standard/exception lanes, printable Code 128 lane labels, and exact four-digit Buyer postal-code mappings. Sorting retains tracking-ID Code 128/QR/manual captures in a device-local Dexie outbox until batch sync. Automatic sync resolves the tracking ID and current plan server-side; a missing plan, postal code, mapping, or usable lane goes to the exception lane with a reason. Standard-lane sync records session/lane/capture metadata and commits `sorted_at_hub`; exception-lane sync records an operational hold while custody remains `received_at_hub`. The event must retain the Courier who performed a handoff when applicable and the Logistics account that recorded it.
 
 8.6 Transfer
 
 Logistics shall be able to move a parcel through transfer by:
 
-Scanning its waybill identifier, or
+Scanning its tracking ID/waybill identifier, or
 
-Manually entering its QR/reference value.
+Manually entering its tracking ID, QR, or waybill-reference value.
 
 A successful operation shall submit an event to the shared transition service, which validates the current Shipment/Delivery Task state and commits the associated detailed state and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
 
@@ -362,13 +362,15 @@ Internal transfer execution is deferred in the one-hub MVP. The operational path
 
 Logistics shall be able to dispatch a parcel by:
 
-Scanning its waybill identifier, or
+Scanning its tracking ID/waybill identifier, or
 
-Manually entering its QR/reference value.
+Manually entering its tracking ID, QR, or waybill-reference value.
 
 A successful dispatch shall submit an event to the shared transition service, which validates and commits `dispatched_from_hub` and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
 
 The canonical dispatched state is `dispatched_from_hub`; it must not be confused with Courier acceptance or physical pickup.
+
+The ready queue groups/filters parcels by physical standard lane and pages by hub receipt time. A batch uses one source lane by default; combining lanes requires explicit opt-in within the sole hub. Shipment/lane revisions are checked at commit and each dispatch membership freezes its source lane and sorting session. A sorted parcel can move lanes online before dispatch with an audited reason. Session closure reconciles the snapshot and does not block individual ready parcels; exceptions remain held until standard-lane resolution. Validated Courier hub pickup clears the live staging lane. Sort-plan changes affect later automatic scans; existing scan results and dispatch provenance remain historical.
 
 8.8 Deploy Rider
 
@@ -452,7 +454,7 @@ Proceed to the Seller for a first-mile pickup or the Logistics hub for a final-m
 
 Verify order/parcel information.
 
-Scan the parcel/order waybill QR/reference identifier and submit the scan/evidence to Logistics for validation and authoritative recording.
+Scan the parcel/order waybill QR/tracking-ID/Order-reference identifier and submit the scan/evidence to Logistics for validation and authoritative recording.
 
 Confirm pickup.
 
@@ -486,7 +488,7 @@ E-signature.
 
 QR scan.
 
-For P0, at least one method must be implemented. QR/parcel verification plus delivery confirmation is sufficient for the core workflow; photo proof is recommended if implementation capacity permits. Courier-submitted QR/reference scans and evidence are validated and recorded authoritatively by Logistics, preserving both the performing Courier and recording Logistics account. Image/signature evidence remains subject to the shared upload policy and the approved operational schema.
+For P0, at least one method must be implemented. QR/parcel verification plus delivery confirmation is sufficient for the core workflow; photo proof is recommended if implementation capacity permits. Courier-submitted QR/tracking-ID/Order-reference scans and evidence are validated and recorded authoritatively by Logistics, preserving both the performing Courier and recording Logistics account. Image/signature evidence remains subject to the shared upload policy and the approved operational schema.
 
 9.8 Delivery History
 
@@ -620,9 +622,9 @@ Courier transfers the parcel to the Logistics organization's sole hub
 ↓
 Logistics receives and validates the parcel (`received_at_hub`)
 ↓
-Logistics resolves the Seller-created shared waybill through its immutable Order/Parcel reference
+Logistics resolves the Seller-created tracking ID/waybill through its immutable Order/Parcel reference
 ↓
-Logistics selects/scans a Sorting lane and synchronizes the parcel (`sorted_at_hub`)
+Logistics scans the tracking ID; the current postal-code sort plan selects a standard lane or the exception lane, then synchronizes the parcel (`sorted_at_hub` or an exception hold)
 ↓
 The parcel enters the Logistics **Ready to dispatch** queue
 ↓
@@ -692,9 +694,9 @@ delivered
 
 Task-level `rejected` records an offered Courier's refusal and is not an `OrderStatus`. `stale` is an informational freshness condition for an unfinished task, derived or persisted only by the future task contract; it is not a new high-level Order status and does not automatically cancel or reassign work.
 
-The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, independent final-mile offers, QR handoff evidence, and Logistics-validated delivery completion. Photo/signature proof, route/location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
+The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, tenant-scoped postal-code sort plans, independent final-mile offers, QR handoff evidence, and Logistics-validated delivery completion. Photo/signature proof, route/location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
 
-Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. A Courier submits a QR/reference scan or handoff evidence, and Logistics validates and records the authoritative event, preserving the performing Courier, recording Logistics account, and timestamp. The shared transition service—not the scan/access event—commits physical state. The pickup transaction creates one immutable shared waybill snapshot per Order at `ready_for_pickup`. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules; task-level `rejected` is distinct from Order-level `rejected`.
+Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. A Courier submits a QR/tracking-ID/reference scan or handoff evidence, and Logistics validates and records the authoritative event, preserving the performing Courier, recording Logistics account, and timestamp. The shared transition service—not the scan/access event—commits physical state. The pickup transaction creates one immutable shared waybill/tracking ID snapshot per Order at `ready_for_pickup`; the primary barcode is a thin 1D Code 128 encoding of that tracking ID and QR remains a compatibility fallback. Pickup may store a sort-plan routing hint, but automatic sorting resolves the current plan and exact Buyer postal mapping at scan time; missing routing data/configuration goes to the exception lane. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules; task-level `rejected` is distinct from Order-level `rejected`.
 
 Inventory reservations follow the same boundary: placement reserves the requested SKU quantity; an accepted cancellation or rejection before `picked_up_from_seller` releases that quantity once and transactionally; first-mile pickup commits it once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
@@ -709,7 +711,7 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 | Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Final-mile rejection/re-offer implemented; first-mile rejection remains legacy scope |
 | `seller_pickup_accepted → picked_up_from_seller` | Compatibility first-mile confirmation commits handoff/Inventory once and bridges shared records | Implemented on legacy confirmation contract |
 | `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Implemented P0 transition |
-| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting records standard-lane placement, while exception lanes hold custody at receipt | Implemented with separate Dexie batch receipt/sort sync; internal transfer deferred |
+| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting resolves the tracking ID and current postal-code sort plan, records standard-lane placement, or assigns an exception hold when routing is unavailable | Implemented with separate Dexie batch receipt/sort sync and tenant-scoped sort-plan routes; internal transfer deferred |
 | `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
 | `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented QR P0 evidence transition |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |
@@ -739,7 +741,7 @@ Timestamp.
 
 Optional waybill/scan reference.
 
-For physical events, the Courier who performed the action (when applicable), the Logistics account that validated/recorded it, the evidence reference or QR/reference value, timestamp, and location/context required by the transition.
+For physical events, the Courier who performed the action (when applicable), the Logistics account that validated/recorded it, the evidence reference or QR/tracking-ID/Order-reference value, timestamp, and location/context required by the transition.
 
 Order history records customer-visible high-level `OrderStatus` changes. Shipment/Delivery Task history records first-mile, hub, and final-mile states such as `picked_up_from_seller`, `received_at_hub`, `delivery_assigned`, and `picked_up_from_hub`, plus task-level `rejected` or informational `stale` where supported. A scan, waybill print, or notification must not silently overwrite either history; each accepted event appends immutable history.
 
@@ -749,13 +751,13 @@ Waybill processing is a core operational capability.
 
 The MVP shall support:
 
-Generation/display of a system-owned Order/Parcel reference.
+Generation/display of a system-owned Order/Parcel tracking ID/reference.
 
 Seller and selected-Logistics printing of the same shared waybill.
 
-QR/barcode scanning where supported by the client device.
+Thin 1D Code 128 tracking-ID and QR scanning where supported by the client device.
 
-Manual reference entry as a fallback.
+Manual tracking ID/waybill-reference entry as a fallback.
 
 Validation that the parcel exists.
 
@@ -767,7 +769,7 @@ Updating the detailed Shipment/Delivery Task state and any permitted high-level 
 
 Preventing duplicate or invalid transitions.
 
-The implemented first-mile confirmation resolves a QR/manual reference, requires explicit Courier confirmation, records `picked_up_from_seller`, projects the Order to `picked_up`, fulfills Inventory once, and idempotently bridges shared physical records. Logistics hub receipt/sort/dispatch, final-mile task assignment/acceptance, QR hub pickup, movement, proof submission, and Logistics-validated delivery completion use the additive operational schema and shared transition service. Photo/signature media, route/location telemetry, returns, and exceptional recovery remain unavailable.
+The implemented first-mile confirmation resolves a QR/tracking-ID/manual reference, requires explicit Courier confirmation, records `picked_up_from_seller`, projects the Order to `picked_up`, fulfills Inventory once, and idempotently bridges shared physical records. Logistics hub receipt/sort/dispatch, final-mile task assignment/acceptance, QR/tracking-ID hub pickup, movement, proof submission, and Logistics-validated delivery completion use the additive operational schema and shared transition service. Photo/signature media, route/location telemetry, returns, and exceptional recovery remain unavailable.
 
 Do not infer either physical pickup from the generic high-level Order value `picked_up`; the detailed task/scan event is authoritative for the handoff.
 

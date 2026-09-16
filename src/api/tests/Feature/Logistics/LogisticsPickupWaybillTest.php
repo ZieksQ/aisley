@@ -30,6 +30,7 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
+use App\Models\Waybill;
 use App\Services\Logistics\BuildPickupRouteManifest;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,6 +84,9 @@ class LogisticsPickupWaybillTest extends TestCase
         $order->update(['status' => OrderStatus::SellerProcessing]);
         [$selectedUser, $selected] = $this->logistics('Selected Logistics', 'Manila', 'Metro Manila');
         [$otherUser] = $this->logistics('Other Logistics', 'Quezon City', 'Metro Manila');
+        $lane = $this->actingAs($selectedUser)->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'PICK-01', 'name' => 'Cebu outbound', 'type' => 'standard'])->assertCreated()->json('data');
+        $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Pickup destination plan', 'is_active' => true])->assertCreated()->json('data');
+        $this->postJson("/api/v1/logistics/sorting/plans/{$plan['id']}/lanes", ['expected_revision' => $plan['revision'], 'lane_id' => $lane['id'], 'postal_code' => '6000'])->assertOk();
         $pickupAddress = $seller->addresses()->sole();
         $key = (string) Str::uuid();
 
@@ -91,6 +95,11 @@ class LogisticsPickupWaybillTest extends TestCase
         ])->assertOk()->assertJsonPath('data.logistics_organization_id', $selected->id)->assertJsonCount(1, 'data.waybills');
         $waybillId = $response->json('data.waybills.0.id');
         $pickupId = $response->json('data.id');
+        $waybill = Waybill::with('snapshot')->findOrFail($waybillId);
+        $this->assertSame($waybill->reference, $response->json('data.waybills.0.tracking_id'));
+        $this->assertSame($waybill->reference, $waybill->snapshot->payload['tracking_id']);
+        $this->assertSame($plan['id'], $waybill->snapshot->payload['sort_plan']['plan_id']);
+        $this->assertSame('matched', $waybill->snapshot->payload['sort_plan']['reason']);
 
         $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/seller/orders/pickup-requests', [
             'order_ids' => [$order->id], 'pickup_address_id' => $pickupAddress->id, 'logistics_organization_id' => $selected->id,

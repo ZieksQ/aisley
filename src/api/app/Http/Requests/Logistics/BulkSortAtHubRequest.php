@@ -19,7 +19,8 @@ class BulkSortAtHubRequest extends FormRequest
         return [
             'captures' => ['required', 'array', 'min:1', 'max:100'],
             'captures.*.client_id' => ['required', 'uuid', 'distinct'],
-            'captures.*.lane_id' => ['required', 'uuid'],
+            'captures.*.lane_id' => ['nullable', 'uuid'],
+            'captures.*.auto_route' => ['sometimes', 'boolean'],
             'captures.*.reference' => ['required', 'string', 'max:128', 'distinct:ignore_case'],
             'captures.*.expected_revision' => ['required', 'integer', 'min:1'],
             'captures.*.source' => ['required', Rule::enum(SortingScanSource::class)],

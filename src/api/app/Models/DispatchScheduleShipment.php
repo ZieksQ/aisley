@@ -10,11 +10,11 @@ class DispatchScheduleShipment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['dispatch_schedule_id', 'shipment_id', 'delivery_task_id', 'sequence'];
+    protected $fillable = ['dispatch_schedule_id', 'shipment_id', 'delivery_task_id', 'sequence', 'source_lane', 'sorting_session_id', 'shipment_revision_at_dispatch'];
 
     protected function casts(): array
     {
-        return ['sequence' => 'integer'];
+        return ['sequence' => 'integer', 'source_lane' => 'array', 'shipment_revision_at_dispatch' => 'integer'];
     }
 
     public function schedule(): BelongsTo

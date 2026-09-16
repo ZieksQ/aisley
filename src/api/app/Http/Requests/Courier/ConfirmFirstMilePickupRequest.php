@@ -17,7 +17,7 @@ class ConfirmFirstMilePickupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'identifier_type' => ['required', Rule::in(['qr', 'order_id'])],
+            'identifier_type' => ['required', Rule::in(['qr', 'tracking_id', 'order_id'])],
             'identifier' => ['required', 'string', 'max:128'],
         ];
     }

@@ -63,7 +63,11 @@ class FirstMileTaskController extends Controller
     {
         $data = $request->validate(['payload' => ['required', 'string', 'max:128']]);
         $affiliation = $request->user()->courierLogisticsAffiliation()->firstOrFail();
-        $waybill = Waybill::query()->where('qr_token_hash', $hasher->hashQr($data['payload']))->where('status', WaybillStatus::Active)
+        $identifier = trim($data['payload']);
+        $waybill = Waybill::query()->where(function ($query) use ($hasher, $identifier): void {
+            $query->where('qr_token_hash', $hasher->hashQr($identifier))
+                ->orWhere('reference', strtoupper($identifier));
+        })->where('status', WaybillStatus::Active)
             ->whereHas('firstMileTask', fn ($query) => $query
                 ->where('courier_id', $request->user()->id)
                 ->where('logistics_organization_id', $affiliation->logistics_organization_id)
@@ -77,7 +81,7 @@ class FirstMileTaskController extends Controller
             ])->firstOrFail();
         WaybillAccessEvent::create(['waybill_id' => $waybill->id, 'actor_id' => $request->user()->id, 'actor_role' => $request->user()->role, 'action' => WaybillAccessAction::Resolve, 'correlation_id' => Str::uuid(), 'occurred_at' => now()]);
 
-        return response()->json(['data' => ['waybill_reference' => $waybill->reference, 'order_reference' => $waybill->order->reference, 'task' => $this->task($waybill->firstMileTask), 'matched' => true]])->header('Cache-Control', 'private, no-store');
+        return response()->json(['data' => ['waybill_reference' => $waybill->reference, 'tracking_id' => $waybill->reference, 'order_reference' => $waybill->order->reference, 'task' => $this->task($waybill->firstMileTask), 'matched' => true]])->header('Cache-Control', 'private, no-store');
     }
 
     public function pickup(ConfirmFirstMilePickupRequest $request, string $task, ConfirmFirstMilePickup $confirm): JsonResponse
@@ -88,7 +92,7 @@ class FirstMileTaskController extends Controller
         return response()->json(['data' => [
             'task_id' => $record->id,
             'order' => ['id' => $record->order_id, 'reference' => $record->order->reference],
-            'waybill' => ['reference' => $record->waybill->reference],
+            'waybill' => ['reference' => $record->waybill->reference, 'tracking_id' => $record->waybill->reference],
             'task_status' => $record->status->value,
             'order_status' => $record->order->status->value,
             'picked_up_at' => $result['confirmation']->picked_up_at->toISOString(),
@@ -107,7 +111,7 @@ class FirstMileTaskController extends Controller
             'status' => $task->status instanceof \BackedEnum ? $task->status->value : $task->status,
             'picked_up_at' => $task->picked_up_at?->toISOString(),
             'order' => ['id' => $task->order_id, 'reference' => $task->order?->reference],
-            'waybill' => ['reference' => $task->waybill?->reference],
+            'waybill' => ['reference' => $task->waybill?->reference, 'tracking_id' => $task->waybill?->reference],
             'pickup' => $pickup ? [
                 'shop_name' => $pickup['name'] ?? $task->order->shop->name,
                 'contact_number' => $pickup['contact_number'] ?? $task->order->shop->contact_number,

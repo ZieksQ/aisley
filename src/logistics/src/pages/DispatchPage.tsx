@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaArrowsRotate, FaTruckFast } from 'react-icons/fa6'
 import { FlatpickrInput } from '../components/FlatpickrInput'
 import { CourierPicker } from '../components/PickupScheduleDialog'
@@ -6,6 +6,8 @@ import { ActionButton, ErrorNotice, PrimaryButton, field, manilaDate, panel } fr
 import { ApiError, csrf, request, requestWithTimeout } from '../lib/api'
 import type { FulfillmentQueueResponse, FulfillmentShipment, FulfillmentTask } from '../types/fulfillment'
 import type { CourierAvailabilityOption } from '../types/pickups'
+import type { SortingOverview } from '../types/sorting'
+import { ParcelLaneMove } from '../components/ParcelLaneMove'
 
 type DispatchCourier = { courier_id: string; name: string; email: string; contact_number: string | null }
 type DispatchSchedule = {
@@ -15,7 +17,7 @@ type DispatchSchedule = {
   scheduled_for: string
   parcel_count: number
   courier: { id: string; name: string; email: string; contact_number: string | null }
-  parcels: Array<{ shipment_id: string; order_reference: string | null; waybill_reference: string | null; sequence: number }>
+  parcels: Array<{ shipment_id: string; order_reference: string | null; waybill_reference: string | null; tracking_id: string | null; sequence: number; source_lane: { code: string; name: string } | null }>
 }
 
 function localDefault(): string {
@@ -37,35 +39,54 @@ export function DispatchPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [sorting, setSorting] = useState<SortingOverview | null>(null)
+  const [laneId, setLaneId] = useState('')
+  const [combineLanes, setCombineLanes] = useState(false)
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const pendingSchedule = useRef<{ body: string; key: string } | null>(null)
+  const loadSequence = useRef(0)
 
   const load = useCallback(async () => {
+    const sequence = ++loadSequence.current
     setLoading(true)
     setError('')
     try {
-      const [ready, rejectedResponse, courierResponse, scheduleResponse] = await Promise.all([
-        requestWithTimeout<FulfillmentQueueResponse>('/api/v1/logistics/dashboard/queue?status=sorted_at_hub&per_page=25'),
+      const filters = new URLSearchParams({ status: 'sorted_at_hub', per_page: '25', page: String(page) })
+      if (!combineLanes && laneId) filters.set('lane_id', laneId)
+      if (search.trim()) filters.set('search', search.trim())
+      const [ready, rejectedResponse, courierResponse, scheduleResponse, sortingResponse] = await Promise.all([
+        requestWithTimeout<FulfillmentQueueResponse>(`/api/v1/logistics/dashboard/queue?${filters}`),
         requestWithTimeout<FulfillmentQueueResponse>('/api/v1/logistics/dashboard/queue?status=delivery_assigned&per_page=25'),
         requestWithTimeout<{ data: DispatchCourier[] }>('/api/v1/logistics/dispatch/couriers'),
         requestWithTimeout<{ data: DispatchSchedule[] }>('/api/v1/logistics/dispatch/schedules'),
+        requestWithTimeout<{ data: SortingOverview }>('/api/v1/logistics/sorting'),
       ])
+      if (sequence !== loadSequence.current) return
+      setSorting(sortingResponse.data)
       setQueue(ready)
       setRejected(rejectedResponse.data.filter((shipment) => shipment.tasks.some((task) => task.leg === 'final_mile' && task.status === 'rejected')))
       setCouriers(courierResponse.data)
       setSchedules(scheduleResponse.data)
       setSelected((current) => current.filter((id) => ready.data.some((item) => item.shipment_id === id)))
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Dispatch data could not be loaded.')
+      if (sequence === loadSequence.current) setError(caught instanceof ApiError ? caught.message : 'Dispatch data could not be loaded.')
     } finally {
-      setLoading(false)
+      if (sequence === loadSequence.current) setLoading(false)
     }
-  }, [])
+  }, [combineLanes, laneId, page, search])
 
   useEffect(() => { document.title = 'Dispatch | Aisley Logistics'; void load() }, [load])
 
   const selectedCourier = useMemo(() => couriers.find((courier) => courier.courier_id === courierId), [courierId, couriers])
   const pickerCouriers = useMemo<CourierAvailabilityOption[]>(() => couriers.map((courier) => ({ id: courier.courier_id, name: courier.name, email: courier.email, contact_number: courier.contact_number, status: 'active', availability: 'not_checked', schedules: [] })), [couriers])
+  const visible = queue?.data.filter((shipment) => combineLanes || !laneId || (shipment.sorting_lane?.id ?? 'unassigned') === laneId) ?? []
+  const selectedSource = queue?.data.find((shipment) => selected.includes(shipment.shipment_id))
+  const sourceKey = (shipment: FulfillmentShipment) => shipment.sorting_lane?.id ?? 'unassigned'
 
   function toggle(id: string) {
+    const shipment = queue?.data.find((item) => item.shipment_id === id)
+    if (!combineLanes && shipment && selectedSource && sourceKey(shipment) !== sourceKey(selectedSource)) return
     setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : current.length < 15 ? [...current, id] : current)
   }
 
@@ -77,11 +98,14 @@ export function DispatchPage() {
     setNotice('')
     try {
       await csrf()
+      const body = JSON.stringify({ shipment_ids: selected, courier_id: courierId, scheduled_for: new Date(scheduledFor.replace(' ', 'T')).toISOString(), combine_lanes: combineLanes, assignments: selected.map((id) => { const shipment = queue!.data.find((item) => item.shipment_id === id)!; return { shipment_id: id, expected_revision: shipment.revision, lane_id: shipment.sorting_lane?.id ?? null, lane_revision: shipment.sorting_lane?.revision ?? null } }) })
+      if (pendingSchedule.current?.body !== body) pendingSchedule.current = { body, key: crypto.randomUUID() }
       const response = await request<{ data: DispatchSchedule }>('/api/v1/logistics/dispatch/schedules', {
         method: 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify({ shipment_ids: selected, courier_id: courierId, scheduled_for: new Date(scheduledFor.replace(' ', 'T')).toISOString() }),
+        headers: { 'Idempotency-Key': pendingSchedule.current.key },
+        body,
       })
+      pendingSchedule.current = null
       setNotice(`${response.data.reference} created for ${response.data.parcel_count} parcel${response.data.parcel_count === 1 ? '' : 's'}.`)
       setSelected([])
       setCourierId('')
@@ -99,7 +123,7 @@ export function DispatchPage() {
       setError('Choose an approved Courier before re-offering a rejected delivery.')
       return
     }
-    if (!window.confirm(`Re-offer ${shipment.parcel?.waybill_reference ?? 'this parcel'} to ${selectedCourier?.name ?? 'this Courier'}?`)) return
+    if (!window.confirm(`Re-offer ${shipment.parcel?.tracking_id ?? shipment.parcel?.waybill_reference ?? 'this parcel'} to ${selectedCourier?.name ?? 'this Courier'}?`)) return
     setBusy(true)
     setError('')
     try {
@@ -126,32 +150,45 @@ export function DispatchPage() {
     {error ? <div className="mt-4"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
 
-    <div className="mt-3 grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_23rem]">
+    <div className="mt-3 grid min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_21rem]">
       <section className={`${panel} overflow-hidden`}>
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><div><h3 className="font-semibold">Ready to dispatch</h3><p className="mt-1 text-xs text-zinc-500">{queue?.meta.total ?? 0} sorted parcel{queue?.meta.total === 1 ? '' : 's'} · {selected.length}/15 selected</p></div>{queue?.data.length ? <button className="text-sm font-medium text-[#4C1268] dark:text-purple-300" type="button" onClick={() => setSelected(queue.data.slice(0, 15).map((item) => item.shipment_id))}>Select first 15</button> : null}</div>
-        {loading && !queue ? <p className="p-4 text-sm">Loading sorted parcels…</p> : queue?.data.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{queue.data.map((shipment) => { const checked = selected.includes(shipment.shipment_id); return <li key={shipment.shipment_id}><label className={`flex cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-white/[0.04] ${checked ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`}><input className="mt-1 size-4 accent-[#4C1268]" type="checkbox" checked={checked} disabled={!checked && selected.length >= 15} onChange={() => toggle(shipment.shipment_id)} /><span className="min-w-0"><span className="block font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</span><span className="mt-1 block truncate font-mono text-xs text-zinc-500">{shipment.parcel?.waybill_reference}</span><span className="mt-1 block text-xs text-zinc-500">{shipment.parcel?.item_count ?? 0} item{shipment.parcel?.item_count === 1 ? '' : 's'} · sorted and ready</span></span></label></li>})}</ul> : <p className="px-4 py-6 text-center text-sm text-zinc-500">No sorted parcels are ready to dispatch.</p>}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 p-3 dark:border-white/10"><div><h3 className="font-semibold">Ready to dispatch</h3><p className="text-xs text-zinc-500">{queue?.meta.total ?? 0} parcels · {selected.length}/15 selected · oldest receipt first</p></div><ActionButton disabled={loading || busy || !visible.length} onClick={() => { const first = visible[0]; setSelected(visible.filter((item) => combineLanes || sourceKey(item) === sourceKey(first)).slice(0, 15).map((item) => item.shipment_id)) }}>Select up to 15</ActionButton></div>
+        <div className="grid gap-3 border-b border-zinc-200 p-3 dark:border-white/10 sm:grid-cols-2">
+          <label className="min-w-0 text-sm font-medium">Source lane<select className={`${field} mt-1`} disabled={busy || combineLanes} value={laneId} onChange={(event) => { setLaneId(event.target.value); setPage(1); setSelected([]) }}><option value="">All lanes · one lane per batch</option>{queue?.summary.by_lane?.map((lane) => <option key={lane.id ?? 'unassigned'} value={lane.id ?? 'unassigned'}>{lane.code ?? 'Unassigned (legacy)'} · {lane.count} parcels</option>)}</select></label>
+          <label className="min-w-0 text-sm font-medium">Find parcel<input className={`${field} mt-1`} maxLength={100} value={search} disabled={busy} onChange={(event) => { setSearch(event.target.value); setPage(1); setSelected([]) }} placeholder="Tracking ID or Order reference" /></label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><input className="size-4 accent-[#4C1268]" type="checkbox" checked={combineLanes} disabled={busy} onChange={(event) => { setCombineLanes(event.target.checked); setPage(1); setSelected([]) }} />Combine standard lanes from this hub in one schedule</label>
+        </div>
+        {loading ? <p className="p-4 text-sm">Loading sorted parcels…</p> : visible.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{visible.map((shipment) => {
+          const checked = selected.includes(shipment.shipment_id)
+          const otherLane = !combineLanes && selectedSource && sourceKey(shipment) !== sourceKey(selectedSource)
+          return <li key={shipment.shipment_id} className={`flex min-w-0 flex-wrap items-center gap-2 px-3 py-2.5 ${checked ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`}>
+            <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3"><input className="mt-1 size-4 shrink-0 accent-[#4C1268]" type="checkbox" checked={checked} disabled={busy || (!checked && (selected.length >= 15 || !!otherLane))} onChange={() => toggle(shipment.shipment_id)} /><span className="min-w-0"><span className="block break-all font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</span><span className="mt-1 block break-all font-mono text-xs text-zinc-500">{shipment.parcel?.tracking_id ?? shipment.parcel?.waybill_reference}</span><span className="mt-1 block text-xs text-zinc-500">{shipment.sorting_lane ? `${shipment.sorting_lane.code} · ${shipment.sorting_lane.name}` : 'Unassigned lane (legacy)'}</span></span></label>
+            <ParcelLaneMove shipmentId={shipment.shipment_id} revision={shipment.revision} laneId={shipment.sorting_lane?.id ?? null} lanes={sorting?.lanes ?? []} disabled={busy} onMoved={async () => { setSelected([]); await load() }} />
+          </li>
+        })}</ul> : <p className="p-4 text-sm text-zinc-500">No sorted parcels match this lane or search.</p>}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 p-3 text-sm dark:border-white/10"><span>Page {queue?.meta.current_page ?? page} of {queue?.meta.last_page ?? 1}</span><div className="flex gap-2"><ActionButton disabled={loading || busy || page <= 1} onClick={() => { setPage((value) => value - 1); setSelected([]) }}>Previous</ActionButton><ActionButton disabled={loading || busy || page >= (queue?.meta.last_page ?? 1)} onClick={() => { setPage((value) => value + 1); setSelected([]) }}>Next</ActionButton></div></div>
       </section>
 
-      <aside className={`${panel} p-3 xl:sticky xl:top-20`}>
+      <aside className={`${panel} p-3 lg:sticky lg:top-20`}>
         <h3 className="font-semibold">Create delivery schedule</h3>
         <div className="mt-3">
-          <CourierPicker couriers={pickerCouriers} courierError="" courierId={courierId} courierLoading={loading} endDateTime="" idPrefix="dispatch" modalDescription="Active, approved Couriers from this Logistics hub. The API rechecks eligibility when the dispatch is created." modalFootnote="The API rechecks Courier status and hub eligibility before assigning work." onRefreshCouriers={() => { void load() }} setCourierId={setCourierId} startDateTime="" uncheckedAvailabilityText="Dispatch availability is checked by the API when this schedule is created." />
+          <CourierPicker couriers={pickerCouriers} courierError="" courierId={courierId} courierLoading={loading} endDateTime="" idPrefix="dispatch" modalDescription="Active, approved Couriers from this Logistics hub. The API rechecks eligibility when the dispatch is created." modalFootnote="The API rechecks Courier status and hub eligibility before assigning work." onRefreshCouriers={() => { void load() }} setCourierId={setCourierId} startDateTime="" uncheckedAvailabilityText="Courier approval and hub eligibility are checked by the API. Availability and capacity are not tracked." />
         </div>
         <label className="mt-3 block text-sm font-medium" htmlFor="dispatch-schedule">Delivery schedule</label>
         <FlatpickrInput id="dispatch-schedule" className={`${field} mt-1`} value={scheduledFor} onChange={setScheduledFor} options={{ enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', minDate: 'today', minuteIncrement: 15 }} />
         <p className="mt-2 text-xs leading-5 text-zinc-500">Creating the schedule marks these parcels as delivery assigned. The Courier must still accept and collect them from the hub.</p>
-        <PrimaryButton className="mt-3 w-full" busy={busy} disabled={!selected.length || !courierId || !scheduledFor} onClick={() => void createSchedule()}>Dispatch {selected.length || ''} parcel{selected.length === 1 ? '' : 's'}</PrimaryButton>
+        <PrimaryButton className="mt-3 w-full" busy={busy} disabled={loading || !selected.length || !courierId || !scheduledFor} onClick={() => void createSchedule()}>Dispatch {selected.length || ''} parcel{selected.length === 1 ? '' : 's'}</PrimaryButton>
       </aside>
     </div>
 
     <section className={`${panel} mt-3 overflow-hidden`}>
       <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Recent dispatch schedules</h3></div>
-      {schedules.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{schedules.map((schedule) => <li key={schedule.id} className="grid gap-2 px-4 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><p className="font-medium">{schedule.reference}</p><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{schedule.courier.name} · {schedule.courier.contact_number ?? schedule.courier.email}</p></div><div className="text-left text-xs text-zinc-500 sm:text-right"><p>{manilaDate(schedule.scheduled_for)}</p><p className="mt-1">{schedule.parcel_count} parcel{schedule.parcel_count === 1 ? '' : 's'}</p></div></li>)}</ul> : <p className="px-4 py-6 text-center text-sm text-zinc-500">No dispatch schedules have been created.</p>}
+      {schedules.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{schedules.map((schedule) => <li key={schedule.id} className="grid gap-2 px-4 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><p className="font-medium">{schedule.reference}</p><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{schedule.courier.name} · {schedule.courier.contact_number ?? schedule.courier.email}</p></div><div className="text-left text-xs text-zinc-500 sm:text-right"><p>{manilaDate(schedule.scheduled_for)}</p><p className="mt-1 break-words">Source lanes: {[...new Set(schedule.parcels.map((item) => item.source_lane?.code ?? 'Unassigned'))].join(', ')}</p><p className="mt-1">{schedule.parcel_count} parcel{schedule.parcel_count === 1 ? '' : 's'}</p></div></li>)}</ul> : <p className="px-4 py-6 text-center text-sm text-zinc-500">No dispatch schedules have been created.</p>}
     </section>
 
     <section className={`${panel} mt-3 overflow-hidden`}>
       <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Rejected delivery offers</h3><p className="mt-1 text-xs text-zinc-500">Choose a Courier in the schedule panel, then re-offer the existing parcel task. Previous offers remain in history.</p></div>
-      {rejected.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{rejected.map((shipment) => { const task = shipment.tasks.find((item) => item.leg === 'final_mile' && item.status === 'rejected'); return task ? <li key={shipment.shipment_id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"><div><p className="font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</p><p className="mt-1 font-mono text-xs text-zinc-500">{shipment.parcel?.waybill_reference}</p><p className="mt-1 text-xs text-red-700 dark:text-red-300">{task.offer?.rejection_reason ?? 'Courier rejected the delivery offer.'}</p></div><ActionButton busy={busy} disabled={!courierId} onClick={() => void reoffer(shipment, task)}>Re-offer to selected Courier</ActionButton></li> : null })}</ul> : <p className="px-4 py-6 text-sm text-zinc-500">No rejected delivery offers need reassignment.</p>}
+      {rejected.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{rejected.map((shipment) => { const task = shipment.tasks.find((item) => item.leg === 'final_mile' && item.status === 'rejected'); return task ? <li key={shipment.shipment_id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"><div><p className="font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</p><p className="mt-1 font-mono text-xs text-zinc-500">{shipment.parcel?.tracking_id ?? shipment.parcel?.waybill_reference}</p><p className="mt-1 text-xs text-red-700 dark:text-red-300">{task.offer?.rejection_reason ?? 'Courier rejected the delivery offer.'}</p></div><ActionButton busy={busy} disabled={!courierId} onClick={() => void reoffer(shipment, task)}>Re-offer to selected Courier</ActionButton></li> : null })}</ul> : <p className="px-4 py-6 text-sm text-zinc-500">No rejected delivery offers need reassignment.</p>}
     </section>
   </div>
 }

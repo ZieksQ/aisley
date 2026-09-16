@@ -20,6 +20,12 @@ class CreateDispatchScheduleRequest extends FormRequest
             'shipment_ids.*' => ['required', 'uuid', 'distinct'],
             'courier_id' => ['required', 'uuid'],
             'scheduled_for' => ['required', 'date', 'after_or_equal:now'],
+            'combine_lanes' => ['sometimes', 'boolean'],
+            'assignments' => ['sometimes', 'array', 'min:1', 'max:15'],
+            'assignments.*.shipment_id' => ['required', 'uuid', 'distinct'],
+            'assignments.*.expected_revision' => ['required', 'integer', 'min:1'],
+            'assignments.*.lane_id' => ['present', 'nullable', 'uuid'],
+            'assignments.*.lane_revision' => ['present', 'nullable', 'integer', 'min:1'],
         ];
     }
 

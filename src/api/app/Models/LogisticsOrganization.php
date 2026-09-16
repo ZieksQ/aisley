@@ -38,4 +38,9 @@ class LogisticsOrganization extends Model
     {
         return $this->hasMany(SortingSession::class);
     }
+
+    public function sortingPlans(): HasMany
+    {
+        return $this->hasMany(SortingPlan::class);
+    }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaChevronUp, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
+import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaChevronUp, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
@@ -88,6 +88,8 @@ export function LogisticsLayout() {
 
   const title = location.pathname.startsWith('/receive-at-hub')
     ? 'Receive at hub'
+    : location.pathname.startsWith('/sort-plan')
+      ? 'Sort plan'
     : location.pathname.startsWith('/sorting')
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')
@@ -118,6 +120,7 @@ export function LogisticsLayout() {
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/pickups"><FaBoxesPacking />Pickups</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sorting"><FaArrowDownShortWide />Sorting</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/sort-plan"><FaRoute />Sort plan</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Dispatch parcels</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
       </nav>

@@ -48,7 +48,7 @@ export type FulfillmentTask = {
   offer: FulfillmentOffer | null
   offer_history?: FulfillmentOffer[]
   order: { id: string; reference: string; status: string } | null
-  waybill: { id: string; reference: string } | null
+  waybill: { id: string; reference: string; tracking_id: string } | null
   parcel: { id: string; reference: string; item_count: number } | null
   pickup_area: FulfillmentArea
   destination_area: FulfillmentArea
@@ -73,12 +73,16 @@ export type FulfillmentShipment = {
   status: string
   revision: number
   last_activity_at: string | null
+  sorting_lane?: { id: string; code: string; name: string; revision: number } | null
+  sorting_session_id?: string | null
+  received_at_hub_at?: string | null
   parcel: {
     id: string
     reference: string
     order_id: string
     order_reference: string | null
     waybill_reference: string | null
+    tracking_id: string | null
     item_count: number
   } | null
   tasks: FulfillmentTask[]
@@ -90,6 +94,7 @@ export type FulfillmentQueueResponse = {
   summary: {
     total: number
     by_status: Record<string, number>
+    by_lane?: Array<{ id: string | null; code: string | null; name: string | null; count: number }>
     pending_evidence: number
     pending_completion: number
   }

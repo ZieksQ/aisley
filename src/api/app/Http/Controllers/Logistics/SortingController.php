@@ -7,10 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\BulkSortAtHubRequest;
 use App\Http\Requests\Logistics\CloseSortingSessionRequest;
 use App\Http\Requests\Logistics\CreateSortingLaneRequest;
+use App\Http\Requests\Logistics\MoveSortingLaneRequest;
 use App\Http\Requests\Logistics\OpenSortingSessionRequest;
 use App\Http\Requests\Logistics\UpdateSortingLaneRequest;
 use App\Models\SortingLane;
 use App\Models\SortingSession;
+use App\Services\Fulfillment\FulfillmentTransitionService;
 use App\Services\Logistics\SortingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SortingController extends Controller
 {
+    public function moveLane(MoveSortingLaneRequest $request, string $shipment, FulfillmentTransitionService $service): JsonResponse
+    {
+        $moved = $service->moveLane($request->user(), $shipment, $request->validated(), $request->idempotencyKey());
+
+        return $this->json(['data' => $service->shipmentProjection($moved)]);
+    }
+
     public function index(Request $request, SortingService $service): JsonResponse
     {
         return $this->json(['data' => $service->overview($request->user())]);

@@ -72,7 +72,7 @@ Customer places Order (`placed`)
 → Seller selects Logistics; the pickup transaction freezes a shared waybill with the immutable Order/Parcel reference and Customer destination snapshot
 → selected Logistics organization creates and offers the first-mile task to an eligible Courier
 → first-mile Courier accepts and confirms pickup from Seller (`picked_up_from_seller`; Order `picked_up`)
-→ Logistics receives the parcel at `received_at_hub` using the same shared waybill reference
+→ Logistics receives the parcel at `received_at_hub` using the same shared tracking ID/reference
 → Logistics sorts, transfers, and dispatches at its sole hub
 → Logistics schedules up to 15 sorted parcels with one final-mile Courier
 → final-mile Courier picks up from hub and delivers to Customer

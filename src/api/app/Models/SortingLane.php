@@ -36,4 +36,9 @@ class SortingLane extends Model
     {
         return $this->hasMany(SortingSessionItem::class);
     }
+
+    public function planLanes(): HasMany
+    {
+        return $this->hasMany(SortingPlanLane::class, 'sorting_lane_id');
+    }
 }

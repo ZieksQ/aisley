@@ -45,7 +45,7 @@ export function ReceiveAtHubPage() {
   const queueReceipt = useCallback(async (raw: string, source: PendingReceipt['source']) => {
     const reference = normalizeReference(raw)
     if (!reference) {
-      setError('Enter or scan a parcel waybill reference.')
+      setError('Enter or scan a parcel tracking ID.')
       return
     }
     try {
@@ -117,40 +117,40 @@ export function ReceiveAtHubPage() {
         window.setTimeout(() => { lastScan.current = '' }, 1200)
       })
     }).then((controls) => { scannerControls.current = controls; if (disposed) controls.stop() }).catch((caught: unknown) => {
-      setError(caught instanceof DOMException && caught.name === 'NotAllowedError' ? 'Camera permission was denied. Enter the parcel reference manually.' : 'The camera could not start. Enter the parcel reference manually.')
+      setError(caught instanceof DOMException && caught.name === 'NotAllowedError' ? 'Camera permission was denied. Enter the tracking ID manually.' : 'The camera could not start. Enter the tracking ID manually.')
       setScannerOpen(false)
     })
     return () => { disposed = true; scannerControls.current?.stop(); scannerControls.current = null }
   }, [queueReceipt, scannerOpen])
 
-  return <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-4 dark:border-white/10">
-      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the Code 128 barcode on each waybill or enter its parcel reference. Scans stay on this device until synced.</p></div>
+  return <div className="mx-auto max-w-[1280px] px-3 py-3 sm:px-5 lg:px-6">
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
+      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the thin Code 128 tracking ID on each waybill or enter it manually. Scans stay on this device until synced.</p></div>
       <ConnectionStatus online={online} syncing={busy} offlineLabel="Offline — scans are safe on this device" />
     </div>
 
     {error ? <div className="mt-4"><ErrorNotice message={error} /></div> : null}
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
 
-    <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <section className={panel}>
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Barcode scanner</h3><ActionButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</ActionButton></div>
-        <div className="p-4">
-          {scannerOpen ? <video ref={videoRef} className="aspect-video w-full bg-black object-cover" muted playsInline /> : <div className="grid min-h-64 place-items-center border border-dashed border-zinc-300 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">The scanner reads Code 128 and the existing waybill QR.</p></div></div>}
+        <div className="p-3">
+          {scannerOpen ? <video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-cover" muted playsInline /> : <div className="grid min-h-48 place-items-center border border-dashed border-zinc-300 px-3 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">The scanner reads thin Code 128 and the existing waybill QR.</p></div></div>}
         </div>
       </section>
 
       <section className={panel}>
         <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Manual entry</h3></div>
         <form className="p-4" onSubmit={(event) => { event.preventDefault(); void queueReceipt(manualReference, 'manual') }}>
-          <label className="block text-sm font-medium" htmlFor="parcel-reference">Parcel or waybill reference</label>
-          <div className="relative mt-1"><FaKeyboard className="pointer-events-none absolute left-3 top-3 text-zinc-400" aria-hidden="true" /><input id="parcel-reference" className={`${field} pl-9`} value={manualReference} onChange={(event) => setManualReference(event.target.value)} autoComplete="off" /></div>
+          <label className="block text-sm font-medium" htmlFor="parcel-reference">Tracking ID or waybill reference</label>
+          <div className="relative mt-1"><FaKeyboard className="pointer-events-none absolute left-3 top-3 text-zinc-400" aria-hidden="true" /><input id="parcel-reference" className={`${field} pl-9`} value={manualReference} onChange={(event) => setManualReference(event.target.value)} autoComplete="off" placeholder="AWB-..." /></div>
           <PrimaryButton className="mt-3 w-full" type="submit">Add to receiving queue</PrimaryButton>
         </form>
       </section>
     </div>
 
-    <section className={`${panel} mt-4 overflow-hidden`}>
+    <section className={`${panel} mt-3 overflow-hidden`}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({receipts.length})</h3><p className="mt-1 text-xs text-zinc-500">Auto-syncs at 10 parcels, when connection returns, or every 5 minutes.</p></div><PrimaryButton busy={busy} disabled={!online || receipts.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PrimaryButton></div>
       {receipts.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{receipts.map((receipt) => <li key={receipt.id} className="flex items-start justify-between gap-3 px-4 py-3"><div><p className="font-mono text-sm font-medium">{receipt.reference}</p><p className="mt-1 text-xs text-zinc-500">{receipt.source === 'barcode' ? 'Scanned' : 'Entered manually'} · {formatDate(receipt.scannedAt)}</p>{receipt.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{receipt.error}</p> : null}</div><button type="button" aria-label={`Remove ${receipt.reference}`} className="grid size-9 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-red-700 dark:hover:bg-white/10" onClick={() => void receivingDb.receipts.delete(receipt.id).then(loadReceipts)}><FaTrashCan aria-hidden="true" /></button></li>)}</ul> : <p className="px-4 py-8 text-center text-sm text-zinc-500">No parcels are waiting to sync.</p>}
     </section>

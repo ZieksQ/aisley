@@ -27,7 +27,7 @@ export type PickupOrder = {
   pickup_area: PickupArea | null
   scheduled: boolean
   schedule: PickupSchedule | null
-  waybill: { id: string; reference: string } | null
+  waybill: { id: string; reference: string; tracking_id: string } | null
 }
 
 export type PickupArea = { city_municipality: string; province: string; region: string }

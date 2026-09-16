@@ -47,6 +47,7 @@ use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificati
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
 use App\Http\Controllers\Logistics\SortingController;
+use App\Http\Controllers\Logistics\SortingPlanController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
@@ -319,6 +320,12 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/update-status/scan-events', [FulfillmentStatusController::class, 'transition'])->name('update-status.scan-events');
     Route::post('/receiving/batches', [ReceivingController::class, 'store'])->name('receiving.batches.store');
     Route::get('/sorting', [SortingController::class, 'index'])->name('sorting.index');
+    Route::get('/sorting/plans', [SortingPlanController::class, 'index'])->name('sorting.plans.index');
+    Route::post('/sorting/plans', [SortingPlanController::class, 'store'])->name('sorting.plans.store');
+    Route::patch('/sorting/plans/{plan}', [SortingPlanController::class, 'update'])->whereUuid('plan')->name('sorting.plans.update');
+    Route::post('/sorting/plans/{plan}/lanes', [SortingPlanController::class, 'storeLane'])->whereUuid('plan')->name('sorting.plans.lanes.store');
+    Route::delete('/sorting/plans/{plan}/lanes/{planLane}', [SortingPlanController::class, 'destroyLane'])->whereUuid('plan')->whereUuid('planLane')->name('sorting.plans.lanes.destroy');
+    Route::post('/sorting/shipments/{shipment}/move', [SortingController::class, 'moveLane'])->whereUuid('shipment')->name('sorting.shipments.move');
     Route::post('/sorting/lanes', [SortingController::class, 'storeLane'])->name('sorting.lanes.store');
     Route::patch('/sorting/lanes/{lane}', [SortingController::class, 'updateLane'])->whereUuid('lane')->name('sorting.lanes.update');
     Route::get('/sorting/lanes/{lane}/label', [SortingController::class, 'laneLabel'])->whereUuid('lane')->name('sorting.lanes.label');

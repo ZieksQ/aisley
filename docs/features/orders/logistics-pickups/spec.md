@@ -3,7 +3,7 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Implemented (scheduling, schedule lifecycle, and bounded reconciliation)
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
@@ -17,7 +17,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Purpose:** Let a Seller hand prepared Orders to one selected Logistics organization, then let that organization assign an employed Courier and pickup schedule.
 - **Actors:** Seller selects the provider and requests pickup; Logistics owns its Pickups dashboard and schedule; Courier receives the assigned first-mile task through the external mobile app.
 - **Scope:** Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler, database notifications, and Geoapify-backed distance ranking.
-- **Current baseline:** Sellers can submit solo or bulk pickup requests with up to 50 Orders, and Logistics can combine eligible parcels from multiple Seller requests into one Courier schedule.
+- **Current baseline:** Sellers can submit solo or bulk pickup requests with up to 50 Orders, and Logistics can combine eligible parcels from multiple Seller requests into one Courier schedule. Each created waybill has an explicit tracking ID, and the pickup transaction snapshots the Buyer postal code plus the selected Logistics hub's current sort-plan hint for later routing.
 - **Target flow:**
   ```text
   Seller packs Orders → chooses Logistics → requests pickup
@@ -61,6 +61,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Preserve the current maximum of 50 distinct Orders per Seller request; expose unscheduled counts clearly and never assign more than 30 of them to one schedule.
 - In one locked transaction, revalidate Shop ownership, all Orders, chosen Logistics eligibility, reservation state, and a Seller-scoped idempotency key.
 - Commit one request, its Order links, each `seller_processing → ready_for_pickup` event, and one waybill per Order atomically.
+- During that same transaction, evaluate the Buyer postal code against the selected Logistics hub's current active sort plan and persist the immutable routing hint with the waybill. This hint is advisory history; hub scan-time routing rechecks the current plan and may fall back to the exception lane.
 - Notify only the selected Logistics organization after commit; never broadcast a request to every Logistics account.
 - Logistics Pickups is schedule-first: its primary list contains only schedules whose `logistics_organization_id` and hub match the authenticated account's server-derived organization and sole hub.
 - Support bounded schedule pagination and allow-listed status/date/search filters with deterministic schedule ordering.
@@ -112,6 +113,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Schedule creation uses combined Philippine date/time controls for separate start and end window endpoints, and Courier selection is a searchable popup showing active status, schedules affecting the requested dates, and overlapping-window availability.
 - [x] Logistics schedule endpoints use Flatpickr combined date/time controls for start and end, while schedule filters, account birthday fields, and registration birthday fields use date-only Flatpickr controls; the mobile fallback is disabled.
 - [x] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
+- [x] Pickup-time waybill creation persists the explicit tracking ID and Buyer postal-code/sort-plan routing hint without giving Seller authority over hub lanes.
 - [x] Partial pickup preserves `scheduled` and the exact assigned/accepted remaining count; the last successful pickup completes the parent schedule exactly once under concurrent/retried confirmation.
 - [x] Completed schedules remain readable history, do not block Courier overlap/availability, reject revision/cancellation, and leave no active pending/retried reminders.
 - [x] Existing zero-remaining `scheduled` rows reconcile safely only after confirming all linked tasks were picked up; no Inventory, pickup, or final-mile effects are replayed.
@@ -125,6 +127,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Add migrations; never edit `2026_09_06_000005_create_seller_order_rejections_and_pickup_requests.php`.
 - Extend pickup requests with an immutable non-null Logistics link for new rows and replace date-only planning with separate schedule records.
 - Add UUID `pickup_schedules`, `pickup_schedule_orders`, first-mile tasks, revision/history, and notification-reminder/outbox records.
+- `RequestSellerPickup` evaluates the Buyer postal snapshot through the selected Logistics hub's active sort plan and passes the result into waybill creation; it never assigns the live Shipment lane. The hint is immutable and scan-time automatic sorting remains authoritative.
 - Store every status/type as a string and cast it to a PHP enum; add unique active-Order scheduling and `(organization_id, status, starts_at)` indexes.
 - Implement `EligibleLogisticsQuery`, `LogisticsDistanceService`, `CreatePickupRequest`, `CreatePickupSchedule`, and `DispatchPickupReminders` services.
 - Implement `PickupScheduleLifecycleService` for transactional completion and the bounded, rerunnable `pickups:reconcile-schedules` command for existing-data reconciliation.

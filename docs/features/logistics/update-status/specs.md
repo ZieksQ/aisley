@@ -3,7 +3,7 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.7
 status: Implemented dedicated offline receiving/sorting, offline-first barcode Parcel search, and recovery UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
@@ -40,6 +40,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Transition ownership
 
 - Seller owns `ready_for_pickup`; Courier actions submit first-mile `picked_up_from_seller` or final-mile `picked_up_from_hub` evidence.
+- A generic hub sort cannot bypass an unresolved Sorting exception. Validated final-mile hub pickup clears the live staging lane; immutable dispatch source snapshots remain intact.
 - Logistics owns validated hub milestones. Dedicated Receiving commits `received_at_hub`; dedicated Sorting commits `sorted_at_hub`; Deploy Rider atomically commits scheduled `dispatched_from_hub` plus the final-mile Courier offer for up to 15 sorted parcels. Parcel search retains only authorized evidence/recovery transitions. Internal `in_transfer` execution is deferred.
 - Customer-facing `picked_up` is backed by the first-mile confirmation; hub receipt and final-mile pickup require their own detailed Shipment/DeliveryTask events.
 - First-mile and final-mile assignments are independent. Update Status must not infer a second leg, acceptance, or pickup from a generic Order value.
