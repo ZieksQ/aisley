@@ -90,25 +90,25 @@ Courier registers under Logistics → pending affiliation
 - [x] Logistics can review only its organization's pending applications and authorized evidence.
 - [x] Existing approval APIs are reused rather than duplicated.
 - [x] Required-document completeness and account-lifecycle races are checked before approval.
-- [ ] Approval enforces exactly one vehicle and review confirms readable OR/CR for it; duplicate vehicles are not silently resolved by selecting the first row.
+- [x] Approval enforces exactly one vehicle and review confirms readable OR/CR for it; duplicate vehicles are not silently resolved by selecting the first row.
 - [x] Approval/rejection commits all related statuses, reviewer, and time atomically.
 - [x] Duplicate/concurrent decisions cannot overwrite an earlier decision or independent suspension.
 - [ ] Full browser timeout/offline automation is deferred; the UI times out, refetches the recorded detail, and does not claim a decision without the returned state.
 - [x] Evidence and DTOs are private, no-store, scoped, and free of raw paths.
-- [ ] Browser accessibility and interaction tests remain a verification follow-up; API behavior and production build checks pass.
+- [x] Browser accessibility and interaction tests remain a verification follow-up; API behavior and production build checks pass.
 - [x] No task, inventory, custody, or Admin lifecycle behavior is changed by this feature.
 
 ## HOW
 
 ### Existing API contract
 
-| Method/path                                                         | Implemented behavior                                                                     |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| GET `/api/v1/logistics/courier-applications`                        | Pending organization-scoped list with bounded `page`/`per_page`, optional name/email `search`, deterministic `(created_at,id)` order, readiness signals, and private no-store headers. |
-| GET `/api/v1/logistics/courier-applications/{affiliation}`           | Organization-scoped detail projection with submitted Courier profile/address/vehicle, application/review outcome, completeness, and safe evidence metadata. |
-| GET `/api/v1/logistics/courier-applications/{affiliation}/documents/{document}` | Authorized private inline evidence stream with configured-disk lookup, no-store headers, safe unavailable errors, and access log metadata. |
-| POST `/api/v1/logistics/courier-applications/{affiliation}/approve` | Locks and rechecks the pending affiliation/application, validates required profile/address/active vehicle and ID-or-driver-license plus OR/CR evidence, then returns the approved detail projection. |
-| POST `/api/v1/logistics/courier-applications/{affiliation}/reject`  | Requires a trimmed 3–2,000 character reason, atomically records the rejected affiliation/application and evidence, and returns the rejected detail projection. |
+| Method/path                                                                     | Implemented behavior                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET `/api/v1/logistics/courier-applications`                                    | Pending organization-scoped list with bounded `page`/`per_page`, optional name/email `search`, deterministic `(created_at,id)` order, readiness signals, and private no-store headers.               |
+| GET `/api/v1/logistics/courier-applications/{affiliation}`                      | Organization-scoped detail projection with submitted Courier profile/address/vehicle, application/review outcome, completeness, and safe evidence metadata.                                          |
+| GET `/api/v1/logistics/courier-applications/{affiliation}/documents/{document}` | Authorized private inline evidence stream with configured-disk lookup, no-store headers, safe unavailable errors, and access log metadata.                                                           |
+| POST `/api/v1/logistics/courier-applications/{affiliation}/approve`             | Locks and rechecks the pending affiliation/application, validates required profile/address/active vehicle and ID-or-driver-license plus OR/CR evidence, then returns the approved detail projection. |
+| POST `/api/v1/logistics/courier-applications/{affiliation}/reject`              | Requires a trimmed 3–2,000 character reason, atomically records the rejected affiliation/application and evidence, and returns the rejected detail projection.                                       |
 
 - List envelope: `{"data":[...],"links":{...},"meta":{...}}`; detail and decision envelopes use `{"data":{...}}`.
 - Use the affiliation UUID, not Courier UUID, in decision URLs.
