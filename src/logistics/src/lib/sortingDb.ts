@@ -4,7 +4,8 @@ export type PendingSortCapture = {
   id: string
   context: string
   sessionId: string
-  laneId: string
+  laneId: string | null
+  autoRoute: boolean
   reference: string
   expectedRevision: number
   source: 'barcode' | 'manual'

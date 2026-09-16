@@ -778,7 +778,7 @@ class FulfillmentTransitionService
                 'rejection_reason' => $offer->rejection_reason,
             ] : null,
             'order' => $order ? ['id' => $order->id, 'reference' => $order->reference, 'status' => $order->status?->value] : null,
-            'waybill' => $waybill ? ['id' => $waybill->id, 'reference' => $waybill->reference] : null,
+            'waybill' => $waybill ? ['id' => $waybill->id, 'reference' => $waybill->reference, 'tracking_id' => $waybill->reference] : null,
             'parcel' => $parcel ? ['id' => $parcel->id, 'reference' => $parcel->reference, 'item_count' => $parcel->item_count] : null,
             'pickup_area' => $this->area($pickup),
             'destination_area' => $this->area($destination),
@@ -869,7 +869,7 @@ class FulfillmentTransitionService
             'sorting_session_id' => $shipment->sorting_session_id,
             'received_at_hub_at' => $shipment->received_at_hub_at?->toISOString(),
             'last_activity_at' => $this->lastActivityAt($shipment, $tasks),
-            'parcel' => $shipment->parcel ? ['id' => $shipment->parcel->id, 'reference' => $shipment->parcel->reference, 'order_id' => $shipment->parcel->order_id, 'order_reference' => $shipment->parcel->order?->reference, 'waybill_reference' => $shipment->parcel->waybill?->reference, 'item_count' => $shipment->parcel->item_count] : null,
+            'parcel' => $shipment->parcel ? ['id' => $shipment->parcel->id, 'reference' => $shipment->parcel->reference, 'order_id' => $shipment->parcel->order_id, 'order_reference' => $shipment->parcel->order?->reference, 'waybill_reference' => $shipment->parcel->waybill?->reference, 'tracking_id' => $shipment->parcel->waybill?->reference, 'item_count' => $shipment->parcel->item_count] : null,
             'tasks' => $tasks->map(fn (DeliveryTask $task): array => $this->taskProjection($task, true))->values()->all(),
             'allowed_transitions' => $allowed,
         ];
@@ -1108,13 +1108,18 @@ class FulfillmentTransitionService
 
     private function resolveWaybill(LogisticsOrganization $org, string $reference): Waybill
     {
+        $lookup = trim($reference);
+        if (preg_match('/^AISLEY:WB:\d+:(.+)$/i', $lookup, $matches) === 1) {
+            $lookup = trim($matches[1]);
+        }
+        $lookup = mb_strtoupper($lookup);
         $query = Waybill::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id);
-        $waybill = (clone $query)->where(function ($match) use ($reference): void {
-            $match->where('reference', $reference)
-                ->orWhereHas('order', fn ($order) => $order->where('reference', $reference))
-                ->orWhereHas('parcel', fn ($parcel) => Str::isUuid($reference) ? $parcel->whereKey($reference) : $parcel->where('reference', $reference));
-            if (Str::isUuid($reference)) {
-                $match->orWhereKey($reference);
+        $waybill = (clone $query)->where(function ($match) use ($lookup): void {
+            $match->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)])
+                ->orWhereHas('order', fn ($order) => $order->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]))
+                ->orWhereHas('parcel', fn ($parcel) => Str::isUuid($lookup) ? $parcel->whereKey($lookup) : $parcel->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]));
+            if (Str::isUuid($lookup)) {
+                $match->orWhereKey($lookup);
             }
         })->first();
         if ($waybill === null) {
@@ -1156,7 +1161,9 @@ class FulfillmentTransitionService
     {
         return $type === 'qr'
             ? hash_equals($waybill->qr_token_hash, $this->waybillHasher->hashQr($identifier))
-            : hash_equals(strtoupper((string) $order->reference), strtoupper($identifier));
+            : ($type === 'tracking_id'
+                ? hash_equals(strtoupper((string) $waybill->reference), strtoupper($identifier))
+                : hash_equals(strtoupper((string) $order->reference), strtoupper($identifier)));
     }
 
     private function hash(array $payload): string

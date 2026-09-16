@@ -73,6 +73,7 @@ class OrderController extends Controller
                 'id' => $waybill->id,
                 'order_id' => $waybill->order_id,
                 'reference' => $waybill->reference,
+                'tracking_id' => $waybill->reference,
                 'created_at' => $waybill->created_at->toISOString(),
                 'printable' => true,
             ])->values(),

@@ -55,7 +55,7 @@ class FinalMileFulfillmentTest extends TestCase
         $this->postJson("/api/v1/courier/first-mile-tasks/{$first['id']}/accept")->assertOk();
         $reference = $pickup['waybills'][0]['reference'];
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/first-mile-tasks/{$first['id']}/pickup", [
-            'identifier_type' => 'qr', 'identifier' => 'AISLEY:WB:1:'.$reference,
+            'identifier_type' => 'tracking_id', 'identifier' => $reference,
         ])->assertOk();
 
         $receiptId = (string) Str::uuid();
@@ -243,7 +243,7 @@ class FinalMileFulfillmentTest extends TestCase
             ->assertJsonPath('data.destination.address_line_1', '9 Buyer Street')
             ->assertJsonPath('data.destination.contact_number', '09174444444');
         $pickupEvidence = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/pickup", [
-            'identifier_type' => 'qr', 'identifier' => $qr, 'expected_revision' => $final['revision'],
+            'identifier_type' => 'tracking_id', 'identifier' => $pickup['waybills'][0]['reference'], 'expected_revision' => $final['revision'],
         ])->assertStatus(202)->json('data');
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $logistics->id,
@@ -404,6 +404,49 @@ class FinalMileFulfillmentTest extends TestCase
         $this->assertSame([], DB::select('PRAGMA foreign_key_check'));
         $this->getJson('/api/v1/logistics/update-status/records/'.$references[0])->assertOk()->assertJsonPath('data.sorting_lane.id', $lane['id'])->assertJsonPath('data.received_at_hub_at', $record['received_at_hub_at']);
         $this->getJson('/api/v1/logistics/dispatch/schedules')->assertOk()->assertJsonPath('data.0.parcels.0.source_lane.historical_backfill', true)->assertJsonPath('data.0.parcels.0.source_lane.code', 'BRIDGE-01')->assertJsonPath('data.0.parcels.0.shipment_revision_at_dispatch', null);
+    }
+
+    public function test_automatic_sort_plan_routing_matches_postal_code_and_falls_back_to_exception_lane(): void
+    {
+        [, , $references] = $this->receivedParcels(2);
+        $standard = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'AUTO-01', 'name' => 'Automatic standard', 'type' => 'standard'])->assertCreated()->json('data');
+        $exception = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'AUTO-EX', 'name' => 'Automatic exceptions', 'type' => 'exception'])->assertCreated()->json('data');
+        $session = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/sessions')->assertCreated()->json('data');
+        $items = collect($session['items'])->keyBy('reference');
+
+        $fallback = $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [[
+            'client_id' => (string) Str::uuid(), 'lane_id' => null, 'auto_route' => true, 'reference' => $references[0],
+            'expected_revision' => $items[$references[0]]['expected_revision'], 'source' => 'barcode', 'captured_at' => now()->toISOString(),
+        ]]])->assertOk()
+            ->assertJsonPath('summary.exception', 1)
+            ->assertJsonPath('data.0.status', 'exception')
+            ->assertJsonPath('data.0.automatic', true)
+            ->assertJsonPath('data.0.sort_plan_id', null)
+            ->assertJsonPath('data.0.lane.code', 'AUTO-EX')
+            ->json('data.0');
+        $this->assertDatabaseHas('sorting_scans', ['client_id' => $fallback['client_id'], 'automatic_routing' => true, 'sorting_plan_id' => null, 'sorting_lane_id' => $exception['id']]);
+        $this->assertDatabaseHas('sorting_session_items', ['sorting_session_id' => $session['id'], 'shipment_id' => Shipment::query()->whereHas('parcel.waybill', fn ($query) => $query->where('reference', $references[0]))->value('id'), 'sorting_lane_id' => $exception['id'], 'status' => 'exception']);
+
+        $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Cebu postal routing', 'is_active' => true])->assertCreated()->json('data');
+        $mapping = $this->postJson("/api/v1/logistics/sorting/plans/{$plan['id']}/lanes", [
+            'expected_revision' => $plan['revision'], 'lane_id' => $standard['id'], 'postal_code' => '6000',
+        ])->assertOk()->assertJsonPath('data.lanes.0.postal_code', '6000')->json('data.lanes.0');
+        $matched = $this->postJson("/api/v1/logistics/sorting/sessions/{$session['id']}/batches", ['captures' => [[
+            'client_id' => (string) Str::uuid(), 'lane_id' => null, 'auto_route' => true, 'reference' => $references[1],
+            'expected_revision' => $items[$references[1]]['expected_revision'], 'source' => 'barcode', 'captured_at' => now()->toISOString(),
+        ]]])->assertOk()
+            ->assertJsonPath('summary.sorted', 1)
+            ->assertJsonPath('data.0.status', 'sorted')
+            ->assertJsonPath('data.0.automatic', true)
+            ->assertJsonPath('data.0.sort_plan_id', $plan['id'])
+            ->assertJsonPath('data.0.sort_plan_lane_id', $mapping['id'])
+            ->assertJsonPath('data.0.lane.code', 'AUTO-01')
+            ->json('data.0');
+        $this->assertDatabaseHas('sorting_scans', ['client_id' => $matched['client_id'], 'automatic_routing' => true, 'sorting_plan_id' => $plan['id'], 'sorting_plan_lane_id' => $mapping['id'], 'sorting_lane_id' => $standard['id']]);
+        $this->getJson('/api/v1/logistics/sorting')->assertOk()
+            ->assertJsonPath('data.automatic_sorting.active_plan.id', $plan['id'])
+            ->assertJsonPath('data.session.counts.exception', 1)
+            ->assertJsonPath('data.session.counts.sorted', 1);
     }
 
     private function dispatchAssignment(array $record): array

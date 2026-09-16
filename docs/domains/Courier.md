@@ -94,11 +94,11 @@ For the high-level projection, explicit first-mile confirmation advances `ready_
 Seller prepares the Order and confirms `ready_for_pickup`
 → selected Logistics organization creates and offers a first-mile Seller pickup task
 → first-mile Courier receives and accepts the task
-→ Courier uses the shared waybill QR/reference to verify the parcel
+→ Courier uses the shared waybill QR/tracking ID/reference to verify the parcel
 → Courier verifies and scans the parcel at the Seller
 → Courier confirms `picked_up_from_seller`
 → Courier transfers the parcel to the Logistics organization's sole hub
-→ Logistics receives the parcel (`received_at_hub`) using the same shared waybill
+→ Logistics receives the parcel (`received_at_hub`) using the same shared waybill/tracking ID
 → Logistics sorts, transfers, and dispatches it
 → Logistics schedules the sorted parcel with a final-mile Courier (`delivery_assigned`)
 → final-mile Courier accepts (`delivery_accepted`)
@@ -129,7 +129,7 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 
 - **Purpose:** Record physical possession after the Courier reaches the correct origin: the Seller for first mile or the Logistics hub for final mile.
 - **Owns:** Parcel/waybill verification, camera or barcode scanning, handoff evidence capture, and submission of the physical event for Logistics validation. The explicit `picked_up_from_seller` or `picked_up_from_hub` transition is committed by the shared transition service after Logistics records the authoritative event.
-- **Rules:** A generic `picked_up` OrderStatus is not proof of either physical handoff. Pickup cannot be confirmed for an unaccepted task, an incorrect parcel, or an unauthorized origin. The submitted event preserves the performing Courier, recording Logistics account, timestamp, and safe QR/reference or evidence metadata; the scan/access event alone never advances custody.
+- **Rules:** A generic `picked_up` OrderStatus is not proof of either physical handoff. Pickup cannot be confirmed for an unaccepted task, an incorrect parcel, or an unauthorized origin. The submitted event preserves the performing Courier, recording Logistics account, timestamp, and safe QR/tracking-ID/Order-reference or evidence metadata; the scan/access event alone never advances custody.
 
 ### 4. Deliver Order
 
@@ -147,7 +147,7 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 
 - **Purpose:** Capture basic evidence that the parcel was handed over or placed at the approved destination.
 - **Owns:** Mobile capture of the approved evidence type, validation, secure storage, and linkage to the authorized Delivery Task/Order.
-- **Rules:** Image evidence follows `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with signature/MIME/decode validation. Courier-submitted QR/reference scans and handoff evidence are validated and recorded authoritatively by Logistics, with performing-Courier and recording-Logistics actors preserved. Evidence is private, delivered only through authorization, and never returned as a raw storage path. QR/reference scan plus Courier identity and timestamp are the minimum physical-handoff evidence; photo/signature proof remains subject to the approved operational schema and shared upload policy.
+- **Rules:** Image evidence follows `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with signature/MIME/decode validation. Courier-submitted QR/tracking-ID/Order-reference scans and handoff evidence are validated and recorded authoritatively by Logistics, with performing-Courier and recording-Logistics actors preserved. Evidence is private, delivered only through authorization, and never returned as a raw storage path. QR/tracking-ID/Order-reference scan plus Courier identity and timestamp are the minimum physical-handoff evidence; photo/signature proof remains subject to the approved operational schema and shared upload policy.
 
 ### 7. Incident Reporting
 
@@ -216,8 +216,8 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 - `delivery_assigned` is not `delivery_accepted`; neither means `picked_up_from_hub`. First-mile and final-mile pickup states remain distinct.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; Logistics may assign the same or a different eligible Courier for the second leg.
 - A Courier may reject an offered task. The task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned.
-- One shared waybill is created and frozen in the Seller pickup transaction at `ready_for_pickup`; Seller and selected Logistics have role-scoped access, while an assigned Courier may resolve its opaque QR. Route/assignment/scan changes are append-only events.
-- Courier-submitted QR/reference scans and handoff evidence are validated and recorded by the owning Logistics organization. Physical event history preserves the performing Courier, recording Logistics account, timestamp, location/context, and safe evidence/reference metadata; a scan or waybill access event alone never advances custody.
+- One shared waybill/tracking ID is created and frozen in the Seller pickup transaction at `ready_for_pickup`; Seller and selected Logistics have role-scoped access, while an assigned Courier may resolve its opaque QR or submit the authorized tracking ID/reference. Route/assignment/scan changes are append-only events.
+- Courier-submitted QR/tracking-ID/Order-reference scans and handoff evidence are validated and recorded by the owning Logistics organization. Physical event history preserves the performing Courier, recording Logistics account, timestamp, location/context, and safe evidence/reference metadata; a scan or waybill access event alone never advances custody.
 - Courier operational writes are blocked until the reconciled shared Shipment/Delivery Task schema and transition contract are approved and migrated.
 - State transitions are validated against the current task state, transactional, idempotent, and append immutable history. Notification, mapping, upload, or synchronization failure must not undo a committed decision.
 - A Courier can read only its own operational data and the minimum authorized Buyer/Seller/Logistics details needed for the active task. Payment credentials, private registration/POD evidence, raw storage paths, and unrestricted location history are excluded from normal DTOs.
@@ -233,7 +233,7 @@ Implemented foundation:
 
 Deferred or dependent Courier operations:
 
-- Photo/signature proof media, incidents, Courier availability/capacity, earnings, tips, metrics, route/location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/manual verification and pickup confirmation, Inventory fulfillment, and schedule route manifests are implemented. The additive shared Shipment/Parcel/DeliveryTask records now provide Logistics-authoritative hub/final-mile QR evidence, task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history; advanced recovery remains deferred.
+- Photo/signature proof media, incidents, Courier availability/capacity, earnings, tips, metrics, route/location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/tracking-ID/manual verification and pickup confirmation, Inventory fulfillment, and schedule route manifests are implemented. The additive shared Shipment/Parcel/DeliveryTask records now provide Logistics-authoritative hub/final-mile QR/tracking-ID evidence, task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history; advanced recovery remains deferred.
 
 Status-like database columns are stored as strings and cast to PHP enums. Operational records preserve the one-Logistics-organization/one-hub boundary and never place detailed physical milestones directly in `orders.status`.
 

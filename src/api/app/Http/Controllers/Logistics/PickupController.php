@@ -119,7 +119,7 @@ class PickupController extends Controller
         $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
         $record = SellerPickupRequest::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->whereKey($pickup)->firstOrFail();
 
-        return response()->json(['data' => $record->waybills()->orderBy('created_at')->orderBy('id')->get()->map(fn (Waybill $waybill) => ['id' => $waybill->id, 'order_id' => $waybill->order_id, 'reference' => $waybill->reference, 'created_at' => $waybill->created_at->toISOString(), 'printable' => true, 'pdf_url' => "/api/v1/logistics/waybills/{$waybill->id}.pdf"])]);
+        return response()->json(['data' => $record->waybills()->orderBy('created_at')->orderBy('id')->get()->map(fn (Waybill $waybill) => ['id' => $waybill->id, 'order_id' => $waybill->order_id, 'reference' => $waybill->reference, 'tracking_id' => $waybill->reference, 'created_at' => $waybill->created_at->toISOString(), 'printable' => true, 'pdf_url' => "/api/v1/logistics/waybills/{$waybill->id}.pdf"])]);
     }
 
     public function couriers(ListPickupCouriersRequest $request): JsonResponse
@@ -192,7 +192,7 @@ class PickupController extends Controller
         $orders = $pickup->orders->map(function ($link): array {
             $address = $link->order?->waybill?->snapshot?->payload['pickup'] ?? null;
 
-            return ['id' => $link->order_id, 'reference' => $link->order?->reference, 'status' => $link->order?->status?->value, 'pickup_area' => $address ? ['city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region']] : null, 'scheduled' => $link->order?->firstMileTask !== null, 'schedule' => $link->order?->firstMileTask?->schedule ? $this->schedule($link->order->firstMileTask->schedule) : null, 'waybill' => $link->order?->waybill ? ['id' => $link->order->waybill->id, 'reference' => $link->order->waybill->reference] : null];
+            return ['id' => $link->order_id, 'reference' => $link->order?->reference, 'status' => $link->order?->status?->value, 'pickup_area' => $address ? ['city_municipality' => $address['city_municipality'], 'province' => $address['province'], 'region' => $address['region']] : null, 'scheduled' => $link->order?->firstMileTask !== null, 'schedule' => $link->order?->firstMileTask?->schedule ? $this->schedule($link->order->firstMileTask->schedule) : null, 'waybill' => $link->order?->waybill ? ['id' => $link->order->waybill->id, 'reference' => $link->order->waybill->reference, 'tracking_id' => $link->order->waybill->reference] : null];
         });
         $pickupAreas = $orders->pluck('pickup_area')->filter()->unique(fn ($area) => implode('|', $area))->values();
         $base = ['id' => $pickup->id, 'status' => $pickup->status, 'shop' => ['id' => $pickup->shop_id, 'name' => $pickup->shop?->name, 'pickup_area' => $pickupAreas->first(), 'pickup_areas' => $pickupAreas], 'order_count' => $pickup->orders_count ?? $orders->count(), 'unscheduled_count' => $orders->where('scheduled', false)->count(), 'ready_at' => $pickup->created_at->toISOString(), 'created_at' => $pickup->created_at->toISOString()];

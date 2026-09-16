@@ -193,6 +193,7 @@ class BuildPickupRouteManifest
                 'order_id' => $task->order_id,
                 'order_reference' => $task->order?->reference,
                 'waybill_reference' => $task->waybill?->reference,
+                'tracking_id' => $task->waybill?->reference,
             ];
         }
 

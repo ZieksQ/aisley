@@ -30,9 +30,10 @@ class WaybillPdfService
             $payload = $waybill->snapshot->payload;
             $svg = $writer->writeString($payload['qr_payload']);
 
-            $barcode = $barcodeGenerator->getBarcode($waybill->reference, $barcodeGenerator::TYPE_CODE_128, 2, 42);
+            $trackingId = (string) ($payload['tracking_id'] ?? $waybill->reference);
+            $barcode = $barcodeGenerator->getBarcode($trackingId, $barcodeGenerator::TYPE_CODE_128, 1.0, 42);
 
-            return ['waybill' => $waybill, 'snapshot' => $payload, 'qr' => 'data:image/svg+xml;base64,'.base64_encode($svg), 'barcode' => 'data:image/svg+xml;base64,'.base64_encode($barcode)];
+            return ['waybill' => $waybill, 'snapshot' => $payload, 'tracking_id' => $trackingId, 'qr' => 'data:image/svg+xml;base64,'.base64_encode($svg), 'barcode' => 'data:image/svg+xml;base64,'.base64_encode($barcode)];
         });
         $pdf = Pdf::setOptions([
             'isRemoteEnabled' => false,

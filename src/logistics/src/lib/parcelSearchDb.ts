@@ -79,6 +79,7 @@ function searchableValues(record: FulfillmentShipment): string[] {
     record.parcel?.reference,
     record.parcel?.order_reference,
     record.parcel?.waybill_reference,
+    record.parcel?.tracking_id,
   ].filter((value): value is string => Boolean(value))
 }
 

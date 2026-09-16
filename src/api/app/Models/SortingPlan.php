@@ -2,24 +2,22 @@
 
 namespace App\Models;
 
-use App\Enums\Logistics\SortingLaneType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class SortingLane extends Model
+class SortingPlan extends Model
 {
     use HasUuids;
 
     protected $fillable = [
-        'logistics_organization_id', 'logistics_hub_id', 'created_by_logistics_id', 'code', 'name',
-        'type', 'is_active', 'position', 'revision',
+        'logistics_organization_id', 'logistics_hub_id', 'created_by_logistics_id', 'name', 'is_active', 'revision',
     ];
 
     protected function casts(): array
     {
-        return ['type' => SortingLaneType::class, 'is_active' => 'boolean', 'position' => 'integer', 'revision' => 'integer'];
+        return ['is_active' => 'boolean', 'revision' => 'integer'];
     }
 
     public function organization(): BelongsTo
@@ -32,13 +30,13 @@ class SortingLane extends Model
         return $this->belongsTo(LogisticsHub::class, 'logistics_hub_id');
     }
 
-    public function items(): HasMany
+    public function creator(): BelongsTo
     {
-        return $this->hasMany(SortingSessionItem::class);
+        return $this->belongsTo(User::class, 'created_by_logistics_id');
     }
 
-    public function planLanes(): HasMany
+    public function lanes(): HasMany
     {
-        return $this->hasMany(SortingPlanLane::class, 'sorting_lane_id');
+        return $this->hasMany(SortingPlanLane::class)->orderBy('position')->orderBy('postal_code');
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Seller\SellerOrderException;
+use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
 use App\Models\Order;
 use App\Models\SellerPickupRequest;
@@ -15,6 +16,7 @@ use App\Models\Shop;
 use App\Models\User;
 use App\Services\Logistics\EligibleLogisticsQuery;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Logistics\SortingPlanService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +27,7 @@ class RequestSellerPickup
         private readonly OrderTransitionService $transitions,
         private readonly SellerOrderInventory $inventory,
         private readonly EligibleLogisticsQuery $eligibleLogistics,
+        private readonly SortingPlanService $sortingPlans,
         private readonly CreateWaybill $createWaybill,
         private readonly LogisticsNotificationService $notifications,
     ) {}
@@ -53,8 +56,9 @@ class RequestSellerPickup
             if (! $stillEligible) {
                 throw SellerOrderException::conflict('LOGISTICS_PROVIDER_UNAVAILABLE', 'The selected Logistics organization is no longer eligible.');
             }
+            LogisticsHub::query()->whereKey($provider['hub']['id'])->lockForUpdate()->firstOrFail();
 
-            $orders = Order::query()->where('shop_id', $shop->id)->whereIn('id', $orderIds)->orderBy('id')->lockForUpdate()->get();
+            $orders = Order::query()->where('shop_id', $shop->id)->whereIn('id', $orderIds)->with('address')->orderBy('id')->lockForUpdate()->get();
             if ($orders->count() !== count($orderIds)) {
                 throw SellerOrderException::conflict('PICKUP_ORDERS_INVALID', 'One or more selected Orders are unavailable.');
             }
@@ -86,7 +90,8 @@ class RequestSellerPickup
                 $order = $ordersById->get($orderId);
                 $event = $this->transitions->transition($order, OrderStatus::SellerProcessing, OrderStatus::ReadyForPickup, 'seller_pickup_request');
                 $request->orders()->create(['order_id' => $order->id, 'pickup_address_id' => $pickupAddress->id, 'status_event_id' => $event->id, 'position' => $position]);
-                $this->createWaybill->handle($order, $request, $pickupAddress);
+                $sorting = $this->sortingPlans->routingSnapshot($provider['id'], $provider['hub']['id'], $order->address?->postal_code);
+                $this->createWaybill->handle($order, $request, $pickupAddress, $sorting);
             }
 
             $this->notifications->queuePickupRequested($request);

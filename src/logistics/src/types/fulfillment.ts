@@ -48,7 +48,7 @@ export type FulfillmentTask = {
   offer: FulfillmentOffer | null
   offer_history?: FulfillmentOffer[]
   order: { id: string; reference: string; status: string } | null
-  waybill: { id: string; reference: string } | null
+  waybill: { id: string; reference: string; tracking_id: string } | null
   parcel: { id: string; reference: string; item_count: number } | null
   pickup_area: FulfillmentArea
   destination_area: FulfillmentArea
@@ -82,6 +82,7 @@ export type FulfillmentShipment = {
     order_id: string
     order_reference: string | null
     waybill_reference: string | null
+    tracking_id: string | null
     item_count: number
   } | null
   tasks: FulfillmentTask[]

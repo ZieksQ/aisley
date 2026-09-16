@@ -151,6 +151,7 @@ class DispatchScheduleService
                 'shipment_id' => $item->shipment_id,
                 'order_reference' => $item->shipment?->parcel?->order?->reference,
                 'waybill_reference' => $item->shipment?->parcel?->waybill?->reference,
+                'tracking_id' => $item->shipment?->parcel?->waybill?->reference,
                 'sequence' => $item->sequence,
                 'source_lane' => $item->source_lane,
                 'sorting_session_id' => $item->sorting_session_id,

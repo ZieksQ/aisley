@@ -144,8 +144,13 @@ class ConfirmFirstMilePickup
 
     private function identifierMatches(FirstMileTask $task, string $type, string $identifier): bool
     {
+        $identifier = trim($identifier);
+
         if ($type === 'qr') {
             return hash_equals($task->waybill->qr_token_hash, $this->waybillHasher->hashQr($identifier));
+        }
+        if ($type === 'tracking_id') {
+            return hash_equals(strtoupper((string) $task->waybill->reference), strtoupper($identifier));
         }
 
         return hash_equals(strtoupper((string) $task->order->reference), strtoupper($identifier));

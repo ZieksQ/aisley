@@ -3,8 +3,8 @@ feature: logistics-sorting
 title: Logistics Sorting
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Implemented MVP; advanced automation and containerization deferred
+version: 1.2
+status: Implemented MVP; postal-code sort-plan routing is implemented, while advanced automation and containerization remain deferred
 role: Logistics
 scope: Logistics API and Logistics web application
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/features/logistics/update-status/specs.md, docs/features/logistics/deploy-rider/specs.md
@@ -21,10 +21,14 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Reuse the sole organization/sole hub, shared waybill, Parcel, Shipment, Delivery Task, and transition-service contracts.
 - Support one open sorting session per hub and a bounded snapshot of up to 100 oldest `received_at_hub` parcels.
 - Support configurable standard and exception lanes with printable, scannable lane labels.
+- Let each Logistics organization create multiple named sort plans for its sole hub, with one active plan at a time.
+- Let an active sort plan map exact four-digit recipient postal codes to active standard lanes.
+- Resolve the scanned tracking ID on the server, read the immutable Buyer address snapshot, and choose the current plan lane at sync time.
+- Route missing plans, missing/invalid postal codes, unmapped postal codes, and unavailable mapped lanes to the active exception lane.
 - Keep sorting internal to Logistics; Customer, Seller, Admin, and Courier receive no Sorting UI or mutation route.
 - Keep high-level Order status unchanged while a parcel is received, sorted, or placed in a sorting exception.
 - Non-goals for this MVP:
-  - automatic destination-to-lane recommendations or enforcement;
+  - geocoding, postal-code ranges, carrier-specific routing, or route optimization beyond exact active-plan postal-code mappings;
   - parcel bags, cages, pallets, containers, seals, or load manifests;
   - weight, dimension, lane-capacity, vehicle-capacity, or dangerous-goods rules;
   - staff assignment, productivity rankings, or employee-level performance targets;
@@ -42,6 +46,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - A scan, local queue entry, lane selection, session item, or exception record does not independently change custody.
 - A successful standard-lane sync commits `sorted_at_hub` and records session, lane, source, capture time, and Logistics actor metadata.
 - Persist the standard lane/session on Shipment independently of session closure; order snapshots by authoritative hub receipt time with creation-time fallback for legacy records.
+- In automatic mode, resolve the submitted tracking ID to the tenant-owned Shipment, load the Buyer postal code, and recheck the current active sort plan under the hub lock; a client-predicted lane is advisory only.
+- Automatic matches use the mapped active standard lane. Any missing sort plan or routing input uses the active exception lane, records the reason and plan/mapping metadata when available, and keeps custody at `received_at_hub`.
 - Allow online, idempotent moves between active standard lanes before dispatch using Shipment/lane revisions and a reason; append `hub_lane_move` without changing sorted custody.
 - Block lane deactivation/type changes while parcels remain staged through delivery acceptance, including after session closure; validated hub pickup frees the live lane.
 - Ready parcels can dispatch during an open session; exception parcels remain held. Dispatch consumes current assignments and freezes source-lane metadata per parcel.
@@ -68,12 +74,21 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Lane labels encode an opaque, versioned `AISLEY:SORT-LANE` value and display the human lane code/name.
 - Label rendering uses the existing barcode dependency and introduces no new package.
 
+### Sort plans
+
+- A sort plan belongs to the authenticated Logistics organization and sole hub, has a unique name, revision, active flag, and creator.
+- Only one plan can be active for a hub. Activating a plan deactivates the previous plan and increments its revision.
+- A plan mapping stores one normalized four-digit postal code, one active standard lane, and a display position; a postal code cannot be duplicated within a plan.
+- Plan edits use expected revisions and never rewrite earlier sorting scans or waybill snapshots.
+- The Sort plan page owns plan creation, activation, lane creation/editing, printable lane labels, and postal-code mappings; the Sorting page remains the scan/reconciliation workspace.
+
 ### Offline capture and reconciliation
 
 - The Sorting page preloads the open session, lane definitions, and item references while online.
-- Operators select a lane by clicking its row or scanning its lane label, then scan parcel references into that lane.
+- Operators normally scan parcel tracking IDs into automatic plan routing; clicking a lane or scanning its lane label enables an explicit manual override.
 - Support Code 128, the existing waybill QR payload, and manual reference fallback.
-- Store `client_id`, session, lane, reference, expected Shipment revision, source, capture time, exception code, and reason in Dexie.
+- Store `client_id`, session, optional lane, automatic-routing flag, reference, expected Shipment revision, source, capture time, exception code, and reason in Dexie.
+- The local predicted lane is display guidance only. The API may route a queued capture differently if the plan, postal code, or lane changed before synchronization.
 - Prevent a duplicate parcel from being queued twice on the same device; do not silently replace pending work.
 - Bulk-sync 1-100 entries on ten queued entries, five minutes, reconnect, or explicit **Sync scans** action.
 - The batch response reports `sorted`, `exception`, or `failed` per entry; clear only committed entries.
@@ -85,6 +100,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Compact Logistics UI
 
 - Add the sidebar label **Sorting** between **Receive at hub** and **Dispatch parcels**.
+- Add a sibling **Sort plan** page for tenant-scoped plan, lane, label, and postal-code management.
 - Use a compact, scan-first layout without hero treatment, excessive whitespace, large padding, or decorative cards.
 - Use icon-only controls with accessible labels/tooltips for refresh, print, edit, deactivate, remove-local-entry, and camera start/stop where the icon is unambiguous.
 - Keep words for consequential actions such as Start session, Close session, Sync scans, and Save lane.
@@ -94,7 +110,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### API contract
 
-- `GET /api/v1/logistics/sorting` returns lanes, current open session, bounded session items, and counts.
+- `GET /api/v1/logistics/sorting` returns lanes, automatic-routing state, current open session, bounded session items, and counts.
+- `GET /api/v1/logistics/sorting/plans` returns the authenticated organization's plans, active plan, hub lanes, and context.
+- `POST /api/v1/logistics/sorting/plans` creates a named plan; `PATCH /api/v1/logistics/sorting/plans/{plan}` updates its name/active state with an expected revision.
+- `POST /api/v1/logistics/sorting/plans/{plan}/lanes` maps a four-digit postal code to an active standard lane; `DELETE /api/v1/logistics/sorting/plans/{plan}/lanes/{planLane}` removes a mapping with an expected revision.
 - `POST /api/v1/logistics/sorting/lanes` creates a lane.
 - `PATCH /api/v1/logistics/sorting/lanes/{lane}` updates an owned lane with expected revision.
 - `GET /api/v1/logistics/sorting/lanes/{lane}/label` returns a private printable SVG label.
@@ -112,6 +131,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Offline Code 128/QR/manual captures survive reload and sync with stable idempotency and partial-result handling.
 - [x] Duplicate, stale, foreign, inactive-lane, closed-session, and invalid-state captures are non-mutating.
 - [x] Lane labels are printable and scanner-selectable without a new dependency.
+- [x] Each Logistics organization can create and activate a tenant-scoped sort plan, create lanes on the Sort plan page, and map exact Buyer postal codes.
+- [x] Automatic scan routing resolves the tracking ID and current Buyer postal code server-side, records the plan/mapping used, and falls back to an exception lane when routing data is absent or unavailable.
 - [x] Dispatch shows only successfully synchronized sorted parcels.
 - [x] The responsive page is compact, accessible, dark-mode compatible, and named **Sorting** in the sidebar.
 - [x] The page uses dot-only online/connecting/offline feedback, consistently labels manual upload as **Sync scans**, and provides an operator-instructions dialog from the header.
@@ -119,7 +140,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## HOW
 
-- Add an additive migration for sorting lanes, sessions, snapshot items, and idempotent scan results; store enum-like values as strings.
+- Add additive migrations for sorting lanes, sessions, snapshot items, idempotent scan results, sort plans, postal-code mappings, and automatic-routing metadata; store enum-like values as strings.
 - Add typed PHP enums/casts, Eloquent relationships, Logistics requests/controller, and a tenant-scoped Sorting service.
 - Add a dedicated fulfillment method for the sort transition so lane/session metadata is written with the immutable Shipment event.
 - Reuse waybill resolution, first-mile task validation, Shipment revision checks, database transactions, and row locking.

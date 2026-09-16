@@ -76,7 +76,7 @@ export function decodeParcelBarcode(value: string): DecodedParcelBarcode {
         const parcel = asRecord(payload.parcel)
         const waybill = asRecord(payload.waybill)
         const order = asRecord(payload.order)
-        const waybillReference = firstString(payload.waybill_reference, payload.waybillReference, waybill?.reference)
+        const waybillReference = firstString(payload.tracking_id, payload.trackingId, waybill?.tracking_id, payload.waybill_reference, payload.waybillReference, waybill?.reference)
         const orderReference = firstString(payload.order_reference, payload.orderReference, order?.reference)
         const parcelReference = firstString(payload.parcel_reference, payload.parcelReference, parcel?.reference)
         const parcelId = firstString(payload.parcel_id, payload.parcelId, parcel?.id)

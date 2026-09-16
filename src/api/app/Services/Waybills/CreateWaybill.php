@@ -10,7 +10,8 @@ use Illuminate\Support\Str;
 
 class CreateWaybill
 {
-    public function handle(Order $order, SellerPickupRequest $pickup, Address $sellerAddress): Waybill
+    /** @param array<string, mixed>|null $sorting */
+    public function handle(Order $order, SellerPickupRequest $pickup, Address $sellerAddress, ?array $sorting = null): Waybill
     {
         $order->loadMissing(['items', 'address', 'shop', 'shop.seller.sellerProfile']);
         $pickup->loadMissing(['organization', 'hub.address']);
@@ -20,6 +21,7 @@ class CreateWaybill
             'schema_version' => 1,
             'created_at' => now()->toISOString(),
             'waybill_reference' => $reference,
+            'tracking_id' => $reference,
             'order_reference' => $order->reference,
             'shop' => ['name' => $order->shop->name, 'contact_number' => $order->shop->contact_number],
             'pickup' => $this->address($sellerAddress, $order->shop->name, $order->shop->contact_number),
@@ -28,6 +30,17 @@ class CreateWaybill
             'payment' => ['method' => $order->payment_method->value, 'cod' => true, 'collectible_amount' => (string) $order->payable_total, 'currency' => $order->currency],
             'item_quantity' => $order->items->sum('quantity'),
             'qr_payload' => $qrPayload,
+            'sort_plan' => $sorting ?? [
+                'plan_id' => null,
+                'plan_name' => null,
+                'plan_revision' => null,
+                'postal_code' => $order->address?->postal_code,
+                'lane_id' => null,
+                'lane_code' => null,
+                'lane_name' => null,
+                'matched' => false,
+                'reason' => 'not_evaluated',
+            ],
         ];
         $checksum = hash('sha256', json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
         $waybill = Waybill::create([

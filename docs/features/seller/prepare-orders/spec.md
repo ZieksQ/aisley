@@ -3,7 +3,7 @@ feature: prepare-orders
 title: Seller Prepare Orders
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Partially implemented; operational preparation deferred
 role: Seller
 scope: Seller Web Application
@@ -14,10 +14,10 @@ scope: Seller Web Application
 ## WHAT
 
 - **Purpose:** Let a Seller verify and pack purchased Shop Orders, select an eligible Logistics organization, request pickup, and print each resulting shared waybill.
-- **Current implementation:** Order list/detail, COD approval/rejection, saved pickup addresses, eligible Logistics selection, grouping up to 50 processing Orders, immutable shared-waybill creation/PDF reads, and notifications are implemented. The pickup transaction moves `seller_processing → ready_for_pickup`. The additive physical Shipment/Parcel/DeliveryTask records are deployed for downstream hub/final-mile processing; package measurements remain deferred and a Logistics schedule separately has a 30-parcel cap.
+- **Current implementation:** Order list/detail, COD approval/rejection, saved pickup addresses, eligible Logistics selection, grouping up to 50 processing Orders, immutable shared-waybill creation/PDF reads, and notifications are implemented. The pickup transaction moves `seller_processing → ready_for_pickup`, creates the explicit tracking ID, and snapshots the Buyer postal code plus the selected Logistics hub's current sort-plan routing hint. The additive physical Shipment/Parcel/DeliveryTask records are deployed for downstream hub/final-mile processing; package measurements remain deferred and a Logistics schedule separately has a 30-parcel cap.
 - **Ownership boundary:** Order Approval owns `placed → seller_processing`; Prepare Orders owns packing, provider selection, readiness, and shared-waybill creation; Logistics owns scheduling/hub operations; Courier owns assigned tasks in the external mobile app.
 - **Provider rule:** Seller selects one server-validated eligible Logistics organization during pickup request; the committed provider and selected pickup-address snapshot are retained by the implemented pickup records.
-- **Waybill rule:** The pickup transaction creates one immutable waybill per Order; Seller and selected Logistics view the same artifact.
+- **Waybill rule:** The pickup transaction creates one immutable waybill/tracking ID per Order; Seller and selected Logistics view the same artifact. Its thin Code 128 barcode encodes the tracking ID; the existing QR remains a compatibility/fallback identifier.
 - **Non-goals:** changing purchased snapshots or Buyer addresses, assigning Couriers, choosing hubs, scanning custody, sorting/transit/delivery, payment capture, or inventing a second Order/shipment status.
 
 ```text
@@ -43,7 +43,8 @@ Seller opens Seller-scoped processing Order
 
 - Display the immutable Order Item/Product/variant/SKU names, selected options, quantities, prices, and checkout shipping-address snapshot needed to pack. Never substitute current catalog values for historical facts.
 - Package weight, dimensions, and multi-package Orders remain deferred; MVP treats one Order as one parcel without using size for capacity.
-- The shared waybill contains an opaque reference/QR and only approved operational snapshots; it never embeds arbitrary Order JSON or secrets.
+- The shared waybill contains the explicit tracking ID, thin Code 128 barcode, opaque QR, and only approved operational snapshots; it never embeds arbitrary Order JSON or secrets.
+- Pickup creation evaluates the Buyer postal snapshot against the selected Logistics hub's current active sort plan and stores the immutable match/miss hint. Seller does not choose the live sorting lane, and hub scan-time routing remains authoritative.
 - The reference, snapshot, and selected Logistics organization are immutable from the committed request; corrections require a future void-and-reissue policy.
 - Preview, download, and reprint do not change Order status. Reprints are auditable and never create another fulfillment cycle.
 
@@ -64,6 +65,7 @@ Seller opens Seller-scoped processing Order
 - [x] Seller can approve/reject eligible COD Orders with locked idempotent transitions and reservation release on rejection.
 - [x] Seller can group up to 50 `seller_processing` Orders into a pending Logistics pickup request and transition them to `ready_for_pickup`.
 - [x] Persist the Seller-selected Logistics organization and immutable shared waybill snapshots with audited reprints.
+- [x] Persist an explicit tracking ID/thin Code 128 waybill and the pickup-time postal-code/sort-plan hint without exposing Logistics lane authority to Seller.
 - [x] Explicit Courier first-mile pickup confirmation consumes the reservation once through the existing Inventory service.
 - [x] Add shared Shipment/Parcel/DeliveryTask and Logistics-validated scan/custody records through approved additive migrations.
 - [x] Expose the shared waybill to Seller and selected Logistics from readiness; no Seller Courier assignment or delivery mutation.
@@ -73,7 +75,7 @@ Seller opens Seller-scoped processing Order
 - Current Seller routes include `POST /orders/pickup-requests` and a fail-closed `/orders/{order}/waybill`; the latter becomes available after the pickup transaction creates its waybill.
 - Current implementation is `OrderController`, `SellerOrderService`, `AcceptSellerOrder`, `RejectSellerOrder`, `RequestSellerPickup`, and the Seller Orders/Approval/Pickup pages. Provider selection, pickup requests, and shared waybills are implemented; preserve them when adding the operational schema.
 - Downstream physical package/custody actions use the deployed `Shipment`, `Parcel`, `DeliveryTask`, evidence, and event records linked to the existing immutable waybill and first-mile history; Seller must not recreate or mutate those records. Keep enum-like columns as strings with PHP enum casts and use additive migrations for future extensions only.
-- Recommended records are one immutable shared waybill snapshot per Order plus separate append-only print, route, assignment, and scan events.
+- Recommended records are one immutable shared waybill snapshot per Order plus separate append-only print, route, assignment, and scan events; the snapshot includes the pickup-time sort-plan hint while the scan result records the authoritative current mapping.
 - Readiness transaction: lock Seller-scoped Order → validate `seller_processing`, payment, package, label, reservation, and idempotency → write status/event/pickup association → commit → dispatch Logistics/Buyer notifications after commit.
 - Tests cover Seller isolation, snapshots, stale/cancelled/payment-invalid rejection, package limits, label privacy/versioning/reprint, readiness races/retries, selected-provider scope, after-commit failure, and the `picked_up_from_seller` Inventory handoff. Run API tests on SQLite/PostgreSQL and Seller lint, TypeScript, and build.
 - The deployed physical Shipment/Parcel/custody extension is downstream-only for Seller. Keep Seller actions limited to readiness and waybill work; hub/final-mile transitions remain owned by Logistics/Courier APIs.
@@ -96,6 +98,7 @@ Seller opens Seller-scoped processing Order
 
 - The label contains only the minimum destination/routing information needed for handoff. Human-readable output must not expose unnecessary Buyer contact or payment data.
 - QR/barcode payloads are opaque references. Scanning resolves authorized server records rather than embedding serialized Order JSON.
+- The primary barcode is a thin, industry-standard 1D Code 128 encoding of the immutable tracking ID; QR remains available for compatibility and fallback clients.
 - Every waybill preserves its generation snapshot, selected Logistics organization, and timestamp; MVP does not supersede or edit the artifact.
 - A label-generation or notification failure must not partially commit `ready_for_pickup`; successful readiness is the authoritative handoff even when delivery of the follow-up notice fails.
 

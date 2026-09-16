@@ -17,7 +17,7 @@ type DispatchSchedule = {
   scheduled_for: string
   parcel_count: number
   courier: { id: string; name: string; email: string; contact_number: string | null }
-  parcels: Array<{ shipment_id: string; order_reference: string | null; waybill_reference: string | null; sequence: number; source_lane: { code: string; name: string } | null }>
+  parcels: Array<{ shipment_id: string; order_reference: string | null; waybill_reference: string | null; tracking_id: string | null; sequence: number; source_lane: { code: string; name: string } | null }>
 }
 
 function localDefault(): string {
@@ -123,7 +123,7 @@ export function DispatchPage() {
       setError('Choose an approved Courier before re-offering a rejected delivery.')
       return
     }
-    if (!window.confirm(`Re-offer ${shipment.parcel?.waybill_reference ?? 'this parcel'} to ${selectedCourier?.name ?? 'this Courier'}?`)) return
+    if (!window.confirm(`Re-offer ${shipment.parcel?.tracking_id ?? shipment.parcel?.waybill_reference ?? 'this parcel'} to ${selectedCourier?.name ?? 'this Courier'}?`)) return
     setBusy(true)
     setError('')
     try {
@@ -155,14 +155,14 @@ export function DispatchPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 p-3 dark:border-white/10"><div><h3 className="font-semibold">Ready to dispatch</h3><p className="text-xs text-zinc-500">{queue?.meta.total ?? 0} parcels · {selected.length}/15 selected · oldest receipt first</p></div><ActionButton disabled={loading || busy || !visible.length} onClick={() => { const first = visible[0]; setSelected(visible.filter((item) => combineLanes || sourceKey(item) === sourceKey(first)).slice(0, 15).map((item) => item.shipment_id)) }}>Select up to 15</ActionButton></div>
         <div className="grid gap-3 border-b border-zinc-200 p-3 dark:border-white/10 sm:grid-cols-2">
           <label className="min-w-0 text-sm font-medium">Source lane<select className={`${field} mt-1`} disabled={busy || combineLanes} value={laneId} onChange={(event) => { setLaneId(event.target.value); setPage(1); setSelected([]) }}><option value="">All lanes · one lane per batch</option>{queue?.summary.by_lane?.map((lane) => <option key={lane.id ?? 'unassigned'} value={lane.id ?? 'unassigned'}>{lane.code ?? 'Unassigned (legacy)'} · {lane.count} parcels</option>)}</select></label>
-          <label className="min-w-0 text-sm font-medium">Find parcel<input className={`${field} mt-1`} maxLength={100} value={search} disabled={busy} onChange={(event) => { setSearch(event.target.value); setPage(1); setSelected([]) }} placeholder="Order or waybill reference" /></label>
+          <label className="min-w-0 text-sm font-medium">Find parcel<input className={`${field} mt-1`} maxLength={100} value={search} disabled={busy} onChange={(event) => { setSearch(event.target.value); setPage(1); setSelected([]) }} placeholder="Tracking ID or Order reference" /></label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input className="size-4 accent-[#4C1268]" type="checkbox" checked={combineLanes} disabled={busy} onChange={(event) => { setCombineLanes(event.target.checked); setPage(1); setSelected([]) }} />Combine standard lanes from this hub in one schedule</label>
         </div>
         {loading ? <p className="p-4 text-sm">Loading sorted parcels…</p> : visible.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{visible.map((shipment) => {
           const checked = selected.includes(shipment.shipment_id)
           const otherLane = !combineLanes && selectedSource && sourceKey(shipment) !== sourceKey(selectedSource)
           return <li key={shipment.shipment_id} className={`flex min-w-0 flex-wrap items-center gap-2 px-3 py-2.5 ${checked ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`}>
-            <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3"><input className="mt-1 size-4 shrink-0 accent-[#4C1268]" type="checkbox" checked={checked} disabled={busy || (!checked && (selected.length >= 15 || !!otherLane))} onChange={() => toggle(shipment.shipment_id)} /><span className="min-w-0"><span className="block break-all font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</span><span className="mt-1 block break-all font-mono text-xs text-zinc-500">{shipment.parcel?.waybill_reference}</span><span className="mt-1 block text-xs text-zinc-500">{shipment.sorting_lane ? `${shipment.sorting_lane.code} · ${shipment.sorting_lane.name}` : 'Unassigned lane (legacy)'}</span></span></label>
+            <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3"><input className="mt-1 size-4 shrink-0 accent-[#4C1268]" type="checkbox" checked={checked} disabled={busy || (!checked && (selected.length >= 15 || !!otherLane))} onChange={() => toggle(shipment.shipment_id)} /><span className="min-w-0"><span className="block break-all font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</span><span className="mt-1 block break-all font-mono text-xs text-zinc-500">{shipment.parcel?.tracking_id ?? shipment.parcel?.waybill_reference}</span><span className="mt-1 block text-xs text-zinc-500">{shipment.sorting_lane ? `${shipment.sorting_lane.code} · ${shipment.sorting_lane.name}` : 'Unassigned lane (legacy)'}</span></span></label>
             <ParcelLaneMove shipmentId={shipment.shipment_id} revision={shipment.revision} laneId={shipment.sorting_lane?.id ?? null} lanes={sorting?.lanes ?? []} disabled={busy} onMoved={async () => { setSelected([]); await load() }} />
           </li>
         })}</ul> : <p className="p-4 text-sm text-zinc-500">No sorted parcels match this lane or search.</p>}
@@ -188,7 +188,7 @@ export function DispatchPage() {
 
     <section className={`${panel} mt-3 overflow-hidden`}>
       <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Rejected delivery offers</h3><p className="mt-1 text-xs text-zinc-500">Choose a Courier in the schedule panel, then re-offer the existing parcel task. Previous offers remain in history.</p></div>
-      {rejected.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{rejected.map((shipment) => { const task = shipment.tasks.find((item) => item.leg === 'final_mile' && item.status === 'rejected'); return task ? <li key={shipment.shipment_id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"><div><p className="font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</p><p className="mt-1 font-mono text-xs text-zinc-500">{shipment.parcel?.waybill_reference}</p><p className="mt-1 text-xs text-red-700 dark:text-red-300">{task.offer?.rejection_reason ?? 'Courier rejected the delivery offer.'}</p></div><ActionButton busy={busy} disabled={!courierId} onClick={() => void reoffer(shipment, task)}>Re-offer to selected Courier</ActionButton></li> : null })}</ul> : <p className="px-4 py-6 text-sm text-zinc-500">No rejected delivery offers need reassignment.</p>}
+      {rejected.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{rejected.map((shipment) => { const task = shipment.tasks.find((item) => item.leg === 'final_mile' && item.status === 'rejected'); return task ? <li key={shipment.shipment_id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"><div><p className="font-medium">{shipment.parcel?.order_reference ?? shipment.parcel?.reference}</p><p className="mt-1 font-mono text-xs text-zinc-500">{shipment.parcel?.tracking_id ?? shipment.parcel?.waybill_reference}</p><p className="mt-1 text-xs text-red-700 dark:text-red-300">{task.offer?.rejection_reason ?? 'Courier rejected the delivery offer.'}</p></div><ActionButton busy={busy} disabled={!courierId} onClick={() => void reoffer(shipment, task)}>Re-offer to selected Courier</ActionButton></li> : null })}</ul> : <p className="px-4 py-6 text-sm text-zinc-500">No rejected delivery offers need reassignment.</p>}
     </section>
   </div>
 }

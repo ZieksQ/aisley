@@ -4,6 +4,7 @@
 
 - Status: implemented; acceptance evidence recorded below.
 - Date: 2026-09-16.
+- Updated: automatic postal-code sort-plan routing is the default scan path; manual lane selection remains an explicit override.
 - Role: the active Logistics account operating its organization's sole hub.
 - Scope: Laravel API, PostgreSQL schema, and Logistics React dashboard.
 - Connect physical sorting lanes with the ready queue and bulk dispatch.
@@ -18,7 +19,7 @@
 - A session is a bounded reconciliation snapshot, not a delivery batch.
 - A dispatch schedule groups 1–15 ready parcels for one approved Courier.
 - Non-goals:
-  - automatic destination-to-lane rules or geographic compatibility;
+  - geocoding, postal ranges, or geographic compatibility beyond exact mappings in an active sort plan;
   - Courier availability, route optimization, vehicle or lane capacity;
   - containers, bags, seals, loading manifests, or inter-hub transfers;
   - new Courier web screens, staff accounts, or Order statuses.
@@ -46,6 +47,9 @@
 - Retain device capture time separately in the existing receipt event metadata.
 - Standard-lane synchronization records lane/session and advances sorted custody.
 - Exception synchronization retains received custody and operational hold details.
+- Automatic synchronization resolves the tenant-owned tracking ID, Buyer postal code, and current active sort plan on the server; a client-predicted lane is advisory only.
+- A missing plan, missing postal code, unmapped postal code, or unavailable mapped lane is recorded in the active exception lane with a routing reason and plan/mapping metadata when available.
+- The Sort plan page owns plan activation, lane creation, printable lane labels, and exact postal-code mappings; Sorting owns scan/reconciliation and may request a manual standard-lane override.
 - Resolve exceptions through a standard-lane capture with existing retry rules.
 - A generic sort transition cannot bypass an unresolved sorting exception.
 - Close sessions only after all items reconcile; the client also checks its outbox.
@@ -97,6 +101,7 @@
 - Mobile: wrap filters/actions, break long references, and use reconciliation rows.
 - Tablet: retain readable rows and stacked schedule controls below the desktop breakpoint.
 - Desktop: use a bounded workspace and adjacent dispatch schedule controls.
+- Sort-plan management is a separate compact responsive page; Sorting remains focused on capture, reconciliation, and exception resolution.
 - Use existing dashboard palette, dark mode, and shared operation controls.
 - Keep dialogs within 90% of viewport height with internal scrolling.
 - Avoid a wide reconciliation table as the mobile interaction surface.
@@ -117,6 +122,8 @@
 - [x] Lane filters/counts and legacy unassigned dispatch work — queue/legacy regressions.
 - [x] Additive migration round trip/backfill preserves marked history — migration regression.
 - [x] Validated hub pickup clears the live lane and retains provenance — handoff regression.
+- [x] Each Logistics tenant can create an active sort plan, create standard/exception lanes, and map exact four-digit postal codes — plan/routing regression.
+- [x] Automatic scan routing records the matched plan/lane or exception reason and falls back to the exception lane when routing input or configuration is unavailable — plan/routing regression.
 - [x] Logistics lint, TypeScript compilation, and production build pass.
 - [ ] Rendered mobile/tablet/1920×1080 viewport checks — no browser tool available.
 - [ ] Rendered current-resolution check — dimensions/browser unavailable in this session.
@@ -126,6 +133,7 @@
 ## HOW
 
 - Add 2026_09_16_000001_add_shipment_lane_assignments; never change executed migrations.
+- Add additive sorting-plan, postal-code mapping, and automatic-routing scan metadata migrations; never change executed migrations.
 - Store Shipment sorting_lane_id, sorting_session_id, and received_at_hub_at separately from status.
 - Add source_lane JSON, sorting_session_id, and shipment_revision_at_dispatch to memberships.
 - Backfill receipt from first recorded receipt event and assignment from sorted session items.
@@ -133,12 +141,14 @@
 - Leave unknowable historical dispatch revisions null; never invent original labels/revisions.
 - Do not restore live lanes for parcels already beyond accepted delivery custody.
 - Add POST /api/v1/logistics/sorting/shipments/{shipment}/move with UUID Idempotency-Key.
+- Add tenant-scoped `GET/POST /sorting/plans`, `PATCH /sorting/plans/{plan}`, and plan-lane add/remove endpoints; never accept a foreign organization, hub, or lane.
 - Extend GET /api/v1/logistics/dashboard/queue with lane_id and summary.by_lane.
 - Extend dispatch POST with combine_lanes and assignments; keep shipment_ids/courier/time contract.
 - Reuse SortingService, FulfillmentTransitionService, and DispatchScheduleService transactions.
 - Reuse Dexie captures unchanged; lane moves require an authoritative online response.
 - Use ParcelLaneMove in both workspaces and retain existing CourierPicker behavior.
 - Regression evidence: tests/Feature/Logistics/FinalMileFulfillmentTest.php.
+- Automatic matched-routing, no-plan exception fallback, scan metadata, pickup-time routing snapshot, and tenant-scope evidence are covered by Logistics regression tests.
 - Broader Logistics/Courier and CustomerOrderStatusTest checks pass: 80 tests/1,190 assertions.
 - PostgreSQL: migration dry run and local additive migration application passed.
 - Rendered responsive acceptance remains open; source/build checks do not substitute for it.
