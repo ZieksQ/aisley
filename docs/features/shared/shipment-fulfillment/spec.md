@@ -306,6 +306,7 @@ Complete each unchecked question before creating physical operational migrations
 
 ### Recorded cross-document decisions and deferred outcomes
 
+- Lane-aware staging/dispatch is implemented under `docs/features/orders/lane-aware-dispatch/spec.md`: durable Shipment lane/session assignments, receipt-time ordering, audited pre-dispatch moves, explicit mixed-lane batches, immutable membership provenance, and live-lane clearing at validated hub pickup. Session closure reconciles sorting rather than gating each ready parcel.
 - [x] Task cardinality: one Order/Parcel per DeliveryTask; schedules may group Orders but do not create a multi-parcel task.
 - [x] Scan/evidence authority: the Courier scans the Order's waybill QR/reference in the app and submits the event/evidence; Logistics validates and records the authoritative event, preserving both the performing Courier and recording Logistics account. The QR/reference scan, Courier identity, and timestamp are the minimum evidence.
 - [x] Exception policy: returns, refunds, and partial fulfillment are deferred. A rejected Courier offer marks the task `rejected` without changing the Order; Logistics may offer the same task to another eligible Courier. An unfinished task becomes informationally `stale` and is not automatically cancelled or reassigned; no automatic post-pickup inventory release is assumed.

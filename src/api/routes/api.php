@@ -319,6 +319,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/update-status/scan-events', [FulfillmentStatusController::class, 'transition'])->name('update-status.scan-events');
     Route::post('/receiving/batches', [ReceivingController::class, 'store'])->name('receiving.batches.store');
     Route::get('/sorting', [SortingController::class, 'index'])->name('sorting.index');
+    Route::post('/sorting/shipments/{shipment}/move', [SortingController::class, 'moveLane'])->whereUuid('shipment')->name('sorting.shipments.move');
     Route::post('/sorting/lanes', [SortingController::class, 'storeLane'])->name('sorting.lanes.store');
     Route::patch('/sorting/lanes/{lane}', [SortingController::class, 'updateLane'])->whereUuid('lane')->name('sorting.lanes.update');
     Route::get('/sorting/lanes/{lane}/label', [SortingController::class, 'laneLabel'])->whereUuid('lane')->name('sorting.lanes.label');

@@ -95,8 +95,12 @@ class SortingService
             $nextActive = array_key_exists('is_active', $input) ? (bool) $input['is_active'] : $owned->is_active;
             $referencedByOpenSession = SortingSessionItem::query()->where('sorting_lane_id', $owned->id)
                 ->whereHas('session', fn ($query) => $query->where('status', SortingSessionStatus::Open->value))->exists();
-            if ($referencedByOpenSession && ((! $nextActive) || $nextType !== $owned->type)) {
-                throw FulfillmentException::conflict('SORT_LANE_IN_USE', 'Close the sorting session before changing this lane type or deactivating it.');
+            $hasStagedParcels = Shipment::query()->where('sorting_lane_id', $owned->id)->whereIn('status', [
+                ShipmentStatus::SortedAtHub->value, ShipmentStatus::DispatchedFromHub->value,
+                ShipmentStatus::DeliveryAssigned->value, ShipmentStatus::DeliveryAccepted->value,
+            ])->exists();
+            if (($referencedByOpenSession || $hasStagedParcels) && ((! $nextActive) || $nextType !== $owned->type)) {
+                throw FulfillmentException::conflict('SORT_LANE_IN_USE', 'Reconcile the open session and move staged parcels or confirm Courier collection before changing this lane type or deactivating it.');
             }
 
             $owned->update([
@@ -138,7 +142,7 @@ class SortingService
                 ->where('logistics_hub_id', $org->hub->id)
                 ->where('status', ShipmentStatus::ReceivedAtHub->value)
                 ->whereDoesntHave('sortingItems', fn ($query) => $query->whereHas('session', fn ($session) => $session->where('status', SortingSessionStatus::Open->value)))
-                ->orderBy('updated_at')->orderBy('id')->limit(self::SESSION_LIMIT)->lockForUpdate()->get();
+                ->orderByRaw('COALESCE(received_at_hub_at, created_at)')->orderBy('id')->limit(self::SESSION_LIMIT)->lockForUpdate()->get();
             if ($shipments->isEmpty()) {
                 throw FulfillmentException::invalid('SORT_SESSION_EMPTY', 'No received parcels are waiting for sorting.');
             }
@@ -387,6 +391,8 @@ SVG;
             'order_reference' => $parcel?->order?->reference,
             'status' => $item->status->value,
             'expected_revision' => $item->expected_shipment_revision,
+            'shipment_revision' => $shipment?->revision,
+            'can_move' => $shipment?->status === ShipmentStatus::SortedAtHub,
             'lane_id' => $item->sorting_lane_id,
             'exception_code' => $item->exception_code?->value,
             'exception_reason' => $item->exception_reason,

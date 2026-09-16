@@ -3,7 +3,7 @@ feature: logistics-deploy-rider
 title: Deploy Rider
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented sorted-parcel dispatch schedules and final-mile offers; advanced routing deferred
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
@@ -33,6 +33,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - First-mile offering is allowed only after Seller `ready_for_pickup` and one valid selected Logistics organization exist. Creation is at most one active task per Order/Parcel leg and is idempotent.
 - Scheduled final-mile offering is allowed only from `sorted_at_hub`. The schedule transaction records `dispatched_from_hub` and the final-mile offer together; a half-created schedule or unassigned dispatched parcel cannot commit.
+- Dispatch filters/counts parcels by lane and pages oldest receipt first. One source lane is the default; `combine_lanes: true` explicitly permits active standard lanes from the sole hub.
+- Lane-sorted parcels require matching assignment IDs and Shipment/lane revisions; a stale selection conflicts before any schedule commits. Preserve lane ID/code/name/revision and session in each membership; legacy lane-less parcels remain explicitly unassigned.
+- Sorted parcels may dispatch before session closure; held exceptions cannot dispatch or bypass the hold through a generic sort transition. Online lane moves are permitted only before dispatch.
 - Logistics creates and offers/assigns work. A Courier may accept only its own offer and cannot assign itself or another Courier.
 - Offering or assigning a Courier never means the parcel was physically picked up and must not directly write `picked_up_from_seller`, `picked_up_from_hub`, or a generic Order `picked_up`.
 

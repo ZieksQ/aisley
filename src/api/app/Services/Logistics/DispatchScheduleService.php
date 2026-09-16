@@ -4,12 +4,14 @@ namespace App\Services\Logistics;
 
 use App\Enums\CourierAffiliationStatus;
 use App\Enums\DispatchScheduleStatus;
+use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DispatchSchedule;
 use App\Models\Shipment;
+use App\Models\SortingLane;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
 use Illuminate\Support\Collection;
@@ -47,6 +49,30 @@ class DispatchScheduleService
                 throw FulfillmentException::conflict('DISPATCH_STATE_CONFLICT', 'Only parcels sorted at this hub are ready to dispatch.');
             }
 
+            $laneIds = $shipments->pluck('sorting_lane_id')->unique();
+            if ($laneIds->count() > 1 && ! ($input['combine_lanes'] ?? false)) {
+                throw FulfillmentException::conflict('DISPATCH_MIXED_LANES', 'Select one source lane or explicitly enable combining lanes.');
+            }
+            $lanes = SortingLane::query()->whereIn('id', $laneIds->filter())->where('logistics_organization_id', $org->id)
+                ->where('logistics_hub_id', $org->hub->id)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $assignments = collect($input['assignments'] ?? [])->keyBy('shipment_id');
+            if (isset($input['assignments']) && ($assignments->count() !== count($shipmentIds) || $assignments->keys()->diff($shipmentIds)->isNotEmpty())) {
+                throw FulfillmentException::conflict('DISPATCH_ASSIGNMENT_CONFLICT', 'Every selected parcel needs its current lane assignment.');
+            }
+            foreach ($shipments as $shipment) {
+                $lane = $lanes->get($shipment->sorting_lane_id);
+                if ($shipment->sorting_lane_id !== null && ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard)) {
+                    throw FulfillmentException::conflict('DISPATCH_LANE_CONFLICT', 'A source lane is unavailable or is not a standard lane.');
+                }
+                $expected = $assignments->get($shipment->id);
+                if ($shipment->sorting_lane_id !== null && $expected === null) {
+                    throw FulfillmentException::conflict('DISPATCH_ASSIGNMENT_REQUIRED', 'Refresh and send the current assignment for each lane-sorted parcel.');
+                }
+                if ($expected !== null && ($shipment->revision !== (int) $expected['expected_revision'] || $shipment->sorting_lane_id !== $expected['lane_id'] || $lane?->revision !== $expected['lane_revision'])) {
+                    throw FulfillmentException::conflict('DISPATCH_ASSIGNMENT_CONFLICT', 'A parcel or source lane changed. Refresh before dispatching.');
+                }
+            }
+
             $schedule = DispatchSchedule::create([
                 'logistics_organization_id' => $org->id,
                 'logistics_hub_id' => $org->hub->id,
@@ -75,6 +101,9 @@ class DispatchScheduleService
                     'shipment_id' => $shipmentId,
                     'delivery_task_id' => $offer['task']->id,
                     'sequence' => $index + 1,
+                    'source_lane' => ($lane = $lanes->get($shipment->sorting_lane_id)) ? ['id' => $lane->id, 'code' => $lane->code, 'name' => $lane->name, 'revision' => $lane->revision] : null,
+                    'sorting_session_id' => $shipment->sorting_session_id,
+                    'shipment_revision_at_dispatch' => $shipment->revision,
                 ]);
             }
 
@@ -123,6 +152,9 @@ class DispatchScheduleService
                 'order_reference' => $item->shipment?->parcel?->order?->reference,
                 'waybill_reference' => $item->shipment?->parcel?->waybill?->reference,
                 'sequence' => $item->sequence,
+                'source_lane' => $item->source_lane,
+                'sorting_session_id' => $item->sorting_session_id,
+                'shipment_revision_at_dispatch' => $item->shipment_revision_at_dispatch,
             ])->values()->all(),
         ];
     }

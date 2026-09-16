@@ -12,11 +12,16 @@ class Shipment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision'];
+    protected $fillable = ['parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision', 'sorting_lane_id', 'sorting_session_id', 'received_at_hub_at'];
 
     protected function casts(): array
     {
-        return ['status' => ShipmentStatus::class, 'revision' => 'integer'];
+        return ['status' => ShipmentStatus::class, 'revision' => 'integer', 'received_at_hub_at' => 'immutable_datetime'];
+    }
+
+    public function sortingLane(): BelongsTo
+    {
+        return $this->belongsTo(SortingLane::class);
     }
 
     public function parcel(): BelongsTo

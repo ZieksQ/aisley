@@ -3,7 +3,7 @@ feature: logistics-sorting
 title: Logistics Sorting
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Implemented MVP; advanced automation and containerization deferred
 role: Logistics
 scope: Logistics API and Logistics web application
@@ -41,6 +41,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - The shared fulfillment transition service remains the only writer of Shipment custody and append-only Shipment events.
 - A scan, local queue entry, lane selection, session item, or exception record does not independently change custody.
 - A successful standard-lane sync commits `sorted_at_hub` and records session, lane, source, capture time, and Logistics actor metadata.
+- Persist the standard lane/session on Shipment independently of session closure; order snapshots by authoritative hub receipt time with creation-time fallback for legacy records.
+- Allow online, idempotent moves between active standard lanes before dispatch using Shipment/lane revisions and a reason; append `hub_lane_move` without changing sorted custody.
+- Block lane deactivation/type changes while parcels remain staged through delivery acceptance, including after session closure; validated hub pickup frees the live lane.
+- Ready parcels can dispatch during an open session; exception parcels remain held. Dispatch consumes current assignments and freezes source-lane metadata per parcel.
 - A successful exception-lane sync keeps the Shipment at `received_at_hub` and records a reviewable operational exception.
 
 ### Tenant and lifecycle isolation

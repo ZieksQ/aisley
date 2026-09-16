@@ -73,6 +73,9 @@ export type FulfillmentShipment = {
   status: string
   revision: number
   last_activity_at: string | null
+  sorting_lane?: { id: string; code: string; name: string; revision: number } | null
+  sorting_session_id?: string | null
+  received_at_hub_at?: string | null
   parcel: {
     id: string
     reference: string
@@ -90,6 +93,7 @@ export type FulfillmentQueueResponse = {
   summary: {
     total: number
     by_status: Record<string, number>
+    by_lane?: Array<{ id: string | null; code: string | null; name: string | null; count: number }>
     pending_evidence: number
     pending_completion: number
   }

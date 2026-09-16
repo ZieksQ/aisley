@@ -370,6 +370,8 @@ A successful dispatch shall submit an event to the shared transition service, wh
 
 The canonical dispatched state is `dispatched_from_hub`; it must not be confused with Courier acceptance or physical pickup.
 
+The ready queue groups/filters parcels by physical standard lane and pages by hub receipt time. A batch uses one source lane by default; combining lanes requires explicit opt-in within the sole hub. Shipment/lane revisions are checked at commit and each dispatch membership freezes its source lane and sorting session. A sorted parcel can move lanes online before dispatch with an audited reason. Session closure reconciles the snapshot and does not block individual ready parcels; exceptions remain held until standard-lane resolution. Validated Courier hub pickup clears the live staging lane.
+
 8.8 Deploy Rider
 
 Logistics shall be able to create/offer the first-mile task after `ready_for_pickup` and select an eligible Courier for the first-mile or final-mile task based on operational suitability and distance. A Courier rejection records task-level `rejected` without changing the Order; Logistics may re-offer the same task to another eligible Courier. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.

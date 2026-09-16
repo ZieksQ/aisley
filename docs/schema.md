@@ -1135,11 +1135,11 @@ The additive fulfillment migration creates one immutable `parcels` row and one `
 | Table | Purpose and constraints |
 | --- | --- |
 | `parcels` | One immutable physical parcel per Order and waybill; unique `order_id`, `waybill_id`, and generated reference; stores the waybill/destination/item snapshot and item count. |
-| `shipments` | One parcel movement projection scoped to the selected Logistics organization and sole hub; string-backed status and optimistic `revision`. |
+| `shipments` | One parcel movement projection scoped to the selected Logistics organization and sole hub; string-backed status and optimistic `revision`; durable `sorting_lane_id`, `sorting_session_id`, and authoritative `received_at_hub_at`. Lane clears on validated hub pickup. |
 | `delivery_tasks` | One task per Shipment/leg (`first_mile` or `final_mile`); independent Courier, state, timestamps, and revision. Legacy first-mile tasks are linked through `legacy_first_mile_task_id`. |
 | `delivery_task_offers` | Immutable Courier offers/rejections/acceptance sequence, Logistics actor, request hash, and actor-scoped idempotency key. Re-offer reuses the task and appends a sequence. |
 | `dispatch_schedules` | One organization/sole-hub schedule for one active approved Courier, future time, 1–15 parcels, revision, status, and Logistics-actor idempotency. |
-| `dispatch_schedule_shipments` | Unique Shipment and final-mile task membership with stable sequence; preserves one task/offer/history per parcel. |
+| `dispatch_schedule_shipments` | Unique Shipment/final-mile task membership with stable sequence; immutable `source_lane` JSON (ID/code/name/revision), sorting session, and pre-dispatch Shipment revision. Historical backfill is explicitly marked inferred. |
 | `sorting_lanes` | Organization/sole-hub lane definitions with unique code, standard/exception type, active flag, position, creator, and optimistic revision. |
 | `sorting_sessions` | One open session per organization/hub through nullable unique `open_key`; stores human reference, 100-item maximum expected count, actors, lifecycle, revision, and open-request idempotency. |
 | `sorting_session_items` | Session snapshot membership and current pending/sorted/exception reconciliation state; stores expected Shipment revision, selected lane, exception context, and completion time. |
@@ -1347,6 +1347,7 @@ Repository migrations are listed below in filename execution order; this invento
 65. `2026_09_14_000001_create_platform_feature_controls_table.php` — declared platform-wide boolean controls with revision and last-Admin updater metadata.
 66. `2026_09_14_000002_create_dispatch_schedules.php` — organization/sole-hub dispatch schedules plus unique per-Shipment/final-task membership, capped by the API at 15 parcels.
 67. `2026_09_14_000003_create_sorting_operations.php` — organization/sole-hub Sorting lanes, one open bounded session, snapshot reconciliation items, and idempotent standard/exception scan results.
+68. `2026_09_16_000001_add_shipment_lane_assignments.php` — durable staging assignments, receipt-time ordering, and dispatch source-lane provenance with marked historical backfill.
 
 ## 14. Fulfillment schema and deferred extensions
 

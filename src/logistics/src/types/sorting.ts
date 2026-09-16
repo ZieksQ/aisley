@@ -17,6 +17,8 @@ export type SortingItem = {
   order_reference: string | null
   status: 'pending' | 'sorted' | 'exception'
   expected_revision: number
+  shipment_revision: number
+  can_move: boolean
   lane_id: string | null
   exception_code: string | null
   exception_reason: string | null
