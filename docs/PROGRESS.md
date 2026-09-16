@@ -22,3 +22,5 @@ Format:
 ## 2026-09-16
 
 - Archived the previous 148-line progress log at `docs/logs/PROGRESS-2026-09-16.md` and added thin Code 128 tracking-ID waybills, tenant-scoped postal-code sort plans, server-authoritative automatic sorting with exception fallback, responsive Sort plan UI, and synchronized role contracts. Logistics/Courier coverage passes; the unrelated CustomerRecentlyViewed 404 failures remain documented as out of scope.
+
+- Corrected stale Courier Account Management and Logistics vehicle-route implementation wording, refreshed schema synchronization metadata, and narrowed deferred fleet scope to advanced extensions. Re-ran `CourierVehicleFleetManagementTest` and `CourierApprovalTest` against in-memory SQLite: 10 tests/128 assertions pass, superseding the 125-assertion count in the September 15 vehicle entry. Historical entries remain intact; PostgreSQL verification, external Flutter rollout, and separate-document registration rollout are not certified by this check. Documentation only; no application code changed.

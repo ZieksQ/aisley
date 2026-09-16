@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-12
+> **Last synchronized:** 2026-09-16 (vehicle-management implementation metadata)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -39,7 +39,7 @@ The MVP uses exactly one operational hub/sorting center per Logistics organizati
 - The Logistics registration address is the organization's sole operational hub/sorting-center address. The Logistics account operates that hub through the Logistics dashboard; no separate hub or sub-hub address is collected.
 - Courier registration selects the Logistics organization; the sole hub is derived server-side rather than supplied as a client-controlled ID.
 - Current foundation cardinality is one Logistics user per organization. Staff/sub-account support is a later authorization decision and is not part of this foundation.
-- Implemented pickup requests, waybills, schedules, first-mile tasks, shared Shipment/Parcel records, hub milestones, final-mile offers, QR evidence, and delivery completion resolve through the organization's sole hub. Deferred fleet, zone, capacity, subscription, route/location telemetry, advanced media proof, returns, and failure-recovery records must preserve that scope when introduced.
+- Implemented pickup requests, waybills, schedules, first-mile tasks, shared Shipment/Parcel records, hub milestones, final-mile offers, QR evidence, delivery completion, and Courier vehicle-management APIs resolve through the organization's sole hub. Deferred advanced fleet extensions (maintenance, vehicle history, and capacity matching), zone, capacity, subscription, route/location telemetry, advanced media proof, returns, and failure-recovery records must preserve that scope when introduced.
 
 ## 2. Database conventions
 
