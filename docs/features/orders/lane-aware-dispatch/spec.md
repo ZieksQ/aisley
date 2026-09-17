@@ -130,6 +130,10 @@
 
 ---
 
+### Hub-routing API integration (2026-09-18)
+
+`docs/features/logistics/hub-to-hub-routing/specs.md` adds separate transfer-departure/arrival endpoints. Final-mile schedules now use current Shipment organization/hub scope and reject unresolved or unfinished hub routes. Transfer departure snapshots the source lane on the hop and clears live lane/session assignments without creating a delivery task or projecting the Order to `assigned`. Arrival enables the next hub's own sorting cycle; destination arrival enables the existing final-mile schedule flow. Historical dispatch snapshots remain unchanged.
+
 ## HOW
 
 - Add 2026_09_16_000001_add_shipment_lane_assignments; never change executed migrations.

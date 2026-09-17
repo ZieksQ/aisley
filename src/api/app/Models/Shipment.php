@@ -7,12 +7,31 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Shipment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision', 'sorting_lane_id', 'sorting_session_id', 'received_at_hub_at'];
+    protected $fillable = ['current_logistics_organization_id', 'current_hub_id', 'parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision', 'sorting_lane_id', 'sorting_session_id', 'received_at_hub_at'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Shipment $shipment): void {
+            $shipment->current_logistics_organization_id ??= $shipment->logistics_organization_id;
+            $shipment->current_hub_id ??= $shipment->logistics_hub_id;
+        });
+    }
+
+    public function route(): HasOne
+    {
+        return $this->hasOne(ShipmentRoute::class);
+    }
+
+    public function currentHub(): BelongsTo
+    {
+        return $this->belongsTo(LogisticsHub::class, 'current_hub_id');
+    }
 
     protected function casts(): array
     {

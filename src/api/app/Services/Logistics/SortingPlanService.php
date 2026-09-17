@@ -2,8 +2,13 @@
 
 namespace App\Services\Logistics;
 
+use App\Enums\Logistics\HubRouteHopStatus;
+use App\Enums\Logistics\HubRouteStatus;
+use App\Enums\Logistics\SortingDestinationType;
 use App\Enums\Logistics\SortingLaneType;
+use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
+use App\Models\HubConnection;
 use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
 use App\Models\Shipment;
@@ -11,6 +16,7 @@ use App\Models\SortingLane;
 use App\Models\SortingPlan;
 use App\Models\SortingPlanLane;
 use App\Models\User;
+use App\Services\Logistics\Routing\ShipmentRouteService;
 use Illuminate\Support\Facades\DB;
 
 class SortingPlanService
@@ -92,12 +98,13 @@ class SortingPlanService
     public function addLane(User $logistics, SortingPlan $plan, array $input): SortingPlan
     {
         $org = $this->organization($logistics);
-        $postalCode = $this->normalizePostalCode((string) $input['postal_code']);
-        if ($postalCode === null) {
+        $hubTarget = ($input['destination_type'] ?? 'postal_code') === 'hub';
+        $postalCode = $hubTarget ? null : $this->normalizePostalCode((string) ($input['postal_code'] ?? ''));
+        if (! $hubTarget && $postalCode === null) {
             throw FulfillmentException::invalid('SORT_PLAN_POSTAL_CODE_INVALID', 'Enter a valid four-digit postal code.', 'postal_code');
         }
 
-        return DB::transaction(function () use ($org, $plan, $input, $postalCode): SortingPlan {
+        return DB::transaction(function () use ($org, $plan, $input, $postalCode, $hubTarget): SortingPlan {
             $this->lockHub($org);
             $owned = $this->ownedPlan($org, $plan->id, true);
             if ($owned->revision !== (int) $input['expected_revision']) {
@@ -115,13 +122,24 @@ class SortingPlanService
             if (! $lane->is_active || $lane->type !== SortingLaneType::Standard) {
                 throw FulfillmentException::invalid('SORT_PLAN_STANDARD_LANE_REQUIRED', 'Postal-code mappings require an active standard lane.', 'lane_id');
             }
-            if ($owned->lanes()->where('postal_code', $postalCode)->exists()) {
+            if ($hubTarget) {
+                $target = $input['destination_hub_id'];
+                if ($target === $org->hub->id || ! HubConnection::query()->where('from_hub_id', $org->hub->id)->where('to_hub_id', $target)->where('is_active', true)->whereHas('toHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))->exists()) {
+                    throw FulfillmentException::invalid('SORT_PLAN_HUB_TARGET_INVALID', 'Select an active allowed next-hub connection.', 'destination_hub_id');
+                }
+                if ($owned->lanes()->where('destination_hub_id', $target)->exists()) {
+                    throw FulfillmentException::invalid('SORT_PLAN_HUB_TARGET_TAKEN', 'This next hub is already mapped.', 'destination_hub_id');
+                }
+            }
+            if (! $hubTarget && $owned->lanes()->where('postal_code', $postalCode)->exists()) {
                 throw FulfillmentException::invalid('SORT_PLAN_POSTAL_CODE_TAKEN', 'This postal code is already mapped in the sort plan.', 'postal_code');
             }
 
             $owned->lanes()->create([
                 'sorting_lane_id' => $lane->id,
                 'postal_code' => $postalCode,
+                'destination_type' => $hubTarget ? SortingDestinationType::Hub : SortingDestinationType::PostalCode,
+                'destination_hub_id' => $hubTarget ? $input['destination_hub_id'] : null,
                 'position' => (int) ($input['position'] ?? 1),
             ]);
             $owned->update(['revision' => $owned->revision + 1]);
@@ -187,13 +205,35 @@ class SortingPlanService
     /** @return array{plan: SortingPlan|null, plan_lane: SortingPlanLane|null, lane: SortingLane|null, postal_code: string|null, reason: string} */
     public function routeForShipment(Shipment $shipment): array
     {
-        $shipment->loadMissing('parcel.order.address');
+        $shipment->loadMissing(['parcel.waybill.snapshot', 'route']);
+        $postalCode = $shipment->parcel?->waybill?->snapshot?->payload['recipient']['postal_code'] ?? null;
+        $route = $shipment->route;
+        if ($route === null || in_array($route->status, [HubRouteStatus::Local, HubRouteStatus::Completed], true)) {
+            return $this->routeForContext($shipment->current_logistics_organization_id, $shipment->current_hub_id, $postalCode);
+        }
+        $plan = $this->plansForHub($shipment->current_logistics_organization_id, $shipment->current_hub_id);
+        $hop = app(ShipmentRouteService::class)->nextHop($shipment);
+        $base = ['plan' => $plan, 'plan_lane' => null, 'lane' => null, 'postal_code' => $postalCode, 'reason' => $route->failure_code ?? 'route_unavailable'];
+        if ($route->status !== HubRouteStatus::Planned || $hop === null || $hop->status !== HubRouteHopStatus::Pending || $hop->from_hub_id !== $shipment->current_hub_id) {
+            return $base;
+        }
+        $allowed = HubConnection::query()->whereKey($hop->hub_connection_id)->where('is_active', true)
+            ->whereHas('toHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))->exists();
+        if (! $allowed) {
+            return [...$base, 'reason' => 'connection_unavailable'];
+        }
+        $mapping = $plan?->lanes->first(fn ($mapping) => $mapping->destination_type === SortingDestinationType::Hub && $mapping->destination_hub_id === $hop->to_hub_id);
+        $lane = $mapping?->lane;
+        if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard || $lane->logistics_organization_id !== $shipment->current_logistics_organization_id || $lane->logistics_hub_id !== $shipment->current_hub_id) {
+            return [...$base, 'plan_lane' => $mapping, 'reason' => 'hub_lane_unavailable'];
+        }
 
-        return $this->routeForContext(
-            (string) $shipment->logistics_organization_id,
-            (string) $shipment->logistics_hub_id,
-            $shipment->parcel?->order?->address?->postal_code,
-        );
+        return [...$base, 'plan_lane' => $mapping, 'lane' => $lane, 'reason' => 'matched'];
+    }
+
+    private function plansForHub(string $organizationId, string $hubId): ?SortingPlan
+    {
+        return SortingPlan::query()->where('logistics_organization_id', $organizationId)->where('logistics_hub_id', $hubId)->where('is_active', true)->with('lanes.lane')->first();
     }
 
     /** @return array<string, mixed> */
@@ -242,6 +282,8 @@ class SortingPlanService
             'lanes' => $plan->lanes->map(fn (SortingPlanLane $mapping): array => [
                 'id' => $mapping->id,
                 'postal_code' => $mapping->postal_code,
+                'destination_type' => $mapping->destination_type->value,
+                'destination_hub_id' => $mapping->destination_hub_id,
                 'position' => $mapping->position,
                 'lane' => $mapping->lane ? $this->laneProjection($mapping->lane) : null,
             ])->values()->all(),

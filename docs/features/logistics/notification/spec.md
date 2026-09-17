@@ -148,6 +148,10 @@ source action commits → durable notification work → recipient inbox
 - [x] Vehicle/OR/CR edits notify only the associated Logistics account once per changed revision without reapproval; backend projects a scoped vehicle destination.
 - [x] The Logistics notification detail opens the read-only Courier vehicle page; missing/foreign vehicles and documents show truthful unavailable states, and opening the page does not mark the notification read. Browser interaction automation remains a separate verification gate.
 
+### Hub-routing API integration (2026-09-18)
+
+For routed Shipments, final-mile evidence and completion producers resolve the recipient and resource destination through current custody organization/hub. Origin provider fields remain immutable; they no longer authorize another hub's final-mile task or proof. Historical notifications preserve their safe text while unavailable/foreign task destinations return no operational context. Transfer events remain custody history and do not add an unapproved notification type.
+
 ### References
 
 - Shared authority: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`.

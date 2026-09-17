@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureControlController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
+use App\Http\Controllers\Admin\HubRoutingConfigurationController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardCont
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
+use App\Http\Controllers\Logistics\HubRoutingController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
@@ -85,6 +87,10 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
+    Route::get('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'index'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.view')->name('hub-routing.index');
+    Route::post('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'store'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.store');
+    Route::patch('/hub-routing/{kind}/{id}', [HubRoutingConfigurationController::class, 'update'])->where('kind', 'service-areas|connections')->whereUuid('id')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.update');
+
     Route::prefix('seller-compliance')->name('seller-compliance.')->middleware('admin.permission:seller_compliance.manage')->group(function () {
         Route::get('/cases', [SellerComplianceController::class, 'index'])->name('index');
         Route::get('/options', [SellerComplianceController::class, 'options'])->name('options');
@@ -282,6 +288,10 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::get('/routes/{reference}', [HubRoutingController::class, 'show'])->name('hub-routing.show');
+    Route::post('/transfers/departures', [HubRoutingController::class, 'depart'])->middleware('throttle:60,1')->name('hub-routing.depart');
+    Route::post('/transfers/arrivals', [HubRoutingController::class, 'arrive'])->middleware('throttle:60,1')->name('hub-routing.arrive');
+
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [LogisticsNotificationController::class, 'index'])->name('index');
         Route::get('/unread-count', [LogisticsNotificationController::class, 'unreadCount'])->name('unread-count');

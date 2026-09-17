@@ -104,6 +104,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Customer Order detail shows the committed delivery state plus the assigned Courier name and contact number.
 - [ ] Automated ranking/expiry, stale threshold, and PostgreSQL/concurrency release verification remain open.
 
+### Hub-routing API integration (2026-09-18)
+
+`docs/features/logistics/hub-to-hub-routing/specs.md` extends the API with separate hub transfer custody. Final-mile schedules/offers remain restricted to a completed destination-hub route or same-hub/legacy flow. Final-mile Courier affiliation, task access, hub pickup context, and evidence/completion notifications use the current organization/hub; the immutable Seller-selected provider remains the origin. Transfers do not assign a final-mile Courier or change Order status. No dispatch UI or linehaul Courier automation is introduced by this extension.
+
 ## HOW
 
 ### Implementation boundary

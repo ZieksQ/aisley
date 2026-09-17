@@ -14,6 +14,7 @@ use App\Models\Shipment;
 use App\Models\SortingLane;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Logistics\Routing\ShipmentRouteService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,13 +41,17 @@ class DispatchScheduleService
             $this->assertCourier((string) $input['courier_id'], $org->id, $org->hub->id);
             $shipmentIds = array_values($input['shipment_ids']);
             $shipments = Shipment::query()->whereIn('id', $shipmentIds)
-                ->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)
+                ->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id)
                 ->with('parcel.waybill')->lockForUpdate()->get()->keyBy('id');
             if ($shipments->count() !== count($shipmentIds)) {
                 throw FulfillmentException::notFound('SHIPMENT_NOT_FOUND', 'One or more selected parcels are not available to this hub.');
             }
             if ($shipments->contains(fn (Shipment $shipment): bool => $shipment->status !== ShipmentStatus::SortedAtHub)) {
                 throw FulfillmentException::conflict('DISPATCH_STATE_CONFLICT', 'Only parcels sorted at this hub are ready to dispatch.');
+            }
+
+            foreach ($shipments as $shipment) {
+                app(ShipmentRouteService::class)->assertFinalMile($shipment);
             }
 
             $laneIds = $shipments->pluck('sorting_lane_id')->unique();

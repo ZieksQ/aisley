@@ -145,6 +145,10 @@ The web client may refresh after a conflict or validation failure, but it must n
 - Follow the dependency-ordered schema/service plan and legacy first-mile bridge in `docs/schema.md`. Preserve confirmations, replay results, and stock effects; new pickups cannot use the old direct-confirmation bypass after cutover.
 - Enable submission and validation together only after bridge reconciliation and SQLite/PostgreSQL checks pass. Manual recovery remains limited to transitions with an implemented evidence contract.
 
+### Hub-routing API integration (2026-09-18)
+
+The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` implements `in_transfer` through separate revision-checked transfer endpoints. Operational lookups/transitions use current Shipment custody organization/hub while waybill provider fields remain immutable origin context. Generic sort recovery cannot bypass an unresolved or cross-hub route; use the authoritative sorting session. Same-hub and legacy recovery compatibility remains. Historical receipt/transition retries recheck current custody before returning detail, and receiving hubs cannot read the previous organization's first-mile Courier/task details. The feature flag controls new waybill routes only; no transfer UI or extra linehaul evidence contract is added.
+
 ### References
 
 - Canonical: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, `docs/domains/Courier.md`, and `docs/features/shared/shipment-fulfillment/spec.md`.

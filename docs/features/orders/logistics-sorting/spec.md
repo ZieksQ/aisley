@@ -138,6 +138,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] The page uses dot-only online/connecting/offline feedback, consistently labels manual upload as **Sync scans**, and provides an operator-instructions dialog from the header.
 - [x] Focused Laravel tests plus Logistics TypeScript, lint, and production build pass.
 
+### Hub-routing API integration (2026-09-18)
+
+The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` adds hub-target plan mappings and route projections for new waybills behind `HUB_ROUTING_ENABLED=false` by default. Cross-hub parcels sort against the current hub's plan and committed next hop; unavailable routes remain in the local exception lane. Current custody fields scope eligible Shipments, and a previous hub's open session cannot block the receiving hub or reveal its lane/plan. Same-hub/legacy manual sorting compatibility remains. This extends the earlier transfer non-goal at the API layer only; no transfer UI is included.
+
 ## HOW
 
 - Add additive migrations for sorting lanes, sessions, snapshot items, idempotent scan results, sort plans, postal-code mappings, and automatic-routing metadata; store enum-like values as strings.

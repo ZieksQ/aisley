@@ -13,8 +13,10 @@ class AddSortingPlanLaneRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $postalCode = preg_replace('/[\s-]+/', '', trim((string) $this->input('postal_code')));
-        $this->merge(['postal_code' => $postalCode]);
+        if ($this->has('postal_code')) {
+            $postalCode = preg_replace('/[\s-]+/', '', trim((string) $this->input('postal_code')));
+            $this->merge(['postal_code' => $postalCode]);
+        }
     }
 
     public function rules(): array
@@ -22,7 +24,9 @@ class AddSortingPlanLaneRequest extends FormRequest
         return [
             'expected_revision' => ['required', 'integer', 'min:1'],
             'lane_id' => ['required', 'uuid'],
-            'postal_code' => ['required', 'string', 'regex:/^\d{4}$/'],
+            'destination_type' => ['sometimes', 'in:postal_code,hub'],
+            'destination_hub_id' => ['required_if:destination_type,hub', 'prohibited_unless:destination_type,hub', 'uuid'],
+            'postal_code' => ['required_unless:destination_type,hub', 'nullable', 'prohibited_if:destination_type,hub', 'string', 'regex:/^\d{4}$/'],
             'position' => ['sometimes', 'integer', 'min:1', 'max:999'],
         ];
     }

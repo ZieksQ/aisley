@@ -7,6 +7,8 @@ use App\Events\SellerOrderBecameActionable;
 use App\Listeners\SendCustomerOrderStatusNotification;
 use App\Listeners\SendSellerOrderActionableNotification;
 use App\Models\PersonalAccessToken;
+use App\Services\Logistics\Routing\DurationDistanceWeightCalculator;
+use App\Services\Logistics\Routing\RouteWeightCalculator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -21,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(RouteWeightCalculator::class, DurationDistanceWeightCalculator::class);
         //
     }
 
