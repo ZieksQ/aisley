@@ -89,6 +89,59 @@ class CourierVehicleFleetManagementTest extends TestCase
         $this->actingAs($otherLogistics)->getJson('/api/v1/logistics/couriers/'.$courier->id.'/vehicle')->assertNotFound();
     }
 
+    public function test_logistics_vehicle_list_is_bounded_scoped_and_contains_no_private_media(): void
+    {
+        [$courier, $logistics] = $this->courierPair('first@example.com', 'fleet-logistics@example.com');
+        $second = $this->additionalCourier($logistics, 'second@example.com', 'FLEET-TWO');
+        $pending = $this->additionalCourier($logistics, 'pending@example.com', 'FLEET-PENDING', CourierAffiliationStatus::Pending);
+        $suspended = $this->additionalCourier($logistics, 'suspended@example.com', 'FLEET-SUSPENDED');
+        $suspended->update(['status' => UserStatus::Suspended]);
+        [$foreign] = $this->courierPair('foreign@example.com', 'other-fleet@example.com');
+
+        $this->getJson('/api/v1/logistics/vehicles')->assertUnauthorized();
+        $this->actingAs($courier)->getJson('/api/v1/logistics/vehicles')->assertForbidden();
+
+        $response = $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?per_page=1&page=1')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.last_page', 2);
+        $this->assertNotNull($response->json('links.next'));
+        $this->assertStringNotContainsString('documents/', $response->getContent());
+        $this->assertStringNotContainsString('registration_document_path', $response->getContent());
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?search=FLEET-TWO')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.courier.id', $second->id)
+            ->assertJsonPath('data.0.vehicle.plate_number', 'FLEET-TWO')
+            ->assertJsonPath('data.0.vehicle.official_receipt_uploaded', false);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?search='.$foreign->email)
+            ->assertOk()->assertJsonPath('meta.total', 0);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?search=FLEET-PENDING')
+            ->assertOk()->assertJsonPath('meta.total', 0);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?search=%25')
+            ->assertOk()->assertJsonPath('meta.total', 0);
+        $this->assertNotSame($pending->id, $second->id);
+    }
+
+    public function test_logistics_vehicle_list_validates_pagination_and_stable_order(): void
+    {
+        [$courier, $logistics] = $this->courierPair('older@example.com', 'ordering-logistics@example.com');
+        $second = $this->additionalCourier($logistics, 'newer@example.com', 'FLEET-NEWER');
+        $courier->courierProfile->vehicles()->first()->forceFill(['created_at' => now()->subDay()])->save();
+
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?per_page=1&page=1')
+            ->assertOk()->assertJsonPath('data.0.courier.id', $second->id);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?per_page=1&page=2')
+            ->assertOk()->assertJsonPath('data.0.courier.id', $courier->id);
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?per_page=51')
+            ->assertUnprocessable()->assertJsonValidationErrors('per_page');
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/vehicles?page=0')
+            ->assertUnprocessable()->assertJsonValidationErrors('page');
+    }
+
     public function test_courier_can_replace_or_and_cr_independently_and_documents_are_private(): void
     {
         [$courier, $logistics] = $this->courierPair();
@@ -141,6 +194,17 @@ class CourierVehicleFleetManagementTest extends TestCase
         $profile->vehicles()->create(['plate_number' => $courierEmail === 'courier@example.com' ? 'TEST-ONE' : 'TEST-'.strtoupper(substr(md5($courierEmail), 0, 6)), 'type' => VehicleType::Motorcycle, 'status' => VehicleStatus::Active]);
 
         return [$courier->fresh(['courierProfile.vehicles']), $logistics];
+    }
+
+    private function additionalCourier(User $logistics, string $email, string $plate, CourierAffiliationStatus $affiliationStatus = CourierAffiliationStatus::Approved): User
+    {
+        $organization = $logistics->logisticsOrganization()->with('hub')->firstOrFail();
+        $courier = User::factory()->create(['email' => $email, 'role' => UserRole::Courier, 'status' => UserStatus::Active]);
+        $profile = $courier->courierProfile()->create(['first_name' => 'Cora', 'last_name' => 'Rider', 'contact_number' => '09171234568', 'sex' => UserSex::Female, 'birth_date' => '1994-06-15']);
+        $courier->courierLogisticsAffiliation()->create(['logistics_organization_id' => $organization->id, 'logistics_hub_id' => $organization->hub->id, 'status' => $affiliationStatus]);
+        $profile->vehicles()->create(['plate_number' => $plate, 'type' => VehicleType::Motorcycle, 'status' => VehicleStatus::Active]);
+
+        return $courier;
     }
 
     private function png(): string

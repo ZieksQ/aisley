@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaChevronUp, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
+import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaCarSide, FaChevronUp, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
@@ -96,6 +96,8 @@ export function LogisticsLayout() {
       ? 'Dispatch parcels'
     : location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')
       ? 'Courier vehicle'
+    : location.pathname.startsWith('/vehicles')
+      ? 'Vehicles'
     : location.pathname.startsWith('/operations')
       ? 'Parcel search'
       : location.pathname.startsWith('/pickups')
@@ -125,6 +127,7 @@ export function LogisticsLayout() {
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sort-plan"><FaRoute />Sort plan</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Dispatch parcels</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
+        <NavLink className={({ isActive }) => navClass({ isActive: isActive || (location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')) })} onClick={() => setOpen(false)} to="/vehicles"><FaCarSide />Vehicles</NavLink>
       </nav>
       <div className="mt-4 shrink-0 border-t border-zinc-200 pt-3 dark:border-white/10"><AccountMenu logistics={logistics} onLogout={() => void signOut()} onNavigate={() => setOpen(false)} signingOut={signingOut} /></div>
     </aside>

@@ -308,6 +308,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/courier-applications/{affiliation}', [CourierApprovalController::class, 'show'])->whereUuid('affiliation')->name('courier-applications.show');
     Route::get('/courier-applications/{affiliation}/documents/{document}', [CourierApprovalController::class, 'document'])->whereUuid('affiliation')->whereUuid('document')->name('courier-applications.documents.show');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
+    Route::get('/vehicles', [LogisticsCourierVehicleController::class, 'index'])->name('vehicles.index');
     Route::get('/couriers/{courier}/vehicle', [LogisticsCourierVehicleController::class, 'show'])->whereUuid('courier')->name('couriers.vehicle.show');
     Route::get('/couriers/{courier}/vehicle/documents/{kind}', [LogisticsCourierVehicleController::class, 'document'])->whereUuid('courier')->whereIn('kind', ['official_receipt', 'certificate_of_registration'])->name('couriers.vehicle.documents.show');
     Route::get('/pickups', [LogisticsPickupController::class, 'index'])->name('pickups.index');

@@ -126,7 +126,7 @@ export function CourierVehiclePage() {
   }, [courierId, scope, refresh, logout, navigate])
 
   return <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
-    <Link className={`${link} inline-flex items-center gap-2 text-sm`} to="/notifications"><FaArrowLeft aria-hidden="true" />Back to notifications</Link>
+    <nav aria-label="Vehicle navigation" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"><Link className={`${link} inline-flex items-center gap-2`} to="/vehicles"><FaArrowLeft aria-hidden="true" />Back to vehicles</Link><Link className={link} to="/notifications">Back to notifications</Link></nav>
     <div className="mt-4 flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-white/10"><div><h2 className="text-xl font-semibold">Courier vehicle</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Current details for an affiliated Courier.</p></div><ActionButton busy={loading} onClick={() => setRefresh((value) => value + 1)}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton></div>
     {loading ? <p className="mt-5 text-sm text-zinc-600 dark:text-zinc-400" role="status">Loading Courier vehicle…</p> : null}
     {error ? <div className="mt-5"><ErrorNotice message={error} retry={() => setRefresh((value) => value + 1)} /></div> : null}

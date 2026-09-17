@@ -3,7 +3,7 @@ feature: logistics-notification
 title: Logistics Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Inbox, vehicle-update producer, and vehicle destination UI implemented
 implementation_status: Notification list/detail/read/count API, bell/inbox UI, vehicle-update delivery, backend destination projection, and read-only vehicle detail React route implemented
 role: Logistics
@@ -121,6 +121,7 @@ source action commits → durable notification work → recipient inbox
 ### Logistics UI
 
 - Existing bell, `/notifications`, and `/notifications/:notificationId` remain the entry point. A vehicle alert opens its notification detail, whose destination link navigates to the protected `/couriers/:courierId/vehicle` page.
+- The Logistics **Vehicles** sidebar list is another path to current vehicle details; it does not depend on an alert or change notification read state.
 - Label that action **Open Courier vehicle** for this alert type. The vehicle page must fetch the current scoped Logistics vehicle API; do not render OR/CR from notification payload or imply the alert contains a historical vehicle snapshot.
 - If the backend supplies no destination, the notification remains readable and shows an unavailable target. Direct URL refresh and browser back navigation use the protected Logistics route.
 - A vehicle `404`, lost affiliation, or unavailable document leaves the alert readable and shows a safe unavailable/retry state on the destination. Opening a record does not automatically mark the alert read or reapprove the Courier.

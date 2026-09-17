@@ -12,3 +12,22 @@ export type CourierVehicle = {
 }
 
 export type CourierVehicleResponse = { data: CourierVehicle }
+
+export type CourierVehicleSummary = {
+  courier: { id: string; name: string; email: string }
+  vehicle: {
+    id: string
+    vehicle_type: CourierVehicle['vehicle_type']
+    plate_number: string
+    make: string | null
+    model: string | null
+    revision: number
+    official_receipt_uploaded: boolean
+    certificate_of_registration_uploaded: boolean
+  }
+}
+
+export type CourierVehiclePageResponse = {
+  data: CourierVehicleSummary[]
+  meta: { current_page: number; last_page: number; per_page: number; total: number }
+}
