@@ -51,7 +51,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - Automatic offer expiry is deferred; offers have no MVP expiry deadline. Re-offer after rejection appends a new offer on the same task and restores the leg-specific offered state, without changing custody or the Order.
 
-- Candidate discovery is limited to active Couriers affiliated with this Logistics organization and eligible for the task. Availability, capacity, zone, and vehicle rules are consumed from their owning features rather than duplicated here.
+- Candidate discovery is limited to active Couriers affiliated with this Logistics organization and eligible for the task. Each Courier's sole vehicle is owned by the registration/registry contract. Vehicle maintenance, history, capacity values/units, and capacity matching are deferred and must not introduce candidate eligibility gates; preserve existing availability and schedule checks.
 - Pickup and destination come from immutable Seller/Customer snapshots and the task's authorized hub context; Deploy Rider cannot edit either address.
 - The server may return provider-neutral `distance_km` and `estimated_duration_minutes` for candidate ranking and Courier task context. They are advisory, may be unavailable, and are never accepted from the client as authoritative values.
 - No particular map or routing vendor is selected. Route suggestions must not decide eligibility, ownership, assignment, or status; missing/stale location is not zero distance.
@@ -84,7 +84,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Open questions
 
 - Confirm the GPS freshness threshold, candidate radius/limit, and whether ranking prefers distance or estimated duration.
-- Confirm whether vehicle, zone, and capacity checks are hard or advisory, and whether automated dispatch is enabled in the MVP.
+- Confirm future zone checks and automated dispatch separately. Vehicle-capacity and maintenance gating are deferred, not unresolved MVP prerequisites.
 
 ### Acceptance criteria
 

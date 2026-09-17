@@ -21,6 +21,7 @@ use App\Http\Controllers\Courier\FinalMileTaskController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
 use App\Http\Controllers\Courier\PickupRouteManifestController;
 use App\Http\Controllers\Courier\ProofOfDeliveryController;
+use App\Http\Controllers\Courier\VehicleController as CourierVehicleController;
 use App\Http\Controllers\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
+use App\Http\Controllers\Logistics\CourierVehicleController as LogisticsCourierVehicleController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
@@ -306,6 +308,9 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/courier-applications/{affiliation}', [CourierApprovalController::class, 'show'])->whereUuid('affiliation')->name('courier-applications.show');
     Route::get('/courier-applications/{affiliation}/documents/{document}', [CourierApprovalController::class, 'document'])->whereUuid('affiliation')->whereUuid('document')->name('courier-applications.documents.show');
     Route::post('/courier-applications/{affiliation}/{decision}', [CourierApprovalController::class, 'decide'])->whereUuid('affiliation')->whereIn('decision', ['approve', 'reject'])->name('courier-applications.decide');
+    Route::get('/vehicles', [LogisticsCourierVehicleController::class, 'index'])->name('vehicles.index');
+    Route::get('/couriers/{courier}/vehicle', [LogisticsCourierVehicleController::class, 'show'])->whereUuid('courier')->name('couriers.vehicle.show');
+    Route::get('/couriers/{courier}/vehicle/documents/{kind}', [LogisticsCourierVehicleController::class, 'document'])->whereUuid('courier')->whereIn('kind', ['official_receipt', 'certificate_of_registration'])->name('couriers.vehicle.documents.show');
     Route::get('/pickups', [LogisticsPickupController::class, 'index'])->name('pickups.index');
     Route::get('/pickups/{pickup}', [LogisticsPickupController::class, 'show'])->whereUuid('pickup')->name('pickups.show');
     Route::get('/pickups/{pickup}/waybills', [LogisticsPickupController::class, 'waybills'])->whereUuid('pickup')->name('pickups.waybills');
@@ -363,6 +368,15 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         ->name('account.profile-photo.show');
     Route::delete('/account/profile-photo', [CourierAccountController::class, 'removeProfilePhoto'])
         ->name('account.profile-photo.destroy');
+    Route::get('/vehicle', [CourierVehicleController::class, 'show'])->name('vehicle.show');
+    Route::patch('/vehicle', [CourierVehicleController::class, 'update'])->name('vehicle.update');
+    Route::post('/vehicle/documents/{kind}', [CourierVehicleController::class, 'upload'])
+        ->whereIn('kind', ['official_receipt', 'certificate_of_registration'])
+        ->middleware('throttle:courier-vehicle-documents')
+        ->name('vehicle.documents.store');
+    Route::get('/vehicle/documents/{kind}', [CourierVehicleController::class, 'document'])
+        ->whereIn('kind', ['official_receipt', 'certificate_of_registration'])
+        ->name('vehicle.documents.show');
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
     Route::get('/pickup-schedules/{schedule}/route-manifest', [PickupRouteManifestController::class, 'show'])->whereUuid('schedule')->name('pickup-schedules.route-manifest.show');

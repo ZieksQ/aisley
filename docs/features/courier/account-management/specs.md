@@ -3,7 +3,7 @@ feature: courier-account-management
 title: Courier Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.3
+version: 2.4
 status: Phase 1 account operations and profile-photo extension implemented
 implementation_status: implemented; six protected account routes available
 canonical: true
@@ -41,7 +41,7 @@ select image locally → POST /api/v1/courier/account/profile-photo
 
 Account Management begins only after Courier access is active. It does not approve registration, change Logistics affiliation, assign work, or alter shipment state.
 
-Vehicle mutations, license information, payout methods, email changes, account deletion, availability, and delivery operations remain separate or deferred.
+Vehicle mutations are implemented in the separate API contract owned by `docs/features/logistics/vehicle-fleet-management/specs.md`: type/plate/optional make/model and independent OR/CR replacement need no Logistics reapproval, but notify associated Logistics after commit. Existing profile routes do not accept these fields. External Flutter rollout remains separate. License, payout, email, deletion, availability and delivery retain separate contracts.
 
 Non-goals:
 
@@ -189,7 +189,7 @@ Example:
 - Current Phase 1 needs no migration: existing profile fields and personal access tokens support the implemented slice.
 - The photo implementation uses existing profile_photo_path plus disk/MIME/size/width/height metadata, consistent with other role profile-photo implementations.
 - Age remains derived from birth_date; it is never stored or client-supplied.
-- Vehicle, license, payout, and evidence changes remain separate contracts; registration approval remains Logistics-owned.
+- Vehicle and OR/CR edits follow the registry's implemented routes, revision/idempotency, private delivery, and independent replacement rules; never route them through profile/photo endpoints. Initial registration approval remains Logistics-owned; later vehicle edits do not reset it. License/payout changes remain separate.
 - Shipment and Delivery Task schema approval is not a prerequisite for this account feature.
 - The shared upload policy is mandatory; stricter avatar limits, scanning, derivatives, retention, and audit policy remain open.
 

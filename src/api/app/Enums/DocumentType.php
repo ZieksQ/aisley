@@ -9,6 +9,8 @@ enum DocumentType: string
     case TaxDocument = 'tax_document';
     case DriversLicense = 'drivers_license';
     case VehicleRegistration = 'vehicle_registration';
+    case OfficialReceipt = 'official_receipt';
+    case CertificateOfRegistration = 'certificate_of_registration';
     case ProofOfAddress = 'proof_of_address';
     case Other = 'other';
 }

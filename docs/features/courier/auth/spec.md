@@ -3,7 +3,7 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 2.3
 status: Implemented foundation; dedicated coverage and recovery completion deferred
 implementation_status: Auth foundation implemented; first- and final-mile APIs exist under their owning specs; external Flutter implementation unverified
 canonical: true
@@ -51,8 +51,8 @@ GET active Logistics options
 - Accept one `logistics_organization_id` UUID. Re-resolve an active Logistics organization with a hub inside the transaction; ignore any client `hub_id` or sub-hub field.
 - Accept nested `address` fields: `address_line_1`, optional `address_line_2`, `barangay`, `city_municipality`, `province`, `region`, and `postal_code` (maximum 10). Set country to `Philippines` server-side.
 - Use bundled PSGC Region → Province → City/Municipality → Barangay data and a manual fallback in Flutter. Current Courier registration stores labels/text only; it does not persist PSGC codes, coordinates, or provider IDs.
-- Accept `vehicle_type` values `motorcycle`, `car`, or `van`, plus a required `plate_number` (maximum 64). Registration creates one active initial Vehicle.
-- Do not add a vehicle fleet, multiple vehicles, map pin, or Courier location contract to Auth without a separate approved feature.
+- Accept `vehicle_type` values `motorcycle`, `car`, or `van`, plus a required `plate_number` (maximum 64). MVP requires exactly one Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration now enforces uniqueness after duplicate preflight.
+- Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred under the Logistics Vehicle Fleet Management spec. This does not remove existing registration/operational history or add a map-pin contract.
 
 ### Flutter registration field map
 
@@ -70,7 +70,8 @@ GET active Logistics options
 
 ### Evidence and transaction rules
 
-- Current multipart fields are `government_id` and `vehicle_registration`; both are required images. The first field covers the current ID/driver-license requirement; a distinct `drivers_license` field needs an approved contract.
+- Current multipart fields are `government_id` and `vehicle_registration`; both are required images. Planned registration replaces the combined image with required `official_receipt` and `certificate_of_registration`, plus optional make/model, under the registry contract. These inputs are not live; a distinct `drivers_license` field remains separate work.
+- After initial approval, implemented Courier vehicle endpoints permit type/plate/make/model edits and independent OR/CR replacement without reapproval, notifying associated Logistics after commit. Preserve initial approval evidence; keep the combined registration field until a coordinated Flutter registration rollout switches to separate fields, and reject mixed legacy/new forms.
 - Apply [`docs/references/file-upload-requirements.md`](../../../references/file-upload-requirements.md): JPEG/JPG, PNG, or WebP only, strictly under 10 MiB, with detected MIME/signature/decode validation.
 - Store generated private object keys and document metadata. Never return bytes, raw paths, credentials, or predictable URLs in the Courier resource.
 - Create User, CourierProfile, address, pending RegistrationApplication, pending affiliation, Vehicle, and Document rows in one logical transaction.
@@ -119,6 +120,7 @@ GET active Logistics options
 ### Acceptance criteria
 
 - [x] Registration creates one pending Courier foundation and no credential.
+- [x] Additive uniqueness and approval completeness checks fail closed on ambiguous vehicle cardinality; legacy Logistics review continues to use the combined OR/CR registration evidence until separate registration fields are rolled out.
 - [x] Age is derived from `birth_date`; client-supplied age is rejected or ignored.
 - [x] Organization and sole hub are server-derived; role/status/reviewer/hub injection is prohibited.
 - [x] Accepted image types and the strict under-10-MiB boundary are enforced server-side.

@@ -3,9 +3,9 @@ feature: logistics-notification
 title: Logistics Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Implemented (focused verification complete; release gates pending)
-implementation_status: Logistics inbox API, bell/inbox UI, after-commit delivery, deterministic deduplication, and all MVP producer hooks are implemented
+version: 1.4
+status: Inbox, vehicle-update producer, and vehicle destination UI implemented
+implementation_status: Notification list/detail/read/count API, bell/inbox UI, vehicle-update delivery, backend destination projection, and read-only vehicle detail React route implemented
 role: Logistics
 scope: Laravel API and Logistics React dashboard
 ---
@@ -17,9 +17,8 @@ scope: Laravel API and Logistics React dashboard
 - Provide a persistent in-app inbox, header bell, recent preview, and unread badge for the Logistics operator.
 - Reuse the Seller/Customer list, detail, and mark-read pattern and Admin notification persistence principles.
 - This is an in-app notification feature, not SMTP email, marketing campaigns, chat, or an operational audit ledger.
-- Current `SellerPickupRequestedNotification` already stores `logistics-pickup.requested` in Laravel's database channel.
-- Its legacy payload contains `pickup_request_id`, `shop_id`, `order_count`, and `status`; it has no presentation title or destination.
-- Current Logistics routes have no notification list/detail/read API. The UI and endpoints below are planned, not callable yet.
+- Existing Logistics inbox APIs and UI project legacy pickup notifications into safe title, summary, and destination fields.
+- Courier vehicle edits create `logistics-courier.vehicle-updated` notifications. The backend projects an authorized `/couriers/{courierId}/vehicle` destination, and the Logistics React app opens its protected, read-only current vehicle page.
 - One Logistics account operates one organization and its sole hub; do not introduce staff accounts or sub-hub inboxes.
 - Source features own business actions; notification screens only read alerts and update their read state.
 - Exclude email/SMS/mobile push, WebSockets, arbitrary notification creation, bulk campaigns, delete/archive, and mark-unread in MVP.
@@ -45,11 +44,12 @@ source action commits → durable notification work → recipient inbox
 
 | Type                                    | Committed trigger and recipient                                     | Boundary                                                                 |
 | --------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `logistics-pickup.requested`            | Seller pickup request; selected Logistics account                   | Existing producer; add safe projection and retry/deduplication hardening |
-| `logistics-courier.application-pending` | New pending Courier affiliation; associated Logistics account       | Planned integration with Courier Auth and Logistics approval             |
-| `logistics-task.offer-rejected`         | Final-mile offer rejected; task's owning Logistics account          | Planned integration; key by rejected offer, not Order                    |
-| `logistics-evidence.submitted`          | New hub-pickup or delivery-proof evidence; owning Logistics account | Planned integration; key by evidence ID and purpose                      |
-| `logistics-completion.requested`        | New Courier completion intent; owning Logistics account             | Planned integration; key by intent ID                                    |
+| `logistics-pickup.requested`            | Seller pickup request; selected Logistics account                   | Implemented; safe projection and deduplication |
+| `logistics-courier.application-pending` | New pending Courier affiliation; associated Logistics account       | Implemented |
+| `logistics-task.offer-rejected`         | Final-mile offer rejected; task's owning Logistics account          | Implemented; deduplicate by offer |
+| `logistics-evidence.submitted`          | New hub-pickup or delivery-proof evidence; owning Logistics account | Implemented; deduplicate by evidence/purpose |
+| `logistics-completion.requested`        | New Courier completion intent; owning Logistics account             | Implemented; deduplicate by intent |
+| `logistics-courier.vehicle-updated`      | Committed vehicle field or independent OR/CR replacement; associated Logistics account | Implemented; deduplicate by vehicle revision/recipient; informational, no approval action |
 
 - Do not emit an alert on list reads, QR resolution alone, duplicate retries, or uncommitted source actions.
 - First-mile direct pickup remains its current contract; do not require Logistics review merely to create notifications.
@@ -57,6 +57,8 @@ source action commits → durable notification work → recipient inbox
 - Re-offering the same task may later produce another rejection alert only for a new committed offer.
 - Evidence and completion alerts may both exist: they represent distinct review steps, not duplicate events.
 - Existing pickup, approval, and operations queues remain usable if notification delivery fails.
+- Vehicle-change notifications contain Courier/vehicle references, changed field names and time only; no evidence, full plates, or private old/new values. Retried delivery never reruns the edit, no-op saves do not notify, and failure cannot reset approval or undo saved information.
+- The backend validates current Courier affiliation within this Logistics organization and sole hub before returning `destination: /couriers/{courierId}/vehicle`. A missing/foreign affiliation yields a null destination; the vehicle endpoint independently reauthorizes on navigation.
 
 ### Persistence, delivery, and history
 
@@ -85,11 +87,11 @@ source action commits → durable notification work → recipient inbox
 
 ### API contract — implemented
 
-| Method/path                                                | Request         | Success                                               |
-| ---------------------------------------------------------- | --------------- | ----------------------------------------------------- | ---------------------------------- | ----------------------------------------------- |
-| `GET /api/v1/logistics/notifications`                      | `status=all     | unread                                                | read`, `page>=1`, `per_page=1..50` | `200`, paginated `data`, Laravel `links`/`meta` |
-| `GET /api/v1/logistics/notifications/unread-count`         | No body         | `200 {data: {unread_count: 3}}`                       |
-| `GET /api/v1/logistics/notifications/{notification}`       | UUID, no body   | `200 {data: <notification>}`; no read mutation        |
+| Method/path | Request | Success |
+| --- | --- | --- |
+| `GET /api/v1/logistics/notifications` | `status=all\|unread\|read`, `page>=1`, `per_page=1..50` | `200`, paginated `data`, Laravel `links`/`meta` |
+| `GET /api/v1/logistics/notifications/unread-count` | No body | `200 {data: {unread_count: 3}}` |
+| `GET /api/v1/logistics/notifications/{notification}` | UUID, no body | `200 {data: <notification>}`; no read mutation |
 | `POST /api/v1/logistics/notifications/{notification}/read` | Empty JSON body | `200 {data: <notification>}` with committed `read_at` |
 
 - Register `unread-count` before the UUID route. Reject unsupported query/body fields with `422`.
@@ -118,7 +120,11 @@ source action commits → durable notification work → recipient inbox
 
 ### Logistics UI
 
-- Add `/notifications` and notification detail navigation to the existing Logistics router and header layout.
+- Existing bell, `/notifications`, and `/notifications/:notificationId` remain the entry point. A vehicle alert opens its notification detail, whose destination link navigates to the protected `/couriers/:courierId/vehicle` page.
+- The Logistics **Vehicles** sidebar list is another path to current vehicle details; it does not depend on an alert or change notification read state.
+- Label that action **Open Courier vehicle** for this alert type. The vehicle page must fetch the current scoped Logistics vehicle API; do not render OR/CR from notification payload or imply the alert contains a historical vehicle snapshot.
+- If the backend supplies no destination, the notification remains readable and shows an unavailable target. Direct URL refresh and browser back navigation use the protected Logistics route.
+- A vehicle `404`, lost affiliation, or unavailable document leaves the alert readable and shows a safe unavailable/retry state on the destination. Opening a record does not automatically mark the alert read or reapprove the Courier.
 - Bell preview requests five recent rows and unread count; the full page uses the same API with read/unread filters.
 - Show loading, empty, filtered-empty, loaded, unavailable-target, permission, consent, timeout, offline, and retry states.
 - Mark read only through an explicit action or after successful detail rendering; loading the bell/list never marks read.
@@ -129,17 +135,18 @@ source action commits → durable notification work → recipient inbox
 
 ### Implementation and verification
 
-- Add Logistics-specific Controller, ListNotificationsRequest, and Resource; reuse patterns without exposing Seller/Customer/Admin routes or payload types.
-- Inspect current delivery infrastructure before adding durable intent storage; any required fields/indexes/tables use new additive migrations only.
-- Add producer integration tests against pickup requests, Courier affiliation, final-mile offer rejection, evidence, and completion intent owners.
+- Reuse the implemented Logistics notification service, controller, resource, and route projection. The vehicle destination page belongs to `docs/features/logistics/vehicle-fleet-management/specs.md`.
+- Test that vehicle notifications supply only a scoped internal destination, and that navigation resolves the current read-only vehicle page without leaking a foreign Courier or private document.
 - Keep release-level checks open until the recorded verification gates are complete; this feature adds no email behavior or second inbox table.
 - [x] Guest, wrong-role, inactive, cross-account, cross-organization, and forged-resource access fails closed.
-- [x] Existing pickup notifications render safely and preserve read history; every planned producer reaches only its owning Logistics account.
+- [x] Existing pickup notifications render safely and preserve read history; implemented producers reach only their owning Logistics account.
 - [x] List/count/detail share scope, stable ordering, bounded pagination, and private cache rules.
 - [x] Concurrent-safe mark-read and deterministic delivery paths preserve first read time and one notification per event/recipient/type; focused API coverage exercises idempotent reads and delivery deduplication.
 - [x] Rollback-safe after-commit delivery and queue retries cannot duplicate or undo operational decisions; PostgreSQL/concurrency verification remains a release gate.
 - [x] Bell/list/detail implement loading, failures, consent recovery, stale links, explicit read state, polling visibility, and logout cleanup; browser automation remains a release gate.
 - [ ] SQLite/PostgreSQL migration/API tests and Logistics type-check/build/UI tests pass with recorded results.
+- [x] Vehicle/OR/CR edits notify only the associated Logistics account once per changed revision without reapproval; backend projects a scoped vehicle destination.
+- [x] The Logistics notification detail opens the read-only Courier vehicle page; missing/foreign vehicles and documents show truthful unavailable states, and opening the page does not mark the notification read. Browser interaction automation remains a separate verification gate.
 
 ### References
 

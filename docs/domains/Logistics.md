@@ -132,8 +132,9 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 ### 6. Vehicle Fleet Management
 
 - **Core value:** Maintain the organization's Courier vehicle registry.
-- **Definition:** Track vehicle type, plate, capacity, status, and maintenance data used for Courier eligibility and operational planning.
-- **System context:** Fleet records are organization-scoped and may constrain final-mile assignment; they do not change parcel status themselves.
+- **Definition:** Review the required type, plate, and private OR/CR supplied for each affiliated Courier's exactly one vehicle. Maintenance, vehicle history, and capacity values/units/matching are deferred.
+- **Edit boundary:** After initial approval, Courier edits to type/plate/optional make/model and separate OR/CR replacements need no Logistics approval. The organization receives a durable informational notification and may view current data through its scoped Vehicles list/detail or the alert destination; it does not approve or reject the edit.
+- **System context:** The registry is scoped through Courier affiliation to this organization's sole hub. Registration/application review remains compatible with the combined legacy document, while dedicated fleet editing and database cardinality hardening are implemented additively. Deferred capacity or maintenance must not create dispatch gates or alter parcel status.
 
 ### 7. Waybill
 

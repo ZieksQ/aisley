@@ -163,7 +163,8 @@ class CourierApprovalService
             $missing[] = 'address';
         }
 
-        if (! $profile || ! $profile->vehicles()->where('status', 'active')->exists()) {
+        $vehicles = $profile?->vehicles()->get() ?? collect();
+        if ($vehicles->count() !== 1 || $vehicles->first()?->status?->value !== 'active') {
             $missing[] = 'vehicle';
         }
 
