@@ -94,6 +94,8 @@ export function LogisticsLayout() {
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')
       ? 'Dispatch parcels'
+    : location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')
+      ? 'Courier vehicle'
     : location.pathname.startsWith('/operations')
       ? 'Parcel search'
       : location.pathname.startsWith('/pickups')

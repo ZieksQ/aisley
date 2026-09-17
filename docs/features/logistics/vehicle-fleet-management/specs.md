@@ -3,8 +3,8 @@ role: Logistics
 feature: Vehicle Fleet Management
 system: AISLEY
 type: Feature Specification
-version: 2.3
-status: Vehicle read/edit backend implemented; Logistics vehicle detail UI and fleet list deferred
+version: 2.4
+status: Vehicle read/edit backend and notification-linked Logistics detail UI implemented; fleet list deferred
 canonical: true
 scope: Logistics-scoped registry of each Courier's sole vehicle
 source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier.md
@@ -21,7 +21,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 - Couriers provide vehicle information and OR/CR; associated Logistics reviews the application.
 - Logistics sees many vehicles only because its organization has many Couriers.
 - One Logistics account operates the organization's sole hub; no staff or sub-hub credentials are introduced.
-- Registration and Courier application review remain the compatibility foundation; Courier vehicle mutations and Logistics vehicle/document reads are implemented. The Logistics vehicle page is not yet built.
+- Registration and Courier application review remain the compatibility foundation; Courier vehicle mutations, Logistics vehicle/document reads, and the notification-linked read-only Logistics vehicle page are implemented.
 
 ### Deferred scope
 
@@ -102,8 +102,8 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 - [x] Separate OR/CR replacements require valid decoded image content under the shared upload policy; missing or inaccessible evidence is never presented as verified.
 - [x] Foreign-role and cross-organization requests return scoped `404` responses and private streams are authorization-gated.
 - [x] The API exposes supported multipart fields, UUID idempotency replay/conflict behavior, and no Courier web UI; Flutter consumption remains the client rollout task.
-- [ ] Logistics can open an active affiliated Courier's vehicle detail from a vehicle-update notification, refresh current fields, and privately view OR or CR.
-- [ ] Foreign or no-longer-affiliated Couriers show a safe unavailable state; the notification remains readable without exposing vehicle data.
+- [x] Logistics can open an active affiliated Courier's vehicle detail from a vehicle-update notification, refresh current fields, and privately view OR or CR.
+- [x] Foreign or no-longer-affiliated Couriers show a safe unavailable state; the notification remains readable without exposing vehicle data.
 - [x] No maintenance, vehicle history, capacity input/unit, or capacity matching is required in the MVP.
 - [x] Existing approval decisions, shipment history, schedules, and task transitions remain intact.
 
@@ -136,16 +136,16 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 - [ ] Each editable field saves without reapproval; unrelated fields, the other document, and registration/operational history remain unchanged.
 - [ ] Independent upload, failed replacement, stale/concurrent writes, duplicate retry, tenant isolation, and after-commit notification failure are verified before release.
 
-### Logistics vehicle UI — planned
+### Logistics vehicle UI — implemented detail, deferred list
 
-- Add protected, read-only `/couriers/:courierId/vehicle` in the existing Logistics React app. The URL uses the Courier UUID in the authorized notification destination, not the Vehicle UUID; refresh/deep links must work.
+- Protected, read-only `/couriers/:courierId/vehicle` is implemented in the existing Logistics React app. The URL uses the Courier UUID in the authorized notification destination, not the Vehicle UUID; refresh/deep links use the same scoped read.
 - From notification detail, **Open Courier vehicle** follows that destination. The page fetches `GET /api/v1/logistics/couriers/{courier}/vehicle` on entry and refresh, showing current type, plate, optional make/model, revision, and separate OR/CR availability. Historical notification text is not a vehicle snapshot.
 - Show Courier context only if obtained from an authorized source; the current vehicle DTO does not provide Courier name/contact. Do not infer identity from raw notification payload.
-- Each available document opens through its returned authorized URL using the app's authenticated API client, with an accessible private preview or download. A null document shows **Not uploaded**; stream `404`/storage `503` shows **Unavailable** with retry. Never render a raw object path or persist evidence in browser storage.
-- Include Back to Notifications, clear loading/empty/forbidden/not-found/offline/retry states, keyboard labels and focus handling, responsive light/dark layouts, and cleanup of private previews on route change/logout.
+- Each available document loads on demand through its returned authorized URL using the app's authenticated API client, with an accessible private preview and download. A null document shows **Not uploaded**; stream `404`/storage `503` shows **Unavailable** with retry. No raw object path is rendered or evidence persisted in browser storage.
+- The page includes Back to Notifications, loading/forbidden/not-found/offline/retry states, keyboard labels, responsive light/dark layouts, and cleanup of private previews on refresh, route change, or logout.
 - Add **Vehicles** navigation and an organization-scoped list only after a bounded list endpoint is implemented. Proposed `GET /api/v1/logistics/vehicles?page=&per_page=&search=` returns safe Courier/vehicle summaries, stable pagination, and no document bytes; it is unavailable now. The notification-linked detail page does not depend on this list.
 - No approval, edit, document replacement, maintenance, capacity, or dispatch controls belong on the Logistics page.
-- Test direct URL refresh, notification navigation, current-data refresh, OR/CR independence, foreign UUID denial, lost affiliation, absent/unavailable media, auth/consent errors, and private-preview cleanup.
+- Existing API tests cover scoped vehicle/document reads. Logistics type-check, lint, and production build cover the new route and page; browser interaction, private-preview cleanup, and lost-affiliation flows remain manual/automation verification work.
 
 ### Verification and client behavior
 

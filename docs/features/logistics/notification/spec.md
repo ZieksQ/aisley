@@ -3,9 +3,9 @@ feature: logistics-notification
 title: Logistics Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Inbox and vehicle-update producer implemented; vehicle destination UI planned
-implementation_status: Notification list/detail/read/count API, bell/inbox UI, vehicle-update delivery, and backend destination projection implemented; vehicle detail React route absent
+version: 1.3
+status: Inbox, vehicle-update producer, and vehicle destination UI implemented
+implementation_status: Notification list/detail/read/count API, bell/inbox UI, vehicle-update delivery, backend destination projection, and read-only vehicle detail React route implemented
 role: Logistics
 scope: Laravel API and Logistics React dashboard
 ---
@@ -18,7 +18,7 @@ scope: Laravel API and Logistics React dashboard
 - Reuse the Seller/Customer list, detail, and mark-read pattern and Admin notification persistence principles.
 - This is an in-app notification feature, not SMTP email, marketing campaigns, chat, or an operational audit ledger.
 - Existing Logistics inbox APIs and UI project legacy pickup notifications into safe title, summary, and destination fields.
-- Courier vehicle edits already create `logistics-courier.vehicle-updated` notifications. The backend projects an authorized `/couriers/{courierId}/vehicle` destination, but the Logistics React app has no matching route or vehicle page yet.
+- Courier vehicle edits create `logistics-courier.vehicle-updated` notifications. The backend projects an authorized `/couriers/{courierId}/vehicle` destination, and the Logistics React app opens its protected, read-only current vehicle page.
 - One Logistics account operates one organization and its sole hub; do not introduce staff accounts or sub-hub inboxes.
 - Source features own business actions; notification screens only read alerts and update their read state.
 - Exclude email/SMS/mobile push, WebSockets, arbitrary notification creation, bulk campaigns, delete/archive, and mark-unread in MVP.
@@ -120,9 +120,9 @@ source action commits → durable notification work → recipient inbox
 
 ### Logistics UI
 
-- Existing bell, `/notifications`, and `/notifications/:notificationId` remain the entry point. A vehicle alert opens its notification detail, whose existing destination link should navigate to the planned protected `/couriers/:courierId/vehicle` page.
+- Existing bell, `/notifications`, and `/notifications/:notificationId` remain the entry point. A vehicle alert opens its notification detail, whose destination link navigates to the protected `/couriers/:courierId/vehicle` page.
 - Label that action **Open Courier vehicle** for this alert type. The vehicle page must fetch the current scoped Logistics vehicle API; do not render OR/CR from notification payload or imply the alert contains a historical vehicle snapshot.
-- Until the page exists, the app must not present that link as a usable action; show a truthful unavailable destination while retaining the notification detail/read action. Once the page exists, direct URL refresh and browser back navigation must work.
+- If the backend supplies no destination, the notification remains readable and shows an unavailable target. Direct URL refresh and browser back navigation use the protected Logistics route.
 - A vehicle `404`, lost affiliation, or unavailable document leaves the alert readable and shows a safe unavailable/retry state on the destination. Opening a record does not automatically mark the alert read or reapprove the Courier.
 - Bell preview requests five recent rows and unread count; the full page uses the same API with read/unread filters.
 - Show loading, empty, filtered-empty, loaded, unavailable-target, permission, consent, timeout, offline, and retry states.
@@ -145,7 +145,7 @@ source action commits → durable notification work → recipient inbox
 - [x] Bell/list/detail implement loading, failures, consent recovery, stale links, explicit read state, polling visibility, and logout cleanup; browser automation remains a release gate.
 - [ ] SQLite/PostgreSQL migration/API tests and Logistics type-check/build/UI tests pass with recorded results.
 - [x] Vehicle/OR/CR edits notify only the associated Logistics account once per changed revision without reapproval; backend projects a scoped vehicle destination.
-- [ ] The Logistics notification detail opens the read-only Courier vehicle page; missing/foreign vehicles and documents show truthful unavailable states, and opening the page does not mark the notification read.
+- [x] The Logistics notification detail opens the read-only Courier vehicle page; missing/foreign vehicles and documents show truthful unavailable states, and opening the page does not mark the notification read. Browser interaction automation remains a separate verification gate.
 
 ### References
 
