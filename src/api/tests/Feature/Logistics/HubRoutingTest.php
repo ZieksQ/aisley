@@ -37,6 +37,29 @@ class HubRoutingTest extends TestCase
         Http::fake(['api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [[['distance' => 1000, 'time' => 100], ['distance' => 3000, 'time' => 300]]]])]);
     }
 
+    public function test_sort_plan_lists_only_active_outgoing_hub_summaries(): void
+    {
+        $origin = $this->pinnedHub();
+        $allowed = $this->pinnedHub();
+        $inactive = $this->pinnedHub();
+        $suspended = $this->pinnedHub();
+        $foreign = $this->pinnedHub();
+        $this->edge($origin[2], $allowed[2]);
+        $this->edge($origin[2], $inactive[2]);
+        HubConnection::where('to_hub_id', $inactive[2]->id)->update(['is_active' => false]);
+        $this->edge($origin[2], $suspended[2]);
+        $suspended[0]->update(['status' => UserStatus::Suspended]);
+        $this->edge($foreign[2], $origin[2]);
+        $this->edge($foreign[2], $inactive[2]);
+
+        $this->actingAs($origin[0])->getJson('/api/v1/logistics/sorting/plans')
+            ->assertOk()->assertExactJson(['data' => [
+                'context' => ['organization_id' => $origin[1]->id, 'hub_id' => $origin[2]->id, 'hub_name' => $origin[2]->name],
+                'active_plan_id' => null, 'plans' => [], 'lanes' => [],
+                'next_hubs' => [['id' => $allowed[2]->id, 'name' => $allowed[2]->name]],
+            ]]);
+    }
+
     public function test_four_hubs_transfer_custody_then_dispatch_only_at_destination(): void
     {
         $network = [$this->pinnedHub(), $this->pinnedHub(), $this->pinnedHub(), $this->pinnedHub()];

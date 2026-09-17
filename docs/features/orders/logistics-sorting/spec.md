@@ -4,7 +4,7 @@ title: Logistics Sorting
 system: AISLEY
 type: Feature Specification
 version: 1.2
-status: Implemented MVP; postal-code sort-plan routing is implemented, while advanced automation and containerization remain deferred
+status: Implemented MVP with postal-code and hub-target sort-plan routing; advanced automation and containerization remain deferred
 role: Logistics
 scope: Logistics API and Logistics web application
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/features/logistics/update-status/specs.md, docs/features/logistics/deploy-rider/specs.md
@@ -111,7 +111,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### API contract
 
 - `GET /api/v1/logistics/sorting` returns lanes, automatic-routing state, current open session, bounded session items, and counts.
-- `GET /api/v1/logistics/sorting/plans` returns the authenticated organization's plans, active plan, hub lanes, and context.
+- `GET /api/v1/logistics/sorting/plans` returns the authenticated organization's plans, active plan, hub lanes, context, and active allowed `next_hubs` summaries.
 - `POST /api/v1/logistics/sorting/plans` creates a named plan; `PATCH /api/v1/logistics/sorting/plans/{plan}` updates its name/active state with an expected revision.
 - `POST /api/v1/logistics/sorting/plans/{plan}/lanes` maps a four-digit postal code to an active standard lane; `DELETE /api/v1/logistics/sorting/plans/{plan}/lanes/{planLane}` removes a mapping with an expected revision.
 - `POST /api/v1/logistics/sorting/lanes` creates a lane.
@@ -140,7 +140,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Hub-routing API integration (2026-09-18)
 
-The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` adds hub-target plan mappings and route projections for new waybills behind `HUB_ROUTING_ENABLED=false` by default. Cross-hub parcels sort against the current hub's plan and committed next hop; unavailable routes remain in the local exception lane. Current custody fields scope eligible Shipments, and a previous hub's open session cannot block the receiving hub or reveal its lane/plan. Same-hub/legacy manual sorting compatibility remains. This extends the earlier transfer non-goal at the API layer only; no transfer UI is included.
+The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` adds hub-target plan mappings and route projections for new waybills behind `HUB_ROUTING_ENABLED=false` by default. Cross-hub parcels sort against the current hub's plan and committed next hop; unavailable routes remain in the local exception lane. Current custody fields scope eligible Shipments, and a previous hub's open session cannot block the receiving hub or reveal its lane/plan. Same-hub/legacy manual sorting compatibility remains. This extends the earlier transfer non-goal through the API and existing Logistics UI. Sort plan now supports postal-code or allowed next-hub destinations; Sorting displays next-hop context and an online Hub transfer lookup/confirmation section. The server owns the route and custody. Help/refresh icons remain at the top right on mobile; no separate navigation section is added. Visual/browser and physical handoff verification remain pending, as recorded in the routing spec.
 
 ## HOW
 

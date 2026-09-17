@@ -38,6 +38,12 @@ class SortingPlanService
             'active_plan_id' => $plans->firstWhere('is_active', true)?->id,
             'plans' => $plans->map(fn (SortingPlan $plan): array => $this->planProjection($plan))->values()->all(),
             'lanes' => $this->lanes($org),
+            'next_hubs' => HubConnection::query()->where('from_hub_id', $org->hub->id)
+                ->where('is_active', true)
+                ->whereHas('toHub.organization.user', fn ($query) => $query->where('status', UserStatus::Active))
+                ->with('toHub')->orderBy('to_hub_id')->get()
+                ->map(fn (HubConnection $connection): array => ['id' => $connection->toHub->id, 'name' => $connection->toHub->name])
+                ->sortBy('name')->values()->all(),
         ];
     }
 

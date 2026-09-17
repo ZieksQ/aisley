@@ -4,8 +4,8 @@ feature: Hub-to-Hub Transfer Routing
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: API implemented behind disabled new-waybill rollout flag; operational rollout pending
-scope: Laravel API, PostgreSQL, and internal Logistics hub operations
+status: API and Logistics sorting extension implemented; visual verification and operational rollout pending
+scope: Laravel API, PostgreSQL, and Logistics Sorting / Sort plan UI
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/maps-location-api.md, docs/features/orders/logistics-sorting/spec.md, docs/features/orders/lane-aware-dispatch/spec.md
 ---
 
@@ -109,7 +109,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Reuse `RequestSellerPickup`, `CreateWaybill`, `SortingPlanService`, `SortingService`, `FulfillmentTransitionService`, and `DispatchScheduleService`; extract only the route/bootstrap logic needed to preserve current lazy Shipment creation and status transitions.
 - Keep all custody writes in `FulfillmentTransitionService` or a route-aware extension of it. Add transfer events such as `hub_transfer_dispatched` and `hub_transfer_received` to the existing append-only `shipment_events` history.
 - Keep route snapshots immutable for a committed shipment. A later graph edit or hub pin correction affects future calculations and cache keys; it does not rewrite an active parcel's selected hops.
-- Verify the additive migrations on SQLite and PostgreSQL, run focused route/transfer tests, then rerun existing Logistics fulfillment, sorting, dispatch, and Customer Order status suites. No frontend or external Flutter implementation is part of this specification.
+- Verify the additive migrations on SQLite and PostgreSQL, run focused route/transfer tests, then rerun existing Logistics fulfillment, sorting, dispatch, and Customer Order status suites. The Logistics Sorting / Sort plan extension is included; external Flutter implementation remains separate.
 
 ### Implemented API contract (2026-09-18)
 
@@ -167,3 +167,24 @@ Admin routes also require active Admin access and policy consent. Configuration 
 
 - Project policy: [Maps, Address, and Location API Policy](../../../maps-location-api.md).
 - Geoapify: [Route Matrix API](https://apidocs.geoapify.com/docs/route-matrix/), [Routing API](https://apidocs.geoapify.com/docs/routing/), and [pricing](https://www.geoapify.com/pricing/).
+
+### Logistics frontend extension (2026-09-18)
+
+Hub routing extends the existing **Sorting** and **Sort plan** pages, with no separate sidebar feature. Sort plan maps either an exact postal code or an allowed next hub to an active standard lane. `GET /api/v1/logistics/sorting/plans` now includes `next_hubs` containing only `{id, name}` for active directed connections from the authenticated hub to active Logistics accounts; foreign topology, lanes, and plans remain excluded. Existing mappings to unavailable hubs remain removable and display an unavailable state.
+
+Sorting reconciliation shows the committed next hub or route hold alongside the authoritative predicted lane. Its **Hub transfer** section accepts a tracking ID, waybill reference, or compatible QR value and shows current/destination/next hubs, route-hop states, departure/arrival timestamps, and safe estimated metrics with provider attribution. It confirms physical departure only after sorting at the sending hub, or physical arrival only at the expected receiving hub. Confirmation includes the server-supplied Shipment/hop revisions and a UUID idempotency key. Ambiguous network failures retain the same request/key for retry during the mounted workspace; a definitive rejection clears stale details and requires another lookup. Transfer confirmations are online-only; the existing offline sorting outbox is unchanged. No route editor, reroute, hold-recovery action, provider request, network editor, or linehaul Courier assignment is introduced in Logistics.
+
+Both page headers keep small labelled help and refresh icon buttons at the top right, including mobile. Instructions live in native dialogs. The UI retains project colors and dark mode, uses compact borders/spacing, and adapts the forms, scanner, transfer panel, and reconciliation list across mobile, tablet, FHD, 1980×1080, and wider device viewports.
+
+Frontend acceptance:
+
+- [x] Hub-target mappings extend Sort plan without a separate navigation section and preserve postal-code mappings.
+- [x] Sorting displays safe next-hop context and holds without exposing another hub's layout.
+- [x] Physical departure/arrival confirmations use authoritative hops, expected revisions, confirmation prompts, and matching-key retries after uncertain network failures.
+- [x] Transfer actions require a connection; offline sorting captures keep their existing behavior.
+- [x] Compact responsive layouts, dark mode, labelled icon navigation, and top-right help/refresh controls are implemented.
+- [x] Logistics TypeScript, lint, and production build pass; focused route/configuration-summary and fulfillment regressions pass (30 tests / 614 assertions).
+- [ ] Browser interaction and visual checks at the current device resolution, 1980×1080, 1920×1080, tablet, and mobile, including dark mode, offline failures, and ambiguous-response retry.
+- [ ] Physical barcode/camera and real inter-hub handoff verification.
+
+The runtime routing flag still defaults to disabled for newly created waybills. Platform network configuration, hold-recovery policy, bilateral consent, and physical linehaul rollout retain their existing boundaries. Admin network configuration continues through the existing permission-gated API; this extension does not add an Admin frontend.
