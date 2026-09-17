@@ -28,7 +28,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   ```
 - Creating, viewing, downloading, printing, or scanning a waybill does not itself change Order or custody status.
 - A Courier QR/reference scan is an ingress/access event, not a custody transition. Only the shared transition service may advance physical state after Logistics validates the submitted event/evidence.
-- Current explicit Courier pickup confirmation commits first-mile custody and Inventory after QR/manual verification. Logistics hub receiving now scans the same QR/thin Code 128/manual reference into a device-local outbox and commits `received_at_hub` through the dedicated bulk endpoint without replaying Inventory effects.
+- Current explicit Courier pickup confirmation commits first-mile custody and Inventory after QR/manual verification. Logistics hub receiving now scans the thin 1D Code 128 barcode (ignoring QR) or accepts a manual reference into a device-local outbox and commits `received_at_hub` through the dedicated bulk endpoint without replaying Inventory effects.
 - The immutable waybill `reference` is the explicit human `tracking_id` for the MVP. Every A6 portrait PDF contains a thin, industry-standard 1D Code 128 barcode that encodes that tracking ID, plus the existing QR as a compatibility/fallback identifier; a bulk download may combine up to 30 one-page A6 labels for one pickup request or schedule.
 - **Non-goals:** thermal-printer drivers, external carrier labels, parcel weight/dimensions, multiple parcels per Order, route mutation, status mutation by document generation, or public unauthenticated tracking.
 

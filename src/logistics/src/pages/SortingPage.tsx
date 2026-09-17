@@ -177,9 +177,10 @@ export function SortingPage() {
     if (!scannerOpen || !videoRef.current) return
     const video = videoRef.current
     let disposed = false
-    void import('@zxing/browser').then(({ BrowserMultiFormatReader }) => {
-      const reader = new BrowserMultiFormatReader()
-      return reader.decodeFromVideoDevice(undefined, video, (result) => {
+    void import('../lib/waybillScanner').then(({ createWaybillReader, waybillCameraConstraints }) => {
+      if (disposed) return
+      const reader = createWaybillReader()
+      return reader.decodeFromConstraints(waybillCameraConstraints, video, (result) => {
         if (disposed || !result) return
         const raw = result.getText()
         if (raw === lastScan.current) return
@@ -187,7 +188,8 @@ export function SortingPage() {
         handleScan(raw)
         window.setTimeout(() => { lastScan.current = '' }, 1200)
       })
-    }).then((controls) => { scannerControls.current = controls; if (disposed) controls.stop() }).catch((caught: unknown) => {
+    }).then((controls) => { if (!controls) return; scannerControls.current = controls; if (disposed) controls.stop() }).catch((caught: unknown) => {
+      if (disposed) return
       setError(caught instanceof DOMException && caught.name === 'NotAllowedError' ? 'Camera permission was denied. Enter the tracking ID manually.' : 'The camera could not start. Enter the tracking ID manually.')
       setScannerOpen(false)
     })
@@ -255,7 +257,7 @@ export function SortingPage() {
       <div className="space-y-3">
         <section className={panel}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Scanner</h3><p className="text-xs text-zinc-500">{scannerMode}</p></div><div className="flex flex-wrap items-center gap-2"><button className="h-9 border border-zinc-300 px-2 text-xs font-medium hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-white/10" onClick={() => setAutoRoute((value) => !value)} type="button">{autoRoute ? 'Use manual lane' : 'Use plan routing'}</button><button aria-label={scannerOpen ? 'Stop camera' : 'Start camera'} className={iconButton} onClick={() => setScannerOpen((value) => !value)} title={scannerOpen ? 'Stop camera' : 'Start camera'} type="button">{scannerOpen ? <FaStop aria-hidden="true" /> : <FaCamera aria-hidden="true" />}</button></div></div>
-          {scannerOpen ? <video ref={videoRef} className="max-h-64 w-full bg-black object-contain" muted playsInline /> : <div className="grid min-h-32 place-items-center border-b border-zinc-200 px-3 text-center text-sm text-zinc-500 dark:border-white/10"><div><FaBarcode className="mx-auto mb-2 text-2xl" aria-hidden="true" /><p>{autoRoute ? 'Scan parcel waybills for automatic lane routing.' : 'Scan a lane label, then parcel waybills.'}</p></div></div>}
+          {scannerOpen ? <div><video ref={videoRef} className="max-h-64 w-full bg-black object-contain" muted playsInline /><p className="px-3 py-2 text-xs text-zinc-500">Keep all bars and both white margins visible. QR codes are ignored.</p></div> : <div className="grid min-h-32 place-items-center border-b border-zinc-200 px-3 text-center text-sm text-zinc-500 dark:border-white/10"><div><FaBarcode className="mx-auto mb-2 text-2xl" aria-hidden="true" /><p>{autoRoute ? 'Scan thin 1D Code 128 tracking barcodes for automatic lane routing.' : 'Scan a Code 128 lane label, then thin tracking barcodes.'}</p></div></div>}
           <form className="flex gap-2 p-3" onSubmit={(event) => { event.preventDefault(); void queueCapture(manualReference, 'manual') }}><label className="min-w-0 flex-1"><span className="sr-only">Tracking ID or waybill reference</span><input autoComplete="off" className={field} onChange={(event) => setManualReference(event.target.value)} placeholder="Tracking ID or waybill reference" value={manualReference} /></label><button aria-label="Add manual sorting capture" className={iconButton + ' size-10 border border-zinc-300 dark:border-white/15'} title="Add capture" type="submit"><FaPlus aria-hidden="true" /></button></form>
           {!autoRoute && selectedLane?.type === 'exception' ? <div className="grid gap-2 border-t border-zinc-200 px-3 py-2.5 dark:border-white/10 sm:grid-cols-2"><label className="text-xs font-medium">Exception<select className={field + ' mt-1'} onChange={(event) => setExceptionCode(event.target.value as PendingSortCapture['exceptionCode'])} value={exceptionCode}><option value="damaged">Damaged</option><option value="unreadable_label">Unreadable label</option><option value="destination_unclear">Destination unclear</option><option value="other">Other</option></select></label><label className="text-xs font-medium">Reason{exceptionCode === 'other' ? ' *' : ''}<input className={field + ' mt-1'} maxLength={500} onChange={(event) => setExceptionReason(event.target.value)} placeholder="Optional context" value={exceptionReason} /></label></div> : null}
         </section>
