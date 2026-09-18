@@ -4,6 +4,7 @@ namespace App\Services\Logistics\Routing;
 
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\HubRouteStatus;
+use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\HubConnection;
@@ -31,17 +32,22 @@ class ShipmentRouteService
         return DB::transaction(fn () => $this->calculate($waybill));
     }
 
-    private function calculate(Waybill $waybill): ShipmentRoute
+    private function calculate(Waybill $waybill, ?ShipmentRoute $route = null): ShipmentRoute
     {
         DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
         $postal = app(SortingPlanService::class)->normalizePostalCode((string) ($waybill->snapshot->payload['recipient']['postal_code'] ?? ''));
         $destinations = HubServiceArea::query()->where('postal_code', $postal)->where('is_active', true)
             ->whereHas('hub.organization.user', fn ($query) => $query->where('status', UserStatus::Active))->get();
-        $route = ShipmentRoute::create([
+        $attributes = [
             'waybill_id' => $waybill->id, 'origin_hub_id' => $waybill->logistics_hub_id,
             'destination_hub_id' => $destinations->count() === 1 ? $destinations->first()->logistics_hub_id : null,
             'status' => HubRouteStatus::Unresolved, 'failure_code' => 'destination_unresolved', 'calculated_at' => now(), 'objective' => 'travel_handling_distance',
-        ]);
+        ];
+        if ($route === null) {
+            $route = ShipmentRoute::create($attributes);
+        } else {
+            $route->update([...$attributes, 'graph_revision' => null, 'distance_meters' => null, 'duration_seconds' => null]);
+        }
         if ($destinations->count() !== 1) {
             return $this->result($route);
         }
@@ -114,6 +120,23 @@ class ShipmentRouteService
         $route->update(['status' => HubRouteStatus::Planned, 'failure_code' => null, 'distance_meters' => array_sum(array_column($path, 'distance_meters')), 'duration_seconds' => array_sum(array_column($path, 'duration_seconds'))]);
 
         return $this->result($route);
+    }
+
+    /** Retry a held calculation at sorting, without rewriting committed hops. */
+    public function retryHeldAtSorting(Shipment $shipment): void
+    {
+        if (! config('hub-routing.enabled') || ! LinehaulService::enabled()
+            || $shipment->status !== ShipmentStatus::ReceivedAtHub
+            || $shipment->current_hub_id !== $shipment->logistics_hub_id) {
+            return;
+        }
+        $route = ShipmentRoute::where('shipment_id', $shipment->id)->lockForUpdate()->first();
+        if ($route === null || ! in_array($route->status, [HubRouteStatus::Unresolved, HubRouteStatus::Unavailable], true)
+            || $route->hops()->exists()) {
+            return;
+        }
+        $this->calculate($shipment->parcel->waybill, $route);
+        $shipment->unsetRelation('route');
     }
 
     public function attach(Waybill $waybill, Shipment $shipment): void

@@ -162,3 +162,10 @@ The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` adds 
 - Microsoft documents sort positions, position verification, closing, and downstream loading work: https://learn.microsoft.com/en-us/dynamics365/supply-chain/warehousing/outbound-sorting
 - Odoo documents barcode-driven batch processing and source/destination location scans: https://www.odoo.com/documentation/18.0/applications/inventory_and_mrp/barcode/operations/process_transfers.html
 - GS1 documents unique transport-unit and location identifiers for interoperable logistics scanning: https://ref.gs1.org/guidelines/scan-4-transport/1.1.0/
+
+## Linehaul partner routing revision — 2026-09-19
+
+- Discover Logistics partners on Linehaul and use **Connect**; receiver acceptance is required before a next hub appears in Sort plan. Connection setup is separate from plan mappings and optional road measurements.
+- For nonlocal delivery coverage, Dijkstra selects the supported next hop and automatic sorting selects its mapped local standard lane. Recipient postal codes absent from the current local plan do not independently authorize transferring to another organization.
+- A new automatic capture retries a held route only at the origin in `received_at_hub`, with no existing route hops. Preserve route identity, custody, scan replay, and committed route history. Successful recalculation and sorting commit together; missing destination/path/metrics/transfer lane still holds the parcel. Planned routes and manual exception captures are unchanged.
+- Coverage determines the delivery hub; destination-hub parcels missing their local postal mapping remain local exceptions. Manifest grouping is automatic; physical handoffs require confirmation.

@@ -227,6 +227,8 @@ class SortingService
         $requestHash = hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($logistics, $session, $capture, $org, $reference, $requestHash, $autoRoute): array {
+            // Match network configuration lock order before acquiring hub/custody locks.
+            DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
             LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
             $ownedSession = $this->ownedSession($org, $session->id, true);
             $previous = SortingScan::query()->where('logistics_organization_id', $org->id)->where('client_id', $capture['client_id'])->lockForUpdate()->first();
@@ -245,6 +247,9 @@ class SortingService
             $manualException = ! $autoRoute && filled($capture['lane_id'] ?? null)
                 && $this->ownedLane($org, (string) $capture['lane_id'], true)->type === SortingLaneType::Exception;
             $autoRoute = $autoRoute || ($shipment->route !== null && $shipment->route->status !== HubRouteStatus::Local && ! $manualException);
+            if ($autoRoute) {
+                app(ShipmentRouteService::class)->retryHeldAtSorting($shipment);
+            }
             $routing = $autoRoute ? $this->sortingPlans->routeForShipment($shipment) : [
                 'plan' => null,
                 'plan_lane' => null,

@@ -12,6 +12,19 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 # Linehaul
 
 
+## Partner directory and automatic routing revision — 2026-09-19
+
+This revision replaces the hub-selector connection form and supersedes conflicting historical setup/recovery wording below.
+
+- Linehaul lists other active Logistics organizations with business name, sole hub, city/province, connection status, and a **Connect** action. The list supports case-insensitive business/hub/location search and 20-row pagination, without the previous 100-hub discovery ceiling. The overview adds `hub_directory` (`current_page`, `last_page`, `total`) and safe directory fields; query parameters are `search` (maximum 100 characters) and `page` (positive integer). No account contacts, full addresses, or foreign plans/lanes are returned.
+- Connect sends a directed request using existing tenant-derived API ownership. Only the receiving organization can accept. Pending requests can be withdrawn, accepted partners disconnected, and incoming requests declined. Request/withdrawal writes that omit road measurements preserve previously recorded values; explicit null pairs clear them. Road measurements are optional settings separate from connecting.
+- After acceptance, create/activate a Sort plan and map accepted next hubs to local standard transfer lanes. Map locally delivered postal codes to local delivery lanes. Delivery coverage remains authoritative for resolving the final hub; a missing local postal mapping alone does not prove that a parcel belongs elsewhere.
+- A nonlocal parcel uses server-side Dijkstra over accepted active directed edges. The objective is driving time plus handling time per transfer, followed by distance and deterministic ties. The next hop determines the local transfer lane and automatic manifest grouping. Physical departure and arrival still require operator confirmation.
+- A new automatic sorting capture retries an unresolved/unavailable route only while the parcel is `received_at_hub` at its original hub and the route has **no hops**. The existing route ID and Shipment link are preserved; successful recalculation commits new hops atomically with sorting. Already planned routes, any route with hops, in-transit routes, and manual exception captures are never recalculated. Matching capture retries replay the original scan result.
+- Held sorting recalculation may use the existing cached/limited Geoapify road measurement adapter; normal scans of planned/local routes, list refreshes, connection/plan writes, and manifest actions do not request route metrics. Missing destination coverage, accepted paths, measurements, or next-hub lane mappings remain exception holds.
+
+Assessment: explicit partner consent and a discoverable directory improve setup, while Dijkstra finds the best complete supported path rather than repeatedly choosing the geographically nearest hub. Nonnegative travel/handling weights fit [Dijkstra's documented requirements](https://networkx.org/documentation/stable/reference/algorithms/shortest_paths.html). “Too far” means outside the current hub's declared delivery coverage, not an arbitrary kilometre cutoff. A missing destination-hub postal lane is a local sorting configuration error, so forwarding it elsewhere could create loops or incorrect custody. Capacity, vehicle schedules, and dynamic replanning after a committed hop remain outside this implementation.
+
 ## Current Linehaul contract (2026-09-19)
 
 This revision supersedes earlier Sorting-embedded transfer UI, unilateral connection setup, and deferred bilateral-consent wording in this specification.
@@ -27,7 +40,7 @@ This revision supersedes earlier Sorting-embedded transfer UI, unilateral connec
 
 ### Provider usage audit
 
-Dijkstra runs entirely in Laravel; scanning, plan saves, connection requests/acceptance, departure, receipt, and page refresh do not call Geoapify. New cross-hub waybill snapshots measure only accepted directed edges reachable from the origin that can also reach the destination, excluding outgoing destination edges and dead-end branches. Missing metrics for a relevant alternative still hold the route rather than silently claiming an optimum over incomplete measurements.
+Dijkstra runs entirely in Laravel. Normal scans of committed routes, plan saves, connection requests/acceptance, departure, receipt, and page refresh do not call Geoapify. Held-route retries at sorting may measure uncached accepted edges as described in the latest revision. New cross-hub waybill snapshots measure only accepted directed edges reachable from the origin that can also reach the destination, excluding outgoing destination edges and dead-end branches. Missing metrics for a relevant alternative still hold the route rather than silently claiming an optimum over incomplete measurements.
 
 Measurements batch uncached edges by source in 1×N matrices and cache successful directed coordinate fingerprints/options for 24 hours. Changed pins invalidate cache keys; same-hub and explicit operator-measured routes avoid provider calls. Server keys and addresses never reach the client. Geoapify's current documented 1×N baseline is N credits, plus `floor(distance_meters / 500000)` per returned distance. Linehaul now records those observed distance surcharges in the shared daily counter as well as reserving baseline credits before requests. Surcharges are unknown before the response, so this guard is an estimate rather than a strict provider billing cap; other consumers/tiles and multi-server deployments require shared cache/account-level monitoring. Committed road metrics remain fixed.
 

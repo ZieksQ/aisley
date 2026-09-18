@@ -18,14 +18,29 @@ class LinehaulController extends Controller
 {
     public function index(Request $request, LinehaulService $service)
     {
+        $input = $request->validate(['search' => ['nullable', 'string', 'max:100'], 'page' => ['nullable', 'integer', 'min:1']]);
         $hub = $request->user()->logisticsOrganization->hub;
+        $search = trim($input['search'] ?? '');
+        $directory = LogisticsHub::whereKeyNot($hub->id)
+            ->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))
+            ->with(['organization:id,business_name', 'address:id,city_municipality,province'])
+            ->when($search !== '', fn ($q) => $q->where(function ($q) use ($search) {
+                $q->whereLike('name', '%'.$search.'%')
+                    ->orWhereHas('organization', fn ($q) => $q->whereLike('business_name', '%'.$search.'%'))
+                    ->orWhereHas('address', fn ($q) => $q->whereLike('city_municipality', '%'.$search.'%')->orWhereLike('province', '%'.$search.'%'));
+            }))
+            ->orderBy('name')->orderBy('id')->paginate(20);
 
         return response()->json(['data' => [
             'enabled' => LinehaulService::enabled(),
             'ready_groups' => $service->readyGroups($request->user()),
             'manifests' => DB::table('linehaul_manifests')->where(fn ($q) => $q->where('from_hub_id', $hub->id)->orWhere('to_hub_id', $hub->id))
                 ->latest()->limit(50)->get()->map(fn ($m) => [...$service->projection($m), 'can_receive' => $m->to_hub_id === $hub->id && $m->status === 'in_transfer']),
-            'hubs' => LogisticsHub::whereKeyNot($hub->id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->orderBy('name')->limit(100)->get(['id', 'name']),
+            'hubs' => $directory->getCollection()->map(fn ($hub) => [
+                'id' => $hub->id, 'name' => $hub->name, 'business_name' => $hub->organization->business_name,
+                'city_municipality' => $hub->address?->city_municipality, 'province' => $hub->address?->province,
+            ]),
+            'hub_directory' => ['current_page' => $directory->currentPage(), 'last_page' => $directory->lastPage(), 'total' => $directory->total()],
             'service_areas' => HubServiceArea::where('logistics_hub_id', $hub->id)->orderBy('postal_code')->get(['id', 'postal_code', 'is_active', 'revision']),
             'incoming_connections' => HubConnection::where('to_hub_id', $hub->id)->with('fromHub:id,name')->get(),
             'connections' => HubConnection::where('from_hub_id', $hub->id)->with('toHub:id,name')->get(),
@@ -121,8 +136,10 @@ class LinehaulController extends Controller
                 $row->is_active = $input['is_active'] && $row->receiver_accepted;
             }
             if (! $area) {
-                $row->distance_meters = $input['distance_meters'] ?? null;
-                $row->duration_seconds = $input['duration_seconds'] ?? null;
+                if (array_key_exists('distance_meters', $input) || array_key_exists('duration_seconds', $input)) {
+                    $row->distance_meters = $input['distance_meters'] ?? null;
+                    $row->duration_seconds = $input['duration_seconds'] ?? null;
+                }
             }
             $row->revision = $row->exists ? $row->revision + 1 : 1;
             $row->save();

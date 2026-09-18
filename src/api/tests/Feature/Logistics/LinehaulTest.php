@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Logistics;
 
+use App\Enums\UserStatus;
 use App\Models\HubConnection;
 use App\Models\PlatformFeatureControl;
 use App\Models\Shipment;
@@ -26,6 +27,61 @@ class LinehaulTest extends TestCase
         config(['services.geoapify.server_key' => 'test-key']);
         Http::preventStrayRequests();
         Http::fake(['api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [[['distance' => 1000, 'time' => 100]]]])]);
+    }
+
+    public function test_partner_directory_search_pagination_and_safe_projection(): void
+    {
+        $origin = $this->pinnedHub();
+        for ($i = 0; $i < 21; $i++) {
+            $partner = $this->pinnedHub();
+            $partner[1]->update(['business_name' => 'Partner '.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
+        }
+        $suspended = $this->pinnedHub();
+        $suspended[0]->update(['status' => UserStatus::Suspended]);
+        $this->actingAs($origin[0])->getJson('/api/v1/logistics/linehaul')
+            ->assertOk()->assertJsonCount(20, 'data.hubs')->assertJsonPath('data.hub_directory.total', 21)
+            ->assertJsonPath('data.hub_directory.last_page', 2)->assertJsonMissingPath('data.hubs.0.address');
+        $this->getJson('/api/v1/logistics/linehaul?page=2')->assertOk()->assertJsonCount(1, 'data.hubs');
+        $this->getJson('/api/v1/logistics/linehaul?search=partner%2007')->assertOk()
+            ->assertJsonCount(1, 'data.hubs')->assertJsonPath('data.hubs.0.business_name', 'Partner 07');
+        $this->getJson('/api/v1/logistics/linehaul?search=Manila')->assertOk()->assertJsonPath('data.hub_directory.total', 21);
+        $this->getJson('/api/v1/logistics/linehaul?page=0')->assertUnprocessable();
+        Http::assertNothingSent();
+    }
+
+    public function test_simple_connect_and_disconnect_preserve_recorded_road_metrics(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $this->edge($a[2], $b[2]);
+        DB::table('hub_connections')->update(['distance_meters' => 50000, 'duration_seconds' => 3600]);
+        $this->actingAs($a[0])->putJson('/api/v1/logistics/linehaul/connections', [
+            'to_hub_id' => $b[2]->id, 'is_active' => false, 'expected_revision' => 1,
+        ])->assertOk()->assertJsonPath('data.distance_meters', 50000)->assertJsonPath('data.duration_seconds', 3600);
+        $this->putJson('/api/v1/logistics/linehaul/connections', [
+            'to_hub_id' => $b[2]->id, 'is_active' => true, 'expected_revision' => 2,
+        ])->assertOk()->assertJsonPath('data.is_active', false)->assertJsonPath('data.distance_meters', 50000);
+        Http::assertNothingSent();
+    }
+
+    public function test_sorting_retries_held_route_after_network_setup_without_replacing_history(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        [, $reference] = $this->pickupAt($a);
+        $routeId = ShipmentRoute::sole()->id;
+        $this->assertSame('destination_unresolved', ShipmentRoute::sole()->failure_code);
+        $this->receiveOrigin($a, $reference);
+        $this->edge($a[2], $b[2]);
+        DB::table('hub_connections')->update(['distance_meters' => 50000, 'duration_seconds' => 3600]);
+        $this->area($b[2]);
+        $record = $this->sortFor($a, $reference, $b[2]->id);
+        $this->assertSame('sorted_at_hub', $record['status']);
+        $this->assertSame($routeId, ShipmentRoute::sole()->id);
+        $this->assertSame('planned', ShipmentRoute::sole()->status->value);
+        $this->assertSame($b[2]->id, ShipmentRouteHop::sole()->to_hub_id);
+        $this->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonPath('data.ready_groups.0.next_hub_id', $b[2]->id);
+        Http::assertNothingSent();
     }
 
     public function test_complete_manifest_retries_scope_and_no_individual_receipt(): void
