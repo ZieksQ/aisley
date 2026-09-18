@@ -14,6 +14,7 @@ enum ShipmentStatus: string
     case DeliveryAssigned = 'delivery_assigned';
     case DeliveryAccepted = 'delivery_accepted';
     case PickedUpFromHub = 'picked_up_from_hub';
+    case InTransfer = 'in_transfer';
     case InTransit = 'in_transit';
     case OutForDelivery = 'out_for_delivery';
     case Delivered = 'delivered';

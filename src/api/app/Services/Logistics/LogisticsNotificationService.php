@@ -147,7 +147,7 @@ class LogisticsNotificationService
         if ($offer === null || $task === null || $shipment === null) {
             return;
         }
-        $recipient = $this->recipient($offer->logistics_organization_id, $shipment->logistics_hub_id);
+        $recipient = $this->recipient($offer->logistics_organization_id, $shipment->current_hub_id);
         if ($recipient === null) {
             return;
         }
@@ -170,7 +170,7 @@ class LogisticsNotificationService
         if ($evidence === null || $task === null || $shipment === null) {
             return;
         }
-        $recipient = $this->recipient($shipment->logistics_organization_id, $shipment->logistics_hub_id);
+        $recipient = $this->recipient($shipment->current_logistics_organization_id, $shipment->current_hub_id);
         if ($recipient === null) {
             return;
         }
@@ -198,7 +198,7 @@ class LogisticsNotificationService
         if ($intent === null || $task === null || $shipment === null) {
             return;
         }
-        $recipient = $this->recipient($shipment->logistics_organization_id, $shipment->logistics_hub_id);
+        $recipient = $this->recipient($shipment->current_logistics_organization_id, $shipment->current_hub_id);
         if ($recipient === null) {
             return;
         }
@@ -346,7 +346,7 @@ class LogisticsNotificationService
     private function evidenceContext(array $data, string $orgId, string $hubId): array
     {
         $id = $this->uuid($data['evidence_id'] ?? $data['shipment_evidence_id'] ?? $data['resource_id'] ?? null);
-        $evidence = $id === null ? null : ShipmentEvidence::query()->whereKey($id)->whereHas('task.shipment', fn ($query) => $query->where('logistics_organization_id', $orgId)->where('logistics_hub_id', $hubId))->with('task.shipment.parcel.waybill')->first();
+        $evidence = $id === null ? null : ShipmentEvidence::query()->whereKey($id)->whereHas('task.shipment', fn ($query) => $query->where('current_logistics_organization_id', $orgId)->where('current_hub_id', $hubId))->with('task.shipment.parcel.waybill')->first();
 
         return $evidence ? $this->taskKnown($evidence->task, 'shipment_evidence', $evidence->id) : $this->emptyContext();
     }
@@ -355,7 +355,7 @@ class LogisticsNotificationService
     private function completionContext(array $data, string $orgId, string $hubId): array
     {
         $id = $this->uuid($data['completion_intent_id'] ?? $data['intent_id'] ?? $data['resource_id'] ?? null);
-        $intent = $id === null ? null : CompletionIntent::query()->whereKey($id)->whereHas('task.shipment', fn ($query) => $query->where('logistics_organization_id', $orgId)->where('logistics_hub_id', $hubId))->with('task.shipment.parcel.waybill')->first();
+        $intent = $id === null ? null : CompletionIntent::query()->whereKey($id)->whereHas('task.shipment', fn ($query) => $query->where('current_logistics_organization_id', $orgId)->where('current_hub_id', $hubId))->with('task.shipment.parcel.waybill')->first();
 
         return $intent ? $this->taskKnown($intent->task, 'completion_intent', $intent->id) : $this->emptyContext();
     }
@@ -376,7 +376,7 @@ class LogisticsNotificationService
 
     private function scopedTask(?string $id, string $orgId, string $hubId): ?DeliveryTask
     {
-        return $id === null ? null : DeliveryTask::query()->whereKey($id)->whereHas('shipment', fn ($query) => $query->where('logistics_organization_id', $orgId)->where('logistics_hub_id', $hubId))->with('shipment.parcel.waybill')->first();
+        return $id === null ? null : DeliveryTask::query()->whereKey($id)->whereHas('shipment', fn ($query) => $query->where('current_logistics_organization_id', $orgId)->where('current_hub_id', $hubId))->with('shipment.parcel.waybill')->first();
     }
 
     /** @return array{resource_type: string|null, resource_id: string|null, destination: string|null} */

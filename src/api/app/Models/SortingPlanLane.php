@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Logistics\SortingDestinationType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,11 +11,11 @@ class SortingPlanLane extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['sorting_plan_id', 'sorting_lane_id', 'postal_code', 'position'];
+    protected $fillable = ['sorting_plan_id', 'sorting_lane_id', 'destination_type', 'destination_hub_id', 'postal_code', 'position'];
 
     protected function casts(): array
     {
-        return ['position' => 'integer'];
+        return ['destination_type' => SortingDestinationType::class, 'position' => 'integer'];
     }
 
     public function plan(): BelongsTo

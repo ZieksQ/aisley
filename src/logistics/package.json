@@ -13,6 +13,7 @@
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/ui": "workspace:*",
     "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
     "dexie": "^4.4.6",
     "flatpickr": "^4.6.13",
     "leaflet": "^1.9.4",

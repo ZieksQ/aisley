@@ -7,6 +7,8 @@ use App\Enums\FirstMileTaskStatus;
 use App\Enums\FulfillmentOfferStatus;
 use App\Enums\FulfillmentTaskLeg;
 use App\Enums\FulfillmentTaskStatus;
+use App\Enums\Logistics\HubRouteHopStatus;
+use App\Enums\Logistics\HubRouteStatus;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\OrderStatus;
 use App\Enums\ShipmentEvidencePurpose;
@@ -19,6 +21,8 @@ use App\Models\CourierLogisticsAffiliation;
 use App\Models\DeliveryTask;
 use App\Models\DeliveryTaskOffer;
 use App\Models\FirstMileTask;
+use App\Models\HubConnection;
+use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
 use App\Models\Parcel;
 use App\Models\Shipment;
@@ -29,11 +33,14 @@ use App\Models\User;
 use App\Models\Waybill;
 use App\Notifications\Seller\SellerOrderDeliveredNotification;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Logistics\Routing\LinehaulService;
+use App\Services\Logistics\Routing\ShipmentRouteService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class FulfillmentTransitionService
@@ -88,7 +95,7 @@ class FulfillmentTransitionService
 
             $org = $this->logisticsOrganization($logistics);
             $task = DeliveryTask::query()->whereKey($taskId)->where('leg', FulfillmentTaskLeg::FinalMile->value)
-                ->whereHas('shipment', fn ($query) => $query->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id))
+                ->whereHas('shipment', fn ($query) => $query->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id))
                 ->with($this->taskRelations())->lockForUpdate()->first();
             if ($task === null) {
                 throw FulfillmentException::notFound('TASK_NOT_FOUND', 'This final-mile task is not available.');
@@ -136,7 +143,7 @@ class FulfillmentTransitionService
     {
         $org = $this->logisticsOrganization($logistics);
         $current = DeliveryTask::query()->whereKey($task->id)->where('leg', FulfillmentTaskLeg::FinalMile->value)
-            ->whereHas('shipment', fn ($query) => $query->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id))->first();
+            ->whereHas('shipment', fn ($query) => $query->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id))->first();
         if ($current === null) {
             throw FulfillmentException::notFound('TASK_NOT_FOUND', 'This final-mile task is not available.');
         }
@@ -358,12 +365,16 @@ class FulfillmentTransitionService
         $requestHash = $this->hash($input);
 
         return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $requestHash): array {
+            $org = $this->logisticsOrganization($logistics);
             $prior = ShipmentEvent::query()->where('recorded_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
             if ($prior !== null) {
                 if (($prior->metadata['request_hash'] ?? null) !== $requestHash) {
                     throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used for another transition.');
                 }
                 $shipment = Shipment::query()->whereKey($prior->shipment_id)->with($this->shipmentRelations())->firstOrFail();
+                if ($shipment->current_logistics_organization_id !== $org->id || $shipment->current_hub_id !== $org->hub->id) {
+                    throw FulfillmentException::notFound();
+                }
 
                 return ['shipment' => $shipment, 'task' => $prior->delivery_task_id ? $shipment->tasks->firstWhere('id', $prior->delivery_task_id) : null, 'event' => $prior];
             }
@@ -375,6 +386,12 @@ class FulfillmentTransitionService
                 throw FulfillmentException::conflict('SHIPMENT_STATE_CONFLICT', 'The shipment changed. Refresh its current revision before trying again.');
             }
             $target = (string) $input['target_state'];
+            if ($target === ShipmentStatus::DispatchedFromHub->value) {
+                app(ShipmentRouteService::class)->assertFinalMile($shipment);
+            }
+            if ($target === ShipmentStatus::SortedAtHub->value && $shipment->route !== null && $shipment->route->status !== HubRouteStatus::Local) {
+                throw FulfillmentException::conflict('ROUTE_SORTING_REQUIRED', 'Use the route-aware sorting session for this parcel.');
+            }
             $from = $shipment->status;
             if (! $this->allowedShipmentTransition($from, $target)) {
                 throw FulfillmentException::conflict('SHIPMENT_STATE_CONFLICT', 'That fulfillment transition is not allowed from the current state.');
@@ -460,12 +477,16 @@ class FulfillmentTransitionService
         $requestHash = $this->hash(['reference' => mb_strtolower($normalizedReference), 'target_state' => ShipmentStatus::ReceivedAtHub->value]);
 
         return DB::transaction(function () use ($logistics, $normalizedReference, $idempotencyKey, $requestHash, $scannedAt): array {
+            $org = $this->logisticsOrganization($logistics);
             $prior = ShipmentEvent::query()->where('recorded_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
             if ($prior !== null) {
                 if (($prior->metadata['request_hash'] ?? null) !== $requestHash) {
                     throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This receiving identifier was already used for another parcel.');
                 }
                 $shipment = Shipment::query()->whereKey($prior->shipment_id)->with($this->shipmentRelations())->firstOrFail();
+                if ($shipment->current_logistics_organization_id !== $org->id || $shipment->current_hub_id !== $org->hub->id) {
+                    throw FulfillmentException::notFound();
+                }
                 $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
 
                 return ['shipment' => $shipment, 'task' => $task, 'event' => $prior];
@@ -511,12 +532,16 @@ class FulfillmentTransitionService
         ]);
 
         return DB::transaction(function () use ($logistics, $normalizedReference, $expectedRevision, $idempotencyKey, $sessionId, $laneId, $source, $capturedAt, $requestHash): array {
+            $org = $this->logisticsOrganization($logistics);
             $prior = ShipmentEvent::query()->where('recorded_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
             if ($prior !== null) {
                 if (($prior->metadata['request_hash'] ?? null) !== $requestHash) {
                     throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This sorting identifier was already used for another operation.');
                 }
                 $shipment = Shipment::query()->whereKey($prior->shipment_id)->with($this->shipmentRelations())->firstOrFail();
+                if ($shipment->current_logistics_organization_id !== $org->id || $shipment->current_hub_id !== $org->hub->id) {
+                    throw FulfillmentException::notFound();
+                }
                 $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);
 
                 return ['shipment' => $shipment, 'task' => $task, 'event' => $prior];
@@ -537,6 +562,7 @@ class FulfillmentTransitionService
                 throw FulfillmentException::conflict('HUB_STATE_CONFLICT', 'The first-mile task is not ready for hub sorting.');
             }
 
+            app(ShipmentRouteService::class)->assertSortingLane($shipment, $laneId);
             $shipment->update(['status' => ShipmentStatus::SortedAtHub, 'revision' => $shipment->revision + 1, 'sorting_lane_id' => $laneId, 'sorting_session_id' => $sessionId]);
             $event = $this->event(
                 $shipment,
@@ -544,7 +570,7 @@ class FulfillmentTransitionService
                 'hub_sort',
                 ShipmentStatus::ReceivedAtHub->value,
                 ShipmentStatus::SortedAtHub->value,
-                $task->courier_id,
+                $shipment->current_hub_id === $shipment->logistics_hub_id ? $task->courier_id : null,
                 $logistics->id,
                 null,
                 null,
@@ -568,8 +594,8 @@ class FulfillmentTransitionService
 
         return DB::transaction(function () use ($logistics, $shipmentId, $input, $idempotencyKey, $requestHash): Shipment {
             $org = $this->logisticsOrganization($logistics);
-            $shipment = Shipment::query()->whereKey($shipmentId)->where('logistics_organization_id', $org->id)
-                ->where('logistics_hub_id', $org->hub->id)->lockForUpdate()->first();
+            $shipment = Shipment::query()->whereKey($shipmentId)->where('current_logistics_organization_id', $org->id)
+                ->where('current_hub_id', $org->hub->id)->lockForUpdate()->first();
             if ($shipment === null) {
                 throw FulfillmentException::notFound('SHIPMENT_NOT_FOUND', 'The parcel is unavailable to this hub.');
             }
@@ -598,6 +624,7 @@ class FulfillmentTransitionService
             if ($shipment->sorting_lane_id === $lane->id) {
                 throw FulfillmentException::conflict('SORT_MOVE_SAME_LANE', 'The parcel is already in this lane.');
             }
+            app(ShipmentRouteService::class)->assertSortingLane($shipment, $lane->id);
             $fromLane = $shipment->sorting_lane_id;
             $shipment->update(['sorting_lane_id' => $lane->id, 'revision' => $shipment->revision + 1]);
             $shipment->sortingItems()->where('sorting_session_id', $shipment->sorting_session_id)->where('status', 'sorted')
@@ -609,12 +636,121 @@ class FulfillmentTransitionService
         }, 3);
     }
 
+    /** Route-aware custody extension; transfer writes never project Order status or create tasks. */
+    public function transferAtHub(User $logistics, array $input, string $idempotencyKey, bool $arrival, ?string $manifestId = null): array
+    {
+        $requestHash = $this->hash(['operation' => $arrival ? 'arrival' : 'departure', ...$input]);
+
+        return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $arrival, $requestHash, $manifestId): array {
+            $org = $this->logisticsOrganization($logistics);
+            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            // Hub lock serializes retries, including different parcels with the same actor/key.
+            $prior = ShipmentEvent::query()->where('recorded_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->first();
+            if ($prior !== null) {
+                if (($prior->metadata['request_hash'] ?? null) !== $requestHash || ! isset($prior->metadata['transfer_result'])) {
+                    throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This key was already used for another operation.');
+                }
+
+                return $prior->metadata['transfer_result'];
+            }
+            $lookup = trim((string) $input['reference']);
+            if (! $arrival && ! LinehaulService::enabled()) {
+                throw FulfillmentException::conflict('LINEHAUL_DISABLED', 'Linehaul departures are paused.');
+            }
+            if (preg_match('/^AISLEY:WB:\d+:(.+)$/i', $lookup, $matches) === 1) {
+                $lookup = trim($matches[1]);
+            }
+            $query = Shipment::query()->whereHas('parcel.waybill', fn ($waybill) => $waybill->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]));
+            if ($arrival) {
+                $query->where('status', ShipmentStatus::InTransfer->value)->whereHas('route.hops', fn ($hop) => $hop->whereKey($input['hop_id'])->where('to_hub_id', $org->hub->id)->where('status', HubRouteHopStatus::InTransfer->value));
+            } else {
+                $query->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id);
+            }
+            $shipment = $query->lockForUpdate()->first();
+            if ($shipment === null) {
+                throw FulfillmentException::notFound();
+            }
+            $route = $shipment->route()->lockForUpdate()->first();
+            $hop = $route?->hops()->where('status', '!=', HubRouteHopStatus::Arrived->value)->orderBy('sequence')->lockForUpdate()->first();
+            if ($route?->status !== HubRouteStatus::Planned || $hop === null || $hop->id !== $input['hop_id']) {
+                throw FulfillmentException::conflict('ROUTE_HOP_CONFLICT', 'Refresh the current route hop before continuing.');
+            }
+            if ($hop->linehaul_manifest_id !== null && $hop->linehaul_manifest_id !== $manifestId) {
+                throw FulfillmentException::conflict('LINEHAUL_MANIFEST_REQUIRED', 'This parcel must transfer with its complete manifest.');
+            }
+            if ($shipment->revision !== (int) $input['expected_revision'] || $hop->revision !== (int) $input['expected_hop_revision']) {
+                throw FulfillmentException::conflict('ROUTE_REVISION_CONFLICT', 'The parcel or route hop changed. Refresh before continuing.');
+            }
+            $connection = HubConnection::query()->whereKey($hop->hub_connection_id)->lockForUpdate()->first();
+            if ($connection === null || (! $arrival && (! $connection->is_active || ! $connection->receiver_accepted)) || $connection->from_hub_id !== $hop->from_hub_id || $connection->to_hub_id !== $hop->to_hub_id) {
+                throw FulfillmentException::conflict('ROUTE_CONNECTION_INACTIVE', 'The committed transfer connection is unavailable.');
+            }
+            $target = LogisticsHub::query()->whereKey($hop->to_hub_id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->first();
+            if ($target === null || $shipment->current_hub_id !== $hop->from_hub_id) {
+                throw FulfillmentException::conflict('ROUTE_HUB_CONFLICT', 'This parcel cannot complete that hub transfer.');
+            }
+            $from = $shipment->status->value;
+            if ($arrival) {
+                if ($hop->to_hub_id !== $org->hub->id || $hop->status !== HubRouteHopStatus::InTransfer || $shipment->status !== ShipmentStatus::InTransfer) {
+                    throw FulfillmentException::conflict('ROUTE_HOP_CONFLICT', 'This is not the expected arriving transfer.');
+                }
+                $hop->update(['status' => HubRouteHopStatus::Arrived, 'arrived_by' => $logistics->id, 'arrived_at' => now(), 'revision' => $hop->revision + 1]);
+                $shipment->update(['status' => ShipmentStatus::ReceivedAtHub, 'current_hub_id' => $target->id, 'current_logistics_organization_id' => $target->logistics_organization_id, 'sorting_lane_id' => null, 'sorting_session_id' => null, 'received_at_hub_at' => now(), 'revision' => $shipment->revision + 1]);
+                if ($target->id === $route->destination_hub_id) {
+                    if ($route->hops()->where('status', '!=', HubRouteHopStatus::Arrived->value)->exists()) {
+                        throw FulfillmentException::conflict('ROUTE_HOP_CONFLICT', 'The route still has outstanding hops.');
+                    }
+                    $route->update(['status' => HubRouteStatus::Completed]);
+                }
+            } else {
+                if ($hop->from_hub_id !== $org->hub->id || $hop->status !== HubRouteHopStatus::Pending || $shipment->status !== ShipmentStatus::SortedAtHub) {
+                    throw FulfillmentException::conflict('ROUTE_HOP_CONFLICT', 'Only a sorted parcel can depart on its next pending hop.');
+                }
+                app(ShipmentRouteService::class)->assertSortingLane($shipment, (string) $shipment->sorting_lane_id);
+                $lane = $shipment->sortingLane;
+                $hop->update(['status' => HubRouteHopStatus::InTransfer, 'departed_by' => $logistics->id, 'departed_at' => now(), 'revision' => $hop->revision + 1,
+                    'source_lane' => $lane ? ['id' => $lane->id, 'code' => $lane->code, 'name' => $lane->name, 'revision' => $lane->revision, 'session_id' => $shipment->sorting_session_id] : null]);
+                $shipment->update(['status' => ShipmentStatus::InTransfer, 'sorting_lane_id' => null, 'sorting_session_id' => null, 'revision' => $shipment->revision + 1]);
+            }
+            $result = ['shipment_id' => $shipment->id, 'status' => $shipment->status->value, 'revision' => $shipment->revision,
+                'route' => app(ShipmentRouteService::class)->projection($shipment->fresh('route'))];
+            $eventId = (string) Str::uuid();
+            $result['event_id'] = $eventId;
+            $event = new ShipmentEvent([
+                'shipment_id' => $shipment->id,
+                'event_type' => $arrival ? 'hub_transfer_received' : 'hub_transfer_dispatched',
+                'from_state' => $from, 'to_state' => $shipment->status->value,
+                'recorded_by_logistics_id' => $logistics->id, 'occurred_at' => now(), 'idempotency_key' => $idempotencyKey,
+                'correlation_id' => (string) Str::uuid(),
+                'metadata' => ['request_hash' => $requestHash, 'hop_id' => $hop->id, 'from_hub_id' => $hop->from_hub_id, 'to_hub_id' => $hop->to_hub_id, 'linehaul_manifest_id' => $manifestId, 'source_lane' => $arrival ? null : $hop->source_lane, 'transfer_result' => $result],
+            ]);
+            $event->id = $eventId;
+            $event->save();
+            Log::info('hub_routing.transfer', ['operation' => $arrival ? 'arrival' : 'departure', 'transfer_seconds' => $arrival ? $hop->departed_at?->diffInSeconds(now()) : null, 'hub_dwell_seconds' => ! $arrival ? $shipment->received_at_hub_at?->diffInSeconds(now()) : null]);
+
+            return $result;
+        }, 3);
+    }
+
+    public function routeForLogistics(User $logistics, string $reference): array
+    {
+        $org = $this->logisticsOrganization($logistics);
+        $lookup = preg_replace('/^AISLEY:WB:\d+:/i', '', trim($reference));
+        // Receiving hub gets only the safe route projection, never the sender's lanes/tasks.
+        $shipment = Shipment::query()->where('status', ShipmentStatus::InTransfer->value)
+            ->whereHas('parcel.waybill', fn ($waybill) => $waybill->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]))
+            ->whereHas('route.hops', fn ($hop) => $hop->where('to_hub_id', $org->hub->id)->where('status', HubRouteHopStatus::InTransfer->value))->first();
+        $shipment ??= $this->recordForLogistics($logistics, $reference);
+
+        return ['shipment_id' => $shipment->id, 'revision' => $shipment->revision, 'status' => $shipment->status->value, 'route' => app(ShipmentRouteService::class)->projection($shipment)];
+    }
+
     public function recordForLogistics(User $logistics, string $reference): Shipment
     {
         $org = $this->logisticsOrganization($logistics);
         $waybill = $this->resolveWaybill($org, $reference);
         $shipment = Shipment::query()->whereHas('parcel', fn ($query) => $query->where('waybill_id', $waybill->id))
-            ->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->with($this->shipmentRelations())->first();
+            ->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id)->with($this->shipmentRelations())->first();
         if ($shipment === null) {
             $shipment = $this->ensureForWaybill($waybill);
         }
@@ -633,8 +769,8 @@ class FulfillmentTransitionService
     {
         $org = $this->logisticsOrganization($logistics);
         $query = Shipment::query()
-            ->where('logistics_organization_id', $org->id)
-            ->where('logistics_hub_id', $org->hub->id)
+            ->where('current_logistics_organization_id', $org->id)
+            ->where('current_hub_id', $org->hub->id)
             ->whereNotIn('status', [ShipmentStatus::Delivered->value])
             ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status instanceof ShipmentStatus ? $status->value : $status))
             ->when($filters['evidence_status'] ?? null, fn ($builder, $status) => $builder->whereHas('tasks.evidence', fn ($evidence) => $evidence->where('status', $status instanceof ShipmentEvidenceStatus ? $status->value : $status)))
@@ -702,7 +838,7 @@ class FulfillmentTransitionService
     {
         $affiliation = $this->courierAffiliation($courier);
         $query = DeliveryTask::query()->whereKey($taskId)->where('leg', FulfillmentTaskLeg::FinalMile->value)->where('courier_id', $courier->id)
-            ->whereHas('shipment', fn ($shipment) => $shipment->where('logistics_organization_id', $affiliation->logistics_organization_id)->where('logistics_hub_id', $affiliation->logistics_hub_id))->with($this->taskRelations());
+            ->whereHas('shipment', fn ($shipment) => $shipment->where('current_logistics_organization_id', $affiliation->logistics_organization_id)->where('current_hub_id', $affiliation->logistics_hub_id))->with($this->taskRelations());
         if ($lock) {
             $query->lockForUpdate();
         }
@@ -715,7 +851,7 @@ class FulfillmentTransitionService
         $affiliation = $this->courierAffiliation($courier);
 
         return DeliveryTask::query()->where('leg', FulfillmentTaskLeg::FinalMile->value)->where('courier_id', $courier->id)
-            ->whereHas('shipment', fn ($shipment) => $shipment->where('logistics_organization_id', $affiliation->logistics_organization_id)->where('logistics_hub_id', $affiliation->logistics_hub_id))
+            ->whereHas('shipment', fn ($shipment) => $shipment->where('current_logistics_organization_id', $affiliation->logistics_organization_id)->where('current_hub_id', $affiliation->logistics_hub_id))
             ->whereIn('status', [FulfillmentTaskStatus::DeliveryAssigned->value, FulfillmentTaskStatus::DeliveryAccepted->value, FulfillmentTaskStatus::PickedUpFromHub->value, FulfillmentTaskStatus::InTransit->value, FulfillmentTaskStatus::OutForDelivery->value])
             ->with($this->taskRelations())->orderBy('created_at')->orderBy('id')->get();
     }
@@ -734,7 +870,7 @@ class FulfillmentTransitionService
         $affiliation = $this->courierAffiliation($courier);
 
         return DeliveryTask::query()->where('leg', FulfillmentTaskLeg::FinalMile->value)->where('courier_id', $courier->id)->where('status', FulfillmentTaskStatus::Delivered->value)
-            ->whereHas('shipment', fn ($shipment) => $shipment->where('logistics_organization_id', $affiliation->logistics_organization_id)->where('logistics_hub_id', $affiliation->logistics_hub_id))
+            ->whereHas('shipment', fn ($shipment) => $shipment->where('current_logistics_organization_id', $affiliation->logistics_organization_id)->where('current_hub_id', $affiliation->logistics_hub_id))
             ->when($reference, fn ($query, $value) => $query->whereHas('shipment.parcel.order', fn ($order) => $order->where('reference', $value)))
             ->with($this->taskRelations())->orderByDesc('delivered_at')->orderByDesc('id')->get();
     }
@@ -747,7 +883,7 @@ class FulfillmentTransitionService
         $waybill = $parcel?->waybill;
         $order = $parcel?->order;
         $snapshot = $parcel?->snapshot ?? [];
-        $pickup = $snapshot['waybill']['logistics']['hub_area'] ?? $snapshot['waybill']['pickup'] ?? null;
+        $pickup = $task->shipment?->currentHub?->address?->toArray() ?? $snapshot['waybill']['logistics']['hub_area'] ?? null;
         $destination = $snapshot['destination'] ?? $snapshot['waybill']['recipient'] ?? null;
         $offers = $task->offers->sortBy('sequence')->values();
         $offer = $offers->sortByDesc('sequence')->first();
@@ -830,10 +966,10 @@ class FulfillmentTransitionService
     public function deliveryProjection(DeliveryTask $task): array
     {
         $projection = $this->taskProjection($task);
-        $task->loadMissing(['shipment.hub.address', 'shipment.parcel.order.address']);
+        $task->loadMissing(['shipment.currentHub.address', 'shipment.parcel.order.address']);
 
         $address = $task->shipment?->parcel?->order?->address;
-        $hub = $task->shipment?->hub;
+        $hub = $task->shipment?->currentHub;
 
         $projection['pickup_hub'] = $hub ? [
             'name' => $hub->name,
@@ -849,10 +985,10 @@ class FulfillmentTransitionService
     public function shipmentProjection(Shipment $shipment): array
     {
         $shipment->loadMissing($this->shipmentRelations());
-        $tasks = $shipment->tasks->sortBy(fn (DeliveryTask $task): string => $task->leg instanceof FulfillmentTaskLeg ? $task->leg->value : (string) $task->leg)->values();
+        $tasks = $shipment->tasks->filter(fn (DeliveryTask $task): bool => $shipment->current_hub_id === $shipment->logistics_hub_id || $task->leg !== FulfillmentTaskLeg::FirstMile)->sortBy(fn (DeliveryTask $task): string => $task->leg instanceof FulfillmentTaskLeg ? $task->leg->value : (string) $task->leg)->values();
         $allowed = match ($shipment->status) {
             ShipmentStatus::PickedUpFromSeller => [],
-            ShipmentStatus::ReceivedAtHub => ['sorted_at_hub'],
+            ShipmentStatus::ReceivedAtHub => $shipment->route === null || $shipment->route->status === HubRouteStatus::Local ? ['sorted_at_hub'] : [],
             ShipmentStatus::SortedAtHub => [],
             ShipmentStatus::DeliveryAccepted => ['picked_up_from_hub'],
             ShipmentStatus::PickedUpFromHub => ['in_transit'],
@@ -863,6 +999,8 @@ class FulfillmentTransitionService
 
         return [
             'shipment_id' => $shipment->id,
+            'current_hub_id' => $shipment->current_hub_id,
+            'route' => app(ShipmentRouteService::class)->projection($shipment),
             'status' => $shipment->status instanceof ShipmentStatus ? $shipment->status->value : $shipment->status,
             'revision' => $shipment->revision,
             'sorting_lane' => $shipment->sortingLane ? ['id' => $shipment->sortingLane->id, 'code' => $shipment->sortingLane->code, 'name' => $shipment->sortingLane->name, 'revision' => $shipment->sortingLane->revision] : null,
@@ -946,6 +1084,7 @@ class FulfillmentTransitionService
 
     private function ensureForWaybillInTransaction(Waybill $waybill): Shipment
     {
+        $waybill = Waybill::query()->whereKey($waybill->id)->lockForUpdate()->firstOrFail();
         $waybill->loadMissing(['snapshot', 'order.items', 'order.address']);
         $parcel = Parcel::query()->where('waybill_id', $waybill->id)->lockForUpdate()->first();
         if ($parcel === null) {
@@ -993,6 +1132,8 @@ class FulfillmentTransitionService
             ]);
             $this->event($shipment, $task, 'legacy_import', null, $task->status->value, $legacy->courier_id, null, null, null, ['legacy_task_id' => $legacy->id]);
         }
+
+        app(ShipmentRouteService::class)->attach($waybill, $shipment);
 
         return $shipment->fresh($this->shipmentRelations());
     }
@@ -1113,7 +1254,12 @@ class FulfillmentTransitionService
             $lookup = trim($matches[1]);
         }
         $lookup = mb_strtoupper($lookup);
-        $query = Waybill::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id);
+        $query = Waybill::query()->where(function ($scope) use ($org): void {
+            $scope->whereHas('parcel.shipment', fn ($shipment) => $shipment->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id))
+                ->orWhere(function ($origin) use ($org): void {
+                    $origin->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->whereDoesntHave('parcel.shipment');
+                });
+        });
         $waybill = (clone $query)->where(function ($match) use ($lookup): void {
             $match->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)])
                 ->orWhereHas('order', fn ($order) => $order->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]))
@@ -1174,13 +1320,13 @@ class FulfillmentTransitionService
     /** @return array<int, string> */
     private function shipmentRelations(): array
     {
-        return ['sortingLane', 'parcel.order.items', 'parcel.order.address', 'parcel.waybill.snapshot', 'hub.address', 'tasks.courier.courierProfile', 'tasks.offers.courier.courierProfile', 'tasks.evidence', 'tasks.completionIntents.evidence'];
+        return ['route', 'currentHub.address', 'sortingLane', 'parcel.order.items', 'parcel.order.address', 'parcel.waybill.snapshot', 'hub.address', 'tasks.courier.courierProfile', 'tasks.offers.courier.courierProfile', 'tasks.evidence', 'tasks.completionIntents.evidence'];
     }
 
     /** @return array<int, string> */
     private function taskRelations(): array
     {
-        return ['shipment.parcel.order.items', 'shipment.parcel.order.address', 'shipment.parcel.waybill.snapshot', 'shipment.hub.address', 'shipment.tasks.offers.courier.courierProfile', 'offers.courier.courierProfile', 'courier.courierProfile', 'evidence', 'completionIntents.evidence'];
+        return ['shipment.parcel.order.items', 'shipment.parcel.order.address', 'shipment.parcel.waybill.snapshot', 'shipment.currentHub.address', 'shipment.tasks.offers.courier.courierProfile', 'offers.courier.courierProfile', 'courier.courierProfile', 'evidence', 'completionIntents.evidence'];
     }
 
     /** @return array<int, string> */

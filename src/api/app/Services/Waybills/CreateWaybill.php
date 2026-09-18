@@ -6,6 +6,7 @@ use App\Models\Address;
 use App\Models\Order;
 use App\Models\SellerPickupRequest;
 use App\Models\Waybill;
+use App\Services\Logistics\Routing\ShipmentRouteService;
 use Illuminate\Support\Str;
 
 class CreateWaybill
@@ -50,7 +51,10 @@ class CreateWaybill
         ]);
         $waybill->snapshot()->create(['payload' => $snapshot]);
 
-        return $waybill->load('snapshot');
+        $waybill->load('snapshot');
+        app(ShipmentRouteService::class)->snapshot($waybill);
+
+        return $waybill;
     }
 
     public function hashQr(string $payload): string

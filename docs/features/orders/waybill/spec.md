@@ -28,7 +28,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   ```
 - Creating, viewing, downloading, printing, or scanning a waybill does not itself change Order or custody status.
 - A Courier QR/reference scan is an ingress/access event, not a custody transition. Only the shared transition service may advance physical state after Logistics validates the submitted event/evidence.
-- Current explicit Courier pickup confirmation commits first-mile custody and Inventory after QR/manual verification. Logistics hub receiving now scans the same QR/thin Code 128/manual reference into a device-local outbox and commits `received_at_hub` through the dedicated bulk endpoint without replaying Inventory effects.
+- Current explicit Courier pickup confirmation commits first-mile custody and Inventory after QR/manual verification. Logistics hub receiving now scans the thin 1D Code 128 barcode (ignoring QR) or accepts a manual reference into a device-local outbox and commits `received_at_hub` through the dedicated bulk endpoint without replaying Inventory effects.
 - The immutable waybill `reference` is the explicit human `tracking_id` for the MVP. Every A6 portrait PDF contains a thin, industry-standard 1D Code 128 barcode that encodes that tracking ID, plus the existing QR as a compatibility/fallback identifier; a bulk download may combine up to 30 one-page A6 labels for one pickup request or schedule.
 - **Non-goals:** thermal-printer drivers, external carrier labels, parcel weight/dimensions, multiple parcels per Order, route mutation, status mutation by document generation, or public unauthenticated tracking.
 
@@ -106,6 +106,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Repeated generation/download/print returns the same identity and causes no Order, Inventory, task, or notification mutation.
 - [x] Courier scans require assignment authorization and cannot directly advance custody state.
 - [x] Dependencies are license-reviewed, patched, locked, and usable without paid services or added browser/server binaries.
+
+- Logistics camera scanning keeps the same stream across scan-handler/page-state updates, enables muted inline autoplay, and releases tracks on Stop/unmount even during startup. Unsupported preferred settings retry with basic video constraints; HTTPS, unsupported browser, permission, missing/busy camera, and playback failures show actionable errors while retaining manual entry.
+- Camera decoding waits for current video frames and nonzero dimensions. Temporary unavailable frames (including `InvalidStateError`), unreadable barcodes, and interrupted startup playback retry without stopping the stream; fatal decode failures reach the page error notice before cleanup.
+- Decode captured RGBA pixels through a rotatable luminance buffer, bypassing the installed browser reader’s broken rotation-canvas initialization. Blank frames remain normal barcode misses; thin horizontal and rotated Code 128 labels retain dense scanning. Fatal camera/decode exceptions are available in the local browser console without logging decoded payloads.
 
 ## HOW
 

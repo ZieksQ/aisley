@@ -1,8 +1,8 @@
 import { ParcelLaneMove } from '../components/ParcelLaneMove'
-import type { IScannerControls } from '@zxing/browser'
+import { useWaybillCamera } from '../lib/useWaybillCamera'
 import Dexie from 'dexie'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPlus, FaPrint, FaStop, FaTrashCan, FaWarehouse, FaXmark } from 'react-icons/fa6'
+import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPlus, FaPrint, FaRoute, FaStop, FaTrashCan, FaWarehouse, FaXmark } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
 import { ConnectionStatus } from '../components/ConnectionStatus'
 import { ErrorNotice, PrimaryButton, field, manilaDate, panel } from '../components/PickupUi'
@@ -49,8 +49,6 @@ export function SortingPage() {
   const [itemStatus, setItemStatus] = useState('')
   const helpDialog = useRef<HTMLDialogElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const scannerControls = useRef<IScannerControls | null>(null)
-  const lastScan = useRef('')
   const lastAutoSyncBatch = useRef('')
 
   const session = overview?.session ?? null
@@ -173,26 +171,10 @@ export function SortingPage() {
     lastAutoSyncBatch.current = batch
     void sync()
   }, [captures, online, sync, syncBusy])
-  useEffect(() => {
-    if (!scannerOpen || !videoRef.current) return
-    const video = videoRef.current
-    let disposed = false
-    void import('@zxing/browser').then(({ BrowserMultiFormatReader }) => {
-      const reader = new BrowserMultiFormatReader()
-      return reader.decodeFromVideoDevice(undefined, video, (result) => {
-        if (disposed || !result) return
-        const raw = result.getText()
-        if (raw === lastScan.current) return
-        lastScan.current = raw
-        handleScan(raw)
-        window.setTimeout(() => { lastScan.current = '' }, 1200)
-      })
-    }).then((controls) => { scannerControls.current = controls; if (disposed) controls.stop() }).catch((caught: unknown) => {
-      setError(caught instanceof DOMException && caught.name === 'NotAllowedError' ? 'Camera permission was denied. Enter the tracking ID manually.' : 'The camera could not start. Enter the tracking ID manually.')
-      setScannerOpen(false)
-    })
-    return () => { disposed = true; scannerControls.current?.stop(); scannerControls.current = null }
-  }, [handleScan, scannerOpen])
+  useWaybillCamera(scannerOpen, videoRef, (raw) => { handleScan(raw) }, (message) => {
+    setError(message)
+    setScannerOpen(false)
+  })
 
   async function startSession() {
     setBusy(true); setError(''); setNotice('')
@@ -238,10 +220,10 @@ export function SortingPage() {
     return (session?.items ?? []).filter((item) => (!itemStatus || item.status === itemStatus) && (!term || [item.tracking_id, item.reference, item.order_reference, destination(item)].some((value) => value?.toLowerCase().includes(term))))
   }, [itemSearch, itemStatus, session?.items])
 
-  return <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-5">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
-      <div className="flex items-center gap-3"><FaWarehouse className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><div><h2 className="text-xl font-semibold">Sorting</h2><p className="text-sm text-zinc-500">Receive → sort lane → dispatch</p></div></div>
-      <div className="flex items-center gap-2"><ConnectionStatus online={online} syncing={syncBusy} /><button aria-label="How to use Sorting" className={iconButton} onClick={() => helpDialog.current?.showModal()} title="How to use Sorting" type="button"><span className="text-base font-semibold" aria-hidden="true">?</span></button><button aria-label="Refresh sorting" className={iconButton} disabled={loading} onClick={() => void load()} title="Refresh" type="button"><FaArrowsRotate className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button></div>
+  return <div className="mx-auto max-w-[1500px] px-3 py-3">
+    <div className="relative flex items-start justify-between gap-2 border-b border-zinc-200 pb-3 dark:border-white/10">
+      <div className="flex min-w-0 items-center gap-2 pr-32"><FaWarehouse className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><div><h2 className="text-lg font-semibold">Sorting</h2></div></div>
+      <div className="absolute right-0 top-0 flex items-center gap-1"><ConnectionStatus online={online} syncing={syncBusy} /><button aria-label="How to use Sorting" className={iconButton} onClick={() => helpDialog.current?.showModal()} title="How to use Sorting" type="button"><span className="text-base font-semibold" aria-hidden="true">?</span></button><button aria-label="Refresh sorting" className={iconButton} disabled={loading} onClick={() => void load()} title="Refresh" type="button"><FaArrowsRotate className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button></div>
     </div>
 
     {error ? <div className="mt-3"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
@@ -255,7 +237,7 @@ export function SortingPage() {
       <div className="space-y-3">
         <section className={panel}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Scanner</h3><p className="text-xs text-zinc-500">{scannerMode}</p></div><div className="flex flex-wrap items-center gap-2"><button className="h-9 border border-zinc-300 px-2 text-xs font-medium hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-white/10" onClick={() => setAutoRoute((value) => !value)} type="button">{autoRoute ? 'Use manual lane' : 'Use plan routing'}</button><button aria-label={scannerOpen ? 'Stop camera' : 'Start camera'} className={iconButton} onClick={() => setScannerOpen((value) => !value)} title={scannerOpen ? 'Stop camera' : 'Start camera'} type="button">{scannerOpen ? <FaStop aria-hidden="true" /> : <FaCamera aria-hidden="true" />}</button></div></div>
-          {scannerOpen ? <video ref={videoRef} className="max-h-64 w-full bg-black object-contain" muted playsInline /> : <div className="grid min-h-32 place-items-center border-b border-zinc-200 px-3 text-center text-sm text-zinc-500 dark:border-white/10"><div><FaBarcode className="mx-auto mb-2 text-2xl" aria-hidden="true" /><p>{autoRoute ? 'Scan parcel waybills for automatic lane routing.' : 'Scan a lane label, then parcel waybills.'}</p></div></div>}
+          {scannerOpen ? <div><video ref={videoRef} className="max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="px-3 py-2 text-xs text-zinc-500">Keep all bars and both white margins visible. QR codes are ignored.</p></div> : <div className="grid min-h-32 place-items-center border-b border-zinc-200 px-3 text-center text-sm text-zinc-500 dark:border-white/10"><div><FaBarcode className="mx-auto mb-2 text-2xl" aria-hidden="true" /><p>{autoRoute ? 'Scan thin 1D Code 128 tracking barcodes for automatic lane routing.' : 'Scan a Code 128 lane label, then thin tracking barcodes.'}</p></div></div>}
           <form className="flex gap-2 p-3" onSubmit={(event) => { event.preventDefault(); void queueCapture(manualReference, 'manual') }}><label className="min-w-0 flex-1"><span className="sr-only">Tracking ID or waybill reference</span><input autoComplete="off" className={field} onChange={(event) => setManualReference(event.target.value)} placeholder="Tracking ID or waybill reference" value={manualReference} /></label><button aria-label="Add manual sorting capture" className={iconButton + ' size-10 border border-zinc-300 dark:border-white/15'} title="Add capture" type="submit"><FaPlus aria-hidden="true" /></button></form>
           {!autoRoute && selectedLane?.type === 'exception' ? <div className="grid gap-2 border-t border-zinc-200 px-3 py-2.5 dark:border-white/10 sm:grid-cols-2"><label className="text-xs font-medium">Exception<select className={field + ' mt-1'} onChange={(event) => setExceptionCode(event.target.value as PendingSortCapture['exceptionCode'])} value={exceptionCode}><option value="damaged">Damaged</option><option value="unreadable_label">Unreadable label</option><option value="destination_unclear">Destination unclear</option><option value="other">Other</option></select></label><label className="text-xs font-medium">Reason{exceptionCode === 'other' ? ' *' : ''}<input className={field + ' mt-1'} maxLength={500} onChange={(event) => setExceptionReason(event.target.value)} placeholder="Optional context" value={exceptionReason} /></label></div> : null}
         </section>
@@ -273,7 +255,7 @@ export function SortingPage() {
         </section>
 
         <section className={panel}>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="font-semibold">Lanes</h3><Link className="text-xs font-medium text-[#4C1268] underline-offset-4 hover:underline dark:text-purple-300" to="/sort-plan">Manage sort plan</Link></div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="font-semibold">Lanes</h3><Link aria-label="Manage sort plan" title="Sort plan" className={iconButton} to="/sort-plan"><FaRoute aria-hidden="true" /></Link></div>
           {overview?.lanes.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{overview.lanes.map((lane) => <li className={(lane.id === selectedLaneId ? 'bg-purple-50/70 dark:bg-purple-400/10 ' : '') + 'flex items-center gap-1'} key={lane.id}><button className="min-w-0 flex-1 px-3 py-2.5 text-left disabled:opacity-45" disabled={!lane.is_active} onClick={() => { setSelectedLaneId(lane.id); setAutoRoute(false) }} type="button"><span className="flex items-center gap-2"><strong className="font-mono text-sm">{lane.code}</strong>{lane.type === 'exception' ? <span className="text-xs text-amber-700 dark:text-amber-300">Exception</span> : null}{!lane.is_active ? <span className="text-xs text-zinc-500">Inactive</span> : null}</span><span className="block truncate text-xs text-zinc-500">{lane.name}</span></button><button aria-label={'Print ' + lane.code + ' label'} className={iconButton} onClick={() => void openLabel(lane)} title="Open printable label" type="button"><FaPrint aria-hidden="true" /></button></li>)}</ul> : <p className="px-3 py-5 text-center text-sm text-zinc-500">Create lanes in Sort plan.</p>}
         </section>
       </aside>
@@ -286,22 +268,24 @@ export function SortingPage() {
         return <li key={item.id} className="grid min-w-0 gap-2 p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center">
           <div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{item.reference}</p><p className="break-all text-xs text-zinc-500">{item.order_reference}</p></div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{destination(item)}</p>
-          <div><p className="text-xs"><span className="md:sr-only">Lane: </span>{lane?.code ?? 'Unassigned'}</p><p className="text-xs text-zinc-500">Auto: {item.automatic_routing.lane?.code ?? 'Exception fallback'}</p>{item.can_move ? <ParcelLaneMove shipmentId={item.shipment_id} revision={item.shipment_revision} laneId={item.lane_id} lanes={overview?.lanes ?? []} disabled={syncBusy || busy || captures.some((capture) => capture.reference === item.reference)} onMoved={load} /> : null}</div>
+          <div><p className="text-xs"><span className="md:sr-only">Lane: </span>{lane?.code ?? 'Unassigned'}</p><p className="text-xs text-zinc-500">Auto: {item.automatic_routing.lane?.code ?? 'Exception fallback'}</p>{item.route ? <p className="mt-1 break-words text-xs">{item.route.next_hub ? 'Next hub: ' + item.route.next_hub.name : item.route.failure_code ? 'Route held: ' + item.route.failure_code.replaceAll('_', ' ').toLowerCase() : 'Final-mile postal routing'}</p> : null}{item.can_move ? <ParcelLaneMove shipmentId={item.shipment_id} revision={item.shipment_revision} laneId={item.lane_id} lanes={overview?.lanes ?? []} disabled={syncBusy || busy || captures.some((capture) => capture.reference === item.reference)} onMoved={load} /> : null}</div>
           <div className={`text-sm ${statusTone(item.status)}`}><p className="font-medium capitalize">{item.status}</p>{item.exception_code ? <p className="text-xs">{item.exception_code.replaceAll('_', ' ')}{item.exception_reason ? ` · ${item.exception_reason}` : ''}</p> : null}</div>
         </li>
       })}</ul>{!filteredItems.length ? <p className="px-3 py-5 text-center text-sm text-zinc-500">No session parcels match the filters.</p> : null}
 
     </section> : null}
 
-    <dialog className="m-auto max-h-[90dvh] w-[min(92vw,34rem)] overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
-      <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">How to use Sorting</h3><button aria-label="Close sorting instructions" className={iconButton} onClick={() => helpDialog.current?.close()} title="Close" type="button"><FaXmark aria-hidden="true" /></button></div>
+    <dialog aria-labelledby="sorting-help-title" className="m-auto max-h-[90dvh] w-[min(92vw,34rem)] overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
+      <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 id="sorting-help-title" className="font-semibold">How to use Sorting</h3><button aria-label="Close sorting instructions" className={iconButton} onClick={() => helpDialog.current?.close()} title="Close" type="button"><FaXmark aria-hidden="true" /></button></div>
       <ol className="list-decimal space-y-3 px-5 py-4 pl-10 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-        <li>Create an active standard lane, an active exception lane, and an active Sort plan with exact postal-code mappings. Print and place the lane labels from the Sort plan page.</li>
+        <li>Create an active standard lane, an active exception lane, and an active Sort plan with postal-code or allowed next-hub mappings. Print and place the lane labels from the Sort plan page.</li>
         <li>Start a session. It loads up to 100 of the oldest parcels already received at this hub.</li>
-        <li>Leave <strong>Use plan routing</strong> enabled for normal work. Scan each parcel tracking ID or enter it manually; the server checks the buyer postal code and chooses the mapped lane.</li>
+        <li>Leave <strong>Use plan routing</strong> enabled for normal work. Scan each parcel tracking ID or enter it manually; the server checks the committed next hop or buyer postal code and chooses the mapped lane.</li>
         <li>If the plan is missing, the postal code is unmapped, or a mapped lane is unavailable, the parcel goes to the exception lane and stays received at hub. Scan a lane label or choose a lane only for a deliberate manual override.</li>
         <li>Use <strong>Sync scans</strong> when needed. Captures also sync at 10 scans, after five minutes, or when the connection returns.</li>
-        <li>Resolve exceptions by scanning into a standard lane. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch ready parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
+        <li>Resolve exceptions by scanning into a standard lane. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch local or destination-hub parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
+        <li>Linehaul extends automated sorting: transfer parcels use the mapped next-hub lane; destination-hub parcels use postal codes. Missing routes or mappings remain held.</li>
+        <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub confirms the complete manifest on the Linehaul page before sorting again. Transfers require a connection and cannot skip hops.</li>
       </ol>
       <div className="flex justify-end border-t border-zinc-200 px-4 py-3 dark:border-white/10"><PrimaryButton onClick={() => helpDialog.current?.close()} type="button">Got it</PrimaryButton></div>
     </dialog>

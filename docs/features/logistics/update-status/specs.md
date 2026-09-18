@@ -81,7 +81,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Responses return safe current projections, immutable event identifiers, evidence status, and any permitted Order projection. They never return secrets, private raw paths, or unrelated PII.
 - Errors distinguish `401`, `403`, `404`, `409` stale/concurrent state, `422` invalid evidence/transition, `429`, and provider/notification delivery failure. Retrying an identical idempotency key returns the committed projection; changed details conflict.
 - The Logistics Parcel search UI (`src/logistics/src/pages/FulfillmentOperationsPage.tsx`) deliberately excludes normal receiving, sorting, and dispatch controls. It links received parcels to Sorting and retains evidence selection, completion-intent checks, exceptional recovery compatibility, and authoritative refresh after a commit or conflict.
-- Parcel search requests ten queue rows per online page. It caches safe, organization/hub-scoped queue and detail projections in Dexie, uses ZXing camera scanning plus manual fallback, and labels offline results as read-only because barcode-encoded status and cached custody are not authoritative.
+- Parcel search requests ten queue rows per online page. It caches safe, organization/hub-scoped queue and detail projections in Dexie, uses shared ZXing Code 128-only camera scanning with dense row sampling and a higher-resolution rear-camera preference, plus manual fallback, and labels offline results as read-only because barcode-encoded status and cached custody are not authoritative.
 
 The deployed responses are safe for the Logistics dashboard and external Courier client: machine state plus human label, evidence status, event time, and opaque references. They omit payment credentials, private registration/POD bytes, raw storage paths, and unrelated Customer/Seller details.
 
@@ -112,7 +112,7 @@ The deployed responses are safe for the Logistics dashboard and external Courier
 - [ ] Notification failure cannot undo a committed state change.
 - [x] Manual recovery cannot fabricate pickup, delivery, proof, or another organization's record.
 - [x] DTOs and logs exclude secrets, raw storage paths, private evidence, and unrelated PII.
-- [x] Receiving has its own responsive page with Code 128/QR camera scanning, manual fallback, Dexie persistence, ten-item/five-minute/reconnect auto-sync, an immediate **Sync scans** button, and dot-only online/connecting/offline feedback.
+- [x] Receiving has its own responsive page with 1D Code 128-only camera scanning (QR ignored), manual fallback, Dexie persistence, ten-item/five-minute/reconnect auto-sync, an immediate **Sync scans** button, and dot-only online/connecting/offline feedback.
 - [x] A mixed bulk result clears only committed receipts; failed receipts stay on-device with their server reason and stable idempotency key.
 - [x] Sorting has its own compact page with standard/exception lanes, one bounded session, printable lane labels, offline partial-result sync, and authoritative reconciliation.
 - [x] Parcel search decodes barcode/QR data locally, displays encoded parcel hints, attempts online authoritative detail/status lookup, falls back to tenant-scoped cached results offline, paginates online results at ten rows, and provides camera/manual lookup with an accessible icon-only queue refresh.
@@ -144,6 +144,10 @@ The web client may refresh after a conflict or validation failure, but it must n
 - Keep exceptional transitions, returns, and unsupported evidence methods unavailable; the documented hub/final-mile transition routes are deployed with the additive migration and shared service.
 - Follow the dependency-ordered schema/service plan and legacy first-mile bridge in `docs/schema.md`. Preserve confirmations, replay results, and stock effects; new pickups cannot use the old direct-confirmation bypass after cutover.
 - Enable submission and validation together only after bridge reconciliation and SQLite/PostgreSQL checks pass. Manual recovery remains limited to transitions with an implemented evidence contract.
+
+### Hub-routing API integration (2026-09-18)
+
+The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` implements `in_transfer` through separate revision-checked transfer endpoints. Operational lookups/transitions use current Shipment custody organization/hub while waybill provider fields remain immutable origin context. Generic sort recovery cannot bypass an unresolved or cross-hub route; use the authoritative sorting session. Same-hub and legacy recovery compatibility remains. Historical receipt/transition retries recheck current custody before returning detail, and receiving hubs cannot read the previous organization's first-mile Courier/task details. The feature flag controls new waybill routes only; no transfer UI or extra linehaul evidence contract is added.
 
 ### References
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureControlController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
+use App\Http\Controllers\Admin\HubRoutingConfigurationController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
@@ -45,6 +46,8 @@ use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardCont
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
+use App\Http\Controllers\Logistics\HubRoutingController;
+use App\Http\Controllers\Logistics\LinehaulController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
@@ -85,6 +88,10 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
+    Route::get('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'index'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.view')->name('hub-routing.index');
+    Route::post('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'store'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.store');
+    Route::patch('/hub-routing/{kind}/{id}', [HubRoutingConfigurationController::class, 'update'])->where('kind', 'service-areas|connections')->whereUuid('id')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.update');
+
     Route::prefix('seller-compliance')->name('seller-compliance.')->middleware('admin.permission:seller_compliance.manage')->group(function () {
         Route::get('/cases', [SellerComplianceController::class, 'index'])->name('index');
         Route::get('/options', [SellerComplianceController::class, 'options'])->name('options');
@@ -282,6 +289,15 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::put('/linehaul/connections/{connection}/consent', [LinehaulController::class, 'consent']);
+    Route::get('/linehaul', [LinehaulController::class, 'index']);
+    Route::post('/linehaul/manifests', [LinehaulController::class, 'depart'])->middleware('throttle:60,1');
+    Route::post('/linehaul/manifests/{manifest}/receive', [LinehaulController::class, 'arrive'])->whereUuid('manifest')->middleware('throttle:60,1');
+    Route::put('/linehaul/{kind}', [LinehaulController::class, 'configure'])->where('kind', 'service-areas|connections');
+    Route::get('/routes/{reference}', [HubRoutingController::class, 'show'])->name('hub-routing.show');
+    Route::post('/transfers/departures', [HubRoutingController::class, 'depart'])->middleware('throttle:60,1')->name('hub-routing.depart');
+    Route::post('/transfers/arrivals', [HubRoutingController::class, 'arrive'])->middleware('throttle:60,1')->name('hub-routing.arrive');
+
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [LogisticsNotificationController::class, 'index'])->name('index');
         Route::get('/unread-count', [LogisticsNotificationController::class, 'unreadCount'])->name('unread-count');
@@ -328,6 +344,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/sorting/plans', [SortingPlanController::class, 'index'])->name('sorting.plans.index');
     Route::post('/sorting/plans', [SortingPlanController::class, 'store'])->name('sorting.plans.store');
     Route::patch('/sorting/plans/{plan}', [SortingPlanController::class, 'update'])->whereUuid('plan')->name('sorting.plans.update');
+    Route::delete('/sorting/plans/{plan}', [SortingPlanController::class, 'destroy'])->whereUuid('plan')->name('sorting.plans.destroy');
     Route::post('/sorting/plans/{plan}/lanes', [SortingPlanController::class, 'storeLane'])->whereUuid('plan')->name('sorting.plans.lanes.store');
     Route::delete('/sorting/plans/{plan}/lanes/{planLane}', [SortingPlanController::class, 'destroyLane'])->whereUuid('plan')->whereUuid('planLane')->name('sorting.plans.lanes.destroy');
     Route::post('/sorting/shipments/{shipment}/move', [SortingController::class, 'moveLane'])->whereUuid('shipment')->name('sorting.shipments.move');

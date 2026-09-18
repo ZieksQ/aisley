@@ -12,7 +12,9 @@ export type SortingLane = {
 
 export type SortingPlanLane = {
   id: string
-  postal_code: string
+  postal_code: string | null
+  destination_type: 'postal_code' | 'hub'
+  destination_hub_id: string | null
   position: number
   lane: SortingLane | null
 }
@@ -29,12 +31,14 @@ export type SortingPlan = {
 
 export type SortingPlansOverview = {
   context: { organization_id: string; hub_id: string; hub_name: string }
+  next_hubs: Array<{ id: string; name: string }>
   active_plan_id: string | null
   plans: SortingPlan[]
   lanes: SortingLane[]
 }
 
 export type SortingItem = {
+  route: import('./hubRouting').HubRoute | null
   id: string
   shipment_id: string
   reference: string

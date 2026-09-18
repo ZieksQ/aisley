@@ -36,6 +36,13 @@ use Tests\TestCase;
 
 class FinalMileFulfillmentTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // This suite exercises historical route-less local fulfillment fixtures.
+        config(['hub-routing.enabled' => false]);
+    }
+
     use RefreshDatabase;
 
     public function test_offline_receiving_sorting_and_dispatch_schedule_assign_delivery_courier(): void

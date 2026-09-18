@@ -2,6 +2,7 @@
 
 namespace App\Services\Logistics;
 
+use App\Enums\Logistics\HubRouteStatus;
 use App\Enums\Logistics\SortingExceptionCode;
 use App\Enums\Logistics\SortingItemStatus;
 use App\Enums\Logistics\SortingLaneType;
@@ -19,6 +20,7 @@ use App\Models\SortingSession;
 use App\Models\SortingSessionItem;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Logistics\Routing\ShipmentRouteService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Picqer\Barcode\BarcodeGeneratorSVG;
@@ -45,8 +47,8 @@ class SortingService
             ->first();
         $assigned = $session?->items->pluck('shipment_id')->all() ?? [];
         $waiting = Shipment::query()
-            ->where('logistics_organization_id', $org->id)
-            ->where('logistics_hub_id', $org->hub->id)
+            ->where('current_logistics_organization_id', $org->id)
+            ->where('current_hub_id', $org->hub->id)
             ->where('status', ShipmentStatus::ReceivedAtHub->value)
             ->when($assigned !== [], fn ($query) => $query->whereNotIn('id', $assigned))
             ->count();
@@ -143,10 +145,10 @@ class SortingService
                 throw FulfillmentException::invalid('SORT_STANDARD_LANE_REQUIRED', 'Create an active standard lane before starting a sorting session.');
             }
             $shipments = Shipment::query()
-                ->where('logistics_organization_id', $org->id)
-                ->where('logistics_hub_id', $org->hub->id)
+                ->where('current_logistics_organization_id', $org->id)
+                ->where('current_hub_id', $org->hub->id)
                 ->where('status', ShipmentStatus::ReceivedAtHub->value)
-                ->whereDoesntHave('sortingItems', fn ($query) => $query->whereHas('session', fn ($session) => $session->where('status', SortingSessionStatus::Open->value)))
+                ->whereDoesntHave('sortingItems', fn ($query) => $query->whereHas('session', fn ($session) => $session->where('status', SortingSessionStatus::Open->value)->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)))
                 ->orderByRaw('COALESCE(received_at_hub_at, created_at)')->orderBy('id')->limit(self::SESSION_LIMIT)->lockForUpdate()->get();
             if ($shipments->isEmpty()) {
                 throw FulfillmentException::invalid('SORT_SESSION_EMPTY', 'No received parcels are waiting for sorting.');
@@ -225,6 +227,8 @@ class SortingService
         $requestHash = hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($logistics, $session, $capture, $org, $reference, $requestHash, $autoRoute): array {
+            // Match network configuration lock order before acquiring hub/custody locks.
+            DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
             LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
             $ownedSession = $this->ownedSession($org, $session->id, true);
             $previous = SortingScan::query()->where('logistics_organization_id', $org->id)->where('client_id', $capture['client_id'])->lockForUpdate()->first();
@@ -240,6 +244,12 @@ class SortingService
             }
             $shipment = $this->fulfillment->recordForLogistics($logistics, $reference);
             $shipment = Shipment::query()->whereKey($shipment->id)->with('parcel.order.address')->lockForUpdate()->firstOrFail();
+            $manualException = ! $autoRoute && filled($capture['lane_id'] ?? null)
+                && $this->ownedLane($org, (string) $capture['lane_id'], true)->type === SortingLaneType::Exception;
+            $autoRoute = $autoRoute || ($shipment->route !== null && $shipment->route->status !== HubRouteStatus::Local && ! $manualException);
+            if ($autoRoute) {
+                app(ShipmentRouteService::class)->retryHeldAtSorting($shipment);
+            }
             $routing = $autoRoute ? $this->sortingPlans->routeForShipment($shipment) : [
                 'plan' => null,
                 'plan_lane' => null,
@@ -418,6 +428,7 @@ SVG;
         $shipment = $item->shipment;
         $parcel = $shipment?->parcel;
         $address = $parcel?->order?->address;
+        $atThisHub = $shipment?->current_hub_id === $item->session->logistics_hub_id;
 
         return [
             'id' => $item->id,
@@ -428,12 +439,13 @@ SVG;
             'status' => $item->status->value,
             'expected_revision' => $item->expected_shipment_revision,
             'shipment_revision' => $shipment?->revision,
-            'can_move' => $shipment?->status === ShipmentStatus::SortedAtHub,
+            'can_move' => $atThisHub && $shipment?->status === ShipmentStatus::SortedAtHub,
             'lane_id' => $item->sorting_lane_id,
             'exception_code' => $item->exception_code?->value,
             'exception_reason' => $item->exception_reason,
             'completed_at' => $item->completed_at?->toISOString(),
-            'automatic_routing' => $this->automaticItemRouting($shipment),
+            'route' => $shipment ? app(ShipmentRouteService::class)->projection($shipment) : null,
+            'automatic_routing' => $this->automaticItemRouting($atThisHub ? $shipment : null),
             'destination' => [
                 'barangay' => $address?->barangay,
                 'city_municipality' => $address?->city_municipality,
@@ -452,8 +464,8 @@ SVG;
         }
         $routing = $this->sortingPlans->routeForShipment($shipment);
         $lane = $routing['lane'] ?? $this->sortingPlans->exceptionLaneForContext(
-            (string) $shipment->logistics_organization_id,
-            (string) $shipment->logistics_hub_id,
+            (string) $shipment->current_logistics_organization_id,
+            (string) $shipment->current_hub_id,
         );
 
         return [
