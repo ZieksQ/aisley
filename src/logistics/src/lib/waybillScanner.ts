@@ -1,5 +1,5 @@
-import { BrowserMultiFormatOneDReader, type IScannerControls } from '@zxing/browser'
-import { BarcodeFormat, DecodeHintType } from '@zxing/library'
+import { BrowserCodeReader, BrowserMultiFormatOneDReader, type IScannerControls } from '@zxing/browser'
+import { BarcodeFormat, ChecksumException, DecodeHintType, FormatException, NotFoundException } from '@zxing/library'
 
 export function createWaybillReader(): BrowserMultiFormatOneDReader {
   // Thin waybill bars can fall between the default reader's sampled rows.
@@ -37,11 +37,52 @@ export function cameraErrorMessage(error: unknown): string {
   }
 }
 
+// A missing/temporarily unavailable video frame is normal during camera warmup.
+// ZXing's built-in scan loop finalizes the stream on InvalidStateError.
+export function scanWaybillVideo(
+  video: HTMLVideoElement,
+  onScan: (raw: string) => void,
+  onError: (error: unknown) => void,
+): IScannerControls {
+  const reader = createWaybillReader()
+  let stopped = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let canvas: HTMLCanvasElement | undefined
+  const stop = () => { stopped = true; clearTimeout(timer); canvas = undefined }
+  const loop = () => {
+    if (stopped) return
+    try {
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+        if (!canvas || canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas = BrowserCodeReader.createCaptureCanvas(video)
+        }
+        const context = canvas.getContext('2d', { willReadFrequently: true })
+        if (!context) throw new Error('Camera frame canvas unavailable')
+        BrowserCodeReader.drawImageOnCanvas(context, video)
+        const result = reader.decodeFromCanvas(canvas)
+        onScan(result.getText())
+      }
+    } catch (error) {
+      if (!(error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException)
+        && errorName(error) !== 'InvalidStateError') {
+        stop()
+        onError(error)
+        return
+      }
+    }
+    if (!stopped) timer = setTimeout(loop, 150)
+  }
+  // Defer the first scan until controls have been returned to the owner.
+  timer = setTimeout(loop, 0)
+  return { stop }
+}
+
 // Own the stream before playback begins so Stop/unmount also cancels startup.
 export async function startWaybillCamera(
   video: HTMLVideoElement,
   onScan: (raw: string) => void,
   signal: AbortSignal,
+  onError: (error: unknown) => void = () => {},
 ): Promise<IScannerControls> {
   signal.throwIfAborted()
   if (!window.isSecureContext) throw new DOMException('HTTPS required', 'InsecureContextError')
@@ -75,21 +116,40 @@ export async function startWaybillCamera(
     video.playsInline = true
     video.srcObject = stream
     await new Promise<void>((resolve, reject) => {
+      let playbackStarted = false
       const finish = (error?: unknown) => {
         clearTimeout(timer)
         signal.removeEventListener('abort', aborted)
+        video.removeEventListener('loadeddata', ready)
+        video.removeEventListener('canplay', ready)
+        video.removeEventListener('canplay', play)
         if (error) reject(error)
         else resolve()
       }
       const aborted = () => finish(signal.reason)
+      const ready = () => {
+        if (playbackStarted && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) finish()
+      }
       const timer = setTimeout(() => finish(new DOMException('Preview timed out', 'CameraPlaybackError')), 15000)
       signal.addEventListener('abort', aborted, { once: true })
-      void video.play().then(() => finish(), () => finish(new DOMException('Preview failed', 'CameraPlaybackError')))
+      video.addEventListener('loadeddata', ready)
+      video.addEventListener('canplay', ready)
+      function play() {
+        void video.play().then(() => { playbackStarted = true; ready() }, (error: unknown) => {
+          if (errorName(error) === 'AbortError' && !signal.aborted) return
+          finish(new DOMException('Preview failed', 'CameraPlaybackError'))
+        })
+      }
+      video.addEventListener('canplay', play, { once: true })
+      play()
     })
     signal.throwIfAborted()
-    controls = createWaybillReader().scan(video, (result) => {
-      if (!signal.aborted && result) onScan(result.getText())
-    }, release)
+    controls = scanWaybillVideo(video, (raw) => {
+      if (!signal.aborted) onScan(raw)
+    }, (error) => {
+      stop()
+      if (!signal.aborted) onError(error)
+    })
     return { stop }
   } catch (error) {
     stop()

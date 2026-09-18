@@ -108,6 +108,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Dependencies are license-reviewed, patched, locked, and usable without paid services or added browser/server binaries.
 
 - Logistics camera scanning keeps the same stream across scan-handler/page-state updates, enables muted inline autoplay, and releases tracks on Stop/unmount even during startup. Unsupported preferred settings retry with basic video constraints; HTTPS, unsupported browser, permission, missing/busy camera, and playback failures show actionable errors while retaining manual entry.
+- Camera decoding waits for current video frames and nonzero dimensions. Temporary unavailable frames (including `InvalidStateError`), unreadable barcodes, and interrupted startup playback retry without stopping the stream; fatal decode failures reach the page error notice before cleanup.
 
 ## HOW
 

@@ -61,7 +61,7 @@ test('rejects the waybill QR even when it contains a valid tracking reference', 
 })
 
 const { cameraErrorMessage, startWaybillCamera } = compiled.exports
-const { BrowserMultiFormatOneDReader } = require('@zxing/browser')
+const { BrowserCodeReader, BrowserMultiFormatOneDReader } = require('@zxing/browser')
 
 function cameraFixture(t, getUserMedia) {
   const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
@@ -76,7 +76,7 @@ function cameraFixture(t, getUserMedia) {
   })
   let stopped = 0
   const stream = { getTracks: () => [{ stop: () => stopped++ }] }
-  const video = { srcObject: null, play: async () => {}, pause: () => {} }
+  const video = Object.assign(new EventTarget(), { srcObject: null, readyState: 2, videoWidth: 640, videoHeight: 480, play: async () => {}, pause: () => {} })
   return { stream, video, stopped: () => stopped }
 }
 
@@ -130,29 +130,35 @@ test('playback failure releases camera and gives a specific retry message', asyn
   assert.equal(fixture.video.srcObject, null)
 })
 
-test('falls back on unsupported constraints and delivers actual waybill tracking ID', async (t) => {
+test('temporary frame error keeps camera open, then decodes waybill after constraint fallback', async (t) => {
   const requests = []
   const fixture = cameraFixture(t, async (constraints) => {
     requests.push(constraints)
     if (requests.length === 1) throw new DOMException('unsupported', 'OverconstrainedError')
     return fixture.stream
   })
-  const originalScan = BrowserMultiFormatOneDReader.prototype.scan
-  let stoppedScan = false
-  BrowserMultiFormatOneDReader.prototype.scan = function (video, callback, finalize) {
-    assert.equal(video.srcObject, fixture.stream)
-    callback(this.decodeBitmap(code128('AWB-ABC123DEF456GH78', 2, 200, 34)))
-    return { stop: () => { stoppedScan = true; finalize() } }
-  }
-  t.after(() => { BrowserMultiFormatOneDReader.prototype.scan = originalScan })
   const decoded = []
-  const controls = await startWaybillCamera(fixture.video, (raw) => decoded.push(raw), new AbortController().signal)
+  const image = code128('AWB-ABC123DEF456GH78', 2, 200, 34)
+  let attempts = 0
+  installFrameReader(t, fixture.video, function () {
+    attempts++
+    if (attempts === 1) throw new DOMException('Frame not ready', 'InvalidStateError')
+    return this.decodeBitmap(image)
+  })
+  const errors = []
+  const controls = await startWaybillCamera(fixture.video, (raw) => decoded.push(raw), new AbortController().signal, (error) => errors.push(error))
+  t.after(() => controls.stop())
   assert.deepEqual(requests[1], { audio: false, video: true })
+  await new Promise((resolve) => setTimeout(resolve, 80))
+  assert.equal(attempts, 1)
+  assert.equal(fixture.stopped(), 0)
+  assert.equal(fixture.video.srcObject, fixture.stream)
+  await new Promise((resolve) => setTimeout(resolve, 170))
   assert.deepEqual(decoded, ['AWB-ABC123DEF456GH78'])
+  assert.deepEqual(errors, [])
   assert.equal(fixture.video.autoplay, true)
   assert.equal(fixture.video.playsInline, true)
   controls.stop()
-  assert.equal(stoppedScan, true)
   assert.equal(fixture.video.srcObject, null)
 })
 
@@ -165,4 +171,60 @@ test('permission denial is not retried with different camera constraints', async
   await assert.rejects(startWaybillCamera(video, () => {}, new AbortController().signal), { name: 'NotAllowedError' })
   assert.equal(requests, 1)
   assert.match(cameraErrorMessage({ name: 'NotReadableError' }), /Close other apps/)
+})
+
+
+function installFrameReader(t, video, decode) {
+  const originalCanvas = BrowserCodeReader.createCaptureCanvas
+  const originalDecode = BrowserMultiFormatOneDReader.prototype.decodeFromCanvas
+  BrowserCodeReader.createCaptureCanvas = () => ({
+    width: video.videoWidth, height: video.videoHeight,
+    getContext: () => ({ drawImage: () => {} }),
+  })
+  BrowserMultiFormatOneDReader.prototype.decodeFromCanvas = decode
+  t.after(() => {
+    BrowserCodeReader.createCaptureCanvas = originalCanvas
+    BrowserMultiFormatOneDReader.prototype.decodeFromCanvas = originalDecode
+  })
+}
+
+test('startup waits for usable frames and survives an interrupted play request', async (t) => {
+  const fixture = cameraFixture(t, async () => fixture.stream)
+  fixture.video.readyState = 0
+  fixture.video.videoWidth = 0
+  let played = 0
+  fixture.video.play = async () => {
+    if (++played === 1) throw new DOMException('play interrupted', 'AbortError')
+  }
+  let decoded = 0
+  installFrameReader(t, fixture.video, () => { decoded++; return { getText: () => 'AWB-TEST' } })
+  const abort = new AbortController()
+  t.after(() => abort.abort())
+  let started = false
+  const starting = startWaybillCamera(fixture.video, () => {}, abort.signal).then((controls) => { started = true; return controls })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(started, false)
+  assert.equal(decoded, 0)
+  assert.equal(fixture.stopped(), 0)
+  fixture.video.readyState = 2
+  fixture.video.videoWidth = 640
+  fixture.video.dispatchEvent(new Event('canplay'))
+  const controls = await starting
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(decoded, 1)
+  assert.equal(played, 2)
+  assert.equal(fixture.stopped(), 0)
+  controls.stop()
+})
+
+test('fatal decoder error reports the failure instead of silently closing', async (t) => {
+  const fixture = cameraFixture(t, async () => fixture.stream)
+  installFrameReader(t, fixture.video, () => { throw new Error('canvas failed') })
+  const errors = []
+  const controls = await startWaybillCamera(fixture.video, () => {}, new AbortController().signal, (error) => errors.push(error.message))
+  t.after(() => controls.stop())
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.deepEqual(errors, ['canvas failed'])
+  assert.equal(fixture.video.srcObject, null)
+  assert.ok(fixture.stopped() >= 1)
 })

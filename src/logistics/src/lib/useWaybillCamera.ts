@@ -25,7 +25,9 @@ export function useWaybillCamera(
           lastScan = raw
           lastScanAt = now
           scan(raw)
-        }, abort.signal)
+        }, abort.signal, (error) => {
+          if (!abort.signal.aborted) fail(cameraErrorMessage(error))
+        })
         stop = controls.stop
         if (abort.signal.aborted) stop()
       } catch (error) {
