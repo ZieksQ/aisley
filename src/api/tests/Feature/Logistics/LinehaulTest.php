@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Logistics;
 
+use App\Enums\UserStatus;
 use App\Models\HubConnection;
 use App\Models\PlatformFeatureControl;
 use App\Models\Shipment;
@@ -125,5 +126,38 @@ class LinehaulTest extends TestCase
         PlatformFeatureControl::where('key', 'linehaul')->update(['enabled' => false]);
         $this->pickupAt($a);
         $this->assertDatabaseCount('shipment_routes', 1);
+    }
+
+    public function test_hub_mapping_creates_only_owned_connection_without_admin_approval(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $suspended = $this->pinnedHub();
+        $suspended[0]->update(['status' => UserStatus::Suspended]);
+        $this->actingAs($a[0]);
+        $this->getJson('/api/v1/logistics/sorting/plans')->assertOk()->assertJsonPath('data.next_hubs.0.id', $b[2]->id)->assertJsonCount(1, 'data.next_hubs');
+        $lane = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'LH', 'name' => 'Linehaul lane', 'type' => 'standard'])->assertCreated()->json('data');
+        $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Plan'])->assertCreated()->json('data');
+        $input = ['expected_revision' => 1, 'lane_id' => $lane['id'], 'destination_type' => 'hub', 'destination_hub_id' => $b[2]->id];
+        $path = '/api/v1/logistics/sorting/plans/'.$plan['id'].'/lanes';
+        $this->postJson($path, [...$input, 'expected_revision' => 99])->assertConflict();
+        $this->postJson($path, [...$input, 'destination_hub_id' => $a[2]->id])->assertUnprocessable();
+        $this->postJson($path, [...$input, 'destination_hub_id' => $suspended[2]->id])->assertUnprocessable();
+        $this->assertDatabaseCount('hub_connections', 0);
+        $this->postJson($path, $input)->assertOk()->assertJsonPath('data.revision', 2);
+        $connection = HubConnection::sole();
+        $this->assertSame($a[2]->id, $connection->from_hub_id);
+        $this->assertSame($b[2]->id, $connection->to_hub_id);
+        $this->assertSame($a[0]->id, $connection->created_by);
+        $this->assertTrue($connection->is_active);
+        $this->actingAs($b[0])->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonCount(0, 'data.connections');
+        $connection->forceFill(['is_active' => false, 'revision' => 2, 'distance_meters' => 12345, 'duration_seconds' => 1800])->save();
+        $this->actingAs($a[0]);
+        $second = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Second plan'])->assertCreated()->json('data');
+        $this->postJson('/api/v1/logistics/sorting/plans/'.$second['id'].'/lanes', $input)->assertOk();
+        $this->assertDatabaseCount('hub_connections', 1);
+        $this->assertTrue($connection->fresh()->is_active);
+        $this->assertSame(3, $connection->fresh()->revision);
+        $this->assertEquals(12345, $connection->fresh()->distance_meters);
     }
 }

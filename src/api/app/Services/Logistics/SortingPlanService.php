@@ -51,12 +51,9 @@ class SortingPlanService
             'active_plan_id' => $plans->firstWhere('is_active', true)?->id,
             'plans' => $plans->map(fn (SortingPlan $plan): array => $this->planProjection($plan))->values()->all(),
             'lanes' => $this->lanes($org),
-            'next_hubs' => HubConnection::query()->where('from_hub_id', $org->hub->id)
-                ->where('is_active', true)
-                ->whereHas('toHub.organization.user', fn ($query) => $query->where('status', UserStatus::Active))
-                ->with('toHub')->orderBy('to_hub_id')->get()
-                ->map(fn (HubConnection $connection): array => ['id' => $connection->toHub->id, 'name' => $connection->toHub->name])
-                ->sortBy('name')->values()->all(),
+            'next_hubs' => LogisticsHub::query()->whereKeyNot($org->hub->id)
+                ->whereHas('organization.user', fn ($query) => $query->where('status', UserStatus::Active))
+                ->orderBy('name')->orderBy('id')->get(['id', 'name'])->toArray(),
         ];
     }
 
@@ -123,7 +120,11 @@ class SortingPlanService
             throw FulfillmentException::invalid('SORT_PLAN_POSTAL_CODE_INVALID', 'Enter a valid four-digit postal code.', 'postal_code');
         }
 
-        return DB::transaction(function () use ($org, $plan, $input, $postalCode, $hubTarget): SortingPlan {
+        return DB::transaction(function () use ($logistics, $org, $plan, $input, $postalCode, $hubTarget): SortingPlan {
+            if ($hubTarget) {
+                // Serialize network changes with route snapshots and connection configuration.
+                DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
+            }
             $this->lockHub($org);
             $owned = $this->ownedPlan($org, $plan->id, true);
             if ($owned->revision !== (int) $input['expected_revision']) {
@@ -143,11 +144,18 @@ class SortingPlanService
             }
             if ($hubTarget) {
                 $target = $input['destination_hub_id'];
-                if ($target === $org->hub->id || ! HubConnection::query()->where('from_hub_id', $org->hub->id)->where('to_hub_id', $target)->where('is_active', true)->whereHas('toHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))->exists()) {
-                    throw FulfillmentException::invalid('SORT_PLAN_HUB_TARGET_INVALID', 'Select an active allowed next-hub connection.', 'destination_hub_id');
+                if ($target === $org->hub->id || ! LogisticsHub::query()->whereKey($target)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->exists()) {
+                    throw FulfillmentException::invalid('SORT_PLAN_HUB_TARGET_INVALID', 'Select another active Logistics hub.', 'destination_hub_id');
                 }
                 if ($owned->lanes()->where('destination_hub_id', $target)->exists()) {
                     throw FulfillmentException::invalid('SORT_PLAN_HUB_TARGET_TAKEN', 'This next hub is already mapped.', 'destination_hub_id');
+                }
+                $connection = HubConnection::query()->firstOrCreate(
+                    ['from_hub_id' => $org->hub->id, 'to_hub_id' => $target],
+                    ['created_by' => $logistics->id, 'is_active' => true],
+                );
+                if (! $connection->is_active) {
+                    $connection->update(['is_active' => true, 'revision' => $connection->revision + 1]);
                 }
             }
             if (! $hubTarget && $owned->lanes()->where('postal_code', $postalCode)->exists()) {

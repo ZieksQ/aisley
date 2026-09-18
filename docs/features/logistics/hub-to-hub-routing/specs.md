@@ -11,6 +11,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Linehaul
 
+### Hub selection revision — 2026-09-19
+
+Sort plan `next_hubs` now lists all other active Logistics hubs, rather than only preconfigured outgoing connections. Saving a hub mapping creates or enables the source hub's directed connection in the same transaction, preserving existing road measurements and incrementing revision when reactivating. No Admin permission or approval is required. Self/suspended/missing targets, foreign lanes/plans, and stale revisions remain rejected without topology changes. Removing a mapping does not disable a shared connection; explicit connection management remains available in Sorting. The Admin linehaul switch continues to pause new routes/departures. The sidebar marks Sort plan as Beta. This supersedes the earlier selector/allowed-connection wording below.
+
 ## Current contract revision — 2026-09-18
 
 This revision supersedes the earlier disabled-by-default flag, Admin-only network ownership, duration-only objective, and per-parcel frontend confirmations described below. Historical verification figures below describe the previous implementation.

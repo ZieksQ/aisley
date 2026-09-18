@@ -37,7 +37,7 @@ class HubRoutingTest extends TestCase
         Http::fake(['api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [[['distance' => 1000, 'time' => 100], ['distance' => 3000, 'time' => 300]]]])]);
     }
 
-    public function test_sort_plan_lists_only_active_outgoing_hub_summaries(): void
+    public function test_sort_plan_lists_other_active_hubs_without_requiring_connections(): void
     {
         $origin = $this->pinnedHub();
         $allowed = $this->pinnedHub();
@@ -56,7 +56,7 @@ class HubRoutingTest extends TestCase
             ->assertOk()->assertExactJson(['data' => [
                 'context' => ['organization_id' => $origin[1]->id, 'hub_id' => $origin[2]->id, 'hub_name' => $origin[2]->name],
                 'active_plan_id' => null, 'plans' => [], 'lanes' => [],
-                'next_hubs' => [['id' => $allowed[2]->id, 'name' => $allowed[2]->name]],
+                'next_hubs' => collect([$allowed[2], $inactive[2], $foreign[2]])->sortBy('name')->map(fn ($hub) => ['id' => $hub->id, 'name' => $hub->name])->values()->all(),
             ]]);
     }
 

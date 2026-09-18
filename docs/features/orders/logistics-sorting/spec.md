@@ -76,6 +76,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Sort plans
 
+- Hub selector fix (2026-09-19): list every other active Logistics hub by safe ID/name, even without a preconfigured outgoing connection. Saving a hub mapping atomically creates or enables only the authenticated hub's outgoing connection, without Admin permission; reject self, unavailable targets, stale plans, and foreign lanes. Show a Beta tag on the Sort plan sidebar entry.
 - Current Linehaul revision (2026-09-18): create/edit plans in labelled native dialogs; confirm deletion with expected revision and tenant ownership. Deleting an active plan leaves automatic scans on exception fallback until another is activated. Preserve historical scans. Linehaul groups sorted parcels by immediate next hub into immutable manifests, with complete-group atomic departure/receipt. Logistics manages its own service areas and outgoing connections; the Admin linehaul switch defaults on. See the current contract revision in `docs/features/logistics/hub-to-hub-routing/specs.md`, which supersedes earlier flag/transfer UI wording below.
 - A sort plan belongs to the authenticated Logistics organization and sole hub, has a unique name, revision, active flag, and creator.
 - Only one plan can be active for a hub. Activating a plan deactivates the previous plan and increments its revision.
@@ -112,7 +113,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### API contract
 
 - `GET /api/v1/logistics/sorting` returns lanes, automatic-routing state, current open session, bounded session items, and counts.
-- `GET /api/v1/logistics/sorting/plans` returns the authenticated organization's plans, active plan, hub lanes, context, and active allowed `next_hubs` summaries.
+- `GET /api/v1/logistics/sorting/plans` returns the authenticated organization's plans, active plan, hub lanes, context, and ID/name summaries of every other active Logistics hub in `next_hubs`.
 - `POST /api/v1/logistics/sorting/plans` creates a named plan; `PATCH /api/v1/logistics/sorting/plans/{plan}` updates its name/active state with an expected revision.
 - `POST /api/v1/logistics/sorting/plans/{plan}/lanes` maps a four-digit postal code to an active standard lane; `DELETE /api/v1/logistics/sorting/plans/{plan}/lanes/{planLane}` removes a mapping with an expected revision.
 - `POST /api/v1/logistics/sorting/lanes` creates a lane.
