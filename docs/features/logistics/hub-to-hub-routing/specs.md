@@ -11,6 +11,31 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Linehaul
 
+
+## Current Linehaul contract (2026-09-19)
+
+This revision supersedes earlier Sorting-embedded transfer UI, unilateral connection setup, and deferred bilateral-consent wording in this specification.
+
+- **Sorting** owns scanning, automatic lane selection, and reconciliation. **Sort plan** maps postal codes and accepted outgoing next hubs to physical standard lanes. **Linehaul** is a separate protected `/linehaul` page with a **Beta** sidebar tag; it owns service coverage, directed connection requests/acceptance/disconnection, grouped departure confirmations, and incoming manifest receipts.
+- `PUT /api/v1/logistics/linehaul/connections` requests the authenticated hub's outgoing connection. `is_active=true` records sender intent, but the connection stays inactive until the receiving Logistics organization accepts. Sender writes cannot grant consent. `is_active=false` withdraws the request and revokes consent. Each update requires the existing row revision.
+- `GET /api/v1/logistics/linehaul` includes owned outgoing `connections` and receiver-scoped `incoming_connections`, with safe endpoint hub names, `sender_requested`, `receiver_accepted`, `is_active`, and revisions. The Linehaul hub selector lists other active Logistics hubs; the Sort plan selector lists only active, receiver-accepted outgoing hubs.
+- `PUT /api/v1/logistics/linehaul/connections/{connection}/consent` accepts `{accept: boolean, expected_revision: integer}`. Only the target Logistics organization can accept, decline, or disconnect; foreign/sender IDs return scoped 404, stale revisions return 409, and withdrawn requests cannot be accepted. Acceptance enables only that directed edge; a reverse connection needs its own request/acceptance. Disabled or suspended endpoints cannot be used in new route calculations.
+- Saving a Sort plan hub mapping requires an accepted active connection and never creates/reactivates topology. Automatically scanned transfer parcels use the lane mapped to their committed minimum-time next hop; destination-hub parcels use recipient postal mappings. The objective is total driving time plus 30 minutes handling per hop, then distance, hop count, and stable hub IDs for ties. It is not a promise of minimum geographic distance. Mapping changes do not reroute committed waybills.
+- The additive consent migration adds boolean intent/consent fields and disables previously unilateral active connections with a revision increment. Existing Logistics must accept them before future routing/departures. Route/hop history remains immutable; committed in-transit receipts remain available after disconnection or platform shutdown. Rollback removes the consent fields without reactivating links.
+- Admin network configuration cannot bypass consent in routing/sorting/departure. Admin deactivation withdraws intent and clears receiver consent. Logistics acceptance remains required for new Admin-configured edges.
+- Company-owned trucks, linehaul vehicle/Courier assignments, warehouse capacity, and automatic capacity-based disconnection remain future work.
+
+### Provider usage audit
+
+Dijkstra runs entirely in Laravel; scanning, plan saves, connection requests/acceptance, departure, receipt, and page refresh do not call Geoapify. New cross-hub waybill snapshots measure only accepted directed edges reachable from the origin that can also reach the destination, excluding outgoing destination edges and dead-end branches. Missing metrics for a relevant alternative still hold the route rather than silently claiming an optimum over incomplete measurements.
+
+Measurements batch uncached edges by source in 1×N matrices and cache successful directed coordinate fingerprints/options for 24 hours. Changed pins invalidate cache keys; same-hub and explicit operator-measured routes avoid provider calls. Server keys and addresses never reach the client. Geoapify's current documented 1×N baseline is N credits, plus `floor(distance_meters / 500000)` per returned distance. Linehaul now records those observed distance surcharges in the shared daily counter as well as reserving baseline credits before requests. Surcharges are unknown before the response, so this guard is an estimate rather than a strict provider billing cap; other consumers/tiles and multi-server deployments require shared cache/account-level monitoring. Committed road metrics remain fixed.
+
+Source: [Geoapify Route Matrix API pricing](https://apidocs.geoapify.com/docs/route-matrix/).
+
+Validation covers receiver/sender/foreign access, stale consent, withdrawal, no unilateral reactivation, accepted selector isolation, automatic sorting/manifests, consent migration rollback/backfill with preserved route history, dead-end pruning, immutable routes, cache reuse, and distance-surcharge accounting. The focused consent suite passes on SQLite (9 tests/131 assertions); PostgreSQL passes routing/consent/configuration/path and existing concurrent transfer workers. The pre-existing final-mile migration test uses SQLite PRAGMA and is excluded from PostgreSQL runs, while passing on SQLite. Browser/device and physical handoff verification remain pending.
+
+
 ### Hub selection revision — 2026-09-19
 
 Sort plan `next_hubs` now lists all other active Logistics hubs, rather than only preconfigured outgoing connections. Saving a hub mapping creates or enables the source hub's directed connection in the same transaction, preserving existing road measurements and incrementing revision when reactivating. No Admin permission or approval is required. Self/suspended/missing targets, foreign lanes/plans, and stale revisions remain rejected without topology changes. Removing a mapping does not disable a shared connection; explicit connection management remains available in Sorting. The Admin linehaul switch continues to pause new routes/departures. The sidebar marks Sort plan as Beta. This supersedes the earlier selector/allowed-connection wording below.

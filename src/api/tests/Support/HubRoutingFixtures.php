@@ -49,7 +49,7 @@ trait HubRoutingFixtures
 
     private function edge($from, $to): void
     {
-        HubConnection::create(['from_hub_id' => $from->id, 'to_hub_id' => $to->id, 'created_by' => $from->organization->user_id]);
+        HubConnection::create(['from_hub_id' => $from->id, 'to_hub_id' => $to->id, 'created_by' => $from->organization->user_id, 'receiver_accepted' => true]);
     }
 
     private function pickupAt(array $context): array

@@ -289,6 +289,7 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::put('/linehaul/connections/{connection}/consent', [LinehaulController::class, 'consent']);
     Route::get('/linehaul', [LinehaulController::class, 'index']);
     Route::post('/linehaul/manifests', [LinehaulController::class, 'depart'])->middleware('throttle:60,1');
     Route::post('/linehaul/manifests/{manifest}/receive', [LinehaulController::class, 'arrive'])->whereUuid('manifest')->middleware('throttle:60,1');

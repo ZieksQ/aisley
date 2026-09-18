@@ -27,6 +27,7 @@ class LinehaulController extends Controller
                 ->latest()->limit(50)->get()->map(fn ($m) => [...$service->projection($m), 'can_receive' => $m->to_hub_id === $hub->id && $m->status === 'in_transfer']),
             'hubs' => LogisticsHub::whereKeyNot($hub->id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->orderBy('name')->limit(100)->get(['id', 'name']),
             'service_areas' => HubServiceArea::where('logistics_hub_id', $hub->id)->orderBy('postal_code')->get(['id', 'postal_code', 'is_active', 'revision']),
+            'incoming_connections' => HubConnection::where('to_hub_id', $hub->id)->with('fromHub:id,name')->get(),
             'connections' => HubConnection::where('from_hub_id', $hub->id)->with('toHub:id,name')->get(),
         ]])->header('Cache-Control', 'private, no-store');
     }
@@ -58,6 +59,32 @@ class LinehaulController extends Controller
         return response()->json(['data' => $service->arrive($request->user(), $manifest)]);
     }
 
+    public function consent(Request $request, string $connection)
+    {
+        $input = $request->validate(['accept' => ['required', 'boolean'], 'expected_revision' => ['required', 'integer', 'min:1']]);
+
+        return DB::transaction(function () use ($request, $connection, $input) {
+            DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
+            $hub = $request->user()->logisticsOrganization->hub;
+            $row = HubConnection::whereKey($connection)->where('to_hub_id', $hub->id)->lockForUpdate()->first();
+            if (! $row) {
+                throw FulfillmentException::notFound('LINEHAUL_CONNECTION_NOT_FOUND', 'This connection is unavailable.');
+            }
+            if ($row->revision !== $input['expected_revision']) {
+                throw FulfillmentException::conflict('LINEHAUL_CONFIG_CHANGED', 'Configuration changed. Refresh and try again.');
+            }
+            if ($input['accept'] && ! $row->sender_requested) {
+                throw FulfillmentException::conflict('LINEHAUL_REQUEST_WITHDRAWN', 'The sender has withdrawn this connection.');
+            }
+            if ($input['accept'] && ! LogisticsHub::whereKey($row->from_hub_id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->exists()) {
+                throw FulfillmentException::invalid('LINEHAUL_TARGET_INVALID', 'The requesting hub is unavailable.');
+            }
+            $row->update(['receiver_accepted' => $input['accept'], 'is_active' => $input['accept'], 'revision' => $row->revision + 1]);
+
+            return response()->json(['data' => $row]);
+        }, 3);
+    }
+
     public function configure(Request $request, string $kind)
     {
         $input = $request->validate($kind === 'service-areas'
@@ -85,6 +112,14 @@ class LinehaulController extends Controller
             }
             $row ??= $model->newInstance([...$identity, 'created_by' => $request->user()->id]);
             $row->is_active = $input['is_active'];
+            if (! $area) {
+                // Sender can request or disconnect, but cannot grant receiver consent.
+                $row->sender_requested = $input['is_active'];
+                if (! $input['is_active']) {
+                    $row->receiver_accepted = false;
+                }
+                $row->is_active = $input['is_active'] && $row->receiver_accepted;
+            }
             if (! $area) {
                 $row->distance_meters = $input['distance_meters'] ?? null;
                 $row->duration_seconds = $input['duration_seconds'] ?? null;

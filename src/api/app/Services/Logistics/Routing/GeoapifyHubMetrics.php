@@ -103,6 +103,22 @@ class GeoapifyHubMetrics
                     $status = 'timeout';
                 }
             }
+            // Geoapify also charges one credit per returned 500 km chunk.
+            // Distances are unknown before the response; account for observed surcharges
+            // so subsequent calls use the shared allowance accurately.
+            if ($response?->successful()) {
+                $surcharge = 0;
+                $cells = data_get($response->json(), 'sources_to_targets.0');
+                foreach (is_array($cells) ? $cells : [] as $cell) {
+                    $distance = $cell['distance'] ?? null;
+                    if (is_numeric($distance) && is_finite((float) $distance) && $distance > 0) {
+                        $surcharge += (int) floor($distance / 500000);
+                    }
+                }
+                if ($surcharge > 0) {
+                    Cache::increment($creditKey, $surcharge);
+                }
+            }
             foreach ($group as $index => $entry) {
                 $metric = ['provider_status' => $status];
                 $cell = $response?->successful() ? data_get($response->json(), "sources_to_targets.0.$index") : null;

@@ -52,6 +52,7 @@ class SortingPlanService
             'plans' => $plans->map(fn (SortingPlan $plan): array => $this->planProjection($plan))->values()->all(),
             'lanes' => $this->lanes($org),
             'next_hubs' => LogisticsHub::query()->whereKeyNot($org->hub->id)
+                ->whereIn('id', HubConnection::query()->where('from_hub_id', $org->hub->id)->where('is_active', true)->where('receiver_accepted', true)->select('to_hub_id'))
                 ->whereHas('organization.user', fn ($query) => $query->where('status', UserStatus::Active))
                 ->orderBy('name')->orderBy('id')->get(['id', 'name'])->toArray(),
         ];
@@ -120,7 +121,7 @@ class SortingPlanService
             throw FulfillmentException::invalid('SORT_PLAN_POSTAL_CODE_INVALID', 'Enter a valid four-digit postal code.', 'postal_code');
         }
 
-        return DB::transaction(function () use ($logistics, $org, $plan, $input, $postalCode, $hubTarget): SortingPlan {
+        return DB::transaction(function () use ($org, $plan, $input, $postalCode, $hubTarget): SortingPlan {
             if ($hubTarget) {
                 // Serialize network changes with route snapshots and connection configuration.
                 DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
@@ -150,12 +151,9 @@ class SortingPlanService
                 if ($owned->lanes()->where('destination_hub_id', $target)->exists()) {
                     throw FulfillmentException::invalid('SORT_PLAN_HUB_TARGET_TAKEN', 'This next hub is already mapped.', 'destination_hub_id');
                 }
-                $connection = HubConnection::query()->firstOrCreate(
-                    ['from_hub_id' => $org->hub->id, 'to_hub_id' => $target],
-                    ['created_by' => $logistics->id, 'is_active' => true],
-                );
-                if (! $connection->is_active) {
-                    $connection->update(['is_active' => true, 'revision' => $connection->revision + 1]);
+                if (! HubConnection::query()->where('from_hub_id', $org->hub->id)->where('to_hub_id', $target)
+                    ->where('is_active', true)->where('receiver_accepted', true)->exists()) {
+                    throw FulfillmentException::invalid('SORT_PLAN_CONNECTION_REQUIRED', 'Request and accept this connection on the Linehaul page first.', 'destination_hub_id');
                 }
             }
             if (! $hubTarget && $owned->lanes()->where('postal_code', $postalCode)->exists()) {
@@ -244,7 +242,7 @@ class SortingPlanService
         if ($route->status !== HubRouteStatus::Planned || $hop === null || $hop->status !== HubRouteHopStatus::Pending || $hop->from_hub_id !== $shipment->current_hub_id) {
             return $base;
         }
-        $allowed = HubConnection::query()->whereKey($hop->hub_connection_id)->where('is_active', true)
+        $allowed = HubConnection::query()->whereKey($hop->hub_connection_id)->where('is_active', true)->where('receiver_accepted', true)
             ->whereHas('toHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))->exists();
         if (! $allowed) {
             return [...$base, 'reason' => 'connection_unavailable'];

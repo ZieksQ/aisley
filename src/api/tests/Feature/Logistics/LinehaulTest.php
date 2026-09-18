@@ -2,13 +2,14 @@
 
 namespace Tests\Feature\Logistics;
 
-use App\Enums\UserStatus;
 use App\Models\HubConnection;
 use App\Models\PlatformFeatureControl;
 use App\Models\Shipment;
 use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -101,6 +102,8 @@ class LinehaulTest extends TestCase
         $this->actingAs($a[0])->putJson('/api/v1/logistics/linehaul/connections', [
             'to_hub_id' => $b[2]->id, 'is_active' => true, 'distance_meters' => 50000, 'duration_seconds' => 3600,
         ])->assertOk();
+        $connection = HubConnection::sole();
+        $this->actingAs($b[0])->putJson('/api/v1/logistics/linehaul/connections/'.$connection->id.'/consent', ['accept' => true, 'expected_revision' => $connection->revision])->assertOk();
         $this->pickupAt($a);
         $this->assertSame('planned', ShipmentRoute::sole()->status->value);
         $this->assertSame('operator', ShipmentRouteHop::sole()->provider);
@@ -131,36 +134,92 @@ class LinehaulTest extends TestCase
         $this->assertDatabaseCount('shipment_routes', 1);
     }
 
-    public function test_hub_mapping_creates_only_owned_connection_without_admin_approval(): void
+    public function test_connections_require_receiver_consent_and_plan_cannot_enable_them(): void
     {
         $a = $this->pinnedHub();
         $b = $this->pinnedHub();
-        $suspended = $this->pinnedHub();
-        $suspended[0]->update(['status' => UserStatus::Suspended]);
+        $foreign = $this->pinnedHub();
         $this->actingAs($a[0]);
-        $this->getJson('/api/v1/logistics/sorting/plans')->assertOk()->assertJsonPath('data.next_hubs.0.id', $b[2]->id)->assertJsonCount(1, 'data.next_hubs');
+        $this->getJson('/api/v1/logistics/sorting/plans')->assertOk()->assertJsonCount(0, 'data.next_hubs');
         $lane = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'LH', 'name' => 'Linehaul lane', 'type' => 'standard'])->assertCreated()->json('data');
         $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Plan'])->assertCreated()->json('data');
         $input = ['expected_revision' => 1, 'lane_id' => $lane['id'], 'destination_type' => 'hub', 'destination_hub_id' => $b[2]->id];
-        $path = '/api/v1/logistics/sorting/plans/'.$plan['id'].'/lanes';
-        $this->postJson($path, [...$input, 'expected_revision' => 99])->assertConflict();
-        $this->postJson($path, [...$input, 'destination_hub_id' => $a[2]->id])->assertUnprocessable();
-        $this->postJson($path, [...$input, 'destination_hub_id' => $suspended[2]->id])->assertUnprocessable();
+        $mappingPath = '/api/v1/logistics/sorting/plans/'.$plan['id'].'/lanes';
+        $this->postJson($mappingPath, $input)->assertUnprocessable()->assertJsonPath('code', 'SORT_PLAN_CONNECTION_REQUIRED');
         $this->assertDatabaseCount('hub_connections', 0);
-        $this->postJson($path, $input)->assertOk()->assertJsonPath('data.revision', 2);
-        $connection = HubConnection::sole();
-        $this->assertSame($a[2]->id, $connection->from_hub_id);
-        $this->assertSame($b[2]->id, $connection->to_hub_id);
-        $this->assertSame($a[0]->id, $connection->created_by);
-        $this->assertTrue($connection->is_active);
-        $this->actingAs($b[0])->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonCount(0, 'data.connections');
-        $connection->forceFill(['is_active' => false, 'revision' => 2, 'distance_meters' => 12345, 'duration_seconds' => 1800])->save();
-        $this->actingAs($a[0]);
-        $second = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Second plan'])->assertCreated()->json('data');
-        $this->postJson('/api/v1/logistics/sorting/plans/'.$second['id'].'/lanes', $input)->assertOk();
-        $this->assertDatabaseCount('hub_connections', 1);
-        $this->assertTrue($connection->fresh()->is_active);
-        $this->assertSame(3, $connection->fresh()->revision);
-        $this->assertEquals(12345, $connection->fresh()->distance_meters);
+        $connection = $this->putJson('/api/v1/logistics/linehaul/connections', ['to_hub_id' => $b[2]->id, 'is_active' => true])->assertOk()->assertJsonPath('data.is_active', false)->json('data');
+        $consentPath = '/api/v1/logistics/linehaul/connections/'.$connection['id'].'/consent';
+        $this->putJson($consentPath, ['accept' => true, 'expected_revision' => 1])->assertNotFound();
+        $this->actingAs($foreign[0])->putJson($consentPath, ['accept' => true, 'expected_revision' => 1])->assertNotFound();
+        $this->actingAs($b[0])->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonPath('data.incoming_connections.0.id', $connection['id']);
+        $this->putJson($consentPath, ['accept' => true, 'expected_revision' => 99])->assertConflict();
+        $this->putJson($consentPath, ['accept' => true, 'expected_revision' => 1])->assertOk()->assertJsonPath('data.is_active', true);
+        $this->actingAs($a[0])->getJson('/api/v1/logistics/sorting/plans')->assertOk()->assertJsonPath('data.next_hubs.0.id', $b[2]->id);
+        $this->postJson($mappingPath, $input)->assertOk();
+        $this->assertSame(2, HubConnection::sole()->revision);
+        $this->actingAs($b[0])->putJson($consentPath, ['accept' => false, 'expected_revision' => 2])->assertOk();
+        $this->actingAs($a[0])->putJson('/api/v1/logistics/linehaul/connections', ['to_hub_id' => $b[2]->id, 'is_active' => true, 'expected_revision' => 3])->assertOk()->assertJsonPath('data.is_active', false);
+        $this->getJson('/api/v1/logistics/sorting/plans')->assertOk()->assertJsonCount(0, 'data.next_hubs');
+        $this->putJson('/api/v1/logistics/linehaul/connections', ['to_hub_id' => $b[2]->id, 'is_active' => false, 'expected_revision' => 4])->assertOk();
+        $this->actingAs($b[0])->putJson($consentPath, ['accept' => true, 'expected_revision' => 5])->assertConflict()->assertJsonPath('code', 'LINEHAUL_REQUEST_WITHDRAWN');
+        Http::assertNothingSent();
+    }
+
+    public function test_consent_migration_pauses_legacy_links_and_preserves_route_history(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $this->edge($a[2], $b[2]);
+        $this->area($b[2]);
+        $this->pickupAt($a);
+        $route = ShipmentRoute::sole()->toArray();
+        $hop = ShipmentRouteHop::sole()->toArray();
+        $migration = require database_path('migrations/2026_09_19_000001_add_linehaul_connection_consent.php');
+        $migration->down();
+        $migration->up();
+        $this->assertFalse(HubConnection::sole()->is_active);
+        $this->assertFalse(HubConnection::sole()->receiver_accepted);
+        $this->assertTrue(HubConnection::sole()->sender_requested);
+        $this->assertSame(2, HubConnection::sole()->revision);
+        $this->assertSame($route, ShipmentRoute::sole()->toArray());
+        $this->assertSame($hop, ShipmentRouteHop::sole()->toArray());
+    }
+
+    public function test_long_distance_surcharges_are_counted_once_and_cached(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $this->edge($a[2], $b[2]);
+        $this->area($b[2]);
+        Http::swap(new Factory);
+        Http::preventStrayRequests();
+        Http::fake(['api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [[['distance' => 1200000, 'time' => 50000]]]])]);
+        $this->pickupAt($a);
+        $key = 'geoapify:route-matrix-credits:'.now('UTC')->format('Y-m-d');
+        $this->assertSame(3, Cache::get($key));
+        $this->pickupAt($a);
+        $this->assertSame(3, Cache::get($key));
+        Http::assertSentCount(1);
+    }
+
+    public function test_routing_ignores_unaccepted_edges_and_dead_ends_and_reuses_cached_metrics(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $deadEnd = $this->pinnedHub();
+        $this->edge($a[2], $b[2]);
+        $this->edge($a[2], $deadEnd[2]);
+        $this->edge($b[2], $deadEnd[2]);
+        $this->area($b[2]);
+        $this->pickupAt($a);
+        $this->assertSame('planned', ShipmentRoute::sole()->status->value);
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => count($request['targets']) === 1);
+        $this->pickupAt($a);
+        Http::assertSentCount(1);
+        HubConnection::where('to_hub_id', $b[2]->id)->update(['receiver_accepted' => false]);
+        $this->pickupAt($a);
+        $this->assertSame('no_path', ShipmentRoute::latest('id')->get()->firstWhere('failure_code', 'no_path')->failure_code);
+        Http::assertSentCount(1);
     }
 }

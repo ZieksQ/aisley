@@ -90,6 +90,8 @@ export function LogisticsLayout() {
     ? 'Receive at hub'
     : location.pathname.startsWith('/sort-plan')
       ? 'Sort plan'
+    : location.pathname.startsWith('/linehaul')
+      ? 'Linehaul'
     : location.pathname.startsWith('/sorting')
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')
@@ -125,6 +127,7 @@ export function LogisticsLayout() {
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sorting"><FaArrowDownShortWide />Sorting</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sort-plan"><FaRoute /><span>Sort plan</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/linehaul"><FaRoute /><span>Linehaul</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Dispatch parcels</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
         <NavLink className={({ isActive }) => navClass({ isActive: isActive || (location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')) })} onClick={() => setOpen(false)} to="/vehicles"><FaCarSide />Vehicles</NavLink>

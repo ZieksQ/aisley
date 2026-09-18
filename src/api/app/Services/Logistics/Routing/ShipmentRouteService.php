@@ -50,7 +50,7 @@ class ShipmentRouteService
 
             return $this->result($route);
         }
-        $edges = HubConnection::query()->where('is_active', true)
+        $edges = HubConnection::query()->where('is_active', true)->where('receiver_accepted', true)
             ->whereHas('fromHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))
             ->whereHas('toHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))
             ->with(['fromHub.address', 'toHub.address'])->orderBy('id')->limit((int) config('hub-routing.max_edges') + 1)->get();
@@ -73,7 +73,18 @@ class ShipmentRouteService
         if (! isset($reachable[$route->destination_hub_id])) {
             return $this->fail($route, 'no_path');
         }
-        $eligible = $edges->filter(fn ($edge) => isset($reachable[$edge->from_hub_id]))->values();
+        // Exclude dead ends and outgoing destination edges: neither can improve a nonnegative path.
+        $reachesDestination = [$route->destination_hub_id => true];
+        do {
+            $before = count($reachesDestination);
+            foreach ($edges as $edge) {
+                if (isset($reachesDestination[$edge->to_hub_id])) {
+                    $reachesDestination[$edge->from_hub_id] = true;
+                }
+            }
+        } while ($before !== count($reachesDestination));
+        $eligible = $edges->filter(fn ($edge) => isset($reachable[$edge->from_hub_id], $reachesDestination[$edge->to_hub_id])
+            && $edge->from_hub_id !== $route->destination_hub_id)->values();
         $metrics = $this->metrics->measure($eligible);
         $measured = [];
         foreach ($eligible as $edge) {
@@ -83,7 +94,7 @@ class ShipmentRouteService
             }
             $measured[] = [...$metric, 'hub_connection_id' => $edge->id, 'from_hub_id' => $edge->from_hub_id, 'to_hub_id' => $edge->to_hub_id];
         }
-        $fresh = HubConnection::query()->where('is_active', true)
+        $fresh = HubConnection::query()->where('is_active', true)->where('receiver_accepted', true)
             ->whereHas('fromHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))
             ->whereHas('toHub.organization.user', fn ($q) => $q->where('status', UserStatus::Active))
             ->with(['fromHub.address', 'toHub.address'])->orderBy('id')->limit((int) config('hub-routing.max_edges') + 1)->get();

@@ -59,7 +59,9 @@ class HubRoutingConfigurationService
             if ($record === null) {
                 $record = $model::create([...$input, 'is_active' => $active, 'created_by' => $admin->id]);
             } else {
-                $record->update(['is_active' => $active, 'revision' => $record->revision + 1]);
+                $record->update(['is_active' => $active, 'revision' => $record->revision + 1,
+                    ...($kind === 'connections' ? ['sender_requested' => $active, ...(! $active ? ['receiver_accepted' => false] : [])] : []),
+                ]);
             }
             $this->audit->record(actor: $admin, action: AdminAuditAction::HubRoutingConfigurationUpdated, sourceFeature: AuditSourceFeature::PlatformSettings,
                 target: $record, before: $before, after: $record->only(['is_active', 'revision']), targetSnapshot: ['id' => $record->id], metadata: ['kind' => $kind],

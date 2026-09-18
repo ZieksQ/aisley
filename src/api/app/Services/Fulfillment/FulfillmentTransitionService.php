@@ -682,7 +682,7 @@ class FulfillmentTransitionService
                 throw FulfillmentException::conflict('ROUTE_REVISION_CONFLICT', 'The parcel or route hop changed. Refresh before continuing.');
             }
             $connection = HubConnection::query()->whereKey($hop->hub_connection_id)->lockForUpdate()->first();
-            if ($connection === null || (! $arrival && ! $connection->is_active) || $connection->from_hub_id !== $hop->from_hub_id || $connection->to_hub_id !== $hop->to_hub_id) {
+            if ($connection === null || (! $arrival && (! $connection->is_active || ! $connection->receiver_accepted)) || $connection->from_hub_id !== $hop->from_hub_id || $connection->to_hub_id !== $hop->to_hub_id) {
                 throw FulfillmentException::conflict('ROUTE_CONNECTION_INACTIVE', 'The committed transfer connection is unavailable.');
             }
             $target = LogisticsHub::query()->whereKey($hop->to_hub_id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->first();

@@ -10,11 +10,11 @@ class HubConnection extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['from_hub_id', 'to_hub_id', 'is_active', 'revision', 'created_by'];
+    protected $fillable = ['from_hub_id', 'to_hub_id', 'is_active', 'sender_requested', 'receiver_accepted', 'revision', 'created_by'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'revision' => 'integer'];
+        return ['is_active' => 'boolean', 'sender_requested' => 'boolean', 'receiver_accepted' => 'boolean', 'revision' => 'integer'];
     }
 
     public function fromHub(): BelongsTo
