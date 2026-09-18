@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Models\HubConnection;
 use App\Models\HubServiceArea;
 use App\Models\LogisticsHub;
-use App\Models\Shipment;
 use App\Services\Logistics\Routing\LinehaulService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,17 +19,10 @@ class LinehaulController extends Controller
     public function index(Request $request, LinehaulService $service)
     {
         $hub = $request->user()->logisticsOrganization->hub;
-        $ready = Shipment::where('current_hub_id', $hub->id)->where('status', 'sorted_at_hub')
-            ->whereHas('route', fn ($q) => $q->where('status', 'planned'))->with(['route.hops', 'parcel.waybill'])->orderBy('received_at_hub_at')->orderBy('id')->limit(100)->get()
-            ->map(function ($shipment) {
-                $hop = $shipment->route->hops->first(fn ($hop) => $hop->status->value !== 'arrived');
-
-                return $hop ? ['next_hub_id' => $hop->to_hub_id, 'reference' => $shipment->parcel->waybill->reference] : null;
-            })->filter()->groupBy('next_hub_id')->map(fn ($items, $id) => ['next_hub' => LogisticsHub::find($id)?->name, 'references' => $items->pluck('reference')->values()])->values();
 
         return response()->json(['data' => [
             'enabled' => LinehaulService::enabled(),
-            'ready_groups' => $ready,
+            'ready_groups' => $service->readyGroups($request->user()),
             'manifests' => DB::table('linehaul_manifests')->where(fn ($q) => $q->where('from_hub_id', $hub->id)->orWhere('to_hub_id', $hub->id))
                 ->latest()->limit(50)->get()->map(fn ($m) => [...$service->projection($m), 'can_receive' => $m->to_hub_id === $hub->id && $m->status === 'in_transfer']),
             'hubs' => LogisticsHub::whereKeyNot($hub->id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->orderBy('name')->limit(100)->get(['id', 'name']),
@@ -41,12 +33,24 @@ class LinehaulController extends Controller
 
     public function depart(Request $request, LinehaulService $service)
     {
-        $input = $request->validate(['references' => ['required', 'array', 'min:1', 'max:100'], 'references.*' => ['required', 'string', 'max:128', 'distinct']]);
+        $input = $request->validate([
+            'next_hub_id' => ['nullable', 'uuid'],
+            // Kept for API compatibility with older clients; the Logistics UI uses next_hub_id.
+            'references' => ['nullable', 'array', 'min:1', 'max:100'],
+            'references.*' => ['required', 'string', 'max:128', 'distinct'],
+        ]);
+        if (! isset($input['next_hub_id']) && ! isset($input['references'])) {
+            throw ValidationException::withMessages(['next_hub_id' => 'Choose a ready next-hub group.']);
+        }
         if (! Str::isUuid((string) $request->header('Idempotency-Key'))) {
             throw ValidationException::withMessages(['idempotency_key' => 'A UUID Idempotency-Key is required.']);
         }
 
-        return response()->json(['data' => $service->depart($request->user(), $input['references'], $request->header('Idempotency-Key'))]);
+        $result = isset($input['next_hub_id'])
+            ? $service->departGroup($request->user(), $input['next_hub_id'], $request->header('Idempotency-Key'))
+            : $service->depart($request->user(), $input['references'], $request->header('Idempotency-Key'));
+
+        return response()->json(['data' => $result]);
     }
 
     public function arrive(Request $request, string $manifest, LinehaulService $service)

@@ -46,8 +46,11 @@ class LinehaulTest extends TestCase
             'client_id' => (string) Str::uuid(), 'auto_route' => true, 'reference' => $second,
             'expected_revision' => $item['expected_revision'], 'source' => 'manual', 'captured_at' => now()->toISOString(),
         ]]])->assertOk()->assertJsonPath('summary.sorted', 1);
+        $this->getJson('/api/v1/logistics/linehaul')->assertOk()
+            ->assertJsonPath('data.ready_groups.0.next_hub_id', $b[2]->id)
+            ->assertJsonCount(2, 'data.ready_groups.0.references');
         $key = (string) Str::uuid();
-        $body = ['references' => [$first, $second]];
+        $body = ['next_hub_id' => $b[2]->id];
         $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/linehaul/manifests', $body)->assertOk()->assertJsonCount(2, 'data.references');
         $this->postJson('/api/v1/logistics/linehaul/manifests', $body)->assertOk();
         $this->assertDatabaseCount('linehaul_manifests', 1);

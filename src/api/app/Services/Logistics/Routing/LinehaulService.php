@@ -2,7 +2,9 @@
 
 namespace App\Services\Logistics\Routing;
 
+use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulManifestStatus;
+use App\Enums\ShipmentStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\LogisticsHub;
 use App\Models\PlatformFeatureControl;
@@ -11,6 +13,7 @@ use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Logistics\SortingPlanService;
 use App\Services\PlatformFeatureControlService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,6 +23,74 @@ class LinehaulService
     public static function enabled(): bool
     {
         return app(PlatformFeatureControlService::class)->isEnabled(PlatformFeatureControl::LINEHAUL);
+    }
+
+    /**
+     * Return the server-owned groups of sorted parcels that share the same
+     * immediate next hop. The client never assembles this membership.
+     *
+     * @return array<int, array{next_hub_id: string, next_hub: string, references: array<int, string>}>
+     */
+    public function readyGroups(User $actor): array
+    {
+        $organization = $actor->logisticsOrganization()->with('hub')->first();
+        if ($organization === null || $organization->hub === null) {
+            throw FulfillmentException::notFound('LOGISTICS_CONTEXT_NOT_FOUND', 'The Logistics organization or operational hub is unavailable.');
+        }
+
+        $shipments = Shipment::query()
+            ->where('current_logistics_organization_id', $organization->id)
+            ->where('current_hub_id', $organization->hub->id)
+            ->where('status', ShipmentStatus::SortedAtHub->value)
+            ->whereHas('route', fn ($query) => $query->where('status', 'planned'))
+            ->with(['route.hops', 'parcel.waybill.snapshot', 'sortingLane'])
+            ->orderBy('received_at_hub_at')
+            ->orderBy('id')
+            ->limit(100)
+            ->get();
+        $groups = [];
+        foreach ($shipments as $shipment) {
+            $hop = $shipment->route?->hops->first(fn ($candidate) => $candidate->status === HubRouteHopStatus::Pending && $candidate->from_hub_id === $organization->hub->id);
+            if ($hop === null || $shipment->parcel?->waybill?->reference === null) {
+                continue;
+            }
+            $routing = app(SortingPlanService::class)->routeForShipment($shipment);
+            if ($routing['reason'] !== 'matched' || $routing['lane']?->id !== $shipment->sorting_lane_id) {
+                continue;
+            }
+            $groups[$hop->to_hub_id]['references'][] = $shipment->parcel->waybill->reference;
+        }
+
+        if ($groups === []) {
+            return [];
+        }
+        $hubs = LogisticsHub::query()->whereIn('id', array_keys($groups))->get(['id', 'name'])->keyBy('id');
+
+        return collect($groups)->map(function (array $group, string $hubId) use ($hubs): array {
+            return [
+                'next_hub_id' => $hubId,
+                'next_hub' => $hubs->get($hubId)?->name ?? 'Unavailable hub',
+                'references' => array_values($group['references']),
+            ];
+        })->values()->all();
+    }
+
+    public function departGroup(User $actor, string $nextHubId, string $id): array
+    {
+        $prior = DB::table('linehaul_manifests')->where('id', $id)->first();
+        if ($prior !== null) {
+            if ($prior->created_by !== $actor->id || $prior->to_hub_id !== $nextHubId) {
+                throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This key belongs to another linehaul group.');
+            }
+
+            return $this->projection($prior);
+        }
+        $group = collect($this->readyGroups($actor))->firstWhere('next_hub_id', $nextHubId);
+        if ($group === null) {
+            throw FulfillmentException::conflict('LINEHAUL_NO_READY_PARCELS', 'No sorted parcels are ready for that next hub. Refresh the linehaul groups.');
+        }
+
+        return $this->depart($actor, $group['references'], $id);
     }
 
     public function depart(User $actor, array $references, string $id): array
