@@ -1,5 +1,5 @@
 import { BrowserCodeReader, BrowserMultiFormatOneDReader, type IScannerControls } from '@zxing/browser'
-import { BarcodeFormat, ChecksumException, DecodeHintType, FormatException, NotFoundException } from '@zxing/library'
+import { BarcodeFormat, BinaryBitmap, ChecksumException, DecodeHintType, FormatException, HybridBinarizer, NotFoundException, RGBLuminanceSource } from '@zxing/library'
 
 export function createWaybillReader(): BrowserMultiFormatOneDReader {
   // Thin waybill bars can fall between the default reader's sampled rows.
@@ -8,6 +8,35 @@ export function createWaybillReader(): BrowserMultiFormatOneDReader {
     [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]],
     [DecodeHintType.TRY_HARDER, true],
   ]))
+}
+
+// @zxing/browser 0.2.1 leaves its rotation canvas uninitialized. TRY_HARDER
+// therefore throws on ordinary frames with no barcode. Rotate luminance data
+// directly instead of using that canvas-backed source.
+class WaybillLuminanceSource extends RGBLuminanceSource {
+  override isRotateSupported(): boolean { return true }
+
+  override rotateCounterClockwise(): WaybillLuminanceSource {
+    const width = this.getWidth()
+    const height = this.getHeight()
+    const pixels = this.getMatrix()
+    const rotated = new Uint8ClampedArray(pixels.length)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) rotated[(width - x - 1) * height + y] = pixels[y * width + x]
+    }
+    return new WaybillLuminanceSource(rotated, height, width)
+  }
+}
+
+export function decodeWaybillCanvas(reader: BrowserMultiFormatOneDReader, canvas: HTMLCanvasElement) {
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) throw new Error('Camera frame canvas unavailable')
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+  const luminance = new Uint8ClampedArray(canvas.width * canvas.height)
+  for (let i = 0, pixel = 0; i < data.length; i += 4, pixel++) {
+    luminance[pixel] = data[i + 3] === 0 ? 255 : (306 * data[i] + 601 * data[i + 1] + 117 * data[i + 2] + 512) >> 10
+  }
+  return reader.decodeBitmap(new BinaryBitmap(new HybridBinarizer(new WaybillLuminanceSource(luminance, canvas.width, canvas.height))))
 }
 
 export const waybillCameraConstraints: MediaStreamConstraints = {
@@ -33,7 +62,7 @@ export function cameraErrorMessage(error: unknown): string {
     case 'NotReadableError': return 'The camera is unavailable. Close other apps or tabs using it, check device camera access, then try again.'
     case 'OverconstrainedError': return 'The camera does not support these settings. Try another camera or enter the tracking ID manually.'
     case 'CameraPlaybackError': return 'The camera preview could not play. Stop and restart the camera, or enter the tracking ID manually.'
-    default: return 'The camera could not start. Try again or enter the tracking ID manually.'
+    default: return 'Camera scanning failed. Try again or enter the tracking ID manually.'
   }
 }
 
@@ -59,7 +88,7 @@ export function scanWaybillVideo(
         const context = canvas.getContext('2d', { willReadFrequently: true })
         if (!context) throw new Error('Camera frame canvas unavailable')
         BrowserCodeReader.drawImageOnCanvas(context, video)
-        const result = reader.decodeFromCanvas(canvas)
+        const result = decodeWaybillCanvas(reader, canvas)
         onScan(result.getText())
       }
     } catch (error) {

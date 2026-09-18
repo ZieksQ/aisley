@@ -15,14 +15,14 @@ compiled.paths = Module._nodeModulePaths(path.dirname(filename))
 compiled._compile(ts.transpileModule(readFileSync(filename, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2023 },
 }).outputText, filename)
-const { createWaybillReader } = compiled.exports
+const { createWaybillReader, decodeWaybillCanvas } = compiled.exports
 
 function bitmap(pixels, width, height) {
   return new BinaryBitmap(new HybridBinarizer(new RGBLuminanceSource(pixels, width, height)))
 }
 
 // Use the same PHP Code 128 encoder as the printed waybill and lane labels.
-function code128(reference, scale, top, barHeight) {
+function code128Raster(reference, scale, top, barHeight) {
   const bars = JSON.parse(execFileSync('php', ['-r',
     'require "src/api/vendor/autoload.php"; $barcode = (new Picqer\\Barcode\\Types\\TypeCode128)->getBarcode($argv[1]); echo json_encode(array_map(fn($bar) => [$bar->getWidth(), $bar->isBar()], $barcode->getBars()));',
     reference,
@@ -36,6 +36,11 @@ function code128(reference, scale, top, barHeight) {
     if (black) for (let y = top; y < top + barHeight; y++) pixels.fill(0, y * width + x, y * width + x + size * scale)
     x += size * scale
   }
+  return { pixels, width, height }
+}
+
+function code128(reference, scale, top, barHeight) {
+  const { pixels, width, height } = code128Raster(reference, scale, top, barHeight)
   return bitmap(pixels, width, height)
 }
 
@@ -139,11 +144,12 @@ test('temporary frame error keeps camera open, then decodes waybill after constr
   })
   const decoded = []
   const image = code128('AWB-ABC123DEF456GH78', 2, 200, 34)
+  const decodeBitmap = BrowserMultiFormatOneDReader.prototype.decodeBitmap
   let attempts = 0
   installFrameReader(t, fixture.video, function () {
     attempts++
     if (attempts === 1) throw new DOMException('Frame not ready', 'InvalidStateError')
-    return this.decodeBitmap(image)
+    return decodeBitmap.call(this, image)
   })
   const errors = []
   const controls = await startWaybillCamera(fixture.video, (raw) => decoded.push(raw), new AbortController().signal, (error) => errors.push(error))
@@ -176,15 +182,15 @@ test('permission denial is not retried with different camera constraints', async
 
 function installFrameReader(t, video, decode) {
   const originalCanvas = BrowserCodeReader.createCaptureCanvas
-  const originalDecode = BrowserMultiFormatOneDReader.prototype.decodeFromCanvas
+  const originalDecode = BrowserMultiFormatOneDReader.prototype.decodeBitmap
   BrowserCodeReader.createCaptureCanvas = () => ({
     width: video.videoWidth, height: video.videoHeight,
-    getContext: () => ({ drawImage: () => {} }),
+    getContext: () => ({ drawImage: () => {}, getImageData: () => ({ data: new Uint8ClampedArray(video.videoWidth * video.videoHeight * 4).fill(255) }) }),
   })
-  BrowserMultiFormatOneDReader.prototype.decodeFromCanvas = decode
+  BrowserMultiFormatOneDReader.prototype.decodeBitmap = decode
   t.after(() => {
     BrowserCodeReader.createCaptureCanvas = originalCanvas
-    BrowserMultiFormatOneDReader.prototype.decodeFromCanvas = originalDecode
+    BrowserMultiFormatOneDReader.prototype.decodeBitmap = originalDecode
   })
 }
 
@@ -227,4 +233,46 @@ test('fatal decoder error reports the failure instead of silently closing', asyn
   assert.deepEqual(errors, ['canvas failed'])
   assert.equal(fixture.video.srcObject, null)
   assert.ok(fixture.stopped() >= 1)
+})
+
+
+function pixelCanvas(pixels, width, height) {
+  const data = new Uint8ClampedArray(width * height * 4)
+  for (let i = 0; i < pixels.length; i++) {
+    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = pixels[i]
+    data[i * 4 + 3] = 255
+  }
+  return { width, height, getContext: () => ({ drawImage: () => {}, getImageData: () => ({ data }) }) }
+}
+
+test('real frame conversion treats blank frames as barcode misses, including rotation', () => {
+  const canvas = pixelCanvas(new Uint8ClampedArray(320 * 240).fill(255), 320, 240)
+  const { NotFoundException } = require('@zxing/library')
+  assert.throws(() => decodeWaybillCanvas(createWaybillReader(), canvas), NotFoundException)
+})
+
+test('real RGBA frame conversion reads thin printed tracking bars and rotated labels', () => {
+  const reference = 'AWB-ABC123DEF456GH78'
+  const { pixels, width, height } = code128Raster(reference, 2, 247, 4)
+  assert.equal(decodeWaybillCanvas(createWaybillReader(), pixelCanvas(pixels, width, height)).getText(), reference)
+  const rotated = new Uint8ClampedArray(pixels.length)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) rotated[x * height + height - y - 1] = pixels[y * width + x]
+  }
+  assert.equal(decodeWaybillCanvas(createWaybillReader(), pixelCanvas(rotated, height, width)).getText(), reference)
+})
+
+test('camera keeps running through real blank-frame conversion without mocked decoder', async (t) => {
+  const fixture = cameraFixture(t, async () => fixture.stream)
+  const originalCanvas = BrowserCodeReader.createCaptureCanvas
+  BrowserCodeReader.createCaptureCanvas = () => pixelCanvas(new Uint8ClampedArray(640 * 480).fill(255), 640, 480)
+  t.after(() => { BrowserCodeReader.createCaptureCanvas = originalCanvas })
+  const errors = []
+  const controls = await startWaybillCamera(fixture.video, () => assert.fail('blank frame cannot decode'), new AbortController().signal, (error) => errors.push(error))
+  t.after(() => controls.stop())
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  assert.deepEqual(errors, [])
+  assert.equal(fixture.stopped(), 0)
+  assert.equal(fixture.video.srcObject, fixture.stream)
+  controls.stop()
 })

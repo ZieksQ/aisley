@@ -26,12 +26,18 @@ export function useWaybillCamera(
           lastScanAt = now
           scan(raw)
         }, abort.signal, (error) => {
-          if (!abort.signal.aborted) fail(cameraErrorMessage(error))
+          if (!abort.signal.aborted) {
+            console.error('Waybill frame decoding failed:', error)
+            fail(cameraErrorMessage(error))
+          }
         })
         stop = controls.stop
         if (abort.signal.aborted) stop()
       } catch (error) {
-        if (!abort.signal.aborted) fail(cameraErrorMessage(error))
+        if (!abort.signal.aborted) {
+          console.error('Waybill camera startup failed:', error)
+          fail(cameraErrorMessage(error))
+        }
       }
     }).catch(() => {
       if (!abort.signal.aborted) fail('The scanner could not load. Reload the page and try again, or enter the tracking ID manually.')
