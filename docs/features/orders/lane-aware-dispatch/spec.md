@@ -75,6 +75,7 @@
 
 ### Dispatch integration
 
+- Linehaul is a separate manifest flow for parcels whose committed route still requires another hub. Group only by the immediate next hub; atomic transfer departure/receipt never creates final-mile tasks. Manifest members cannot use individual transfer endpoints. Final-mile schedule rules below remain destination-only. See the current Linehaul contract revision in `docs/features/logistics/hub-to-hub-routing/specs.md`.
 - Expose lane counts across the scoped ready query before applying its lane filter.
 - Filter ready parcels by lane or the explicit unassigned legacy bucket.
 - Support reference search and 25-row pagination, oldest receipt first.

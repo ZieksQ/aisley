@@ -15,6 +15,13 @@ use Illuminate\Http\Request;
 
 class SortingPlanController extends Controller
 {
+    public function destroy(RemoveSortingPlanLaneRequest $request, SortingPlan $plan, SortingPlanService $service): JsonResponse
+    {
+        $service->deletePlan($request->user(), $plan, (int) $request->validated('expected_revision'));
+
+        return $this->json(['data' => null]);
+    }
+
     public function index(Request $request, SortingPlanService $service): JsonResponse
     {
         return $this->json(['data' => $service->overview($request->user())]);

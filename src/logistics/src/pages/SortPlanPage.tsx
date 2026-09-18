@@ -31,6 +31,27 @@ export function SortPlanPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const laneDialog = useRef<HTMLDialogElement>(null)
+  const planDialog = useRef<HTMLDialogElement>(null)
+  const [creatingPlan, setCreatingPlan] = useState(false)
+
+  function openPlanEditor(create: boolean) {
+    setError('')
+    setCreatingPlan(create)
+    if (!create && selectedPlan) { setPlanName(selectedPlan.name); setPlanActive(selectedPlan.is_active) }
+    planDialog.current?.showModal()
+  }
+
+  async function deletePlan() {
+    if (!selectedPlan || !window.confirm('Delete ' + selectedPlan.name + ' and its mappings? ' + (selectedPlan.is_active ? 'Automatic sorting will use the exception lane until another plan is activated.' : 'Previous scan history is preserved.'))) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await csrf()
+      await request('/api/v1/logistics/sorting/plans/' + selectedPlan.id, { method: 'DELETE', body: JSON.stringify({ expected_revision: selectedPlan.revision }) })
+      setNotice('Sort plan deleted.')
+      await load()
+    } catch (caught) { setError(caught instanceof ApiError ? caught.message : 'The plan could not be deleted.') }
+    finally { setBusy(false) }
+  }
 
   const selectedPlan = overview?.plans.find((plan) => plan.id === selectedPlanId) ?? null
   const standardLanes = useMemo(() => overview?.lanes.filter((lane) => lane.type === 'standard' && lane.is_active) ?? [], [overview?.lanes])
@@ -64,8 +85,10 @@ export function SortPlanPage() {
     setBusy(true); setError(''); setNotice('')
     try {
       await csrf()
-      await request('/api/v1/logistics/sorting/plans', { method: 'POST', body: JSON.stringify({ name: newPlanName, is_active: newPlanActive }) })
+      const result = await request<{ data: { id: string } }>('/api/v1/logistics/sorting/plans', { method: 'POST', body: JSON.stringify({ name: newPlanName, is_active: newPlanActive }) })
+      setSelectedPlanId(result.data.id)
       setNewPlanName('')
+      planDialog.current?.close()
       setNotice('Sort plan created.')
       await load()
     } catch (caught) {
@@ -84,6 +107,7 @@ export function SortPlanPage() {
         body: JSON.stringify({ expected_revision: selectedPlan.revision, name: planName, is_active: planActive }),
       })
       setNotice('Sort plan updated.')
+      planDialog.current?.close()
       await load()
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'The sort plan could not be updated.')
@@ -183,7 +207,7 @@ export function SortPlanPage() {
   return <div className="mx-auto max-w-[1500px] px-3 py-3">
     <div className="relative flex items-start justify-between gap-2 border-b border-zinc-200 pb-3 dark:border-white/10">
       <div className="flex min-w-0 items-start gap-2 pr-32"><FaRoute className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><div><h2 className="text-lg font-semibold">Sort plan</h2></div></div>
-      <div className="absolute right-0 top-0 flex items-center gap-1"><button aria-label="How sort plans and hub routing work" title="Help" className={iconButton} onClick={() => helpDialog.current?.showModal()} type="button"><span aria-hidden="true">?</span></button><button aria-label="Refresh sort plan" className={iconButton} disabled={loading} onClick={() => void load()} title="Refresh" type="button"><FaArrowsRotate className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button><Link aria-label="Open Sorting" title="Sorting" className={iconButton} to="/sorting"><FaWarehouse aria-hidden="true" /></Link></div>
+      <div className="absolute right-0 top-0 flex items-center gap-1"><button aria-label="How sort plans and linehaul work" title="Help" className={iconButton} onClick={() => helpDialog.current?.showModal()} type="button"><span aria-hidden="true">?</span></button><button aria-label="Refresh sort plan" className={iconButton} disabled={loading} onClick={() => void load()} title="Refresh" type="button"><FaArrowsRotate className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button><Link aria-label="Open Sorting" title="Sorting" className={iconButton} to="/sorting"><FaWarehouse aria-hidden="true" /></Link></div>
     </div>
 
     {error ? <div className="mt-3"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
@@ -192,28 +216,18 @@ export function SortPlanPage() {
     <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
       <div className="space-y-3">
         <section className={panel}>
-          <div className="border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="font-semibold">Plans</h3><p className="text-xs text-zinc-500">Only one plan can be active for this hub.</p></div>
-          <div className="grid gap-3 p-3 2xl:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Plans</h3><p className="text-xs text-zinc-500">Select a plan to manage its destination lanes. Only the active plan routes scans.</p></div><ActionButton onClick={() => openPlanEditor(true)}><FaPlus aria-hidden="true" />New plan</ActionButton></div>
+          <div className="p-3">
             <div className="min-w-0">
               {overview?.plans.length ? <div className="divide-y divide-zinc-200 border border-zinc-200 dark:divide-white/10 dark:border-white/10">{overview.plans.map((plan) => <button className={(plan.id === selectedPlanId ? 'bg-purple-50/70 dark:bg-purple-400/10 ' : '') + 'flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-white/[0.04]'} key={plan.id} onClick={() => setSelectedPlanId(plan.id)} type="button"><span className="min-w-0"><strong className="block truncate text-sm">{plan.name}</strong><span className="block text-xs text-zinc-500">{plan.lanes.length} destination mapping{plan.lanes.length === 1 ? '' : 's'} · revision {plan.revision}</span></span>{plan.is_active ? <span className="shrink-0 text-xs font-medium text-emerald-700 dark:text-emerald-300">Active</span> : <span className="shrink-0 text-xs text-zinc-500">Inactive</span>}</button>)}</div> : <p className="border border-dashed border-zinc-300 px-3 py-5 text-center text-sm text-zinc-500 dark:border-white/15">No sort plans yet.</p>}
             </div>
-            <form className="border border-zinc-200 p-3 dark:border-white/10" onSubmit={(event) => void createPlan(event)}>
-              <h4 className="text-sm font-semibold">Create plan</h4>
-              <label className="mt-3 block text-xs font-medium">Plan name<input className={field + ' mt-1'} maxLength={80} onChange={(event) => setNewPlanName(event.target.value)} placeholder="Metro Manila outbound" required value={newPlanName} /></label>
-              <label className="mt-3 flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400"><input checked={newPlanActive} className="mt-0.5" onChange={(event) => setNewPlanActive(event.target.checked)} type="checkbox" /><span>Make this the active plan</span></label>
-              <PrimaryButton className="mt-3 w-full" busy={busy} type="submit"><FaPlus aria-hidden="true" />Create plan</PrimaryButton>
-            </form>
           </div>
         </section>
 
         {selectedPlan ? <section className={panel}>
-          <form onSubmit={(event) => void savePlan(event)}>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Plan settings</h3><p className="text-xs text-zinc-500">Changes affect future scans. A scan always rechecks the current active plan.</p></div><span className="text-xs text-zinc-500">Revision {selectedPlan.revision}</span></div>
-            <div className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><label className="text-sm font-medium">Name<input className={field + ' mt-1'} maxLength={80} onChange={(event) => setPlanName(event.target.value)} required value={planName} /></label><label className="flex items-center gap-2 pb-2 text-sm"><input checked={planActive} onChange={(event) => setPlanActive(event.target.checked)} type="checkbox" />Active plan</label></div>
-            <div className="flex justify-end border-t border-zinc-200 px-3 py-2.5 dark:border-white/10"><PrimaryButton busy={busy} type="submit">Save plan</PrimaryButton></div>
-          </form>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"><div><h3 className="font-semibold">{selectedPlan.name}</h3><p className="text-xs text-zinc-500">{selectedPlan.is_active ? 'Active — routes current scans' : 'Inactive — activate to route scans'}</p></div><div className="flex gap-2"><ActionButton disabled={busy} onClick={() => openPlanEditor(false)}><FaPen aria-hidden="true" />Edit plan</ActionButton><ActionButton disabled={busy} onClick={() => void deletePlan()}><FaTrashCan aria-hidden="true" />Delete</ActionButton></div></div>
           <div className="border-t border-zinc-200 dark:border-white/10">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"><div><h3 className="font-semibold">Destination routing</h3><p className="text-xs text-zinc-500">Map a postal code for final mile or a next hub for transfer.</p></div><span className="text-xs text-zinc-500">{selectedPlan.lanes.length} mapped</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"><div><h3 className="font-semibold">Destination → physical lane</h3><p className="text-xs text-zinc-500">Final mile uses the recipient postal code. Linehaul uses the next hub on the parcel route.</p></div><span className="text-xs text-zinc-500">{selectedPlan.lanes.length} mapped</span></div>
             <form className="grid gap-2 border-y border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-white/[0.03] sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_8rem_minmax(0,1fr)_4rem_auto] sm:items-end" onSubmit={(event) => void addMapping(event)}>
               <label className="min-w-0 text-xs font-medium">Standard lane<select className={field + ' mt-1'} onChange={(event) => setLaneId(event.target.value)} required value={laneId}><option value="">Choose lane</option>{standardLanes.map((lane) => <option key={lane.id} value={lane.id}>{lane.code} · {lane.name}</option>)}</select></label>
               <label className="text-xs font-medium">Destination type<select className={field + ' mt-1'} value={destinationType} onChange={(event) => setDestinationType(event.target.value as 'postal_code' | 'hub')}><option value="postal_code">Postal code</option><option value="hub">Next hub</option></select></label>
@@ -232,12 +246,22 @@ export function SortPlanPage() {
           {overview?.lanes.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{overview.lanes.map((lane) => <li className="flex items-center gap-1 px-1" key={lane.id}><div className="min-w-0 flex-1 px-2 py-2.5"><p className="flex items-center gap-2"><strong className="font-mono text-sm">{lane.code}</strong>{lane.type === 'exception' ? <span className="text-xs text-amber-700 dark:text-amber-300">Exception</span> : null}{!lane.is_active ? <span className="text-xs text-zinc-500">Inactive</span> : null}</p><p className="truncate text-xs text-zinc-500">{lane.name}</p></div><button aria-label={'Print ' + lane.code + ' label'} className={iconButton} onClick={() => void openLabel(lane)} title="Open printable label" type="button"><FaPrint aria-hidden="true" /></button><button aria-label={'Edit ' + lane.code} className={iconButton} onClick={() => openLaneEditor(lane)} title="Edit lane" type="button"><FaPen aria-hidden="true" /></button><button aria-label={(lane.is_active ? 'Deactivate ' : 'Activate ') + lane.code} className={iconButton} disabled={busy} onClick={() => void toggleLane(lane)} title={lane.is_active ? 'Deactivate lane' : 'Activate lane'} type="button"><FaPowerOff aria-hidden="true" /></button></li>)}</ul> : <p className="px-3 py-5 text-center text-sm text-zinc-500">Create a standard lane and an exception lane.</p>}
         </section>
         {!exceptionLanes.length ? <p className="text-xs text-amber-700 dark:text-amber-300">Create an active exception lane before scanning automatically.</p> : null}
-        {destinationType === 'hub' && !overview?.next_hubs?.length ? <p className="text-xs text-zinc-500">No active next-hub connections. Ask platform operations to configure this hub's network.</p> : null}
+        {destinationType === 'hub' && !overview?.next_hubs?.length ? <p className="text-xs text-zinc-500">No outgoing linehaul connections. <Link className="underline" to="/sorting">Open Linehaul in Sorting</Link> to connect this hub to another active hub.</p> : null}
       </aside>
     </div>
 
+    <dialog aria-labelledby="plan-editor-title" className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] overflow-y-auto border border-zinc-200 bg-white p-4 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={planDialog}>
+      <form onSubmit={(event) => void (creatingPlan ? createPlan(event) : savePlan(event))}>
+        <div className="flex items-center justify-between"><h3 id="plan-editor-title" className="font-semibold">{creatingPlan ? 'Create sort plan' : 'Edit sort plan'}</h3><button aria-label="Close plan form" className={iconButton} type="button" onClick={() => planDialog.current?.close()}><FaXmark aria-hidden="true" /></button></div>
+        {error ? <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-300">{error}</p> : null}
+        <label className="mt-4 block text-sm font-medium">Plan name<input autoFocus className={field + ' mt-1'} maxLength={80} required value={creatingPlan ? newPlanName : planName} onChange={(event) => creatingPlan ? setNewPlanName(event.target.value) : setPlanName(event.target.value)} /></label>
+        <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={creatingPlan ? newPlanActive : planActive} onChange={(event) => creatingPlan ? setNewPlanActive(event.target.checked) : setPlanActive(event.target.checked)} />Use as the active plan</label>
+        <p className="mt-2 text-xs text-zinc-500">Activating this plan replaces the current active plan. Mappings affect future scans.</p>
+        <div className="mt-4 flex justify-end gap-2"><ActionButton type="button" disabled={busy} onClick={() => planDialog.current?.close()}>Cancel</ActionButton><PrimaryButton busy={busy} type="submit">{creatingPlan ? 'Create plan' : 'Save plan'}</PrimaryButton></div>
+      </form>
+    </dialog>
     <dialog aria-labelledby="sort-plan-help-title" className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
-      <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-white/10"><h3 id="sort-plan-help-title" className="font-semibold">Sort plans and hub routing</h3><button aria-label="Close help" className={iconButton} onClick={() => helpDialog.current?.close()} type="button"><FaXmark aria-hidden="true" /></button></div>
+      <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-white/10"><h3 id="sort-plan-help-title" className="font-semibold">Sort plans and linehaul</h3><button aria-label="Close help" className={iconButton} onClick={() => helpDialog.current?.close()} type="button"><FaXmark aria-hidden="true" /></button></div>
       <ol className="list-decimal space-y-2 p-4 pl-8 text-sm"><li>Create standard lanes and one active exception lane. Print labels for the physical staging areas.</li><li>Map postal codes for local delivery. For transfers, map an allowed next hub to a standard lane.</li><li>Activate one plan. Automated sorting follows the parcel's committed next hop until it reaches the destination hub, then uses postal codes.</li><li>Missing routes, connections, or mappings hold parcels in the exception lane. Plan edits affect future scans, never rewrite a committed route.</li><li>Confirm physical departure and arrival from Sorting. Final-mile dispatch becomes available at the destination hub.</li></ol>
     </dialog>
     <dialog className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={laneDialog}>

@@ -58,7 +58,7 @@ enum AdminAuditAction: string
             self::PolicySuccessorCreated => 'Policy successor draft created',
             self::PolicyVersionUpdated => 'Policy version updated',
             self::PolicyVersionPublished => 'Policy version published',
-            self::HubRoutingConfigurationUpdated => 'Hub routing configuration updated',
+            self::HubRoutingConfigurationUpdated => 'Linehaul configuration updated',
             self::FeatureControlUpdated => 'Feature control updated',
             self::HomepageAdvertisementDraftCreated => 'Homepage advertisement draft created',
             self::HomepageAdvertisementDraftUpdated => 'Homepage advertisement draft updated',

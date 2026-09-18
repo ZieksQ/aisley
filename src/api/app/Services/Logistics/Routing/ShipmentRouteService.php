@@ -24,7 +24,7 @@ class ShipmentRouteService
 
     public function snapshot(Waybill $waybill): ?ShipmentRoute
     {
-        if (! config('hub-routing.enabled')) {
+        if (! config('hub-routing.enabled') || ! LinehaulService::enabled()) {
             return null;
         }
 
@@ -40,7 +40,7 @@ class ShipmentRouteService
         $route = ShipmentRoute::create([
             'waybill_id' => $waybill->id, 'origin_hub_id' => $waybill->logistics_hub_id,
             'destination_hub_id' => $destinations->count() === 1 ? $destinations->first()->logistics_hub_id : null,
-            'status' => HubRouteStatus::Unresolved, 'failure_code' => 'destination_unresolved', 'calculated_at' => now(),
+            'status' => HubRouteStatus::Unresolved, 'failure_code' => 'destination_unresolved', 'calculated_at' => now(), 'objective' => 'travel_handling_distance',
         ]);
         if ($destinations->count() !== 1) {
             return $this->result($route);
@@ -157,7 +157,7 @@ class ShipmentRouteService
             'destination_type' => $next ? 'hub' : 'postal_code',
             'distance_meters' => $route->distance_meters, 'duration_seconds' => $route->duration_seconds,
             'metric_availability' => in_array($route->status, [HubRouteStatus::Unresolved, HubRouteStatus::Unavailable], true) ? 'unavailable' : ($route->status === HubRouteStatus::Local ? 'not_required' : 'calculated'),
-            'attribution' => 'Geoapify / OpenStreetMap',
+            'attribution' => $route->hops->contains('provider', 'operator') ? 'Operator-recorded road measurements; Geoapify / OpenStreetMap where available' : 'Geoapify / OpenStreetMap',
             'hops' => $route->hops->map(fn ($hop) => [
                 'id' => $hop->id, 'sequence' => $hop->sequence, 'status' => $hop->status->value, 'revision' => $hop->revision,
                 'from_hub' => $summary($summaries->get($hop->from_hub_id)), 'to_hub' => $summary($summaries->get($hop->to_hub_id)),

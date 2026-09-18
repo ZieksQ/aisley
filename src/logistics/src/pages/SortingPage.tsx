@@ -1,4 +1,4 @@
-import { HubTransfer } from '../components/HubTransfer'
+import { Linehaul } from '../components/Linehaul'
 import { ParcelLaneMove } from '../components/ParcelLaneMove'
 import type { IScannerControls } from '@zxing/browser'
 import Dexie from 'dexie'
@@ -270,7 +270,7 @@ export function SortingPage() {
       </div>
 
       <aside className="space-y-3">
-        {overview ? <HubTransfer key={context} hubId={overview.context.hub_id} online={online} onTransferred={load} /> : null}
+        {overview ? <Linehaul key={context} hubId={overview.context.hub_id} online={online} onTransferred={load} /> : null}
         <section className={panel}>
           <div className="border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="font-semibold">Session</h3></div>
           <div className="p-3">{session ? <><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-sm font-medium">{session.reference}</p><p className="mt-1 text-xs text-zinc-500">Opened {manilaDate(session.opened_at)} · {session.expected_count} expected</p></div><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Open</span></div><PrimaryButton className="mt-3 w-full" busy={busy} disabled={captures.length > 0 || session.counts.pending > 0 || session.counts.exception > 0} onClick={() => void closeSession()}>Close session</PrimaryButton></> : <><p className="text-sm text-zinc-600 dark:text-zinc-400">{overview?.waiting_received ?? 0} received parcel{overview?.waiting_received === 1 ? '' : 's'} ready. Sessions include up to {overview?.session_limit ?? 100} oldest parcels.</p><PrimaryButton className="mt-3 w-full" busy={busy} disabled={!overview?.lanes.some((lane) => lane.is_active && lane.type === 'standard') || !overview?.waiting_received} onClick={() => void startSession()}>Start session</PrimaryButton></>}</div>
@@ -306,8 +306,8 @@ export function SortingPage() {
         <li>If the plan is missing, the postal code is unmapped, or a mapped lane is unavailable, the parcel goes to the exception lane and stays received at hub. Scan a lane label or choose a lane only for a deliberate manual override.</li>
         <li>Use <strong>Sync scans</strong> when needed. Captures also sync at 10 scans, after five minutes, or when the connection returns.</li>
         <li>Resolve exceptions by scanning into a standard lane. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch local or destination-hub parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
-        <li>Hub routing extends automated sorting: transfer parcels use the mapped next-hub lane; destination-hub parcels use postal codes. Missing routes or mappings remain held.</li>
-        <li>Use Hub transfer to look up a tracking ID and confirm physical departure after sorting, or arrival at the expected receiving hub. Transfers require a connection and cannot skip hops. Confirmed arrivals join the receiving hub's next sorting session.</li>
+        <li>Linehaul extends automated sorting: transfer parcels use the mapped next-hub lane; destination-hub parcels use postal codes. Missing routes or mappings remain held.</li>
+        <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub confirms the complete manifest before sorting again. Transfers require a connection and cannot skip hops.</li>
       </ol>
       <div className="flex justify-end border-t border-zinc-200 px-4 py-3 dark:border-white/10"><PrimaryButton onClick={() => helpDialog.current?.close()} type="button">Got it</PrimaryButton></div>
     </dialog>

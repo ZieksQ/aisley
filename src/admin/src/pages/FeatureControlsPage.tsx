@@ -123,7 +123,7 @@ export function FeatureControlsPage() {
         )}
       </section>
 
-      <div className="mt-6 flex items-start gap-3 border-t border-slate-200 pt-5 text-sm leading-6 text-slate-500 dark:border-white/10 dark:text-slate-400"><FaCircleInfo aria-hidden="true" className="mt-1 shrink-0" /><p>Turning off a control does not delete data or change previous user decisions. Re-enabling it applies the current enforcement rules to users who still need to consent.</p></div>
+      <div className="mt-6 flex items-start gap-3 border-t border-slate-200 pt-5 text-sm leading-6 text-slate-500 dark:border-white/10 dark:text-slate-400"><FaCircleInfo aria-hidden="true" className="mt-1 shrink-0" /><p>Turning off a control preserves existing data. Pausing linehaul prevents new routes and departures; parcels already in transit can still be received.</p></div>
       {!loading && error ? <button className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#b0005d] dark:text-pink-300" onClick={() => setReloadKey((value) => value + 1)} type="button"><FaRotate aria-hidden="true" />Try again</button> : null}
     </div>
   )

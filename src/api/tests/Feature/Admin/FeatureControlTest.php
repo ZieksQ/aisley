@@ -54,9 +54,7 @@ class FeatureControlTest extends TestCase
         $this->postJson('/api/v1/policy-consent/privacy_policy/versions/1/accept', ['confirmation' => true])->assertOk();
         $this->getJson('/api/v1/admin/platform-settings/feature-controls')
             ->assertOk()
-            ->assertJsonPath('data.0.key', PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT)
-            ->assertJsonPath('data.0.enabled', true)
-            ->assertJsonPath('data.0.revision', 1);
+            ->assertJsonFragment(['key' => PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT, 'enabled' => true, 'revision' => 1]);
 
         $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT, [
             'enabled' => false,

@@ -33,6 +33,7 @@ use App\Models\User;
 use App\Models\Waybill;
 use App\Notifications\Seller\SellerOrderDeliveredNotification;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Logistics\Routing\LinehaulService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
@@ -636,11 +637,11 @@ class FulfillmentTransitionService
     }
 
     /** Route-aware custody extension; transfer writes never project Order status or create tasks. */
-    public function transferAtHub(User $logistics, array $input, string $idempotencyKey, bool $arrival): array
+    public function transferAtHub(User $logistics, array $input, string $idempotencyKey, bool $arrival, ?string $manifestId = null): array
     {
         $requestHash = $this->hash(['operation' => $arrival ? 'arrival' : 'departure', ...$input]);
 
-        return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $arrival, $requestHash): array {
+        return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $arrival, $requestHash, $manifestId): array {
             $org = $this->logisticsOrganization($logistics);
             LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
             // Hub lock serializes retries, including different parcels with the same actor/key.
@@ -653,6 +654,9 @@ class FulfillmentTransitionService
                 return $prior->metadata['transfer_result'];
             }
             $lookup = trim((string) $input['reference']);
+            if (! $arrival && ! LinehaulService::enabled()) {
+                throw FulfillmentException::conflict('LINEHAUL_DISABLED', 'Linehaul departures are paused.');
+            }
             if (preg_match('/^AISLEY:WB:\d+:(.+)$/i', $lookup, $matches) === 1) {
                 $lookup = trim($matches[1]);
             }
@@ -671,11 +675,14 @@ class FulfillmentTransitionService
             if ($route?->status !== HubRouteStatus::Planned || $hop === null || $hop->id !== $input['hop_id']) {
                 throw FulfillmentException::conflict('ROUTE_HOP_CONFLICT', 'Refresh the current route hop before continuing.');
             }
+            if ($hop->linehaul_manifest_id !== null && $hop->linehaul_manifest_id !== $manifestId) {
+                throw FulfillmentException::conflict('LINEHAUL_MANIFEST_REQUIRED', 'This parcel must transfer with its complete manifest.');
+            }
             if ($shipment->revision !== (int) $input['expected_revision'] || $hop->revision !== (int) $input['expected_hop_revision']) {
                 throw FulfillmentException::conflict('ROUTE_REVISION_CONFLICT', 'The parcel or route hop changed. Refresh before continuing.');
             }
             $connection = HubConnection::query()->whereKey($hop->hub_connection_id)->lockForUpdate()->first();
-            if (! $connection?->is_active || $connection->from_hub_id !== $hop->from_hub_id || $connection->to_hub_id !== $hop->to_hub_id) {
+            if ($connection === null || (! $arrival && ! $connection->is_active) || $connection->from_hub_id !== $hop->from_hub_id || $connection->to_hub_id !== $hop->to_hub_id) {
                 throw FulfillmentException::conflict('ROUTE_CONNECTION_INACTIVE', 'The committed transfer connection is unavailable.');
             }
             $target = LogisticsHub::query()->whereKey($hop->to_hub_id)->whereHas('organization.user', fn ($q) => $q->where('status', UserStatus::Active))->first();
@@ -715,7 +722,7 @@ class FulfillmentTransitionService
                 'from_state' => $from, 'to_state' => $shipment->status->value,
                 'recorded_by_logistics_id' => $logistics->id, 'occurred_at' => now(), 'idempotency_key' => $idempotencyKey,
                 'correlation_id' => (string) Str::uuid(),
-                'metadata' => ['request_hash' => $requestHash, 'hop_id' => $hop->id, 'from_hub_id' => $hop->from_hub_id, 'to_hub_id' => $hop->to_hub_id, 'source_lane' => $arrival ? null : $hop->source_lane, 'transfer_result' => $result],
+                'metadata' => ['request_hash' => $requestHash, 'hop_id' => $hop->id, 'from_hub_id' => $hop->from_hub_id, 'to_hub_id' => $hop->to_hub_id, 'linehaul_manifest_id' => $manifestId, 'source_lane' => $arrival ? null : $hop->source_lane, 'transfer_result' => $result],
             ]);
             $event->id = $eventId;
             $event->save();

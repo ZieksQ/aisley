@@ -32,7 +32,7 @@ class HubRoutingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['hub-routing.enabled' => true, 'services.geoapify.server_key' => 'test-server-key']);
+        config(['hub-routing.enabled' => true, 'hub-routing.transfer_handling_seconds' => 0, 'services.geoapify.server_key' => 'test-server-key']);
         Http::preventStrayRequests();
         Http::fake(['api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [[['distance' => 1000, 'time' => 100], ['distance' => 3000, 'time' => 300]]]])]);
     }

@@ -38,6 +38,17 @@ class GeoapifyHubMetrics
             if ($source === null || $target === null) {
                 continue;
             }
+            // Operator-recorded lane measurements are explicit road inputs, never geometric guesses.
+            if ($edge->distance_meters > 0 && $edge->duration_seconds > 0) {
+                $result[$edge->id] = [
+                    'provider_status' => 'calculated', 'provider' => 'operator',
+                    'distance_meters' => (float) $edge->distance_meters, 'duration_seconds' => (float) $edge->duration_seconds,
+                    'source_fingerprint' => $source, 'destination_fingerprint' => $target,
+                    'metric_calculated_at' => $edge->updated_at->toISOString(), 'provider_request_id' => (string) Str::uuid(),
+                ];
+
+                continue;
+            }
             if (! $serverKey) {
                 $result[$edge->id] = ['provider_status' => 'key_missing'];
 

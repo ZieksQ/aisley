@@ -76,6 +76,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Sort plans
 
+- Current Linehaul revision (2026-09-18): create/edit plans in labelled native dialogs; confirm deletion with expected revision and tenant ownership. Deleting an active plan leaves automatic scans on exception fallback until another is activated. Preserve historical scans. Linehaul groups sorted parcels by immediate next hub into immutable manifests, with complete-group atomic departure/receipt. Logistics manages its own service areas and outgoing connections; the Admin linehaul switch defaults on. See the current contract revision in `docs/features/logistics/hub-to-hub-routing/specs.md`, which supersedes earlier flag/transfer UI wording below.
 - A sort plan belongs to the authenticated Logistics organization and sole hub, has a unique name, revision, active flag, and creator.
 - Only one plan can be active for a hub. Activating a plan deactivates the previous plan and increments its revision.
 - A plan mapping stores one normalized four-digit postal code, one active standard lane, and a display position; a postal code cannot be duplicated within a plan.

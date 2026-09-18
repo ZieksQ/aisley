@@ -88,6 +88,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### APIs and UI
 
+- Admin Feature controls includes the enabled-by-default `linehaul` switch. Disabling it pauses new route snapshots and departures; receiving committed in-transit manifests remains possible. Updates reuse platform-settings.manage, revisions, and audit events. Logistics configures its own coverage/outgoing connections without per-transfer platform approval.
 - Admin APIs follow `/api/v1/admin/platform-settings` conventions:
 
 ```http

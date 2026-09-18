@@ -12,6 +12,8 @@ class PlatformFeatureControl extends Model
 
     public const POLICY_CONSENT_ENFORCEMENT = 'policy_consent_enforcement';
 
+    public const LINEHAUL = 'linehaul';
+
     protected $fillable = [
         'key',
         'label',

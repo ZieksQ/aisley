@@ -21,6 +21,19 @@ use Illuminate\Support\Facades\DB;
 
 class SortingPlanService
 {
+    public function deletePlan(User $logistics, SortingPlan $plan, int $revision): void
+    {
+        $org = $this->organization($logistics);
+        DB::transaction(function () use ($org, $plan, $revision): void {
+            $this->lockHub($org);
+            $owned = $this->ownedPlan($org, $plan->id, true);
+            if ($owned->revision !== $revision) {
+                throw FulfillmentException::conflict('SORT_PLAN_REVISION_CONFLICT', 'The plan changed. Refresh before deleting it.');
+            }
+            $owned->delete();
+        }, 3);
+    }
+
     /** @return array<string, mixed> */
     public function overview(User $logistics): array
     {
