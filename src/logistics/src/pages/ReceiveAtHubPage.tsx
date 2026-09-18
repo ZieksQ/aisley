@@ -1,4 +1,4 @@
-import type { IScannerControls } from '@zxing/browser'
+import { useWaybillCamera } from '../lib/useWaybillCamera'
 import Dexie from 'dexie'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FaBarcode, FaCloudArrowUp, FaKeyboard, FaTrashCan } from 'react-icons/fa6'
@@ -34,8 +34,6 @@ export function ReceiveAtHubPage() {
   const [notice, setNotice] = useState('')
   const [online, setOnline] = useState(navigator.onLine)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const scannerControls = useRef<IScannerControls | null>(null)
-  const lastScan = useRef('')
   const lastAutoSyncBatch = useRef('')
 
   const loadReceipts = useCallback(async () => {
@@ -102,28 +100,10 @@ export function ReceiveAtHubPage() {
     void sync()
   }, [busy, online, receipts, sync])
 
-  useEffect(() => {
-    if (!scannerOpen || !videoRef.current) return
-    const video = videoRef.current
-    let disposed = false
-    void import('../lib/waybillScanner').then(({ createWaybillReader, waybillCameraConstraints }) => {
-      if (disposed) return
-      const reader = createWaybillReader()
-      return reader.decodeFromConstraints(waybillCameraConstraints, video, (result) => {
-        if (disposed || !result) return
-        const raw = result.getText()
-        if (raw === lastScan.current) return
-        lastScan.current = raw
-        void queueReceipt(raw, 'barcode')
-        window.setTimeout(() => { lastScan.current = '' }, 1200)
-      })
-    }).then((controls) => { if (!controls) return; scannerControls.current = controls; if (disposed) controls.stop() }).catch((caught: unknown) => {
-      if (disposed) return
-      setError(caught instanceof DOMException && caught.name === 'NotAllowedError' ? 'Camera permission was denied. Enter the tracking ID manually.' : 'The camera could not start. Enter the tracking ID manually.')
-      setScannerOpen(false)
-    })
-    return () => { disposed = true; scannerControls.current?.stop(); scannerControls.current = null }
-  }, [queueReceipt, scannerOpen])
+  useWaybillCamera(scannerOpen, videoRef, (raw) => { void queueReceipt(raw, 'barcode') }, (message) => {
+    setError(message)
+    setScannerOpen(false)
+  })
 
   return <div className="mx-auto max-w-[1280px] px-3 py-3 sm:px-5 lg:px-6">
     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
@@ -138,7 +118,7 @@ export function ReceiveAtHubPage() {
       <section className={panel}>
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Barcode scanner</h3><ActionButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</ActionButton></div>
         <div className="p-3">
-          {scannerOpen ? <video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" muted playsInline /> : <div className="grid min-h-48 place-items-center border border-dashed border-zinc-300 px-3 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">Scan the thin 1D Code 128 barcode. Keep all bars and both white margins visible. QR codes are ignored.</p></div></div>}
+          {scannerOpen ? <video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /> : <div className="grid min-h-48 place-items-center border border-dashed border-zinc-300 px-3 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">Scan the thin 1D Code 128 barcode. Keep all bars and both white margins visible. QR codes are ignored.</p></div></div>}
         </div>
       </section>
 

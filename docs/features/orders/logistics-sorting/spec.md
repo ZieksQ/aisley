@@ -124,6 +124,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - `POST /api/v1/logistics/sorting/sessions/{session}/batches` processes per-entry offline captures.
 - Private reads use `Cache-Control: private, no-store`; validation distinguishes `401`, `403`, `404`, `409`, and `422`.
 
+- Logistics camera scanning keeps the same stream across scan-handler/page-state updates, enables muted inline autoplay, and releases tracks on Stop/unmount even during startup. Unsupported preferred settings retry with basic video constraints; HTTPS, unsupported browser, permission, missing/busy camera, and playback failures show actionable errors while retaining manual entry.
+
 ### Acceptance criteria
 
 - [x] Only the owning Logistics organization and sole hub can manage lanes, sessions, and sorting captures.

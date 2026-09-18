@@ -107,6 +107,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] Courier scans require assignment authorization and cannot directly advance custody state.
 - [x] Dependencies are license-reviewed, patched, locked, and usable without paid services or added browser/server binaries.
 
+- Logistics camera scanning keeps the same stream across scan-handler/page-state updates, enables muted inline autoplay, and releases tracks on Stop/unmount even during startup. Unsupported preferred settings retry with basic video constraints; HTTPS, unsupported browser, permission, missing/busy camera, and playback failures show actionable errors while retaining manual entry.
+
 ## HOW
 
 ### Data model and services
