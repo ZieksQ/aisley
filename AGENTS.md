@@ -60,6 +60,7 @@ Database: Postgres (containerized)
 - Use the formatter and linter configured for the relevant package. Do not compress PHP, TypeScript, TSX, JSX, or CSS into unreadable one-line blocks.
 - Evaluate complexity, nesting, coupling, responsibilities, and testability in addition to physical line count.
 - Apply these rules to hand-written application code only. Exclude generated files, `vendor/`, `node_modules/`, `.next/`, build output, fixtures, and specification documents.
+- When a feature grows into several closely related files, group them in a feature directory within the component’s existing structure. Keep shared utilities in their established shared locations. Do not create a directory for a single file or move unrelated files solely to satisfy this rule.
 
 ## Where to look
 
