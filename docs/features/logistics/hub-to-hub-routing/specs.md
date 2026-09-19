@@ -13,7 +13,14 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## Connection and Sort plan revision — 2026-09-20
 
-This is the current product contract. It supersedes conflicting page ownership, connection lifecycle, postal entry, and transfer placement below. Existing route snapshots, server-selected manifests, custody transitions, local sorting, tenant isolation, and final-mile rules still apply. The items in this revision are planned, not implemented.
+This is the current product contract. It supersedes conflicting page ownership, connection lifecycle, postal entry, and transfer placement below. Existing route snapshots, server-selected manifests, custody transitions, local sorting, tenant isolation, and final-mile rules still apply. The frontend workspace relocation is implemented; the approval, connection, rejection-reason, and server-side postal validation changes remain planned.
+
+### Sort plan workspace layout — 2026-09-20
+
+- Create and edit plans in one responsive workspace dialog. At desktop widths, the left side shows the selected plan's name, destination mappings ordered by physical lane number, physical lanes, and supported postal codes. The right side shows the plan list and the selected plan's Save, Activate, and Delete actions. Selecting another plan on the right replaces the left-side information. Creating a plan starts inactive; activation is a separate explicit action from the right-side list.
+- The page outside the dialog is a dense plan overview with Open plan and New plan actions. Keep the dialog within the viewport, scroll its work area, and place the plan selector before details on narrow screens. Table data can scroll horizontally at phone widths. Use the existing Logistics color system, restrained borders, compact controls, readable status text, and no decorative dashboard elements.
+- Linehaul shows the partner directory and a pending-request dialog. Supported postal codes live in Sort plan; ready groups, departure confirmation, and manifest receipts live in Sorting. Each workspace has a small help control explaining its steps. Preserve dark mode, keyboard access, and visible offline/error states.
+- The 2026-09-20 frontend workspace relocation is implemented. Durable approval versus live connection, rejection reasons, symmetric connection semantics, and server-side supported-postal validation remain pending in this revision; the current UI must not imply those transitions are already available.
 
 ### WHAT
 

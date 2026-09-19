@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPlus, FaPrint, FaRoute, FaStop, FaTrashCan, FaWarehouse, FaXmark } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
 import { ConnectionStatus } from '../components/ConnectionStatus'
+import { Linehaul } from '../components/Linehaul'
 import { ErrorNotice, PrimaryButton, field, manilaDate, panel } from '../components/PickupUi'
 import { ApiError, blob as requestBlob, csrf, request, requestWithTimeout } from '../lib/api'
 import { sortingDb, type PendingSortCapture } from '../lib/sortingDb'
@@ -275,6 +276,8 @@ export function SortingPage() {
 
     </section> : null}
 
+    <div className="mt-3"><Linehaul mode="operations" online={online} /></div>
+
     <dialog aria-labelledby="sorting-help-title" className="m-auto max-h-[90dvh] w-[min(92vw,34rem)] overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
       <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 id="sorting-help-title" className="font-semibold">How to use Sorting</h3><button aria-label="Close sorting instructions" className={iconButton} onClick={() => helpDialog.current?.close()} title="Close" type="button"><FaXmark aria-hidden="true" /></button></div>
       <ol className="list-decimal space-y-3 px-5 py-4 pl-10 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
@@ -285,7 +288,7 @@ export function SortingPage() {
         <li>Use <strong>Sync scans</strong> when needed. Captures also sync at 10 scans, after five minutes, or when the connection returns.</li>
         <li>Resolve exceptions by scanning into a standard lane. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch local or destination-hub parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
         <li>Linehaul extends automated sorting: transfer parcels use the mapped next-hub lane; destination-hub parcels use postal codes. Missing routes or mappings remain held.</li>
-        <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub confirms the complete manifest on the Linehaul page before sorting again. Transfers require a connection and cannot skip hops.</li>
+        <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub confirms the complete manifest below before sorting again. Transfers require a connection and cannot skip hops.</li>
       </ol>
       <div className="flex justify-end border-t border-zinc-200 px-4 py-3 dark:border-white/10"><PrimaryButton onClick={() => helpDialog.current?.close()} type="button">Got it</PrimaryButton></div>
     </dialog>
