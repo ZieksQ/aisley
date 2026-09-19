@@ -122,9 +122,6 @@ class LinehaulController extends Controller
             if ($row && $row->revision !== ($input['expected_revision'] ?? null)) {
                 throw FulfillmentException::conflict('LINEHAUL_CONFIG_CHANGED', 'Configuration changed. Refresh and try again.');
             }
-            if ($area && $input['is_active'] && HubServiceArea::where('postal_code', $input['postal_code'])->where('is_active', true)->where('logistics_hub_id', '!=', $hub->id)->exists()) {
-                throw FulfillmentException::conflict('LINEHAUL_POSTAL_TAKEN', 'Another hub already serves this postal code.');
-            }
             $row ??= $model->newInstance([...$identity, 'created_by' => $request->user()->id]);
             $row->is_active = $input['is_active'];
             if (! $area) {

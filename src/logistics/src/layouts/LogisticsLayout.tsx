@@ -110,9 +110,11 @@ export function LogisticsLayout() {
           ? 'Notifications'
           : location.pathname.startsWith('/account')
             ? 'Account settings'
-            : location.pathname.startsWith('/policy-consent')
+              : location.pathname.startsWith('/policy-consent')
               ? 'Terms & condition'
-              : 'Dashboard'
+              : location.pathname === '/dashboard'
+                ? 'Dashboard'
+                : 'Page not found'
 
   return <main className="min-h-screen bg-[#f7f7f8] text-zinc-950 dark:bg-[#101012] dark:text-white">
     <aside className={`${open ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-64 flex-col overflow-visible border-r border-zinc-200 bg-white px-4 py-5 dark:border-white/10 dark:bg-[#171719] lg:flex`}>

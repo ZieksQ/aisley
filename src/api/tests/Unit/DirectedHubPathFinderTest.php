@@ -34,4 +34,17 @@ class DirectedHubPathFinderTest extends TestCase
         ];
         $this->assertSame(['z'], array_column($finder->find('a', 'z', $edges), 'to_hub_id'));
     }
+
+    public function test_best_supported_destination_uses_full_route_cost_and_stable_ties(): void
+    {
+        config(['hub-routing.transfer_handling_seconds' => 1800]);
+        $finder = new DirectedHubPathFinder(new DurationDistanceWeightCalculator);
+        $edge = fn ($from, $to, $duration, $distance) => ['from_hub_id' => $from, 'to_hub_id' => $to, 'duration_seconds' => $duration, 'distance_meters' => $distance];
+        $edges = [$edge('a', 'b', 2500, 100), $edge('a', 'c', 500, 100), $edge('c', 'd', 500, 100)];
+        $this->assertSame('b', $finder->findAny('a', ['b', 'd'], $edges)['destination_hub_id']);
+        config(['hub-routing.transfer_handling_seconds' => 0]);
+        $this->assertSame('d', $finder->findAny('a', ['b', 'd'], $edges)['destination_hub_id']);
+        $this->assertSame([], $finder->findAny('a', ['a', 'b'], $edges)['path']);
+        $this->assertNull($finder->findAny('a', ['z'], $edges));
+    }
 }

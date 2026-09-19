@@ -4,12 +4,68 @@ feature: Linehaul
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: API and Logistics sorting extension implemented; visual verification and operational rollout pending
-scope: Laravel API, PostgreSQL, and Logistics Sorting / Sort plan UI
+status: Existing routing implemented; 2026-09-20 connection and Sort plan revision specified, pending implementation
+scope: Laravel API, PostgreSQL, and Logistics Linehaul / Sorting / Sort plan UI
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/maps-location-api.md, docs/features/orders/logistics-sorting/spec.md, docs/features/orders/lane-aware-dispatch/spec.md
 ---
 
 # Linehaul
+
+## Connection and Sort plan revision — 2026-09-20
+
+This is the current product contract. It supersedes conflicting page ownership, connection lifecycle, postal entry, and transfer placement below. Existing route snapshots, server-selected manifests, custody transitions, local sorting, tenant isolation, and final-mile rules still apply. The frontend workspace relocation is implemented; the approval, connection, rejection-reason, and server-side postal validation changes remain planned.
+
+### Active plan and shared postal coverage — 2026-09-20
+
+- The Sort plan page shows only the active plan and its destination lanes, ordered by physical lane number. Plan creation, editing, and selection of a different plan for activation stay in the workspace dialog. Physical lanes and supported postal codes are managed on the main page. The active-plan lanes, physical-lane list, and supported-code list each show eight rows per page with their own Previous/Next controls. The dialog's Save, Activate, and Delete controls align in one consistent action grid.
+- Each hub may independently support the same four-digit postal code. The database enforces uniqueness of a code **within one hub**, and the scoped coverage API no longer rejects a code because another hub supports it. Previously committed routes and scans remain unchanged.
+- For a new route, consider every active Logistics hub supporting the exact recipient code. If the origin hub supports it, keep the parcel local. Otherwise, find candidates reachable through active, accepted directed connections between active organizations. Compare complete routes using driving time plus the configured handling allowance per hop, then road distance, hop count, and stable hub IDs. This measures network cost; straight-line proximity and an unconnected nearby hub do not decide custody. A candidate may be several connected hops away. Missing coverage, reachable path, or required road metrics holds the route safely. Held origin routes with no committed hops may retry under the existing policy.
+- This shared-coverage destination selection and page layout are implemented. Separate partnership approval/live states, rejection reasons, symmetric connection semantics, and server-side supported-code enforcement for plan mappings remain pending.
+
+### Sort plan workspace layout — 2026-09-20
+
+- Create and edit plans in one responsive workspace dialog. At desktop widths, the left side shows the selected plan's name and destination mappings ordered by physical lane number. The right side shows the plan list and the selected plan's Save, Activate, and Delete actions. Selecting another plan on the right replaces the left-side information. Creating a plan starts inactive; activation is a separate explicit action from the right-side list.
+- The page outside the dialog shows the active plan, its ordered destination lanes, physical lanes, and supported postal codes. Keep the dialog within the viewport, scroll its work area, and place the plan selector before details on narrow screens. Table data can scroll horizontally at phone widths. Use the existing Logistics color system, restrained borders, compact controls, readable status text, and no decorative dashboard elements.
+- Linehaul shows the partner directory and a pending-request dialog. Supported postal codes live in Sort plan; ready groups, departure confirmation, and manifest receipts live in Sorting. Each workspace has a small help control explaining its steps. Preserve dark mode, keyboard access, and visible offline/error states.
+- The 2026-09-20 frontend workspace relocation is implemented. Durable approval versus live connection, rejection reasons, symmetric connection semantics, and server-side supported-postal validation remain pending in this revision; the current UI must not imply those transitions are already available.
+
+### WHAT
+
+- **Linehaul** is the Logistics partner connection workspace. It shows other active Logistics organizations and lets an approved Logistics account request, approve, connect, or disconnect a partnership. It has no coverage editor, road-measurement form, ready-group controls, or manifest list.
+- **Sort plan** owns the current plan/lane setup plus a hub-level **Supported postal codes** list. Normal postal lanes select from that list; next-hub lanes select connected Logistics partners.
+- **Sorting** remains the physical scan/reconciliation workspace and gains the existing online linehaul departure and arrival controls moved from Linehaul. Both connected organizations may send and receive transfers along eligible directed route hops.
+- Non-goals: warehouse-capacity sensing, automatic connect/disconnect, vehicle scheduling, rerouting committed hops, changes to unrelated fulfillment flows, and a Courier web interface.
+
+### MUST
+
+- The partner directory keeps its existing search, pagination, safe summaries, and tenant isolation. A partner with no current approval has a **Request** action. Requesting creates a pending approval; it does not activate a routing edge or permit a new departure. Duplicate pending requests do not create duplicate rows.
+- An incoming request appears in a **Connection requests** modal for the receiving Logistics organization, showing the requester and **Accept** / **Reject** actions. Only the receiver can decide. After either decision, the request disappears from the pending modal; completed decisions remain visible in the relevant partner row/status so they are not lost.
+- Reject requires a plain-text reason (1–500 characters). Save the reason with the decision, show it only to the requester and receiver, and include it in the requester's rejected status. A rejected partnership can be requested again; a new request starts pending and does not erase the prior decision audit. Withdrawal clears a pending request without treating it as a rejection.
+- Acceptance approves the partnership but does not silently connect it. Once approved, show **Connect** while disconnected and **Disconnect** while connected. Either partner can disconnect the shared live partnership, immediately blocking new route calculations and departures in both directions; reconnecting while approval remains valid needs no new approval. If approval is revoked or either organization becomes inactive, connecting is unavailable.
+- A connected partnership permits routing in both directions, represented by the two directed hub edges needed by the existing graph. Each hop still needs usable road metrics and a matching local next-hub lane; connection alone does not make a parcel dispatchable. Disconnect never cancels or rewrites committed route hops, manifests, or in-transit receipts.
+- Supported postal codes are scoped to the authenticated organization's sole hub, normalized as exact four-digit codes, and unique per hub. Multiple hubs may support the same code. Manage them on the Sort plan main page with an add control and a readable paginated list, one explicit delete action per code, validation/error feedback, and a confirmation when deletion affects mappings or held parcels.
+- The normal postal mapping form offers only active supported codes in a dropdown, excluding codes already mapped in that plan. The API enforces the same rule; submitting an arbitrary four-digit code or a code that lost support fails. Removing support does not silently delete existing plan mappings or rewrite historical scans: show affected mappings as unavailable and hold future matching scans until coverage is restored or the mapping is removed.
+- The next-hub mapping selector offers only currently connected active partners. The API rechecks connection, local plan/lane ownership, and revision at save time. A disconnected mapping remains visible and removable but cannot route new scans or departures.
+- A recipient outside the local supported postal codes resolves to the lowest-cost reachable supporting hub through authoritative global coverage. The existing Dijkstra path may cross multiple connected hubs; each current hub sorts to its committed immediate next hop. No kilometre threshold or direct-partner requirement replaces that path. Missing coverage, usable path, metrics, or a required local mapping remains an exception hold.
+- Keep the platform Linehaul switch, active Logistics/Sanctum access checks, current idempotent manifest and receipt APIs, and destination-only final-mile dispatch. Move operational controls without changing server-owned manifest membership or custody authority.
+
+### HOW
+
+- Extend the existing connection request/consent API with durable approval status, rejection reason, and separate live connection state. Use additive migrations for any new fields/history; string-backed PHP enums for new states. Perform request, decision, connect, and disconnect under revision checks and row locks. Derive both organizations and hubs from authenticated/scoped records; never accept a caller-supplied actor or foreign hub as authority.
+- Preserve the current directed graph and metric adapter, but enable both directed edges only while the shared partnership is approved and connected. Recheck this state at route calculation, automatic sorting, and new departure. Keep already departed arrivals available after disconnection or feature pause.
+- Reuse `hub_service_areas` as the Supported postal codes source of truth. Move its editor to Sort plan, expose the caller's active entries with the plan overview, and reuse the existing scoped coverage write path. Add server-side support validation to postal plan mapping creation; retain old mappings as unavailable on coverage removal.
+- Refactor the Logistics frontend by responsibility: partner directory and requests modal on `/linehaul`; supported-code and physical-lane lists on the Sort plan main page, with plan editing and postal/connected-partner selectors in its dialog; ready groups, departures, and incoming manifest receipts on `/sorting`. Keep compact responsive and dark-mode behavior from `docs/design.md`, visible status text, keyboard-accessible modal controls, and safe retry feedback.
+- Migrate the existing accepted active links to approved-and-connected where their receiver consent is recorded; keep pending and withdrawn links inactive. Do not grant approval to previously unilateral links. Preserve rejection history and route/manifests through migration and rollback planning.
+- Verify request/accept/reject/reason/re-request/withdrawal, connect/disconnect by either side, stale revisions and foreign IDs, postal uniqueness and removal effects, dropdown/API agreement, reverse-direction and A → B → C routing, exception holds, and in-transit receipt after disconnect. Run focused Laravel and Logistics frontend checks; browser-check both modals and responsive layouts.
+
+Implementation note: `receiver_accepted` currently doubles as approval and live consent. This revision requires separate persisted states. The graph requirement follows the existing directed-route model; [NetworkX's shortest-path documentation](https://networkx.org/documentation/stable/reference/algorithms/shortest_paths.html) confirms that directed paths follow only enabled edges with nonnegative weights.
+
+Acceptance for this revision:
+
+- [ ] Request appears in the receiver's modal; acceptance removes it and enables Connect, while rejection removes it and exposes the saved reason to the requester.
+- [ ] Connected partners can transfer in both directions; disconnect blocks new routes/departures while committed receipts remain possible.
+- [ ] Supported postal codes can be added and deleted in Sort plan; postal lane mapping uses only the supported-code dropdown and holds safely when support is removed.
+- [ ] Next-hub lane mapping lists only connected partners, and a distant destination can traverse multiple connected hubs without changing the existing route/custody contract.
 
 
 ## Partner directory and automatic routing revision — 2026-09-19

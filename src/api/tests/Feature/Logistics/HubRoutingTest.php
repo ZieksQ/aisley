@@ -152,6 +152,36 @@ class HubRoutingTest extends TestCase
         $this->assertSame(OrderStatus::Assigned, $order->fresh()->status);
     }
 
+    public function test_shared_postal_coverage_chooses_best_connected_destination_and_prefers_local(): void
+    {
+        $origin = $this->pinnedHub();
+        $direct = $this->pinnedHub();
+        $transfer = $this->pinnedHub();
+        $near = $this->pinnedHub();
+        $this->edge($origin[2], $direct[2]);
+        $this->edge($origin[2], $transfer[2]);
+        $this->edge($transfer[2], $near[2]);
+        HubConnection::where('from_hub_id', $origin[2]->id)->where('to_hub_id', $direct[2]->id)
+            ->update(['duration_seconds' => 7000, 'distance_meters' => 50000]);
+        HubConnection::where('from_hub_id', $origin[2]->id)->where('to_hub_id', $transfer[2]->id)
+            ->update(['duration_seconds' => 1000, 'distance_meters' => 10000]);
+        HubConnection::where('from_hub_id', $transfer[2]->id)->where('to_hub_id', $near[2]->id)
+            ->update(['duration_seconds' => 1000, 'distance_meters' => 10000]);
+
+        $this->actingAs($direct[0])->putJson('/api/v1/logistics/linehaul/service-areas', ['postal_code' => '6000', 'is_active' => true])->assertOk();
+        $this->actingAs($near[0])->putJson('/api/v1/logistics/linehaul/service-areas', ['postal_code' => '6000', 'is_active' => true])->assertOk();
+        $this->assertDatabaseCount('hub_service_areas', 2);
+        $this->pickupAt($origin);
+        $route = ShipmentRoute::sole();
+        $this->assertSame($near[2]->id, $route->destination_hub_id);
+        $this->assertSame([$transfer[2]->id, $near[2]->id], $route->hops()->orderBy('sequence')->pluck('to_hub_id')->all());
+
+        $this->actingAs($origin[0])->putJson('/api/v1/logistics/linehaul/service-areas', ['postal_code' => '6000', 'is_active' => true])->assertOk();
+        $this->pickupAt($origin);
+        $this->assertSame('local', ShipmentRoute::where('destination_hub_id', $origin[2]->id)->sole()->status->value);
+        Http::assertNothingSent();
+    }
+
     public function test_unresolved_route_is_held_in_exception_even_with_manual_standard_lane(): void
     {
         $origin = $this->pinnedHub();

@@ -48,13 +48,13 @@ class HubRoutingConfigurationService
             }
             $duplicate = $model::query()->when($id, fn ($q) => $q->where('id', '!=', $id));
             if ($kind === 'service-areas') {
-                $duplicate->where('postal_code', $data['postal_code'])->where('is_active', true);
-                $conflict = $active && $duplicate->exists();
+                $conflict = $duplicate->where('logistics_hub_id', $data['logistics_hub_id'])
+                    ->where('postal_code', $data['postal_code'])->exists();
             } else {
                 $conflict = $duplicate->where('from_hub_id', $data['from_hub_id'])->where('to_hub_id', $data['to_hub_id'])->exists();
             }
             if ($conflict) {
-                throw FulfillmentException::conflict('HUB_CONFIGURATION_DUPLICATE', 'This active postal destination or directed connection already exists.');
+                throw FulfillmentException::conflict('HUB_CONFIGURATION_DUPLICATE', 'This hub postal code or directed connection already exists.');
             }
             if ($record === null) {
                 $record = $model::create([...$input, 'is_active' => $active, 'created_by' => $admin->id]);

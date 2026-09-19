@@ -38,9 +38,10 @@ class ShipmentRouteService
         $postal = app(SortingPlanService::class)->normalizePostalCode((string) ($waybill->snapshot->payload['recipient']['postal_code'] ?? ''));
         $destinations = HubServiceArea::query()->where('postal_code', $postal)->where('is_active', true)
             ->whereHas('hub.organization.user', fn ($query) => $query->where('status', UserStatus::Active))->get();
+        $destinationIds = $destinations->pluck('logistics_hub_id')->unique()->values()->all();
         $attributes = [
             'waybill_id' => $waybill->id, 'origin_hub_id' => $waybill->logistics_hub_id,
-            'destination_hub_id' => $destinations->count() === 1 ? $destinations->first()->logistics_hub_id : null,
+            'destination_hub_id' => count($destinationIds) === 1 ? $destinationIds[0] : null,
             'status' => HubRouteStatus::Unresolved, 'failure_code' => 'destination_unresolved', 'calculated_at' => now(), 'objective' => 'travel_handling_distance',
         ];
         if ($route === null) {
@@ -48,11 +49,11 @@ class ShipmentRouteService
         } else {
             $route->update([...$attributes, 'graph_revision' => null, 'distance_meters' => null, 'duration_seconds' => null]);
         }
-        if ($destinations->count() !== 1) {
+        if ($destinationIds === []) {
             return $this->result($route);
         }
-        if ($route->origin_hub_id === $route->destination_hub_id) {
-            $route->update(['status' => HubRouteStatus::Local, 'failure_code' => null, 'distance_meters' => 0, 'duration_seconds' => 0]);
+        if (in_array($route->origin_hub_id, $destinationIds, true)) {
+            $route->update(['destination_hub_id' => $route->origin_hub_id, 'status' => HubRouteStatus::Local, 'failure_code' => null, 'distance_meters' => 0, 'duration_seconds' => 0]);
 
             return $this->result($route);
         }
@@ -76,11 +77,13 @@ class ShipmentRouteService
                 }
             }
         } while ($before !== count($reachable));
-        if (! isset($reachable[$route->destination_hub_id])) {
+        $reachableDestinations = array_values(array_filter($destinationIds, fn (string $id): bool => isset($reachable[$id])));
+        if ($reachableDestinations === []) {
             return $this->fail($route, 'no_path');
         }
-        // Exclude dead ends and outgoing destination edges: neither can improve a nonnegative path.
-        $reachesDestination = [$route->destination_hub_id => true];
+        // Exclude dead ends and edges leaving any supported destination: with
+        // nonnegative weights, passing one destination cannot improve the best result.
+        $reachesDestination = array_fill_keys($reachableDestinations, true);
         do {
             $before = count($reachesDestination);
             foreach ($edges as $edge) {
@@ -90,7 +93,7 @@ class ShipmentRouteService
             }
         } while ($before !== count($reachesDestination));
         $eligible = $edges->filter(fn ($edge) => isset($reachable[$edge->from_hub_id], $reachesDestination[$edge->to_hub_id])
-            && $edge->from_hub_id !== $route->destination_hub_id)->values();
+            && ! in_array($edge->from_hub_id, $reachableDestinations, true))->values();
         $metrics = $this->metrics->measure($eligible);
         $measured = [];
         foreach ($eligible as $edge) {
@@ -107,17 +110,18 @@ class ShipmentRouteService
         if ($revision !== $this->graphRevision($fresh)) {
             return $this->fail($route, 'graph_changed');
         }
-        $path = $this->paths->find($route->origin_hub_id, $route->destination_hub_id, $measured);
-        if ($path === null) {
+        $best = $this->paths->findAny($route->origin_hub_id, $reachableDestinations, $measured);
+        if ($best === null) {
             return $this->fail($route, 'no_path');
         }
+        $path = $best['path'];
         if (count($path) > config('hub-routing.max_hops')) {
             return $this->fail($route, 'hop_limit');
         }
         foreach ($path as $index => $edge) {
             $route->hops()->create([...$edge, 'sequence' => $index + 1]);
         }
-        $route->update(['status' => HubRouteStatus::Planned, 'failure_code' => null, 'distance_meters' => array_sum(array_column($path, 'distance_meters')), 'duration_seconds' => array_sum(array_column($path, 'duration_seconds'))]);
+        $route->update(['destination_hub_id' => $best['destination_hub_id'], 'status' => HubRouteStatus::Planned, 'failure_code' => null, 'distance_meters' => array_sum(array_column($path, 'distance_meters')), 'duration_seconds' => array_sum(array_column($path, 'duration_seconds'))]);
 
         return $this->result($route);
     }
