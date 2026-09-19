@@ -3,9 +3,14 @@
 namespace Database\Seeders;
 
 use App\Enums\AddressType;
+use App\Enums\CourierAffiliationStatus;
 use App\Enums\UserRole;
 use App\Enums\UserSex;
 use App\Enums\UserStatus;
+use App\Enums\VehicleStatus;
+use App\Enums\VehicleType;
+use App\Models\LogisticsHub;
+use App\Models\LogisticsOrganization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -18,6 +23,10 @@ use Illuminate\Database\Seeder;
 class LuzonLogisticsSeeder extends Seeder
 {
     private const PASSWORD = 'logistics123';
+
+    private const COURIER_PASSWORD = 'courier123';
+
+    private const COURIERS_PER_LOGISTICS = 5;
 
     // Location references consulted on 2026-09-18:
     // PSA PSGC regions; LBC's regional/branch listings for Benguet, Cagayan,
@@ -182,9 +191,106 @@ class LuzonLogisticsSeeder extends Seeder
             'business_name' => 'Aisley '.(string) $hub['region'].' Logistics',
         ]);
 
-        $organization->hub()->firstOrCreate([], [
+        $operationalHub = $organization->hub()->firstOrCreate([], [
             'address_id' => $address->id,
             'name' => 'Aisley '.(string) $hub['center'],
         ]);
+
+        $this->seedCouriers($organization, $operationalHub, $hub, $number);
+    }
+
+    /**
+     * @param  array<string, string|float>  $hub
+     */
+    private function seedCouriers(LogisticsOrganization $organization, LogisticsHub $operationalHub, array $hub, int $logisticsNumber): void
+    {
+        for ($courierNumber = 1; $courierNumber <= self::COURIERS_PER_LOGISTICS; $courierNumber++) {
+            $logisticsSequence = sprintf('%02d', $logisticsNumber);
+            $courierSequence = sprintf('%02d', $courierNumber);
+            $firstName = 'Luzon';
+            $lastName = sprintf('Courier %s-%s', $logisticsSequence, $courierSequence);
+            $email = sprintf('courier.luzon%s.%s@example.com', $logisticsSequence, $courierSequence);
+            $contactNumber = sprintf('+63918%s%s01', $logisticsSequence, $courierSequence);
+
+            $courier = User::query()->firstOrCreate(
+                ['email' => $email, 'role' => UserRole::Courier],
+                ['password' => self::COURIER_PASSWORD, 'status' => UserStatus::Active, 'email_verified_at' => now()],
+            );
+            if ($courier->status !== UserStatus::Active || $courier->email_verified_at === null) {
+                $courier->forceFill(['status' => UserStatus::Active, 'email_verified_at' => $courier->email_verified_at ?? now()])->save();
+            }
+
+            $profile = $courier->courierProfile()->firstOrCreate([], [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'middle_name' => null,
+                'contact_number' => $contactNumber,
+                'sex' => UserSex::PreferNotToSay,
+                'birth_date' => '1995-01-01',
+            ]);
+
+            $courier->addresses()->firstOrCreate(['label' => 'Luzon courier residence'], [
+                'type' => AddressType::Both,
+                'recipient_name' => trim($firstName.' '.$lastName),
+                'contact_number' => $contactNumber,
+                'address_line_1' => sprintf('%s courier residence %s', (string) $hub['city'], $courierSequence),
+                'address_line_2' => null,
+                'barangay' => $hub['barangay'],
+                'city_municipality' => $hub['city'],
+                'province' => $hub['province'],
+                'region' => $hub['region'],
+                'postal_code' => $hub['postal_code'],
+                'country' => 'Philippines',
+                'is_default' => true,
+            ]);
+
+            $vehicle = $this->vehicleDetails($courierNumber);
+            $vehicleRecord = $profile->vehicles()->first();
+            $vehicleAttributes = [
+                'plate_number' => sprintf('LZN-%s-%s', $logisticsSequence, $courierSequence),
+                'type' => $vehicle['type'],
+                'status' => VehicleStatus::Active,
+                'make' => $vehicle['make'],
+                'model' => $vehicle['model'],
+            ];
+            if ($vehicleRecord === null) {
+                $profile->vehicles()->create($vehicleAttributes);
+            } else {
+                $vehicleRecord->forceFill($vehicleAttributes)->save();
+            }
+
+            $affiliation = $courier->courierLogisticsAffiliation()->firstOrNew();
+            $requiresApproval = ! $affiliation->exists
+                || $affiliation->logistics_organization_id !== $organization->id
+                || $affiliation->logistics_hub_id !== $operationalHub->id
+                || $affiliation->status !== CourierAffiliationStatus::Approved
+                || $affiliation->reviewer_id !== $organization->user_id
+                || $affiliation->reviewed_at === null;
+
+            if ($requiresApproval) {
+                $affiliation->fill([
+                    'logistics_organization_id' => $organization->id,
+                    'logistics_hub_id' => $operationalHub->id,
+                    'status' => CourierAffiliationStatus::Approved,
+                    'reviewer_id' => $organization->user_id,
+                    'reviewed_at' => now(),
+                    'rejection_reason' => null,
+                ])->save();
+            }
+        }
+    }
+
+    /**
+     * @return array{type: VehicleType, make: string, model: string}
+     */
+    private function vehicleDetails(int $courierNumber): array
+    {
+        return match ($courierNumber) {
+            1 => ['type' => VehicleType::Motorcycle, 'make' => 'Honda', 'model' => 'Click 160'],
+            2 => ['type' => VehicleType::Motorcycle, 'make' => 'Yamaha', 'model' => 'NMAX'],
+            3 => ['type' => VehicleType::Car, 'make' => 'Toyota', 'model' => 'Vios'],
+            4 => ['type' => VehicleType::Van, 'make' => 'Suzuki', 'model' => 'APV'],
+            default => ['type' => VehicleType::Motorcycle, 'make' => 'Kymco', 'model' => 'Like 150i'],
+        };
     }
 }

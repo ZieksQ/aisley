@@ -74,3 +74,7 @@ Format:
 ## 2026-09-20
 
 - Added a protected Logistics 404 page for unmatched routes with accessible messaging, dark-mode styling, a page title, and a Return to dashboard action. Logistics lint and production build pass.
+
+## 2026-09-20
+
+- Extended the production-guarded `LuzonLogisticsSeeder` with five active, approved, vehicle-equipped Courier fixtures per each of the eight regional Logistics organizations (40 total), deterministic development credentials/emails/plates, Courier profiles, addresses, hub affiliations, and varied vehicle type/make/model data. Added idempotence and production-skip assertions; focused seeder coverage passes 2 tests/36 assertions and Pint passes.
