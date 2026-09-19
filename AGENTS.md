@@ -40,18 +40,39 @@ Database: Postgres (containerized)
 17. **Shared frontend packages.** Declare workspace packages explicitly and reuse `@aisley/ui` components when compatible; avoid duplicate UI primitives.
 18. **PSGC addresses.** For Philippine address fields, use `@aisley/psgc-address-data` and follow the webapp's cascading Region → Province → City/Municipality → Barangay flow.
 
+## Modularity and code organization
+
+- Keep each hand-written source file focused on one cohesive responsibility.
+- Keep React/Next.js pages responsible for composition and navigation; extract independent sections, forms, tables, dialogs, upload flows, and status views into separate components.
+- Keep Laravel controllers thin. Put validation in Form Requests, authorization in Policies/middleware, serialization in Resources/DTOs, and domain workflows in focused Services.
+- Keep API calls in client/repository modules, parsing in typed models or DTOs, state transitions in hooks/services, and rendering in components.
+- Separate independent workflows such as authentication, profile editing, password changes, photo uploads, vehicle management, notifications, and order operations.
+- Use these as review thresholds:
+  - UI page: review around 400 lines.
+  - Reusable component: review around 250 lines.
+  - Controller, Request, Resource, or model: review around 250 lines.
+  - Service/use-case class: review around 500 lines.
+  - Test file: review around 600 lines.
+- Split files when they exceed the relevant threshold, contain multiple independent workflows, or become difficult to test in isolation.
+- Do not split code mechanically into tiny files; use meaningful feature and responsibility boundaries.
+- Before adding a feature, check whether the files being changed should be modularized instead of extending an already overloaded file.
+- Apply modularization to the feature or files in scope; do not refactor unrelated areas solely to satisfy line-count guidelines.
+- Use the formatter and linter configured for the relevant package. Do not compress PHP, TypeScript, TSX, JSX, or CSS into unreadable one-line blocks.
+- Evaluate complexity, nesting, coupling, responsibilities, and testability in addition to physical line count.
+- Apply these rules to hand-written application code only. Exclude generated files, `vendor/`, `node_modules/`, `.next/`, build output, fixtures, and specification documents.
+
 ## Where to look
 
-| If the task involves...                                                           | Read                   |
-| --------------------------------------------------------------------------------- | ---------------------- |
-| What a feature/role is supposed to do, scope, acceptance criteria                 | `docs/requirements.md` |
-| Folder structure, tech stack, DB, auth, environment setup, how components connect | `docs/architecture.md` |
-| Step-by-step user flows, state transitions, approval logic, order lifecycle       | `docs/workflows.md`    |
-| What's already built, to avoid re-doing or conflicting work                       | `docs/PROGRESS.md`     |
-| domain design, context about users role                                           | `docs/domains/*`       |
-| frontend desgin rules and color scheme                                            | `docs/design.md`       |
-| Frontend UI, styling, layout, accessibility, or client-side behavior               | `docs/design.md`       |
-| Role feature implementation or change                                              | Matching `docs/features/<role>/<feature>/spec.md` |
-| Address, location, geocoding, GPS, coordinates, maps, or map pins                  | `docs/maps-location-api.md` |
-| File or image upload                                                              | `docs/references/file-upload-requirements.md` |
+| If the task involves...                                                           | Read                                                |
+| --------------------------------------------------------------------------------- | --------------------------------------------------- |
+| What a feature/role is supposed to do, scope, acceptance criteria                 | `docs/requirements.md`                              |
+| Folder structure, tech stack, DB, auth, environment setup, how components connect | `docs/architecture.md`                              |
+| Step-by-step user flows, state transitions, approval logic, order lifecycle       | `docs/workflows.md`                                 |
+| What's already built, to avoid re-doing or conflicting work                       | `docs/PROGRESS.md`                                  |
+| domain design, context about users role                                           | `docs/domains/*`                                    |
+| frontend desgin rules and color scheme                                            | `docs/design.md`                                    |
+| Frontend UI, styling, layout, accessibility, or client-side behavior              | `docs/design.md`                                    |
+| Role feature implementation or change                                             | Matching `docs/features/<role>/<feature>/spec.md`   |
+| Address, location, geocoding, GPS, coordinates, maps, or map pins                 | `docs/maps-location-api.md`                         |
+| File or image upload                                                              | `docs/references/file-upload-requirements.md`       |
 | Customer, Seller, or Courier registration/approval                                | `docs/references/user-registration-requirements.md` |
