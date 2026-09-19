@@ -9,6 +9,24 @@ class DirectedHubPathFinder
     /** @param array<int, array<string, mixed>> $edges @return array<int, array<string, mixed>>|null */
     public function find(string $origin, string $destination, array $edges): ?array
     {
+        return $this->findAny($origin, [$destination], $edges)['path'] ?? null;
+    }
+
+    /**
+     * Return the least-cost reachable destination and its path. The score uses
+     * the same travel-plus-handling, distance, hops, and stable-path ordering
+     * as a route to one destination.
+     *
+     * @param  array<int, string>  $destinations
+     * @param  array<int, array<string, mixed>>  $edges
+     * @return array{destination_hub_id: string, path: array<int, array<string, mixed>>}|null
+     */
+    public function findAny(string $origin, array $destinations, array $edges): ?array
+    {
+        $targets = array_fill_keys($destinations, true);
+        if ($targets === []) {
+            return null;
+        }
         $adjacency = [];
         foreach ($edges as $edge) {
             $adjacency[$edge['from_hub_id']][] = $edge;
@@ -21,8 +39,8 @@ class DirectedHubPathFinder
             $node = array_key_first($best);
             $score = $best[$node];
             unset($best[$node]);
-            if ($node === $destination) {
-                return $paths[$node];
+            if (isset($targets[$node])) {
+                return ['destination_hub_id' => $node, 'path' => $paths[$node]];
             }
             $visited[$node] = true;
             foreach ($adjacency[$node] ?? [] as $edge) {

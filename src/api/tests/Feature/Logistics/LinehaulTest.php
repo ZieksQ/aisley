@@ -164,8 +164,9 @@ class LinehaulTest extends TestCase
         $this->assertSame('planned', ShipmentRoute::sole()->status->value);
         $this->assertSame('operator', ShipmentRouteHop::sole()->provider);
         Http::assertNothingSent();
-        $this->actingAs($a[0])->putJson('/api/v1/logistics/linehaul/service-areas', ['postal_code' => '6000', 'is_active' => true])->assertConflict();
-        $this->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonCount(0, 'data.service_areas');
+        $this->actingAs($a[0])->putJson('/api/v1/logistics/linehaul/service-areas', ['postal_code' => '6000', 'is_active' => true])->assertOk();
+        $this->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonCount(1, 'data.service_areas');
+        $this->assertDatabaseCount('hub_service_areas', 2);
     }
 
     public function test_plan_delete_checks_scope_and_revision(): void

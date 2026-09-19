@@ -15,7 +15,7 @@ class HubRoutingConfigurationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_configuration_requires_permissions_and_preserves_unique_destinations_and_directions(): void
+    public function test_admin_configuration_requires_permissions_and_preserves_hub_scoped_coverage_and_directions(): void
     {
         $this->getJson('/api/v1/admin/hub-routing/service-areas')->assertUnauthorized();
         [$logistics, , $a] = $this->logistics();
@@ -29,11 +29,11 @@ class HubRoutingConfigurationTest extends TestCase
             $admin->permissions()->attach($permission);
         }
         $area = $this->postJson('/api/v1/admin/hub-routing/service-areas', ['logistics_hub_id' => $a->id, 'postal_code' => '60-00'])->assertCreated()->assertJsonPath('data.postal_code', '6000')->json('data');
-        $this->postJson('/api/v1/admin/hub-routing/service-areas', ['logistics_hub_id' => $b->id, 'postal_code' => '6000'])->assertConflict();
+        $this->postJson('/api/v1/admin/hub-routing/service-areas', ['logistics_hub_id' => $b->id, 'postal_code' => '6000'])->assertCreated();
+        $this->postJson('/api/v1/admin/hub-routing/service-areas', ['logistics_hub_id' => $a->id, 'postal_code' => '6000'])->assertConflict();
         $this->patchJson('/api/v1/admin/hub-routing/service-areas/'.$area['id'], ['expected_revision' => 99, 'is_active' => false])->assertConflict();
         $this->patchJson('/api/v1/admin/hub-routing/service-areas/'.$area['id'], ['expected_revision' => 1, 'is_active' => false])->assertOk()->assertJsonPath('data.revision', 2);
-        $this->postJson('/api/v1/admin/hub-routing/service-areas', ['logistics_hub_id' => $b->id, 'postal_code' => '6000'])->assertCreated();
-        $this->patchJson('/api/v1/admin/hub-routing/service-areas/'.$area['id'], ['expected_revision' => 2, 'is_active' => true])->assertConflict();
+        $this->patchJson('/api/v1/admin/hub-routing/service-areas/'.$area['id'], ['expected_revision' => 2, 'is_active' => true])->assertOk();
         $connection = $this->postJson('/api/v1/admin/hub-routing/connections', ['from_hub_id' => $a->id, 'to_hub_id' => $b->id])->assertCreated()->json('data');
         $this->postJson('/api/v1/admin/hub-routing/connections', ['from_hub_id' => $a->id, 'to_hub_id' => $b->id])->assertConflict();
         $this->postJson('/api/v1/admin/hub-routing/connections', ['from_hub_id' => $b->id, 'to_hub_id' => $a->id])->assertCreated();
