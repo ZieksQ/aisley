@@ -176,8 +176,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 12. Reviews and Ratings
 
 - **Purpose:** Let a Customer rate and describe a purchased Product after delivery, optionally with approved media.
-- **Status:** The requirement and feature boundary exist, but review persistence, verified-purchase enforcement, moderation, and Customer media submission are deferred from the current implemented foundation.
-- **Rules when implemented:** Only the purchasing Customer may review an eligible delivered line; review media must follow `docs/references/file-upload-requirements.md`; Seller replies and moderation remain separate concerns.
+- **Status:** The MVP Laravel persistence/API and Customer storefront Order Detail/Product Detail flows are implemented. Moderation, Customer editing/deletion, and Seller response management remain separate deferred work.
+- **Rules:** Only the purchasing Customer may review an eligible delivered line; review media follows `docs/references/file-upload-requirements.md`; public reads require a visible Product; Seller replies and moderation remain separate concerns.
 
 ### 13. Product Q&A and Chat/Messaging
 
@@ -208,7 +208,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, QR evidence, and the Customer's high-level delivered projection. Customer live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds, reviews, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain deferred. Customer cancellation/address correction and Product Q&A public read/ask with notifications are implemented.
+- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, QR evidence, and the Customer's high-level delivered projection. Customer live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain deferred. Customer cancellation/address correction, Product Q&A public read/ask with notifications, and verified Product Reviews are implemented.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 

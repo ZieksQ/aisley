@@ -4,8 +4,8 @@ title: Courier Dashboard
 system: AISLEY
 type: Feature Specification
 version: 2.5
-status: Implemented scaffold; operational task sections deferred
-implementation_status: read-only API scaffold implemented; operational sections unavailable
+status: Implemented scaffold; operational task aggregation deferred
+implementation_status: dashboard scaffold implemented; separate Courier notification API live; operational sections unavailable
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 role: Courier / Rider
@@ -20,7 +20,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Provide the external Flutter Courier app with one read-oriented view of new allocations, available pickup/delivery requests, and the Courier's active work.
-- **Current status:** `GET /api/v1/courier/dashboard` is an implemented protected scaffold. It returns no operational records and still marks its sections unavailable. Separate first-/final-mile task APIs and fulfillment records now exist; dashboard aggregation is the missing integration. No Courier UI belongs in this Laravel repository.
+- **Current status:** `GET /api/v1/courier/dashboard` is an implemented protected scaffold. It returns no operational task records and still marks its aggregate sections unavailable. Separate first-/final-mile task APIs, fulfillment records, and the dedicated Courier notification API now exist; task aggregation is the missing integration. No Courier UI belongs in this Laravel repository.
 - **Future scope:** Using the existing shared Shipment/Parcel/Delivery Task schema, a future dashboard revision may aggregate server-authorized task summaries and link to stateful Courier features. Rejected offers and informationally stale unfinished tasks are visible states, not Order cancellations.
 - **Mobile boundary:** Flutter owns screens, secure token storage, refresh behavior, and accessibility. Laravel owns identity, authorization, tenant scope, task eligibility, status, and data freshness.
 - **MVP relationship:** A Courier operates only within one approved Logistics organization and its sole operational hub. First-mile Seller pickup and final-mile hub delivery are independent task legs.
@@ -81,7 +81,7 @@ approved Courier session
 
 ### Notifications and freshness
 
-- No separate Courier notification endpoint or push-provider contract is implemented today. The dashboard only reports the notification section as unavailable; Flutter must not call a guessed route.
+- The separate Courier notification API is implemented at `/api/v1/courier/notifications`, `/unread-count`, `/{notification}`, and `/{notification}/read`, with bounded cursor reads and explicit mark-read. The dashboard aggregate still reports its notification section as unavailable; Flutter must use the versioned inbox contract rather than a guessed dashboard shape.
 - Rejected offers remain visible in the owning task history or queue projection with safe reason/time; re-offering the same task must not duplicate the Order, waybill, or task.
 - Email/SMS delivery is not required to render an in-app dashboard allocation. Provider failure cannot reverse a committed task decision.
 - The selected future dashboard policy below uses foreground polling; realtime remains deferred. It does not add fields or notification routes to the existing scaffold.
@@ -107,7 +107,8 @@ approved Courier session
 - [x] Implemented task APIs are distinguished from the dashboard's unavailable aggregation; the supplied handoff reports navigation to both-leg screens, not completed dashboard aggregation.
 - [x] The protected dashboard scaffold returns bounded empty data, explicit unavailable section reasons, freshness metadata, and private cache headers.
 - [x] The scaffold's guest, wrong-role, pending-account, privacy, and no-operational-data behavior is covered by API tests.
-- [ ] An operational API returns bounded, tenant-scoped notifications, available tasks, and active-task summaries.
+- [x] A bounded, tenant-scoped Courier notification API returns safe inbox DTOs, unread counts, detail, and idempotent read state.
+- [ ] An operational dashboard API returns available-task and active-task summaries alongside notifications.
 - [ ] Offered task rows identify first-mile or final-mile leg, expose only authorized operational Order data, and include provider-neutral distance/ETA when available.
 - [x] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task from the dedicated Dispatch page without changing the Order or duplicating task/waybill history.
 - [ ] Unfinished work can display informational `stale` with freshness metadata and is never automatically cancelled or reassigned.
@@ -176,7 +177,7 @@ approved Courier session
 
 ### Backend and Flutter implementation notes
 
-- The fulfillment migration supplies physical records. Dashboard notification persistence/read state and aggregation still need implementation; production PostgreSQL verification remains a separate release gate.
+- The fulfillment migration supplies physical records. Dedicated notification persistence/read state is implemented separately; dashboard task aggregation and production PostgreSQL verification remain separate release gates.
 - Store enum-like status columns as strings and cast them to PHP enums. Keep detailed physical states out of `orders.status` unless a versioned migration approves otherwise.
 - Use transactional state changes, row locks or compare-and-update guards, idempotency keys, and append-only history for task events.
 - Resources must return safe opaque identifiers and authorized summaries, never Eloquent models, SQL assumptions, raw blob paths, or secrets.
@@ -213,7 +214,7 @@ approved Courier session
 
 ### Handoff checklist
 
-- Copy this spec to the Flutter project only as a contract reference; do not copy unavailable routes as working API calls.
+- Copy this spec to the Flutter project only as a contract reference; the dashboard aggregate remains unavailable while the separate notification routes are live.
 - Record the backend commit/API version beside every generated Flutter fixture.
 - Recheck all endpoint, status, ownership, and privacy wording when the shared operational schema is revised.
 - Keep Dashboard acceptance checks separate from Accept, Pickup, Deliver, and Complete feature checks.

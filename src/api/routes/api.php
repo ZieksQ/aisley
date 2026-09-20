@@ -22,6 +22,7 @@ use App\Http\Controllers\Courier\FailedDeliveryAttemptController;
 use App\Http\Controllers\Courier\FinalMileBatchController;
 use App\Http\Controllers\Courier\FinalMileTaskController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
+use App\Http\Controllers\Courier\NotificationController as CourierNotificationController;
 use App\Http\Controllers\Courier\PickupRouteManifestController;
 use App\Http\Controllers\Courier\ProofOfDeliveryController;
 use App\Http\Controllers\Courier\VehicleController as CourierVehicleController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Customer\NotificationController as CustomerNotification
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductQAController as CustomerProductQAController;
+use App\Http\Controllers\Customer\ProductReviewController as CustomerProductReviewController;
 use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
@@ -60,6 +62,7 @@ use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
 use App\Http\Controllers\ProductMediaController;
+use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
@@ -400,6 +403,12 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         ->whereIn('kind', ['official_receipt', 'certificate_of_registration'])
         ->name('vehicle.documents.show');
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
+    Route::prefix('notifications')->name('notifications.')->middleware('throttle:120,1')->group(function () {
+        Route::get('/', [CourierNotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [CourierNotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{notification}', [CourierNotificationController::class, 'show'])->whereUuid('notification')->name('show');
+        Route::post('/{notification}/read', [CourierNotificationController::class, 'markRead'])->whereUuid('notification')->name('read');
+    });
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
     Route::get('/pickup-schedules/{schedule}/route-manifest', [PickupRouteManifestController::class, 'show'])->whereUuid('schedule')->name('pickup-schedules.route-manifest.show');
     Route::get('/map-style', [PickupRouteManifestController::class, 'style'])->name('map.style');
@@ -437,6 +446,10 @@ Route::get('v1/product-media/{media}', ProductMediaController::class)
     ->whereUuid('media')
     ->middleware('throttle:120,1')
     ->name('product-media.show');
+Route::get('v1/product-review-images/{image}', ProductReviewImageController::class)
+    ->whereUuid('image')
+    ->middleware('throttle:120,1')
+    ->name('product-review-images.show');
 Route::get('v1/homepage-advertisement-images/{campaign}/{variant}', HomepageAdvertisementImageController::class)
     ->whereUuid('campaign')
     ->where('variant', 'desktop|mobile')
@@ -512,6 +525,14 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::patch('/orders/{order}/modification', [OrderController::class, 'modify'])
             ->whereUuid('order')
             ->name('orders.modify');
+        Route::post('/order-items/{orderItem}/review', [CustomerProductReviewController::class, 'store'])
+            ->whereUuid('orderItem')
+            ->middleware('throttle:customer-product-reviews')
+            ->name('reviews.store');
+        Route::post('/reviews/{review}/images', [CustomerProductReviewController::class, 'uploadImage'])
+            ->whereUuid('review')
+            ->middleware('throttle:customer-product-review-images')
+            ->name('reviews.images.store');
     });
 });
 
@@ -524,6 +545,11 @@ Route::post('v1/products/{product}/questions', [CustomerProductQAController::cla
     ->whereUuid('product')
     ->middleware(['auth:sanctum', 'customer.active', 'policy.consent', 'throttle:customer-product-questions'])
     ->name('products.questions.store');
+
+Route::get('v1/products/{product}/reviews', [CustomerProductReviewController::class, 'index'])
+    ->whereUuid('product')
+    ->middleware('throttle:120,1')
+    ->name('products.reviews.index');
 
 Route::get('v1/products/{id}', [ProductDetailController::class, 'show'])
     ->whereUuid('id')

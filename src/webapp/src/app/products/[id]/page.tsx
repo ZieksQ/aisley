@@ -7,6 +7,7 @@ import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketpl
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { ProductConfigurator } from "@/components/product/product-configurator";
 import { ProductQASection } from "@/components/product/product-qa-section";
+import { ProductReviewsSection } from "@/components/product/product-reviews-section";
 import { ProductViewRecorder } from "@/components/recently-viewed/product-view-recorder";
 import {
   ProductDescription,
@@ -122,6 +123,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 soldCount={product.soldCount}
               />
             </div>
+            <ProductReviewsSection productId={product.id} />
             <ProductQASection productId={product.id} />
           </div>
         </div>

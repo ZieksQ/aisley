@@ -7,11 +7,17 @@ use App\Models\PickupScheduleReminder;
 use App\Models\SellerPickupRequestOrder;
 use App\Models\User;
 use App\Notifications\PickupScheduleNotification;
+use App\Services\Courier\CourierNotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class DispatchPickupReminders extends Command
 {
+    public function __construct(private readonly CourierNotificationService $courierNotifications)
+    {
+        parent::__construct();
+    }
+
     protected $signature = 'pickups:dispatch-reminders {--limit=50}';
 
     protected $description = 'Dispatch due first-mile pickup reminders idempotently';
@@ -45,7 +51,7 @@ class DispatchPickupReminders extends Command
             }
             try {
                 $schedule = $reminder->schedule;
-                $schedule->courier?->notify(new PickupScheduleNotification($schedule, 'reminder'));
+                $this->courierNotifications->queuePickupSchedule($schedule, 'reminder', "reminder:{$reminder->id}", $reminder->due_at);
                 $shopIds = SellerPickupRequestOrder::query()->whereIn('order_id', $schedule->orders()->pluck('order_id'))->join('seller_pickup_requests', 'seller_pickup_requests.id', '=', 'seller_pickup_request_orders.seller_pickup_request_id')->pluck('seller_pickup_requests.shop_id');
                 User::query()->whereHas('shop', fn ($q) => $q->whereIn('id', $shopIds))->eachById(fn (User $seller) => $seller->notify(new PickupScheduleNotification($schedule, 'reminder')));
                 DB::transaction(function () use ($reminder): void {

@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { OrderItemReviewForm } from "@/components/reviews/order-item-review-form";
 import { ApiError } from "@/lib/api";
 import { fetchAddresses } from "@/lib/checkout/client";
 import type { CustomerAddress } from "@/lib/checkout/types";
@@ -615,6 +616,8 @@ function TimelinePageButton({
 }
 
 function OrderItems({ order }: { order: OrderDetail }) {
+  const [reviewIds, setReviewIds] = useState<Record<string, string>>({});
+
   return (
     <section aria-labelledby="items-heading" className="border border-[#DED7E1] bg-white">
       <div className="border-b border-[#E9E3EB] px-4 py-4 sm:px-5">
@@ -645,6 +648,13 @@ function OrderItems({ order }: { order: OrderDetail }) {
               <p className="mt-1 text-xs text-[#817584]">
                 Qty {item.quantity}{item.sku ? ` · SKU ${item.sku}` : ""}
               </p>
+              <OrderItemReviewForm
+                orderItemId={item.id}
+                productName={item.productName}
+                canReview={item.canReview}
+                reviewId={reviewIds[item.id] ?? item.reviewId}
+                onSubmitted={(reviewId) => setReviewIds((current) => ({ ...current, [item.id]: reviewId }))}
+              />
             </div>
             <p className="shrink-0 text-sm font-semibold text-[#342838]">
               {formatOrderMoney(item.lineSubtotal, item.currency)}

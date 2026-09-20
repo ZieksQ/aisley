@@ -8,7 +8,7 @@
 - Supports the existing Aisley buyer flow: view product details, select variations and quantity, validate stock, add to cart, or buy immediately.
 - Out of scope for this feature:
   - Cart/checkout persistence and payment processing; consume their APIs when available.
-  - Product Q&A, wishlists, recommendations, delivery-fee estimation, and new review submission.
+  - Product Q&A, wishlists, recommendations, delivery-fee estimation, and new review submission (owned by their separate feature specs).
   - Video media, product bundles, subscriptions, and marketplace-wide product attributes.
 
 ## MUST
@@ -41,7 +41,7 @@
 
 - Reviews and responsive behavior
   - [ ] Show the persisted rating/review summary now and a clear empty state when the count is zero.
-  - [ ] Reserve a Reviews section for verified-purchase reviews, review media, and seller replies when that deferred feature is delivered.
+  - [x] Render the verified-purchase review section supplied by the Product Reviews API, including its bounded list, photos, and deferred-safe Seller response slot.
   - [ ] Be usable by keyboard and screen readers: labeled gallery controls, visible focus, semantic option controls, announced validation messages, and meaningful image alt text.
   - [ ] Use responsive layout: gallery and purchasing panel stack on small screens without hiding variant, stock, or action controls.
 
@@ -86,7 +86,7 @@
   - [ ] Confirm whether variant prices are optional overrides or mandatory per variant.
   - [ ] Confirm the category-specific specification schema and seller Markdown size limit.
   - [ ] Confirm whether a vacation shop should be fully hidden (recommended for MVP) or shown as unavailable.
-  - [ ] Define the separate cart, checkout, and verified-review specs before their implementation begins.
+  - [x] Consume the separate verified-review API/spec for the Product Detail review section; review creation remains on Customer Order Detail.
 
 - Sources
   - Existing Aisley requirements, storefront architecture, and deferred-schema boundaries in `project_sources`.

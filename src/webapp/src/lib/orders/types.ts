@@ -131,6 +131,8 @@ export type OrderDetail = {
     quantity: number;
     lineSubtotal: string;
     currency: string;
+    canReview: boolean;
+    reviewId: string | null;
   }>;
   deliveryAddress: {
     version: number;

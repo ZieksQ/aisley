@@ -33,6 +33,7 @@ use App\Models\SortingLane;
 use App\Models\User;
 use App\Models\Waybill;
 use App\Notifications\Seller\SellerOrderDeliveredNotification;
+use App\Services\Courier\CourierNotificationService;
 use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\Logistics\Routing\LinehaulService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
@@ -49,6 +50,7 @@ class FulfillmentTransitionService
     public function __construct(
         private readonly OrderTransitionService $orderTransitions,
         private readonly LogisticsNotificationService $notifications,
+        private readonly CourierNotificationService $courierNotifications,
     ) {}
 
     /**
@@ -133,6 +135,7 @@ class FulfillmentTransitionService
                 }
             }
             $this->event($shipment, $task, 'final_mile_offer', $before, FulfillmentTaskStatus::DeliveryAssigned->value, null, $logistics->id, $offer, null, ['courier_id' => $courierId, 'sequence' => $sequence], $idempotencyKey);
+            $this->courierNotifications->queueFinalMileOffer($offer);
 
             return $this->offerResult($offer->fresh(['task.shipment.parcel.order', 'task.shipment.parcel.waybill', 'task.shipment.tasks']));
         }, 3);

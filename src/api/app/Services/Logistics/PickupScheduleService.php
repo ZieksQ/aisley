@@ -18,6 +18,7 @@ use App\Models\SellerPickupRequest;
 use App\Models\SellerPickupRequestOrder;
 use App\Models\User;
 use App\Notifications\PickupScheduleNotification;
+use App\Services\Courier\CourierNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,8 @@ use Illuminate\Support\Str;
 
 class PickupScheduleService
 {
+    public function __construct(private readonly CourierNotificationService $courierNotifications) {}
+
     public function create(User $logistics, array $data, string $key): PickupSchedule
     {
         $org = $logistics->logisticsOrganization()->with('hub')->firstOrFail();
@@ -193,7 +196,7 @@ class PickupScheduleService
     private function notify(PickupSchedule $schedule, string $event): void
     {
         try {
-            $schedule->courier?->notify(new PickupScheduleNotification($schedule, $event));
+            $this->courierNotifications->queuePickupSchedule($schedule, $event);
             User::query()->whereHas('shop', fn ($q) => $q->whereIn('id', SellerPickupRequestOrder::query()->whereIn('order_id', $schedule->orders()->pluck('order_id'))->join('seller_pickup_requests', 'seller_pickup_requests.id', '=', 'seller_pickup_request_orders.seller_pickup_request_id')->pluck('seller_pickup_requests.shop_id')))->eachById(fn (User $seller) => $seller->notify(new PickupScheduleNotification($schedule, $event)));
         } catch (\Throwable $exception) {
             report($exception);
