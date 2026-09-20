@@ -87,6 +87,7 @@ accepted final-mile task
 ## HOW
 
 ### Implemented endpoint contract and deferred extensions
+- The development-only Courier API mockup may show authorized delivery context and submit the implemented revision-checked movement transitions.
 
 - `GET /api/v1/courier/final-mile-tasks` — implemented; active final-mile tasks offered to or accepted by the authenticated Courier.
 - `GET /api/v1/courier/final-mile-tasks/{task}` — implemented; Courier-scoped task detail, including an unaccepted offer for review.

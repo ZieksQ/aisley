@@ -17,6 +17,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Accept Delivery Requests
 
+The development-only `src/couriermockup` may exercise the implemented final-mile offer list, detail, acceptance, and rejection routes with bearer authentication. It must use the same server projection and must not treat an accepted offer as hub custody.
+
 ## WHAT
 
 - **Purpose:** Let a Courier review a Logistics-offered task and explicitly accept responsibility for one Order/Parcel leg.

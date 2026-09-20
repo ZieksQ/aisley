@@ -57,3 +57,16 @@ export async function request<T>(path: string, options: RequestInit = {}, token?
 
   return payload as T
 }
+
+export async function requestBlob(path: string, token: string): Promise<Blob> {
+  const response = await fetch(resolveUrl(path), {
+    headers: { Accept: 'image/jpeg, image/png, image/webp', Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+    credentials: 'omit',
+  })
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as ApiErrorPayload
+    throw new ApiError(response.status, payload)
+  }
+  return response.blob()
+}

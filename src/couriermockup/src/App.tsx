@@ -3,6 +3,9 @@ import type { FormEvent } from 'react'
 import { Button, TextField } from '@aisley/ui'
 import { ApiError, apiOriginLabel, request } from './lib/api'
 import { PickupOrders } from './PickupOrders'
+import { FinalMileTasks } from './FinalMileTasks'
+import { AccountExtras } from './AccountExtras'
+import { CourierRegistration } from './CourierRegistration'
 import { PolicyConsentView, PolicyDocumentPanel } from './Policies'
 import type {
   AccountResponse,
@@ -659,13 +662,16 @@ function App() {
           </section>
         </div>
 
+        <AccountExtras account={account} onAccountChange={setAccount} token={token} />
+
         <PickupOrders token={token} />
+        <FinalMileTasks token={token} />
 
         <section className="panel" aria-labelledby="contract-heading">
           <div className="panel-header">
             <div>
-              <h2 id="contract-heading">Requests used by this mockup</h2>
-              <p className="panel-description">All protected requests use the bearer token and omit browser credentials.</p>
+              <h2 id="contract-heading">Example requests</h2>
+              <p className="panel-description">The screens above exercise more routes. All protected requests use the bearer token and omit browser credentials.</p>
             </div>
           </div>
           <ul className="request-list">
@@ -678,6 +684,11 @@ function App() {
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/first-mile-tasks</span></li>
             <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/first-mile-tasks/:task/accept</span></li>
             <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/first-mile-tasks/:task/pickup</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/final-mile-tasks</span></li>
+            <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/tasks/:task/proof-of-delivery</span></li>
+            <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/tasks/:task/completion</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/delivery-history</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/vehicle</span></li>
             <li><span className="request-method">PATCH</span><span className="request-path">/api/v1/courier/account/profile</span></li>
             <li><span className="request-method">PUT</span><span className="request-path">/api/v1/courier/account/password</span></li>
             <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/auth/logout</span></li>
@@ -709,8 +720,28 @@ interface LoginViewProps {
 }
 
 function LoginView({ authError, busy, form, notice, onChange, onSubmit }: LoginViewProps) {
+  const [showRegistration, setShowRegistration] = useState(false)
+  const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null)
+  const [recoveryError, setRecoveryError] = useState<string | null>(null)
+  const [recoveryBusy, setRecoveryBusy] = useState(false)
+
+  async function recover(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setRecoveryBusy(true)
+    setRecoveryError(null)
+    setRecoveryNotice(null)
+    try {
+      await request('/api/v1/courier/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: recoveryEmail }) })
+      setRecoveryNotice('Request received. This API currently has no reset-email delivery or reset link.')
+    } catch (caught) {
+      setRecoveryError(caught instanceof ApiError ? caught.message : 'Recovery request failed. Retry when connected.')
+    } finally { setRecoveryBusy(false) }
+  }
+
   return (
     <main className="login-page">
+      <div className="auth-sections">
       <section className="login-panel" aria-labelledby="login-heading">
         <h1 id="login-heading">Courier API mockup</h1>
         <p className="page-intro">Use an approved Courier account to exercise the current Laravel contract.</p>
@@ -748,10 +779,20 @@ function LoginView({ authError, busy, form, notice, onChange, onSubmit }: LoginV
           </Button>
         </form>
 
+        <form onSubmit={(event) => void recover(event)}>
+          <TextField id="recovery-email" label="Recovery email" onChange={(event) => setRecoveryEmail(event.target.value)} required type="email" value={recoveryEmail} />
+          <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={recoveryBusy} type="submit" variant="outline">Check recovery entry point</Button>
+        </form>
+        {recoveryNotice ? <p className="notice" role="status">{recoveryNotice}</p> : null}
+        {recoveryError ? <p className="error-message" role="alert">{recoveryError}</p> : null}
+        <Button className="min-h-10 rounded-md px-4 shadow-none" onClick={() => setShowRegistration((current) => !current)} variant="ghost">{showRegistration ? 'Hide registration' : 'Register as Courier'}</Button>
+
         <p className="rule-note">
           Auth rule: login receives the token once. Protected calls send <code>Authorization: Bearer …</code> with browser credentials omitted; no cookies or CSRF flow are used.
         </p>
       </section>
+      {showRegistration ? <CourierRegistration /> : null}
+      </div>
     </main>
   )
 }

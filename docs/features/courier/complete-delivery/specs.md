@@ -129,6 +129,7 @@ out_for_delivery
 ## HOW
 
 ### Implemented endpoints
+- The development-only Courier API mockup may submit completion intent after proof submission and show the GET projection while Logistics validation is pending.
 
 | Method and path                                  | Actor            | Purpose                                               |
 | ------------------------------------------------ | ---------------- | ----------------------------------------------------- |

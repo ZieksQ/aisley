@@ -74,6 +74,7 @@ Seller packs Orders and requests one Logistics provider
 - A copied QR, guessed tracking ID/Order ID, or task UUID cannot authorize pickup. A wrong or unknown identifier causes no mutation.
 
 ### Final-mile hub pickup — implemented API
+- The development-only Courier API mockup may submit the documented final-mile evidence request and display its pending Logistics validation state; it must refetch before claiming hub custody.
 - Logistics dispatches and offers an independent final-mile task; the Courier accepts through Accept Delivery Requests.
 - `GET /api/v1/courier/final-mile-tasks` returns `{data:[]}`; `GET /api/v1/courier/final-mile-tasks/{task}` returns `{data:{...}}`. Do not reuse first-mile pagination or schedule filtering.
 - Task projection includes `task_id`, `leg`, `status`, `revision`, nullable `picked_up_at`, Order/waybill/Parcel references, and area-safe summaries.

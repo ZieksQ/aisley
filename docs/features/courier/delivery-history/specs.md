@@ -142,6 +142,7 @@ Courier intent + Logistics-validated proof
 ## HOW
 
 ### Implemented API contract (bounded MVP)
+- The development-only Courier API mockup may show the bounded delivered list and detail; current cursor pagination is unavailable.
 
 | Method and path                             | Request                              | Response                              |
 | ------------------------------------------- | ------------------------------------ | ------------------------------------- |

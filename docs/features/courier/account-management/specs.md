@@ -74,6 +74,7 @@ Non-goals:
 - Profile writes use a transaction and lock the authenticated Courier profile.
 
 ### Profile-photo extension (implemented)
+- The development-only Courier API mockup may exercise upload, private preview, and removal with its bearer token; server validation remains authoritative.
 
 - POST, GET, and DELETE /api/v1/courier/account/profile-photo are inside the active-Courier route group and covered by API tests.
 - POST is multipart/form-data with one required photo field. Ownership is derived from the bearer token; client IDs and storage paths are prohibited.

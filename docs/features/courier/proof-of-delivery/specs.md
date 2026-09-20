@@ -91,6 +91,7 @@ final-mile task
 ## HOW
 
 ### Implemented endpoint contract and deferred media extension
+- The development-only Courier API mockup may submit the implemented reference-based proof and show its pending validation state. Photo and signature controls remain unavailable.
 
 - `POST /api/v1/courier/tasks/{task}/proof-of-delivery` — implemented for the P0 QR/tracking-ID/Order-reference contract; accepts JSON `identifier_type`, `identifier`, and the expected task revision plus UUID `Idempotency-Key`. It creates awaiting-validation evidence and never sets `delivered`.
 - `GET /api/v1/courier/tasks/{task}/proof-of-delivery` — deferred; use the task/completion projections while a dedicated proof-read contract is finalized.
