@@ -614,7 +614,7 @@ Indexes: (`processed_at`, `available_at`) for recovery scans and (`auditable_typ
 
 ### 7.5 `notifications`
 
-Laravel's database notification table stores role-scoped per-user inbox records. Current producers record pending Customer/Seller registration summaries for authorized Admin recipients and committed compliance-warning/restriction/suspension summaries for the affected Seller; payloads contain only safe summary and internal destination data.
+Laravel's database notification table stores role-scoped per-user inbox records. Current producers record pending Customer/Seller registration summaries for authorized Admin recipients, committed compliance-warning/restriction/suspension summaries for the affected Seller, and scoped pickup-schedule/final-mile-offer alerts for approved Couriers. Courier delivery jobs use deterministic recipient/type/source identity; payloads contain only safe summary and internal destination data.
 
 | Column                     | PostgreSQL type | Nullable | Notes                                                          |
 | -------------------------- | --------------- | -------- | -------------------------------------------------------------- |

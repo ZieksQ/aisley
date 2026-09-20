@@ -20,6 +20,7 @@ use App\Http\Controllers\Courier\DashboardController as CourierDashboardControll
 use App\Http\Controllers\Courier\DeliveryHistoryController;
 use App\Http\Controllers\Courier\FinalMileTaskController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
+use App\Http\Controllers\Courier\NotificationController as CourierNotificationController;
 use App\Http\Controllers\Courier\PickupRouteManifestController;
 use App\Http\Controllers\Courier\ProofOfDeliveryController;
 use App\Http\Controllers\Courier\VehicleController as CourierVehicleController;
@@ -395,6 +396,12 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         ->whereIn('kind', ['official_receipt', 'certificate_of_registration'])
         ->name('vehicle.documents.show');
     Route::get('/dashboard', [CourierDashboardController::class, 'show'])->name('dashboard.show');
+    Route::prefix('notifications')->name('notifications.')->middleware('throttle:120,1')->group(function () {
+        Route::get('/', [CourierNotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [CourierNotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{notification}', [CourierNotificationController::class, 'show'])->whereUuid('notification')->name('show');
+        Route::post('/{notification}/read', [CourierNotificationController::class, 'markRead'])->whereUuid('notification')->name('read');
+    });
     Route::get('/first-mile-tasks', [FirstMileTaskController::class, 'index'])->name('first-mile-tasks.index');
     Route::get('/pickup-schedules/{schedule}/route-manifest', [PickupRouteManifestController::class, 'show'])->whereUuid('schedule')->name('pickup-schedules.route-manifest.show');
     Route::get('/map-style', [PickupRouteManifestController::class, 'style'])->name('map.style');
