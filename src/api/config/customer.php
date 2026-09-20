@@ -21,4 +21,12 @@ return [
         'password_reset_expire_minutes' => (int) env('CUSTOMER_PASSWORD_RESET_EXPIRE_MINUTES', 60),
         'password_reset_throttle_seconds' => (int) env('CUSTOMER_PASSWORD_RESET_THROTTLE_SECONDS', 60),
     ],
+
+    'reviews' => [
+        'asset_disk' => env('CUSTOMER_REVIEW_ASSET_DISK', env('FILESYSTEM_DISK', 'local')),
+        'image_max_bytes' => 10 * 1024 * 1024,
+        'image_max_edge' => (int) env('CUSTOMER_REVIEW_IMAGE_MAX_EDGE', 8000),
+        'image_max_pixels' => (int) env('CUSTOMER_REVIEW_IMAGE_MAX_PIXELS', 40_000_000),
+        'image_limit' => (int) env('CUSTOMER_REVIEW_IMAGE_LIMIT', 5),
+    ],
 ];

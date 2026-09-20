@@ -60,6 +60,22 @@ class AppServiceProvider extends ServiceProvider
             ]));
         });
 
+        RateLimiter::for('customer-product-reviews', function (Request $request): Limit {
+            return Limit::perMinute(5)->by(implode('|', [
+                'customer-product-reviews',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
+        RateLimiter::for('customer-product-review-images', function (Request $request): Limit {
+            return Limit::perMinute(20)->by(implode('|', [
+                'customer-product-review-images',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
         RateLimiter::for('seller-product-qa-answer', function (Request $request): Limit {
             return Limit::perMinute(30)->by(implode('|', [
                 'seller-product-qa-answer',

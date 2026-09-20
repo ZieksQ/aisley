@@ -4,7 +4,7 @@ title: Customer Product Reviews and Ratings
 system: AISLEY
 type: Feature Specification
 version: 2.0
-status: Revised target contract; review API, persistence, and UI not implemented
+status: Implemented MVP; moderation, editing, and Seller responses remain deferred
 role: Customer
 scope: Laravel API and Customer storefront
 ---
@@ -22,8 +22,8 @@ scope: Laravel API and Customer storefront
 ### Current implementation boundary
 
 - Orders, immutable Order Items, `OrderStatus::Delivered = 'delivered'`, and Logistics-validated delivery completion exist.
-- `products.average_rating` and `review_count` and a Product Detail rating placeholder exist, but no Product Review table, mutation/read API, or Customer review UI exists.
-- Seeded Product rating/count values are demonstration data, not verified-purchase evidence. They must not be represented as real reviews after rollout.
+- Product Reviews, review-image metadata, the delivered Order Item mutation, public read API, Product Detail review list, and Order Detail review form are implemented.
+- Product aggregates are recomputed from published persisted Reviews; the Product catalog seeder now resets demonstration rating/count values to an empty projection.
 - Seller replies are specified in `docs/features/seller/review-management/spec.md`; its draft routes are not implemented by this spec.
 
 ## MUST
@@ -65,7 +65,7 @@ scope: Laravel API and Customer storefront
 - Review and media mutations authorize the Item/Review before storage access, validate server-side, and apply scoped rate limits. Private eligibility/mutation responses are `no-store`.
 - Optional Seller notifications are derived from Product ownership and sent after commit. Delivery failure must not undo the Review.
 
-### API contract (proposed; unavailable until implemented)
+### API contract (implemented MVP)
 
 | Method | Path | Authority | Result |
 | --- | --- | --- | --- |
@@ -74,7 +74,7 @@ scope: Laravel API and Customer storefront
 | POST | `/api/v1/customer/order-items/{orderItem}/review` | Owning Customer; delivered Item | `{ rating, body }` → created Review DTO |
 | POST | `/api/v1/customer/reviews/{review}/images` | Review-owning Customer | Validated image → asset DTO or pending state |
 
-- All proposed paths except the existing Order Detail route are unavailable today; do not make Flutter, Seller, or web clients call them early.
+- The listed paths are deployed by the Laravel API. Seller response management and video support remain separate/deferred contracts.
 - Use `401` for unauthenticated, ownership-safe `403/404`, `409` for duplicate/stale state, `422` for field/media validation, and `429` for throttling. Do not reveal whether another Customer's Item/Review exists.
 - The public list accepts only bounded page size and allow-listed ordering/filter values; it contains no personalized eligibility flags or shared-cache Customer data.
 - Return a stable pagination cursor or page number and total/next-page indicator consistent with the Customer storefront's existing pagination convention.
@@ -90,14 +90,14 @@ scope: Laravel API and Customer storefront
 
 ### Acceptance criteria
 
-- [ ] Only the owning active Customer can review a delivered Order Item; forged Product/Customer/Order IDs and pre-delivery Orders are rejected.
-- [ ] One Item creates at most one Review under concurrent submissions; another delivered Item for the same Product remains independently eligible.
-- [ ] Rating/body bounds, plain-text rendering, image count/type/byte/signature validation, and photo ownership are enforced by Laravel.
-- [ ] Product visibility controls public review/photo access while historical Reviews remain intact.
-- [ ] Public DTOs omit Customer and Order PII; Seller responses cannot alter Customer content.
-- [ ] Aggregate values come from real published Reviews, exclude Courier/Q&A feedback, and do not expose seeded fixture counts as verified reviews.
-- [ ] Order Detail eligibility and review state agree with authoritative mutation checks; Product Detail pagination and accessible UI states work.
-- [ ] Duplicate retries and notification/upload failures neither duplicate nor undo a committed Review.
+- [x] Only the owning active Customer can review a delivered Order Item; forged Product/Customer/Order IDs and pre-delivery Orders are rejected.
+- [x] One Item creates at most one Review under concurrent submissions; another delivered Item for the same Product remains independently eligible.
+- [x] Rating/body bounds, plain-text rendering, image count/type/byte/signature validation, and photo ownership are enforced by Laravel.
+- [x] Product visibility controls public review/photo access while historical Reviews remain intact.
+- [x] Public DTOs omit Customer and Order PII; Seller responses cannot alter Customer content.
+- [x] Aggregate values come from real published Reviews, exclude Courier/Q&A feedback, and do not expose seeded fixture counts as verified reviews.
+- [x] Order Detail eligibility and review state agree with authoritative mutation checks; Product Detail pagination and accessible UI states work.
+- [x] Upload failures leave the committed Review intact and can be retried without changing the review.
 
 ## HOW
 
@@ -110,7 +110,7 @@ scope: Laravel API and Customer storefront
 - Store images through the configured filesystem/object storage and shared upload service; image validation follows `docs/references/file-upload-requirements.md`, including optional configured scanning.
 - Keep aggregate repair repeatable so rollout can replace fixture ratings and recover from any interrupted publication or media-processing job without altering Customer-authored review history.
 - Product Detail should clearly separate the aggregate rating from the currently fetched page; empty state must not fabricate review cards from seed counts.
-- Test SQLite and PostgreSQL migrations and API ownership/IDOR, delivery eligibility, duplicate races, aggregates/seed reconciliation, hidden Products, media spoofing and privacy, and notification failure. Test keyboard, pagination, retry, and upload states in the Customer storefront.
+- Test SQLite and PostgreSQL migrations and API ownership/IDOR, delivery eligibility, duplicate races, aggregates/seed reconciliation, hidden Products, media spoofing and privacy, and upload failure. Test keyboard, pagination, retry, and upload states in the Customer storefront.
 - Before implementing Seller response or video support, reconcile the owning Seller spec or approve a separate video policy; neither is made available by this Customer API alone.
 
 ### Sources

@@ -38,6 +38,7 @@ class OrderTrackingService
             ->with([
                 'shop:id,name,slug,logo_path',
                 'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
+                'items.review:id,order_item_id',
                 'address',
                 'vouchers:id,order_id,voucher_id,code,issuer_type,benefit_type,discount_amount,currency,terms_summary',
                 'statusEvents' => fn ($query) => $query

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Customer;
 
+use App\Enums\OrderStatus;
 use App\Services\Customer\CustomerOrderStatusMapper;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
@@ -50,6 +51,10 @@ class OrderResource extends JsonResource
                 'quantity' => $item->quantity,
                 'lineSubtotal' => $item->line_subtotal,
                 'currency' => $item->currency,
+                'canReview' => $this->status === OrderStatus::Delivered
+                    && $item->product_id !== null
+                    && $item->review === null,
+                'reviewId' => $item->review?->id,
             ])->values(),
             'deliveryAddress' => [
                 'version' => $this->address->version,
