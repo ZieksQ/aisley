@@ -4,9 +4,9 @@ feature: courier-accept-delivery-requests
 title: Accept Delivery Requests
 system: AISLEY
 type: Feature Specification
-version: 1.4
-status: First-mile and final-mile offer acceptance/rejection implemented
-implementation_status: First-mile listing/acceptance and final-mile listing, accept, reject, and Logistics re-offer are implemented
+version: 1.5
+status: First-mile acceptance and final-mile dispatch batch acceptance implemented
+implementation_status: First-mile listing/acceptance, atomic final-mile batch acceptance, and exceptional single-task reject/re-offer are implemented
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
@@ -16,6 +16,18 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ---
 
 # Accept Delivery Requests
+
+## Offer price revision (2026-09-21)
+
+An authorized final-mile task and batch projection includes `parcel.price` (the Order merchandise subtotal) and `parcel.currency`, alongside item count and destination area. The Courier can see the parcel's merchandise price before acceptance without receiving payment credentials, address details beyond the offer's safe area, or an identifier entry requirement. The development mockup labels this value **Parcel price**. The assigned task remains the server-side parcel identity for later handoff and POD.
+
+## Final-mile dispatch batch revision (2026-09-20)
+
+One Logistics dispatch schedule is the Courier's final-mile offer. The Courier reviews its parcel count and destination areas, then accepts the entire schedule with one explicit action; partial acceptance is invalid. Each existing Delivery Task and Order remains separate for custody and delivery history. The API must lock and recheck every member, its current offer, Courier affiliation, hub, and state before committing all acceptances together. Rejected individual offers and re-offers are recovery for legacy or exceptional tasks, not the normal batch acceptance path. First-mile and linehaul workflows are unchanged.
+
+Implemented Courier routes are `GET /api/v1/courier/final-mile-batches`, `GET /api/v1/courier/final-mile-batches/{schedule}`, and `POST /api/v1/courier/final-mile-batches/{schedule}/accept`. All derive the Courier and current approved affiliation from the Sanctum token. Acceptance is all-or-nothing and an identical retry returns the already accepted batch. The per-task offer/accept/reject routes documented below remain for exceptional recovery; the normal Courier mockup uses the batch action. The earlier one-task-per-offer wording below describes the underlying task records, not separate normal acceptance taps.
+
+The development-only `src/couriermockup` may exercise the implemented final-mile offer list, detail, acceptance, and rejection routes with bearer authentication. It must use the same server projection and must not treat an accepted offer as hub custody.
 
 ## WHAT
 

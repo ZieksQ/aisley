@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aisley/psgc-address-data": "workspace:*",
     "@aisley/ui": "workspace:*",
     "@zxing/browser": "^0.2.1",
     "maplibre-gl": "^6.9.0",

@@ -54,7 +54,7 @@ class GeoapifyHubMetrics
 
                 continue;
             }
-            $cacheKey = 'hub-metric:'.$edge->from_hub_id.':'.$edge->to_hub_id.':'.$source.':'.$target.':drive:metric:free_flow:balanced';
+            $cacheKey = $this->cacheKey($edge->from_hub_id, $edge->to_hub_id, $source, $target);
             $cached = Cache::get($cacheKey);
             if (is_array($cached) && ($cached['provider_status'] ?? null) === 'calculated') {
                 $result[$edge->id] = $cached;
@@ -141,5 +141,19 @@ class GeoapifyHubMetrics
         }
 
         return $result;
+    }
+
+    private function cacheKey(string $fromHubId, string $toHubId, string $source, string $target): string
+    {
+        return 'hub-metric:'.hash('sha256', implode('|', [
+            $fromHubId,
+            $toHubId,
+            $source,
+            $target,
+            'drive',
+            'metric',
+            'free_flow',
+            'balanced',
+        ]));
     }
 }

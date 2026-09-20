@@ -30,7 +30,10 @@ use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -107,7 +110,52 @@ class FinalMileFulfillmentTest extends TestCase
             ->assertJsonPath('data.delivery.courier.name', 'Cora Rider')
             ->assertJsonPath('data.delivery.courier.contactNumber', '09173333333');
 
+        $batch = $this->actingAs($courier)->getJson('/api/v1/courier/final-mile-batches')->assertOk()
+            ->assertJsonPath('data.0.id', $schedule['id'])->assertJsonPath('data.0.status', 'offered')
+            ->assertJsonPath('data.0.tasks.0.parcel.price', $order->merchandise_subtotal)
+            ->assertJsonPath('data.0.tasks.0.parcel.currency', $order->currency)->json('data.0');
+        $this->getJson("/api/v1/courier/final-mile-batches/{$batch['id']}/route")->assertConflict()->assertJsonPath('code', 'BATCH_NOT_ACCEPTED');
+        $this->postJson("/api/v1/courier/final-mile-batches/{$batch['id']}/accept", [])->assertOk()
+            ->assertJsonPath('data.status', 'accepted')->assertJsonPath('data.tasks.0.status', 'delivery_accepted');
+        $this->postJson("/api/v1/courier/final-mile-batches/{$batch['id']}/accept", [])->assertOk()->assertJsonPath('data.status', 'accepted');
+        $this->getJson("/api/v1/courier/final-mile-batches/{$batch['id']}/route")->assertOk()->assertJsonPath('data.reason', 'missing_hub_coordinates');
+        $hub->address->update(['latitude' => 14.60, 'longitude' => 120.98]);
+        $this->getJson("/api/v1/courier/final-mile-batches/{$batch['id']}/route")->assertOk()
+            ->assertJsonPath('data.reason', 'missing_destination_coordinates')
+            ->assertJsonPath('data.stops.0.kind', 'hub');
+        $order->address->update(['latitude' => 10.31, 'longitude' => 123.89]);
+        config(['services.geoapify.server_key' => 'test-key']);
+        Http::fake([
+            'https://api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [
+                [['time' => 0, 'distance' => 0], ['time' => 100, 'distance' => 1000]],
+                [['time' => 100, 'distance' => 1000], ['time' => 0, 'distance' => 0]],
+            ]]),
+            'https://api.geoapify.com/v1/routing*' => Http::response(['features' => [[
+                'geometry' => ['type' => 'LineString', 'coordinates' => [[120.98, 14.60], [122.0, 12.0], [123.89, 10.31]]],
+            ]]]),
+        ]);
+        $this->getJson("/api/v1/courier/final-mile-batches/{$batch['id']}/route")->assertOk()
+            ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.summary.distance_metres', 1000)
+            ->assertJsonPath('data.geojson.features.0.properties.geometry_source', 'geoapify_routing')
+            ->assertJsonCount(3, 'data.geojson.features.0.geometry.coordinates')
+            ->assertJsonPath('data.geojson.features.1.properties.kind', 'hub')
+            ->assertJsonPath('data.geojson.features.2.properties.kind', 'delivery')
+            ->assertJsonPath('data.stops.0.longitude', 120.98)
+            ->assertJsonPath('data.stops.1.longitude', 123.89);
+        $order->address->update(['longitude' => 123.88]);
+        config(['services.geoapify.server_key' => '']);
+        $this->getJson("/api/v1/courier/final-mile-batches/{$batch['id']}/route")->assertOk()
+            ->assertJsonPath('data.status', 'unavailable')
+            ->assertJsonPath('data.reason', 'provider_unconfigured')
+            ->assertJsonPath('data.geojson.features.0.geometry.type', 'LineString')
+            ->assertJsonPath('data.stops.1.kind', 'delivery');
+        $foreignCourier = $this->courier($organization->id, $hub->id);
+        $this->actingAs($foreignCourier)->getJson("/api/v1/courier/final-mile-batches/{$batch['id']}")->assertNotFound();
+        $this->postJson("/api/v1/courier/final-mile-batches/{$batch['id']}/accept", [])->assertNotFound();
+
         $tooMany = array_map(fn () => (string) Str::uuid(), range(1, 16));
+        $this->actingAs($logistics);
         $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/dispatch/schedules', [
             'shipment_ids' => $tooMany, 'courier_id' => $courier->id, 'scheduled_for' => now()->addHour()->toISOString(),
         ])->assertStatus(422)->assertJsonValidationErrors('shipment_ids');
@@ -167,6 +215,36 @@ class FinalMileFulfillmentTest extends TestCase
         $this->actingAs($otherLogistics)->getJson('/api/v1/logistics/sorting')->assertOk()->assertJsonCount(0, 'data.lanes');
         $this->get('/api/v1/logistics/sorting/lanes/'.$standard['id'].'/label')->assertNotFound();
         $this->patchJson('/api/v1/logistics/sorting/lanes/'.$standard['id'], ['expected_revision' => $standard['revision'], 'is_active' => false])->assertNotFound();
+    }
+
+    public function test_batch_accepts_multiple_final_mile_tasks_atomically(): void
+    {
+        [$logistics, $courier, $references] = $this->receivedParcels(2);
+        $records = [];
+        foreach ($references as $reference) {
+            $record = $this->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->json('data');
+            $records[] = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
+                'reference' => $reference, 'target_state' => 'sorted_at_hub', 'expected_revision' => $record['revision'],
+            ])->assertOk()->json('data');
+        }
+        $schedule = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/dispatch/schedules', [
+            'shipment_ids' => array_column($records, 'shipment_id'), 'courier_id' => $courier->id,
+            'scheduled_for' => now()->addHour()->toISOString(),
+        ])->assertCreated()->assertJsonPath('data.parcel_count', 2)->json('data');
+        $batch = $this->actingAs($courier)->getJson('/api/v1/courier/final-mile-batches/'.$schedule['id'])->assertOk()
+            ->assertJsonCount(2, 'data.tasks')->json('data');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/courier/final-mile-tasks/'.$batch['tasks'][0]['task_id'].'/reject', [
+            'reason' => 'Unavailable for this route',
+        ])->assertOk();
+        $this->postJson('/api/v1/courier/final-mile-batches/'.$schedule['id'].'/accept', [])->assertNotFound();
+        $this->assertDatabaseCount('delivery_task_offers', 2);
+        $this->assertDatabaseHas('delivery_tasks', ['id' => $batch['tasks'][1]['task_id'], 'status' => 'delivery_assigned']);
+        $rejected = DeliveryTask::findOrFail($batch['tasks'][0]['task_id']);
+        $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/deploy-rider/tasks/'.$rejected->id.'/offers', [
+            'courier_id' => $courier->id, 'expected_task_revision' => $rejected->revision,
+        ])->assertCreated();
+        $this->actingAs($courier)->postJson('/api/v1/courier/final-mile-batches/'.$schedule['id'].'/accept', [])
+            ->assertOk()->assertJsonPath('data.status', 'accepted')->assertJsonPath('data.tasks.0.status', 'delivery_accepted')->assertJsonPath('data.tasks.1.status', 'delivery_accepted');
     }
 
     public function test_final_mile_moves_from_hub_to_delivered_with_logistics_validation(): void
@@ -259,9 +337,17 @@ class FinalMileFulfillmentTest extends TestCase
             ->assertJsonPath('data.status', 'delivery_accepted')
             ->assertJsonPath('data.destination.address_line_1', '9 Buyer Street')
             ->assertJsonPath('data.destination.contact_number', '09174444444');
-        $pickupEvidence = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/pickup", [
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/pickup", [
             'identifier_type' => 'tracking_id', 'identifier' => $pickup['waybills'][0]['reference'], 'expected_revision' => $final['revision'],
+        ])->assertStatus(422)->assertJsonValidationErrors(['identifier_type', 'identifier']);
+        $handoffKey = (string) Str::uuid();
+        $pickupEvidence = $this->withHeader('Idempotency-Key', $handoffKey)->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/pickup", [
+            'expected_revision' => $final['revision'],
         ])->assertStatus(202)->json('data');
+        $this->withHeader('Idempotency-Key', $handoffKey)->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/pickup", [
+            'expected_revision' => $final['revision'],
+        ])->assertStatus(202)->assertJsonPath('data.evidence_id', $pickupEvidence['evidence_id']);
+        $this->assertDatabaseHas('shipment_evidence', ['id' => $pickupEvidence['evidence_id'], 'type' => 'task_confirmation', 'identifier_hash' => null]);
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $logistics->id,
             'type' => 'logistics-evidence.submitted',
@@ -275,7 +361,33 @@ class FinalMileFulfillmentTest extends TestCase
         foreach (['in_transit', 'out_for_delivery'] as $state) {
             $final = $this->actingAs($courier)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/status", ['target_state' => $state, 'expected_revision' => $final['revision']])->assertOk()->json('data');
         }
-        $proof = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/proof-of-delivery", ['identifier_type' => 'qr', 'identifier' => $qr, 'expected_revision' => $final['revision']])->assertStatus(202)->json('data');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/proof-of-delivery", ['identifier_type' => 'qr', 'identifier' => $qr, 'expected_revision' => $final['revision']])->assertStatus(422);
+        $attempt = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/failed-attempts", [
+            'reason' => 'recipient_unavailable', 'expected_revision' => $final['revision'],
+        ])->assertCreated()->assertJsonPath('data.retry_allowed', true)->json('data');
+        $this->assertDatabaseHas('final_mile_failed_attempts', ['id' => $attempt['id'], 'delivery_task_id' => $final['task_id']]);
+        $this->assertSame('out_for_delivery', DeliveryTask::findOrFail($final['task_id'])->status->value);
+        Storage::fake((string) config('filesystems.default'));
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->post("/api/v1/courier/tasks/{$final['task_id']}/proof-of-delivery", [
+            'photo' => UploadedFile::fake()->createWithContent('fake.jpg', 'not an image'), 'expected_revision' => $final['revision'],
+        ])->assertStatus(422)->assertJsonValidationErrors('photo');
+        $proof = $this->withHeader('Idempotency-Key', (string) Str::uuid())->post("/api/v1/courier/tasks/{$final['task_id']}/proof-of-delivery", [
+            'photo' => UploadedFile::fake()->image('doorstep.jpg'), 'expected_revision' => $final['revision'],
+        ])->assertStatus(202)->json('data');
+        $this->actingAs($courier)->get("/api/v1/courier/delivery-proofs/{$proof['proof_id']}/photo")->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$final['task_id']}/failed-attempts", [
+            'reason' => 'recipient_unavailable', 'expected_revision' => $final['revision'],
+        ])->assertCreated();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", [
+            'expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true,
+        ])->assertConflict()->assertJsonPath('code', 'PROOF_STALE_AFTER_FAILED_ATTEMPT');
+        $this->actingAs($logistics)->postJson("/api/v1/logistics/delivery-proofs/{$proof['proof_id']}/reject", [
+            'reason' => 'This photo does not show the handoff.', 'expected_revision' => $final['revision'],
+        ])->assertOk()->assertJsonPath('data.status', 'rejected');
+        $this->actingAs($courier);
+        $proof = $this->withHeader('Idempotency-Key', (string) Str::uuid())->post("/api/v1/courier/tasks/{$final['task_id']}/proof-of-delivery", [
+            'photo' => UploadedFile::fake()->image('retry.jpg'), 'expected_revision' => $final['revision'],
+        ])->assertStatus(202)->json('data');
         $intent = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", ['expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true])->assertStatus(202)->json('data');
         $this->assertSame('awaiting_validation', $intent['completion_status']);
         $this->assertDatabaseHas('notifications', [
@@ -286,6 +398,9 @@ class FinalMileFulfillmentTest extends TestCase
         $queuedFinal = collect($record['tasks'])->firstWhere('leg', 'final_mile');
         $this->assertSame('awaiting_validation', collect($queuedFinal['evidence'])->firstWhere('id', $proof['proof_id'])['status']);
         $this->assertSame('awaiting_validation', $queuedFinal['completion_intents'][0]['status']);
+        $this->actingAs($logistics)->get("/api/v1/logistics/delivery-proofs/{$proof['proof_id']}/photo")->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+        $this->actingAs($otherLogistics)->get("/api/v1/logistics/delivery-proofs/{$proof['proof_id']}/photo")->assertNotFound();
+        $this->actingAs($logistics);
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
             'reference' => $pickup['waybills'][0]['reference'], 'target_state' => 'delivered', 'expected_revision' => $record['revision'], 'evidence_id' => $proof['proof_id'],
         ])->assertOk()->assertJsonPath('data.status', 'delivered');
@@ -336,7 +451,7 @@ class FinalMileFulfillmentTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/shipments/'.$record['shipment_id'].'/move', ['lane_id' => $a['id'], 'expected_revision' => $assigned['revision'], 'expected_lane_revision' => 1, 'reason' => 'Too late to move'])->assertConflict()->assertJsonPath('code', 'SORT_MOVE_STATE_CONFLICT');
         $task = collect($assigned['tasks'])->firstWhere('leg', 'final_mile');
         $accepted = $this->actingAs($courier)->postJson("/api/v1/courier/final-mile-tasks/{$task['task_id']}/accept")->assertOk()->json('data');
-        $evidence = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$task['task_id']}/pickup", ['identifier_type' => 'qr', 'identifier' => 'AISLEY:WB:1:'.$references[0], 'expected_revision' => $accepted['revision']])->assertStatus(202)->json('data');
+        $evidence = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/final-mile-tasks/{$task['task_id']}/pickup", ['expected_revision' => $accepted['revision']])->assertStatus(202)->json('data');
         $record = $this->actingAs($logistics)->getJson('/api/v1/logistics/update-status/records/'.$references[0])->assertOk()->json('data');
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', ['reference' => $references[0], 'target_state' => 'picked_up_from_hub', 'expected_revision' => $record['revision'], 'evidence_id' => $evidence['evidence_id']])->assertOk()->assertJsonPath('data.sorting_lane', null);
         $this->patchJson('/api/v1/logistics/sorting/lanes/'.$b['id'], ['expected_revision' => 2, 'is_active' => false])->assertOk();

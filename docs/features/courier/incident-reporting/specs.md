@@ -469,6 +469,7 @@ Incident media may be useful later, but this is an Open Decision.
 ## 64. e-POD Boundary
 Delivery evidence belongs to Proof of Delivery.
 Incident evidence, if added, is distinct.
+Routine final-mile failed delivery attempts (for example, the Customer is not home) use the assigned task's retryable failed-attempt record. They do not create an incident or change custody by themselves. Safety events and vehicle breakdowns remain separate incident reports.
 # Chat Integration
 ## 65. Operational Communication
 After reporting an Incident:

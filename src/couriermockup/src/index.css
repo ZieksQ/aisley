@@ -924,3 +924,18 @@ input {
     margin-bottom: 8px;
   }
 }
+.history-section { margin-top: 32px; border-top: 1px solid var(--border, #ddd); padding-top: 24px; }
+.history-filter { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+.history-filter > div { flex: 1 1 220px; }
+.history-list { padding: 0; margin: 0; list-style: none; border-top: 1px solid var(--border, #ddd); }
+.history-list li { border-bottom: 1px solid var(--border, #ddd); }
+.history-detail { margin-top: 16px; }
+.verification-panel select { width: 100%; min-height: 44px; border: 1px solid #a99da6; border-radius: 6px; background: white; padding: 8px; color: #241b25; }
+.stack select { min-height: 44px; border: 1px solid #a99da6; border-radius: 6px; background: white; padding: 8px; color: #241b25; }
+.private-image { display: block; max-width: min(100%, 360px); max-height: 360px; object-fit: contain; margin: 12px 0; }
+.vehicle-document { display: grid; gap: 8px; border-top: 1px solid #ddd; padding-top: 16px; }
+.auth-sections { display: grid; gap: 24px; width: min(820px, 100%); justify-items: center; }
+.registration-panel { width: 100%; }
+.registration-select { display: grid; gap: 8px; font-weight: 600; }
+.registration-select select { min-height: 44px; border: 1px solid #a99da6; border-radius: 6px; background: white; padding: 8px; color: #241b25; }
+.registration-panel input[type="file"] { display: block; margin-top: 8px; max-width: 100%; }

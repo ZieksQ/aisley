@@ -1,9 +1,9 @@
 import { BrowserCodeReader, BrowserMultiFormatOneDReader, type IScannerControls } from '@zxing/browser'
-import { BarcodeFormat, BinaryBitmap, ChecksumException, DecodeHintType, FormatException, HybridBinarizer, NotFoundException, RGBLuminanceSource } from '@zxing/library'
+import { BarcodeFormat, BinaryBitmap, ChecksumException, DecodeHintType, FormatException, HybridBinarizer, NotFoundException, QRCodeReader, RGBLuminanceSource } from '@zxing/library'
 
 export function createWaybillReader(): BrowserMultiFormatOneDReader {
   // Thin waybill bars can fall between the default reader's sampled rows.
-  // Search every row and exclude QR so it cannot win over the tracking barcode.
+  // Search every row and prefer the tracking barcode before QR fallback.
   return new BrowserMultiFormatOneDReader(new Map<DecodeHintType, unknown>([
     [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128]],
     [DecodeHintType.TRY_HARDER, true],
@@ -28,7 +28,7 @@ class WaybillLuminanceSource extends RGBLuminanceSource {
   }
 }
 
-export function decodeWaybillCanvas(reader: BrowserMultiFormatOneDReader, canvas: HTMLCanvasElement) {
+export function decodeWaybillCanvas(reader: BrowserMultiFormatOneDReader, canvas: HTMLCanvasElement, allowQr = true) {
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context) throw new Error('Camera frame canvas unavailable')
   const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
@@ -36,7 +36,15 @@ export function decodeWaybillCanvas(reader: BrowserMultiFormatOneDReader, canvas
   for (let i = 0, pixel = 0; i < data.length; i += 4, pixel++) {
     luminance[pixel] = data[i + 3] === 0 ? 255 : (306 * data[i] + 601 * data[i + 1] + 117 * data[i + 2] + 512) >> 10
   }
-  return reader.decodeBitmap(new BinaryBitmap(new HybridBinarizer(new WaybillLuminanceSource(luminance, canvas.width, canvas.height))))
+  const bitmap = new BinaryBitmap(new HybridBinarizer(new WaybillLuminanceSource(luminance, canvas.width, canvas.height)))
+  try {
+    return reader.decodeBitmap(bitmap)
+  } catch (error) {
+    if (!allowQr || !(error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException)) throw error
+    const qr = new QRCodeReader().decode(bitmap)
+    if (!/^AISLEY:WB:1:AWB-[A-Z0-9]+$/i.test(qr.getText())) throw new NotFoundException()
+    return qr
+  }
 }
 
 export const waybillCameraConstraints: MediaStreamConstraints = {
@@ -77,6 +85,7 @@ export function scanWaybillVideo(
   let stopped = false
   let timer: ReturnType<typeof setTimeout> | undefined
   let canvas: HTMLCanvasElement | undefined
+  let frames = 0
   const stop = () => { stopped = true; clearTimeout(timer); canvas = undefined }
   const loop = () => {
     if (stopped) return
@@ -88,7 +97,8 @@ export function scanWaybillVideo(
         const context = canvas.getContext('2d', { willReadFrequently: true })
         if (!context) throw new Error('Camera frame canvas unavailable')
         BrowserCodeReader.drawImageOnCanvas(context, video)
-        const result = decodeWaybillCanvas(reader, canvas)
+        // A QR attempt every third frame keeps the full-size Code 128 scan responsive.
+        const result = decodeWaybillCanvas(reader, canvas, ++frames % 3 === 0)
         onScan(result.getText())
       }
     } catch (error) {

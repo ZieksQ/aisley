@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 1.9
+version: 2.0
 status: Cross-document decision and reconciliation guide; shared physical schema and P0 final-mile transitions implemented
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
@@ -17,11 +17,19 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
 
+## Final-mile parcel context revision (2026-09-21)
+
+Final-mile Courier hub handoff is task-bound: the accepted Delivery Task and expected revision identify the parcel server-side, and Logistics confirms pending handoff evidence before custody changes. Courier final-mile requests no longer carry QR/tracking/Order identifiers; first-mile Seller pickup and Logistics physical parcel scans retain their own identifier rules. The Courier may read the Order merchandise subtotal as `parcel.price` with currency for the assigned delivery. The Courier's drop-off proof remains a private photo POD followed by Delivered intent and Logistics confirmation. Historical final-mile identifier wording below is superseded by the owning feature contracts.
+
+## Final-mile handoff revision (2026-09-20)
+
+Logistics dispatches at most 15 sorted destination-hub parcels to one Courier schedule, and the Courier accepts that whole schedule atomically. Underlying Shipment, Parcel, Delivery Task, offer, and Order records stay separate. Courier final-mile delivery uses private photo POD, a separate **Delivered** intent, and Logistics confirmation; a failed delivery attempt records a reason without changing `out_for_delivery`, so the Courier may retry later. Advisory Geoapify Matrix/Routing results and MapLibre display apply only to that final-mile schedule. Linehaul manifests, transfers, and custody remain independent. Historical QR-delivery and route-deferred statements below are superseded by the owning 2026-09-20 feature revisions.
+
 ## WHAT
 
 - **Purpose:** Keep a compact reference for the future movement of a prepared Order from Seller pickup through the Logistics hub to Buyer delivery.
 - **Why it exists:** Current Order, waybill, pickup, Logistics, and Courier documents mention the same physical flow in different places. This guide collects terminology, records cross-role decisions, and identifies exactly which documents must be revised together.
-- **Current baseline:** Seller pickup requests, selected Logistics organizations, shared waybills, pickup schedules, first-mile assignment/acceptance/confirmation, route manifests, shared Parcel/Shipment records, hub processing, independent final-mile offers, QR evidence, and Logistics-gated delivery completion exist. Waybills expose an explicit tracking ID with a thin Code 128 barcode, and Logistics sort plans route exact Buyer postal codes at scan time. Photo/signature proof, route/location telemetry, returns, and exceptional recovery remain deferred.
+- **Current baseline:** Seller pickup requests, selected Logistics organizations, shared waybills, pickup schedules, first-mile assignment/acceptance/confirmation, route manifests, shared Parcel/Shipment records, hub processing, atomic final-mile dispatch-batch acceptance, QR/reference hub pickup, private photo POD, and Logistics-gated delivery completion exist. Waybills expose an explicit tracking ID with a thin Code 128 barcode, and Logistics sort plans route exact Buyer postal codes at scan time. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred; advisory Geoapify final-mile routing is implemented.
 - **Role boundary:** Seller prepares and hands off; Logistics operates its single hub and assigns first-mile/final-mile work; Courier acts only on an assigned mobile API task; Customer reads safe tracking projections.
 - **Non-goals:** changing current routes or migrations, adding a second waybill, choosing a map provider, optimizing routes, creating multi-hub operations, billing subscriptions, or building Courier web UI.
 
@@ -65,7 +73,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 
 - [x] **Logistics-selection authority:** The Seller selects one eligible Logistics organization when committing the pickup request. Checkout remains provider-neutral; the Customer selects a shipping address, not a Logistics provider. Remove or rewrite the old Customer-selection wording in `docs/requirements.md` and `docs/workspace.md`.
 - [x] **High-level status mapping:** `picked_up` is the high-level projection of first-mile `picked_up_from_seller`; `assigned` is the Customer-facing projection of a committed dispatch schedule/final-mile Courier offer. Hub receipt and sorting remain detailed physical milestones, not meanings of either high-level value.
-- [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. The shared physical Shipment/Parcel bridge, hub operations, final-mile tasks, QR evidence, and P0 delivery completion are now implemented; photo/signature media, location telemetry, and exceptional recovery remain deferred.
+- [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. The shared physical Shipment/Parcel bridge, hub operations, final-mile tasks, QR hub evidence, photo POD, and P0 delivery completion are now implemented; signature media, location telemetry, and exceptional recovery remain deferred.
 - [x] **Schema-ledger synchronization:** Reconcile `docs/schema.md` with the migration directory without renaming or editing executed migrations. Add the implemented low-stock-alert, wishlist, and Logistics profile-photo migrations that are missing from the ledger; correct its duplicate sequence numbers for the Courier pickup, Product Q&A, and route-manifest entries; and record the implemented policy-consent protected-action gate.
 - [x] **Endpoint ownership paths:** The ownership table below uses the exact existing `spec.md`/`specs.md` paths. A route is usable only when that owning specification marks it implemented and the additive schema is deployed; advanced conceptual capabilities remain unavailable until their own rollout gates pass.
 - [x] **Legacy-reference audit:** Active canonical documents must not rely on the missing `app.md` or `docs/workflows.md`, old uppercase order values, or Mapbox assumptions. Draft and superseded specs may retain historical wording, but they must not be used as implementation authority until revised.
@@ -121,7 +129,7 @@ awaiting_seller_pickup
 - Placement reserves the requested SKU quantities atomically for the Order.
 - An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reservation once and transactionally.
 - `picked_up_from_seller` is the approved fulfillment boundary for consuming the reservation once; it must not decrement `on_hand` twice.
-- Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until an approved policy and line-level records exist.
+- Post-pickup cancellation, terminal delivery failure, returns, refunds, and partial fulfillment remain deferred until an approved policy and line-level records exist. Retryable failed doorstep attempts keep the task `out_for_delivery`.
 - Waybill creation, printing, scanning, scheduling, and assignment do not independently mutate payment, Inventory, or Order status.
 
 ### Current implementation versus accepted target
@@ -259,7 +267,7 @@ Complete each unchecked question before creating physical operational migrations
   approved.
 
 - [x] **Failure and cancellation boundary:** Which pre-`picked_up_from_seller` cancellation is implemented now? Confirm that post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until separately approved.  
-       **Answer/owner:** In the MVP, Customer cancellation and Seller rejection are allowed only while the Order is `placed`, before `picked_up_from_seller`. Each releases only that Order’s reserved SKU quantities once and transactionally. A Courier’s task rejection is assignment-level and does not cancel the Order. After `picked_up_from_seller`, automatic cancellation or inventory release is unavailable. Delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies, line-level records, and owning transitions are separately approved.
+       **Answer/owner:** In the MVP, Customer cancellation and Seller rejection are allowed only while the Order is `placed`, before `picked_up_from_seller`. Each releases only that Order’s reserved SKU quantities once and transactionally. A Courier’s task rejection is assignment-level and does not cancel the Order. After `picked_up_from_seller`, automatic cancellation or inventory release is unavailable. A retryable failed doorstep attempt preserves `out_for_delivery`; terminal delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies, line-level records, and owning transitions are separately approved.
 - [x] **Migration order and rollout gate:** What additive table, foreign-key, and index order is required, and what prevents unavailable endpoints from being enabled before the schema is deployed?  
        **Answer/owner:** The additive `2026_09_12_000001_create_fulfillment_operations.php` migration creates Parcel, Shipment, DeliveryTask, offer history, evidence, completion intents, and append-only events in dependency order, with UUID keys, indexes, and uniqueness constraints. Existing migrations are unchanged and enum-like values remain string-backed. Deployed P0 routes are usable only after this schema is applied; unsupported advanced routes remain disabled and fail closed. Flutter, web, and Logistics clients may consume only routes explicitly marked implemented.
 - [x] **Transition-service owner:** Which server service owns state validation, tenant/hub/role checks, locking or revision checks, idempotency, append-only history, and after-commit notifications?  
@@ -270,13 +278,13 @@ Complete each unchecked question before creating physical operational migrations
 | Endpoint area                                                 | Owning specification                                      | Status                                                                              |
 | ------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Courier first-mile QR/manual verification and pickup confirm  | `docs/features/courier/pick-up-order/specs.md`            | Implemented; bridges legacy confirmation into shared physical records               |
-| Physical Courier QR evidence submission for final custody     | `docs/features/courier/proof-of-delivery/specs.md`        | Implemented P0; photo/signature media remains deferred                             |
+| Physical Courier QR evidence submission for hub custody       | `docs/features/courier/pick-up-order/specs.md`            | Implemented P0 for hub pickup only                                                  |
 | Logistics scan validation and authoritative custody recording | `docs/features/logistics/update-status/specs.md`          | Implemented for hub/final-mile P0 transitions                                      |
 | Logistics bounded operational queue and Hub operations      | `docs/features/logistics/dashboard/specs.md`              | Implemented; active scoped rows/counts; stale threshold/realtime deferred         |
 | Hub receipt, sorting, transfer, and dispatch                  | `docs/features/logistics/update-status/specs.md`          | Implemented receipt/sort/dispatch; internal transfer execution deferred             |
 | Final-mile task creation, assignment, and re-offer            | `docs/features/logistics/deploy-rider/specs.md`           | Implemented final-mile candidate/offer API; advanced ranking deferred               |
 | Courier final-mile acceptance/rejection                       | `docs/features/courier/accept-delivery-requests/specs.md` | Implemented; first-mile listing/acceptance remains available                         |
-| Proof-of-delivery submission                                  | `docs/features/courier/proof-of-delivery/specs.md`        | Implemented QR/reference P0; media upload/read extensions deferred                   |
+| Proof-of-delivery submission                                  | `docs/features/courier/proof-of-delivery/specs.md`        | Implemented private photo upload/read; signature deferred                           |
 | Final delivered transition                                    | `docs/features/courier/complete-delivery/specs.md`        | Implemented with Logistics validation and Courier completion intent                 |
 
 - [x] **Verification plan approved:** The test categories below are the accepted plan; this checkbox does not claim that future physical migrations or tests have run.

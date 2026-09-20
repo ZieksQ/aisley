@@ -8,6 +8,12 @@ status: Revised — aligned with the approved order/Logistics flow and implement
 
 # Courier Model Context
 
+## Final-mile revision (2026-09-20)
+
+The Courier accepts a destination-hub dispatch schedule as one bulk final-mile offer; its 1–15 parcel tasks still retain separate custody and delivery history. At drop-off, the Courier uploads a private photo POD, then explicitly sends **Delivered** intent to Logistics. Logistics confirms the photo before any Order/Shipment/task becomes `delivered`. A failed attempt records reason and time, leaves `out_for_delivery`, and permits a later retry. The accepted schedule can return advisory Geoapify Matrix/Routing stops and a road `LineString`; the development-only Courier mockup draws it with MapLibre. Linehaul transfers are a separate Logistics workflow. Historical reference-based delivery proof and route-deferred wording below is superseded for final-mile work.
+
+As of 2026-09-21, the accepted final-mile task itself identifies the parcel for hub handoff; the Courier enters no parcel identifier. Logistics still validates hub pickup. The Courier sees the parcel's merchandise price and currency in the task, and the mockup uses `osm-bright` with a visible Logistics start, numbered delivery stops, and route line. Photo POD remains the only Courier-entered delivery proof.
+
 ## Overview
 
 Courier (rider) is Aisley's delivery operator. Courier operations are exposed through Laravel API endpoints and consumed by an external Flutter/mobile application. This repository must not build a Courier web dashboard or other Courier UI under `src/`.

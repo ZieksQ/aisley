@@ -682,7 +682,7 @@ class LogisticsPickupWaybillTest extends TestCase
         $tile = $this->get('/api/v1/courier/map-tiles/1/1/1.png')->assertOk();
         $this->assertStringNotContainsString('server-secret', (string) $tile->getContent());
         $this->get('/api/v1/courier/map-tiles/1/1/1.png')->assertOk();
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'https://maps.geoapify.com/v1/tile/osm-carto/1/1/1.png')
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'https://maps.geoapify.com/v1/tile/osm-bright/1/1/1.png')
             && str_contains($request->url(), 'apiKey=server-secret'));
         $tileRequests = Http::recorded()->filter(fn (array $pair): bool => str_contains($pair[0]->url(), 'maps.geoapify.com'));
         $this->assertCount(1, $tileRequests);

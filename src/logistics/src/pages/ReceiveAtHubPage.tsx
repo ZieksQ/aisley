@@ -107,7 +107,7 @@ export function ReceiveAtHubPage() {
 
   return <div className="mx-auto max-w-[1280px] px-3 py-3 sm:px-5 lg:px-6">
     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
-      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the thin Code 128 tracking ID on each waybill or enter it manually. Scans stay on this device until synced.</p></div>
+      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the waybill's tracking barcode or QR, or enter its tracking ID. Scans stay on this device until synced.</p></div>
       <ConnectionStatus online={online} syncing={busy} offlineLabel="Offline — scans are safe on this device" />
     </div>
 
@@ -118,7 +118,7 @@ export function ReceiveAtHubPage() {
       <section className={panel}>
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Barcode scanner</h3><ActionButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</ActionButton></div>
         <div className="p-3">
-          {scannerOpen ? <video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /> : <div className="grid min-h-48 place-items-center border border-dashed border-zinc-300 px-3 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">Scan the thin 1D Code 128 barcode. Keep all bars and both white margins visible. QR codes are ignored.</p></div></div>}
+          {scannerOpen ? <><video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="mt-2 text-xs text-zinc-500">Move close enough for the bars to fill most of the preview while keeping both ends and white margins visible. The waybill QR also works.</p></> : <div className="grid min-h-48 place-items-center border border-dashed border-zinc-300 px-3 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">Scan the tracking barcode up close or use the waybill QR.</p></div></div>}
         </div>
       </section>
 

@@ -20,6 +20,7 @@ use App\Models\CompletionIntent;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DeliveryTask;
 use App\Models\DeliveryTaskOffer;
+use App\Models\FinalMileFailedAttempt;
 use App\Models\FirstMileTask;
 use App\Models\HubConnection;
 use App\Models\LogisticsHub;
@@ -37,18 +38,17 @@ use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\Logistics\Routing\LinehaulService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
 use App\Services\OrderTransitionService;
-use App\Services\Waybills\CreateWaybill;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class FulfillmentTransitionService
 {
     public function __construct(
         private readonly OrderTransitionService $orderTransitions,
-        private readonly CreateWaybill $waybillHasher,
         private readonly LogisticsNotificationService $notifications,
         private readonly CourierNotificationService $courierNotifications,
     ) {}
@@ -222,11 +222,11 @@ class FulfillmentTransitionService
         }, 3);
     }
 
-    public function submitEvidence(User $courier, string $taskId, array $input, string $idempotencyKey, ShipmentEvidencePurpose $purpose): ShipmentEvidence
+    public function submitHubPickupEvidence(User $courier, string $taskId, array $input, string $idempotencyKey): ShipmentEvidence
     {
-        $requestHash = $this->hash(['task_id' => strtolower($taskId), 'purpose' => $purpose->value, 'identifier_type' => $input['identifier_type'], 'identifier' => trim($input['identifier']), 'expected_revision' => (int) $input['expected_revision']]);
+        $requestHash = $this->hash(['task_id' => strtolower($taskId), 'purpose' => ShipmentEvidencePurpose::HubPickup->value, 'expected_revision' => (int) $input['expected_revision']]);
 
-        return DB::transaction(function () use ($courier, $taskId, $input, $idempotencyKey, $requestHash, $purpose): ShipmentEvidence {
+        return DB::transaction(function () use ($courier, $taskId, $input, $idempotencyKey, $requestHash): ShipmentEvidence {
             $previous = ShipmentEvidence::query()->where('courier_id', $courier->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
             if ($previous !== null) {
                 if (! hash_equals($previous->request_hash, $requestHash)) {
@@ -239,13 +239,8 @@ class FulfillmentTransitionService
             if (isset($input['expected_revision']) && (int) $input['expected_revision'] !== $task->revision) {
                 throw FulfillmentException::conflict('TASK_STATE_CONFLICT', 'The final-mile task changed. Refresh before submitting evidence.');
             }
-            $requiredState = $purpose === ShipmentEvidencePurpose::HubPickup ? FulfillmentTaskStatus::DeliveryAccepted : FulfillmentTaskStatus::OutForDelivery;
-            if ($task->status !== $requiredState) {
+            if ($task->status !== FulfillmentTaskStatus::DeliveryAccepted) {
                 throw FulfillmentException::conflict('TASK_STATE_CONFLICT', 'Evidence cannot be submitted for the task in its current state.');
-            }
-            $identifier = trim((string) $input['identifier']);
-            if (! $this->identifierMatches($task->shipment->parcel->waybill, $task->shipment->parcel->order, $input['identifier_type'], $identifier)) {
-                throw FulfillmentException::notFound('PARCEL_NOT_FOUND', 'The scanned parcel identifier is not assigned to this task.');
             }
             $offer = $task->offers()->where('status', FulfillmentOfferStatus::Accepted->value)->where('courier_id', $courier->id)->orderByDesc('sequence')->first();
             $evidence = ShipmentEvidence::create([
@@ -253,15 +248,13 @@ class FulfillmentTransitionService
                 'delivery_task_offer_id' => $offer?->id,
                 'waybill_id' => $task->shipment->parcel->waybill_id,
                 'courier_id' => $courier->id,
-                'purpose' => $purpose,
-                'type' => 'qr',
-                'safe_reference' => $task->shipment->parcel->waybill->reference,
-                'identifier_hash' => hash('sha256', $identifier),
+                'purpose' => ShipmentEvidencePurpose::HubPickup,
+                'type' => 'task_confirmation',
                 'status' => ShipmentEvidenceStatus::AwaitingValidation,
                 'idempotency_key' => $idempotencyKey,
                 'request_hash' => $requestHash,
                 'correlation_id' => (string) Str::uuid(),
-                'metadata' => ['identifier_type' => $input['identifier_type']],
+                'metadata' => ['method' => 'task_confirmation'],
                 'submitted_at' => now(),
             ]);
             $this->notifications->queueEvidenceSubmitted($evidence);
@@ -337,8 +330,13 @@ class FulfillmentTransitionService
             if ($evidence === null) {
                 throw FulfillmentException::notFound('PROOF_NOT_FOUND', 'The delivery proof is not available for this task.');
             }
-            if ($evidence->status === ShipmentEvidenceStatus::Rejected || $evidence->status === ShipmentEvidenceStatus::Unavailable) {
+            if ($evidence->type !== 'photo' || ! $evidence->storage_disk || ! $evidence->storage_path || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)
+                || $evidence->status === ShipmentEvidenceStatus::Rejected || $evidence->status === ShipmentEvidenceStatus::Unavailable) {
                 throw FulfillmentException::conflict('PROOF_NOT_VALIDATED', 'The delivery proof cannot be used for completion.');
+            }
+            $failedAttemptCount = FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count();
+            if (($evidence->metadata['failed_attempt_count'] ?? -1) !== $failedAttemptCount) {
+                throw FulfillmentException::conflict('PROOF_STALE_AFTER_FAILED_ATTEMPT', 'Take a new delivery photo after the failed attempt.');
             }
 
             $intent = CompletionIntent::create([
@@ -918,12 +916,16 @@ class FulfillmentTransitionService
             ] : null,
             'order' => $order ? ['id' => $order->id, 'reference' => $order->reference, 'status' => $order->status?->value] : null,
             'waybill' => $waybill ? ['id' => $waybill->id, 'reference' => $waybill->reference, 'tracking_id' => $waybill->reference] : null,
-            'parcel' => $parcel ? ['id' => $parcel->id, 'reference' => $parcel->reference, 'item_count' => $parcel->item_count] : null,
+            'parcel' => $parcel ? ['id' => $parcel->id, 'reference' => $parcel->reference, 'item_count' => $parcel->item_count,
+                'price' => $order?->merchandise_subtotal, 'currency' => $order?->currency] : null,
             'pickup_area' => $this->area($pickup),
             'destination_area' => $this->area($destination),
             'evidence_status' => $proof?->status instanceof ShipmentEvidenceStatus ? $proof->status->value : ($proof?->status ?? 'unavailable'),
             'evidence_id' => $proof?->id,
             'completion_status' => $intent?->status instanceof ShipmentEvidenceStatus ? $intent->status->value : ($intent?->status ?? null),
+            'failed_attempt_count' => FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count(),
+            'failed_attempts' => FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->orderByDesc('attempted_at')->limit(10)->get()
+                ->map(fn (FinalMileFailedAttempt $attempt): array => ['id' => $attempt->id, 'reason' => $attempt->reason, 'note' => $attempt->note, 'attempted_at' => $attempt->attempted_at->toISOString()])->all(),
         ];
 
         if ($operator) {
@@ -1151,8 +1153,12 @@ class FulfillmentTransitionService
 
     private function finalizeDelivery(User $logistics, Shipment $shipment, ?DeliveryTask $task, ?ShipmentEvidence $evidence, string $requestHash, string $idempotencyKey, ?string $reason = null): array
     {
-        if ($task === null || $task->leg !== FulfillmentTaskLeg::FinalMile || $task->status !== FulfillmentTaskStatus::OutForDelivery || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof) {
+        if ($task === null || $task->leg !== FulfillmentTaskLeg::FinalMile || $task->status !== FulfillmentTaskStatus::OutForDelivery || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof || $evidence->type !== 'photo' || ! $evidence->storage_disk || ! $evidence->storage_path || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)) {
             throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The final-mile task is not ready for completion.');
+        }
+        $failedAttemptCount = FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count();
+        if (($evidence->metadata['failed_attempt_count'] ?? -1) !== $failedAttemptCount) {
+            throw FulfillmentException::conflict('PROOF_STALE_AFTER_FAILED_ATTEMPT', 'The Courier must submit a new photo after the failed attempt.');
         }
         $intent = CompletionIntent::query()->where('delivery_task_id', $task->id)->where('shipment_evidence_id', $evidence->id)->where('courier_id', $task->courier_id)->lockForUpdate()->latest('confirmed_at')->first();
         if ($intent === null) {
@@ -1304,15 +1310,6 @@ class FulfillmentTransitionService
         if (! $valid) {
             throw FulfillmentException::invalid('COURIER_INELIGIBLE', 'The Courier is not an active approved member of this Logistics organization.', 'courier_id');
         }
-    }
-
-    private function identifierMatches(Waybill $waybill, $order, string $type, string $identifier): bool
-    {
-        return $type === 'qr'
-            ? hash_equals($waybill->qr_token_hash, $this->waybillHasher->hashQr($identifier))
-            : ($type === 'tracking_id'
-                ? hash_equals(strtoupper((string) $waybill->reference), strtoupper($identifier))
-                : hash_equals(strtoupper((string) $order->reference), strtoupper($identifier)));
     }
 
     private function hash(array $payload): string

@@ -6,6 +6,6 @@ return [
     'daily_routing_credit_limit' => env('GEOAPIFY_ROUTING_DAILY_CREDIT_LIMIT', 300),
     'routing_max_waypoints' => 25,
     'daily_tile_credit_limit' => env('GEOAPIFY_TILE_DAILY_CREDIT_LIMIT', 500),
-    'tile_style' => 'osm-carto',
+    'tile_style' => 'osm-bright',
     'tile_max_zoom' => 18,
 ];

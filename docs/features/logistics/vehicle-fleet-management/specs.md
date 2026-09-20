@@ -121,6 +121,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 - These routes are separate from account/profile endpoints; those endpoints do not accept vehicle fields.
 
 ### Implemented Courier API and notifications
+- The development-only Courier API mockup may exercise owner-only vehicle read/edit and independent OR/CR replacement/preview with revision and idempotency controls.
 
 - All routes below require Sanctum bearer auth, active Courier/approved affiliation/active Logistics/sole hub, and applicable policy consent. Derive the sole vehicle from the caller; no client owner IDs. Return private, no-store responses.
 - `GET /api/v1/courier/vehicle`: no body; `200 {data: {id, vehicle_type, plate_number, make, model, revision, official_receipt, certificate_of_registration}}`. Document entries are null or `{id, url}` for authorized delivery; no paths or approval claims.

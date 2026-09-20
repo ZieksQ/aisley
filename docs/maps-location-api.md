@@ -49,6 +49,10 @@ There is no provider request while the user types. Changing a populated textual 
 - Exact PSGC city/province/country matching is evaluated locally before road distance. Distance breaks ties and ranks eligible non-exact options only when authoritative values are available.
 - Keep Geoapify and OpenStreetMap attribution visible wherever calculated distance is presented.
 
+## Courier final-mile route geometry
+
+Final-mile dispatch route geometry uses the same server-only Geoapify key and a bounded Matrix calculation for the assigned schedule's hub and destination stops. The ordered stops are sent to the Routing API for a road-following `LineString`; a private Geoapify `osm-bright` raster tile style is displayed through MapLibre GL JS in the development Courier mockup. The mockup draws a labelled Logistics start marker, numbered delivery circles for known coordinates, and a cased line above the tiles when at least two coordinates are known. Missing coordinates or provider failures yield an explicit unavailable route while the address list and delivery actions stay available; known locations remain visible and a Routing or Matrix failure keeps a labelled straight stop-sequence line. No point is fabricated for an unpinned address. Only destination-hub final-mile schedule members participate; linehaul routes remain independent.
+
 ## Courier pickup route geometry
 
 - Determine the Courier stop order with the Route Matrix API first, then call `GET https://api.geoapify.com/v1/routing` from Laravel with the ordered hub → pickup stops → hub waypoints and `mode=drive`.

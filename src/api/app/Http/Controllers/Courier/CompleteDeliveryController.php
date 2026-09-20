@@ -19,10 +19,12 @@ class CompleteDeliveryController extends Controller
         return response()->json(['data' => [
             'task_id' => $result['task']->id,
             'intent_id' => $intent?->id,
+            'intent_evidence_id' => $intent?->shipment_evidence_id,
             'task_status' => $result['task']->status->value,
             'order_status' => $result['task']->shipment->parcel->order->status->value,
             'evidence_id' => $evidence?->id,
             'evidence_status' => $evidence?->status?->value ?? 'unavailable',
+            'proof_failed_attempt_count' => $evidence?->metadata['failed_attempt_count'] ?? null,
             'completion_status' => $intent?->status?->value,
             'delivered_at' => $result['task']->delivered_at?->toISOString(),
             'revision' => $result['task']->revision,

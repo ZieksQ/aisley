@@ -22,7 +22,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 - **Client boundary:** Courier screens belong to the separate Flutter project. This repository provides API behavior only; do not add a Courier React page, browser-cookie flow, or web dashboard under `src/`.
 - **MVP cardinality:** one Courier has one current Logistics affiliation. The selected organization owns exactly one operational hub; the server derives that hub and the client cannot select a sub-hub.
 - **Approval authority:** The associated active Logistics organization approves or rejects the Courier affiliation. Admin may suspend, restore, or deactivate an account through the separate lifecycle feature, but Admin does not approve the affiliation.
-- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile QR evidence, movement, completion, and history APIs exist under their owning specs; media proof, final-mile routing, earnings, and offline mutations remain deferred.
+- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile QR evidence, movement, completion, and history APIs exist under their owning specs; signature proof, live location telemetry, earnings, and offline mutations remain deferred; private photo POD and final-mile batch routing are available.
 
 ```text
 GET active Logistics options
@@ -137,6 +137,8 @@ The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3703
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
+- The development-only Courier API mockup may use this public list to populate registration. It must still submit the current legacy combined `vehicle_registration` field until the separate OR/CR registration contract is implemented.
+
 - Public endpoint with `throttle:60,1`; optional query `search` is matched case-insensitively against `business_name`; maximum 50 rows.
 - `200`: `{ "data": [{ "id": "uuid", "business_name": "Example Logistics" }] }`. No credentials, hub IDs, or private application data are returned.
 - Registration must revalidate organization activity and hub existence; a stale option is not an authorization grant. Network failure is retryable; no cache is authoritative.
@@ -165,6 +167,8 @@ The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3703
 - The server deletes only the current token. Flutter removes its secure token after a successful response or after a confirmed unauthorized response.
 
 #### `POST /api/v1/courier/auth/forgot-password` — recovery entry point only
+
+- The development-only mockup may exercise this entry point, but must present its generic response without promising an actual reset email.
 
 - Public request `{ "email" }`; current controller records a limiter hit and always returns a generic `200` message.
 - No reset token or notification is currently created. Flutter must show a generic result and must not promise an email or fabricate a reset route.
