@@ -78,3 +78,7 @@ Format:
 ## 2026-09-20
 
 - Extended the production-guarded `LuzonLogisticsSeeder` with five active, approved, vehicle-equipped Courier fixtures per each of the eight regional Logistics organizations (40 total), deterministic development credentials/emails/plates, Courier profiles, addresses, hub affiliations, and varied vehicle type/make/model data. Added idempotence and production-skip assertions; focused seeder coverage passes 2 tests/36 assertions and Pint passes.
+
+- Revised the ignored `docs/cabigan/future-plan.md` against current canonical docs, API routes, Logistics pages, and the copied Flutter progress snapshot. Removed stale claims that hub operations, vehicle UI, and both-leg Flutter integration still need to be built; prioritized pending Linehaul partnership/postal validation, end-to-end verification, and genuinely unimplemented standalone work. Planning documentation only; no runtime, database, migration, seed, or Flutter code changed.
+
+- Added the Courier Notifications target spec under `docs/features/courier/notification/`: existing pickup-schedule database alerts are separated from unavailable Courier inbox/read APIs and the proposed final-mile-offer producer. Defined scoped list/count/detail/read contracts, deduplication, safe Flutter navigation and polling, privacy, and verification gates. Documentation only; no backend or Flutter behavior changed.
