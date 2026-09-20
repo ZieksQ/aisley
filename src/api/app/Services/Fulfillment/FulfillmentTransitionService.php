@@ -20,6 +20,7 @@ use App\Models\CompletionIntent;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DeliveryTask;
 use App\Models\DeliveryTaskOffer;
+use App\Models\FinalMileFailedAttempt;
 use App\Models\FirstMileTask;
 use App\Models\HubConnection;
 use App\Models\LogisticsHub;
@@ -41,6 +42,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class FulfillmentTransitionService
@@ -334,8 +336,13 @@ class FulfillmentTransitionService
             if ($evidence === null) {
                 throw FulfillmentException::notFound('PROOF_NOT_FOUND', 'The delivery proof is not available for this task.');
             }
-            if ($evidence->status === ShipmentEvidenceStatus::Rejected || $evidence->status === ShipmentEvidenceStatus::Unavailable) {
+            if ($evidence->type !== 'photo' || ! $evidence->storage_disk || ! $evidence->storage_path || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)
+                || $evidence->status === ShipmentEvidenceStatus::Rejected || $evidence->status === ShipmentEvidenceStatus::Unavailable) {
                 throw FulfillmentException::conflict('PROOF_NOT_VALIDATED', 'The delivery proof cannot be used for completion.');
+            }
+            $failedAttemptCount = FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count();
+            if (($evidence->metadata['failed_attempt_count'] ?? -1) !== $failedAttemptCount) {
+                throw FulfillmentException::conflict('PROOF_STALE_AFTER_FAILED_ATTEMPT', 'Take a new delivery photo after the failed attempt.');
             }
 
             $intent = CompletionIntent::create([
@@ -921,6 +928,9 @@ class FulfillmentTransitionService
             'evidence_status' => $proof?->status instanceof ShipmentEvidenceStatus ? $proof->status->value : ($proof?->status ?? 'unavailable'),
             'evidence_id' => $proof?->id,
             'completion_status' => $intent?->status instanceof ShipmentEvidenceStatus ? $intent->status->value : ($intent?->status ?? null),
+            'failed_attempt_count' => FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count(),
+            'failed_attempts' => FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->orderByDesc('attempted_at')->limit(10)->get()
+                ->map(fn (FinalMileFailedAttempt $attempt): array => ['id' => $attempt->id, 'reason' => $attempt->reason, 'note' => $attempt->note, 'attempted_at' => $attempt->attempted_at->toISOString()])->all(),
         ];
 
         if ($operator) {
@@ -1148,8 +1158,12 @@ class FulfillmentTransitionService
 
     private function finalizeDelivery(User $logistics, Shipment $shipment, ?DeliveryTask $task, ?ShipmentEvidence $evidence, string $requestHash, string $idempotencyKey, ?string $reason = null): array
     {
-        if ($task === null || $task->leg !== FulfillmentTaskLeg::FinalMile || $task->status !== FulfillmentTaskStatus::OutForDelivery || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof) {
+        if ($task === null || $task->leg !== FulfillmentTaskLeg::FinalMile || $task->status !== FulfillmentTaskStatus::OutForDelivery || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof || $evidence->type !== 'photo' || ! $evidence->storage_disk || ! $evidence->storage_path || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)) {
             throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The final-mile task is not ready for completion.');
+        }
+        $failedAttemptCount = FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count();
+        if (($evidence->metadata['failed_attempt_count'] ?? -1) !== $failedAttemptCount) {
+            throw FulfillmentException::conflict('PROOF_STALE_AFTER_FAILED_ATTEMPT', 'The Courier must submit a new photo after the failed attempt.');
         }
         $intent = CompletionIntent::query()->where('delivery_task_id', $task->id)->where('shipment_evidence_id', $evidence->id)->where('courier_id', $task->courier_id)->lockForUpdate()->latest('confirmed_at')->first();
         if ($intent === null) {

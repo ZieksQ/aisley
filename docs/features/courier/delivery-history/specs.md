@@ -16,6 +16,10 @@ backend_contract_version: courier-delivery-history-v1
 
 # Delivery History
 
+## Photo POD revision (2026-09-20)
+
+Only Logistics-confirmed final-mile deliveries enter history. History retains the opaque proof ID and status, never photo bytes or a raw storage path; authorized photo preview must use the private proof endpoint and recheck current scope. Failed attempts remain on the active task and do not create completed-history rows. Linehaul transfers remain outside Courier delivery history.
+
 ## WHAT
 
 - Give a Courier a read-only archive of final-mile deliveries completed under its own assignment.

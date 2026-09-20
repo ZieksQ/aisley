@@ -45,6 +45,8 @@ export type FulfillmentTask = {
   in_transit_at: string | null
   out_for_delivery_at: string | null
   delivered_at: string | null
+  failed_attempt_count?: number
+  failed_attempts?: { id: string; reason: string; note: string | null; attempted_at: string }[]
   offer: FulfillmentOffer | null
   offer_history?: FulfillmentOffer[]
   order: { id: string; reference: string; status: string } | null

@@ -2,6 +2,7 @@ import { Button, TextField } from '@aisley/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from './lib/api'
 import { DeliveryHistory } from './DeliveryHistory'
+import { FinalMileBatches } from './FinalMileBatches'
 import { QrScanner } from './QrScanner'
 import type { Address, Area, Completion, DeliveryContext, EvidenceReceipt, FinalMileTask } from './finalMileTypes'
 
@@ -46,6 +47,9 @@ export function FinalMileTasks({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [pendingHubPickup, setPendingHubPickup] = useState<string[]>([])
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [failedReason, setFailedReason] = useState('recipient_unavailable')
+  const [failedNote, setFailedNote] = useState('')
   const retry = useRef<PendingRequest | null>(null)
   const detailRequest = useRef(0)
 
@@ -99,6 +103,8 @@ export function FinalMileTasks({ token }: { token: string }) {
     setCompletion(null)
     setIdentifier('')
     setReason('')
+    setPhoto(null)
+    setFailedNote('')
     setNotice(null)
     retry.current = null
   }
@@ -123,8 +129,8 @@ export function FinalMileTasks({ token }: { token: string }) {
         setTasks((current) => current.map((item) => item.task_id === task.task_id ? task : item))
       }
       setNotice(name === 'pickup' ? 'Hub pickup evidence submitted. Awaiting Logistics validation.'
-        : name === 'proof' ? 'Delivery proof submitted. Submit completion intent for Logistics validation.'
-          : name === 'complete' ? 'Completion intent submitted. Awaiting Logistics validation.'
+        : name === 'complete' ? 'Delivered request submitted. Awaiting Logistics photo review.'
+          : name === 'failed' ? 'Attempt recorded. This delivery remains assigned for a later retry.'
             : name === 'reject' ? 'Offer rejected. Logistics may offer the task again.'
               : 'Action recorded by the API.')
       retry.current = null
@@ -136,11 +142,33 @@ export function FinalMileTasks({ token }: { token: string }) {
     } finally { setBusy(null) }
   }
 
+  async function submitPhoto() {
+    if (!task || !photo || busy) return
+    const signature = `${task.task_id}:${task.revision}:${photo.name}:${photo.size}:${photo.lastModified}`
+    if (retry.current?.signature !== signature) retry.current = { signature, key: crypto.randomUUID() }
+    const form = new FormData()
+    form.set('photo', photo)
+    form.set('expected_revision', String(task.revision))
+    setBusy('proof')
+    setError(null)
+    try {
+      await request(`/api/v1/courier/tasks/${task.task_id}/proof-of-delivery`, { method: 'POST', headers: { 'Idempotency-Key': retry.current.key }, body: form }, token)
+      retry.current = null
+      setPhoto(null)
+      setNotice('Photo POD submitted. Tap Delivered to request Logistics confirmation.')
+      await loadDetail(task.task_id)
+    } catch (caught) { setError(message(caught)) }
+    finally { setBusy(null) }
+  }
+
+
   const task = detail?.task_id === selectedId ? detail : null
   const active = task && !busy
   const evidenceBody = task ? { identifier_type: identifierType, identifier: identifier.trim(), expected_revision: task.revision } : null
   const proofId = completion?.evidence_id ?? task?.evidence_id
-  const canComplete = task?.status === 'out_for_delivery' && proofId && completion?.completion_status == null
+  const canComplete = task?.status === 'out_for_delivery' && proofId && ['awaiting_validation', 'validated'].includes(completion?.evidence_status ?? '')
+    && completion?.proof_failed_attempt_count === task.failed_attempt_count
+    && (!completion.intent_id || completion.intent_evidence_id !== proofId)
 
   return (
     <section className="pickup-workspace" aria-labelledby="final-mile-heading">
@@ -150,6 +178,7 @@ export function FinalMileTasks({ token }: { token: string }) {
       </div>
       {error ? <p className="error-message" role="alert">{error}</p> : null}
       {notice ? <p className="notice" role="status">{notice}</p> : null}
+      <FinalMileBatches token={token} onAccepted={() => void loadTasks()} />
       {loading && tasks.length === 0 ? <p className="empty-state">Loading final-mile tasks…</p> : null}
       {!loading && tasks.length === 0 ? <p className="empty-state">No active final-mile tasks are assigned.</p> : null}
       {tasks.length > 0 ? <div className="pickup-layout">
@@ -166,7 +195,7 @@ export function FinalMileTasks({ token }: { token: string }) {
           {task ? <>
             <dl className="task-facts">
               <div><dt>Order</dt><dd>{task.order?.reference ?? '—'}</dd></div>
-              <div><dt>Waybill / tracking ID</dt><dd>{task.waybill?.reference ?? '—'}</dd></div>
+              <div><dt>Parcel reference</dt><dd>{task.waybill?.reference ?? '—'}</dd></div>
               <div><dt>Parcel</dt><dd>{task.parcel?.reference ?? '—'} · {task.parcel?.item_count ?? 0} items</dd></div>
               <div><dt>Pickup area</dt><dd>{address(task.pickup_area)}</dd></div>
               <div><dt>Destination area</dt><dd>{address(task.destination_area)}</dd></div>
@@ -175,7 +204,7 @@ export function FinalMileTasks({ token }: { token: string }) {
               {task.offer?.rejection_reason ? <div><dt>Rejection reason</dt><dd>{task.offer.rejection_reason}</dd></div> : null}
             </dl>
             {task.status === 'delivery_assigned' ? <div className="verification-panel">
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('accept', `/api/v1/courier/final-mile-tasks/${task.task_id}/accept`)} variant="secondary">Accept delivery</Button>
+              <p>Accept all parcels through the assigned delivery batch above.</p>
               <TextField id="final-rejection" label="Reason for rejection" onChange={(event) => setReason(event.target.value)} value={reason} />
               <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || reason.trim().length < 3} onClick={() => void act('reject', `/api/v1/courier/final-mile-tasks/${task.task_id}/reject`, { reason: reason.trim() }, true)} variant="outline">Reject offer</Button>
             </div> : null}
@@ -186,19 +215,29 @@ export function FinalMileTasks({ token }: { token: string }) {
             </dl> : null}
             {task.status === 'delivery_accepted' ? <p className="confirmation-note">Confirm hub pickup only after physically receiving the parcel. Submission awaits Logistics validation.</p> : null}
             {pendingHubPickup.includes(task.task_id) && task.status === 'delivery_accepted' ? <p className="status-line">Hub pickup evidence is awaiting Logistics validation.</p> : null}
-            {['delivery_accepted', 'out_for_delivery'].includes(task.status) && !pendingHubPickup.includes(task.task_id) && task.evidence_status !== 'awaiting_validation' && !completion?.intent_id ? <div className="verification-panel">
+            {task.status === 'delivery_accepted' && !pendingHubPickup.includes(task.task_id) ? <div className="verification-panel">
               <label htmlFor="final-identifier-type">Parcel identifier</label>
               <select id="final-identifier-type" onChange={(event) => { setIdentifierType(event.target.value as IdentifierType); setIdentifier(''); retry.current = null }} value={identifierType}>
                 <option value="tracking_id">Tracking ID</option><option value="order_id">Order reference</option><option value="qr">Waybill QR payload</option>
               </select>
               {identifierType === 'qr' ? <QrScanner onRead={(value) => { setIdentifier(value); retry.current = null; setNotice('QR candidate captured. Confirm only after the physical handoff.') }} /> : null}
               <TextField id="final-identifier" label="Identifier on parcel" onChange={(event) => { setIdentifier(event.target.value); retry.current = null }} value={identifier} />
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !identifier.trim()} onClick={() => void act(task.status === 'delivery_accepted' ? 'pickup' : 'proof', task.status === 'delivery_accepted' ? `/api/v1/courier/final-mile-tasks/${task.task_id}/pickup` : `/api/v1/courier/tasks/${task.task_id}/proof-of-delivery`, evidenceBody ?? {}, true)} variant="secondary">{task.status === 'delivery_accepted' ? 'Submit hub pickup evidence' : 'Submit delivery proof'}</Button>
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !identifier.trim()} onClick={() => void act('pickup', `/api/v1/courier/final-mile-tasks/${task.task_id}/pickup`, evidenceBody ?? {}, true)} variant="secondary">Submit hub pickup evidence</Button>
             </div> : null}
             {task.status === 'delivery_accepted' ? <p className="confirmation-note">Hub custody changes only after Logistics validates pickup evidence. Refresh to check its status.</p> : null}
             {task.status === 'picked_up_from_hub' || task.status === 'in_transit' ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('move', `/api/v1/courier/final-mile-tasks/${task.task_id}/status`, { target_state: task.status === 'picked_up_from_hub' ? 'in_transit' : 'out_for_delivery', expected_revision: task.revision }, true)} variant="secondary">{task.status === 'picked_up_from_hub' ? 'Start transit' : 'Out for delivery'}</Button> : null}
+            {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="verification-panel">
+              <label htmlFor="delivery-photo">Photo proof of delivery (JPEG, PNG, WebP; under 10 MB)</label>
+              <input accept="image/jpeg,image/png,image/webp" capture="environment" id="delivery-photo" onChange={(event) => { setPhoto(event.target.files?.[0] ?? null); retry.current = null }} type="file" />
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !photo || photo.size >= 10 * 1024 * 1024} onClick={() => void submitPhoto()} variant="secondary">Add photo POD</Button>
+              <label htmlFor="failed-delivery-reason">If delivery could not be completed</label>
+              <select id="failed-delivery-reason" onChange={(event) => setFailedReason(event.target.value)} value={failedReason}><option value="recipient_unavailable">Customer not home</option><option value="address_unreachable">Address unreachable</option><option value="recipient_refused">Customer refused</option><option value="other">Other</option></select>
+              {failedReason === 'other' ? <TextField id="failed-delivery-note" label="Reason" onChange={(event) => setFailedNote(event.target.value)} value={failedNote} /> : null}
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || (failedReason === 'other' && !failedNote.trim())} onClick={() => void act('failed', `/api/v1/courier/final-mile-tasks/${task.task_id}/failed-attempts`, { reason: failedReason, note: failedNote.trim() || null, expected_revision: task.revision }, true)} variant="outline">Record failed attempt</Button>
+            </div> : null}
+            {task.failed_attempts?.length ? <p className="status-line">Latest failed attempt: {task.failed_attempts[0].reason.replaceAll('_', ' ')} · {new Date(task.failed_attempts[0].attempted_at).toLocaleString('en-PH')}. Retry remains available.</p> : null}
             {completion ? <p className="status-line">Completion: {completion.completion_status?.replaceAll('_', ' ') ?? 'No intent'} · Proof: {completion.evidence_status.replaceAll('_', ' ')}{completion.delivered_at ? ` · Delivered ${new Date(completion.delivered_at).toLocaleString('en-PH')}` : ''}</p> : null}
-            {canComplete ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('complete', `/api/v1/courier/tasks/${task.task_id}/completion`, { evidence_id: proofId, expected_revision: task.revision, confirmed: true }, true)} variant="secondary">Submit completion intent</Button> : null}
+            {canComplete ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('complete', `/api/v1/courier/tasks/${task.task_id}/completion`, { evidence_id: proofId, expected_revision: task.revision, confirmed: true }, true)} variant="secondary">Delivered · send to Logistics</Button> : null}
             <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={!!busy} onClick={() => void loadDetail(task.task_id)} variant="outline">Refresh task state</Button>
           </> : null}
         </div>

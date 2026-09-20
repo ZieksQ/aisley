@@ -22,7 +22,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 - **Client boundary:** Courier screens belong to the separate Flutter project. This repository provides API behavior only; do not add a Courier React page, browser-cookie flow, or web dashboard under `src/`.
 - **MVP cardinality:** one Courier has one current Logistics affiliation. The selected organization owns exactly one operational hub; the server derives that hub and the client cannot select a sub-hub.
 - **Approval authority:** The associated active Logistics organization approves or rejects the Courier affiliation. Admin may suspend, restore, or deactivate an account through the separate lifecycle feature, but Admin does not approve the affiliation.
-- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile QR evidence, movement, completion, and history APIs exist under their owning specs; media proof, final-mile routing, earnings, and offline mutations remain deferred.
+- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile QR evidence, movement, completion, and history APIs exist under their owning specs; signature proof, live location telemetry, earnings, and offline mutations remain deferred; private photo POD and final-mile batch routing are available.
 
 ```text
 GET active Logistics options

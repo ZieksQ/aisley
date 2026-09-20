@@ -15,6 +15,33 @@ export interface FinalMileTask {
   evidence_id: string | null
   evidence_status: string
   completion_status: string | null
+  failed_attempt_count: number
+  failed_attempts: { id: string; reason: string; note: string | null; attempted_at: string }[]
+}
+
+export interface FinalMileBatch {
+  id: string
+  reference: string
+  scheduled_for: string
+  parcel_count: number
+  status: 'offered' | 'accepted' | 'in_progress'
+  tasks: FinalMileTask[]
+}
+
+export interface FinalMileRoute {
+  status: 'ready' | 'unavailable'
+  reason: string | null
+  summary: { stop_count: number; distance_metres: number; duration_seconds: number } | null
+  stops: { sequence: number; kind: 'hub' | 'delivery'; task_id: string | null; label: string; longitude: number; latitude: number }[]
+  geojson: {
+    type: 'FeatureCollection'
+    features: Array<{
+      type: 'Feature'
+      geometry: { type: 'LineString' | 'Point'; coordinates: number[][] | number[] }
+      properties: Record<string, string | number | boolean>
+    }>
+  } | null
+  map: { style_url: string; attribution: string[] } | null
 }
 
 export interface Area {
@@ -40,10 +67,12 @@ export interface DeliveryContext extends FinalMileTask {
 export interface Completion {
   task_id: string
   intent_id: string | null
+  intent_evidence_id: string | null
   task_status: string
   order_status: string
   evidence_id: string | null
   evidence_status: string
+  proof_failed_attempt_count: number | null
   completion_status: string | null
   delivered_at: string | null
   revision: number

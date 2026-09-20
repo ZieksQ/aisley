@@ -4,13 +4,19 @@ title: Deploy Rider
 system: AISLEY
 type: Feature Specification
 version: 1.5
-status: Implemented sorted-parcel dispatch schedules and final-mile offers; advanced routing deferred
+status: Implemented sorted-parcel dispatch schedules, Courier batch acceptance, and advisory final-mile routing
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
 
 # Deploy Rider
+
+## Courier batch handoff revision (2026-09-20)
+
+The existing 1–15 parcel dispatch schedule is one final-mile offer to its assigned Courier. The Courier accepts all offered member tasks atomically from the schedule, while each parcel retains its own task, offer, Shipment, proof, completion, and history. Rejected legacy or exceptional task offers retain the existing re-offer path. Linehaul manifests are separate and cannot appear in final-mile batch acceptance or routing.
+
+The accepted batch route is calculated with Geoapify Matrix and Routing from confirmed hub/Customer coordinate pairs. It is advisory, bounded to the schedule, and cannot authorize dispatch or delivery. Missing coordinates or provider failure keeps the schedule and parcel address list available. The older single-task normal-offer and vendor-neutral route language below is historical for this revised flow.
 
 ## WHAT
 

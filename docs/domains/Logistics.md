@@ -8,6 +8,10 @@ status: Revised — aligned with the approved order/Logistics flow and implement
 
 # Logistics Model Context
 
+## Final-mile revision (2026-09-20)
+
+One dispatch schedule offers 1–15 destination-hub parcels to one Courier, who accepts the batch atomically. Each parcel retains its own Shipment, task, offer, photo POD, completion intent, and Order. Logistics privately previews the submitted POD and explicitly validates delivery; Courier intent alone never changes `out_for_delivery` to `delivered`. A failed doorstep attempt remains assigned and retryable. Advisory final-mile route calculations use Geoapify and exclude linehaul manifests. Historical QR-delivery and route-deferred statements below are superseded for final-mile proof and routing.
+
 ## Overview
 
 Logistics is Aisley's first-party parcel-operations role. It operates one organization and exactly one operational hub/sorting center in the MVP. The organization schedules first-mile pickup tasks for Seller-ready Orders addressed to it, views/scans their shared waybills, receives and sorts parcels, dispatches final-mile delivery, and monitors Courier tasks.

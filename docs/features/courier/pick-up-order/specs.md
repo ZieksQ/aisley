@@ -75,7 +75,7 @@ Seller packs Orders and requests one Logistics provider
 
 ### Final-mile hub pickup — implemented API
 - The development-only Courier API mockup may submit the documented final-mile evidence request and display its pending Logistics validation state; it must refetch before claiming hub custody.
-- Logistics dispatches and offers an independent final-mile task; the Courier accepts through Accept Delivery Requests.
+- Logistics dispatches independent final-mile tasks in one schedule; the Courier accepts the whole assigned schedule through Accept Delivery Requests.
 - `GET /api/v1/courier/final-mile-tasks` returns `{data:[]}`; `GET /api/v1/courier/final-mile-tasks/{task}` returns `{data:{...}}`. Do not reuse first-mile pagination or schedule filtering.
 - Task projection includes `task_id`, `leg`, `status`, `revision`, nullable `picked_up_at`, Order/waybill/Parcel references, and area-safe summaries.
 - `GET /api/v1/courier/tasks/{task}/delivery` provides authorized hub/address/contact context after acceptance; Deliver Order owns that read contract.
@@ -90,7 +90,7 @@ Seller packs Orders and requests one Logistics provider
 - Matching retries return the same evidence identity with freshly loaded state; the response is not guaranteed byte-for-byte identical. Changed input/key reuse returns `409 IDEMPOTENCY_KEY_REUSED`.
 - Revision/state mismatch returns `409 TASK_STATE_CONFLICT`; wrong parcel returns `404 PARCEL_NOT_FOUND`; malformed input/header returns `422`. Preserve the same request/key after timeout.
 - Both legs require active approved Courier bearer access and policy consent. Handle `403 POLICY_CONSENT_REQUIRED` without clearing a valid session or automatically replaying pickup.
-- No offline mutation is supported. Final-mile routing/ETA remains unavailable; the first-mile schedule manifest must not be presented as a Buyer delivery route.
+- No offline mutation is supported. The accepted final-mile schedule has its own advisory route and ETA; the first-mile pickup manifest must not be presented as a Buyer delivery route.
 - [x] Final-mile submission returns pending evidence; only Logistics validation records hub custody.
 - [ ] PostgreSQL rollout/concurrency verification and external Flutter tests pass for both pickup legs.
 
