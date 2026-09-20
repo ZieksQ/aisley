@@ -14,9 +14,11 @@ use App\Models\ShipmentRouteHop;
 use App\Models\User;
 use App\Models\Waybill;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Logistics\Routing\GeoapifyHubMetrics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -248,6 +250,32 @@ class HubRoutingTest extends TestCase
         $this->pickupAt($a);
         $this->assertSame(1, ShipmentRoute::where('failure_code', 'key_missing')->count());
         Http::assertSentCount(2);
+    }
+
+    public function test_hub_metric_cache_key_fits_database_cache_key_limit(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $this->edge($a[2], $b[2]);
+        $this->area($b[2]);
+        $this->pickupAt($a);
+
+        $metrics = app(GeoapifyHubMetrics::class);
+        $source = $metrics->fingerprint($a[2]->address);
+        $target = $metrics->fingerprint($b[2]->address);
+        $cacheKey = 'hub-metric:'.hash('sha256', implode('|', [
+            $a[2]->id,
+            $b[2]->id,
+            $source,
+            $target,
+            'drive',
+            'metric',
+            'free_flow',
+            'balanced',
+        ]));
+
+        $this->assertLessThanOrEqual(255, strlen((string) config('cache.prefix').$cacheKey));
+        $this->assertIsArray(Cache::get($cacheKey));
     }
 
     public function test_feature_flag_does_not_retroactively_route_legacy_waybills(): void
