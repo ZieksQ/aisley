@@ -4,7 +4,7 @@ feature: courier-accept-delivery-requests
 title: Accept Delivery Requests
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: First-mile acceptance and final-mile dispatch batch acceptance implemented
 implementation_status: First-mile listing/acceptance, atomic final-mile batch acceptance, and exceptional single-task reject/re-offer are implemented
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
@@ -16,6 +16,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ---
 
 # Accept Delivery Requests
+
+## Offer price revision (2026-09-21)
+
+An authorized final-mile task and batch projection includes `parcel.price` (the Order merchandise subtotal) and `parcel.currency`, alongside item count and destination area. The Courier can see the parcel's merchandise price before acceptance without receiving payment credentials, address details beyond the offer's safe area, or an identifier entry requirement. The development mockup labels this value **Parcel price**. The assigned task remains the server-side parcel identity for later handoff and POD.
 
 ## Final-mile dispatch batch revision (2026-09-20)
 

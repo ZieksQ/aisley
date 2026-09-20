@@ -3,11 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from './lib/api'
 import { DeliveryHistory } from './DeliveryHistory'
 import { FinalMileBatches } from './FinalMileBatches'
-import { QrScanner } from './QrScanner'
 import type { Address, Area, Completion, DeliveryContext, EvidenceReceipt, FinalMileTask } from './finalMileTypes'
 
-type IdentifierType = 'qr' | 'tracking_id' | 'order_id'
 type PendingRequest = { signature: string; key: string }
+
+function parcelPrice(task: FinalMileTask): string {
+  const price = task.parcel?.price
+  if (price == null || !Number.isFinite(Number(price))) return 'Unavailable'
+  const amount = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(price))
+  return `${task.parcel?.currency === 'PHP' ? '₱' : `${task.parcel?.currency ?? 'PHP'} `}${amount}`
+}
 
 function address(value: Address | Area | null): string {
   if (!value) return 'Unavailable'
@@ -39,8 +44,6 @@ export function FinalMileTasks({ token }: { token: string }) {
   const [detail, setDetail] = useState<FinalMileTask | null>(null)
   const [delivery, setDelivery] = useState<DeliveryContext | null>(null)
   const [completion, setCompletion] = useState<Completion | null>(null)
-  const [identifierType, setIdentifierType] = useState<IdentifierType>('tracking_id')
-  const [identifier, setIdentifier] = useState('')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -52,6 +55,7 @@ export function FinalMileTasks({ token }: { token: string }) {
   const [failedNote, setFailedNote] = useState('')
   const retry = useRef<PendingRequest | null>(null)
   const detailRequest = useRef(0)
+  const photoInput = useRef<HTMLInputElement>(null)
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -101,7 +105,6 @@ export function FinalMileTasks({ token }: { token: string }) {
     setDetail(null)
     setDelivery(null)
     setCompletion(null)
-    setIdentifier('')
     setReason('')
     setPhoto(null)
     setFailedNote('')
@@ -164,7 +167,6 @@ export function FinalMileTasks({ token }: { token: string }) {
 
   const task = detail?.task_id === selectedId ? detail : null
   const active = task && !busy
-  const evidenceBody = task ? { identifier_type: identifierType, identifier: identifier.trim(), expected_revision: task.revision } : null
   const proofId = completion?.evidence_id ?? task?.evidence_id
   const canComplete = task?.status === 'out_for_delivery' && proofId && ['awaiting_validation', 'validated'].includes(completion?.evidence_status ?? '')
     && completion?.proof_failed_attempt_count === task.failed_attempt_count
@@ -185,7 +187,7 @@ export function FinalMileTasks({ token }: { token: string }) {
         <ul className="task-list" aria-label="Final-mile tasks">
           {tasks.map((item) => <li key={item.task_id}>
             <button aria-current={selectedId === item.task_id ? 'true' : undefined} className="task-row" onClick={() => select(item.task_id)} type="button">
-              <span><strong>{item.order?.reference ?? item.parcel?.reference ?? 'Task'}</strong><span>{address(item.destination_area)}</span></span>
+              <span><strong>{address(item.destination_area)}</strong><span>{item.parcel?.item_count ?? 0} items · {parcelPrice(item)}</span></span>
               <span>{item.status.replaceAll('_', ' ')}</span>
             </button>
           </li>)}
@@ -194,9 +196,8 @@ export function FinalMileTasks({ token }: { token: string }) {
           {busy === 'detail' && !task ? <p>Loading task…</p> : null}
           {task ? <>
             <dl className="task-facts">
-              <div><dt>Order</dt><dd>{task.order?.reference ?? '—'}</dd></div>
-              <div><dt>Parcel reference</dt><dd>{task.waybill?.reference ?? '—'}</dd></div>
-              <div><dt>Parcel</dt><dd>{task.parcel?.reference ?? '—'} · {task.parcel?.item_count ?? 0} items</dd></div>
+              <div><dt>Parcel</dt><dd>{task.parcel?.item_count ?? 0} items</dd></div>
+              <div><dt>Parcel price</dt><dd>{parcelPrice(task)}</dd></div>
               <div><dt>Pickup area</dt><dd>{address(task.pickup_area)}</dd></div>
               <div><dt>Destination area</dt><dd>{address(task.destination_area)}</dd></div>
               <div><dt>Task status</dt><dd>{task.status.replaceAll('_', ' ')} · revision {task.revision}</dd></div>
@@ -216,20 +217,16 @@ export function FinalMileTasks({ token }: { token: string }) {
             {task.status === 'delivery_accepted' ? <p className="confirmation-note">Confirm hub pickup only after physically receiving the parcel. Submission awaits Logistics validation.</p> : null}
             {pendingHubPickup.includes(task.task_id) && task.status === 'delivery_accepted' ? <p className="status-line">Hub pickup evidence is awaiting Logistics validation.</p> : null}
             {task.status === 'delivery_accepted' && !pendingHubPickup.includes(task.task_id) ? <div className="verification-panel">
-              <label htmlFor="final-identifier-type">Parcel identifier</label>
-              <select id="final-identifier-type" onChange={(event) => { setIdentifierType(event.target.value as IdentifierType); setIdentifier(''); retry.current = null }} value={identifierType}>
-                <option value="tracking_id">Tracking ID</option><option value="order_id">Order reference</option><option value="qr">Waybill QR payload</option>
-              </select>
-              {identifierType === 'qr' ? <QrScanner onRead={(value) => { setIdentifier(value); retry.current = null; setNotice('QR candidate captured. Confirm only after the physical handoff.') }} /> : null}
-              <TextField id="final-identifier" label="Identifier on parcel" onChange={(event) => { setIdentifier(event.target.value); retry.current = null }} value={identifier} />
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !identifier.trim()} onClick={() => void act('pickup', `/api/v1/courier/final-mile-tasks/${task.task_id}/pickup`, evidenceBody ?? {}, true)} variant="secondary">Submit hub pickup evidence</Button>
+              <p>Confirm the selected delivery was physically received from the Logistics hub.</p>
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('pickup', `/api/v1/courier/final-mile-tasks/${task.task_id}/pickup`, { expected_revision: task.revision }, true)} variant="secondary">Request hub pickup confirmation</Button>
             </div> : null}
             {task.status === 'delivery_accepted' ? <p className="confirmation-note">Hub custody changes only after Logistics validates pickup evidence. Refresh to check its status.</p> : null}
             {task.status === 'picked_up_from_hub' || task.status === 'in_transit' ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('move', `/api/v1/courier/final-mile-tasks/${task.task_id}/status`, { target_state: task.status === 'picked_up_from_hub' ? 'in_transit' : 'out_for_delivery', expected_revision: task.revision }, true)} variant="secondary">{task.status === 'picked_up_from_hub' ? 'Start transit' : 'Out for delivery'}</Button> : null}
             {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="verification-panel">
-              <label htmlFor="delivery-photo">Photo proof of delivery (JPEG, PNG, WebP; under 10 MB)</label>
-              <input accept="image/jpeg,image/png,image/webp" capture="environment" id="delivery-photo" onChange={(event) => { setPhoto(event.target.files?.[0] ?? null); retry.current = null }} type="file" />
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !photo || photo.size >= 10 * 1024 * 1024} onClick={() => void submitPhoto()} variant="secondary">Add photo POD</Button>
+              <input accept="image/jpeg,image/png,image/webp" capture="environment" hidden id="delivery-photo" onChange={(event) => { setPhoto(event.target.files?.[0] ?? null); retry.current = null }} ref={photoInput} type="file" />
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => photoInput.current?.click()} variant="outline">Open camera for POD</Button>
+              <p className="status-line">{photo ? `${photo.name} selected` : 'Take a delivery photo (JPEG, PNG, or WebP; under 10 MB).'}</p>
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !photo || photo.size >= 10 * 1024 * 1024} onClick={() => void submitPhoto()} variant="secondary">Send photo POD to Logistics</Button>
               <label htmlFor="failed-delivery-reason">If delivery could not be completed</label>
               <select id="failed-delivery-reason" onChange={(event) => setFailedReason(event.target.value)} value={failedReason}><option value="recipient_unavailable">Customer not home</option><option value="address_unreachable">Address unreachable</option><option value="recipient_refused">Customer refused</option><option value="other">Other</option></select>
               {failedReason === 'other' ? <TextField id="failed-delivery-note" label="Reason" onChange={(event) => setFailedNote(event.target.value)} value={failedNote} /> : null}

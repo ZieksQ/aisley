@@ -51,7 +51,7 @@ There is no provider request while the user types. Changing a populated textual 
 
 ## Courier final-mile route geometry
 
-Final-mile dispatch route geometry uses the same server-only Geoapify key and a bounded Matrix calculation for the assigned schedule's hub and destination stops. The ordered stops are sent to the Routing API for a road-following `LineString`; a private Geoapify raster tile style is displayed through MapLibre GL JS in the development Courier mockup. Missing coordinates or provider failures yield an explicit unavailable route while the address list and delivery actions stay available. Only destination-hub final-mile schedule members participate; linehaul routes remain independent.
+Final-mile dispatch route geometry uses the same server-only Geoapify key and a bounded Matrix calculation for the assigned schedule's hub and destination stops. The ordered stops are sent to the Routing API for a road-following `LineString`; a private Geoapify `osm-bright` raster tile style is displayed through MapLibre GL JS in the development Courier mockup. The mockup draws a labelled Logistics start marker, numbered delivery circles for known coordinates, and a cased line above the tiles when at least two coordinates are known. Missing coordinates or provider failures yield an explicit unavailable route while the address list and delivery actions stay available; known locations remain visible and a Routing or Matrix failure keeps a labelled straight stop-sequence line. No point is fabricated for an unpinned address. Only destination-hub final-mile schedule members participate; linehaul routes remain independent.
 
 ## Courier pickup route geometry
 

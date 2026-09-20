@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 1.9
+version: 2.0
 status: Cross-document decision and reconciliation guide; shared physical schema and P0 final-mile transitions implemented
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
@@ -16,6 +16,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 > **Cross-document decision notice:** This document is the canonical decision and reconciliation record for shared Shipment/Parcel/DeliveryTask concerns; it is not a replacement for the implementation contracts in `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, the domain documents, or owning feature specifications. Use it to answer cross-role concerns and direct revisions to those files. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
+
+## Final-mile parcel context revision (2026-09-21)
+
+Final-mile Courier hub handoff is task-bound: the accepted Delivery Task and expected revision identify the parcel server-side, and Logistics confirms pending handoff evidence before custody changes. Courier final-mile requests no longer carry QR/tracking/Order identifiers; first-mile Seller pickup and Logistics physical parcel scans retain their own identifier rules. The Courier may read the Order merchandise subtotal as `parcel.price` with currency for the assigned delivery. The Courier's drop-off proof remains a private photo POD followed by Delivered intent and Logistics confirmation. Historical final-mile identifier wording below is superseded by the owning feature contracts.
 
 ## Final-mile handoff revision (2026-09-20)
 

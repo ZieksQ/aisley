@@ -77,7 +77,7 @@ For `delivered`, Logistics selects the matching Courier photo POD and completion
 ### Implemented API contract
 
 - `GET /api/v1/logistics/update-status/records/{reference}` — implemented; returns the scoped Shipment/Parcel/task projection and allowed transitions.
-- `POST /api/v1/courier/tasks/{task}/scan-events` — implemented alias for final-mile hub-pickup QR/reference evidence submission; Logistics validation still owns the custody transition.
+- `POST /api/v1/courier/tasks/{task}/scan-events` — implemented legacy route alias for task-bound final-mile hub-pickup confirmation. Its current body is `expected_revision` only plus a UUID `Idempotency-Key`; parcel identifier fields are rejected. Logistics validation still owns the custody transition.
 - `POST /api/v1/logistics/update-status/scan-events` — implemented alias for the Logistics transition endpoint.
 - `POST /api/v1/logistics/update-status/transitions` — implemented; accepts an authorized target state, reference, expected Shipment revision, optional evidence UUID/reason, and UUID `Idempotency-Key`.
 - `POST /api/v1/logistics/receiving/batches` — implemented; accepts 1–100 offline-captured references with stable client UUIDs and capture times, commits each receipt independently, and returns per-item success/failure so successful Dexie entries can be removed safely.

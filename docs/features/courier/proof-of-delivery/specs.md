@@ -4,7 +4,7 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.7
 status: Implemented photo POD submission and Logistics validation; signature deferred
 implementation_status: Courier private photo submission and Logistics private preview/validation are implemented; former reference proof is retired for delivery
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
@@ -16,6 +16,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ---
 
 # Proof of Delivery (e-POD)
+
+## Courier capture revision (2026-09-21)
+
+The Courier's final-mile delivery action is photo POD: **Open camera for POD** invokes rear-camera capture where supported, the Courier submits the selected photo, and **Delivered** sends the linked completion intent to Logistics for review. The browser mockup may use the device file chooser when camera capture is unavailable. The UI does not ask for or display a parcel identifier as a proof step. The hub handoff has also moved to task-bound confirmation without identifier entry; see Pick Up Order. The authorized photo and intent remain pending until Logistics validates them.
 
 ## Final-mile photo revision (2026-09-20)
 

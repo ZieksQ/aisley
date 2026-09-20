@@ -35,10 +35,13 @@ class FinalMileRouteService
             'kind' => 'hub', 'task_id' => null, 'label' => 'Logistics hub',
             'longitude' => (float) $hub->longitude, 'latitude' => (float) $hub->latitude,
         ]];
+        $missingDestinationCoordinates = false;
         foreach ($schedule->shipments->sortBy('sequence') as $member) {
             $address = $member->shipment?->parcel?->order?->address;
             if (! $address || ! $this->coordinate($address)) {
-                return $this->unavailable('missing_destination_coordinates');
+                $missingDestinationCoordinates = true;
+
+                continue;
             }
             $nodes[] = [
                 'kind' => 'delivery', 'task_id' => $member->delivery_task_id,
@@ -46,8 +49,11 @@ class FinalMileRouteService
                 'longitude' => (float) $address->longitude, 'latitude' => (float) $address->latitude,
             ];
         }
+        if ($missingDestinationCoordinates) {
+            return $this->unavailable('missing_destination_coordinates', $nodes);
+        }
         if (count($nodes) > 16) {
-            return $this->unavailable('node_limit_exceeded');
+            return $this->unavailable('node_limit_exceeded', $nodes);
         }
         $fingerprint = hash('sha256', json_encode(array_map(fn ($node) => [$node['task_id'], $node['longitude'], $node['latitude']], $nodes), JSON_THROW_ON_ERROR));
 
@@ -68,11 +74,11 @@ class FinalMileRouteService
     {
         $key = (string) config('services.geoapify.server_key');
         if ($key === '') {
-            return $this->unavailable('provider_unconfigured');
+            return $this->unavailable('provider_unconfigured', $nodes);
         }
         $credits = count($nodes) ** 2;
         if (! $this->reserve('matrix', $credits, (int) config('pickup_routes.daily_matrix_credit_limit', 2200))) {
-            return $this->unavailable('quota_guard');
+            return $this->unavailable('quota_guard', $nodes);
         }
         $locations = array_map(fn ($node) => ['location' => [$node['longitude'], $node['latitude']]], $nodes);
         try {
@@ -80,7 +86,7 @@ class FinalMileRouteService
                 ->post('https://api.geoapify.com/v1/routematrix?apiKey='.urlencode($key), ['mode' => 'drive', 'sources' => $locations, 'targets' => $locations]);
             $matrix = $response->successful() ? $response->json('sources_to_targets') : null;
             if (! is_array($matrix) || count($matrix) !== count($nodes)) {
-                return $this->unavailable($response->status() === 429 ? 'provider_quota' : 'matrix_unavailable');
+                return $this->unavailable($response->status() === 429 ? 'provider_quota' : 'matrix_unavailable', $nodes);
             }
             $order = [0];
             $remaining = range(1, count($nodes) - 1);
@@ -96,7 +102,7 @@ class FinalMileRouteService
                 $next = array_shift($remaining);
                 $cell = $matrix[$from][$next] ?? null;
                 if (! is_numeric($cell['time'] ?? null) || ! is_numeric($cell['distance'] ?? null)) {
-                    return $this->unavailable('unreachable_stop');
+                    return $this->unavailable('unreachable_stop', $nodes);
                 }
                 $distance += (int) $cell['distance'];
                 $duration += (int) $cell['time'];
@@ -130,7 +136,7 @@ class FinalMileRouteService
                 'map' => ['style_url' => '/api/v1/courier/map-style', 'attribution' => ['Geoapify', 'OpenStreetMap contributors', 'OpenMapTiles']],
             ];
         } catch (\Throwable) {
-            return $this->unavailable('provider_failure');
+            return $this->unavailable('provider_failure', $nodes);
         }
     }
 
@@ -173,8 +179,25 @@ class FinalMileRouteService
         return false;
     }
 
-    private function unavailable(string $reason): array
+    private function unavailable(string $reason, array $nodes = []): array
     {
-        return ['status' => 'unavailable', 'reason' => $reason, 'summary' => null, 'stops' => [], 'geojson' => null, 'map' => null];
+        $features = [];
+        if (count($nodes) > 1) {
+            $features[] = [
+                'type' => 'Feature',
+                'geometry' => ['type' => 'LineString', 'coordinates' => array_map(fn ($node) => [$node['longitude'], $node['latitude']], $nodes)],
+                'properties' => ['kind' => 'route_line', 'geometry_source' => 'stop_sequence_fallback'],
+            ];
+        }
+        foreach ($nodes as $sequence => $node) {
+            $features[] = ['type' => 'Feature', 'geometry' => ['type' => 'Point', 'coordinates' => [$node['longitude'], $node['latitude']]], 'properties' => ['kind' => $node['kind'], 'sequence' => $sequence]];
+        }
+
+        return [
+            'status' => 'unavailable', 'reason' => $reason, 'summary' => null,
+            'stops' => array_map(fn ($index, $node) => ['sequence' => $index, ...$node], array_keys($nodes), $nodes),
+            'geojson' => $features === [] ? null : ['type' => 'FeatureCollection', 'features' => $features],
+            'map' => $features === [] ? null : ['style_url' => '/api/v1/courier/map-style', 'attribution' => ['Geoapify', 'OpenStreetMap contributors', 'OpenMapTiles']],
+        ];
     }
 }

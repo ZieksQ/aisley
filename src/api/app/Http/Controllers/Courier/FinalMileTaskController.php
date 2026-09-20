@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Courier;
 
 use App\Enums\FulfillmentTaskStatus;
-use App\Enums\ShipmentEvidencePurpose;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\FinalMileEvidenceRequest;
@@ -64,7 +63,7 @@ class FinalMileTaskController extends Controller
 
     public function pickup(FinalMileEvidenceRequest $request, string $task, FulfillmentTransitionService $service): JsonResponse
     {
-        $evidence = $service->submitEvidence($request->user(), $task, $request->validated(), $request->idempotencyKey(), ShipmentEvidencePurpose::HubPickup);
+        $evidence = $service->submitHubPickupEvidence($request->user(), $task, $request->validated(), $request->idempotencyKey());
 
         return response()->json(['data' => [
             'task_id' => $evidence->delivery_task_id,

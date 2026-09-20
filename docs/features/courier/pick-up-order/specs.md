@@ -4,9 +4,9 @@ feature: courier-pick-up-order
 title: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.8
-status: Implemented first-mile pickup and shared final-mile handoff bridge with tracking-ID verification
-implementation_status: First-mile Courier API, route-manifest API, and final-mile companion backend are implemented; QR, tracking-ID, and Order-reference identifiers are accepted; Flutter remains external
+version: 2.9
+status: Implemented first-mile identifier pickup and task-bound final-mile hub handoff
+implementation_status: First-mile Courier API and route-manifest API retain QR/tracking-ID/Order-reference verification; final-mile hub handoff uses an accepted task and revision without identifier entry; Flutter remains external
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
 canonical: true
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
@@ -18,6 +18,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 > **Authority:** `docs/features/orders/logistics-pickups/spec.md` owns Seller-to-Logistics scheduling, and `docs/features/orders/waybill/spec.md` owns the shared waybill and QR identity. This document owns Courier pickup from Seller (first mile) and hub-pickup evidence submission (final mile). Logistics Update Status owns authoritative hub-handoff validation; Deliver Order owns subsequent travel.
 
 # Pick Up Order Specification
+
+## Final-mile handoff revision (2026-09-21)
+
+The final-mile hub pickup endpoint now accepts only `{"expected_revision": <current task revision>}` and a UUID `Idempotency-Key`. The Courier selects an accepted final-mile task and explicitly requests hub handoff confirmation without entering a parcel identifier, scanning a waybill, or sending tracking/Order references. Laravel derives the parcel, waybill, Courier, and Logistics hub from that task, stores `task_confirmation` evidence without an identifier hash, and returns pending evidence; only Logistics validation commits `picked_up_from_hub`. Identifier fields now return `422` on this endpoint. First-mile Seller pickup still uses its separate scan/manual identifier contract. The shared Courier tile proxy now serves Geoapify `osm-bright` for embedded maps. Older final-mile identifier and `osm-carto` wording below is superseded by this revision.
 
 ## WHAT
 - **Purpose:** Let the selected Courier review a scheduled bulk pickup, identify each assigned parcel, and confirm physical possession from the Seller.

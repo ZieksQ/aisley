@@ -31,6 +31,8 @@ function resolveUrl(path: string): string {
   return `${configuredOrigin}${path}`
 }
 
+export const apiUrl = resolveUrl
+
 export async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')

@@ -4,7 +4,7 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented final-mile task, batch route, movement, and delivery-context API
 implementation_status: Final-mile tasks, batch acceptance, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
 flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
@@ -16,6 +16,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ---
 
 # Deliver Order
+
+## Map and parcel-price revision (2026-09-21)
+
+The accepted final-mile batch route must display the Logistics hub as a labelled start marker, every delivery stop with known coordinates as a numbered circle, and a visible line in sequence when at least two coordinates exist. The API uses Geoapify Matrix for stop order and Geoapify Routing for the road `LineString`; the development Courier mockup renders these GeoJSON coordinates over authenticated Geoapify `osm-bright` raster tiles with MapLibre GL JS. A Routing or Matrix failure keeps a labelled straight-line fallback through known stops; missing coordinates are reported as unavailable and never fabricated. The Courier task projection includes `parcel.price` from the Order merchandise subtotal and `parcel.currency`, so the Courier can see the parcel's merchandise price without payment credentials. The Courier screen need not display parcel/waybill/Order identifiers for delivery actions. Older optional-map and route-deferred statements below describe the former baseline.
 
 ## Final-mile batch route revision (2026-09-20)
 
