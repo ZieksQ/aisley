@@ -18,6 +18,7 @@ use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductOptionValue;
+use App\Models\ProductReview;
 use App\Models\ProductVariant;
 use App\Models\Shop;
 use App\Models\ShopCategory;
@@ -103,10 +104,14 @@ class ProductSeeder extends Seeder
                         'category_id' => $category->id,
                         'thumbnail_disk' => 'public',
                         'thumbnail_path' => $media[0]['path'],
+                        // Ratings are projections of real published Product reviews, not demo seed data.
+                        'average_rating' => null,
+                        'review_count' => 0,
                         'status' => ProductStatus::Active,
                         'published_at' => now()->subDay(),
                     ],
                 );
+                $this->refreshReviewProjection($product);
 
                 $values = $this->seedOptions($product, $optionGroups);
                 $seededVariants = $this->seedVariants($product, $variants, $values);
@@ -122,6 +127,22 @@ class ProductSeeder extends Seeder
                 }
             }
         });
+    }
+
+    private function refreshReviewProjection(Product $product): void
+    {
+        $aggregate = ProductReview::query()
+            ->published()
+            ->where('product_id', $product->id)
+            ->selectRaw('COUNT(*) as review_count, AVG(rating) as average_rating')
+            ->first();
+
+        $product->forceFill([
+            'review_count' => (int) ($aggregate?->review_count ?? 0),
+            'average_rating' => $aggregate?->average_rating === null
+                ? null
+                : round((float) $aggregate->average_rating, 2),
+        ])->save();
     }
 
     /** @param array<string, ProductVariant> $variants */

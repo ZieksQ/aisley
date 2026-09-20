@@ -116,7 +116,7 @@ If a Courier rejects an offered first-mile or final-mile task, the task records 
 ### 1. Dashboard
 
 - **Purpose:** Show delivery notifications, available first-mile pickup requests, available final-mile delivery requests, and the Courier's active jobs.
-- **Owns:** Mobile read/aggregation, freshness indicators, task-detail navigation, and retry/empty/offline states.
+- **Owns:** Mobile read/aggregation, the dedicated notification inbox client, freshness indicators, task-detail navigation, and retry/empty/offline states. The Laravel notification API is implemented; the external Flutter client remains separate from this repository.
 - **Does not own:** Assignment authority, parcel state transitions, or a second source of truth for task data. Each row is scoped to the authenticated Courier and its approved Logistics relationship.
 - **Data shown:** The operational Order, parcel, waybill, pickup, destination, item, and delivery-instruction fields required for the offered or accepted task, plus server-provided provider-neutral `distance_km` and `estimated_duration_minutes` when available. Secrets, private evidence, raw storage paths, and unrelated personal data are excluded.
 

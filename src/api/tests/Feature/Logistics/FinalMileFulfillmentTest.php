@@ -221,6 +221,16 @@ class FinalMileFulfillmentTest extends TestCase
         $record = $this->getJson('/api/v1/logistics/update-status/records/'.$pickup['waybills'][0]['reference'])->json('data');
         $final = collect($record['tasks'])->firstWhere('leg', 'final_mile');
         $this->assertSame('delivery_assigned', $final['status']);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $courier->id,
+            'type' => 'courier-task.final-mile-offered',
+        ]);
+        $this->actingAs($courier)->getJson('/api/v1/courier/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.type', 'courier-task.final-mile-offered')
+            ->assertJsonPath('data.0.resource_type', 'delivery_task')
+            ->assertJsonPath('data.0.resource_id', $final['task_id'])
+            ->assertJsonPath('data.0.destination', '/final-mile-tasks/'.$final['task_id']);
 
         $this->actingAs($logistics)->getJson("/api/v1/logistics/deploy-rider/tasks/{$final['task_id']}/candidates")->assertOk()->assertJsonPath('data.0.courier_id', $courier->id);
         $this->actingAs($courier)->getJson("/api/v1/courier/tasks/{$final['task_id']}/delivery")->assertStatus(409)->assertJsonPath('code', 'TASK_NOT_ACCEPTED');
