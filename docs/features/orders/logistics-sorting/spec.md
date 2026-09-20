@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - Provide a dedicated **Sorting** workspace between **Receive at hub** and **Dispatch parcels**.
-- Let the owning Logistics account organize received parcels into physical hub lanes using waybill 1D Code 128 barcodes or manual references.
+- Let the owning Logistics account organize received parcels into physical hub lanes using waybill 1D Code 128 barcodes, waybill QR fallback, or manual references.
 - Keep physical work available during connectivity loss by saving captured scans in a device-local outbox.
 - Treat offline scans as provisional; only a successful API response commits `sorted_at_hub`.
 - Reuse the sole organization/sole hub, shared waybill, Parcel, Shipment, Delivery Task, and transition-service contracts.
@@ -90,7 +90,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - The Sorting page preloads the open session, lane definitions, and item references while online.
 - Operators normally scan parcel tracking IDs into automatic plan routing; clicking a lane or scanning its lane label enables an explicit manual override.
-- Camera scanning accepts only 1D Code 128 for tracking IDs and lane labels, searches densely for thin bars, and ignores 2D QR codes. Keep manual reference fallback and existing payload normalization.
+- Camera scanning searches densely for 1D Code 128 tracking IDs and lane labels first. If the bars cannot be decoded, it accepts only an Aisley waybill QR as a parcel identifier; unrelated QR values remain ignored. Keep manual reference fallback and existing payload normalization. Lane labels remain Code 128 only.
 - Store `client_id`, session, optional lane, automatic-routing flag, reference, expected Shipment revision, source, capture time, exception code, and reason in Dexie.
 - The local predicted lane is display guidance only. The API may route a queued capture differently if the plan, postal code, or lane changed before synchronization.
 - Prevent a duplicate parcel from being queued twice on the same device; do not silently replace pending work.
@@ -136,7 +136,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - [x] One open bounded session snapshots eligible received parcels and cannot close while work remains unresolved.
 - [x] Standard-lane scans commit `sorted_at_hub` through the shared transition service with immutable metadata.
 - [x] Exception-lane scans remain `received_at_hub`, require a valid reason code, and can be resolved by a later standard-lane scan.
-- [x] Offline Code 128/manual captures survive reload and sync with stable idempotency and partial-result handling.
+- [x] Offline Code 128/waybill QR/manual captures survive reload and sync with stable idempotency and partial-result handling.
 - [x] Duplicate, stale, foreign, inactive-lane, closed-session, and invalid-state captures are non-mutating.
 - [x] Lane labels are printable and scanner-selectable without a new dependency.
 - [x] Each Logistics organization can create and activate a tenant-scoped sort plan, create lanes on the Sort plan page, and map exact Buyer postal codes.

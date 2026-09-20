@@ -58,11 +58,20 @@ test('reads the Code 128 sorting lane label', () => {
   assert.equal(createWaybillReader().decodeBitmap(code128(reference, 2, 190, 60)).getText(), reference)
 })
 
-test('rejects the waybill QR even when it contains a valid tracking reference', () => {
-  const qr = new QRCodeWriter().encode('AISLEY:WB:1:AWB-ABC123DEF456GH78', BarcodeFormat.QR_CODE, 240, 240, new Map())
+test('uses the waybill QR when the Code 128 barcode cannot be read', () => {
+  const payload = 'AISLEY:WB:1:AWB-ABC123DEF456GH78'
+  const qr = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 240, 240, new Map())
   const pixels = new Uint8ClampedArray(240 * 240).fill(255)
   for (let y = 0; y < 240; y++) for (let x = 0; x < 240; x++) if (qr.get(x, y)) pixels[y * 240 + x] = 0
   assert.throws(() => createWaybillReader().decodeBitmap(bitmap(pixels, 240, 240)))
+  assert.equal(decodeWaybillCanvas(createWaybillReader(), pixelCanvas(pixels, 240, 240)).getText(), payload)
+})
+
+test('ignores QR codes that are not Aisley waybills', () => {
+  const qr = new QRCodeWriter().encode('https://example.com/unrelated', BarcodeFormat.QR_CODE, 240, 240, new Map())
+  const pixels = new Uint8ClampedArray(240 * 240).fill(255)
+  for (let y = 0; y < 240; y++) for (let x = 0; x < 240; x++) if (qr.get(x, y)) pixels[y * 240 + x] = 0
+  assert.throws(() => decodeWaybillCanvas(createWaybillReader(), pixelCanvas(pixels, 240, 240)))
 })
 
 const { cameraErrorMessage, startWaybillCamera } = compiled.exports
@@ -275,4 +284,30 @@ test('camera keeps running through real blank-frame conversion without mocked de
   assert.equal(fixture.stopped(), 0)
   assert.equal(fixture.video.srcObject, fixture.stream)
   controls.stop()
+})
+
+test('camera captures a waybill QR after Code 128 attempts miss', async (t) => {
+  const payload = 'AISLEY:WB:1:AWB-ABC123DEF456GH78'
+  const qr = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 240, 240, new Map())
+  const pixels = new Uint8ClampedArray(240 * 240).fill(255)
+  for (let y = 0; y < 240; y++) for (let x = 0; x < 240; x++) if (qr.get(x, y)) pixels[y * 240 + x] = 0
+  const fixture = cameraFixture(t, async () => fixture.stream)
+  fixture.video.videoWidth = 240
+  fixture.video.videoHeight = 240
+  const originalCanvas = BrowserCodeReader.createCaptureCanvas
+  BrowserCodeReader.createCaptureCanvas = () => pixelCanvas(pixels, 240, 240)
+  t.after(() => { BrowserCodeReader.createCaptureCanvas = originalCanvas })
+  const seen = []
+  const errors = []
+  let resolveScan
+  const scanned = new Promise((resolve) => { resolveScan = resolve })
+  const controls = await startWaybillCamera(fixture.video, (raw) => { seen.push(raw); resolveScan() }, new AbortController().signal, (error) => errors.push(error))
+  t.after(() => controls.stop())
+  await Promise.race([scanned, new Promise((_, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Waybill QR was not scanned within five seconds')), 5000)
+    t.after(() => clearTimeout(timeout))
+  })])
+  assert.ok(seen.includes(payload))
+  assert.deepEqual(errors, [])
+  assert.equal(fixture.stopped(), 0)
 })
