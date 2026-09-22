@@ -107,3 +107,5 @@ Format:
 ## 2026-09-22
 
 - Fixed the Courier development mockup pickup map to load its authenticated style from the configured API origin. Legacy ready pickup route manifests now return `pending` with stale GeoJSON and route summaries cleared while Laravel rebuilds them, then return the new ready geometry. Added a pending-to-ready API regression test and updated the pickup contract. Focused route tests pass 3 tests/59 assertions; Courier mockup build and lint pass. Live browser/map-provider verification remains unrun.
+
+- Excluded `maplibre-gl` from the Courier mockup's Vite dependency optimizer after its prebundled module resolved a worker file missing from `.vite/deps`; the installed package contains the worker beside its source module. Courier mockup build and lint pass, and Vite's optimizer no longer lists MapLibre among prebundled dependencies. Live browser map verification remains pending.
