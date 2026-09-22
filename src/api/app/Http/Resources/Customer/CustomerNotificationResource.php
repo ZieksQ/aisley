@@ -37,6 +37,10 @@ class CustomerNotificationResource extends JsonResource
             && preg_match('~^/products/[0-9a-f-]{36}#product-qa$~i', $destination) === 1) {
             return $destination;
         }
+        if ($this->type === 'customer-product-review.responded' && $destination !== null
+            && preg_match('~^/products/[0-9a-f-]{36}#product-reviews$~i', $destination) === 1) {
+            return $destination;
+        }
 
         return $orderId ? "/orders/{$orderId}" : "/notifications/{$this->id}";
     }

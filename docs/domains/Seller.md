@@ -205,8 +205,8 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 ### 13. Review Management
 
 - **Purpose:** Read and reply to verified Customer reviews on the Seller's Products.
-- **Owns:** Seller-scoped review list, public reply, and safe moderation/display states.
-- **Boundary:** Review eligibility and Customer authorship belong to the Customer review domain; Seller cannot edit the Customer's rating or review text.
+- **Owns:** Implemented Seller-scoped queue/detail and protected photo reads, bounded filters, one immutable idempotent public Shop response, and deterministic Seller/Customer alerts.
+- **Boundary:** Review eligibility and Customer authorship belong to the Customer review domain; Seller cannot edit the Customer's rating, text, photos, or aggregate contribution. Response editing/deletion, moderation/reporting, and dashboard review aggregates remain deferred.
 
 ### 14. Vacation Mode
 
@@ -250,7 +250,7 @@ Implemented Seller foundation:
 
 Deferred or dependent Seller operations:
 
-- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics receipt/sorting/dispatch, independent final-mile offers, QR handoff evidence, and Logistics-validated delivery completion. Photo/signature proof, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred. The owning-Seller Product Q&A queue/detail UI, answer API, and notifications are implemented; answer editing/history and moderation remain deferred by the Product Q&A contract.
+- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics receipt/sorting/dispatch, independent final-mile offers, QR hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Seller Review Management and Product Q&A queue/detail/reply flows plus notifications are implemented; response/answer editing, history, and moderation remain deferred. Financial reports/settlement, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred.
 
 Future status-like columns must be stored as strings and cast to PHP enums. Future fulfillment migrations must preserve one Seller/one Shop tenancy, immutable Order snapshots, the shared high-level OrderStatus contract, and the separate Shipment/Delivery Task milestones.
 

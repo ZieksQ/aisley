@@ -21,6 +21,8 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { NotificationDetailPage } from './pages/NotificationDetailPage'
 import { ProductQuestionDetailPage } from './pages/ProductQuestionDetailPage'
 import { ProductQuestionsPage } from './pages/ProductQuestionsPage'
+import { ProductReviewDetailPage } from './pages/ProductReviewDetailPage'
+import { ProductReviewsPage } from './pages/ProductReviewsPage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FinancePage } from './pages/FinancePage'
 
@@ -46,6 +48,8 @@ function App() {
           <Route element={<NotificationDetailPage />} path="/notifications/:notificationId" />
           <Route element={<ProductQuestionsPage />} path="/product-questions" />
           <Route element={<ProductQuestionDetailPage />} path="/products/:productId/questions/:questionId" />
+          <Route element={<ProductReviewsPage />} path="/reviews" />
+          <Route element={<ProductReviewDetailPage />} path="/reviews/:reviewId" />
           <Route element={<ProductsPage />} path="/products" />
           <Route element={<ProductFormPage />} path="/products/new" />
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />

@@ -173,7 +173,12 @@ function ProductReviewItem({ review }: { review: ProductReview }) {
       ) : null}
       {review.sellerResponse ? (
         <div className="mt-4 border-l-2 border-[#C9BBCD] pl-4">
-          <p className="text-sm font-semibold text-[#4C1268]">Seller response</p>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-[#4C1268]">Response from {review.sellerResponse.shopName}</p>
+            <time dateTime={review.sellerResponse.publishedAt ?? undefined} className="text-xs text-[#746978]">
+              {formatDate(review.sellerResponse.publishedAt)}
+            </time>
+          </div>
           <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#4F4453]">{review.sellerResponse.body}</p>
         </div>
       ) : null}

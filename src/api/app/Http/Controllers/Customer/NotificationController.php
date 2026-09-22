@@ -68,6 +68,7 @@ class NotificationController extends Controller
                 'customer-order.status-changed',
                 'customer-promo.ongoing',
                 'customer-product-qa.answered',
+                'customer-product-review.responded',
             ])
             ->where(function ($query) use ($statuses, $statusExpression): void {
                 $query->where('type', '!=', 'customer-order.status-changed')

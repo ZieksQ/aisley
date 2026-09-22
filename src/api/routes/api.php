@@ -83,6 +83,8 @@ use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController;
+use App\Http\Controllers\Seller\ProductReviewController as SellerProductReviewController;
+use App\Http\Controllers\Seller\ProductReviewImageController as SellerProductReviewImageController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
@@ -295,6 +297,21 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         ->whereUuid('question')
         ->middleware('throttle:seller-product-qa-answer')
         ->name('product-questions.answer');
+    Route::get('/reviews', [SellerProductReviewController::class, 'index'])
+        ->middleware('throttle:120,1')
+        ->name('reviews.index');
+    Route::get('/reviews/{review}', [SellerProductReviewController::class, 'show'])
+        ->whereUuid('review')
+        ->middleware('throttle:120,1')
+        ->name('reviews.show');
+    Route::post('/reviews/{review}/response', [SellerProductReviewController::class, 'respond'])
+        ->whereUuid('review')
+        ->middleware('throttle:seller-product-review-response')
+        ->name('reviews.response.store');
+    Route::get('/reviews/{review}/images/{image}', SellerProductReviewImageController::class)
+        ->whereUuid(['review', 'image'])
+        ->middleware('throttle:120,1')
+        ->name('reviews.images.show');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::post('/product-uploads', [SellerProductUploadController::class, 'store'])->middleware('throttle:30,1')->name('product-uploads.store');
     Route::get('/product-uploads/{productUpload}', [SellerProductUploadController::class, 'show'])->whereUuid('productUpload')->name('product-uploads.show');

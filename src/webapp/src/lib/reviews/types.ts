@@ -15,8 +15,10 @@ export type ProductReview = {
   createdAt: string | null;
   photos: ProductReviewPhoto[];
   sellerResponse: {
+    id: string;
+    shopName: string;
     body: string;
-    createdAt: string | null;
+    publishedAt: string | null;
   } | null;
 };
 

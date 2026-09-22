@@ -59,6 +59,12 @@ class SellerNotificationResource extends JsonResource
                 ? $destination
                 : '/notifications/'.$this->id;
         }
+        if ($this->type === 'seller-product-review.published') {
+            return $destination !== null
+                && preg_match('~^/reviews/[0-9a-f-]{36}$~i', $destination) === 1
+                ? $destination
+                : '/notifications/'.$this->id;
+        }
         foreach (['/orders/', '/orders', '/products/', '/account', '/inventory/', '/low-stock-alerts/'] as $allowed) {
             if ($destination !== null && str_starts_with($destination, $allowed)) {
                 return $destination;
