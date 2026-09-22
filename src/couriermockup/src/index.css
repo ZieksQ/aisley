@@ -742,19 +742,21 @@ input {
   color: #fff;
   font-size: 0.72rem;
   font-weight: 750;
-  box-shadow: 0 2px 6px rgb(49 18 63 / 24%);
+  box-shadow: 0 0 0 3px rgb(230 0 122 / 18%), 0 0 12px rgb(230 0 122 / 55%);
 }
 
 .route-hub-marker {
-  padding: 5px 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
   border: 2px solid #fff;
   border-radius: 6px;
   background: #4c1268;
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgb(49 18 63 / 24%);
-  white-space: nowrap;
+  box-shadow: 0 0 0 3px rgb(76 18 104 / 22%), 0 0 12px rgb(76 18 104 / 65%);
 }
 
 .route-stop-list {

@@ -149,6 +149,13 @@ export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }
           if (line) {
             map.addSource('pickup-route-line', { type: 'geojson', data: line })
             map.addLayer({
+              id: 'pickup-route-line-glow',
+              type: 'line',
+              source: 'pickup-route-line',
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+              paint: { 'line-color': '#e6007a', 'line-width': 17, 'line-opacity': 0.5, 'line-blur': 6 },
+            })
+            map.addLayer({
               id: 'pickup-route-line-casing',
               type: 'line',
               source: 'pickup-route-line',
@@ -183,7 +190,7 @@ export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }
             if (stop.kind === 'hub' && stop.sequence === 0) {
               const marker = document.createElement('div')
               marker.className = 'route-hub-marker'
-              marker.textContent = 'Logistics start / end'
+              marker.textContent = 'L'
               marker.setAttribute('aria-label', 'Logistics hub, route start and end')
               new maplibregl.Marker({ element: marker, anchor: 'bottom' }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
               return

@@ -70,6 +70,11 @@ export function FinalMileRouteMap({ scheduleId, token }: { scheduleId: string; t
                 data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } },
               })
               map.addLayer({
+                id: 'final-mile-line-glow', type: 'line', source: 'final-mile-line',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#e6007a', 'line-width': 17, 'line-opacity': 0.5, 'line-blur': 6 },
+              })
+              map.addLayer({
                 id: 'final-mile-line-casing', type: 'line', source: 'final-mile-line',
                 layout: { 'line-cap': 'round', 'line-join': 'round' },
                 paint: { 'line-color': '#fff', 'line-width': 9 },
@@ -86,7 +91,7 @@ export function FinalMileRouteMap({ scheduleId, token }: { scheduleId: string; t
               bounds.extend(position)
               const marker = document.createElement('div')
               marker.className = stop.kind === 'hub' ? 'route-hub-marker' : 'route-number-marker'
-              marker.textContent = stop.kind === 'hub' ? 'Logistics start' : String(stop.sequence)
+              marker.textContent = stop.kind === 'hub' ? 'L' : String(stop.sequence)
               marker.setAttribute('aria-label', stop.kind === 'hub' ? 'Logistics hub, route start' : `Delivery stop ${stop.sequence}`)
               new maplibre.Marker({ element: marker, anchor: stop.kind === 'hub' ? 'bottom' : 'center' }).setLngLat(position).addTo(map)
             })
