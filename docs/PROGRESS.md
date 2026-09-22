@@ -103,3 +103,13 @@ Format:
 - Revised the Customer Product Reviews and Ratings target spec against the delivered-order and Product foundations. Defined one verified review per delivered Order Item, safe public listing and aggregates, optional images under the shared upload policy, and deferred video/edit/moderation boundaries. Clarified that review persistence/API/UI are not yet implemented and seeded rating values are not verified reviews; documentation only.
 
 - Implemented Customer Product Reviews and Ratings MVP: additive UUID review/image tables, delivered Order Item ownership and one-review uniqueness, transactional published-review aggregates, safe public Product review/photo reads, strict image validation/storage metadata, and Customer Order Detail/Product Detail UI with accessible rating, pagination, upload progress, retry, and empty/error states. Reset catalog seed rating projections so demo values are not presented as verified reviews. Focused review coverage passes 3 tests/29 assertions; existing order/fulfillment coverage passes 19 tests/459 assertions; PostgreSQL applied both pending local migrations successfully; webapp lint, TypeScript, and webpack production build pass. The default Turbopack build remains blocked in this environment by a process-binding permission error, and the full suite still has unrelated pre-existing recently-viewed/filesystem failures.
+
+## 2026-09-22
+
+- Fixed the Courier development mockup pickup map to load its authenticated style from the configured API origin. Legacy ready pickup route manifests now return `pending` with stale GeoJSON and route summaries cleared while Laravel rebuilds them, then return the new ready geometry. Added a pending-to-ready API regression test and updated the pickup contract. Focused route tests pass 3 tests/59 assertions; Courier mockup build and lint pass. Live browser/map-provider verification remains unrun.
+
+- Excluded `maplibre-gl` from the Courier mockup's Vite dependency optimizer after its prebundled module resolved a worker file missing from `.vite/deps`; the installed package contains the worker beside its source module. Courier mockup build and lint pass, and Vite's optimizer no longer lists MapLibre among prebundled dependencies. Live browser map verification remains pending.
+
+- Updated both Courier mockup route maps to show the Logistics hub as an accessible `L` marker and added a restrained glow to route lines and stop markers. Courier mockup lint, TypeScript, and Vite production build pass; live map rendering remains unverified.
+
+- Refined the shared Courier mockup Logistics `L` marker to a circle in both route maps while retaining its glow and accessible label.

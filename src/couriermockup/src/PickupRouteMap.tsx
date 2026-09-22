@@ -1,7 +1,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Button } from '@aisley/ui'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import { request } from './lib/api'
+import { apiUrl, request } from './lib/api'
 import type { PickupRouteManifest, PickupRouteManifestResponse } from './types'
 
 const PENDING_POLL_INTERVAL_MS = 2_000
@@ -129,7 +129,7 @@ export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }
       try {
         map = new maplibregl.Map({
           container,
-          style: manifest.map.style_url,
+          style: apiUrl(manifest.map.style_url),
           center: [manifest.stops[0].longitude, manifest.stops[0].latitude],
           zoom: 11,
           transformRequest: (url: string) => url.includes('/api/v1/courier/map-')
@@ -148,6 +148,13 @@ export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }
           const line = routeLine(manifest)
           if (line) {
             map.addSource('pickup-route-line', { type: 'geojson', data: line })
+            map.addLayer({
+              id: 'pickup-route-line-glow',
+              type: 'line',
+              source: 'pickup-route-line',
+              layout: { 'line-cap': 'round', 'line-join': 'round' },
+              paint: { 'line-color': '#e6007a', 'line-width': 17, 'line-opacity': 0.5, 'line-blur': 6 },
+            })
             map.addLayer({
               id: 'pickup-route-line-casing',
               type: 'line',
@@ -183,7 +190,7 @@ export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }
             if (stop.kind === 'hub' && stop.sequence === 0) {
               const marker = document.createElement('div')
               marker.className = 'route-hub-marker'
-              marker.textContent = 'Logistics start / end'
+              marker.textContent = 'L'
               marker.setAttribute('aria-label', 'Logistics hub, route start and end')
               new maplibregl.Marker({ element: marker, anchor: 'bottom' }).setLngLat([stop.longitude, stop.latitude]).addTo(map)
               return

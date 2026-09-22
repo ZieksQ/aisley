@@ -24,7 +24,6 @@ use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\Order;
-use App\Models\PickupRouteManifest;
 use App\Models\PickupSchedule;
 use App\Models\Product;
 use App\Models\Shop;
@@ -660,18 +659,6 @@ class LogisticsPickupWaybillTest extends TestCase
             && $request['waypoints'] === '14.65,121.03|14.6,120.98|14.65,121.03'
             && $request['mode'] === 'drive');
 
-        $manifest = PickupRouteManifest::query()->where('pickup_schedule_id', $schedule['id'])->sole();
-        $legacyGeojson = $manifest->geojson;
-        $legacyGeojson['features'][0]['properties'] = ['kind' => 'stop_sequence_visual'];
-        $manifest->update(['coordinate_fingerprint' => 'legacy', 'geojson' => $legacyGeojson]);
-        Queue::fake();
-        $this->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")
-            ->assertOk()
-            ->assertJsonPath('data.status', 'ready')
-            ->assertJsonPath('data.geojson.features.0.geometry.type', 'LineString')
-            ->assertJsonPath('data.geojson.features.0.properties.kind', 'stop_sequence_visual');
-        Queue::assertPushed(BuildPickupRouteManifestJob::class, fn ($job): bool => $job->scheduleId === $schedule['id'] && $job->revision === 1);
-
         [$foreignUser, $foreignOrganization, $foreignHub] = $this->logistics('Foreign Route Logistics', 'Cebu City', 'Cebu');
         $foreignCourier = $this->courier($foreignOrganization->id, $foreignHub->id);
         $this->actingAs($foreignCourier)->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")->assertNotFound();
@@ -687,6 +674,66 @@ class LogisticsPickupWaybillTest extends TestCase
         $tileRequests = Http::recorded()->filter(fn (array $pair): bool => str_contains($pair[0]->url(), 'maps.geoapify.com'));
         $this->assertCount(1, $tileRequests);
         unset($foreignUser);
+    }
+
+    public function test_legacy_pickup_route_returns_pending_without_stale_geometry_until_rebuilt(): void
+    {
+        [$seller, $shop] = $this->sellerShop(true);
+        $order = $this->order($shop);
+        $order->update(['status' => OrderStatus::SellerProcessing]);
+        [$logistics, $organization, $hub] = $this->logistics('Legacy Route Logistics', 'Makati City', 'Metro Manila', true);
+        $courier = $this->courier($organization->id, $hub->id);
+        config()->set('services.geoapify.server_key', 'server-secret');
+        Http::fake([
+            'api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [
+                [['distance' => 0, 'time' => 0], ['distance' => 5400, 'time' => 720]],
+                [['distance' => 5100, 'time' => 680], ['distance' => 0, 'time' => 0]],
+            ]]),
+            'api.geoapify.com/v1/routing*' => Http::response(['type' => 'FeatureCollection', 'features' => [[
+                'type' => 'Feature',
+                'geometry' => ['type' => 'LineString', 'coordinates' => [[121.03, 14.65], [120.98, 14.6], [121.03, 14.65]]],
+                'properties' => [],
+            ]]]),
+        ]);
+        $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/seller/orders/pickup-requests', [
+                'order_ids' => [$order->id],
+                'pickup_address_id' => $seller->addresses()->sole()->id,
+                'logistics_organization_id' => $organization->id,
+            ])->assertOk();
+        $schedule = $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => [$order->id],
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+                'ends_at' => now()->addHours(4)->toISOString(),
+            ])->assertCreated()->json('data');
+
+        $manifest = app(BuildPickupRouteManifest::class)->handle($schedule['id'], 1);
+        $this->assertSame('ready', $manifest->status->value);
+        $legacyGeojson = $manifest->geojson;
+        $legacyGeojson['features'][0]['properties'] = ['kind' => 'stop_sequence_visual'];
+        $manifest->update(['coordinate_fingerprint' => 'legacy', 'geojson' => $legacyGeojson]);
+
+        Queue::fake();
+        $routeUrl = "/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest";
+        $this->actingAs($courier)->getJson($routeUrl)
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.reason', 'calculation_pending')
+            ->assertJsonPath('data.geojson', null)
+            ->assertJsonPath('data.stops', [])
+            ->assertJsonPath('data.summary.distance_metres', null)
+            ->assertJsonPath('data.calculated_at', null);
+        Queue::assertPushed(BuildPickupRouteManifestJob::class, fn ($job): bool => $job->scheduleId === $schedule['id'] && $job->revision === 1);
+
+        app(BuildPickupRouteManifest::class)->handle($schedule['id'], 1);
+        $this->getJson($routeUrl)
+            ->assertOk()
+            ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.reason', null)
+            ->assertJsonPath('data.geojson.features.0.properties.kind', 'route_line')
+            ->assertJsonPath('data.geojson.features.0.properties.geometry_source', 'geoapify_routing');
     }
 
     public function test_route_manifest_uses_address_defaults_and_fails_honestly_when_none_exist(): void
