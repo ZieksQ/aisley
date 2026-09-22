@@ -80,7 +80,12 @@ class LuzonLogisticsSeederTest extends TestCase
         foreach (LogisticsOrganization::query()->with('hub')->get() as $organization) {
             $this->assertSame(5, $organization->courierAffiliations()->count());
             $this->assertSame(5, $organization->courierAffiliations()->where('status', CourierAffiliationStatus::Approved)->where('logistics_hub_id', $organization->hub->id)->count());
+            $this->assertSame(1, $organization->courierAffiliations()->where('can_drive_company_truck', true)->count());
         }
+
+        $qualifiedAffiliation = $couriers->firstWhere('email', 'courier.luzon01.01@example.com')?->courierLogisticsAffiliation;
+        $this->assertNotNull($qualifiedAffiliation);
+        $qualifiedAffiliation->update(['can_drive_company_truck' => false]);
 
         $this->seed(LuzonLogisticsSeeder::class);
 
@@ -89,6 +94,20 @@ class LuzonLogisticsSeederTest extends TestCase
         $this->assertSame(8, LogisticsHub::query()->count());
         $this->assertSame(40, User::query()->where('role', UserRole::Courier)->whereHas('courierProfile.vehicles')->count());
         $this->assertSame(40, User::query()->where('role', UserRole::Courier)->whereHas('courierLogisticsAffiliation', fn ($query) => $query->where('status', CourierAffiliationStatus::Approved))->count());
+        $this->assertDatabaseCount('courier_logistics_affiliations', 40);
+        $this->assertSame(8, User::query()->where('role', UserRole::Courier)->whereHas('courierLogisticsAffiliation', fn ($query) => $query->where('can_drive_company_truck', true))->count());
+        $this->assertDatabaseHas('courier_logistics_affiliations', [
+            'id' => $qualifiedAffiliation->id,
+            'can_drive_company_truck' => true,
+            'truck_driver_revision' => 2,
+        ]);
+
+        $this->seed(LuzonLogisticsSeeder::class);
+        $this->assertDatabaseHas('courier_logistics_affiliations', [
+            'id' => $qualifiedAffiliation->id,
+            'can_drive_company_truck' => true,
+            'truck_driver_revision' => 2,
+        ]);
     }
 
     public function test_luzon_fixture_is_blocked_in_production(): void

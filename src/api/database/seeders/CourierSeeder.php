@@ -48,7 +48,7 @@ class CourierSeeder extends Seeder
                 'province' => config('courier.initial.province', 'Metro Manila'),
                 'region' => config('courier.initial.region', 'National Capital Region (NCR)'),
                 'postal_code' => config('courier.initial.postal_code', '1200'),
-            ], $organization);
+            ], $organization, canDriveCompanyTruck: true);
         }
 
         $count = min(100, max(0, (int) config('courier.generic.count', 20)));
@@ -73,6 +73,7 @@ class CourierSeeder extends Seeder
                     'postal_code' => '1200',
                 ],
                 $organization,
+                canDriveCompanyTruck: $number === 1,
             );
         }
     }
@@ -93,7 +94,7 @@ class CourierSeeder extends Seeder
     }
 
     /** @param array<string, mixed> $details */
-    private function seedCourier(string $email, string $password, array $details, LogisticsOrganization $organization): void
+    private function seedCourier(string $email, string $password, array $details, LogisticsOrganization $organization, bool $canDriveCompanyTruck): void
     {
         $courier = User::query()->firstOrCreate(
             ['email' => $email, 'role' => UserRole::Courier],
@@ -115,16 +116,27 @@ class CourierSeeder extends Seeder
             || $affiliation->logistics_organization_id !== $organization->id
             || $affiliation->logistics_hub_id !== $organization->hub->id
             || $affiliation->status !== CourierAffiliationStatus::Approved;
+        $requiresTruckQualification = $canDriveCompanyTruck
+            && ! $affiliation->can_drive_company_truck;
 
-        if ($requiresApproval) {
-            $affiliation->fill([
+        if ($requiresApproval || $requiresTruckQualification) {
+            $attributes = [
                 'logistics_organization_id' => $organization->id,
                 'logistics_hub_id' => $organization->hub->id,
                 'status' => CourierAffiliationStatus::Approved,
                 'reviewer_id' => $organization->user_id,
                 'reviewed_at' => now(),
                 'rejection_reason' => null,
-            ])->save();
+            ];
+
+            if ($requiresTruckQualification) {
+                $attributes['can_drive_company_truck'] = true;
+                $attributes['truck_driver_revision'] = $affiliation->exists
+                    ? ((int) $affiliation->truck_driver_revision) + 1
+                    : 1;
+            }
+
+            $affiliation->fill($attributes)->save();
         }
     }
 }

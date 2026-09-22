@@ -3,7 +3,7 @@ role: Logistics and Courier
 feature: Company Truck Linehaul Dispatch
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Implemented
 canonical: true
 source_issue: https://github.com/ZieksQ/aisley/issues/97
@@ -57,4 +57,6 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 
 - `CompanyTruckLinehaulTest` covers exact capacity, overflow, destination approval, physical departure/receipt, ownership at a visiting hub, empty return, tenant isolation, unqualified-driver rejection, and reservation release.
 - `LinehaulTest` covers new trip-backed manifests plus historical receipt behavior and rejects legacy departure bypasses.
+- The company-truck migration applies successfully on PostgreSQL with its self-referencing return-trip foreign key added only after the trip table's primary key exists.
+- Development seeders qualify the configured lead Courier and the first generic Courier, plus one deterministic Courier in each Luzon Logistics organization, without repeatedly advancing capability revisions.
 - Logistics type-check, lint, and production build verify the three protected operational surfaces. Browser/device checks and PostgreSQL worker-level concurrency remain release gates when not recorded in `docs/PROGRESS.md`.

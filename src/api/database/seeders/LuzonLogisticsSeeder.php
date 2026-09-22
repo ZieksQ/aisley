@@ -260,22 +260,34 @@ class LuzonLogisticsSeeder extends Seeder
             }
 
             $affiliation = $courier->courierLogisticsAffiliation()->firstOrNew();
+            $shouldQualifyForCompanyTruck = $courierNumber === 1;
             $requiresApproval = ! $affiliation->exists
                 || $affiliation->logistics_organization_id !== $organization->id
                 || $affiliation->logistics_hub_id !== $operationalHub->id
                 || $affiliation->status !== CourierAffiliationStatus::Approved
                 || $affiliation->reviewer_id !== $organization->user_id
                 || $affiliation->reviewed_at === null;
+            $requiresTruckQualification = $shouldQualifyForCompanyTruck
+                && ! $affiliation->can_drive_company_truck;
 
-            if ($requiresApproval) {
-                $affiliation->fill([
+            if ($requiresApproval || $requiresTruckQualification) {
+                $attributes = [
                     'logistics_organization_id' => $organization->id,
                     'logistics_hub_id' => $operationalHub->id,
                     'status' => CourierAffiliationStatus::Approved,
                     'reviewer_id' => $organization->user_id,
                     'reviewed_at' => now(),
                     'rejection_reason' => null,
-                ])->save();
+                ];
+
+                if ($requiresTruckQualification) {
+                    $attributes['can_drive_company_truck'] = true;
+                    $attributes['truck_driver_revision'] = $affiliation->exists
+                        ? ((int) $affiliation->truck_driver_revision) + 1
+                        : 1;
+                }
+
+                $affiliation->fill($attributes)->save();
             }
         }
     }

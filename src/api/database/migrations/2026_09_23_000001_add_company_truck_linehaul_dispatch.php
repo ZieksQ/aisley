@@ -38,7 +38,7 @@ return new class extends Migration
             $table->foreignUuid('to_hub_id')->constrained('logistics_hubs')->restrictOnDelete();
             $table->foreignUuid('company_truck_id')->constrained('company_trucks')->restrictOnDelete();
             $table->foreignUuid('driver_id')->constrained('users')->restrictOnDelete();
-            $table->foreignUuid('parent_trip_id')->nullable()->constrained('linehaul_trips')->restrictOnDelete();
+            $table->uuid('parent_trip_id')->nullable();
             $table->foreignUuid('linehaul_manifest_id')->nullable()->unique()->constrained('linehaul_manifests')->restrictOnDelete();
             $table->foreignUuid('requested_by')->constrained('users')->restrictOnDelete();
             $table->foreignUuid('decided_by')->nullable()->constrained('users')->restrictOnDelete();
@@ -61,6 +61,13 @@ return new class extends Migration
             $table->index(['to_hub_id', 'status', 'scheduled_for']);
             $table->index(['driver_id', 'status']);
             $table->index(['company_truck_id', 'status']);
+        });
+
+        // PostgreSQL must see the completed primary-key constraint before a new
+        // table can reference itself. Adding this foreign key inside the create
+        // blueprint can otherwise be compiled before the primary key exists.
+        Schema::table('linehaul_trips', function (Blueprint $table): void {
+            $table->foreign('parent_trip_id')->references('id')->on('linehaul_trips')->restrictOnDelete();
         });
 
         Schema::create('linehaul_trip_shipments', function (Blueprint $table): void {
