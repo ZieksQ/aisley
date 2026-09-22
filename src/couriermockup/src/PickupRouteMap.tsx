@@ -1,7 +1,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Button } from '@aisley/ui'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import { request } from './lib/api'
+import { apiUrl, request } from './lib/api'
 import type { PickupRouteManifest, PickupRouteManifestResponse } from './types'
 
 const PENDING_POLL_INTERVAL_MS = 2_000
@@ -129,7 +129,7 @@ export const PickupRouteMap = memo(function PickupRouteMap({ scheduleId, token }
       try {
         map = new maplibregl.Map({
           container,
-          style: manifest.map.style_url,
+          style: apiUrl(manifest.map.style_url),
           center: [manifest.stops[0].longitude, manifest.stops[0].latitude],
           zoom: 11,
           transformRequest: (url: string) => url.includes('/api/v1/courier/map-')

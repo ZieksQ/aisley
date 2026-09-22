@@ -30,7 +30,21 @@ class PickupRouteManifestController extends Controller
                 'status' => PickupRouteManifestStatus::Pending,
             ]);
         }
-        if ($manifest->status === PickupRouteManifestStatus::Pending || $this->usesLegacyGeometry($manifest)) {
+        if ($this->usesLegacyGeometry($manifest)) {
+            $manifest->update([
+                'status' => PickupRouteManifestStatus::Pending,
+                'coordinate_source' => null,
+                'coordinate_fingerprint' => null,
+                'estimated_credits' => 0,
+                'total_distance_metres' => null,
+                'total_duration_seconds' => null,
+                'stops' => null,
+                'geojson' => null,
+                'calculated_at' => null,
+                'failure_reason' => null,
+            ]);
+        }
+        if ($manifest->status === PickupRouteManifestStatus::Pending) {
             BuildPickupRouteManifestJob::dispatch($record->id, $record->revision);
             $manifest->refresh();
         }
