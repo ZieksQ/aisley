@@ -751,7 +751,7 @@ input {
   height: 28px;
   place-items: center;
   border: 2px solid #fff;
-  border-radius: 6px;
+  border-radius: 50%;
   background: #4c1268;
   color: #fff;
   font-size: 0.9rem;

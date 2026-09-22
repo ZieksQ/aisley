@@ -111,3 +111,5 @@ Format:
 - Excluded `maplibre-gl` from the Courier mockup's Vite dependency optimizer after its prebundled module resolved a worker file missing from `.vite/deps`; the installed package contains the worker beside its source module. Courier mockup build and lint pass, and Vite's optimizer no longer lists MapLibre among prebundled dependencies. Live browser map verification remains pending.
 
 - Updated both Courier mockup route maps to show the Logistics hub as an accessible `L` marker and added a restrained glow to route lines and stop markers. Courier mockup lint, TypeScript, and Vite production build pass; live map rendering remains unverified.
+
+- Refined the shared Courier mockup Logistics `L` marker to a circle in both route maps while retaining its glow and accessible label.
