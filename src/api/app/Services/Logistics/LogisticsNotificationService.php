@@ -9,6 +9,7 @@ use App\Models\CompletionIntent;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DeliveryTask;
 use App\Models\DeliveryTaskOffer;
+use App\Models\LinehaulTrip;
 use App\Models\SellerPickupRequest;
 use App\Models\ShipmentEvidence;
 use App\Models\User;
@@ -29,6 +30,7 @@ class LogisticsNotificationService
         'logistics-evidence.submitted',
         'logistics-completion.requested',
         'logistics-courier.vehicle-updated',
+        'logistics-linehaul.return-scheduled',
     ];
 
     /** @return MorphMany<DatabaseNotification> */
@@ -92,6 +94,25 @@ class LogisticsNotificationService
     public function queueVehicleUpdated(string $vehicleId, string $courierId, int $revision, array $changedFields): void
     {
         $this->afterCommit(fn () => $this->deliverVehicleUpdated($vehicleId, $courierId, $revision, $changedFields));
+    }
+
+    public function queueLinehaulReturn(LinehaulTrip|string $trip): void
+    {
+        $tripId = $trip instanceof LinehaulTrip ? (string) $trip->id : $trip;
+        $this->afterCommit(function () use ($tripId): void {
+            $record = LinehaulTrip::query()->whereKey($tripId)->first();
+            if ($record === null) {
+                return;
+            }
+            $recipient = $this->recipient($record->owner_logistics_organization_id, $record->home_hub_id);
+            if ($recipient !== null) {
+                $this->dispatch($recipient, 'logistics-linehaul.return-scheduled', "linehaul-return:{$record->id}:revision:{$record->revision}", $record->updated_at, [
+                    'trip_id' => $record->id,
+                    'title' => 'Return linehaul scheduled',
+                    'summary' => 'The receiving Logistics partner scheduled your driver and truck to return home.',
+                ]);
+            }
+        });
     }
 
     private function deliverPickup(string $id): void
@@ -311,6 +332,7 @@ class LogisticsNotificationService
             'logistics-evidence.submitted' => $this->evidenceContext($data, $orgId, $hubId),
             'logistics-completion.requested' => $this->completionContext($data, $orgId, $hubId),
             'logistics-courier.vehicle-updated' => $this->vehicleContext($data, $orgId, $hubId),
+            'logistics-linehaul.return-scheduled' => $this->linehaulContext($data, $orgId, $hubId),
             default => $this->emptyContext(),
         };
     }
@@ -374,6 +396,15 @@ class LogisticsNotificationService
         return $affiliation ? $this->known('courier_vehicle', (string) ($data['vehicle_id'] ?? $data['resource_id'] ?? ''), "/couriers/{$id}/vehicle") : $this->emptyContext();
     }
 
+    /** @return array{resource_type: string|null, resource_id: string|null, destination: string|null} */
+    private function linehaulContext(array $data, string $orgId, string $hubId): array
+    {
+        $id = $this->uuid($data['trip_id'] ?? null);
+        $trip = $id === null ? null : LinehaulTrip::query()->whereKey($id)->where('owner_logistics_organization_id', $orgId)->where('home_hub_id', $hubId)->first();
+
+        return $trip ? $this->known('linehaul_trip', $trip->id, '/dispatch') : $this->emptyContext();
+    }
+
     private function scopedTask(?string $id, string $orgId, string $hubId): ?DeliveryTask
     {
         return $id === null ? null : DeliveryTask::query()->whereKey($id)->whereHas('shipment', fn ($query) => $query->where('current_logistics_organization_id', $orgId)->where('current_hub_id', $hubId))->with('shipment.parcel.waybill')->first();
@@ -413,6 +444,7 @@ class LogisticsNotificationService
             'logistics-evidence.submitted' => ['Evidence submitted', $this->evidenceSummary($data)],
             'logistics-completion.requested' => ['Delivery completion requested', 'A Courier requested delivery completion validation.'],
             'logistics-courier.vehicle-updated' => ['Courier vehicle updated', 'An affiliated Courier updated vehicle details or registration evidence.'],
+            'logistics-linehaul.return-scheduled' => ['Return linehaul scheduled', 'The receiving Logistics partner scheduled your driver and truck to return home.'],
             default => ['Notification', 'An update is available.'],
         };
 

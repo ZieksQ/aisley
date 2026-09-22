@@ -16,6 +16,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Courier Notifications
 
+## Company-truck linehaul producer — 2026-09-23
+
+`courier-linehaul.trip-scheduled` notifies the assigned qualified driver when a visiting truck's return is committed. It exposes a safe `linehaul_trip` reference only for that assigned Courier and is informational, with no accept/reject action. The external mobile client can fetch current assignments from `GET /api/v1/courier/linehaul-trips`. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
+
 ## WHAT
 
 - Give an approved Courier a private, persistent in-app inbox for work alerts and a readable unread count in the external Flutter app.

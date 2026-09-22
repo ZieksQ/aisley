@@ -4,8 +4,11 @@ namespace App\Services\Logistics\Routing;
 
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulManifestStatus;
+use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
+use App\Models\LinehaulTrip;
+use App\Models\LinehaulTripShipment;
 use App\Models\LogisticsHub;
 use App\Models\PlatformFeatureControl;
 use App\Models\Shipment;
@@ -13,8 +16,8 @@ use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
-use App\Services\Logistics\SortingPlanService;
 use App\Services\PlatformFeatureControlService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -26,10 +29,9 @@ class LinehaulService
     }
 
     /**
-     * Return the server-owned groups of sorted parcels that share the same
-     * immediate next hop. The client never assembles this membership.
-     *
-     * @return array<int, array{next_hub_id: string, next_hub: string, references: array<int, string>}>
+     * Return eligible sorted parcels grouped by their immediate next hub and
+     * physical lane. Legacy manifests use references while company-truck
+     * dispatch uses the scoped shipment identifiers for explicit selection.
      */
     public function readyGroups(User $actor): array
     {
@@ -46,7 +48,6 @@ class LinehaulService
             ->with(['route.hops', 'parcel.waybill.snapshot', 'sortingLane'])
             ->orderBy('received_at_hub_at')
             ->orderBy('id')
-            ->limit(100)
             ->get();
         $groups = [];
         foreach ($shipments as $shipment) {
@@ -54,11 +55,24 @@ class LinehaulService
             if ($hop === null || $shipment->parcel?->waybill?->reference === null) {
                 continue;
             }
-            $routing = app(SortingPlanService::class)->routeForShipment($shipment);
-            if ($routing['reason'] !== 'matched' || $routing['lane']?->id !== $shipment->sorting_lane_id) {
+            if (LinehaulTripShipment::query()->where('shipment_route_hop_id', $hop->id)->whereNull('released_at')->exists()) {
                 continue;
             }
-            $groups[$hop->to_hub_id]['references'][] = $shipment->parcel->waybill->reference;
+            $lane = $shipment->sortingLane;
+            if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard
+                || $lane->logistics_organization_id !== $organization->id || $lane->logistics_hub_id !== $organization->hub->id) {
+                continue;
+            }
+            $groups[$hop->to_hub_id]['parcels'][] = [
+                'shipment_id' => $shipment->id,
+                'reference' => $shipment->parcel->waybill->reference,
+                'parcel_reference' => $shipment->parcel->reference,
+                'received_at' => $shipment->received_at_hub_at?->toISOString(),
+                'revision' => $shipment->revision,
+                'lane_id' => $shipment->sortingLane?->id,
+                'lane_code' => $shipment->sortingLane?->code,
+                'lane_name' => $shipment->sortingLane?->name,
+            ];
         }
 
         if ($groups === []) {
@@ -67,10 +81,22 @@ class LinehaulService
         $hubs = LogisticsHub::query()->whereIn('id', array_keys($groups))->get(['id', 'name'])->keyBy('id');
 
         return collect($groups)->map(function (array $group, string $hubId) use ($hubs): array {
+            $laneGroups = collect($group['parcels'])->groupBy(fn (array $parcel): string => $parcel['lane_id'] ?? 'unassigned')->map(function (Collection $parcels): array {
+                $first = $parcels->first();
+
+                return [
+                    'lane_id' => $first['lane_id'],
+                    'lane_code' => $first['lane_code'],
+                    'lane_name' => $first['lane_name'],
+                    'parcels' => $parcels->values()->all(),
+                ];
+            })->values()->all();
+
             return [
                 'next_hub_id' => $hubId,
                 'next_hub' => $hubs->get($hubId)?->name ?? 'Unavailable hub',
-                'references' => array_values($group['references']),
+                'references' => array_column($group['parcels'], 'reference'),
+                'lane_groups' => $laneGroups,
             ];
         })->values()->all();
     }
@@ -138,6 +164,47 @@ class LinehaulService
 
             return $this->projection(DB::table('linehaul_manifests')->where('id', $id)->first());
         }, 3);
+    }
+
+    /**
+     * Commit the membership reserved by a company-truck trip. The trip service
+     * owns capacity/resource validation; this method owns the atomic manifest
+     * and custody transition.
+     */
+    public function departTrip(User $actor, LinehaulTrip $trip): array
+    {
+        $id = (string) Str::uuid();
+        $members = $trip->shipments->sortBy('sequence');
+        $references = $members->map(fn ($item) => $item->shipment?->parcel?->waybill?->reference)->filter()->values()->all();
+        $hash = hash('sha256', json_encode($references));
+
+        DB::table('linehaul_manifests')->insert([
+            'id' => $id,
+            'from_hub_id' => $trip->from_hub_id,
+            'to_hub_id' => $trip->to_hub_id,
+            'created_by' => $actor->id,
+            'status' => LinehaulManifestStatus::InTransfer->value,
+            'items' => json_encode($members->map(fn ($item): array => [
+                'reference' => $item->shipment->parcel->waybill->reference,
+                'hop_id' => $item->shipment_route_hop_id,
+                'expected_revision' => $item->shipment_revision_reserved,
+                'expected_hop_revision' => $item->hop_revision_reserved,
+            ])->values()->all()),
+            'request_hash' => $hash,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        foreach ($members as $item) {
+            DB::table('shipment_route_hops')->where('id', $item->shipment_route_hop_id)->update(['linehaul_manifest_id' => $id]);
+            app(FulfillmentTransitionService::class)->transferAtHub($actor, [
+                'reference' => $item->shipment->parcel->waybill->reference,
+                'hop_id' => $item->shipment_route_hop_id,
+                'expected_revision' => $item->shipment_revision_reserved,
+                'expected_hop_revision' => $item->hop_revision_reserved,
+            ], (string) Str::uuid(), false, $id);
+        }
+
+        return $this->projection(DB::table('linehaul_manifests')->where('id', $id)->first());
     }
 
     public function arrive(User $actor, string $id): array

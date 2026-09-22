@@ -11,8 +11,6 @@ use App\Models\LogisticsHub;
 use App\Services\Logistics\Routing\LinehaulService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class LinehaulController extends Controller
 {
@@ -47,26 +45,9 @@ class LinehaulController extends Controller
         ]])->header('Cache-Control', 'private, no-store');
     }
 
-    public function depart(Request $request, LinehaulService $service)
+    public function depart()
     {
-        $input = $request->validate([
-            'next_hub_id' => ['nullable', 'uuid'],
-            // Kept for API compatibility with older clients; the Logistics UI uses next_hub_id.
-            'references' => ['nullable', 'array', 'min:1', 'max:100'],
-            'references.*' => ['required', 'string', 'max:128', 'distinct'],
-        ]);
-        if (! isset($input['next_hub_id']) && ! isset($input['references'])) {
-            throw ValidationException::withMessages(['next_hub_id' => 'Choose a ready next-hub group.']);
-        }
-        if (! Str::isUuid((string) $request->header('Idempotency-Key'))) {
-            throw ValidationException::withMessages(['idempotency_key' => 'A UUID Idempotency-Key is required.']);
-        }
-
-        $result = isset($input['next_hub_id'])
-            ? $service->departGroup($request->user(), $input['next_hub_id'], $request->header('Idempotency-Key'))
-            : $service->depart($request->user(), $input['references'], $request->header('Idempotency-Key'));
-
-        return response()->json(['data' => $result]);
+        throw FulfillmentException::conflict('LINEHAUL_TRIP_REQUIRED', 'Schedule a company truck and qualified driver from Dispatch before departure.');
     }
 
     public function arrive(Request $request, string $manifest, LinehaulService $service)

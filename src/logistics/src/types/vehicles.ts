@@ -2,7 +2,7 @@ export type VehicleDocument = { id: string; url: string }
 
 export type CourierVehicle = {
   id: string
-  vehicle_type: 'motorcycle' | 'car' | 'van'
+  vehicle_type: 'motorcycle' | 'car' | 'van' | 'truck'
   plate_number: string
   make: string | null
   model: string | null

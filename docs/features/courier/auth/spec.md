@@ -51,7 +51,7 @@ GET active Logistics options
 - Accept one `logistics_organization_id` UUID. Re-resolve an active Logistics organization with a hub inside the transaction; ignore any client `hub_id` or sub-hub field.
 - Accept nested `address` fields: `address_line_1`, optional `address_line_2`, `barangay`, `city_municipality`, `province`, `region`, and `postal_code` (maximum 10). Set country to `Philippines` server-side.
 - Use bundled PSGC Region → Province → City/Municipality → Barangay data and a manual fallback in Flutter. Current Courier registration stores labels/text only; it does not persist PSGC codes, coordinates, or provider IDs.
-- Accept `vehicle_type` values `motorcycle`, `car`, or `van`, plus a required `plate_number` (maximum 64). MVP requires exactly one Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration now enforces uniqueness after duplicate preflight.
+- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration now enforces uniqueness after duplicate preflight. This personal record cannot satisfy a company-truck linehaul assignment.
 - Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred under the Logistics Vehicle Fleet Management spec. This does not remove existing registration/operational history or add a map-pin contract.
 
 ### Flutter registration field map
@@ -63,7 +63,7 @@ GET active Logistics options
 - `address[address_line_1]` is the required street/house detail; `address[address_line_2]` is optional.
 - `address[barangay]`, `address[city_municipality]`, `address[province]`, and `address[region]` are PSGC/manual labels.
 - `address[postal_code]` is required text, preserving leading zeroes where applicable.
-- `vehicle_type` is one of `motorcycle`, `car`, or `van`; `plate_number` is required text.
+- `vehicle_type` is one of `motorcycle`, `car`, `van`, or `truck`; `plate_number` is required text.
 - `government_id` and `vehicle_registration` are separate multipart file parts, not Base64 JSON fields.
 - Do not send `age`, `country`, `role`, `status`, `hub_id`, `reviewer_id`, or a client-generated owner identifier.
 - Preserve the selected form values after a recoverable `422`, but clear password values before retrying.

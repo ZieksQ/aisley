@@ -76,7 +76,7 @@ export function DispatchPage() {
     }
   }, [combineLanes, laneId, page, search])
 
-  useEffect(() => { document.title = 'Dispatch | Aisley Logistics'; void load() }, [load])
+  useEffect(() => { document.title = 'Last-mile dispatch | Aisley Logistics'; void load() }, [load])
 
   const selectedCourier = useMemo(() => couriers.find((courier) => courier.courier_id === courierId), [courierId, couriers])
   const pickerCouriers = useMemo<CourierAvailabilityOption[]>(() => couriers.map((courier) => ({ id: courier.courier_id, name: courier.name, email: courier.email, contact_number: courier.contact_number, status: 'active', availability: 'not_checked', schedules: [] })), [couriers])
@@ -144,7 +144,7 @@ export function DispatchPage() {
 
   return <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6">
     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
-      <div><div className="flex items-center gap-3"><FaTruckFast className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Dispatch parcels</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Create one delivery schedule for one approved Courier. Only sorted parcels appear here; each schedule is limited to 15.</p></div>
+      <div><div className="flex items-center gap-3"><FaTruckFast className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Last-mile dispatch</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Create one delivery schedule for one approved Courier. Only destination-hub parcels appear here; each schedule is limited to 15.</p></div>
       <ActionButton busy={loading} onClick={() => void load()}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton>
     </div>
     {error ? <div className="mt-4"><ErrorNotice message={error} retry={() => void load()} /></div> : null}

@@ -10,6 +10,7 @@ use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DispatchSchedule;
+use App\Models\LinehaulTrip;
 use App\Models\Shipment;
 use App\Models\SortingLane;
 use App\Models\User;
@@ -39,6 +40,9 @@ class DispatchScheduleService
 
             $org = $this->organization($logistics);
             $this->assertCourier((string) $input['courier_id'], $org->id, $org->hub->id);
+            if (LinehaulTrip::query()->where('driver_id', $input['courier_id'])->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer'])->lockForUpdate()->exists()) {
+                throw FulfillmentException::conflict('COURIER_LINEHAUL_CONFLICT', 'This Courier already has active company-truck linehaul work.');
+            }
             $shipmentIds = array_values($input['shipment_ids']);
             $shipments = Shipment::query()->whereIn('id', $shipmentIds)
                 ->where('current_logistics_organization_id', $org->id)->where('current_hub_id', $org->hub->id)

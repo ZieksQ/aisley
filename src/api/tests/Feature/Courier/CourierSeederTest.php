@@ -99,7 +99,9 @@ class CourierSeederTest extends TestCase
         $this->assertSame(CourierAffiliationStatus::Approved, $primary->courierLogisticsAffiliation->status);
         $this->assertSame('logistics@example.com', $primary->courierLogisticsAffiliation->organization->user->email);
         $this->assertNotNull($primary->courierLogisticsAffiliation->reviewed_at);
+        $this->assertTrue($primary->courierLogisticsAffiliation->can_drive_company_truck);
         $this->assertNotSame($otherLogistics->id, $primary->courierLogisticsAffiliation->logistics_organization_id);
+        $this->assertSame(2, $couriers->filter(fn (User $courier): bool => $courier->courierLogisticsAffiliation->can_drive_company_truck)->count());
 
         $primary->courierLogisticsAffiliation->update([
             'logistics_organization_id' => $otherLogistics->id,
@@ -107,6 +109,7 @@ class CourierSeederTest extends TestCase
             'status' => CourierAffiliationStatus::Pending,
             'reviewer_id' => null,
             'reviewed_at' => null,
+            'can_drive_company_truck' => false,
         ]);
         $this->seed(CourierSeeder::class);
 
@@ -118,6 +121,11 @@ class CourierSeederTest extends TestCase
         $this->assertTrue(Hash::check('CourierSecret123', $primary->fresh()->password));
         $this->assertSame('logistics@example.com', $primary->courierLogisticsAffiliation->organization->user->email);
         $this->assertSame(CourierAffiliationStatus::Approved, $primary->courierLogisticsAffiliation->status);
+        $this->assertTrue($primary->courierLogisticsAffiliation->can_drive_company_truck);
+        $this->assertSame(2, $primary->courierLogisticsAffiliation->truck_driver_revision);
+
+        $this->seed(CourierSeeder::class);
+        $this->assertSame(2, $primary->fresh()->courierLogisticsAffiliation->truck_driver_revision);
     }
 
     private function createActiveLogistics(string $email, string $businessName): LogisticsOrganization

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Logistics;
 
 use App\Enums\UserStatus;
+use App\Models\CompanyTruck;
 use App\Models\HubConnection;
 use App\Models\PlatformFeatureControl;
 use App\Models\Shipment;
@@ -106,14 +107,31 @@ class LinehaulTest extends TestCase
         $this->getJson('/api/v1/logistics/linehaul')->assertOk()
             ->assertJsonPath('data.ready_groups.0.next_hub_id', $b[2]->id)
             ->assertJsonCount(2, 'data.ready_groups.0.references');
+        $this->edge($b[2], $a[2]);
+        $driver = $this->courier($a[1]->id, $a[2]->id);
+        $driver->courierLogisticsAffiliation()->update(['can_drive_company_truck' => true]);
+        $truck = CompanyTruck::create([
+            'logistics_organization_id' => $a[1]->id, 'home_hub_id' => $a[2]->id,
+            'last_confirmed_hub_id' => $a[2]->id, 'plate_number' => 'TRK-100', 'max_parcels' => 100,
+        ]);
         $key = (string) Str::uuid();
-        $body = ['next_hub_id' => $b[2]->id];
-        $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/linehaul/manifests', $body)->assertOk()->assertJsonCount(2, 'data.references');
-        $this->postJson('/api/v1/logistics/linehaul/manifests', $body)->assertOk();
+        $scheduledFor = now()->addHour()->startOfMinute()->toISOString();
+        $shipmentIds = Shipment::query()->whereHas('parcel.waybill', fn ($query) => $query->whereIn('reference', [$first, $second]))->pluck('id')->all();
+        $trip = $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/linehaul/trips', [
+            'next_hub_id' => $b[2]->id, 'company_truck_id' => $truck->id, 'driver_id' => $driver->id,
+            'scheduled_for' => $scheduledFor, 'shipment_ids' => $shipmentIds,
+        ])->assertCreated()->assertJsonPath('data.parcel_count', 2)->json('data');
+        $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/linehaul/trips', [
+            'next_hub_id' => $b[2]->id, 'company_truck_id' => $truck->id, 'driver_id' => $driver->id,
+            'scheduled_for' => $scheduledFor, 'shipment_ids' => $shipmentIds,
+        ])->assertCreated();
+        $this->actingAs($b[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/decision', ['accept' => true, 'expected_revision' => 1])->assertOk();
+        $departed = $this->actingAs($a[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])->assertOk()->json('data');
+        $manifestId = DB::table('linehaul_trips')->where('id', $departed['id'])->value('linehaul_manifest_id');
         $this->assertDatabaseCount('linehaul_manifests', 1);
         $this->assertSame(2, Shipment::where('status', 'in_transfer')->count());
         $this->actingAs($foreign[0])->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonCount(0, 'data.manifests');
-        $this->postJson('/api/v1/logistics/linehaul/manifests/'.$key.'/receive')->assertNotFound();
+        $this->postJson('/api/v1/logistics/linehaul/manifests/'.$manifestId.'/receive')->assertNotFound();
         $this->actingAs($b[0]);
         $shipment = Shipment::whereHas('parcel.waybill', fn ($q) => $q->where('reference', $first))->sole();
         $hop = ShipmentRouteHop::find($record['route']['hops'][0]['id']);
@@ -121,16 +139,16 @@ class LinehaulTest extends TestCase
             'reference' => $first, 'hop_id' => $hop->id, 'expected_revision' => $shipment->revision, 'expected_hop_revision' => $hop->revision,
         ])->assertConflict()->assertJsonPath('code', 'LINEHAUL_MANIFEST_REQUIRED');
         // A late member failure must undo earlier members' receipts.
-        $manifestItems = json_decode(DB::table('linehaul_manifests')->where('id', $key)->value('items'), true);
+        $manifestItems = json_decode(DB::table('linehaul_manifests')->where('id', $manifestId)->value('items'), true);
         $lastHop = ShipmentRouteHop::findOrFail($manifestItems[count($manifestItems) - 1]['hop_id']);
         DB::table('shipment_route_hops')->where('id', $lastHop->id)->update(['status' => 'pending']);
-        $this->postJson('/api/v1/logistics/linehaul/manifests/'.$key.'/receive')->assertNotFound();
+        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertNotFound();
         $this->assertSame(2, Shipment::where('status', 'in_transfer')->count());
         DB::table('shipment_route_hops')->where('id', $lastHop->id)->update(['status' => 'in_transfer']);
         PlatformFeatureControl::where('key', 'linehaul')->update(['enabled' => false]);
         HubConnection::query()->update(['is_active' => false]);
-        $this->postJson('/api/v1/logistics/linehaul/manifests/'.$key.'/receive')->assertOk()->assertJsonPath('data.status', 'received');
-        $this->postJson('/api/v1/logistics/linehaul/manifests/'.$key.'/receive')->assertOk();
+        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertOk()->assertJsonPath('data.status', 'received');
+        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertOk();
         $this->assertSame(2, Shipment::where('current_hub_id', $b[2]->id)->where('status', 'received_at_hub')->count());
     }
 
@@ -143,11 +161,11 @@ class LinehaulTest extends TestCase
         [, $reference] = $this->pickupAt($a);
         $this->receiveOrigin($a, $reference);
         $this->sortFor($a, $reference, $b[2]->id);
-        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/manifests', ['references' => [$reference, 'missing']])->assertNotFound();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/manifests', ['references' => [$reference, 'missing']])->assertConflict()->assertJsonPath('code', 'LINEHAUL_TRIP_REQUIRED');
         $this->assertDatabaseCount('linehaul_manifests', 0);
         $this->assertSame('sorted_at_hub', Shipment::sole()->status->value);
         PlatformFeatureControl::where('key', 'linehaul')->update(['enabled' => false]);
-        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/manifests', ['references' => [$reference]])->assertConflict()->assertJsonPath('code', 'LINEHAUL_DISABLED');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/manifests', ['references' => [$reference]])->assertConflict()->assertJsonPath('code', 'LINEHAUL_TRIP_REQUIRED');
     }
 
     public function test_logistics_owns_configuration_and_operator_measurements_need_no_matrix(): void

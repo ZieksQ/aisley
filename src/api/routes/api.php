@@ -22,6 +22,7 @@ use App\Http\Controllers\Courier\FailedDeliveryAttemptController;
 use App\Http\Controllers\Courier\FinalMileBatchController;
 use App\Http\Controllers\Courier\FinalMileTaskController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
+use App\Http\Controllers\Courier\LinehaulTripController as CourierLinehaulTripController;
 use App\Http\Controllers\Courier\NotificationController as CourierNotificationController;
 use App\Http\Controllers\Courier\PickupRouteManifestController;
 use App\Http\Controllers\Courier\ProofOfDeliveryController;
@@ -44,6 +45,7 @@ use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
+use App\Http\Controllers\Logistics\CompanyFleetController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\CourierVehicleController as LogisticsCourierVehicleController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
@@ -53,6 +55,7 @@ use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
 use App\Http\Controllers\Logistics\LinehaulController;
+use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
@@ -295,6 +298,17 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');
+    Route::post('/fleet/trucks', [CompanyFleetController::class, 'store'])->name('fleet.trucks.store');
+    Route::patch('/fleet/trucks/{truck}', [CompanyFleetController::class, 'update'])->whereUuid('truck')->name('fleet.trucks.update');
+    Route::patch('/fleet/drivers/{courier}', [CompanyFleetController::class, 'driver'])->whereUuid('courier')->name('fleet.drivers.update');
+    Route::get('/linehaul/trips', [LinehaulTripController::class, 'index'])->name('linehaul.trips.index');
+    Route::post('/linehaul/trips', [LinehaulTripController::class, 'store'])->name('linehaul.trips.store');
+    Route::post('/linehaul/trips/{trip}/decision', [LinehaulTripController::class, 'decide'])->whereUuid('trip')->name('linehaul.trips.decision');
+    Route::post('/linehaul/trips/{trip}/cancel', [LinehaulTripController::class, 'cancel'])->whereUuid('trip')->name('linehaul.trips.cancel');
+    Route::post('/linehaul/trips/{trip}/depart', [LinehaulTripController::class, 'depart'])->whereUuid('trip')->name('linehaul.trips.depart');
+    Route::post('/linehaul/trips/{trip}/receive', [LinehaulTripController::class, 'receive'])->whereUuid('trip')->name('linehaul.trips.receive');
+    Route::post('/linehaul/trips/{trip}/return', [LinehaulTripController::class, 'scheduleReturn'])->whereUuid('trip')->name('linehaul.trips.return');
     Route::put('/linehaul/connections/{connection}/consent', [LinehaulController::class, 'consent']);
     Route::get('/linehaul', [LinehaulController::class, 'index']);
     Route::post('/linehaul/manifests', [LinehaulController::class, 'depart'])->middleware('throttle:60,1');
@@ -381,6 +395,7 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 });
 
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active', 'policy.consent'])->group(function () {
+    Route::get('/linehaul-trips', [CourierLinehaulTripController::class, 'index'])->name('linehaul-trips.index');
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::put('/account/password', [CourierAccountController::class, 'updatePassword'])

@@ -661,6 +661,9 @@ class FulfillmentTransitionService
             if (preg_match('/^AISLEY:WB:\d+:(.+)$/i', $lookup, $matches) === 1) {
                 $lookup = trim($matches[1]);
             }
+            if (! $arrival && $manifestId === null) {
+                throw FulfillmentException::conflict('LINEHAUL_TRIP_REQUIRED', 'Hub transfers require an accepted company-truck linehaul trip.');
+            }
             $query = Shipment::query()->whereHas('parcel.waybill', fn ($waybill) => $waybill->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]));
             if ($arrival) {
                 $query->where('status', ShipmentStatus::InTransfer->value)->whereHas('route.hops', fn ($hop) => $hop->whereKey($input['hop_id'])->where('to_hub_id', $org->hub->id)->where('status', HubRouteHopStatus::InTransfer->value));
@@ -707,8 +710,11 @@ class FulfillmentTransitionService
                 if ($hop->from_hub_id !== $org->hub->id || $hop->status !== HubRouteHopStatus::Pending || $shipment->status !== ShipmentStatus::SortedAtHub) {
                     throw FulfillmentException::conflict('ROUTE_HOP_CONFLICT', 'Only a sorted parcel can depart on its next pending hop.');
                 }
-                app(ShipmentRouteService::class)->assertSortingLane($shipment, (string) $shipment->sorting_lane_id);
                 $lane = $shipment->sortingLane;
+                if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard
+                    || $lane->logistics_organization_id !== $org->id || $lane->logistics_hub_id !== $org->hub->id) {
+                    throw FulfillmentException::conflict('ROUTE_LANE_CONFLICT', 'The parcel must remain in an active standard lane at this hub.');
+                }
                 $hop->update(['status' => HubRouteHopStatus::InTransfer, 'departed_by' => $logistics->id, 'departed_at' => now(), 'revision' => $hop->revision + 1,
                     'source_lane' => $lane ? ['id' => $lane->id, 'code' => $lane->code, 'name' => $lane->name, 'revision' => $lane->revision, 'session_id' => $shipment->sorting_session_id] : null]);
                 $shipment->update(['status' => ShipmentStatus::InTransfer, 'sorting_lane_id' => null, 'sorting_session_id' => null, 'revision' => $shipment->revision + 1]);

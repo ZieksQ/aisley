@@ -115,6 +115,7 @@ MVP responsibilities:
 - Assign a final-mile Courier through the dispatch schedule. The Customer sees **Scheduled for delivery** plus that Courier's name and contact number; Courier acceptance and later delivery execution remain separate.
 - Update shipment/order status.
 - Monitor courier availability and active capacity.
+- Manage a separate company-truck fleet with positive parcel capacities and approved truck-driver capability. Schedule route-aware outbound linehaul from Dispatch, require the receiving Logistics organization's approval before physical departure, receive inbound trips on a dedicated page, and schedule visiting trucks back to their owning hub with cargo or as an explicit empty return. Company-truck ownership and driver affiliation never transfer; confirmed operational events provide location state without claiming live GPS. Final-mile schedules retain the separate 15-parcel limit.
 - Communicate with users.
 - Manage logistics account information.
 
@@ -143,6 +144,7 @@ MVP responsibilities:
 - View delivery history.
 - View basic earnings/profit.
 - Communicate with relevant users.
+- View assigned company-truck linehaul trips and committed return schedules through the Courier API/mobile client. The Courier does not accept a Logistics-committed return trip and does not need to own a truck personally when authorized to drive a company truck.
 - Manage courier account information.
 
 ## Shared order and fulfillment rules

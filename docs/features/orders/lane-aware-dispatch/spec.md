@@ -75,6 +75,8 @@
 
 ### Dispatch integration
 
+- The company-truck extension uses its own protected `/linehaul-dispatch` page; `/dispatch` contains only last-mile scheduling. Linehaul presents eligible parcels grouped by physical lane and allows explicit individual, lane-group, or compatible visible-list selection across lanes sharing one immediate destination Logistics hub. The selected truck's `max_parcels` is authoritative and no final-mile task is created. The final-mile workflow below retains its independent 15-parcel limit. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
+
 - Linehaul is a separate manifest flow for parcels whose committed route still requires another hub. Group only by the immediate next hub; atomic transfer departure/receipt never creates final-mile tasks. Manifest members cannot use individual transfer endpoints. Final-mile schedule rules below remain destination-only. See the current Linehaul contract revision in `docs/features/logistics/hub-to-hub-routing/specs.md`.
 - Expose lane counts across the scoped ready query before applying its lane filter.
 - Filter ready parcels by lane or the explicit unassigned legacy bucket.
