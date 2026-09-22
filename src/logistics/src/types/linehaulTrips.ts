@@ -22,9 +22,34 @@ export type LinehaulTrip = {
   received_at: string | null
 }
 
+export type LinehaulReadyParcel = {
+  shipment_id: string
+  reference: string
+  parcel_reference: string | null
+  received_at: string | null
+  revision: number
+  lane_id: string | null
+  lane_code: string | null
+  lane_name: string | null
+}
+
+export type LinehaulLaneGroup = {
+  lane_id: string | null
+  lane_code: string | null
+  lane_name: string | null
+  parcels: LinehaulReadyParcel[]
+}
+
+export type LinehaulReadyGroup = {
+  next_hub_id: string
+  next_hub: string
+  references: string[]
+  lane_groups: LinehaulLaneGroup[]
+}
+
 export type LinehaulOverview = {
   enabled: boolean
-  ready_groups: Array<{ next_hub_id: string; next_hub: string; references: string[] }>
+  ready_groups: LinehaulReadyGroup[]
   trucks: Array<{ id: string; plate_number: string; make: string | null; model: string | null; max_parcels: number; revision: number }>
   drivers: Array<{ id: string; name: string }>
   outbound: LinehaulTrip[]

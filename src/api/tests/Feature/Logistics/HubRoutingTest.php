@@ -104,7 +104,7 @@ class HubRoutingTest extends TestCase
             ]);
             $trip = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/trips', [
                 'next_hub_id' => $network[$i + 1][2]->id, 'company_truck_id' => $truck->id,
-                'driver_id' => $driver->id, 'scheduled_for' => now()->addHour()->toISOString(),
+                'driver_id' => $driver->id, 'scheduled_for' => now()->addHour()->toISOString(), 'shipment_ids' => [$record['shipment_id']],
             ])->assertCreated()->json('data');
             $this->actingAs($network[$i + 1][0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/decision', ['accept' => true, 'expected_revision' => 1])->assertOk();
             $departure = $this->actingAs($network[$i][0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])

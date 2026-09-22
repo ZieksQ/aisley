@@ -7,6 +7,7 @@ use App\Enums\Logistics\CompanyTruckAvailability;
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulTripDirection;
 use App\Enums\Logistics\LinehaulTripStatus;
+use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
@@ -64,7 +65,10 @@ class LinehaulTripService
             $truck = $this->ownedAvailableTruck($org->id, $org->hub->id, $input['company_truck_id']);
             $this->qualifiedDriver($org->id, $org->hub->id, $input['driver_id']);
             $this->assertResourcesFree($truck->id, $input['driver_id']);
-            $items = $this->reserveItems($org->id, $org->hub->id, $target->id, $truck->max_parcels);
+            if (count($input['shipment_ids']) > $truck->max_parcels) {
+                throw FulfillmentException::invalid('LINEHAUL_CAPACITY_EXCEEDED', 'The selected parcels exceed the assigned truck capacity.', 'shipment_ids');
+            }
+            $items = $this->reserveItems($org->id, $org->hub->id, $target->id, $truck->max_parcels, $input['shipment_ids']);
             if ($items->isEmpty()) {
                 throw FulfillmentException::conflict('LINEHAUL_NO_READY_PARCELS', 'No unreserved sorted parcels are ready for that destination.');
             }
@@ -286,11 +290,15 @@ class LinehaulTripService
         ];
     }
 
-    private function reserveItems(string $orgId, string $hubId, string $targetHubId, int $limit): Collection
+    private function reserveItems(string $orgId, string $hubId, string $targetHubId, int $limit, ?array $shipmentIds = null): Collection
     {
         $shipments = Shipment::query()->where('current_logistics_organization_id', $orgId)->where('current_hub_id', $hubId)
             ->where('status', ShipmentStatus::SortedAtHub)->whereHas('route', fn ($query) => $query->where('status', 'planned'))
+            ->when($shipmentIds !== null, fn ($query) => $query->whereKey($shipmentIds))
             ->with(['route.hops', 'parcel.waybill', 'sortingLane'])->orderBy('received_at_hub_at')->orderBy('id')->lockForUpdate()->get();
+        if ($shipmentIds !== null && $shipments->count() !== count($shipmentIds)) {
+            throw FulfillmentException::conflict('LINEHAUL_SELECTION_CHANGED', 'One or more selected parcels are no longer available. Refresh the linehaul dispatch list.');
+        }
         $items = collect();
         foreach ($shipments as $shipment) {
             if ($items->count() >= $limit) {
@@ -300,11 +308,16 @@ class LinehaulTripService
             if ($hop === null || LinehaulTripShipment::query()->where('shipment_route_hop_id', $hop->id)->whereNull('released_at')->exists()) {
                 continue;
             }
-            $routing = app(SortingPlanService::class)->routeForShipment($shipment);
-            if ($routing['reason'] !== 'matched' || $routing['lane']?->id !== $shipment->sorting_lane_id) {
+            $lane = $shipment->sortingLane;
+            if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard
+                || $lane->logistics_organization_id !== $orgId || $lane->logistics_hub_id !== $hubId) {
                 continue;
             }
             $items->push(['shipment' => $shipment, 'hop' => $hop]);
+        }
+
+        if ($shipmentIds !== null && $items->count() !== count($shipmentIds)) {
+            throw FulfillmentException::conflict('LINEHAUL_SELECTION_CHANGED', 'Every selected parcel must still be sorted, unreserved, and assigned to the chosen destination and lane. Refresh and try again.');
         }
 
         return $items;

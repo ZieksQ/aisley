@@ -3,7 +3,7 @@ role: Logistics and Courier
 feature: Company Truck Linehaul Dispatch
 system: AISLEY
 type: Feature Specification
-version: 1.1
+version: 1.2
 status: Implemented
 canonical: true
 source_issue: https://github.com/ZieksQ/aisley/issues/97
@@ -20,10 +20,11 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 
 ## MUST
 
-- Outbound A → B scheduling selects one active A-owned company truck, one active approved A-affiliated Courier with `can_drive_company_truck`, a future departure, and a server-owned deterministic subset of sorted parcels whose immediate next hub is B.
+- Outbound A → B scheduling selects one active A-owned company truck, one active approved A-affiliated Courier with `can_drive_company_truck`, a future departure, and one or more operator-selected eligible sorted parcels whose immediate next hub is B.
 - Accepted active routing connections must exist in both directions. Connection consent and transfer-request acceptance are separate checks.
 - B must accept the outbound request before A may confirm physical departure. Rejection or pre-departure cancellation retains custody at A and releases the truck, driver, and parcel reservations.
-- The selected truck's positive integer `max_parcels` is the limit. Count Shipment/Parcel records, select oldest receipt then stable Shipment ID, allow different physical lanes when the immediate destination hub is identical, and leave overflow ready.
+- The selected truck's positive integer `max_parcels` is the limit. Count Shipment/Parcel records, allow explicit selection across different active standard lane groups only when the immediate destination hub is identical, and leave unselected parcels ready. The route owns the destination; a parcel staged under an earlier still-active standard lane remains eligible after a plan revision.
+- The outbound page lists eligible parcels by lane, supports an all-lanes or one-lane-group dropdown, per-lane and visible-list select-all actions, and individual parcel selection. Selecting the first parcel locks compatibility to its immediate destination until that selection is cleared.
 - Reservation, revalidation, manifest creation, and custody writes use transactions and row locks. Membership is frozen at commit, and the manifest stores the truck-trip audit relationship through `linehaul_trips.linehaul_manifest_id`.
 - B confirms the whole manifest receipt. The truck becomes a visiting A-owned asset at B; B sees only the visitor fields needed to return it.
 - Only B may schedule the received visitor B → A. The return is immediately `scheduled`, requires no second approval by A, B, or the Courier, and notifies A and the driver. B cannot choose C or local/final-mile work.
@@ -37,7 +38,8 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 ## API and pages
 
 - Fleet: `GET /api/v1/logistics/fleet`, `POST /fleet/trucks`, `PATCH /fleet/trucks/{truck}`, and `PATCH /fleet/drivers/{courier}`; protected Logistics page `/fleet`.
-- Trips: `GET/POST /api/v1/logistics/linehaul/trips`, plus scoped `decision`, `cancel`, `depart`, `receive`, and `return` actions with revision checks. Dispatch embeds the outbound scheduler at `/dispatch`.
+- Trips: `GET/POST /api/v1/logistics/linehaul/trips`, plus scoped `decision`, `cancel`, `depart`, `receive`, and `return` actions with revision checks. `POST` requires the exact selected `shipment_ids`; the API revalidates their tenant, custody, route destination, lane, reservation, and truck capacity under locks.
+- Outbound company-truck work has a separate protected `/linehaul-dispatch` page. `/dispatch` is last-mile only, and `/inbound-linehaul` remains dedicated to approvals, receipts, and visiting-truck returns. Linehaul dispatch and Inbound linehaul carry Beta sidebar tags.
 - Inbound: protected `/inbound-linehaul` page for request decisions, physical receipts, and visiting-truck return scheduling.
 - Courier: `GET /api/v1/courier/linehaul-trips` and `courier-linehaul.trip-scheduled` return notification.
 - The personal Courier vehicle registry accepts `truck` as a supported type but remains a separate asset model and is never eligible as a company linehaul truck.
@@ -50,12 +52,13 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - [x] Logistics can manage and monitor its own company trucks; ownership never transfers to B.
 - [x] Non-company trucks and unqualified drivers cannot perform transfers through any API path.
 - [x] Exact-capacity loads succeed; overflow remains ready; transactional hub/resource locks prevent overfill and double-booking.
+- [x] Operators can select individual parcels or whole lane groups across multiple lanes for one immediate destination; mixed-destination and over-capacity requests are blocked server-side.
 - [x] Rejection, cancellation, empty returns, and matching retries preserve custody and release resources correctly.
 - [x] A/B/C tenant isolation, historical manifest receipt compatibility, and unchanged 15-parcel last-mile behavior are covered by scoped APIs and regressions.
 
 ## Verification evidence
 
-- `CompanyTruckLinehaulTest` covers exact capacity, overflow, destination approval, physical departure/receipt, ownership at a visiting hub, empty return, tenant isolation, unqualified-driver rejection, and reservation release.
+- `CompanyTruckLinehaulTest` covers exact capacity, overflow, cross-lane explicit selection, destination approval, physical departure/receipt, ownership at a visiting hub, empty return, tenant isolation, unqualified-driver rejection, and reservation release.
 - `LinehaulTest` covers new trip-backed manifests plus historical receipt behavior and rejects legacy departure bypasses.
 - The company-truck migration applies successfully on PostgreSQL with its self-referencing return-trip foreign key added only after the trip table's primary key exists.
 - Development seeders qualify the configured lead Courier and the first generic Courier, plus one deterministic Courier in each Luzon Logistics organization, without repeatedly advancing capability revisions.

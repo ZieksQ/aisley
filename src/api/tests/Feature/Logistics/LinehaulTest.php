@@ -116,13 +116,14 @@ class LinehaulTest extends TestCase
         ]);
         $key = (string) Str::uuid();
         $scheduledFor = now()->addHour()->startOfMinute()->toISOString();
+        $shipmentIds = Shipment::query()->whereHas('parcel.waybill', fn ($query) => $query->whereIn('reference', [$first, $second]))->pluck('id')->all();
         $trip = $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/linehaul/trips', [
             'next_hub_id' => $b[2]->id, 'company_truck_id' => $truck->id, 'driver_id' => $driver->id,
-            'scheduled_for' => $scheduledFor,
+            'scheduled_for' => $scheduledFor, 'shipment_ids' => $shipmentIds,
         ])->assertCreated()->assertJsonPath('data.parcel_count', 2)->json('data');
         $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/linehaul/trips', [
             'next_hub_id' => $b[2]->id, 'company_truck_id' => $truck->id, 'driver_id' => $driver->id,
-            'scheduled_for' => $scheduledFor,
+            'scheduled_for' => $scheduledFor, 'shipment_ids' => $shipmentIds,
         ])->assertCreated();
         $this->actingAs($b[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/decision', ['accept' => true, 'expected_revision' => 1])->assertOk();
         $departed = $this->actingAs($a[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])->assertOk()->json('data');

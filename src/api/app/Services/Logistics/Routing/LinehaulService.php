@@ -4,6 +4,7 @@ namespace App\Services\Logistics\Routing;
 
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulManifestStatus;
+use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\LinehaulTrip;
@@ -15,8 +16,8 @@ use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
-use App\Services\Logistics\SortingPlanService;
 use App\Services\PlatformFeatureControlService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -28,10 +29,9 @@ class LinehaulService
     }
 
     /**
-     * Return the server-owned groups of sorted parcels that share the same
-     * immediate next hop. The client never assembles this membership.
-     *
-     * @return array<int, array{next_hub_id: string, next_hub: string, references: array<int, string>}>
+     * Return eligible sorted parcels grouped by their immediate next hub and
+     * physical lane. Legacy manifests use references while company-truck
+     * dispatch uses the scoped shipment identifiers for explicit selection.
      */
     public function readyGroups(User $actor): array
     {
@@ -48,7 +48,6 @@ class LinehaulService
             ->with(['route.hops', 'parcel.waybill.snapshot', 'sortingLane'])
             ->orderBy('received_at_hub_at')
             ->orderBy('id')
-            ->limit(100)
             ->get();
         $groups = [];
         foreach ($shipments as $shipment) {
@@ -59,11 +58,21 @@ class LinehaulService
             if (LinehaulTripShipment::query()->where('shipment_route_hop_id', $hop->id)->whereNull('released_at')->exists()) {
                 continue;
             }
-            $routing = app(SortingPlanService::class)->routeForShipment($shipment);
-            if ($routing['reason'] !== 'matched' || $routing['lane']?->id !== $shipment->sorting_lane_id) {
+            $lane = $shipment->sortingLane;
+            if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard
+                || $lane->logistics_organization_id !== $organization->id || $lane->logistics_hub_id !== $organization->hub->id) {
                 continue;
             }
-            $groups[$hop->to_hub_id]['references'][] = $shipment->parcel->waybill->reference;
+            $groups[$hop->to_hub_id]['parcels'][] = [
+                'shipment_id' => $shipment->id,
+                'reference' => $shipment->parcel->waybill->reference,
+                'parcel_reference' => $shipment->parcel->reference,
+                'received_at' => $shipment->received_at_hub_at?->toISOString(),
+                'revision' => $shipment->revision,
+                'lane_id' => $shipment->sortingLane?->id,
+                'lane_code' => $shipment->sortingLane?->code,
+                'lane_name' => $shipment->sortingLane?->name,
+            ];
         }
 
         if ($groups === []) {
@@ -72,10 +81,22 @@ class LinehaulService
         $hubs = LogisticsHub::query()->whereIn('id', array_keys($groups))->get(['id', 'name'])->keyBy('id');
 
         return collect($groups)->map(function (array $group, string $hubId) use ($hubs): array {
+            $laneGroups = collect($group['parcels'])->groupBy(fn (array $parcel): string => $parcel['lane_id'] ?? 'unassigned')->map(function (Collection $parcels): array {
+                $first = $parcels->first();
+
+                return [
+                    'lane_id' => $first['lane_id'],
+                    'lane_code' => $first['lane_code'],
+                    'lane_name' => $first['lane_name'],
+                    'parcels' => $parcels->values()->all(),
+                ];
+            })->values()->all();
+
             return [
                 'next_hub_id' => $hubId,
                 'next_hub' => $hubs->get($hubId)?->name ?? 'Unavailable hub',
-                'references' => array_values($group['references']),
+                'references' => array_column($group['parcels'], 'reference'),
+                'lane_groups' => $laneGroups,
             ];
         })->values()->all();
     }

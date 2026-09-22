@@ -41,6 +41,12 @@ class CompanyTruckLinehaulTest extends TestCase
         }
         $this->sortFor($a, $references[0], $b[2]->id);
         $session = $this->getJson('/api/v1/logistics/sorting')->json('data.session');
+        $alternateLane = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'ALT', 'name' => 'Alternate staging', 'type' => 'standard'])->assertCreated()->json('data');
+        $alternatePlan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Alternate route plan', 'is_active' => true])->assertCreated()->json('data');
+        $this->postJson('/api/v1/logistics/sorting/plans/'.$alternatePlan['id'].'/lanes', [
+            'expected_revision' => $alternatePlan['revision'], 'lane_id' => $alternateLane['id'],
+            'destination_type' => 'hub', 'destination_hub_id' => $b[2]->id,
+        ])->assertOk();
         foreach (array_slice($references, 1) as $reference) {
             $item = collect($session['items'])->first(fn ($item) => $item['reference'] === $reference);
             $this->postJson('/api/v1/logistics/sorting/sessions/'.$session['id'].'/batches', ['captures' => [[
@@ -48,6 +54,9 @@ class CompanyTruckLinehaulTest extends TestCase
                 'expected_revision' => $item['expected_revision'], 'source' => 'manual', 'captured_at' => now()->toISOString(),
             ]]])->assertOk();
         }
+        $shipments = Shipment::query()->whereHas('parcel.waybill', fn ($query) => $query->whereIn('reference', $references))
+            ->with('parcel.waybill')->get()->keyBy(fn (Shipment $shipment) => $shipment->parcel->waybill->reference);
+        $selectedShipmentIds = [$shipments->get($references[0])->id, $shipments->get($references[1])->id];
 
         $driver = $this->courier($a[1]->id, $a[2]->id);
         $this->actingAs($a[0])->patchJson('/api/v1/logistics/fleet/drivers/'.$driver->id, [
@@ -61,8 +70,15 @@ class CompanyTruckLinehaulTest extends TestCase
         ])->assertNotFound();
 
         $scheduled = now()->addHour()->startOfMinute()->toISOString();
+        $this->actingAs($a[0])->getJson('/api/v1/logistics/linehaul/trips')->assertOk()
+            ->assertJsonCount(2, 'data.ready_groups.0.lane_groups');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/trips', [
+            'next_hub_id' => $b[2]->id, 'company_truck_id' => $truck['id'], 'driver_id' => $driver->id, 'scheduled_for' => $scheduled,
+            'shipment_ids' => $shipments->pluck('id')->values()->all(),
+        ])->assertUnprocessable()->assertJsonPath('code', 'LINEHAUL_CAPACITY_EXCEEDED');
         $trip = $this->actingAs($a[0])->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/trips', [
             'next_hub_id' => $b[2]->id, 'company_truck_id' => $truck['id'], 'driver_id' => $driver->id, 'scheduled_for' => $scheduled,
+            'shipment_ids' => $selectedShipmentIds,
         ])->assertCreated()->assertJsonPath('data.parcel_count', 2)->assertJsonPath('data.remaining_capacity', 0)->json('data');
         $this->getJson('/api/v1/logistics/linehaul')->assertOk()->assertJsonCount(1, 'data.ready_groups.0.references');
         $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 1])
@@ -114,7 +130,8 @@ class CompanyTruckLinehaulTest extends TestCase
             'logistics_organization_id' => $a[1]->id, 'home_hub_id' => $a[2]->id, 'last_confirmed_hub_id' => $a[2]->id,
             'plate_number' => 'REJ-100', 'max_parcels' => 1,
         ]);
-        $body = ['next_hub_id' => $b[2]->id, 'company_truck_id' => $truck->id, 'driver_id' => $driver->id, 'scheduled_for' => now()->addHour()->toISOString()];
+        $shipmentId = Shipment::whereHas('parcel.waybill', fn ($query) => $query->where('reference', $reference))->sole()->id;
+        $body = ['next_hub_id' => $b[2]->id, 'company_truck_id' => $truck->id, 'driver_id' => $driver->id, 'scheduled_for' => now()->addHour()->toISOString(), 'shipment_ids' => [$shipmentId]];
         $this->actingAs($a[0])->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/trips', $body)
             ->assertUnprocessable()->assertJsonPath('code', 'LINEHAUL_DRIVER_NOT_ELIGIBLE');
         $driver->courierLogisticsAffiliation()->update(['can_drive_company_truck' => true]);

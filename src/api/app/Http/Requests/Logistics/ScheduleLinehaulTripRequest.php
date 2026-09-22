@@ -20,6 +20,8 @@ class ScheduleLinehaulTripRequest extends FormRequest
             'company_truck_id' => ['required', 'uuid'],
             'driver_id' => ['required', 'uuid'],
             'scheduled_for' => ['required', 'date', 'after_or_equal:now'],
+            'shipment_ids' => ['required', 'array', 'min:1', 'max:10000'],
+            'shipment_ids.*' => ['required', 'uuid', 'distinct'],
         ];
     }
 

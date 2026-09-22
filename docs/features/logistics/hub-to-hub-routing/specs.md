@@ -13,7 +13,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## Company-truck dispatch revision — 2026-09-23
 
-[Company Truck Linehaul Dispatch](company-truck-linehaul-dispatch/spec.md) supersedes the immediate-departure, no-vehicle, and no-Courier-assignment wording below. Partner connections stay on `/linehaul`; outbound trip preparation is on `/dispatch`; inbound approval, receipts, and visitor returns are on `/inbound-linehaul`; fleet management is on `/fleet`. New departures require an accepted company-truck trip with a qualified driver and capacity-frozen server-selected membership. Existing final-mile schedules remain capped at 15, while linehaul load is capped by the selected truck and may combine physical lanes only when the immediate destination Logistics hub is the same. Historical already-departed manifests remain receivable.
+[Company Truck Linehaul Dispatch](company-truck-linehaul-dispatch/spec.md) supersedes the immediate-departure, no-vehicle, no-Courier-assignment, and automatic-membership wording below. Partner connections stay on `/linehaul`; outbound trip preparation is on `/linehaul-dispatch`; last-mile work stays on `/dispatch`; inbound approval, receipts, and visitor returns are on `/inbound-linehaul`; fleet management is on `/fleet`. New departures require an accepted company-truck trip with a qualified driver and capacity-frozen operator-selected membership that the server revalidates. Existing final-mile schedules remain capped at 15, while linehaul load is capped by the selected truck and may combine physical lanes only when the immediate destination Logistics hub is the same. Historical already-departed manifests remain receivable.
 
 ## Connection and Sort plan revision — 2026-09-20
 
