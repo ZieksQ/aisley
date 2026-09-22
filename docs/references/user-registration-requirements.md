@@ -67,12 +67,12 @@ role: Seller, Customer, Courier
 - **Address (API)**
   - Dropdown: Province, Municipality, Barangay
   - Manual entry: Street, House number, etc.
-- **Vehicle type (required)** — exactly one vehicle per Courier; current types are motorcycle, car, and van.
+- **Vehicle type (required)** — exactly one personal vehicle per Courier; current types are motorcycle, car, van, and truck. This record is never a Logistics-owned linehaul truck.
 - **Plate number (required)** — identifies that same sole vehicle.
 - **Make/model (optional)** — editable vehicle details alongside required type/plate.
 - **Upload OR (required)** and **Upload CR (required)** — separate Official Receipt and Certificate of Registration images under the shared upload policy. Planned registration keys are `official_receipt` and `certificate_of_registration`; current production accepts combined `vehicle_registration` until the coordinated API/client rollout.
 - After initial approval, the Courier may edit type, plate, make, model and replace OR or CR independently without reapproval. Notify associated Logistics after every committed change; omission preserves the other document and removal without replacement is not supported.
-- Maintenance, vehicle history, capacity values/units, and multiple/shared vehicles remain deferred. Existing registration decisions and shipment history remain preserved.
+- Maintenance, vehicle history, personal-vehicle capacity values/units, and multiple/shared personal vehicles remain deferred. A Courier may separately be authorized to drive a Logistics-owned company truck without registering that truck personally. Existing registration decisions and shipment history remain preserved.
 - **Upload ID/driver’s license**
 
 > **Note:** After submitting your registration, please wait for the Logistic's approval, which will be sent to your email.

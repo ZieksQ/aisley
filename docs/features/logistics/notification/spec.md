@@ -12,6 +12,10 @@ scope: Laravel API and Logistics React dashboard
 
 # Logistics Notifications
 
+## Linehaul return producer — 2026-09-23
+
+`logistics-linehaul.return-scheduled` is emitted after the receiving Logistics organization commits a visiting truck's return. The owner receives only the trip reference and safe summary; the projected destination is `/dispatch` only while the trip belongs to that owner's organization/home hub. Delivery is after commit and deduplicated by trip revision. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
+
 ## WHAT
 
 - Provide a persistent in-app inbox, header bell, recent preview, and unread badge for the Logistics operator.
@@ -50,6 +54,7 @@ source action commits → durable notification work → recipient inbox
 | `logistics-evidence.submitted`          | New hub-pickup or delivery-proof evidence; owning Logistics account | Implemented; deduplicate by evidence/purpose |
 | `logistics-completion.requested`        | New Courier completion intent; owning Logistics account             | Implemented; deduplicate by intent |
 | `logistics-courier.vehicle-updated`      | Committed vehicle field or independent OR/CR replacement; associated Logistics account | Implemented; deduplicate by vehicle revision/recipient; informational, no approval action |
+| `logistics-linehaul.return-scheduled`     | Visiting truck return committed by the receiving Logistics organization; owning Logistics account | Implemented; deduplicate by trip revision; no acceptance action |
 
 - Do not emit an alert on list reads, QR resolution alone, duplicate retries, or uncommitted source actions.
 - First-mile direct pickup remains its current contract; do not require Logistics review merely to create notifications.

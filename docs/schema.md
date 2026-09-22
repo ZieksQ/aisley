@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-20 (Customer Product Reviews and Ratings MVP)
+> **Last synchronized:** 2026-09-23 (Company Truck Linehaul Dispatch)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -164,7 +164,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `DocumentType` | `government_id`, `business_registration`, `tax_document`, `drivers_license`, `vehicle_registration`, `official_receipt`, `certificate_of_registration`, `proof_of_address`, `other` | `documents.type` |
 | `DocumentStatus` | `pending`, `verified`, `rejected` | `documents.status` |
 | `AddressType` | `shipping`, `billing`, `both` | `addresses.type` |
-| `VehicleType` | `motorcycle`, `car`, `van` | `vehicles.type` |
+| `VehicleType` | `motorcycle`, `car`, `van`, `truck` | `vehicles.type` |
 | `VehicleStatus` | `active`, `inactive`, `maintenance` | `vehicles.status` |
 | `CourierAffiliationStatus` | `pending`, `approved`, `rejected`, `revoked` | `courier_logistics_affiliations.status` |
 | `ShopStatus` | `pending`, `active`, `suspended`, `deactivated` | `shops.status` |
@@ -1169,6 +1169,16 @@ The additive fulfillment migration creates one immutable `parcels` row and one `
 
 Logistics and Courier routes are private, tenant-scoped, and no-store. A final delivery changes the final-mile task, Shipment, and Order to `delivered` in one transaction after a validated photo POD and Courier completion intent; it does not fulfill Inventory again or change payment fields.
 
+### 9.18.1 Company-truck linehaul records
+
+| Table | Purpose and constraints |
+| --- | --- |
+| `company_trucks` | Logistics-owned truck with immutable owner/home-hub scope, unique plate, optional make/model, positive parcel-count capacity, active flag, string-backed availability, last confirmed hub, and optimistic revision. It is separate from Courier-owned `vehicles`. |
+| `linehaul_trips` | Outbound or return assignment with owner/home/from/to hubs, company truck, qualified driver, scheduled time, capacity/load snapshots, string-backed lifecycle, optional manifest/parent trip, actor decisions, timestamps, idempotency fingerprint, and revision. A return has exactly one outbound parent. |
+| `linehaul_trip_shipments` | Deterministic reserved Shipment/route-hop membership with stable sequence and reservation revisions. `released_at` preserves rejected/cancelled history while making the hop eligible for a later trip. |
+
+`courier_logistics_affiliations.can_drive_company_truck` and `truck_driver_revision` hold the owning Logistics organization's independently revisioned driver capability. Row/hub locks serialize competing reservations. New hub-transfer departures require this trip workflow; historical already-departed `linehaul_manifests` retain their receipt path. Empty returns create a trip but no empty manifest.
+
 Sorting plan/lane/session/item/scan enum-like columns remain PostgreSQL-safe strings with Logistics-scoped PHP enum casts. The dedicated sort transition appends a `hub_sort` Shipment event containing the session UUID, lane UUID, source, device capture time, request hash, and Logistics actor. Automatic routing resolves the tenant-owned tracking ID and current plan under the hub boundary; a missing plan, postal code, mapping, or usable lane selects the active exception lane. A Sorting exception updates only the session item's operational hold; it does not add an Order status or advance Shipment custody.
 
 ### 9.19 `product_reviews` and `product_review_images`
@@ -1401,6 +1411,7 @@ Repository migrations are listed below in filename execution order; this invento
 73. `2026_09_16_000004_add_automatic_routing_to_sorting_scans.php` — automatic-routing marker and indexes for server-authoritative scan results.
 74. `2026_09_20_000001_allow_shared_hub_postal_coverage.php` — allows active postal-code coverage to be shared by multiple Logistics hubs while retaining hub/code uniqueness.
 75. `2026_09_20_000002_create_product_reviews.php` — delivered Order Item Product Reviews, authoritative rating projections, and validated Customer review-image metadata.
+76. `2026_09_23_000001_add_company_truck_linehaul_dispatch.php` — truck-driver capability, Logistics-owned company trucks, capacity-frozen outbound/return trips, and route-hop parcel reservations.
 
 ## 14. Fulfillment schema and deferred extensions
 

@@ -11,6 +11,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Linehaul
 
+## Company-truck dispatch revision — 2026-09-23
+
+[Company Truck Linehaul Dispatch](company-truck-linehaul-dispatch/spec.md) supersedes the immediate-departure, no-vehicle, and no-Courier-assignment wording below. Partner connections stay on `/linehaul`; outbound trip preparation is on `/dispatch`; inbound approval, receipts, and visitor returns are on `/inbound-linehaul`; fleet management is on `/fleet`. New departures require an accepted company-truck trip with a qualified driver and capacity-frozen server-selected membership. Existing final-mile schedules remain capped at 15, while linehaul load is capped by the selected truck and may combine physical lanes only when the immediate destination Logistics hub is the same. Historical already-departed manifests remain receivable.
+
 ## Connection and Sort plan revision — 2026-09-20
 
 This is the current product contract. It supersedes conflicting page ownership, connection lifecycle, postal entry, and transfer placement below. Existing route snapshots, server-selected manifests, custody transitions, local sorting, tenant isolation, and final-mile rules still apply. The frontend workspace relocation is implemented; the approval, connection, rejection-reason, and server-side postal validation changes remain planned.

@@ -661,6 +661,9 @@ class FulfillmentTransitionService
             if (preg_match('/^AISLEY:WB:\d+:(.+)$/i', $lookup, $matches) === 1) {
                 $lookup = trim($matches[1]);
             }
+            if (! $arrival && $manifestId === null) {
+                throw FulfillmentException::conflict('LINEHAUL_TRIP_REQUIRED', 'Hub transfers require an accepted company-truck linehaul trip.');
+            }
             $query = Shipment::query()->whereHas('parcel.waybill', fn ($waybill) => $waybill->whereRaw('LOWER(reference) = ?', [mb_strtolower($lookup)]));
             if ($arrival) {
                 $query->where('status', ShipmentStatus::InTransfer->value)->whereHas('route.hops', fn ($hop) => $hop->whereKey($input['hop_id'])->where('to_hub_id', $org->hub->id)->where('status', HubRouteHopStatus::InTransfer->value));

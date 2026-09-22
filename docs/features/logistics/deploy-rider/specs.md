@@ -12,6 +12,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Deploy Rider
 
+## Company-truck driver boundary — 2026-09-23
+
+Linehaul uses a separate Logistics-managed `can_drive_company_truck` capability and `linehaul_trips` assignment. It does not use final-mile offers or the Courier's personal vehicle. Active pickup/final-mile work blocks a linehaul driver assignment, and an active linehaul assignment blocks conflicting driver reuse. Final-mile schedules retain their 15-parcel contract. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
+
 ## Courier batch handoff revision (2026-09-20)
 
 The existing 1–15 parcel dispatch schedule is one final-mile offer to its assigned Courier. The Courier accepts all offered member tasks atomically from the schedule, while each parcel retains its own task, offer, Shipment, proof, completion, and history. Rejected legacy or exceptional task offers retain the existing re-offer path. Linehaul manifests are separate and cannot appear in final-mile batch acceptance or routing.

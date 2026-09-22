@@ -8,6 +8,7 @@ import type { FulfillmentQueueResponse, FulfillmentShipment, FulfillmentTask } f
 import type { CourierAvailabilityOption } from '../types/pickups'
 import type { SortingOverview } from '../types/sorting'
 import { ParcelLaneMove } from '../components/ParcelLaneMove'
+import { LinehaulDispatch } from '../components/LinehaulDispatch'
 
 type DispatchCourier = { courier_id: string; name: string; email: string; contact_number: string | null }
 type DispatchSchedule = {
@@ -149,6 +150,8 @@ export function DispatchPage() {
     </div>
     {error ? <div className="mt-4"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
+
+    <div className="mt-3"><LinehaulDispatch /></div>
 
     <div className="mt-3 grid min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_21rem]">
       <section className={`${panel} overflow-hidden`}>

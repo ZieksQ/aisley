@@ -5,6 +5,7 @@ namespace Tests\Feature\Logistics;
 use App\Enums\OrderStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\CompanyTruck;
 use App\Models\DeliveryTask;
 use App\Models\HubConnection;
 use App\Models\Shipment;
@@ -67,6 +68,7 @@ class HubRoutingTest extends TestCase
         $network = [$this->pinnedHub(), $this->pinnedHub(), $this->pinnedHub(), $this->pinnedHub()];
         foreach (range(0, 2) as $i) {
             $this->edge($network[$i][2], $network[$i + 1][2]);
+            $this->edge($network[$i + 1][2], $network[$i][2]);
         }
         $this->area($network[3][2]);
         [$order, $reference] = $this->pickupAt($network[0]);
@@ -92,26 +94,29 @@ class HubRoutingTest extends TestCase
                 'shipment_ids' => [$record['shipment_id']], 'courier_id' => $courier->id, 'scheduled_for' => now()->addHour()->toISOString(),
             ])->assertConflict()->assertJsonPath('code', 'ROUTE_FINAL_MILE_HELD');
             $input = ['reference' => $reference, 'hop_id' => $hop['id'], 'expected_revision' => $record['revision'], 'expected_hop_revision' => $hop['revision']];
-            $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/departures', [...$input, 'expected_hop_revision' => 99])->assertConflict();
-            if ($i === 0) {
-                $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/departures', [...$input, 'hop_id' => $record['route']['hops'][1]['id']])->assertConflict()->assertJsonPath('code', 'ROUTE_HOP_CONFLICT');
-            }
-            $key = (string) Str::uuid();
-            $departure = $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/transfers/departures', $input)->assertOk()->assertJsonPath('data.status', 'in_transfer')->json('data');
-            $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/transfers/departures', $input)->assertOk()->assertExactJson(['data' => $departure]);
-            $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/transfers/departures', [...$input, 'expected_revision' => 99])->assertConflict();
+            $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/departures', $input)
+                ->assertConflict()->assertJsonPath('code', 'LINEHAUL_TRIP_REQUIRED');
+            $driver = $this->courier($network[$i][1]->id, $network[$i][2]->id);
+            $driver->courierLogisticsAffiliation()->update(['can_drive_company_truck' => true]);
+            $truck = CompanyTruck::create([
+                'logistics_organization_id' => $network[$i][1]->id, 'home_hub_id' => $network[$i][2]->id,
+                'last_confirmed_hub_id' => $network[$i][2]->id, 'plate_number' => 'HOP-'.$i, 'max_parcels' => 1,
+            ]);
+            $trip = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/trips', [
+                'next_hub_id' => $network[$i + 1][2]->id, 'company_truck_id' => $truck->id,
+                'driver_id' => $driver->id, 'scheduled_for' => now()->addHour()->toISOString(),
+            ])->assertCreated()->json('data');
+            $this->actingAs($network[$i + 1][0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/decision', ['accept' => true, 'expected_revision' => 1])->assertOk();
+            $departure = $this->actingAs($network[$i][0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])
+                ->assertOk()->assertJsonPath('data.status', 'in_transfer')->json('data');
             $this->assertNull($shipment->fresh()->sorting_lane_id);
             $this->assertNull($shipment->fresh()->sorting_session_id);
             $this->assertNotNull(ShipmentRouteHop::find($hop['id'])->source_lane);
             $this->assertSame(OrderStatus::PickedUp, $order->fresh()->status);
             $this->assertSame(0, DeliveryTask::where('leg', 'final_mile')->count());
-            $arrivalInput = [...$input, 'expected_revision' => $departure['revision'], 'expected_hop_revision' => $departure['route']['hops'][$i]['revision']];
-            $this->actingAs($foreign)->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/arrivals', $arrivalInput)->assertNotFound();
+            $this->actingAs($foreign)->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => $departure['revision']])->assertNotFound();
             $this->actingAs($network[$i + 1][0])->getJson('/api/v1/logistics/routes/'.$reference)->assertOk()->assertJsonMissingPath('data.route.hops.0.source_lane');
-            $key = (string) Str::uuid();
-            $arrival = $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/transfers/arrivals', $arrivalInput)->assertOk()->assertJsonPath('data.status', 'received_at_hub')->json('data');
-            $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/logistics/transfers/arrivals', $arrivalInput)->assertOk()->assertExactJson(['data' => $arrival]);
-            $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/arrivals', $arrivalInput)->assertNotFound();
+            $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => $departure['revision']])->assertOk()->assertJsonPath('data.status', 'received');
             $this->assertSame($network[$i + 1][2]->id, $shipment->fresh()->current_hub_id);
             $this->actingAs($network[$i][0])->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertNotFound();
             $this->actingAs($network[$i + 1][0])->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->assertJsonCount(0, 'data.tasks');
@@ -354,7 +359,7 @@ class HubRoutingTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/departures', [...$input, 'destination_hub_id' => $b[2]->id])->assertUnprocessable();
         $this->withHeader('Idempotency-Key', 'bad-key')->postJson('/api/v1/logistics/transfers/departures', $input)->assertUnprocessable();
         HubConnection::query()->update(['is_active' => false, 'revision' => 2]);
-        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/departures', $input)->assertConflict()->assertJsonPath('code', 'ROUTE_CONNECTION_INACTIVE');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/departures', $input)->assertConflict()->assertJsonPath('code', 'LINEHAUL_TRIP_REQUIRED');
         $this->assertSame('sorted_at_hub', Shipment::sole()->status->value);
         $this->assertSame(0, ShipmentEvent::where('event_type', 'hub_transfer_dispatched')->count());
     }

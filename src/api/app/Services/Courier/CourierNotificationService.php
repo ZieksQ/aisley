@@ -11,6 +11,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Jobs\Courier\DeliverCourierNotification;
 use App\Models\DeliveryTaskOffer;
+use App\Models\LinehaulTrip;
 use App\Models\PickupSchedule;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -32,6 +33,7 @@ class CourierNotificationService
         'pickup-schedule.cancelled',
         'pickup-schedule.reminder',
         'courier-task.final-mile-offered',
+        'courier-linehaul.trip-scheduled',
     ];
 
     /** @return MorphMany<DatabaseNotification> */
@@ -107,6 +109,7 @@ class CourierNotificationService
             : match ($notification->type) {
                 'pickup-schedule.assigned', 'pickup-schedule.revised', 'pickup-schedule.cancelled', 'pickup-schedule.reminder' => $this->scheduleContext($data, $notification->type, $courier, $scope),
                 'courier-task.final-mile-offered' => $this->finalOfferContext($data, $courier, $scope),
+                'courier-linehaul.trip-scheduled' => $this->linehaulContext($data, $courier),
                 default => $this->emptyContext(),
             };
 
@@ -173,6 +176,39 @@ class CourierNotificationService
     {
         $offerId = $offer instanceof DeliveryTaskOffer ? (string) $offer->id : $offer;
         $this->afterCommit(fn () => $this->deliverFinalMileOffer($offerId));
+    }
+
+    public function queueLinehaulTrip(LinehaulTrip|string $trip): void
+    {
+        $tripId = $trip instanceof LinehaulTrip ? (string) $trip->id : $trip;
+        $this->afterCommit(function () use ($tripId): void {
+            $record = LinehaulTrip::query()->whereKey($tripId)->first();
+            if ($record === null) {
+                return;
+            }
+            $this->dispatch($record->driver_id, 'courier-linehaul.trip-scheduled', "linehaul:{$record->id}:revision:{$record->revision}", $record->updated_at, [
+                'trip_id' => $record->id,
+                'logistics_organization_id' => $record->owner_logistics_organization_id,
+                'logistics_hub_id' => $record->home_hub_id,
+                'title' => 'Linehaul trip scheduled',
+                'summary' => 'A company-truck linehaul trip was scheduled for you.',
+            ]);
+        });
+    }
+
+    /** @return array{title: string, summary: string, resource_type: string|null, resource_id: string|null, destination: string|null} */
+    private function linehaulContext(array $data, User $courier): array
+    {
+        $id = $this->uuid($data['trip_id'] ?? null);
+        $trip = $id === null ? null : LinehaulTrip::query()->whereKey($id)->where('driver_id', $courier->id)->first();
+
+        return $trip ? [
+            'title' => 'Linehaul trip scheduled',
+            'summary' => 'A company-truck linehaul trip was scheduled for you.',
+            'resource_type' => 'linehaul_trip',
+            'resource_id' => (string) $trip->id,
+            'destination' => "/linehaul-trips/{$trip->id}",
+        ] : $this->emptyContext();
     }
 
     /** @return array{title: string, summary: string, resource_type: string|null, resource_id: string|null, destination: string|null} */

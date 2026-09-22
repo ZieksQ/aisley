@@ -12,6 +12,10 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 
 # Courier Vehicle Registry
 
+## Company-truck extension — 2026-09-23
+
+The Courier-owned one-vehicle registry below remains implemented and separate. [Company Truck Linehaul Dispatch](../company-truck-linehaul-dispatch/spec.md) adds Logistics-owned `company_trucks`, the `/fleet` management page, truck-driver capability on approved affiliations, and trip/capacity monitoring. It does not weaken the one-personal-vehicle-per-Courier rule or reinterpret the legacy decimal `vehicles.capacity`. `truck` is now a supported personal vehicle type, but only a `company_trucks` record can satisfy a linehaul assignment.
+
 ## WHAT
 
 - Maintain vehicle information for Couriers affiliated with the authenticated Logistics organization.
@@ -37,7 +41,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 ### Required information
 
 - Require vehicle type and plate number for the Courier's single vehicle.
-- Preserve current type values: `motorcycle`, `car`, and `van`.
+- Preserve supported type values: `motorcycle`, `car`, `van`, and `truck`.
 - Preserve the current plate input maximum of 64 characters and database-wide plate uniqueness.
 - Do not invent jurisdiction-specific plate patterns or new required make/model fields.
 - Type, plate, make, model, OR, and CR are editable vehicle information. Make/model are optional nullable strings, maximum 255 characters; type/plate remain required. These edits are implemented by the Courier vehicle API after approval.

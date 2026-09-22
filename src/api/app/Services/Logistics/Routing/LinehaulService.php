@@ -6,6 +6,8 @@ use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulManifestStatus;
 use App\Enums\ShipmentStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
+use App\Models\LinehaulTrip;
+use App\Models\LinehaulTripShipment;
 use App\Models\LogisticsHub;
 use App\Models\PlatformFeatureControl;
 use App\Models\Shipment;
@@ -52,6 +54,9 @@ class LinehaulService
         foreach ($shipments as $shipment) {
             $hop = $shipment->route?->hops->first(fn ($candidate) => $candidate->status === HubRouteHopStatus::Pending && $candidate->from_hub_id === $organization->hub->id);
             if ($hop === null || $shipment->parcel?->waybill?->reference === null) {
+                continue;
+            }
+            if (LinehaulTripShipment::query()->where('shipment_route_hop_id', $hop->id)->whereNull('released_at')->exists()) {
                 continue;
             }
             $routing = app(SortingPlanService::class)->routeForShipment($shipment);
@@ -138,6 +143,47 @@ class LinehaulService
 
             return $this->projection(DB::table('linehaul_manifests')->where('id', $id)->first());
         }, 3);
+    }
+
+    /**
+     * Commit the membership reserved by a company-truck trip. The trip service
+     * owns capacity/resource validation; this method owns the atomic manifest
+     * and custody transition.
+     */
+    public function departTrip(User $actor, LinehaulTrip $trip): array
+    {
+        $id = (string) Str::uuid();
+        $members = $trip->shipments->sortBy('sequence');
+        $references = $members->map(fn ($item) => $item->shipment?->parcel?->waybill?->reference)->filter()->values()->all();
+        $hash = hash('sha256', json_encode($references));
+
+        DB::table('linehaul_manifests')->insert([
+            'id' => $id,
+            'from_hub_id' => $trip->from_hub_id,
+            'to_hub_id' => $trip->to_hub_id,
+            'created_by' => $actor->id,
+            'status' => LinehaulManifestStatus::InTransfer->value,
+            'items' => json_encode($members->map(fn ($item): array => [
+                'reference' => $item->shipment->parcel->waybill->reference,
+                'hop_id' => $item->shipment_route_hop_id,
+                'expected_revision' => $item->shipment_revision_reserved,
+                'expected_hop_revision' => $item->hop_revision_reserved,
+            ])->values()->all()),
+            'request_hash' => $hash,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        foreach ($members as $item) {
+            DB::table('shipment_route_hops')->where('id', $item->shipment_route_hop_id)->update(['linehaul_manifest_id' => $id]);
+            app(FulfillmentTransitionService::class)->transferAtHub($actor, [
+                'reference' => $item->shipment->parcel->waybill->reference,
+                'hop_id' => $item->shipment_route_hop_id,
+                'expected_revision' => $item->shipment_revision_reserved,
+                'expected_hop_revision' => $item->hop_revision_reserved,
+            ], (string) Str::uuid(), false, $id);
+        }
+
+        return $this->projection(DB::table('linehaul_manifests')->where('id', $id)->first());
     }
 
     public function arrive(User $actor, string $id): array

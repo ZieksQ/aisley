@@ -11,7 +11,7 @@ class CourierLogisticsAffiliation extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['courier_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'reviewer_id', 'reviewed_at', 'rejection_reason'];
+    protected $fillable = ['courier_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'reviewer_id', 'reviewed_at', 'rejection_reason', 'can_drive_company_truck', 'truck_driver_revision'];
 
     public function courier(): BelongsTo
     {
@@ -35,6 +35,6 @@ class CourierLogisticsAffiliation extends Model
 
     protected function casts(): array
     {
-        return ['status' => CourierAffiliationStatus::class, 'reviewed_at' => 'datetime'];
+        return ['status' => CourierAffiliationStatus::class, 'reviewed_at' => 'datetime', 'can_drive_company_truck' => 'boolean', 'truck_driver_revision' => 'integer'];
     }
 }

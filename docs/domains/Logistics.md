@@ -161,6 +161,9 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 
 ## Operational invariants
 
+- Company trucks are Logistics-owned fleet assets separate from Courier personal vehicles. Outbound linehaul requires a qualified home-affiliated driver, destination acceptance, bidirectional accepted routing connections, and a server-reserved load no larger than the truck's `max_parcels`. A received visitor can return only to its recorded home hub under the receiving Logistics organization's schedule; ownership and affiliation never transfer.
+- Linehaul may consolidate different physical source lanes when every parcel has the same immediate destination hub. Final-mile dispatch remains a separate 1–15 parcel schedule and cannot use visiting company trucks or visiting drivers.
+
 - Only an authenticated active Logistics account may operate its organization's sole hub.
 - Every Order/Shipment/Delivery Task, Courier affiliation, waybill, scan, assignment, cache entry, and event must be resolved server-side to that organization and hub. A pickup is eligible only when its immutable Seller-selected Logistics organization is this organization.
 - `delivery_assigned` is not `delivery_accepted`, and neither means `picked_up_from_hub`.
@@ -174,7 +177,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 
 ## Deferred operational data
 
-The current schema implements Logistics identity, organization, sole hub, Courier affiliation, Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, additive Shipment/Parcel/DeliveryTask records, dedicated Sorting lanes/sessions/snapshot items/idempotent scans, and tenant-scoped sort plans with exact postal-code mappings. Logistics can record offline-first hub receipt and sorting, scheduled dispatch, independent final-mile offers, QR hub-pickup/delivery evidence, and final delivery through the shared transition service. Geocoding, postal ranges, handling containers, lane/vehicle capacity, multi-hub transfer, RFID/automation, returns, and exceptional recovery beyond sort holds remain deferred. Operational records preserve the one-organization/one-hub invariant, immutable Seller-selected provider context, one shared waybill/tracking ID, append-only custody history, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
+The current schema implements Logistics identity, organization, sole hub, Courier affiliation, Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, additive Shipment/Parcel/DeliveryTask records, dedicated Sorting lanes/sessions/snapshot items/idempotent scans, tenant-scoped sort plans, and company-truck linehaul trips with parcel-count capacity and scheduled returns. Logistics can record offline-first hub receipt and sorting, scheduled final-mile dispatch, route-aware linehaul, independent final-mile offers, QR hub-pickup/delivery evidence, and final delivery through the shared transition service. Geocoding, postal ranges, handling containers, personal-Courier vehicle capacity, RFID/automation, live GPS, general returns, and exceptional recovery beyond sort holds remain deferred. Operational records preserve the one-organization/one-hub invariant, immutable Seller-selected provider context, one shared waybill/tracking ID, append-only custody history, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
 
 ## Shared contracts
 
