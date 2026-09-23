@@ -123,3 +123,9 @@
 - [Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components) — client boundary for browser-dependent third-party components.
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) — allow-listing, generated filenames, bounded uploads, authorization, and safe storage.
 - [ImageMagick architecture and resource limits](https://imagemagick.org/architecture/) — decoded pixel-cache cost and the documented 8,192-pixel edge security-policy example.
+
+### Shipping measurements and cost basis (2026-09-24)
+
+- Sellers record packed weight in grams and packed length, width, and height in millimeters on each Product. Variants inherit these values unless applicable fields are overridden.
+- Drafts remain editable, but publishing requires complete positive shipping measurements for every active sellable SKU.
+- Sellers may record a PHP unit cost on the Product or Variant. The effective cost is snapshotted on the Order item and remains unknown when omitted; reporting must never coerce a missing cost to zero.

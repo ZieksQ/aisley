@@ -3,6 +3,7 @@ import {
   FaArrowRightFromBracket,
   FaBars,
   FaClipboardList,
+  FaChartLine,
   FaComments,
   FaFileContract,
   FaGaugeHigh,
@@ -79,6 +80,7 @@ export function SellerLayout() {
               <FaGaugeHigh aria-hidden="true" />
               Dashboard
             </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/finance"><FaChartLine aria-hidden="true" />Finance</NavLink>
             <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/products">
               <FaBoxOpen aria-hidden="true" />
               Products
@@ -163,7 +165,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />

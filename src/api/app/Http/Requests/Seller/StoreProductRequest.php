@@ -44,6 +44,12 @@ class StoreProductRequest extends FormRequest
             'price' => ['required', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'original_price' => ['nullable', 'decimal:0,2', 'gte:price', 'max:99999999.99'],
             'currency' => ['sometimes', Rule::in(['PHP'])],
+            'shipping_weight_grams' => ['nullable', 'integer', 'min:1', 'max:100000000'],
+            'shipping_length_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'shipping_width_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'shipping_height_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'unit_cost_cents' => ['nullable', 'integer', 'min:0'],
+            'cost_currency' => ['nullable', Rule::in(['PHP'])],
             'opening_stock' => ['required_without:variants', 'nullable', 'integer', 'min:0', 'max:999999999'],
             'option_groups' => ['array', 'max:3'],
             'option_groups.*.name' => ['required', 'string', 'max:60'],
@@ -59,6 +65,12 @@ class StoreProductRequest extends FormRequest
             'variants.*.option_value_indexes' => ['required', 'array'],
             'variants.*.option_value_indexes.*' => ['required', 'integer', 'min:0'],
             'variants.*.image_upload_id' => ['nullable', 'uuid'],
+            'variants.*.shipping_weight_grams' => ['nullable', 'integer', 'min:1', 'max:100000000'],
+            'variants.*.shipping_length_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'variants.*.shipping_width_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'variants.*.shipping_height_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'variants.*.unit_cost_cents' => ['nullable', 'integer', 'min:0'],
+            'variants.*.cost_currency' => ['nullable', Rule::in(['PHP'])],
         ];
     }
 

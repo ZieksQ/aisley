@@ -1,3 +1,5 @@
+import { Link, useSearchParams } from 'react-router-dom'
+import { ReceivingWorkspace } from '../features/linehaulReceiving/ReceivingWorkspace'
 import { useWaybillCamera } from '../lib/useWaybillCamera'
 import Dexie from 'dexie'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -26,6 +28,13 @@ function formatDate(value: string): string {
 }
 
 export function ReceiveAtHubPage() {
+  const [params] = useSearchParams()
+  const trip = params.get('trip')
+  if (trip) return <div className="mx-auto max-w-[1200px] px-4 py-4 sm:px-6"><h2 className="text-xl font-semibold">Receive at hub</h2><Link className="mt-2 inline-block text-sm underline" to="/inbound-linehaul">Inbound linehaul</Link><ReceivingWorkspace trip={trip} scanning /></div>
+  return <OriginReceiving />
+}
+
+function OriginReceiving() {
   const [receipts, setReceipts] = useState<PendingReceipt[]>([])
   const [manualReference, setManualReference] = useState('')
   const [scannerOpen, setScannerOpen] = useState(false)

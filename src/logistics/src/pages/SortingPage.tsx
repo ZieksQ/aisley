@@ -285,7 +285,7 @@ export function SortingPage() {
         <li>Use <strong>Sync scans</strong> when needed. Captures also sync at 10 scans, after five minutes, or when the connection returns.</li>
         <li>Resolve exceptions by scanning into a standard lane. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch local or destination-hub parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
         <li>Linehaul extends automated sorting: transfer parcels use the mapped next-hub lane; destination-hub parcels use postal codes. Missing routes or mappings remain held.</li>
-        <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub confirms the complete manifest below before sorting again. Transfers require a connection and cannot skip hops.</li>
+        <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub scans parcels individually in Receive at hub. Verified parcels can sort while the truck is still unloading. Transfers require a connection and cannot skip hops.</li>
       </ol>
       <div className="flex justify-end border-t border-zinc-200 px-4 py-3 dark:border-white/10"><PrimaryButton onClick={() => helpDialog.current?.close()} type="button">Got it</PrimaryButton></div>
     </dialog>

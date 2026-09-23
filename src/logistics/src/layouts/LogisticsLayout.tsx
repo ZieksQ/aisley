@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaCarSide, FaChevronUp, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
+import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaCarSide, FaChartLine, FaChevronUp, FaClipboardCheck, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
@@ -86,7 +86,9 @@ export function LogisticsLayout() {
     }
   }
 
-  const title = location.pathname.startsWith('/receive-at-hub')
+  const title = location.pathname.startsWith('/finance')
+    ? 'Finance'
+    : location.pathname.startsWith('/receive-at-hub')
     ? 'Receive at hub'
     : location.pathname.startsWith('/sort-plan')
       ? 'Sort plan'
@@ -100,6 +102,8 @@ export function LogisticsLayout() {
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')
       ? 'Last-mile dispatch'
+    : location.pathname.startsWith('/delivery-confirmations')
+      ? 'Delivery confirmations'
     : location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')
       ? 'Courier vehicle'
     : location.pathname.startsWith('/vehicles')
@@ -130,6 +134,7 @@ export function LogisticsLayout() {
       </div>
       <nav aria-label="Logistics navigation" className="mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto">
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dashboard"><FaGaugeHigh />Dashboard</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/finance"><FaChartLine />Finance</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/operations"><FaMagnifyingGlass />Parcel search</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/pickups"><FaBoxesPacking />Pickups</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
@@ -139,6 +144,7 @@ export function LogisticsLayout() {
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/linehaul-dispatch"><FaTruckFast /><span>Linehaul dispatch</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/inbound-linehaul"><FaTruckFast /><span>Inbound linehaul</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Last-mile dispatch</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/delivery-confirmations"><FaClipboardCheck />Delivery confirmations</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
         <NavLink className={({ isActive }) => navClass({ isActive: isActive || (location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')) })} onClick={() => setOpen(false)} to="/vehicles"><FaCarSide />Vehicles</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/fleet"><FaTruckFast />Company fleet</NavLink>

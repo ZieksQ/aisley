@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@aisley/psgc-address-data": "workspace:*",
+    "@aisley/finance-ui": "workspace:*",
     "@aisley/ui": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

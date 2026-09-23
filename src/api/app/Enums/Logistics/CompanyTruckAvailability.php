@@ -7,6 +7,7 @@ enum CompanyTruckAvailability: string
     case Available = 'available';
     case Reserved = 'reserved';
     case InTransit = 'in_transit';
+    case Unloading = 'unloading';
     case Visiting = 'visiting';
     case Inactive = 'inactive';
 }

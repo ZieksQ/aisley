@@ -1,3 +1,4 @@
+import { offlineReceivingSession, rememberReceivingConsent } from '../features/linehaulReceiving/offlineSession'
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -24,9 +25,17 @@ export function ProtectedRoute() {
     setConsentState('checking')
     setConsentError('')
 
+    if (offlineReceivingSession()?.id === logistics.id) {
+      setConsentState('allowed')
+      return
+    }
+
     fetchPolicyConsentStatus()
       .then((response) => {
-        if (mounted) setConsentState(response.data.all_required_accepted ? 'allowed' : 'required')
+        if (mounted) {
+          rememberReceivingConsent(logistics.id, response.data.all_required_accepted)
+          setConsentState(response.data.all_required_accepted ? 'allowed' : 'required')
+        }
       })
       .catch((error: unknown) => {
         if (!mounted) return
@@ -35,7 +44,7 @@ export function ProtectedRoute() {
       })
 
     return () => { mounted = false }
-  }, [logistics, isConsentRoute])
+  }, [logistics, isConsentRoute, location.pathname, location.search])
 
   if (loading) return <div className="grid min-h-screen place-items-center bg-[#f7f7f8] text-sm dark:bg-[#101012] dark:text-white">Checking your session…</div>
   if (!logistics) return <Navigate replace state={{ from: location.pathname }} to="/login" />

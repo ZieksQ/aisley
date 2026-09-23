@@ -11,6 +11,22 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Linehaul
 
+## Parcel receiving and reconciliation — 2026-09-23
+
+This revision supersedes whole-manifest atomic receipt for company-truck cargo. Departure membership remains immutable and atomic. Arrival, individual parcel custody, and unloading closure are separate events.
+
+- Inbound linehaul starts receiving online: record arrival/actor and mark trip `receiving`, truck `unloading`. The truck and driver remain reserved until unloading closes.
+- Receive at hub selects the trip/manifest, caches expected references, and queues scans isolated by account, organization, hub, and trip. Local capture never implies server receipt. Synchronize promptly on capture/reconnect; starting and closing require connectivity.
+- Each expected tracking ID commits independently under hub/trip/Shipment/hop locks: custody moves to the receiving hub, hop arrives, reservation releases, and Shipment becomes `received_at_hub`. Only a final destination with all hops arrived completes its route. Matching request retries and duplicate scans return original receipts even after onward movement; changed payload reuse conflicts.
+- Received parcels can enter the existing 100-item Sorting snapshot while unloading continues. Later receipts wait for the next session. Damaged receipts have a condition hold; no sorting or dispatch until receiving Logistics explicitly records inspection/release reason.
+- Unexpected scans create investigation records without changing custody or membership or revealing foreign parcel details. Missing parcels stay unreceived. Closing with shortages requires explicit acknowledgement and reason against authoritative outstanding counts.
+- Closure records clean/discrepancy outcome, actor/time and audit history, notifies the sender of discrepancies, and frees the truck for its normal cargo/empty return. Valid late receipts resolve shortages without reopening the truck visit. Unexpected records require a documented disposition; shortages resolve only by receipt.
+- Trip-scoped API: `GET receiving`, `POST receiving/start`, `POST receiving/batches`, `POST receiving/finish`, `POST receiving/discrepancies/{discrepancy}/resolve` below `/api/v1/logistics/linehaul/trips/{trip}`. Batches return individual results and server counts. Mutation identities and original results persist.
+- Old cargo trip/manifest receipt endpoints cannot bypass scans. Historical completed receipts retain their original evidence, standalone historical manifests remain receivable, shutdown does not block receipt, and empty returns need only arrival confirmation.
+- V1 uses Logistics account decisions and text reasons. Photos, claims/refunds, loss declarations, containers, and combined receiving/sorting are deferred.
+
+Verification requires complete/partial/damaged/unexpected loads, wrong hubs, retries, account isolation, offline reload/reconnect, independent concurrent scanners and closure on PostgreSQL, late receipt after return, session snapshots, cargo/empty returns, and historical compatibility. Browser and physical-device verification must be reported separately from automated checks.
+
 ## Company-truck dispatch revision — 2026-09-23
 
 [Company Truck Linehaul Dispatch](company-truck-linehaul-dispatch/spec.md) supersedes the immediate-departure, no-vehicle, no-Courier-assignment, and automatic-membership wording below. Partner connections stay on `/linehaul`; outbound trip preparation is on `/linehaul-dispatch`; last-mile work stays on `/dispatch`; inbound approval, receipts, and visitor returns are on `/inbound-linehaul`; fleet management is on `/fleet`. New departures require an accepted company-truck trip with a qualified driver and capacity-frozen operator-selected membership that the server revalidates. Existing final-mile schedules remain capped at 15, while linehaul load is capped by the selected truck and may combine physical lanes only when the immediate destination Logistics hub is the same. Historical already-departed manifests remain receivable.

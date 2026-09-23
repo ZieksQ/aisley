@@ -14,11 +14,12 @@ class CompletionIntent extends Model
     protected $fillable = [
         'delivery_task_id', 'shipment_evidence_id', 'courier_id', 'expected_revision', 'status',
         'idempotency_key', 'request_hash', 'confirmed_at', 'validated_at', 'validated_by_logistics_id',
+        'cod_declared_amount', 'cod_currency', 'cod_declared_at',
     ];
 
     protected function casts(): array
     {
-        return ['status' => ShipmentEvidenceStatus::class, 'expected_revision' => 'integer', 'confirmed_at' => 'datetime', 'validated_at' => 'datetime'];
+        return ['status' => ShipmentEvidenceStatus::class, 'expected_revision' => 'integer', 'confirmed_at' => 'datetime', 'validated_at' => 'datetime', 'cod_declared_amount' => 'decimal:2', 'cod_declared_at' => 'datetime'];
     }
 
     public function task(): BelongsTo

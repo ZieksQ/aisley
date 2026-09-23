@@ -17,6 +17,7 @@ use App\Enums\UserStatus;
 use App\Models\Category;
 use App\Models\CheckoutBatch;
 use App\Models\CheckoutQuote;
+use App\Models\CompletionIntent;
 use App\Models\DeliveryTask;
 use App\Models\FirstMileTask;
 use App\Models\InventoryBalance;
@@ -379,17 +380,24 @@ class FinalMileFulfillmentTest extends TestCase
             'reason' => 'recipient_unavailable', 'expected_revision' => $final['revision'],
         ])->assertCreated();
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", [
-            'expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true,
+            'expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true, 'cod_collected' => true,
         ])->assertConflict()->assertJsonPath('code', 'PROOF_STALE_AFTER_FAILED_ATTEMPT');
         $this->actingAs($logistics)->postJson("/api/v1/logistics/delivery-proofs/{$proof['proof_id']}/reject", [
             'reason' => 'This photo does not show the handoff.', 'expected_revision' => $final['revision'],
         ])->assertOk()->assertJsonPath('data.status', 'rejected');
+        $this->assertSame('out_for_delivery', DeliveryTask::findOrFail($final['task_id'])->status->value);
+        $this->assertSame(PaymentStatus::Pending, $order->fresh()->payment_status);
         $this->actingAs($courier);
         $proof = $this->withHeader('Idempotency-Key', (string) Str::uuid())->post("/api/v1/courier/tasks/{$final['task_id']}/proof-of-delivery", [
             'photo' => UploadedFile::fake()->image('retry.jpg'), 'expected_revision' => $final['revision'],
         ])->assertStatus(202)->json('data');
-        $intent = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", ['expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true])->assertStatus(202)->json('data');
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", ['expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true])->assertStatus(422)->assertJsonPath('code', 'COD_COLLECTION_REQUIRED');
+        $intent = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/courier/tasks/{$final['task_id']}/completion", ['expected_revision' => $final['revision'], 'evidence_id' => $proof['proof_id'], 'confirmed' => true, 'cod_collected' => true])->assertStatus(202)->json('data');
         $this->assertSame('awaiting_validation', $intent['completion_status']);
+        $storedIntent = CompletionIntent::findOrFail($intent['intent_id']);
+        $this->assertSame('100.00', $storedIntent->cod_declared_amount);
+        $this->assertSame('PHP', $storedIntent->cod_currency);
+        $this->assertNotNull($storedIntent->cod_declared_at);
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $logistics->id,
             'type' => 'logistics-completion.requested',
@@ -399,12 +407,16 @@ class FinalMileFulfillmentTest extends TestCase
         $this->assertSame('awaiting_validation', collect($queuedFinal['evidence'])->firstWhere('id', $proof['proof_id'])['status']);
         $this->assertSame('awaiting_validation', $queuedFinal['completion_intents'][0]['status']);
         $this->actingAs($logistics)->get("/api/v1/logistics/delivery-proofs/{$proof['proof_id']}/photo")->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+        $this->actingAs($logistics);
+        $this->getJson('/api/v1/logistics/delivery-confirmations')->assertOk()->assertJsonPath('data.0.order.reference', $order->reference)->assertJsonPath('data.0.cod.declared_amount', '100.00')->assertJsonPath('data.0.cod.collected', true);
         $this->actingAs($otherLogistics)->get("/api/v1/logistics/delivery-proofs/{$proof['proof_id']}/photo")->assertNotFound();
+        $this->assertCount(0, $this->getJson('/api/v1/logistics/delivery-confirmations')->json('data'));
         $this->actingAs($logistics);
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
             'reference' => $pickup['waybills'][0]['reference'], 'target_state' => 'delivered', 'expected_revision' => $record['revision'], 'evidence_id' => $proof['proof_id'],
         ])->assertOk()->assertJsonPath('data.status', 'delivered');
         $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
+        $this->assertSame(PaymentStatus::Paid, $order->fresh()->payment_status);
         $this->assertDatabaseHas('shipment_events', ['event_type' => 'delivery_completed', 'performing_courier_id' => $courier->id, 'recorded_by_logistics_id' => $logistics->id]);
         $this->actingAs($courier)->getJson('/api/v1/courier/delivery-history')->assertOk()->assertJsonPath('data.0.status', 'delivered');
     }

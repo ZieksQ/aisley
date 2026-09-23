@@ -24,6 +24,12 @@ class ProductVariant extends Model
         'stock_quantity',
         'status',
         'primary_media_id',
+        'shipping_weight_grams',
+        'shipping_length_mm',
+        'shipping_width_mm',
+        'shipping_height_mm',
+        'unit_cost_cents',
+        'cost_currency',
     ];
 
     protected function casts(): array
@@ -33,6 +39,11 @@ class ProductVariant extends Model
             'original_price' => 'decimal:2',
             'stock_quantity' => 'integer',
             'status' => ProductVariantStatus::class,
+            'shipping_weight_grams' => 'integer',
+            'shipping_length_mm' => 'integer',
+            'shipping_width_mm' => 'integer',
+            'shipping_height_mm' => 'integer',
+            'unit_cost_cents' => 'integer',
         ];
     }
 

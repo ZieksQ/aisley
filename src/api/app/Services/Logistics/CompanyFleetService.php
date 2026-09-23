@@ -51,7 +51,7 @@ class CompanyFleetService
                 throw FulfillmentException::conflict('COMPANY_TRUCK_CHANGED', 'The company truck changed. Refresh and try again.');
             }
             $activeTrips = LinehaulTrip::query()->where('company_truck_id', $truck->id)
-                ->whereIn('status', [LinehaulTripStatus::PendingAcceptance->value, LinehaulTripStatus::Scheduled->value, LinehaulTripStatus::InTransfer->value])
+                ->whereIn('status', [LinehaulTripStatus::PendingAcceptance->value, LinehaulTripStatus::Scheduled->value, LinehaulTripStatus::InTransfer->value, LinehaulTripStatus::Receiving->value])
                 ->lockForUpdate()->get();
             $activeLoad = $activeTrips->sum('parcel_count');
             if (isset($input['max_parcels']) && (int) $input['max_parcels'] < $activeLoad) {
@@ -100,7 +100,7 @@ class CompanyFleetService
             if ($affiliation->truck_driver_revision !== $expectedRevision) {
                 throw FulfillmentException::conflict('TRUCK_DRIVER_CAPABILITY_CHANGED', 'The driver capability changed. Refresh and try again.');
             }
-            if (! $allowed && LinehaulTrip::query()->where('driver_id', $courierId)->whereIn('status', [LinehaulTripStatus::PendingAcceptance->value, LinehaulTripStatus::Scheduled->value, LinehaulTripStatus::InTransfer->value])->exists()) {
+            if (! $allowed && LinehaulTrip::query()->where('driver_id', $courierId)->whereIn('status', [LinehaulTripStatus::PendingAcceptance->value, LinehaulTripStatus::Scheduled->value, LinehaulTripStatus::InTransfer->value, LinehaulTripStatus::Receiving->value])->exists()) {
                 throw FulfillmentException::conflict('TRUCK_DRIVER_ASSIGNED', 'A driver with an active linehaul assignment cannot be disabled.');
             }
             $affiliation->update(['can_drive_company_truck' => $allowed, 'truck_driver_revision' => $affiliation->truck_driver_revision + 1]);
@@ -111,7 +111,7 @@ class CompanyFleetService
 
     public function projection(CompanyTruck $truck): array
     {
-        $active = $truck->trips->first(fn (LinehaulTrip $trip) => in_array($trip->status, [LinehaulTripStatus::PendingAcceptance, LinehaulTripStatus::Scheduled, LinehaulTripStatus::InTransfer], true));
+        $active = $truck->trips->first(fn (LinehaulTrip $trip) => in_array($trip->status, [LinehaulTripStatus::PendingAcceptance, LinehaulTripStatus::Scheduled, LinehaulTripStatus::InTransfer, LinehaulTripStatus::Receiving], true));
         $load = $active?->parcel_count ?? 0;
 
         return [

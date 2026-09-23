@@ -493,3 +493,9 @@ ExportHistory
 - Laravel 12 Queues: https://laravel.com/docs/12.x/queues
 - Laravel 12 Responses: https://laravel.com/docs/12.x/responses
 - Laravel Filesystem: https://laravel.com/docs/filesystem
+
+### Finance workspace resolution (2026-09-24)
+
+- `docs/features/shared/commission-settlement/spec.md` now defines the authoritative Seller proceeds, recognition, settlement, cost completeness, and forecast rules.
+- The role-scoped Seller Finance workspace reports recognized net proceeds, snapshotted product costs, operating expenses, provisional or actual operating profit, available liability balance, payouts, searchable ledger rows, CSV, and Order drill-down.
+- Forecasts use weekday averages from eight complete weeks for 30 days and show low/base/high activity scenarios. Profit is suppressed while required costs are incomplete.

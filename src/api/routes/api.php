@@ -6,6 +6,9 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureControlController;
+use App\Http\Controllers\Admin\FinanceConfigurationController;
+use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
+use App\Http\Controllers\Admin\FinanceWorkflowController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\HubRoutingConfigurationController;
 use App\Http\Controllers\Admin\NotificationController;
@@ -49,18 +52,22 @@ use App\Http\Controllers\Logistics\CompanyFleetController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\CourierVehicleController as LogisticsCourierVehicleController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
+use App\Http\Controllers\Logistics\DeliveryConfirmationController;
 use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
 use App\Http\Controllers\Logistics\LinehaulController;
+use App\Http\Controllers\Logistics\LinehaulReceivingController;
 use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
 use App\Http\Controllers\Logistics\SortingController;
 use App\Http\Controllers\Logistics\SortingPlanController;
+use App\Http\Controllers\Logistics\ShippingRateController;
+use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
@@ -77,6 +84,7 @@ use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressCo
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
+use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
 
@@ -97,6 +105,29 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
+    Route::prefix('finance')->middleware('admin.permission:finance.view')->group(function () {
+        Route::get('/summary', [AdminFinanceController::class, 'show']);
+        Route::get('/series', [AdminFinanceController::class, 'show']);
+        Route::get('/forecast', [AdminFinanceController::class, 'show']);
+        Route::get('/payouts', [AdminFinanceController::class, 'show']);
+        Route::get('/ledger', [AdminFinanceController::class, 'ledger']);
+        Route::get('/ledger.csv', [AdminFinanceController::class, 'csv']);
+        Route::get('/orders/{order}', [AdminFinanceController::class, 'order'])->whereUuid('order');
+        Route::post('/costs', [AdminFinanceController::class, 'expense'])->middleware('admin.permission:finance.manage');
+        Route::post('/periods/{month}/close', [AdminFinanceController::class, 'close'])->middleware('admin.permission:finance.manage');
+        Route::post('/remittances/{batch}/clear', [FinanceWorkflowController::class, 'clearRemittance'])->whereUuid('batch')->middleware('admin.permission:finance.manage');
+        Route::post('/orders/{order}/holds', [FinanceWorkflowController::class, 'hold'])->whereUuid('order')->middleware('admin.permission:finance.manage');
+        Route::post('/holds/{hold}/release', [FinanceWorkflowController::class, 'releaseHold'])->whereUuid('hold')->middleware('admin.permission:finance.manage');
+        Route::put('/sandbox-beneficiaries/{type}/{beneficiary}', [FinanceWorkflowController::class, 'sandboxAccount'])->whereUuid('beneficiary')->middleware('admin.permission:finance.manage');
+        Route::post('/sandbox-settlement/run', [FinanceWorkflowController::class, 'settle'])->middleware('admin.permission:finance.manage');
+        Route::post('/sandbox-payouts/{reference}/callback', [FinanceWorkflowController::class, 'callback'])->middleware('admin.permission:finance.manage');
+    });
+    Route::get('/shipping-rates', [FinanceConfigurationController::class, 'rates'])->middleware('admin.permission:finance.view');
+    Route::post('/shipping-rates', [FinanceConfigurationController::class, 'storeRate'])->middleware('admin.permission:finance.manage');
+    Route::post('/shipping-rates/{rate}/publish', [FinanceConfigurationController::class, 'publishRate'])->whereUuid('rate')->middleware('admin.permission:finance.manage');
+    Route::get('/commission-policies', [FinanceConfigurationController::class, 'policies'])->middleware('admin.permission:finance.view');
+    Route::post('/commission-policies', [FinanceConfigurationController::class, 'storePolicy'])->middleware('admin.permission:finance.manage');
+    Route::post('/commission-policies/{policy}/publish', [FinanceConfigurationController::class, 'publishPolicy'])->whereUuid('policy')->middleware('admin.permission:finance.manage');
     Route::get('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'index'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.view')->name('hub-routing.index');
     Route::post('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'store'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.store');
     Route::patch('/hub-routing/{kind}/{id}', [HubRoutingConfigurationController::class, 'update'])->where('kind', 'service-areas|connections')->whereUuid('id')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.update');
@@ -229,6 +260,17 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
+    Route::prefix('finance')->group(function () {
+        Route::get('/summary', [SellerFinanceController::class, 'show']);
+        Route::get('/series', [SellerFinanceController::class, 'show']);
+        Route::get('/forecast', [SellerFinanceController::class, 'show']);
+        Route::get('/payouts', [SellerFinanceController::class, 'show']);
+        Route::get('/ledger', [SellerFinanceController::class, 'ledger']);
+        Route::get('/ledger.csv', [SellerFinanceController::class, 'csv']);
+        Route::get('/orders/{order}', [SellerFinanceController::class, 'order'])->whereUuid('order');
+        Route::post('/costs', [SellerFinanceController::class, 'expense']);
+        Route::post('/periods/{month}/close', [SellerFinanceController::class, 'close']);
+    });
     Route::get('/account', [SellerAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/storefront', [SellerAccountController::class, 'updateStorefront'])->name('account.storefront.update');
@@ -298,6 +340,20 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::prefix('finance')->group(function () {
+        Route::get('/summary', [LogisticsFinanceController::class, 'show']);
+        Route::get('/series', [LogisticsFinanceController::class, 'show']);
+        Route::get('/forecast', [LogisticsFinanceController::class, 'show']);
+        Route::get('/payouts', [LogisticsFinanceController::class, 'show']);
+        Route::get('/ledger', [LogisticsFinanceController::class, 'ledger']);
+        Route::get('/ledger.csv', [LogisticsFinanceController::class, 'csv']);
+        Route::get('/orders/{order}', [LogisticsFinanceController::class, 'order'])->whereUuid('order');
+        Route::post('/costs', [LogisticsFinanceController::class, 'expense']);
+        Route::post('/periods/{month}/close', [LogisticsFinanceController::class, 'close']);
+        Route::post('/remittances', [LogisticsFinanceController::class, 'remit']);
+    });
+    Route::get('/shipping-rates', [ShippingRateController::class, 'index'])->name('shipping-rates.index');
+    Route::post('/shipping-rates/{rate}/accept', [ShippingRateController::class, 'accept'])->whereUuid('rate')->name('shipping-rates.accept');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');
     Route::post('/fleet/trucks', [CompanyFleetController::class, 'store'])->name('fleet.trucks.store');
     Route::patch('/fleet/trucks/{truck}', [CompanyFleetController::class, 'update'])->whereUuid('truck')->name('fleet.trucks.update');
@@ -307,6 +363,11 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/linehaul/trips/{trip}/decision', [LinehaulTripController::class, 'decide'])->whereUuid('trip')->name('linehaul.trips.decision');
     Route::post('/linehaul/trips/{trip}/cancel', [LinehaulTripController::class, 'cancel'])->whereUuid('trip')->name('linehaul.trips.cancel');
     Route::post('/linehaul/trips/{trip}/depart', [LinehaulTripController::class, 'depart'])->whereUuid('trip')->name('linehaul.trips.depart');
+    Route::get('/linehaul/trips/{trip}/receiving', [LinehaulReceivingController::class, 'show'])->whereUuid('trip');
+    Route::post('/linehaul/trips/{trip}/receiving/start', [LinehaulReceivingController::class, 'start'])->whereUuid('trip');
+    Route::post('/linehaul/trips/{trip}/receiving/batches', [LinehaulReceivingController::class, 'batch'])->whereUuid('trip');
+    Route::post('/linehaul/trips/{trip}/receiving/finish', [LinehaulReceivingController::class, 'finish'])->whereUuid('trip');
+    Route::post('/linehaul/trips/{trip}/receiving/discrepancies/{discrepancy}/resolve', [LinehaulReceivingController::class, 'resolve'])->whereUuid('trip')->whereUuid('discrepancy');
     Route::post('/linehaul/trips/{trip}/receive', [LinehaulTripController::class, 'receive'])->whereUuid('trip')->name('linehaul.trips.receive');
     Route::post('/linehaul/trips/{trip}/return', [LinehaulTripController::class, 'scheduleReturn'])->whereUuid('trip')->name('linehaul.trips.return');
     Route::put('/linehaul/connections/{connection}/consent', [LinehaulController::class, 'consent']);
@@ -360,6 +421,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/update-status/transitions', [FulfillmentStatusController::class, 'transition'])->name('update-status.transitions');
     Route::get('/delivery-proofs/{proof}/photo', [DeliveryProofPhotoController::class, 'show'])->whereUuid('proof')->name('delivery-proofs.photo');
     Route::post('/delivery-proofs/{proof}/reject', [DeliveryProofPhotoController::class, 'reject'])->whereUuid('proof')->name('delivery-proofs.reject');
+    Route::get('/delivery-confirmations', [DeliveryConfirmationController::class, 'index'])->name('delivery-confirmations.index');
     Route::post('/update-status/scan-events', [FulfillmentStatusController::class, 'transition'])->name('update-status.scan-events');
     Route::post('/receiving/batches', [ReceivingController::class, 'store'])->name('receiving.batches.store');
     Route::get('/sorting', [SortingController::class, 'index'])->name('sorting.index');

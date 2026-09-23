@@ -31,6 +31,7 @@ class LogisticsNotificationService
         'logistics-completion.requested',
         'logistics-courier.vehicle-updated',
         'logistics-linehaul.return-scheduled',
+        'logistics-linehaul.receiving-discrepancies',
     ];
 
     /** @return MorphMany<DatabaseNotification> */
@@ -110,6 +111,24 @@ class LogisticsNotificationService
                     'trip_id' => $record->id,
                     'title' => 'Return linehaul scheduled',
                     'summary' => 'The receiving Logistics partner scheduled your driver and truck to return home.',
+                ]);
+            }
+        });
+    }
+
+    public function queueLinehaulDiscrepancies(LinehaulTrip $trip): void
+    {
+        $id = $trip->id;
+        $this->afterCommit(function () use ($id): void {
+            $trip = LinehaulTrip::with('fromHub')->find($id);
+            if ($trip === null) {
+                return;
+            }
+            $recipient = $this->recipient($trip->fromHub->logistics_organization_id, $trip->from_hub_id);
+            if ($recipient !== null) {
+                $this->dispatch($recipient, 'logistics-linehaul.receiving-discrepancies', "linehaul-discrepancies:{$id}", Carbon::parse($trip->unloading_closed_at), [
+                    'trip_id' => $id, 'title' => 'Linehaul receiving discrepancies',
+                    'summary' => 'The receiving hub closed unloading with recorded parcel discrepancies.',
                 ]);
             }
         });
@@ -332,6 +351,7 @@ class LogisticsNotificationService
             'logistics-evidence.submitted' => $this->evidenceContext($data, $orgId, $hubId),
             'logistics-completion.requested' => $this->completionContext($data, $orgId, $hubId),
             'logistics-courier.vehicle-updated' => $this->vehicleContext($data, $orgId, $hubId),
+            'logistics-linehaul.receiving-discrepancies' => $this->linehaulDiscrepancyContext($data, $orgId, $hubId),
             'logistics-linehaul.return-scheduled' => $this->linehaulContext($data, $orgId, $hubId),
             default => $this->emptyContext(),
         };
@@ -405,6 +425,15 @@ class LogisticsNotificationService
         return $trip ? $this->known('linehaul_trip', $trip->id, '/dispatch') : $this->emptyContext();
     }
 
+    private function linehaulDiscrepancyContext(array $data, string $orgId, string $hubId): array
+    {
+        $id = $this->uuid($data['trip_id'] ?? null);
+        $trip = $id === null ? null : LinehaulTrip::whereKey($id)->where('from_hub_id', $hubId)
+            ->whereHas('fromHub', fn ($query) => $query->where('logistics_organization_id', $orgId))->first();
+
+        return $trip ? $this->known('linehaul_trip', $trip->id, '/linehaul-dispatch') : $this->emptyContext();
+    }
+
     private function scopedTask(?string $id, string $orgId, string $hubId): ?DeliveryTask
     {
         return $id === null ? null : DeliveryTask::query()->whereKey($id)->whereHas('shipment', fn ($query) => $query->where('current_logistics_organization_id', $orgId)->where('current_hub_id', $hubId))->with('shipment.parcel.waybill')->first();
@@ -444,6 +473,7 @@ class LogisticsNotificationService
             'logistics-evidence.submitted' => ['Evidence submitted', $this->evidenceSummary($data)],
             'logistics-completion.requested' => ['Delivery completion requested', 'A Courier requested delivery completion validation.'],
             'logistics-courier.vehicle-updated' => ['Courier vehicle updated', 'An affiliated Courier updated vehicle details or registration evidence.'],
+            'logistics-linehaul.receiving-discrepancies' => ['Linehaul receiving discrepancies', 'The receiving hub closed unloading with recorded parcel discrepancies.'],
             'logistics-linehaul.return-scheduled' => ['Return linehaul scheduled', 'The receiving Logistics partner scheduled your driver and truck to return home.'],
             default => ['Notification', 'An update is available.'],
         };

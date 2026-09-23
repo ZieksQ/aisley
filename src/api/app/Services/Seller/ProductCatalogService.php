@@ -28,7 +28,7 @@ class ProductCatalogService
             $variants = $data['variants'] ?? [];
             $hasOptionGroups = ! empty($data['option_groups'] ?? []);
             $product = $shop->products()->create([
-                ...Arr::only($data, ['category_id', 'name', 'short_description', 'description_markdown', 'price', 'original_price', 'currency']),
+                ...Arr::only($data, ['category_id', 'name', 'short_description', 'description_markdown', 'price', 'original_price', 'currency', 'shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm', 'unit_cost_cents', 'cost_currency']),
                 'slug' => Str::slug($data['name']).'-'.Str::lower(Str::random(6)),
                 'base_sku' => $data['sku'],
                 'stock_quantity' => 0,
@@ -53,7 +53,7 @@ class ProductCatalogService
         $data['upload_token'] ??= (string) Str::uuid();
 
         return DB::transaction(function () use ($product, $seller, $data): Product {
-            $product->update(Arr::only($data, ['category_id', 'name', 'short_description', 'description_markdown', 'price', 'original_price', 'currency']));
+            $product->update(Arr::only($data, ['category_id', 'name', 'short_description', 'description_markdown', 'price', 'original_price', 'currency', 'shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm', 'unit_cost_cents', 'cost_currency']));
             if (array_key_exists('variants', $data)) {
                 $this->replaceVariants($product, $seller, $data['option_groups'] ?? [], $data['variants'], $data['upload_token']);
             }
@@ -97,6 +97,7 @@ class ProductCatalogService
                     'price' => $variantData['price'] ?? null,
                     'original_price' => $variantData['original_price'] ?? null,
                     'status' => $variantData['status'] ?? ProductVariantStatus::Active,
+                    ...Arr::only($variantData, ['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm', 'unit_cost_cents', 'cost_currency']),
                 ]);
                 $variant->inventorySku?->update(['code' => $variantData['sku']]);
             } else {
@@ -107,6 +108,7 @@ class ProductCatalogService
                     'original_price' => $variantData['original_price'] ?? null,
                     'stock_quantity' => 0,
                     'status' => $variantData['status'] ?? ProductVariantStatus::Active,
+                    ...Arr::only($variantData, ['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm', 'unit_cost_cents', 'cost_currency']),
                 ]);
                 $this->inventory->createVariantSku($product, $variant, $variantData['sku'], $seller, (int) ($variantData['opening_stock'] ?? 0));
             }
@@ -147,6 +149,7 @@ class ProductCatalogService
                 'original_price' => $variantData['original_price'] ?? null,
                 'stock_quantity' => 0,
                 'status' => $variantData['status'] ?? ProductVariantStatus::Active,
+                ...Arr::only($variantData, ['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm', 'unit_cost_cents', 'cost_currency']),
             ]);
             $variant->optionValues()->sync(collect($variantData['option_value_indexes'])->map(fn ($valueIndex, $groupIndex) => $valueIds[$groupIndex][$valueIndex])->all());
             $this->inventory->createVariantSku($product, $variant, $variantData['sku'], $seller, (int) ($variantData['opening_stock'] ?? 0));

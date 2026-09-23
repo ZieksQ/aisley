@@ -4,6 +4,7 @@ import {
   FaBars,
   FaClipboardCheck,
   FaClockRotateLeft,
+  FaChartLine,
   FaFileContract,
   FaGaugeHigh,
   FaInbox,
@@ -45,6 +46,7 @@ export function AdminLayout() {
   const canViewNotifications = admin?.permissions.includes('notifications.view') ?? false
   const canViewUsers = admin?.permissions.includes('users.view') ?? false
   const canManageSellerCompliance = admin?.permissions.includes('seller_compliance.manage') ?? false
+  const canViewFinance = admin?.permissions.includes('finance.view') ?? false
   const isUserDetail = /^\/users\/[^/]+$/.test(location.pathname)
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
@@ -53,7 +55,7 @@ export function AdminLayout() {
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
-      : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : location.pathname.startsWith('/feature-controls') ? 'Feature controls' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
+      : location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : location.pathname.startsWith('/feature-controls') ? 'Feature controls' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
   const pageContext = location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
@@ -101,6 +103,7 @@ export function AdminLayout() {
                 <FaGaugeHigh aria-hidden="true" />
                 Dashboard
               </NavLink>
+              {canViewFinance && <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/finance"><FaChartLine aria-hidden="true" />Finance</NavLink>}
               {canViewRegistrations && (
                 <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/registrations">
                   <FaClipboardCheck aria-hidden="true" />

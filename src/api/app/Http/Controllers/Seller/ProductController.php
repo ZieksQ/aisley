@@ -95,8 +95,12 @@ class ProductController extends Controller
         $purchasable = $product->optionGroups->isEmpty() && $product->variants->isEmpty()
             ? ($product->inventorySkus->first()?->balance?->available() ?? 0) > 0
             : $product->variants->contains(fn ($variant) => $variant->status->value === 'active' && ($variant->inventorySku?->balance?->available() ?? 0) > 0);
-        if (! $product->name || ! $product->category_id || (float) $product->price <= 0 || $product->media->whereNull('product_variant_id')->isEmpty() || ! $purchasable) {
-            throw ValidationException::withMessages(['product' => 'Complete the catalog fields, add a gallery image, and ensure at least one active SKU has stock before publishing.']);
+        $shippingComplete = collect(['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm'])
+            ->every(fn (string $field) => (int) $product->{$field} > 0)
+            && $product->variants->every(fn ($variant) => $variant->status->value !== 'active' || collect(['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm'])
+                ->every(fn (string $field) => (int) ($variant->{$field} ?? $product->{$field}) > 0));
+        if (! $product->name || ! $product->category_id || (float) $product->price <= 0 || $product->media->whereNull('product_variant_id')->isEmpty() || ! $purchasable || ! $shippingComplete) {
+            throw ValidationException::withMessages(['product' => 'Complete the catalog and shipping fields, add a gallery image, and ensure at least one active SKU has stock before publishing.']);
         }
         $product->update(['status' => ProductStatus::Active, 'published_at' => now()]);
 
@@ -172,6 +176,12 @@ class ProductController extends Controller
             'short_description' => $product->short_description, 'description_markdown' => $product->description_markdown,
             'price' => $product->price, 'original_price' => $product->original_price,
             'currency' => $product->currency,
+            'shipping_weight_grams' => $product->shipping_weight_grams,
+            'shipping_length_mm' => $product->shipping_length_mm,
+            'shipping_width_mm' => $product->shipping_width_mm,
+            'shipping_height_mm' => $product->shipping_height_mm,
+            'unit_cost_cents' => $product->unit_cost_cents,
+            'cost_currency' => $product->cost_currency,
             'status' => $product->status->value, 'published_at' => $product->published_at,
             'compliance' => [
                 'is_restricted' => $product->activeComplianceRestriction !== null,
@@ -205,6 +215,12 @@ class ProductController extends Controller
                 'reserved' => $variant->inventorySku?->balance?->reserved ?? 0,
                 'available' => $variant->inventorySku?->balance?->available() ?? 0,
                 'primary_media_id' => $variant->primary_media_id,
+                'shipping_weight_grams' => $variant->shipping_weight_grams,
+                'shipping_length_mm' => $variant->shipping_length_mm,
+                'shipping_width_mm' => $variant->shipping_width_mm,
+                'shipping_height_mm' => $variant->shipping_height_mm,
+                'unit_cost_cents' => $variant->unit_cost_cents,
+                'cost_currency' => $variant->cost_currency,
             ])->values(),
         ];
     }

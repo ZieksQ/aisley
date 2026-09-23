@@ -160,3 +160,9 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Record request/schedule IDs, tenant IDs, Courier ID, revision, idempotency outcome, Geoapify credit estimate, and notification result; exclude full addresses and QR payloads.
 - Alert on overdue unassigned requests, due-reminder lag, repeated provider failures, and schedules starting without an active assigned Courier.
 - Roll out schema/backfill → option ranking → Seller selection/waybill creation → Logistics Pickups → scheduling/tasks → explicit Courier acceptance → rejection/re-offer history → notifications/reminders; physical scan/custody remains a later shared transition rollout.
+
+### Saved-quote partner restriction (2026-09-24)
+
+- A Seller may select only a Logistics organization listed in the Order pricing snapshot that still accepts the saved shipping rate version.
+- If no organization can honor the snapshot, fulfillment enters a financial hold for resolution. The Customer shipping fee and COD remain unchanged.
+- The selected partner fulfills against the immutable quote; pickup selection does not recalculate Customer pricing.

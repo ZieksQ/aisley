@@ -17,6 +17,7 @@ import { SellerCompliancePage } from './pages/SellerCompliancePage'
 import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FeatureControlsPage } from './pages/FeatureControlsPage'
+import { FinancePage } from './pages/FinancePage'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<FinancePage />} path="/finance" />
           <Route element={<AccountPage />} path="/account" />
           <Route element={<PolicyConsentPage />} path="/policy-consent" />
           <Route element={<PlatformSettingsPage />} path="/platform-settings" />

@@ -128,6 +128,16 @@ export type CheckoutQuote = {
       qualifyingBasis: string;
       discountAmount: string;
     }>;
+    shippingQuote: {
+      serviceable: true;
+      rateVersionId: string;
+      rateVersion: number;
+      billableWeightGrams: number;
+      baseFee: string;
+      additionalWeightFee: string;
+      destinationSurcharge: string;
+      eligibleLogisticsCount: number;
+    };
     totals: CheckoutTotals;
   }>;
   summary: CheckoutTotals & { orderCount: number };

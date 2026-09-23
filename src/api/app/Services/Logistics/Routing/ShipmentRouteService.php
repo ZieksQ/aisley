@@ -160,6 +160,9 @@ class ShipmentRouteService
 
     public function assertFinalMile(Shipment $shipment): void
     {
+        if ($shipment->condition_hold) {
+            throw FulfillmentException::conflict('SHIPMENT_CONDITION_HOLD', 'Inspect and release this damaged parcel before dispatch.');
+        }
         if ($shipment->route !== null && ($shipment->route->destination_hub_id !== $shipment->current_hub_id || ! in_array($shipment->route->status, [HubRouteStatus::Local, HubRouteStatus::Completed], true))) {
             throw FulfillmentException::conflict('ROUTE_FINAL_MILE_HELD', 'This parcel must complete its hub route before final-mile dispatch.');
         }

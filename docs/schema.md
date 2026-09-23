@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-23 (Company Truck Linehaul Dispatch)
+> **Last synchronized:** 2026-09-23 (Inbound Linehaul Receiving and Reconciliation)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -173,7 +173,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `ProductVariantStatus` | `active`, `inactive` | `product_variants.status` |
 | `CheckoutMode` | `cart`, `buy_now` | Checkout request validation and `checkout_quotes.input_payload` |
 | `PaymentMethod` | `cod` | `orders.payment_method`, optional `vouchers.payment_method` |
-| `PaymentStatus` | `pending` | `orders.payment_status` |
+| `PaymentStatus` | `pending`, `paid` | `orders.payment_status` |
 | `OrderStatus` | `pending_payment`, `placed`, `seller_processing`, `ready_for_pickup`, `assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivered`, `cancelled`, `rejected`, `delivery_failed`, `return_requested`, `returned` | `orders.status`, `order_status_events.from_status`/`to_status`; current COD placement skips `pending_payment` |
 | `VoucherIssuerType` | `app`, `shop` | `vouchers.issuer_type`, `order_vouchers.issuer_type` |
 | `VoucherBenefitType` | `discount`, `shipping` | `vouchers.benefit_type`, `order_vouchers.benefit_type` |
@@ -1163,11 +1163,11 @@ The additive fulfillment migration creates one immutable `parcels` row and one `
 | `sorting_session_items` | Session snapshot membership and current pending/sorted/exception reconciliation state; stores expected Shipment revision, selected lane, exception context, and completion time. |
 | `sorting_scans` | Append-style idempotent capture results scoped by organization/hub/session/item/lane/Shipment; stores stable client UUID, request hash, source, captured/processed times, actor, automatic-routing flag, selected plan/mapping IDs, and optional exception context/reason. |
 | `shipment_evidence` | Private QR/reference evidence for hub pickup and private photo POD for delivery; photo records include generated storage disk/path, MIME, byte size, dimensions, checksum, status, actors, timestamps, and failed-attempt count metadata. |
-| `completion_intents` | Explicit Courier completion intent linked to one delivery proof; remains awaiting validation until Logistics finalizes delivery. |
+| `completion_intents` | Explicit Courier completion intent linked to one delivery proof; COD intents store server-derived declared payable amount, currency, and declaration time, with Logistics reviewer and finalization time. |
 | `final_mile_failed_attempts` | Append-only Courier/task-scoped reason, optional note, server timestamp, and idempotency key. Does not change Shipment, task, or Order status. |
 | `shipment_events` | Append-only physical transition history with before/after states, performing Courier, validating Logistics account, evidence/offer links, correlation, and idempotency references. |
 
-Logistics and Courier routes are private, tenant-scoped, and no-store. A final delivery changes the final-mile task, Shipment, and Order to `delivered` in one transaction after a validated photo POD and Courier completion intent; it does not fulfill Inventory again or change payment fields.
+Logistics and Courier routes are private, tenant-scoped, and no-store. A final delivery changes the final-mile task, Shipment, and Order to `delivered` in one transaction after a validated photo POD and Courier completion intent. For COD only, the same transaction marks `payment_status = paid` after Logistics confirms the server-derived Order total declaration. Delivery does not fulfill Inventory again.
 
 ### 9.18.1 Company-truck linehaul records
 
@@ -1176,6 +1176,19 @@ Logistics and Courier routes are private, tenant-scoped, and no-store. A final d
 | `company_trucks` | Logistics-owned truck with immutable owner/home-hub scope, unique plate, optional make/model, positive parcel-count capacity, active flag, string-backed availability, last confirmed hub, and optimistic revision. It is separate from Courier-owned `vehicles`. |
 | `linehaul_trips` | Outbound or return assignment with owner/home/from/to hubs, company truck, qualified driver, scheduled time, capacity/load snapshots, string-backed lifecycle, optional manifest/parent trip, actor decisions, timestamps, idempotency fingerprint, and revision. A return has exactly one outbound parent. |
 | `linehaul_trip_shipments` | Deterministic reserved Shipment/route-hop membership with stable sequence and reservation revisions. `released_at` preserves rejected/cancelled history while making the hop eligible for a later trip. |
+
+The additive `2026_09_23_000002_add_linehaul_receiving.php` migration adds:
+
+| Record | Added behavior |
+| --- | --- |
+| `linehaul_trips` | `arrived_at/by`, `unloading_closed_at/by`, string-backed `unloading_outcome`; `receiving` lifecycle state. No historical scan backfill. |
+| `company_trucks.availability` | New application enum value `unloading`; existing string storage retained. |
+| `shipments.condition_hold` | Boolean damage hold, false by default; receipt still records physical custody. |
+| `linehaul_receipts` | Unique trip/Shipment receipt, original tracking reference/condition/source, actor, capture/server timestamps, immutable JSON result. |
+| `linehaul_discrepancies` | Unique trip/kind/reference (`missing`, `damaged`, `unexpected`), nullable Shipment only for known manifest members, original actor/reason/time and resolution actor/reason/time. Unexpected scans never resolve a foreign Shipment. |
+| `linehaul_receiving_actions` | Append-only start/scan/finish/resolve audit; unique actor/client UUID, trip/operation/payload fingerprint, original JSON payload/result and commit time. |
+
+New enum-like values use string columns and PHP enum casts. Receipt transactions lock receiving hub then trip before custody/resource work; per-scan commits preserve valid receipts when another member fails. Reservations release only when their parcel arrives (or a pre-departure cancellation releases it), not on shortage closure. A manifest becomes `received` only after its last parcel arrives; a trip can close earlier with discrepancies. Late receipt never rewrites truck availability or closure history.
 
 `courier_logistics_affiliations.can_drive_company_truck` and `truck_driver_revision` hold the owning Logistics organization's independently revisioned driver capability. Row/hub locks serialize competing reservations. New hub-transfer departures require this trip workflow; historical already-departed `linehaul_manifests` retain their receipt path. Empty returns create a trip but no empty manifest.
 

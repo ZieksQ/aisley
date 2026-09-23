@@ -39,7 +39,7 @@ export function DeliveryHistory({ token }: { token: string }) {
   }
 
   return <section className="history-section" aria-labelledby="delivery-history-heading">
-    <div className="pickup-toolbar"><div><h3 id="delivery-history-heading">Delivery history</h3><p className="panel-description">Completed deliveries from the API.</p></div><Button className="min-h-10 rounded-md px-4 shadow-none" isLoading={loading} onClick={() => void load(reference)} variant="outline">Refresh history</Button></div>
+    <div className="pickup-toolbar"><div><h3 id="delivery-history-heading">Completed deliveries</h3><p className="panel-description">Deliveries confirmed by Logistics.</p></div><Button className="min-h-10 rounded-md px-4 shadow-none" isLoading={loading} onClick={() => void load(reference)} variant="outline">Refresh history</Button></div>
     <form className="history-filter" onSubmit={(event) => { event.preventDefault(); void load(reference) }}>
       <TextField id="history-reference" label="Exact Order reference (optional)" onChange={(event) => setReference(event.target.value)} value={reference} />
       <Button className="min-h-10 rounded-md px-4 shadow-none" type="submit" variant="outline">Search</Button>

@@ -17,6 +17,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
 
+## Company-truck parcel receipt revision — 2026-09-23
+
+Company-truck Linehaul now separates truck arrival, per-parcel receipt, and unloading closure. Its scoped receiving service uses `FulfillmentTransitionService::transferAtHub` for each verified Shipment/hop and appends one custody event; receipt/action records retain capture/server timestamps, actor, request identity, condition and retry result. A damaged receipt sets `shipments.condition_hold` while retaining `received_at_hub`; standard sorting and final-mile dispatch reject it until the receiving Logistics account records an inspection/release reason. Partial receipts can sort independently under the existing bounded session snapshot. A missing parcel remains `in_transfer` through truck return and may arrive late without another truck visit. This supersedes historical deferred-transfer and whole-manifest receipt wording for the company-truck workflow; high-level Order status rules remain unchanged.
+
 ## Final-mile parcel context revision (2026-09-21)
 
 Final-mile Courier hub handoff is task-bound: the accepted Delivery Task and expected revision identify the parcel server-side, and Logistics confirms pending handoff evidence before custody changes. Courier final-mile requests no longer carry QR/tracking/Order identifiers; first-mile Seller pickup and Logistics physical parcel scans retain their own identifier rules. The Courier may read the Order merchandise subtotal as `parcel.price` with currency for the assigned delivery. The Courier's drop-off proof remains a private photo POD followed by Delivered intent and Logistics confirmation. Historical final-mile identifier wording below is superseded by the owning feature contracts.
@@ -330,3 +334,9 @@ Complete each unchecked question before creating physical operational migrations
 - Canonical project documents: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/domains/Buyer.md`, `docs/domains/Logistics.md`, and `docs/domains/Courier.md`.
 - Existing order specs: `docs/features/orders/logistics-pickups/spec.md` and `docs/features/orders/waybill/spec.md`.
 - Owning role specs: Seller Prepare Orders, Logistics Dashboard/Deploy Rider, Courier pickup/delivery, Customer Order Status, and Customer Checkout; Laravel references: [database transactions](https://laravel.com/framework/docs/12.x/database) and [queued work after database commit](https://laravel.com/framework/docs/12.x/queues).
+
+### Financial completion evidence (2026-09-24)
+
+- Confirmed delivery recognizes revenue and beneficiary liabilities using the immutable Order pricing snapshot; it does not imply remittance or payout.
+- Logistics allocation uses completed service evidence: 25% first mile, 35% final mile, and 40% split by completed linehaul distance among actual truck-owning organizations. Same-hub fulfillment assigns the complete Logistics pool to that organization.
+- Missing carrier or distance evidence creates a financial hold. Completed allocations remain frozen while uncommitted future route segments may be revised. See `docs/features/shared/commission-settlement/spec.md`.

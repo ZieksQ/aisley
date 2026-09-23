@@ -138,16 +138,16 @@ class LinehaulTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/transfers/arrivals', [
             'reference' => $first, 'hop_id' => $hop->id, 'expected_revision' => $shipment->revision, 'expected_hop_revision' => $hop->revision,
         ])->assertConflict()->assertJsonPath('code', 'LINEHAUL_MANIFEST_REQUIRED');
-        // A late member failure must undo earlier members' receipts.
+        // Cargo cannot bypass scan verification even when a manifest member is unavailable.
         $manifestItems = json_decode(DB::table('linehaul_manifests')->where('id', $manifestId)->value('items'), true);
         $lastHop = ShipmentRouteHop::findOrFail($manifestItems[count($manifestItems) - 1]['hop_id']);
         DB::table('shipment_route_hops')->where('id', $lastHop->id)->update(['status' => 'pending']);
-        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertNotFound();
+        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertConflict()->assertJsonPath('code', 'LINEHAUL_SCAN_REQUIRED');
         $this->assertSame(2, Shipment::where('status', 'in_transfer')->count());
         DB::table('shipment_route_hops')->where('id', $lastHop->id)->update(['status' => 'in_transfer']);
         PlatformFeatureControl::where('key', 'linehaul')->update(['enabled' => false]);
         HubConnection::query()->update(['is_active' => false]);
-        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertOk()->assertJsonPath('data.status', 'received');
+        $this->receiveTripParcels($trip['id']);
         $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])->assertOk();
         $this->assertSame(2, Shipment::where('current_hub_id', $b[2]->id)->where('status', 'received_at_hub')->count());
     }

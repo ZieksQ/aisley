@@ -9,5 +9,6 @@ enum LinehaulTripStatus: string
     case Rejected = 'rejected';
     case Cancelled = 'cancelled';
     case InTransfer = 'in_transfer';
+    case Receiving = 'receiving';
     case Received = 'received';
 }

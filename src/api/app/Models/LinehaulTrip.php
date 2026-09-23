@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Logistics\LinehaulTripDirection;
 use App\Enums\Logistics\LinehaulTripStatus;
+use App\Enums\Logistics\UnloadingOutcome;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,12 +20,16 @@ class LinehaulTrip extends Model
         'company_truck_id', 'driver_id', 'parent_trip_id', 'linehaul_manifest_id',
         'requested_by', 'decided_by', 'direction', 'status', 'scheduled_for',
         'capacity_snapshot', 'parcel_count', 'rejection_reason', 'decided_at',
+        'arrived_at', 'arrived_by', 'unloading_closed_at', 'unloading_closed_by', 'unloading_outcome',
         'departed_at', 'received_at', 'revision', 'idempotency_key', 'request_hash',
     ];
 
     protected function casts(): array
     {
         return [
+            'arrived_at' => 'immutable_datetime',
+            'unloading_closed_at' => 'immutable_datetime',
+            'unloading_outcome' => UnloadingOutcome::class,
             'direction' => LinehaulTripDirection::class,
             'status' => LinehaulTripStatus::class,
             'scheduled_for' => 'datetime',

@@ -12,6 +12,10 @@ source_coverage: requirements.md, workspace.md, schema.md, Logistics.md, Courier
 
 # Courier Vehicle Registry
 
+## Unloading availability — 2026-09-23
+
+Company trucks now have string-backed `unloading` availability. Starting receipt records the confirmed destination hub but keeps the truck and driver reserved through trip status `receiving`. Fleet edits, truck-driver capability changes, pickup scheduling, final-mile scheduling, and linehaul resource checks include that state. Unloading closure releases the visitor for its normal cargo/empty home return even with documented shortages. A late expected receipt changes parcel custody only and cannot move or re-reserve a truck that has already returned. Historical completed truck receipts remain historical; no scan evidence is backfilled.
+
 ## Company-truck extension — 2026-09-23
 
 The Courier-owned one-vehicle registry below remains implemented and separate. [Company Truck Linehaul Dispatch](../company-truck-linehaul-dispatch/spec.md) adds Logistics-owned `company_trucks`, the `/fleet` management page, truck-driver capability on approved affiliations, and trip/capacity monitoring. It does not weaken the one-personal-vehicle-per-Courier rule or reinterpret the legacy decimal `vehicles.capacity`. `truck` is now a supported personal vehicle type, but only a `company_trucks` record can satisfy a linehaul assignment.

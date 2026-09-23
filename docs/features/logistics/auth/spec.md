@@ -11,6 +11,10 @@ scope: Logistics React SPA and Laravel API
 
 # Logistics Authentication
 
+## Offline receiving context — 2026-09-23
+
+Trip-specific receiving/reconciliation supports production offline reload after a successful online session and policy-consent check. A tab stores minimal Logistics identity/organization/hub context in sessionStorage (no email/profile credentials) and restores it only for those trip routes while offline. This permits local manifest review/capture only; Sanctum, active role/status, policy consent and receiving-hub authorization still apply to every API request. The service worker caches public application assets only. Private manifest/outbox keys include account, organization, hub, and trip. Logout clears private receiving storage and the offline session/consent context. A different account cannot read or synchronize the previous account's scoped queue.
+
 ## WHAT
 
 - **Purpose:** Register one Logistics organization/operator, submit it for Admin review, and provide secure access to the Logistics dashboard after approval.

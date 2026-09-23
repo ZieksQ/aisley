@@ -15,16 +15,18 @@ use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\ConfiguresCheckoutFinance;
 use Tests\TestCase;
 
 class CustomerOrderMutationTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfiguresCheckoutFinance, RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->seed(ProductSeeder::class);
+        $this->configureTestCheckoutFinance();
     }
 
     public function test_customer_can_cancel_a_placed_order_once_and_release_only_its_reservation(): void

@@ -54,6 +54,16 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'seller_compliance.manage',
             'description' => 'Review Seller and Product compliance cases and apply authorized actions.',
         ],
+        [
+            'name' => 'View finance',
+            'slug' => 'finance.view',
+            'description' => 'View platform finance reports, ledgers, remittances, and payouts.',
+        ],
+        [
+            'name' => 'Manage finance',
+            'slug' => 'finance.manage',
+            'description' => 'Publish rates and commissions, reconcile remittances, manage holds, and run sandbox settlements.',
+        ],
     ];
 
     public function run(): void
