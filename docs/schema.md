@@ -1457,8 +1457,11 @@ Repository migrations are listed below in filename execution order; this invento
 76. `2026_09_22_000001_create_seller_review_responses.php` — one immutable public Shop response per Product Review with restrictive attribution, stable idempotency, and Seller/Shop publication indexes.
 77. `2026_09_23_000001_add_company_truck_linehaul_dispatch.php` — truck-driver capability, Logistics-owned company trucks, capacity-frozen outbound/return trips, and route-hop parcel reservations.
 78. `2026_09_23_000002_add_customer_promotional_notification_preference.php` — durable default-off Customer in-app promotional consent and opt-in time.
-79. `2026_09_23_000003_create_notification_campaigns.php` — Admin campaign history and bounded per-recipient delivery snapshot with deduplication and 90-day retention.
-80. `2026_09_23_000004_create_customer_shop_conversations.php` — UUID-backed Customer–Shop conversations, per-participant read markers, and idempotent ordered text messages.
+79. `2026_09_23_000002_add_linehaul_receiving.php` — inbound trip receipts, discrepancy and reconciliation records, and Shipment condition holds.
+80. `2026_09_23_000003_add_cod_declaration_to_completion_intents.php` — last-mile COD collection declaration on completion intents.
+81. `2026_09_23_000003_create_notification_campaigns.php` — Admin campaign history and bounded per-recipient delivery snapshot with deduplication and 90-day retention.
+82. `2026_09_23_000004_create_customer_shop_conversations.php` — UUID-backed Customer–Shop conversations, per-participant read markers, and idempotent ordered text messages.
+83. `2026_09_24_000001_create_commission_settlement_finance.php` — shipping rates and commission policies, pricing snapshots, balanced finance ledger, remittance/allocations, expenses, holds, period closures, and sandbox payouts.
 
 ## 14. Fulfillment schema and deferred extensions
 
@@ -1527,7 +1530,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Catalog and inventory      | Reservation release before first-mile pickup and conversion at `picked_up_from_seller` are implemented; post-pickup release, returns/refunds, and partial-fulfillment records remain deferred |
 | Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
-| Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
+| Payments and finance       | Live payment/payout providers, taxes, and customer refund workflows remain deferred. COD collection/remittance, commission snapshots, balanced finance ledgers, reversing corrections, and sandbox payouts are implemented. |
 | First-party logistics      | Courier availability/capacity, live location telemetry, returns/refunds/partial fulfillment, and Courier earnings remain deferred. Shared Shipment/Parcel milestones, hub receipt/sort/dispatch, final-mile batch acceptance, QR hub handoff, private photo POD, failed-attempt retry, advisory final-mile routing, and final-mile completion are implemented. |
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Customer verified-purchase ratings/media/aggregates and Seller-scoped immutable public Shop responses are implemented; moderation, editing/deletion, video, and refund effects remain deferred |
