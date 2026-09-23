@@ -33,7 +33,7 @@ class CompleteDeliveryController extends Controller
 
     public function store(CompleteDeliveryRequest $request, string $task, FulfillmentTransitionService $service): JsonResponse
     {
-        $intent = $service->submitCompletion($request->user(), $task, $request->validated('evidence_id'), (int) $request->validated('expected_revision'), $request->idempotencyKey());
+        $intent = $service->submitCompletion($request->user(), $task, $request->validated('evidence_id'), (int) $request->validated('expected_revision'), $request->idempotencyKey(), (bool) $request->validated('cod_collected', false));
 
         return response()->json(['data' => [
             'task_id' => $intent->delivery_task_id,

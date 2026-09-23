@@ -49,6 +49,7 @@ use App\Http\Controllers\Logistics\CompanyFleetController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\CourierVehicleController as LogisticsCourierVehicleController;
 use App\Http\Controllers\Logistics\DashboardController as LogisticsDashboardController;
+use App\Http\Controllers\Logistics\DeliveryConfirmationController;
 use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
@@ -366,6 +367,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/update-status/transitions', [FulfillmentStatusController::class, 'transition'])->name('update-status.transitions');
     Route::get('/delivery-proofs/{proof}/photo', [DeliveryProofPhotoController::class, 'show'])->whereUuid('proof')->name('delivery-proofs.photo');
     Route::post('/delivery-proofs/{proof}/reject', [DeliveryProofPhotoController::class, 'reject'])->whereUuid('proof')->name('delivery-proofs.reject');
+    Route::get('/delivery-confirmations', [DeliveryConfirmationController::class, 'index'])->name('delivery-confirmations.index');
     Route::post('/update-status/scan-events', [FulfillmentStatusController::class, 'transition'])->name('update-status.scan-events');
     Route::post('/receiving/batches', [ReceivingController::class, 'store'])->name('receiving.batches.store');
     Route::get('/sorting', [SortingController::class, 'index'])->name('sorting.index');

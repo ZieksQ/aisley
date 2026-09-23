@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaCarSide, FaChevronUp, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
+import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaCarSide, FaChevronUp, FaClipboardCheck, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
@@ -100,6 +100,8 @@ export function LogisticsLayout() {
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')
       ? 'Last-mile dispatch'
+    : location.pathname.startsWith('/delivery-confirmations')
+      ? 'Delivery confirmations'
     : location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')
       ? 'Courier vehicle'
     : location.pathname.startsWith('/vehicles')
@@ -139,6 +141,7 @@ export function LogisticsLayout() {
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/linehaul-dispatch"><FaTruckFast /><span>Linehaul dispatch</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/inbound-linehaul"><FaTruckFast /><span>Inbound linehaul</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Last-mile dispatch</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/delivery-confirmations"><FaClipboardCheck />Delivery confirmations</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
         <NavLink className={({ isActive }) => navClass({ isActive: isActive || (location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')) })} onClick={() => setOpen(false)} to="/vehicles"><FaCarSide />Vehicles</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/fleet"><FaTruckFast />Company fleet</NavLink>

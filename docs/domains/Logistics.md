@@ -49,7 +49,7 @@ pending_payment
 
 Its Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete, `picked_up` projects explicit first-mile confirmation, and `assigned` projects a committed dispatch schedule/final-mile Courier offer. Detailed task events remain authoritative proof of custody.
 
-Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. The Seller's selected eligible Logistics organization is retained in the future fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
+Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. At final-mile delivery, Logistics reviews the Courier's server-derived COD declaration in the hub-scoped Delivery confirmations queue and confirms collection before approval; delivery and COD `payment_status = paid` commit atomically. The Seller's selected eligible Logistics organization is retained in the fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
 
 Detailed physical milestones belong to a separate Shipment/Delivery Task contract and must not be added to `orders.status` without an approved migration:
 

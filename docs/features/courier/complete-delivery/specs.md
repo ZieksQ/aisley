@@ -20,6 +20,10 @@ backend_contract_version: courier-completion-v1-qr
 
 The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Only Logistics can validate that private image and atomically mark the task, Shipment, and Order delivered. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
 
+## COD confirmation revision (2026-09-23)
+
+For COD Orders, completion intent requires `cod_collected: true`. The API derives the declared amount, currency, and declaration timestamp from the Order's current `payable_total` and currency; the Courier cannot submit or alter an amount. If the cash was not collected, the Courier records an unsuccessful attempt instead. Logistics sees the declaration in the pending confirmation queue and confirms collection explicitly before approval. Delivery finalization and setting COD `payment_status` to `paid` occur atomically after Logistics confirms proof, task revision, and declaration. Prepaid Orders do not require a COD field and are not changed by COD payment handling.
+
 ## WHAT
 
 - Finalize a final-mile delivery after Courier intent and Logistics-validated proof.
@@ -31,7 +35,7 @@ The Courier's **Delivered** action sends an intent linked to the current photo P
 - Seller receives the result and never marks an Order delivered.
 - Proof of Delivery owns capture, uploads, validation records, and private media delivery.
 - Delivery History owns read-only completed final-mile records.
-- Exclude returns/refunds, partial fulfillment, payments, payouts, tips, reviews, chat, and incident recovery.
+- Exclude returns/refunds, partial fulfillment, payment settlement beyond confirmed COD collection, payouts, tips, reviews, chat, and incident recovery.
 - Exclude automatic completion from GPS, map arrival, QR resolution, or notification delivery.
 
 ```text
@@ -77,7 +81,7 @@ out_for_delivery
 - Preserve evidence performance/submission times separately from delivered_at.
 - The completed first-mile task remains unchanged.
 - Final-mile completion does not reserve, release, or fulfill stock again.
-- Do not change payment_status or infer COD payment collection from delivered.
+- Do not infer COD payment collection from delivered alone. For COD only, the Courier declaration plus Logistics confirmation authorizes an atomic `payment_status = paid` update with final delivery.
 - Post-pickup cancellation, failure recovery, returns, refunds, and partial fulfillment remain deferred.
 
 ### Reliability and history
@@ -143,7 +147,8 @@ out_for_delivery
 
 - The Logistics route is owned by Update Status; this spec does not create a second validation endpoint.
 - Courier POST uses application/json plus a UUID Idempotency-Key header.
-- Request fields: expected_revision (integer at least 1), evidence_id (UUID), confirmed (must be true).
+- Request fields: expected_revision (integer at least 1), evidence_id (UUID), confirmed (must be true), and `cod_collected: true` for COD Orders only.
+- COD declaration amount/currency/time are server-derived from the Order and are returned to Logistics in the pending confirmation queue; no amount is accepted from the Courier.
 - Reject unknown authority fields and unrelated evidence references.
 - GET has no body and no client-controlled ownership parameters.
 - New intent and matching replay return 202. Replay may reflect updated intent/task state but still returns `delivered_at: null`; use GET for the authoritative completion projection and timestamp.
@@ -175,6 +180,7 @@ out_for_delivery
 | 409  | COMPLETION_STATE_CONFLICT | Refetch current projection                         |
 | 409  | IDEMPOTENCY_KEY_REUSED    | Retain original request; fix conflicting input     |
 | 409  | PROOF_NOT_VALIDATED       | Show pending/required proof state                  |
+| 422  | COD_COLLECTION_REQUIRED   | Confirm exact cash collection or record an unsuccessful attempt |
 | 422  | VALIDATION_FAILED         | Show field errors                                  |
 | 429  | TOO_MANY_REQUESTS         | Respect Retry-After                                |
 | 503  | FULFILLMENT_UNAVAILABLE   | Show unavailable; no local completion              |

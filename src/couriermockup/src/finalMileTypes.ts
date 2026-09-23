@@ -7,7 +7,7 @@ export interface FinalMileTask {
   picked_up_at: string | null
   delivered_at: string | null
   offer: { status: string; responded_at: string | null; rejection_reason: string | null } | null
-  order: { reference: string; status: string } | null
+  order: { reference: string; status: string; payment_method?: string | null; payment_status?: string | null; payable_total?: string | null; currency?: string | null } | null
   waybill: { reference: string; tracking_id: string } | null
   parcel: { reference: string; item_count: number; price: string | null; currency: string | null } | null
   pickup_area: Area | null

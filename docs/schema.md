@@ -173,7 +173,7 @@ Every column in this section is stored as a string in PostgreSQL and cast to the
 | `ProductVariantStatus` | `active`, `inactive` | `product_variants.status` |
 | `CheckoutMode` | `cart`, `buy_now` | Checkout request validation and `checkout_quotes.input_payload` |
 | `PaymentMethod` | `cod` | `orders.payment_method`, optional `vouchers.payment_method` |
-| `PaymentStatus` | `pending` | `orders.payment_status` |
+| `PaymentStatus` | `pending`, `paid` | `orders.payment_status` |
 | `OrderStatus` | `pending_payment`, `placed`, `seller_processing`, `ready_for_pickup`, `assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivered`, `cancelled`, `rejected`, `delivery_failed`, `return_requested`, `returned` | `orders.status`, `order_status_events.from_status`/`to_status`; current COD placement skips `pending_payment` |
 | `VoucherIssuerType` | `app`, `shop` | `vouchers.issuer_type`, `order_vouchers.issuer_type` |
 | `VoucherBenefitType` | `discount`, `shipping` | `vouchers.benefit_type`, `order_vouchers.benefit_type` |
@@ -1163,11 +1163,11 @@ The additive fulfillment migration creates one immutable `parcels` row and one `
 | `sorting_session_items` | Session snapshot membership and current pending/sorted/exception reconciliation state; stores expected Shipment revision, selected lane, exception context, and completion time. |
 | `sorting_scans` | Append-style idempotent capture results scoped by organization/hub/session/item/lane/Shipment; stores stable client UUID, request hash, source, captured/processed times, actor, automatic-routing flag, selected plan/mapping IDs, and optional exception context/reason. |
 | `shipment_evidence` | Private QR/reference evidence for hub pickup and private photo POD for delivery; photo records include generated storage disk/path, MIME, byte size, dimensions, checksum, status, actors, timestamps, and failed-attempt count metadata. |
-| `completion_intents` | Explicit Courier completion intent linked to one delivery proof; remains awaiting validation until Logistics finalizes delivery. |
+| `completion_intents` | Explicit Courier completion intent linked to one delivery proof; COD intents store server-derived declared payable amount, currency, and declaration time, with Logistics reviewer and finalization time. |
 | `final_mile_failed_attempts` | Append-only Courier/task-scoped reason, optional note, server timestamp, and idempotency key. Does not change Shipment, task, or Order status. |
 | `shipment_events` | Append-only physical transition history with before/after states, performing Courier, validating Logistics account, evidence/offer links, correlation, and idempotency references. |
 
-Logistics and Courier routes are private, tenant-scoped, and no-store. A final delivery changes the final-mile task, Shipment, and Order to `delivered` in one transaction after a validated photo POD and Courier completion intent; it does not fulfill Inventory again or change payment fields.
+Logistics and Courier routes are private, tenant-scoped, and no-store. A final delivery changes the final-mile task, Shipment, and Order to `delivered` in one transaction after a validated photo POD and Courier completion intent. For COD only, the same transaction marks `payment_status = paid` after Logistics confirms the server-derived Order total declaration. Delivery does not fulfill Inventory again.
 
 ### 9.18.1 Company-truck linehaul records
 
