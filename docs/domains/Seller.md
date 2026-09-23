@@ -137,8 +137,8 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 ### 2. Seller Dashboard
 
 - **Purpose:** Provide a Shop-scoped operational overview and navigation.
-- **Owns:** Current catalog counts and safe section availability/loading/error states.
-- **Boundary:** Orders, finance, analytics, reviews, notifications, and inventory metrics must not be fabricated while their owning contracts are unavailable. Aggregates must be scoped to the authenticated Shop.
+- **Owns:** Current catalog counts, published Review total/answered/unanswered counts, and safe section availability/loading/error states. The separate placed-Order panel reads its owning Order API.
+- **Boundary:** Order aggregates, finance, analytics, notifications, and inventory metrics must not be fabricated while their owning contracts are unavailable. Aggregates must be scoped to the authenticated Shop.
 
 ### 3. Catalog / Product Management
 
@@ -206,7 +206,7 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 
 - **Purpose:** Read and reply to verified Customer reviews on the Seller's Products.
 - **Owns:** Implemented Seller-scoped queue/detail and protected photo reads, bounded filters, one immutable idempotent public Shop response, and deterministic Seller/Customer alerts.
-- **Boundary:** Review eligibility and Customer authorship belong to the Customer review domain; Seller cannot edit the Customer's rating, text, photos, or aggregate contribution. Response editing/deletion, moderation/reporting, and dashboard review aggregates remain deferred.
+- **Boundary:** Review eligibility and Customer authorship belong to the Customer review domain; Seller cannot edit the Customer's rating, text, photos, or aggregate contribution. The dashboard summary is read-only; response editing/deletion and moderation/reporting remain deferred.
 
 ### 14. Vacation Mode
 

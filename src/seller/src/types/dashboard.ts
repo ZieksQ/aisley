@@ -16,6 +16,27 @@ export type UnavailableSection = {
   reason: 'DOMAIN_NOT_IMPLEMENTED' | 'SHOP_SETUP_REQUIRED'
 }
 
+export type ReviewSection = {
+  state: 'available' | 'empty'
+  metrics: {
+    total: number
+    answered: number
+    unanswered: number
+  }
+  cohort: 'published_at'
+} | {
+  state: 'error'
+  reason: 'REVIEW_SUMMARY_UNAVAILABLE'
+}
+
+export type DashboardPeriod = {
+  from: string | null
+  to: string | null
+  timezone: string
+  from_utc: string | null
+  to_utc_exclusive: string | null
+}
+
 export type DashboardResponse = {
   version: 1
   code: 'SHOP_SETUP_REQUIRED' | null
@@ -25,19 +46,13 @@ export type DashboardResponse = {
     status: 'active' | 'suspended' | 'deactivated'
     is_on_vacation: boolean
   } | null
-  period: {
-    from: string | null
-    to: string | null
-    timezone: string
-    from_utc: string | null
-    to_utc_exclusive: string | null
-  }
+  period: DashboardPeriod
   sections: {
     catalog: CatalogSection | UnavailableSection
     financial: UnavailableSection
     orders: UnavailableSection
     inventory: UnavailableSection
-    reviews: UnavailableSection
+    reviews: ReviewSection | UnavailableSection
     traffic: UnavailableSection
     notifications: UnavailableSection
   }

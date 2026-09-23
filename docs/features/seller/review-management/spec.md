@@ -4,7 +4,7 @@ title: Seller Review Management
 system: AISLEY
 type: Feature Specification
 version: 2.1
-status: Implemented MVP; response editing/deletion, moderation/reporting, and dashboard aggregates remain deferred
+status: Implemented MVP and dashboard review summary; response editing/deletion and moderation/reporting remain deferred
 role: Seller
 scope: Seller React dashboard and Laravel API
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Seller.md, docs/features/customer/product-review-ratings/spec.md, docs/design.md
@@ -17,7 +17,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Let the active Seller owning a Product read its verified Customer reviews and publish one accountable Shop response.
 - `seller` is the persisted/API role. Authority is derived as `review → product → shop → seller`; “Customer” is the canonical review author role.
 - Customer Product Reviews owns delivered-purchase eligibility, rating/body/photos, publication, and Product aggregates. This feature owns Seller queue/detail reads and the official response.
-- Current implementation: `product_reviews`, approved review images, public review reads, Product aggregates, Seller queue/detail/photo routes, immutable Shop responses, deterministic notifications, Seller screens, and storefront Shop-response projection are implemented. No Seller dashboard aggregate exists.
+- Current implementation: `product_reviews`, approved review images, public review reads, Product aggregates, Seller queue/detail/photo routes, immutable Shop responses, deterministic notifications, Seller screens, storefront Shop-response projection, and a read-only Shop-scoped dashboard Review summary are implemented.
 - Flow:
   ```text
   Customer review commits → Seller inbox alert → Seller opens owned review
@@ -88,7 +88,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Detail UI shows safe Customer review text/photos, Product/variant snapshots, response form or immutable published response, and truthful conflict/throttle/offline states.
 - Generate one UUID idempotency key per logical submit and retain it across uncertain retries. Never claim publication before the server returns the committed projection.
 - Use escaped plain text, keyboard-operable controls, labelled rating text, visible focus, accessible status announcements, responsive layout, and dark-mode contrast from `docs/design.md`.
-- Keep the Seller dashboard Review summary unavailable until a separately implemented aggregate can return authoritative counts.
+- The Seller dashboard reads published Review total, answered, and unanswered counts from the same Shop-scoped Review query. Its optional period filters Review publication time; queue links show current response state across all dates.
 
 ### Acceptance criteria
 

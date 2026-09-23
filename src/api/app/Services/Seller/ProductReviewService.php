@@ -11,7 +11,9 @@ use App\Models\ProductReviewImage;
 use App\Models\SellerReviewResponse;
 use App\Models\Shop;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -175,16 +177,22 @@ class ProductReviewService
         ];
     }
 
-    private function ownedReviews(Shop $shop)
+    public function publishedForShop(Shop $shop, ?CarbonImmutable $asOf = null): Builder
     {
         return ProductReview::query()
             ->published()
+            ->when($asOf !== null, fn (Builder $query) => $query->where('published_at', '<=', $asOf))
+            ->whereHas('product', fn (Builder $query) => $query->withTrashed()->where('shop_id', $shop->id));
+    }
+
+    private function ownedReviews(Shop $shop): Builder
+    {
+        return $this->publishedForShop($shop)
             ->with([
                 'product' => fn ($query) => $query->withTrashed()->select(['id', 'shop_id', 'name', 'status', 'deleted_at']),
                 'images' => fn ($query) => $query->where('status', 'approved')->orderBy('position'),
                 'sellerResponse',
-            ])
-            ->whereHas('product', fn ($query) => $query->withTrashed()->where('shop_id', $shop->id));
+            ]);
     }
 
     private function assertSameRequest(SellerReviewResponse $response, string $requestHash): void

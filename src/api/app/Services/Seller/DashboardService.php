@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DashboardService
 {
+    public function __construct(private readonly ProductReviewService $reviews) {}
+
     /**
      * @param  array{from?: string|null, to?: string|null, timezone?: string|null}  $filters
      * @return array<string, mixed>
@@ -20,6 +22,7 @@ class DashboardService
     {
         $shop = $seller->shop()->first();
         $period = $this->period($filters);
+        $snapshot = CarbonImmutable::now('UTC');
 
         if (! $shop) {
             return [
@@ -30,9 +33,10 @@ class DashboardService
                 'sections' => array_merge(
                     ['catalog' => $this->unavailableSection('SHOP_SETUP_REQUIRED')],
                     $this->deferredSections(),
+                    ['reviews' => $this->unavailableSection('SHOP_SETUP_REQUIRED')],
                 ),
                 'actions' => [],
-                'generated_at' => now()->utc()->toIso8601String(),
+                'generated_at' => $snapshot->toIso8601String(),
             ];
         }
 
@@ -44,10 +48,43 @@ class DashboardService
             'sections' => array_merge(
                 ['catalog' => $this->catalogSection($shop)],
                 $this->deferredSections(),
+                ['reviews' => $this->reviewSection($shop, $period, $snapshot)],
             ),
             'actions' => [],
-            'generated_at' => now()->utc()->toIso8601String(),
+            'generated_at' => $snapshot->toIso8601String(),
         ];
+    }
+
+    /**
+     * @param  array{from: string|null, to: string|null, timezone: string, from_utc: string|null, to_utc_exclusive: string|null}  $period
+     * @return array<string, mixed>
+     */
+    private function reviewSection(Shop $shop, array $period, CarbonImmutable $snapshot): array
+    {
+        try {
+            $query = $this->reviews->publishedForShop($shop, $snapshot);
+            if ($period['from_utc'] !== null && $period['to_utc_exclusive'] !== null) {
+                $query->where('published_at', '>=', CarbonImmutable::parse($period['from_utc']))
+                    ->where('published_at', '<', CarbonImmutable::parse($period['to_utc_exclusive']));
+            }
+
+            $total = (clone $query)->count();
+            $answered = (clone $query)->whereHas('sellerResponse')->count();
+
+            return [
+                'state' => $total === 0 ? 'empty' : 'available',
+                'metrics' => [
+                    'total' => $total,
+                    'answered' => $answered,
+                    'unanswered' => $total - $answered,
+                ],
+                'cohort' => 'published_at',
+            ];
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return ['state' => 'error', 'reason' => 'REVIEW_SUMMARY_UNAVAILABLE'];
+        }
     }
 
     /** @return array<string, mixed> */
@@ -96,7 +133,6 @@ class DashboardService
             'financial' => $this->unavailableSection('DOMAIN_NOT_IMPLEMENTED'),
             'orders' => $this->unavailableSection('DOMAIN_NOT_IMPLEMENTED'),
             'inventory' => $this->unavailableSection('DOMAIN_NOT_IMPLEMENTED'),
-            'reviews' => $this->unavailableSection('DOMAIN_NOT_IMPLEMENTED'),
             'traffic' => $this->unavailableSection('DOMAIN_NOT_IMPLEMENTED'),
             'notifications' => $this->unavailableSection('DOMAIN_NOT_IMPLEMENTED'),
         ];

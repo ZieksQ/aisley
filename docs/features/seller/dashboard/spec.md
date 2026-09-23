@@ -3,10 +3,11 @@ feature: dashboard
 title: Seller Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented catalog slice
+version: 1.3
+status: Implemented catalog slice, separate Order queue, and review summary
 role: Seller
 scope: Seller Web Application
+source_coverage: docs/PROGRESS.md, docs/features/seller/review-management/spec.md, docs/features/seller/accept-order/spec.md, docs/schema.md, docs/design.md
 ---
 
 # Seller Dashboard
@@ -15,9 +16,10 @@ scope: Seller Web Application
 
 - **Purpose:** Give an approved Seller a secure, Shop-scoped overview and links to the features that own each piece of data.
 - **Route/API:** Seller SPA `/dashboard`; Laravel `GET /api/v1/seller/dashboard`.
-- **Current implementation:** the API returns the authenticated Shop summary, optional normalized period metadata, catalog counts, and explicit unavailable envelopes for domains that have no authoritative dashboard source yet. The React page renders these states instead of demo totals.
+- **Current implementation:** `GET /api/v1/seller/dashboard` returns the authenticated Shop summary, optional normalized period, catalog counts, published Review counts, and unavailable envelopes for other sections. The page also renders a separate live “Awaiting approval” panel from `GET /api/v1/seller/orders?status=placed&per_page=5`; that panel is not `sections.orders`.
 - **Catalog slice:** total, active, draft, archived, zero-stock base Products, and zero-stock variant SKUs. These zero-stock values are a catalog signal, not a replacement for Inventory `available`.
-- **Target sections:** Orders, Inventory/low stock, finance, reviews, traffic, notifications, reports, and other metrics become available only when their owning domain defines a reconciled source.
+- **Review slice:** a read-only summary from the Seller Review Management ledger: published Reviews, answered Reviews, and Reviews awaiting a Shop response.
+- **Later sections:** Orders, Inventory/low stock, finance, traffic, notifications, reports, and other metrics become available only when their owning domain defines a reconciled source.
 - **One-Shop rule:** the account owns one Shop. Registration creates it pending; after approval, setup edits that Shop rather than creating another one.
 - **Non-goals:** mutations, platform-wide totals, fabricated analytics, duplicate metric stores, or Seller access to another Shop.
 
@@ -37,12 +39,12 @@ active Seller session
 - Require `auth:sanctum` and active Seller status. Pending, rejected, suspended, deactivated, Customer, Admin, and Courier accounts cannot fetch the dashboard.
 - Resolve Seller and Shop from the authenticated session; never accept `seller_id`, `shop_id`, arbitrary metric names, SQL fragments, or client-calculated totals.
 - Apply the Shop constraint before every aggregate, preview, cache key, and action. A cross-Shop lookup is a `404`/empty scoped result, never a fallback.
-- If the existing Shop is absent or its required storefront fields are incomplete, return `SHOP_SETUP_REQUIRED` without global data or a placeholder Shop. Setup edits the existing registration-created Shop.
+- The current API returns `SHOP_SETUP_REQUIRED` when the Seller has no Shop; it must not create a placeholder or fall back to marketplace data. Extending that code to incomplete Shop fields needs an approved field contract and separate implementation.
 
 ### Request and response contract
 
-- Optional `from`, `to`, and IANA `timezone` values are validated; normalize accepted dates to Seller-local half-open UTC boundaries and return the normalized period.
-- Reject malformed dates, invalid timezones, reversed ranges, and overlong periods with field-addressable `422` errors.
+- Optional `from`, `to`, and IANA `timezone` values are validated; supplied dates form Seller-local inclusive calendar days normalized to `[from_utc, to_utc_exclusive)`. Without dates, the snapshot is all-time; the current default timezone is UTC.
+- Reject malformed dates, invalid timezones, reversed ranges, and one-sided ranges with field-addressable `422` errors. A maximum period is not currently enforced; approve one before adding high-cost period aggregates.
 - Return `version`, `code`, `shop`, `period`, `sections`, `actions`, and server-generated UTC `generated_at`.
 - Every section is `available`, `empty`, `unavailable`, or a retryable `error`; authoritative zero is not the same as unavailable or failed.
 - Lists/actions are bounded, deterministic, and contain only safe Seller fields. Do not expose Buyer PII, payment secrets, private evidence, raw storage paths, or another tenant's identifiers.
@@ -55,12 +57,23 @@ active Seller session
 - Catalog actions link only to implemented Seller routes. The dashboard does not publish, archive, adjust stock, approve Orders, or assign Logistics/Couriers.
 - Product visibility and compliance restrictions remain governed by Product/catalog and Admin compliance domains; dashboard counts must not make restricted Products public.
 
+### Review summary contract (implemented)
+
+- Count the same published, Seller-owned Review cohort as Seller Review Management: `ProductReview` scoped through its Product to the authenticated Shop, including archived or soft-deleted Products. Do not count another Shop's Reviews or derive counts from notification deliveries.
+- Without `from`/`to`, count all Reviews published as of the server snapshot. With dates, filter the Review's `published_at` into the normalized UTC half-open interval; do not filter on response time, Order time, or notification time.
+- Define `total` as cohort Review count, `answered` as cohort Reviews with the one committed Seller response, and `unanswered` as cohort Reviews without that response. Require `total = answered + unanswered`. The response-existence predicates must match Review Management; all-time counts reconcile with its queue filters, while a dated cohort needs an equivalent scoped query test because that queue has no date filter.
+- Response state is **current at `generated_at`**, even for an older Review period: answering an old Review may decrease that period's `unanswered` and increase `answered` without changing `total`. Do not imply historical response-state snapshots exist.
+- Add `sections.reviews = { state: available|empty, metrics: { total, answered, unanswered }, cohort: published_at }`; use `empty` with real zero counts only when the scoped query succeeds. A failed query returns a retryable `error` without metrics; a missing Shop returns `unavailable/SHOP_SETUP_REQUIRED`. Never substitute `0` or `DOMAIN_NOT_IMPLEMENTED` after the slice is enabled.
+- Keep the top-level response shape/version compatible unless a consumer-breaking change requires a version bump. The review section adds no Customer identity, Review body, photo URL, Order ID, or Product ID to the dashboard DTO.
+- Link the card to the existing `/reviews` queue and `/reviews?status=unanswered`; the latter is a current-state queue and does not inherit a dashboard date filter. Label the card's period and explain this distinction when a period is selected.
+- Review response publication changes only this read projection and the owning Review queue. It must not change Product rating/review counts, Order state, or notification read state.
+
 ### Deferred sections
 
-- Orders use canonical status groups and link to Order Approval/Prepare Orders when those sources are exposed; notification read state is not fulfillment state.
+- The existing “Awaiting approval” panel owns its own placed-Order read/refresh/error states. `sections.orders` remains unavailable until a reconciled multi-status summary is approved; notification read state is not fulfillment state.
 - Inventory and low-stock cards read Inventory/Low Stock Alert DTOs, never duplicate `on_hand`, `reserved`, or `available` calculations.
 - Finance waits for authoritative Orders, payments, fees, refunds, settlement, currency, and period semantics. Do not call net proceeds “profit” without COGS.
-- Reviews require verified Seller-owned reviews and defined rating reconciliation. Traffic requires Seller-scoped analytics events and storage.
+- Do not add average rating or rating trends to the first review slice; those require explicit period and Product-aggregate reconciliation. Traffic requires Seller-scoped analytics events and storage.
 - Notifications use the shared notification domain and do not create Dashboard-owned read state. Reports must reconcile with identical Shop, period, currency, and status rules.
 
 ### UX and acceptance
@@ -71,32 +84,39 @@ active Seller session
 - [x] Every current catalog value and Shop identifier is authenticated-Seller scoped.
 - [x] Missing-Shop responses are explicit `SHOP_SETUP_REQUIRED` and contain no marketplace-wide data.
 - [x] Catalog counts are server-derived; deferred sections are explicit `DOMAIN_NOT_IMPLEMENTED` rather than fake zeros.
-- [ ] Order, Inventory, finance, review, traffic, notification, report, and comparison metrics are enabled only after their owning contracts and reconciliation tests exist.
+- [x] The separate placed-Order panel reads the implemented Seller Order API without claiming `sections.orders` is available.
+- [x] Review `total`, `answered`, and `unanswered` reconcile with the Shop-scoped Review ledger for all-time and normalized periods, including hidden/archived Products and another Seller's data.
+- [x] Review empty, error, stale/refetch, consent/session, and responsive keyboard-accessible states are implemented; the card links to the existing queue without inventing a filtered period view. Browser interaction remains unverified.
+- [ ] Inventory, finance, traffic, notification, report, and comparison metrics are enabled only after their owning contracts and reconciliation tests exist.
 
 ## HOW
 
 - Current backend: `src/api/app/Services/Seller/DashboardService.php`, Seller `DashboardController`, `DashboardRequest`, and `SellerDashboardResource`; route is protected by `seller.active`.
-- Current frontend: `src/seller/src/pages/DashboardPage.tsx`, dashboard types/components, and the shared credentialed API client. It displays the Shop/catalog slice and safe deferred states.
+- Current frontend: `src/seller/src/pages/DashboardPage.tsx`, dashboard types/components, and the shared credentialed API client. It displays the Shop/catalog and Review slices plus safe deferred states.
+- The existing `DashboardOrders` component independently reads `/api/v1/seller/orders` and links to Order Approval, Order Monitoring, and Pickup Orders. Preserve its API ownership and do not fold its five rows into the dashboard aggregate response.
+- The review slice reuses `ProductReviewService::publishedForShop` for the same published, Shop-owned cohort as the Review Management queue. Database-side counts and response-existence predicates avoid loading Reviews into PHP.
+- `SellerDashboardResource` forwards the section envelope; dashboard TypeScript types and a focused Review summary component render it. The page handles composition while Review-query rules stay in the API service. No dashboard mutation endpoint or migration was needed for these existing records.
 - Use scoped database aggregates and explicit section builders. Add caching only after profiling; keys must include Shop, normalized period/timezone, section, and metric version, with freshness metadata.
 - Dispatch refresh/broadcast work only after committed source-domain events. Browser events never mutate authoritative totals.
 - Add new migrations only for an approved metric/read-model contract; do not modify executed migrations or introduce a Dashboard-owned source of truth.
 - Before enabling a section, document its source tables, status/period definitions, privacy DTO, failure state, reconciliation query, indexes, and owning feature link.
-- Test role/status denial, setup safety, Shop isolation, period validation, catalog counts, empty/unavailable/error distinction, DTO privacy, deterministic ordering, and stale refresh. Run Seller lint, TypeScript, and production build.
+- Extend `SellerDashboardTest` for Shop isolation, published-only/cohort boundaries, answered/unanswered reconciliation, no-Review zero, archived/soft-deleted Product history, and safe DTO shape. Verify the separate Order panel's failure does not disguise a dashboard section as zero. Run Seller lint, TypeScript, and production build.
 
 ### Current response shape
 
 - `shop` contains only the Shop UUID, name, status, and vacation flag. It is not a public storefront projection and must stay Seller-scoped.
 - `sections.catalog` is `available` or `empty` and returns total, active, draft, archived, zero-stock base Product, and zero-stock variant-SKU counts plus `stock_signal = catalog_quantity`.
-- `sections.financial`, `orders`, `inventory`, `reviews`, `traffic`, and `notifications` currently return `state = unavailable` with `reason = DOMAIN_NOT_IMPLEMENTED`.
+- `sections.reviews` returns `available` or `empty` with `{ total, answered, unanswered }` and `cohort = published_at`; source failure returns `error/REVIEW_SUMMARY_UNAVAILABLE` without metrics, and a missing Shop returns `unavailable/SHOP_SETUP_REQUIRED`.
+- `sections.financial`, `orders`, `inventory`, `traffic`, and `notifications` return `state = unavailable` with `reason = DOMAIN_NOT_IMPLEMENTED`.
 - `actions` is currently empty. A future action must include a safe destination owned by an implemented Seller feature; a dashboard card must not imply an unavailable mutation exists.
 - `generated_at` is UTC server time. The period object includes submitted local dates, timezone, and UTC boundaries when both dates are supplied.
 
 ### Section enablement rules
 
-- Order cards may be enabled only after the Order Approval/Prepare Orders source defines actionable groups and a reconciliation test against the canonical `OrderStatus` history.
+- Order aggregate cards may be enabled only after the Order Approval/Prepare Orders source defines actionable groups and a reconciliation test against the canonical `OrderStatus` history; the existing placed-Order queue is already a separate working panel.
 - Inventory cards must read the Inventory and Low Stock Alert APIs or a shared query object; they must not count Product `stock_quantity` as `available` once reservations are present.
 - Finance cards require a currency-aware ledger and explicit treatment of COD pending payment, refunds, fees, settlement, and period boundaries.
-- Review, traffic, and notification cards need ownership, retention, privacy, and failure contracts before any UI placeholder is changed to `0`.
+- The review card uses the current Review/response ledger and the contract above; traffic and notification cards still need ownership, retention, privacy, and failure contracts before any placeholder is changed to `0`.
 
 ### Observability and rollout
 
