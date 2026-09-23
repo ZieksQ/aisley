@@ -71,6 +71,7 @@ use App\Http\Controllers\Logistics\SortingController;
 use App\Http\Controllers\Logistics\SortingPlanController;
 use App\Http\Controllers\Logistics\ShippingRateController;
 use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
+use App\Http\Controllers\Messaging\OperationalConversationController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
@@ -377,6 +378,14 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
+        Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
+        Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [OperationalConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [OperationalConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [OperationalConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::prefix('finance')->group(function () {
         Route::get('/summary', [LogisticsFinanceController::class, 'show']);
         Route::get('/series', [LogisticsFinanceController::class, 'show']);
@@ -494,6 +503,14 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 });
 
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active', 'policy.consent'])->group(function () {
+    Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
+        Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
+        Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [OperationalConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [OperationalConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [OperationalConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::get('/linehaul-trips', [CourierLinehaulTripController::class, 'index'])->name('linehaul-trips.index');
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');

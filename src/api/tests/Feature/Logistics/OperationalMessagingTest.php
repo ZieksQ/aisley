@@ -1,0 +1,245 @@
+<?php
+
+namespace Tests\Feature\Logistics;
+
+use App\Enums\AddressType;
+use App\Enums\CategoryStatus;
+use App\Enums\CourierAffiliationStatus;
+use App\Enums\FirstMileTaskStatus;
+use App\Enums\FulfillmentOfferStatus;
+use App\Enums\FulfillmentTaskLeg;
+use App\Enums\FulfillmentTaskStatus;
+use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
+use App\Enums\ShopStatus;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
+use App\Models\CheckoutBatch;
+use App\Models\CheckoutQuote;
+use App\Models\DeliveryTask;
+use App\Models\FirstMileTask;
+use App\Models\Order;
+use App\Models\Parcel;
+use App\Models\PickupSchedule;
+use App\Models\SellerPickupRequest;
+use App\Models\Shipment;
+use App\Models\Shop;
+use App\Models\ShopCategory;
+use App\Models\User;
+use App\Models\Waybill;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+class OperationalMessagingTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_logistics_and_courier_share_an_idempotent_task_thread_with_private_read_state(): void
+    {
+        [$logistics, $courier, $task] = $this->finalTask();
+        $key = (string) Str::uuid();
+        $start = ['leg' => 'final_mile', 'task_id' => $task->id, 'body' => ' Please confirm your arrival. '];
+        $this->getJson('/api/v1/logistics/operational-conversations')->assertUnauthorized();
+        $first = $this->actingAs($logistics)->postJson('/api/v1/logistics/operational-conversations', $start, ['Idempotency-Key' => $key])
+            ->assertCreated()->assertJsonPath('message.body', 'Please confirm your arrival.')
+            ->assertJsonPath('conversation.counterparty_role', 'courier');
+        $id = $first->json('conversation.id');
+        $this->actingAs($courier)->getJson('/api/v1/logistics/operational-conversations')->assertForbidden();
+        $this->actingAs($task->shipment->parcel->order->customer)
+            ->getJson("/api/v1/customer/conversations/{$id}")->assertNotFound();
+        $this->actingAs($logistics);
+        $this->postJson('/api/v1/logistics/operational-conversations', $start, ['Idempotency-Key' => $key])
+            ->assertOk()->assertJsonPath('conversation.id', $id);
+        $this->postJson('/api/v1/logistics/operational-conversations', [...$start, 'body' => 'Changed'], ['Idempotency-Key' => $key])
+            ->assertConflict()->assertJsonPath('code', 'IDEMPOTENCY_CONFLICT');
+
+        $this->actingAs($courier)->getJson('/api/v1/courier/operational-conversations')
+            ->assertOk()->assertJsonPath('data.0.unread_count', 1)->assertJsonMissingPath('data.0.email');
+        $this->postJson("/api/v1/courier/operational-conversations/{$id}/messages", ['body' => 'On my way.'], [
+            'Idempotency-Key' => (string) Str::uuid(),
+        ])->assertCreated()->assertJsonPath('message.sequence', 2);
+        $this->postJson("/api/v1/courier/operational-conversations/{$id}/read", ['last_read_sequence' => 2])
+            ->assertOk()->assertJsonPath('data.unread_count', 0);
+        $this->postJson("/api/v1/courier/operational-conversations/{$id}/read", ['last_read_sequence' => 1])
+            ->assertOk()->assertJsonPath('data.last_read_sequence', 2);
+        $this->actingAs($logistics)->getJson("/api/v1/logistics/operational-conversations/{$id}")
+            ->assertOk()->assertJsonPath('data.unread_count', 1);
+        $this->getJson("/api/v1/logistics/operational-conversations/{$id}/messages")
+            ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('data.0.body', 'Please confirm your arrival.');
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseCount('messages', 2);
+    }
+
+    public function test_task_reassignment_preserves_old_history_but_blocks_sends_and_foreign_access(): void
+    {
+        [$logistics, $courier, $task] = $this->finalTask();
+        $id = $this->actingAs($courier)->postJson('/api/v1/courier/operational-conversations', [
+            'leg' => 'final_mile', 'task_id' => $task->id, 'counterparty_role' => 'logistics', 'body' => 'I can take this task.',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()->json('conversation.id');
+        $other = User::factory()->create(['role' => UserRole::Courier, 'status' => UserStatus::Active]);
+        $other->courierLogisticsAffiliation()->create([
+            'logistics_organization_id' => $task->shipment->logistics_organization_id,
+            'logistics_hub_id' => $task->shipment->logistics_hub_id,
+            'status' => CourierAffiliationStatus::Approved,
+        ]);
+        $task->update(['status' => FulfillmentTaskStatus::Rejected]);
+        $task->offers()->update(['status' => FulfillmentOfferStatus::Rejected]);
+        $this->actingAs($courier)->getJson("/api/v1/courier/operational-conversations/{$id}")
+            ->assertOk()->assertJsonPath('data.send_allowed', false);
+        $this->postJson("/api/v1/courier/operational-conversations/{$id}/messages", ['body' => 'Late reply'], [
+            'Idempotency-Key' => (string) Str::uuid(),
+        ])->assertConflict();
+        $this->actingAs($other)->getJson("/api/v1/courier/operational-conversations/{$id}")->assertNotFound();
+        $this->postJson('/api/v1/courier/operational-conversations', [
+            'leg' => 'final_mile', 'task_id' => $task->id, 'counterparty_role' => 'logistics', 'body' => 'Forged',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertNotFound();
+        $foreign = $this->logistics();
+        $this->actingAs($foreign)->getJson("/api/v1/logistics/operational-conversations/{$id}")->assertNotFound();
+        $this->postJson('/api/v1/logistics/operational-conversations', [
+            'leg' => 'final_mile', 'task_id' => $task->id, 'body' => 'Foreign context',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertNotFound();
+        $this->assertDatabaseCount('messages', 1);
+        $this->assertDatabaseCount('conversations', 1);
+        $this->actingAs($logistics)->getJson("/api/v1/logistics/operational-conversations/{$id}")->assertOk();
+    }
+
+    public function test_affiliation_alone_and_invalid_body_cannot_create_a_thread(): void
+    {
+        [$logistics, $courier, $task] = $this->finalTask();
+        $other = User::factory()->create(['role' => UserRole::Courier, 'status' => UserStatus::Active]);
+        $other->courierLogisticsAffiliation()->create([
+            'logistics_organization_id' => $task->shipment->logistics_organization_id,
+            'logistics_hub_id' => $task->shipment->logistics_hub_id,
+            'status' => CourierAffiliationStatus::Approved,
+        ]);
+        $this->actingAs($other)->postJson('/api/v1/courier/operational-conversations', [
+            'leg' => 'final_mile', 'task_id' => $task->id, 'counterparty_role' => 'logistics', 'body' => 'No task',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertNotFound();
+        $this->actingAs($logistics)->postJson('/api/v1/logistics/operational-conversations', [
+            'leg' => 'final_mile', 'task_id' => $task->id, 'body' => '   ',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertUnprocessable();
+        $this->postJson('/api/v1/logistics/operational-conversations', [
+            'leg' => 'final_mile', 'task_id' => $task->id, 'body' => 'Do not trust this', 'courier_id' => $courier->id,
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertUnprocessable();
+        $this->assertDatabaseCount('conversations', 0);
+    }
+
+    public function test_first_mile_legacy_task_reference_resolves_to_the_shared_task_and_becomes_read_only_after_pickup(): void
+    {
+        [$logistics, $courier, $final] = $this->finalTask();
+        $shipment = $final->shipment;
+        $waybill = $shipment->parcel->waybill;
+        $schedule = PickupSchedule::create([
+            'logistics_organization_id' => $shipment->logistics_organization_id,
+            'logistics_hub_id' => $shipment->logistics_hub_id,
+            'courier_id' => $courier->id,
+            'reference' => 'PICK-'.Str::upper(Str::random(8)),
+            'status' => 'scheduled',
+            'starts_at' => now()->addHour(),
+            'ends_at' => now()->addHours(2),
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $legacy = FirstMileTask::create([
+            'pickup_schedule_id' => $schedule->id,
+            'order_id' => $waybill->order_id,
+            'waybill_id' => $waybill->id,
+            'logistics_organization_id' => $shipment->logistics_organization_id,
+            'logistics_hub_id' => $shipment->logistics_hub_id,
+            'courier_id' => $courier->id,
+            'status' => FirstMileTaskStatus::Assigned,
+        ]);
+        $shared = DeliveryTask::create([
+            'shipment_id' => $shipment->id,
+            'leg' => FulfillmentTaskLeg::FirstMile,
+            'status' => FulfillmentTaskStatus::SellerPickupAssigned,
+            'courier_id' => $courier->id,
+            'legacy_first_mile_task_id' => $legacy->id,
+        ]);
+        $start = $this->actingAs($courier)->postJson('/api/v1/courier/operational-conversations', [
+            'leg' => 'first_mile', 'task_id' => $legacy->id, 'counterparty_role' => 'logistics',
+            'body' => 'I am heading to the Seller.',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()
+            ->assertJsonPath('conversation.task_id', $legacy->id);
+        $id = $start->json('conversation.id');
+        $this->actingAs($logistics)->postJson('/api/v1/logistics/operational-conversations', [
+            'leg' => 'first_mile', 'task_id' => $shared->id, 'body' => 'Thank you.',
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()
+            ->assertJsonPath('conversation.id', $id)->assertJsonPath('message.sequence', 2);
+        $legacy->update(['status' => FirstMileTaskStatus::PickedUp]);
+        $shared->update(['status' => FulfillmentTaskStatus::PickedUpFromSeller]);
+        $this->actingAs($courier)->getJson("/api/v1/courier/operational-conversations/{$id}")
+            ->assertOk()->assertJsonPath('data.send_allowed', false);
+        $this->postJson("/api/v1/courier/operational-conversations/{$id}/messages", ['body' => 'Too late'], [
+            'Idempotency-Key' => (string) Str::uuid(),
+        ])->assertConflict();
+        $this->assertDatabaseCount('conversations', 1);
+    }
+
+    public function test_operational_extension_can_roll_back_and_reapply_on_sqlite(): void
+    {
+        $migration = require database_path('migrations/2026_09_24_000001_extend_conversations_for_operational_messaging.php');
+        DB::statement('PRAGMA defer_foreign_keys = ON');
+        $migration->down();
+        $migration->up();
+
+        $this->assertSame([], DB::select('PRAGMA foreign_key_check'));
+        $this->assertDatabaseCount('conversations', 0);
+    }
+
+    /** @return array{User, User, DeliveryTask} */
+    private function finalTask(): array
+    {
+        $logistics = $this->logistics();
+        $organization = $logistics->logisticsOrganization;
+        $hub = $organization->hub;
+        $courier = User::factory()->create(['role' => UserRole::Courier, 'status' => UserStatus::Active]);
+        $courier->courierProfile()->create(['first_name' => 'Cora', 'last_name' => 'Rider', 'contact_number' => '09173333333', 'sex' => 'female', 'birth_date' => '1994-01-01']);
+        $courier->courierLogisticsAffiliation()->create([
+            'logistics_organization_id' => $organization->id, 'logistics_hub_id' => $hub->id,
+            'status' => CourierAffiliationStatus::Approved,
+        ]);
+        $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
+        $category = ShopCategory::create(['name' => 'General', 'slug' => 'general', 'status' => CategoryStatus::Active]);
+        $shop = Shop::create(['seller_id' => $seller->id, 'shop_category_id' => $category->id, 'name' => 'Seller Shop', 'slug' => 'seller-shop', 'status' => ShopStatus::Active]);
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => UserStatus::Active]);
+        $quote = CheckoutQuote::create(['customer_id' => $customer->id, 'input_payload' => [], 'request_hash' => str_repeat('a', 64), 'state_hash' => str_repeat('b', 64), 'expires_at' => now()->addHour()]);
+        $batch = CheckoutBatch::create(['customer_id' => $customer->id, 'checkout_quote_id' => $quote->id, 'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('c', 64), 'currency' => 'PHP', 'placed_at' => now()]);
+        $order = Order::create(['checkout_batch_id' => $batch->id, 'customer_id' => $customer->id, 'shop_id' => $shop->id,
+            'reference' => 'MSG-'.Str::upper(Str::random(8)), 'status' => OrderStatus::Placed,
+            'payment_method' => PaymentMethod::CashOnDelivery, 'payment_status' => PaymentStatus::Pending,
+            'currency' => 'PHP', 'merchandise_subtotal' => '100.00', 'shipping_fee' => '0.00', 'payable_total' => '100.00', 'placed_at' => now()]);
+        $request = SellerPickupRequest::create(['shop_id' => $shop->id, 'seller_id' => $seller->id,
+            'logistics_organization_id' => $organization->id, 'logistics_hub_id' => $hub->id,
+            'status' => 'scheduled', 'idempotency_key' => (string) Str::uuid()]);
+        $waybill = Waybill::create(['order_id' => $order->id, 'seller_pickup_request_id' => $request->id,
+            'shop_id' => $shop->id, 'logistics_organization_id' => $organization->id, 'logistics_hub_id' => $hub->id,
+            'reference' => 'WB-'.Str::upper(Str::random(8)), 'qr_token_hash' => str_repeat('d', 64), 'content_checksum' => str_repeat('e', 64)]);
+        $parcel = Parcel::create(['order_id' => $order->id, 'waybill_id' => $waybill->id,
+            'reference' => 'P-'.Str::upper(Str::random(8)), 'snapshot' => []]);
+        $shipment = Shipment::create(['parcel_id' => $parcel->id, 'logistics_organization_id' => $organization->id,
+            'logistics_hub_id' => $hub->id, 'status' => 'delivery_assigned']);
+        $task = DeliveryTask::create(['shipment_id' => $shipment->id, 'leg' => FulfillmentTaskLeg::FinalMile,
+            'status' => FulfillmentTaskStatus::DeliveryAssigned, 'courier_id' => $courier->id]);
+        $task->offers()->create(['courier_id' => $courier->id, 'logistics_organization_id' => $organization->id,
+            'offered_by_logistics_id' => $logistics->id, 'sequence' => 1, 'status' => FulfillmentOfferStatus::Offered,
+            'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('f', 64), 'offered_at' => now()]);
+
+        return [$logistics, $courier, $task];
+    }
+
+    private function logistics(): User
+    {
+        $user = User::factory()->create(['role' => UserRole::Logistics, 'status' => UserStatus::Active]);
+        $address = $user->addresses()->create(['type' => AddressType::Both, 'label' => 'Hub', 'recipient_name' => 'Operator',
+            'contact_number' => '09172222222', 'address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion',
+            'city_municipality' => 'Manila', 'province' => 'Metro Manila', 'region' => 'NCR',
+            'postal_code' => '1000', 'country' => 'PH', 'is_default' => true]);
+        $organization = $user->logisticsOrganization()->create(['business_name' => 'Aisley Logistics']);
+        $organization->hub()->create(['address_id' => $address->id, 'name' => 'Aisley Hub']);
+
+        return $user;
+    }
+}

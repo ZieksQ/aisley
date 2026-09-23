@@ -1,0 +1,9 @@
+<?php
+
+namespace App\Enums;
+
+enum ConversationKind: string
+{
+    case CustomerShop = 'customer_shop';
+    case LogisticsCourier = 'logistics_courier';
+}
