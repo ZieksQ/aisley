@@ -113,12 +113,21 @@ return new class extends Migration
             $table->string('idempotency_key')->unique();
             $table->string('event_type');
             $table->foreignUuid('order_id')->nullable()->constrained()->restrictOnDelete();
-            $table->foreignUuid('reversal_of_id')->nullable()->constrained('finance_journal_entries')->restrictOnDelete();
+            $table->uuid('reversal_of_id')->nullable();
             $table->string('currency', 3);
             $table->text('memo')->nullable();
             $table->timestamp('effective_at');
             $table->timestamps();
             $table->index(['order_id', 'effective_at']);
+        });
+
+        // PostgreSQL creates this table's primary-key constraint after the CREATE
+        // TABLE statement. Add the self-reference only once that constraint exists.
+        Schema::table('finance_journal_entries', function (Blueprint $table): void {
+            $table->foreign('reversal_of_id')
+                ->references('id')
+                ->on('finance_journal_entries')
+                ->restrictOnDelete();
         });
 
         Schema::create('finance_ledger_lines', function (Blueprint $table): void {
@@ -195,10 +204,17 @@ return new class extends Migration
             $table->boolean('is_recurring_monthly')->default(false);
             $table->date('incurred_on');
             $table->foreignUuid('linehaul_trip_id')->nullable()->constrained()->restrictOnDelete();
-            $table->foreignUuid('correction_of_id')->nullable()->constrained('finance_expenses')->restrictOnDelete();
+            $table->uuid('correction_of_id')->nullable();
             $table->foreignUuid('recorded_by')->constrained('users')->restrictOnDelete();
             $table->timestamps();
             $table->index(['owner_type', 'owner_id', 'incurred_on']);
+        });
+
+        Schema::table('finance_expenses', function (Blueprint $table): void {
+            $table->foreign('correction_of_id')
+                ->references('id')
+                ->on('finance_expenses')
+                ->restrictOnDelete();
         });
 
         Schema::create('finance_expense_allocations', function (Blueprint $table): void {
