@@ -30,6 +30,7 @@
 
 - Admin is platform-wide and permission-gated. Seller queries derive one Shop from the session. Logistics queries derive one organization from the session.
 - Reports include revenue, costs, provisional/actual operating profit, available balance, remittance aging, payout schedule, ledger search/CSV, Order drill-down, and money-flow data.
+- Seller, Admin, and Logistics use the same responsive Finance dashboard composition with role-specific revenue labels. Recorded revenue and the server-provided 30-day low/base/high projection share one accessible time-series graph; the projection is not presented as a separate dashboard mode or recalculated by React.
 - Costs remain unknown until recorded. Monthly close requires an explicit completeness confirmation.
 - Forecast 30 days from weekday averages across eight complete usable weeks, forecast revenue and variable cost separately, include recurring expenses, and expose low/base/high activity scenarios at -20/0/+20 percent. Suppress profit forecast when cost coverage is incomplete.
 

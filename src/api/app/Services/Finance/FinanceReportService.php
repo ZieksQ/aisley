@@ -124,7 +124,14 @@ class FinanceReportService
             $baseRevenue += $revenue;
             $baseVariableCosts += $variableCosts;
             $baseRecurringCosts += $recurringCosts;
-            $projection[] = ['date' => $date->toDateString(), 'forecastRevenueCents' => $revenue, 'forecastVariableCostsCents' => $variableCosts, 'scheduledRecurringCostsCents' => $recurringCosts];
+            $projection[] = [
+                'date' => $date->toDateString(),
+                'forecastLowRevenueCents' => intdiv($revenue * 80, 100),
+                'forecastRevenueCents' => $revenue,
+                'forecastHighRevenueCents' => intdiv($revenue * 120, 100),
+                'forecastVariableCostsCents' => $variableCosts,
+                'scheduledRecurringCostsCents' => $recurringCosts,
+            ];
         }
         $scenarios = collect(['low' => 80, 'base' => 100, 'high' => 120])->map(function (int $activity, string $label) use ($baseRevenue, $baseVariableCosts, $baseRecurringCosts, $complete): array {
             $revenue = intdiv($baseRevenue * $activity, 100);

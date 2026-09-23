@@ -8,7 +8,7 @@ export type FinanceWorkspaceData = {
   revenueBreakdown: { label: string; amountCents: number }[]
   remittanceAging: { submittedCents: number; clearedCents: number; oldestSubmittedAt: string | null }
   payoutSchedule: { id: string; amountCents: number; currency: string; status: string; eligibleThrough: string; isSandbox: boolean }[]
-  forecast: { state: 'available' | 'insufficient_history'; usableWeeks: number; requiredWeeks: number; profitSuppressed: boolean; series: { date: string; forecastRevenueCents: number; forecastVariableCostsCents: number; scheduledRecurringCostsCents: number }[]; scenarios: { label: string; activityPercent: number; revenueCents: number; variableCostsCents: number; scheduledRecurringCostsCents: number; profitCents: number | null }[] }
+  forecast: { state: 'available' | 'insufficient_history'; usableWeeks: number; requiredWeeks: number; profitSuppressed: boolean; series: { date: string; forecastLowRevenueCents: number; forecastRevenueCents: number; forecastHighRevenueCents: number; forecastVariableCostsCents: number; scheduledRecurringCostsCents: number }[]; scenarios: { label: string; activityPercent: number; revenueCents: number; variableCostsCents: number; scheduledRecurringCostsCents: number; profitCents: number | null }[] }
   moneyFlow: { nodes: { id: string; label: string }[]; edges: { id: string; source: string; target: string; label: string }[]; scope: string }
 }
 
