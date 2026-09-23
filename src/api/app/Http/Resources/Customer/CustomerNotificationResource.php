@@ -41,6 +41,19 @@ class CustomerNotificationResource extends JsonResource
             && preg_match('~^/products/[0-9a-f-]{36}#product-reviews$~i', $destination) === 1) {
             return $destination;
         }
+        if ($this->type === 'customer-campaign.promotion') {
+            $resourceId = $this->value($data, 'destination_id');
+            $resourceType = $this->value($data, 'destination_type');
+            $shopSlug = $this->value($data, 'destination_slug');
+            if ($resourceId && preg_match('/^[0-9a-f-]{36}$/i', $resourceId) === 1) {
+                return match ($resourceType) {
+                    'product' => "/products/{$resourceId}",
+                    'shop' => $shopSlug && preg_match('/^[a-z0-9-]{1,160}$/', $shopSlug) === 1
+                        ? "/shops/{$shopSlug}" : "/notifications/{$this->id}",
+                    default => "/notifications/{$this->id}",
+                };
+            }
+        }
 
         return $orderId ? "/orders/{$orderId}" : "/notifications/{$this->id}";
     }

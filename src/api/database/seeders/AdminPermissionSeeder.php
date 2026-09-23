@@ -40,6 +40,16 @@ class AdminPermissionSeeder extends Seeder
             'description' => 'View and manage the authenticated administrator notification inbox.',
         ],
         [
+            'name' => 'View notification campaigns',
+            'slug' => 'notification-campaigns.view',
+            'description' => 'View outbound Customer in-app campaign drafts and aggregate history.',
+        ],
+        [
+            'name' => 'Manage notification campaigns',
+            'slug' => 'notification-campaigns.manage',
+            'description' => 'Create, edit, preview, and send Customer in-app notification campaigns.',
+        ],
+        [
             'name' => 'View user accounts',
             'slug' => 'users.view',
             'description' => 'Search and inspect non-Admin user accounts and lifecycle history.',

@@ -67,6 +67,7 @@ class NotificationController extends Controller
                 'customer-announcement.published',
                 'customer-order.status-changed',
                 'customer-promo.ongoing',
+                'customer-campaign.promotion',
                 'customer-product-qa.answered',
                 'customer-product-review.responded',
             ])

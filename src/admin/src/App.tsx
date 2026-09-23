@@ -18,6 +18,8 @@ import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FeatureControlsPage } from './pages/FeatureControlsPage'
 import { FinancePage } from './pages/FinancePage'
+import { NotificationCampaignsPage } from './pages/NotificationCampaignsPage'
+import { NotificationCampaignDetailPage } from './pages/NotificationCampaignDetailPage'
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
           <Route element={<AuditLogsPage />} path="/audit-logs" />
           <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
           <Route element={<NotificationsPage />} path="/notifications" />
+          <Route element={<NotificationCampaignsPage />} path="/notification-campaigns" />
+          <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/:campaignId" />
           <Route element={<UsersPage />} path="/users" />
           <Route element={<UserDetailPage />} path="/users/:userId" />
           <Route element={<SellerCompliancePage />} path="/seller-compliance" />

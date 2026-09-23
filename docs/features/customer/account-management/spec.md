@@ -18,7 +18,7 @@ scope: Customer web application and Laravel API
 - Address Book, Wishlist, Orders, and Recently Viewed remain separate owning features. This specification owns only Customer profile/account changes and security settings.
 - The Customer role uses the existing Sanctum web session and `customer.active` boundary. Guests, inactive accounts, other roles, and arbitrary Customer IDs cannot read or mutate an account.
 
-- Phase 1 adds editable basic profile fields, a private profile photo, and a secure password change. Phase 2 is explicitly deferred for email changes, notification preferences, MFA, device/session management, and account deletion/export.
+- Phase 1 adds editable basic profile fields, a private profile photo, and a secure password change. A separate implemented default-off in-app promotional preference is available in Customer Account settings for Admin campaigns; email changes, other notification preferences, MFA, device/session management, and account deletion/export remain deferred.
 - This feature does not change registration approval, role, account status, address records, payment data, order data, Wishlist data, or any Seller/Admin/Courier account.
 
 ## MUST
@@ -68,7 +68,7 @@ scope: Customer web application and Laravel API
 ### Deferred capabilities
 
 - Email change is deferred. It requires a unique email/role policy, current-password confirmation, verification of the new address, collision handling, notification to the old address, and session/token consequences.
-- Notification preferences are deferred until Customer notification types, delivery channels, defaults, consent, and durable preference storage are specified.
+- Only the in-app promotional opt-in is implemented: `GET/PATCH /api/v1/customer/account/notification-preferences` reads and updates the authenticated Customer's durable, default-off choice. Terms/Privacy acceptance is never an opt-in. Other notification channels/types and preference controls remain deferred.
 - MFA, remembered devices, session list/revocation UI, account deactivation/deletion, export, and formal security-event/audit visibility are separate approved features or policies.
 
 ### Customer experience and accessibility

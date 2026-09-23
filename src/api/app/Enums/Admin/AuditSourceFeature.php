@@ -10,6 +10,7 @@ enum AuditSourceFeature: string
     case PlatformSettings = 'platform_settings';
     case UserAccountManagement = 'user_account_management';
     case SellerCompliance = 'seller_compliance';
+    case NotificationCampaigns = 'notification_campaigns';
 
     public function label(): string
     {
@@ -20,6 +21,7 @@ enum AuditSourceFeature: string
             self::PlatformSettings => 'Platform Settings',
             self::UserAccountManagement => 'User Account Management',
             self::SellerCompliance => 'Seller Compliance',
+            self::NotificationCampaigns => 'Notification Campaigns',
         };
     }
 }

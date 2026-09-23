@@ -48,6 +48,8 @@ class InitialAdminSeeder extends Seeder
                     'platform-settings.view',
                     'platform-settings.manage',
                     'notifications.view',
+                    'notification-campaigns.view',
+                    'notification-campaigns.manage',
                     'users.view',
                     'users.manage',
                     'seller_compliance.manage',

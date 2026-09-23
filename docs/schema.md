@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-23 (Inbound Linehaul Receiving and Reconciliation)
+> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, and Admin notification campaigns)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -92,6 +92,9 @@ erDiagram
     USERS o|--o{ AUDIT_LOGS : historically_attributed_to
     USERS o|--o{ AUDIT_OUTBOX : performs
     USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ NOTIFICATION_CAMPAIGNS : creates
+    NOTIFICATION_CAMPAIGNS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : snapshots
+    USERS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : may_receive
     USERS ||--o{ ACCOUNT_LIFECYCLE_EVENTS : undergoes
     USERS ||--o{ ACCOUNT_LIFECYCLE_EVENTS : administers
 
@@ -283,6 +286,8 @@ Each profile has a UUID primary key and a unique UUID `user_id`, enforcing at mo
 | `profile_photo_size` | BIGINT          | Yes      | Image bytes                                 |
 | `profile_photo_width` | INTEGER        | Yes      | Image width in pixels                       |
 | `profile_photo_height` | INTEGER       | Yes      | Image height in pixels                      |
+| `promotional_in_app_opted_in` | BOOLEAN | No | Customer-only, default `false`; explicit in-app marketing opt-in |
+| `promotional_in_app_opted_in_at` | TIMESTAMP | Yes | Customer-only latest opt-in time; cleared on opt-out |
 | `created_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 | `updated_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 
@@ -632,6 +637,12 @@ Laravel's database notification table stores role-scoped per-user inbox records.
 | `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Laravel                                             |
 
 Indexes cover the polymorphic recipient and recipient/read/time inbox query. Notification destinations are generated and allow-listed by the API; database payloads are never accepted directly from an Admin client.
+
+### 7.5a `notification_campaigns` and `notification_campaign_recipients`
+
+`notification_campaigns` stores one Admin-created UUID draft/send history row: bounded plain-text title/body, `opted_in_customers` audience, optional Product/Shop destination descriptor, string-backed status, revision, preview timestamp/count, hashed send idempotency key, audience cutoff, frozen snapshot/result counts, and completion time. The creator is a restricted FK to `users`; history is indexed by status/creation and completion. Browser/mobile push and SMS are not represented.
+
+`notification_campaign_recipients` stores UUID recipient work rows with campaign and Customer FKs, deterministic unique notification UUID, string-backed pending/delivered/skipped/failed status, attempts, and a safe error category. Unique `(campaign_id, user_id)` and `(notification_id)` prevent repeat delivery. Delivery rechecks current Customer status and the default-off profile preference before inserting one `customer-campaign.promotion` inbox row. A daily command removes per-recipient rows 90 days after terminal completion; campaign aggregate counts and Customer inbox rows remain.
 
 ### 7.6 `account_lifecycle_events`
 
@@ -1431,6 +1442,8 @@ Repository migrations are listed below in filename execution order; this invento
 75. `2026_09_20_000002_create_product_reviews.php` — delivered Order Item Product Reviews, authoritative rating projections, and validated Customer review-image metadata.
 76. `2026_09_22_000001_create_seller_review_responses.php` — one immutable public Shop response per Product Review with restrictive attribution, stable idempotency, and Seller/Shop publication indexes.
 77. `2026_09_23_000001_add_company_truck_linehaul_dispatch.php` — truck-driver capability, Logistics-owned company trucks, capacity-frozen outbound/return trips, and route-hop parcel reservations.
+78. `2026_09_23_000002_add_customer_promotional_notification_preference.php` — durable default-off Customer in-app promotional consent and opt-in time.
+79. `2026_09_23_000003_create_notification_campaigns.php` — Admin campaign history and bounded per-recipient delivery snapshot with deduplication and 90-day retention.
 
 ## 14. Fulfillment schema and deferred extensions
 

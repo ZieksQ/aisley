@@ -26,3 +26,10 @@ Schedule::command('finance:settle')
     ->timezone('Asia/Manila')
     ->withoutOverlapping()
     ->onOneServer();
+Schedule::command('campaigns:dispatch-pending')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+Schedule::command('campaigns:prune-recipients')
+    ->daily()
+    ->withoutOverlapping();

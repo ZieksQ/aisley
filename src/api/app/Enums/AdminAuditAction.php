@@ -38,6 +38,9 @@ enum AdminAuditAction: string
     case SellerComplianceProductRestricted = 'seller_compliance.product_restricted';
     case SellerComplianceProductRestrictionRevoked = 'seller_compliance.product_restriction_revoked';
     case SellerComplianceSuspensionReferred = 'seller_compliance.suspension_referred';
+    case NotificationCampaignCreated = 'notification_campaign.created';
+    case NotificationCampaignUpdated = 'notification_campaign.updated';
+    case NotificationCampaignSent = 'notification_campaign.sent';
 
     public function label(): string
     {
@@ -76,6 +79,9 @@ enum AdminAuditAction: string
             self::SellerComplianceProductRestricted => 'Product restricted for compliance',
             self::SellerComplianceProductRestrictionRevoked => 'Product compliance restriction revoked',
             self::SellerComplianceSuspensionReferred => 'Seller suspension referred from compliance',
+            self::NotificationCampaignCreated => 'Notification campaign created',
+            self::NotificationCampaignUpdated => 'Notification campaign updated',
+            self::NotificationCampaignSent => 'Notification campaign sent',
         };
     }
 }

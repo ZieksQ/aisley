@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
 use App\Http\Controllers\Admin\FinanceWorkflowController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\HubRoutingConfigurationController;
+use App\Http\Controllers\Admin\NotificationCampaignController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductQAController as CustomerProductQAController;
 use App\Http\Controllers\Customer\ProductReviewController as CustomerProductReviewController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Customer\PromotionPreferenceController as CustomerPromotionPreferenceController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
@@ -130,6 +132,14 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::get('/commission-policies', [FinanceConfigurationController::class, 'policies'])->middleware('admin.permission:finance.view');
     Route::post('/commission-policies', [FinanceConfigurationController::class, 'storePolicy'])->middleware('admin.permission:finance.manage');
     Route::post('/commission-policies/{policy}/publish', [FinanceConfigurationController::class, 'publishPolicy'])->whereUuid('policy')->middleware('admin.permission:finance.manage');
+    Route::prefix('notification-campaigns')->name('notification-campaigns.')->group(function () {
+        Route::get('/', [NotificationCampaignController::class, 'index'])->middleware('admin.permission:notification-campaigns.view')->name('index');
+        Route::get('/{campaign}', [NotificationCampaignController::class, 'show'])->whereUuid('campaign')->middleware('admin.permission:notification-campaigns.view')->name('show');
+        Route::post('/', [NotificationCampaignController::class, 'store'])->middleware('admin.permission:notification-campaigns.manage')->name('store');
+        Route::patch('/{campaign}', [NotificationCampaignController::class, 'update'])->whereUuid('campaign')->middleware('admin.permission:notification-campaigns.manage')->name('update');
+        Route::post('/{campaign}/preview', [NotificationCampaignController::class, 'preview'])->whereUuid('campaign')->middleware(['admin.permission:notification-campaigns.manage', 'throttle:30,1'])->name('preview');
+        Route::post('/{campaign}/send', [NotificationCampaignController::class, 'send'])->whereUuid('campaign')->middleware(['admin.permission:notification-campaigns.manage', 'throttle:5,1'])->name('send');
+    });
     Route::get('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'index'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.view')->name('hub-routing.index');
     Route::post('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'store'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.store');
     Route::patch('/hub-routing/{kind}/{id}', [HubRoutingConfigurationController::class, 'update'])->where('kind', 'service-areas|connections')->whereUuid('id')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.update');
@@ -565,6 +575,8 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/notifications/{notification}', [CustomerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
         Route::post('/notifications/{notification}/read', [CustomerNotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
         Route::get('/account', [CustomerAccountController::class, 'show'])->name('account.show');
+        Route::get('/account/notification-preferences', [CustomerPromotionPreferenceController::class, 'show'])->name('account.notification-preferences.show');
+        Route::patch('/account/notification-preferences', [CustomerPromotionPreferenceController::class, 'update'])->middleware('throttle:30,1')->name('account.notification-preferences.update');
         Route::patch('/account/profile', [CustomerAccountController::class, 'updateProfile'])->name('account.profile.update');
         Route::patch('/account/password', [CustomerAccountController::class, 'updatePassword'])
             ->middleware('throttle:customer-account-password')
