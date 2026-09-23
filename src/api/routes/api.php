@@ -36,6 +36,7 @@ use App\Http\Controllers\Customer\AddressController as CustomerAddressController
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
+use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
 use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Customer\OrderController;
@@ -77,6 +78,7 @@ use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
+use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
@@ -282,6 +284,14 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::get('/orders/{order}', [SellerFinanceController::class, 'order'])->whereUuid('order');
         Route::post('/costs', [SellerFinanceController::class, 'expense']);
         Route::post('/periods/{month}/close', [SellerFinanceController::class, 'close']);
+    });
+    Route::prefix('conversations')->name('conversations.')->group(function () {
+        Route::get('/', [SellerConversationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [SellerConversationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{conversation}', [SellerConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [SellerConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [SellerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [SellerConversationController::class, 'read'])->whereUuid('conversation')->name('read');
     });
     Route::get('/account', [SellerAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
@@ -571,6 +581,15 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::prefix('conversations')->name('conversations.')->group(function () {
+            Route::get('/', [CustomerConversationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [CustomerConversationController::class, 'unreadCount'])->name('unread-count');
+            Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::get('/{conversation}', [CustomerConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+            Route::get('/{conversation}/messages', [CustomerConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+            Route::post('/{conversation}/messages', [CustomerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/read', [CustomerConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+        });
         Route::get('/notifications', [CustomerNotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{notification}', [CustomerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
         Route::post('/notifications/{notification}/read', [CustomerNotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');

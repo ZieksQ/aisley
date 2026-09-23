@@ -4,7 +4,7 @@ title: Customer Chat with Seller
 system: AISLEY
 type: Feature Specification
 version: 2.0
-status: Revised target; shared messaging API, Seller reply UI, and Customer chat UI are not implemented
+status: First-release shared text chat implemented; PostgreSQL/browser verification and retention policy pending
 role: Customer
 scope: Customer Next.js storefront and shared Laravel messaging domain
 ---
@@ -16,7 +16,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - Let an authenticated Customer ask a Shop about a visible Product or an Order and continue the conversation in a private in-app inbox.
 - Shopee's [buyer chat guidance](https://help.shopee.ph/portal/4/article/82308-%5BChat%5D-How-do-I-chat-with-sellers) is a UX reference for a **Chat** entry point on a Shop and product/order questions; it is not a claim that AISLEY has Shopee's transport or policies.
 - The Shop is the conversation's public identity; the private Seller account is an authorization subject, not a displayed contact profile.
-- AISLEY currently has Product Q&A, Customer/Seller notifications, Shop/Product pages, and Order Detail, but no conversation/message tables, chat API, or `/messages` page. The storefront header already links to that missing page.
+- AISLEY has Product Q&A, Customer/Seller notifications, Shop/Product pages, Order Detail, one shared conversation/message store, role-scoped chat APIs, and Customer/Seller inbox and thread pages.
 - This Customer spec owns initiation, inbox, thread, composer, unread state, and Customer-facing error behavior. The same shared conversation/message records must serve the Seller's authorized reply UI.
 - **MVP:** one text conversation per Customer and Shop, with optional Product/Order context on a message. Reopening Chat from another Product or Order reuses that thread.
 - Customer ↔ Admin, Courier, or Logistics chat uses future role-owned initiation rules; this feature does not grant unrestricted contact with those roles.
@@ -102,13 +102,13 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - Under a conversation lock, allocate the next message sequence, persist the message, and update last activity. Add unique `(conversation_id, sequence)` and sender/idempotency constraints plus indexes for participant inbox and cursor history.
 - Store nullable, validated `product_id`/`order_id` message references, not full Product or Order JSON. Serialize role-safe current context; historical unavailable records become placeholders.
 - Return thread ID, Shop public name/slug, safe last-message preview, last activity, unread count and pagination cursor in the inbox; do not return a User model.
-- Proposed Customer API under `/api/v1/customer/conversations` (not implemented):
+- Implemented Customer API under `/api/v1/customer/conversations`:
   - `GET /`: cursor-paginated inbox and unread summaries.
   - `POST /`: first message plus exactly one Shop/Product/Order entry context; returns existing-or-created thread and message.
   - `GET /{conversation}` and `GET /{conversation}/messages`: participant-scoped detail and cursor history.
   - `POST /{conversation}/messages`: text, optional validated context, `Idempotency-Key`.
   - `POST /{conversation}/read`: advance caller's marker to a server-known sequence.
-- Match Seller-side endpoints and UI to the shared service/policy during implementation; revise the older Seller Chat spec before using it as an implementation contract.
+- Seller-side reply endpoints and UI use the same shared authority; the Seller Chat spec was revised for this text-only first release.
 - Customer and Seller route namespaces may differ, but both must call the same conversation/send/read authority and persist the same thread/message IDs.
 - Form Requests validate text/context/cursors; policies scope each read/mutation to actual participants and current Shop ownership. Resources return only safe Shop identity and minimal context.
 - Return `401` unauthenticated, `403` wrong role/status, scoped `404` for foreign/missing thread, `409` for idempotency conflict, `422` invalid input, and `429` rate limit.

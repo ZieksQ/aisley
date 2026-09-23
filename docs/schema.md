@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, and Admin notification campaigns)
+> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, and Customer–Shop chat)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -92,6 +92,12 @@ erDiagram
     USERS o|--o{ AUDIT_LOGS : historically_attributed_to
     USERS o|--o{ AUDIT_OUTBOX : performs
     USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ CONVERSATIONS : customer_or_seller
+    SHOPS ||--o{ CONVERSATIONS : hosts
+    CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
+    USERS ||--o{ CONVERSATION_PARTICIPANTS : reads
+    CONVERSATIONS ||--o{ MESSAGES : contains
+    USERS ||--o{ MESSAGES : sends
     USERS ||--o{ NOTIFICATION_CAMPAIGNS : creates
     NOTIFICATION_CAMPAIGNS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : snapshots
     USERS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : may_receive
@@ -643,6 +649,14 @@ Indexes cover the polymorphic recipient and recipient/read/time inbox query. Not
 `notification_campaigns` stores one Admin-created UUID draft/send history row: bounded plain-text title/body, `opted_in_customers` audience, optional Product/Shop destination descriptor, string-backed status, revision, preview timestamp/count, hashed send idempotency key, audience cutoff, frozen snapshot/result counts, and completion time. The creator is a restricted FK to `users`; history is indexed by status/creation and completion. Browser/mobile push and SMS are not represented.
 
 `notification_campaign_recipients` stores UUID recipient work rows with campaign and Customer FKs, deterministic unique notification UUID, string-backed pending/delivered/skipped/failed status, attempts, and a safe error category. Unique `(campaign_id, user_id)` and `(notification_id)` prevent repeat delivery. Delivery rechecks current Customer status and the default-off profile preference before inserting one `customer-campaign.promotion` inbox row. A daily command removes per-recipient rows 90 days after terminal completion; campaign aggregate counts and Customer inbox rows remain.
+
+### 7.5b `conversations`, `conversation_participants`, and `messages`
+
+`conversations` has a UUID primary key, immutable Customer/Seller/Shop UUID FKs, unique `(customer_user_id, shop_id)`, and server-owned last sequence/message/activity. This is one Customer–Shop thread even when messages refer to different Products or Orders. Current Shop ownership and role/status are rechecked at the API boundary; a future Shop transfer does not inherit historical private chat.
+
+`conversation_participants` has UUID identity, unique `(conversation_id, user_id)`, and monotonic `last_read_sequence`. Only other-party messages above that marker count as unread.
+
+`messages` has UUID identity, conversation/sender UUID FKs, a unique per-thread sequence, unique `(sender_user_id, idempotency_key)`, a payload hash for conflicting-key detection, plain-text body, and nullable Product/Order UUID context. Text is not a notification payload; the shared history and read markers are authoritative. File attachments, broadcast state, participant archive/mute/report, and retention decisions are not represented in this first release.
 
 ### 7.6 `account_lifecycle_events`
 
@@ -1444,6 +1458,7 @@ Repository migrations are listed below in filename execution order; this invento
 77. `2026_09_23_000001_add_company_truck_linehaul_dispatch.php` — truck-driver capability, Logistics-owned company trucks, capacity-frozen outbound/return trips, and route-hop parcel reservations.
 78. `2026_09_23_000002_add_customer_promotional_notification_preference.php` — durable default-off Customer in-app promotional consent and opt-in time.
 79. `2026_09_23_000003_create_notification_campaigns.php` — Admin campaign history and bounded per-recipient delivery snapshot with deduplication and 90-day retention.
+80. `2026_09_23_000004_create_customer_shop_conversations.php` — UUID-backed Customer–Shop conversations, per-participant read markers, and idempotent ordered text messages.
 
 ## 14. Fulfillment schema and deferred extensions
 
@@ -1517,7 +1532,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Customer verified-purchase ratings/media/aggregates and Seller-scoped immutable public Shop responses are implemented; moderation, editing/deletion, video, and refund effects remain deferred |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
-| Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
+| Messaging                  | Shared Customer–Shop text conversations, participant read markers, and ordered messages are implemented. Attachments, broadcasting, retention/moderation workflow, and other-role chat remain deferred. |
 | Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 

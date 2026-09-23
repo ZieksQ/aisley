@@ -184,17 +184,18 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 - **Owns:** Read-only delivery confirmation/notification after the authoritative downstream `delivered` transition.
 - **Boundary:** Seller does not mark an Order delivered and does not fabricate a Courier callback or proof of delivery.
 
-### 10. Seller Reporting
+### 10. Seller Finance and Reporting
 
-- **Purpose:** Show basic Shop-scoped sales, profit, and performance totals with a from/to date range.
-- **Owns:** Read-only aggregates and bounded exports once authoritative financial data exists.
-- **Boundary:** Commission, payout, tax, settlement, and large-report job policies remain separate/deferred; reports must not infer financial truth from incomplete Order data.
+- **Purpose:** Show Shop-scoped proceeds, costs, profit when complete, balances, payouts, and contributing ledger/Order records.
+- **Current state:** The role-isolated Finance workspace and ledger CSV use the shared commission and settlement authority. The separate Generate Report specification remains a draft; no dedicated `/reports` operational page or export job is deployed on this branch.
+- **Boundary:** Finance reads do not imply live payment-provider transfers, PDF exports, or a second report definition. Profit remains unavailable while required costs are incomplete.
 
 ### 11. Chat/Messaging
 
-- **Purpose:** Communicate with relevant Customers, Admins, Logistics operators, or Couriers for authorized product/order support.
-- **Owns:** Seller-authorized threads, message state, and operational context.
-- **Rules:** Access is tied to the Seller's Shop and relevant relationship; unrelated users, private evidence, payment secrets, and direct contact details are not exposed.
+- **Purpose:** Reply to Customers in one private text conversation per Customer and Shop for product/order support.
+- **Status:** Shared persistence/API and Seller inbox/reply UI are implemented with HTTP polling; realtime, attachments, Seller initiation, archive/mute/report, and other-role chat remain deferred.
+- **Owns:** Shop-authorized message history, Seller read marker, and safe Product/Order context alongside the Customer counterpart.
+- **Rules:** Access is tied to immutable participant and current Shop ownership; unrelated users, private evidence, payment secrets, and direct contact details are not exposed.
 
 ### 12. Account and Shop Management
 
@@ -250,7 +251,7 @@ Implemented Seller foundation:
 
 Deferred or dependent Seller operations:
 
-- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics receipt/sorting/dispatch, independent final-mile offers, QR hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Seller Review Management and Product Q&A queue/detail/reply flows plus notifications are implemented; response/answer editing, history, and moderation remain deferred. Financial reports/settlement, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred.
+- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. The shared Shipment/Parcel/DeliveryTask records support Logistics receipt/sorting/dispatch, independent final-mile offers, hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Seller Review Management, Product Q&A queue/detail/reply, private Customer–Shop text messaging, and the Shop-scoped Finance workspace are implemented. Response/answer editing, realtime/attachment chat, a separate Generate Report workflow, bulk import/export, and abandoned-cart promotions remain deferred.
 
 Future status-like columns must be stored as strings and cast to PHP enums. Future fulfillment migrations must preserve one Seller/one Shop tenancy, immutable Order snapshots, the shared high-level OrderStatus contract, and the separate Shipment/Delivery Task milestones.
 

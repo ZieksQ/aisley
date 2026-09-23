@@ -13,7 +13,7 @@ function safeMarkdownUrl(url: string) {
 const descriptionAssetPattern = /^\/api\/v1\/product-description-assets\/[0-9a-f-]{36}$/i;
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
-export function ShopSummary({ shop }: { shop: ProductDetail["shop"] }) {
+export function ShopSummary({ shop, productId }: { shop: ProductDetail["shop"]; productId: string }) {
   return (
     <section aria-labelledby="shop-heading" className="flex flex-wrap items-center justify-between gap-4 border-y border-[#E3DDE5] py-5">
       <div className="flex min-w-0 items-center gap-3">
@@ -31,12 +31,10 @@ export function ShopSummary({ shop }: { shop: ProductDetail["shop"] }) {
           <p className="mt-0.5 text-sm text-[#746978]">Seller storefront</p>
         </div>
       </div>
-      <Link
-        href={shop.storefrontUrl}
-        className="rounded-md border border-[#BDAFC2] bg-white px-4 py-2 text-sm font-semibold text-[#4C1268] hover:border-[#7C6684] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-      >
-        Visit shop
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/messages/new?shop=${encodeURIComponent(shop.id)}&product=${encodeURIComponent(productId)}`} className="rounded-md bg-[#4C1268] px-4 py-2 text-sm font-semibold text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Message Seller</Link>
+        <Link href={shop.storefrontUrl} className="rounded-md border border-[#BDAFC2] bg-white px-4 py-2 text-sm font-semibold text-[#4C1268] hover:border-[#7C6684] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Visit shop</Link>
+      </div>
     </section>
   );
 }

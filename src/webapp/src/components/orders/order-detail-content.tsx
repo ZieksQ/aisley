@@ -307,6 +307,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
             <p className="mt-2 text-sm text-[#6B5F6F]">
               Order {order.reference} · {order.shop.name}
             </p>
+            <Link className="mt-3 inline-flex min-h-10 items-center rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8]" href={`/messages/new?shop=${encodeURIComponent(order.shop.id)}&order=${encodeURIComponent(order.id)}`}>Contact Seller</Link>
           </div>
           <button
             type="button"
