@@ -6,7 +6,7 @@ type: Feature Specification
 version: 1.5
 status: Implemented read-only final-mile history API; advanced filters deferred
 implementation_status: Courier-scoped delivered task list/detail APIs are implemented; Flutter list/detail is reported implemented; cursor/date filters remain deferred
-flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
+flutter_status: Supplied Flutter progress records delivered-history list/detail screens; private photo preview not verified/adopted
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application

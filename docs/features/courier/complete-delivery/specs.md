@@ -6,12 +6,13 @@ type: Feature Specification
 version: 1.5
 status: Implemented photo POD completion intent and Logistics confirmation
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
-flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
+flutter_status: Supplied Flutter progress records legacy completion intent UI; photo-linked Delivered intent and rejected-photo retry not verified/adopted
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-completion-v1-qr
+backend_contract_version_status: Historical QR baseline; the photo-POD revision below is authoritative
 ---
 
 # Complete Delivery

@@ -7,7 +7,7 @@ type: Feature Specification
 version: 1.7
 status: Implemented photo POD submission and Logistics validation; signature deferred
 implementation_status: Courier private photo submission and Logistics private preview/validation are implemented; former reference proof is retired for delivery
-flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
+flutter_status: Supplied Flutter progress records incompatible QR/reference delivery-proof UI; private photo POD capture/upload/read not verified/adopted
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
