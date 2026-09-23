@@ -343,6 +343,9 @@ The shared tracking ID, snapshot, selected Logistics organization, and Order/Par
 
 8.5 Receiving and Sorting
 
+Company-truck inbound flow (2026-09-23): Inbound linehaul starts receiving online and records truck arrival/unloading → Receive at hub scans against the selected manifest (offline captures remain provisional) → each successful parcel receipt changes custody/hop and may enter a separate Sorting session → receiving Logistics reviews damage/unexpected records and acknowledges any shortage with a reason → closes unloading and releases the truck for cargo/empty return. Missing parcels stay in transfer; valid late receipts resolve shortages without reopening the truck visit. Damaged parcels cannot sort or dispatch until a documented release. This supersedes whole-manifest receipt and historical deferred-transfer wording for company-truck cargo.
+
+
 The logistics workflow shall support:
 
 receive order → waybill → sort

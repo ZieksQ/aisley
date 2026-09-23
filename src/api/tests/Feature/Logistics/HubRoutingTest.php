@@ -116,7 +116,7 @@ class HubRoutingTest extends TestCase
             $this->assertSame(0, DeliveryTask::where('leg', 'final_mile')->count());
             $this->actingAs($foreign)->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => $departure['revision']])->assertNotFound();
             $this->actingAs($network[$i + 1][0])->getJson('/api/v1/logistics/routes/'.$reference)->assertOk()->assertJsonMissingPath('data.route.hops.0.source_lane');
-            $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => $departure['revision']])->assertOk()->assertJsonPath('data.status', 'received');
+            $this->receiveTripParcels($trip['id']);
             $this->assertSame($network[$i + 1][2]->id, $shipment->fresh()->current_hub_id);
             $this->actingAs($network[$i][0])->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertNotFound();
             $this->actingAs($network[$i + 1][0])->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->assertJsonCount(0, 'data.tasks');

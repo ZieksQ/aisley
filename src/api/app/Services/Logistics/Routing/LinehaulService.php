@@ -219,6 +219,9 @@ class LinehaulService
             if (LinehaulManifestStatus::from($manifest->status) === LinehaulManifestStatus::Received) {
                 return $this->projection($manifest);
             }
+            if (LinehaulTrip::where('linehaul_manifest_id', $id)->exists()) {
+                throw FulfillmentException::conflict('LINEHAUL_SCAN_REQUIRED', 'Company-truck cargo requires individual verified receipts.');
+            }
             foreach (json_decode($manifest->items, true) as $item) {
                 $hop = ShipmentRouteHop::findOrFail($item['hop_id']);
                 $shipment = Shipment::findOrFail(ShipmentRoute::findOrFail($hop->shipment_route_id)->shipment_id);

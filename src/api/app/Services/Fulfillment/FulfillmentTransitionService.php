@@ -386,6 +386,9 @@ class FulfillmentTransitionService
             if ($shipment->revision !== (int) $input['expected_revision']) {
                 throw FulfillmentException::conflict('SHIPMENT_STATE_CONFLICT', 'The shipment changed. Refresh its current revision before trying again.');
             }
+            if ($shipment->condition_hold) {
+                throw FulfillmentException::conflict('SHIPMENT_CONDITION_HOLD', 'Inspect and release this damaged parcel before continuing.');
+            }
             $target = (string) $input['target_state'];
             if ($target === ShipmentStatus::DispatchedFromHub->value) {
                 app(ShipmentRouteService::class)->assertFinalMile($shipment);
@@ -555,7 +558,7 @@ class FulfillmentTransitionService
             if ($shipment->revision !== $expectedRevision) {
                 throw FulfillmentException::conflict('SORT_SHIPMENT_REVISION_CONFLICT', 'The parcel changed after this sorting session was loaded. Refresh before sorting it.');
             }
-            if ($shipment->status !== ShipmentStatus::ReceivedAtHub) {
+            if ($shipment->condition_hold || $shipment->status !== ShipmentStatus::ReceivedAtHub) {
                 throw FulfillmentException::conflict('SORT_SHIPMENT_STATE_CONFLICT', 'Only a parcel received at this hub can be sorted.');
             }
             $task = $shipment->tasks->firstWhere('leg', FulfillmentTaskLeg::FirstMile);

@@ -7,6 +7,7 @@ use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Http\Controllers\Controller;
 use App\Models\HubConnection;
 use App\Models\HubServiceArea;
+use App\Models\LinehaulTrip;
 use App\Models\LogisticsHub;
 use App\Services\Logistics\Routing\LinehaulService;
 use Illuminate\Http\Request;
@@ -28,12 +29,21 @@ class LinehaulController extends Controller
                     ->orWhereHas('address', fn ($q) => $q->whereLike('city_municipality', '%'.$search.'%')->orWhereLike('province', '%'.$search.'%'));
             }))
             ->orderBy('name')->orderBy('id')->paginate(20);
+        $manifests = DB::table('linehaul_manifests')
+            ->where(fn ($query) => $query->where('from_hub_id', $hub->id)->orWhere('to_hub_id', $hub->id))
+            ->latest()->limit(50)->get();
+        $tripManifestIds = LinehaulTrip::whereIn('linehaul_manifest_id', $manifests->pluck('id'))
+            ->pluck('linehaul_manifest_id')->flip();
 
         return response()->json(['data' => [
             'enabled' => LinehaulService::enabled(),
             'ready_groups' => $service->readyGroups($request->user()),
-            'manifests' => DB::table('linehaul_manifests')->where(fn ($q) => $q->where('from_hub_id', $hub->id)->orWhere('to_hub_id', $hub->id))
-                ->latest()->limit(50)->get()->map(fn ($m) => [...$service->projection($m), 'can_receive' => $m->to_hub_id === $hub->id && $m->status === 'in_transfer']),
+            'manifests' => $manifests->map(fn ($manifest) => [
+                ...$service->projection($manifest),
+                'can_receive' => $manifest->to_hub_id === $hub->id
+                    && $manifest->status === 'in_transfer'
+                    && ! $tripManifestIds->has($manifest->id),
+            ]),
             'hubs' => $directory->getCollection()->map(fn ($hub) => [
                 'id' => $hub->id, 'name' => $hub->name, 'business_name' => $hub->organization->business_name,
                 'city_municipality' => $hub->address?->city_municipality, 'province' => $hub->address?->province,

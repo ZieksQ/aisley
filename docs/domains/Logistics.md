@@ -8,6 +8,10 @@ status: Revised — aligned with the approved order/Logistics flow and implement
 
 # Logistics Model Context
 
+## Inbound linehaul receiving — 2026-09-23
+
+Inbound linehaul owns truck arrival, reconciliation, unloading closure, discrepancy decisions, and visiting-truck returns. Receive at hub owns trip-specific offline scanning; Sorting remains separate. A verified expected parcel independently enters receiving-hub custody and can enter the next available sorting snapshot. Damaged parcels stay held until documented inspection/release. Unexpected tracking IDs produce safe investigations only. Missing parcels remain unreceived when unloading closes with an explicit shortage reason; closure frees the truck for return and notifies the sender. A valid late scan resolves the shortage without moving the truck or reopening its visit. Company-truck whole-manifest receipt is unavailable; historical standalone manifests keep their original receipt compatibility.
+
 ## Final-mile revision (2026-09-20)
 
 One dispatch schedule offers 1–15 destination-hub parcels to one Courier, who accepts the batch atomically. Each parcel retains its own Shipment, task, offer, photo POD, completion intent, and Order. Logistics privately previews the submitted POD and explicitly validates delivery; Courier intent alone never changes `out_for_delivery` to `delivered`. A failed doorstep attempt remains assigned and retryable. Advisory final-mile route calculations use Geoapify and exclude linehaul manifests. Historical QR-delivery and route-deferred statements below are superseded for final-mile proof and routing.

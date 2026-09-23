@@ -98,8 +98,8 @@ class CompanyTruckLinehaulTest extends TestCase
         $this->actingAs($a[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])
             ->assertOk()->assertJsonPath('data.status', 'in_transfer');
         $this->assertSame(2, Shipment::query()->where('status', 'in_transfer')->count());
-        $this->actingAs($b[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/receive', ['expected_revision' => 3])
-            ->assertOk()->assertJsonPath('data.status', 'received');
+        $this->actingAs($b[0]);
+        $this->receiveTripParcels($trip['id']);
         $this->assertDatabaseHas('company_trucks', ['id' => $truck['id'], 'logistics_organization_id' => $a[1]->id, 'availability' => 'visiting', 'last_confirmed_hub_id' => $b[2]->id]);
 
         $return = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/return', [

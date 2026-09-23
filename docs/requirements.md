@@ -116,6 +116,7 @@ MVP responsibilities:
 - Update shipment/order status.
 - Monitor courier availability and active capacity.
 - Manage a separate company-truck fleet with positive parcel capacities and approved truck-driver capability. Schedule route-aware outbound linehaul from Dispatch, require the receiving Logistics organization's approval before physical departure, receive inbound trips on a dedicated page, and schedule visiting trucks back to their owning hub with cargo or as an explicit empty return. Company-truck ownership and driver affiliation never transfer; confirmed operational events provide location state without claiming live GPS. Final-mile schedules retain the separate 15-parcel limit.
+- Separate inbound truck arrival, verified per-parcel custody, and unloading closure. Support trip-scoped offline capture, partial sorting during unloading, damage inspection/release, unexpected-scan investigation, reasoned shortage closure, sender notifications, and late expected receipt after truck return. Missing parcels never become received merely because unloading closes.
 - Communicate with users.
 - Manage logistics account information.
 

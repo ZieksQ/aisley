@@ -12,6 +12,10 @@ scope: Laravel API and Logistics React dashboard
 
 # Logistics Notifications
 
+## Linehaul receiving discrepancy producer — 2026-09-23
+
+`logistics-linehaul.receiving-discrepancies` is emitted after unloading closes with a documented missing, damaged, or unexpected parcel record. The sending hub's Logistics account receives the trip ID and safe summary, deduplicated by trip/closure. Cargo returns notify the return sender, not automatically the truck owner. The destination is `/linehaul-dispatch` only while the recipient owns the trip's sending hub. Receipt retries and late shortage resolution do not repeat the closure notification. Receiver decisions and text reasons remain in scoped receiving records and action history; there is no Courier approval or claims/refunds workflow.
+
 ## Linehaul return producer — 2026-09-23
 
 `logistics-linehaul.return-scheduled` is emitted after the receiving Logistics organization commits a visiting truck's return. The owner receives only the trip reference and safe summary; the projected destination is `/dispatch` only while the trip belongs to that owner's organization/home hub. Delivery is after commit and deduplicated by trip revision. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.

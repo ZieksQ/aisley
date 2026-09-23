@@ -40,7 +40,7 @@ class DispatchScheduleService
 
             $org = $this->organization($logistics);
             $this->assertCourier((string) $input['courier_id'], $org->id, $org->hub->id);
-            if (LinehaulTrip::query()->where('driver_id', $input['courier_id'])->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer'])->lockForUpdate()->exists()) {
+            if (LinehaulTrip::query()->where('driver_id', $input['courier_id'])->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving'])->lockForUpdate()->exists()) {
                 throw FulfillmentException::conflict('COURIER_LINEHAUL_CONFLICT', 'This Courier already has active company-truck linehaul work.');
             }
             $shipmentIds = array_values($input['shipment_ids']);

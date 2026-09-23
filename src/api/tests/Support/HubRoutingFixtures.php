@@ -33,6 +33,19 @@ use Illuminate\Support\Str;
 
 trait HubRoutingFixtures
 {
+    private function receiveTripParcels(string $tripId): void
+    {
+        $base = '/api/v1/logistics/linehaul/trips/'.$tripId.'/receiving';
+        $detail = $this->postJson($base.'/start', ['client_id' => (string) Str::uuid()])->assertOk()->json('data');
+        foreach ($detail['items'] as $item) {
+            $this->postJson($base.'/batches', ['captures' => [[
+                'client_id' => (string) Str::uuid(), 'reference' => $item['reference'], 'condition' => 'good',
+                'source' => 'manual', 'captured_at' => now()->toISOString(),
+            ]]])->assertOk()->assertJsonPath('data.results.0.status', 'received');
+        }
+        $this->postJson($base.'/finish', ['client_id' => (string) Str::uuid()])->assertOk()->assertJsonPath('data.status', 'received');
+    }
+
     private function pinnedHub(): array
     {
         $context = $this->logistics();
@@ -87,7 +100,7 @@ trait HubRoutingFixtures
         $session = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/sessions')->assertCreated()->json('data');
         $this->postJson('/api/v1/logistics/sorting/sessions/'.$session['id'].'/batches', ['captures' => [[
             'client_id' => (string) Str::uuid(), 'lane_id' => null, 'auto_route' => true, 'reference' => $reference,
-            'expected_revision' => $session['items'][0]['expected_revision'], 'source' => 'barcode', 'captured_at' => now()->toISOString(),
+            'expected_revision' => collect($session['items'])->firstWhere('reference', $reference)['expected_revision'], 'source' => 'barcode', 'captured_at' => now()->toISOString(),
         ]]])->assertOk()->assertJsonPath('summary.sorted', 1);
 
         return $this->getJson('/api/v1/logistics/update-status/records/'.$reference)->assertOk()->json('data');

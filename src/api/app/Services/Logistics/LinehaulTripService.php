@@ -26,10 +26,11 @@ use App\Services\Courier\CourierNotificationService;
 use App\Services\Logistics\Routing\LinehaulService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class LinehaulTripService
 {
-    private const ACTIVE = ['pending_acceptance', 'scheduled', 'in_transfer'];
+    private const ACTIVE = ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving'];
 
     public function overview(User $actor): array
     {
@@ -189,17 +190,10 @@ class LinehaulTripService
             if ($trip->revision !== $expectedRevision || $trip->status !== LinehaulTripStatus::InTransfer) {
                 throw FulfillmentException::conflict('LINEHAUL_TRIP_CHANGED', 'This trip is not ready to receive.');
             }
-            if ($trip->linehaul_manifest_id !== null) {
-                app(LinehaulService::class)->arrive($actor, $trip->linehaul_manifest_id);
+            if ($trip->parcel_count > 0) {
+                throw FulfillmentException::conflict('LINEHAUL_SCAN_REQUIRED', 'Start receiving and verify individual parcels before closing unloading.');
             }
-            $trip->update(['status' => LinehaulTripStatus::Received, 'received_at' => now(), 'revision' => $trip->revision + 1]);
-            $trip->shipments()->update(['released_at' => now()]);
-            $home = $trip->direction === LinehaulTripDirection::Return;
-            $trip->truck()->update([
-                'availability' => $home ? CompanyTruckAvailability::Available : CompanyTruckAvailability::Visiting,
-                'last_confirmed_hub_id' => $org->hub->id,
-                'revision' => DB::raw('revision + 1'),
-            ]);
+            app(LinehaulReceivingService::class)->start($actor, $id, ['client_id' => (string) Str::uuid()]);
 
             return $this->projection($this->load($trip), $org->hub->id);
         }, 3);
@@ -287,6 +281,9 @@ class LinehaulTripService
             'can_schedule_return' => $viewerHub === $trip->to_hub_id && $trip->direction === LinehaulTripDirection::Outbound && $trip->status === LinehaulTripStatus::Received && $trip->returnTrip === null,
             'departed_at' => $trip->departed_at?->toISOString(),
             'received_at' => $trip->received_at?->toISOString(),
+            'arrived_at' => $trip->arrived_at?->toISOString(),
+            'unloading_closed_at' => $trip->unloading_closed_at?->toISOString(),
+            'unloading_outcome' => $trip->unloading_outcome?->value,
         ];
     }
 

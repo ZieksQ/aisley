@@ -161,7 +161,7 @@ class PickupScheduleService
     private function assertNoCourierConflict(string $courierId, CarbonImmutable $starts, CarbonImmutable $ends, ?string $except = null): void
     {
         $conflict = PickupSchedule::query()->where('courier_id', $courierId)->where('status', PickupScheduleStatus::Scheduled)->when($except, fn ($q) => $q->whereKeyNot($except))->where('starts_at', '<', $ends)->where('ends_at', '>', $starts)->lockForUpdate()->exists();
-        $conflict = $conflict || LinehaulTrip::query()->where('driver_id', $courierId)->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer'])->lockForUpdate()->exists();
+        $conflict = $conflict || LinehaulTrip::query()->where('driver_id', $courierId)->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving'])->lockForUpdate()->exists();
         if ($conflict) {
             throw new LogisticsPickupException('COURIER_SCHEDULE_CONFLICT', 'The Courier already has an overlapping pickup schedule.');
         }
