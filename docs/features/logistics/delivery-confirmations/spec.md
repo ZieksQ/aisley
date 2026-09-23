@@ -48,6 +48,7 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 - A reviewer selects a pending row, loads the private image, checks Courier and Order context, and confirms COD collection explicitly before approving COD delivery.
 - A reviewer may request correction with a reason; the task remains assigned and pending at the current delivery state.
 - Pending intent remains active Courier work. Completed history is populated only after authoritative Logistics approval.
+- The search input keeps the available toolbar width while its submit action remains content-sized. The queue and review workspace stack on mobile, tablet, and iPad-sized viewports, then use a bounded two-column layout when wide desktop space is available.
 
 ## Acceptance
 
@@ -56,4 +57,5 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 - [x] Logistics confirmation is gated by proof, revisions, and explicit COD acknowledgment.
 - [x] Delivery and COD payment commit atomically through the shared transition service.
 - [x] Rejection records a reason without delivering or marking payment paid.
+- [x] The review workspace is responsive across mobile, tablet/iPad, current-device, and wide desktop widths without horizontal overflow or undersizing the search input.
 - [ ] PostgreSQL concurrency and connected browser review are release verification items.
