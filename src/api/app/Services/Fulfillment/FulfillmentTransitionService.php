@@ -36,6 +36,7 @@ use App\Models\User;
 use App\Models\Waybill;
 use App\Notifications\Seller\SellerOrderDeliveredNotification;
 use App\Services\Courier\CourierNotificationService;
+use App\Services\Finance\FinanceLifecycleService;
 use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\Logistics\Routing\LinehaulService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
@@ -53,6 +54,7 @@ class FulfillmentTransitionService
         private readonly OrderTransitionService $orderTransitions,
         private readonly LogisticsNotificationService $notifications,
         private readonly CourierNotificationService $courierNotifications,
+        private readonly FinanceLifecycleService $finance,
     ) {}
 
     /**
@@ -1218,6 +1220,7 @@ class FulfillmentTransitionService
         $at = now();
         $task->update(['status' => FulfillmentTaskStatus::Delivered, 'delivered_at' => $at, 'revision' => $task->revision + 1]);
         $shipment->update(['status' => ShipmentStatus::Delivered, 'revision' => $shipment->revision + 1]);
+        $this->finance->recognizeDelivery($order, $shipment, $at);
         $intent->update(['status' => ShipmentEvidenceStatus::Validated, 'validated_at' => $at, 'validated_by_logistics_id' => $logistics->id]);
         $event = $this->event($shipment, $task, 'delivery_completed', ShipmentStatus::OutForDelivery->value, ShipmentStatus::Delivered->value, $task->courier_id, $logistics->id, $task->offers()->where('status', FulfillmentOfferStatus::Accepted->value)->latest('sequence')->first(), $evidence, ['request_hash' => $requestHash], $idempotencyKey, $reason);
 

@@ -427,3 +427,9 @@ GET  /api/admin/reports/exports/{export}/download
 - Laravel HTTP Responses / streamed downloads: https://laravel.com/docs/12.x/responses
 - Laravel Filesystem temporary URLs: https://api.laravel.com/docs/12.x/Illuminate/Filesystem/FilesystemAdapter.html
 - OWASP CSV Injection: https://owasp.org/www-community/attacks/CSV_Injection
+
+### Finance workspace resolution (2026-09-24)
+
+- `docs/features/shared/commission-settlement/spec.md` is authoritative for effective-dated commissions, balanced journals, recognition, remittance, settlement, costs, closing, and forecasting.
+- Platform operating profit is commission revenue less funded subsidies, processing fees, operating expenses, and recorded losses. Beneficiary payouts settle liabilities and do not create a second expense.
+- Finance APIs and UI require explicit `finance.view` or `finance.manage` Admin permissions. Sandbox beneficiary accounts and simulated payouts remain segregated from live transfers.

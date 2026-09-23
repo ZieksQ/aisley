@@ -51,6 +51,8 @@ class InitialAdminSeeder extends Seeder
                     'users.view',
                     'users.manage',
                     'seller_compliance.manage',
+                    'finance.view',
+                    'finance.manage',
                 ])
                 ->pluck('id'),
         );

@@ -97,3 +97,9 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - The company-truck migration applies successfully on PostgreSQL with its self-referencing return-trip foreign key added only after the trip table's primary key exists.
 - Development seeders qualify the configured lead Courier and the first generic Courier, plus one deterministic Courier in each Luzon Logistics organization, without repeatedly advancing capability revisions.
 - Logistics type-check, lint, and production build verify the three protected operational surfaces. Browser/device checks and PostgreSQL worker-level concurrency remain release gates when not recorded in `docs/PROGRESS.md`.
+
+### Finance allocation evidence (2026-09-24)
+
+- A completed linehaul hop earns from the Order's one-time Logistics pool only when receipt evidence, the frozen route-distance snapshot, and actual trip-owning Logistics organization are present.
+- Planned hops earn nothing. Centavo remainders are assigned deterministically, and one organization performing multiple services receives consolidated proceeds.
+- Shared trip costs are recorded by Logistics and allocated equally across carried parcels for the v1 profit workspace. Customer COD is never repriced for reroutes, additional hubs, or operating-cost variance.

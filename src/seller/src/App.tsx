@@ -22,6 +22,7 @@ import { NotificationDetailPage } from './pages/NotificationDetailPage'
 import { ProductQuestionDetailPage } from './pages/ProductQuestionDetailPage'
 import { ProductQuestionsPage } from './pages/ProductQuestionsPage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
+import { FinancePage } from './pages/FinancePage'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<SellerLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<FinancePage />} path="/finance" />
           <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
           <Route element={<OrdersPage />} path="/orders/monitoring" />
           <Route element={<OrderApprovalPage />} path="/orders/approval" />

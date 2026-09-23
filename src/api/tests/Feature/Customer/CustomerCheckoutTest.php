@@ -14,9 +14,12 @@ use App\Models\Address;
 use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
+use App\Models\LogisticsOrganization;
+use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\ShippingRateVersion;
 use App\Models\Shop;
 use App\Models\User;
 use App\Models\Voucher;
@@ -24,16 +27,18 @@ use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\ConfiguresCheckoutFinance;
 use Tests\TestCase;
 
 class CustomerCheckoutTest extends TestCase
 {
-    use RefreshDatabase;
+    use ConfiguresCheckoutFinance, RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->seed(ProductSeeder::class);
+        $this->configureTestCheckoutFinance();
     }
 
     public function test_checkout_endpoints_require_an_active_customer_and_reject_forged_values(): void
@@ -61,11 +66,14 @@ class CustomerCheckoutTest extends TestCase
         $customer = $this->customer();
         $address = $this->address($customer);
         $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $product->update(['unit_cost_cents' => 500000, 'cost_currency' => 'PHP']);
         $payload = $this->buyNowPayload($product, $address, 2);
 
         $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)
             ->assertOk()
             ->assertJsonPath('data.summary.orderCount', 1)
+            ->assertJsonPath('data.groups.0.shippingQuote.baseFee', '0.00')
+            ->assertJsonPath('data.groups.0.totals.payable', '13500.00')
             ->assertJsonPath('data.summary.payable', '13500.00')
             ->json('data');
 
@@ -81,6 +89,8 @@ class CustomerCheckoutTest extends TestCase
             ->json('data');
 
         $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseHas('order_pricing_snapshots', ['cod_total_cents' => 1350000, 'quoted_shipping_fee_cents' => 0]);
+        $this->assertDatabaseHas('order_items', ['quantity' => 2, 'unit_cost_cents' => 500000, 'cost_currency' => 'PHP']);
         $this->assertDatabaseHas('inventory_balances', ['on_hand' => 14, 'reserved' => 2]);
         $this->assertDatabaseHas('inventory_movements', ['movement_type' => 'reserve', 'reserved_delta' => 2]);
         $this->assertDatabaseHas('products', ['id' => $product->id, 'stock_quantity' => 12]);
@@ -208,6 +218,49 @@ class CustomerCheckoutTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_NOT_FOUND');
     }
 
+    public function test_more_specific_zone_rate_and_billable_weight_rounding_determine_cod(): void
+    {
+        $customer = $this->customer();
+        $address = $this->address($customer);
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $organizationId = LogisticsShippingRateAcceptance::query()->value('logistics_organization_id');
+        $logisticsUserId = LogisticsOrganization::query()->findOrFail($organizationId)->user_id;
+        $rate = ShippingRateVersion::create([
+            'version_number' => 2, 'status' => 'published', 'destination_city_municipality' => 'Makati City',
+            'base_fee_cents' => 15000, 'included_weight_grams' => 500, 'additional_weight_grams' => 500,
+            'additional_fee_cents' => 2500, 'volumetric_divisor' => 5000, 'max_weight_grams' => 100000,
+            'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
+            'destination_surcharge_cents' => 0, 'currency' => 'PHP', 'effective_at' => now()->subHour(),
+            'published_at' => now()->subHour(), 'revision' => 1,
+        ]);
+        LogisticsShippingRateAcceptance::create([
+            'shipping_rate_version_id' => $rate->id, 'logistics_organization_id' => $organizationId,
+            'accepted_at' => now()->subHour(), 'accepted_by' => $logisticsUserId,
+        ]);
+
+        $this->postJson('/api/v1/customer/checkout/quote', $this->buyNowPayload($product, $address, 2))
+            ->assertOk()
+            ->assertJsonPath('data.groups.0.shippingQuote.rateVersion', 2)
+            ->assertJsonPath('data.groups.0.shippingQuote.billableWeightGrams', 1200)
+            ->assertJsonPath('data.groups.0.totals.shippingFee', '200.00')
+            ->assertJsonPath('data.groups.0.totals.payable', '13700.00');
+    }
+
+    public function test_rate_revision_after_quote_requires_customer_reconfirmation(): void
+    {
+        $customer = $this->customer();
+        $address = $this->address($customer);
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $payload = $this->buyNowPayload($product, $address);
+        $quoteId = $this->postJson('/api/v1/customer/checkout/quote', $payload)->assertOk()->json('data.quoteId');
+        ShippingRateVersion::query()->firstOrFail()->increment('revision');
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quoteId])
+            ->assertConflict()->assertJsonPath('code', 'QUOTE_STALE');
+        $this->assertDatabaseCount('orders', 0);
+    }
+
     private function customer(): User
     {
         $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => UserStatus::Active]);
@@ -237,7 +290,8 @@ class CustomerCheckoutTest extends TestCase
     {
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
         $shop = Shop::create(['seller_id' => $seller->id, 'name' => 'Second Store', 'slug' => 'second-store', 'status' => ShopStatus::Active]);
-        $product = Product::create(['shop_id' => $shop->id, 'name' => 'Second Product', 'slug' => 'second-product', 'price' => '100.00', 'stock_quantity' => 5, 'status' => ProductStatus::Active, 'published_at' => now()->subMinute()]);
+        $this->pickupAddress($seller, 'Second Store');
+        $product = Product::create(['shop_id' => $shop->id, 'name' => 'Second Product', 'slug' => 'second-product', 'price' => '100.00', 'stock_quantity' => 5, 'status' => ProductStatus::Active, 'published_at' => now()->subMinute(), 'shipping_weight_grams' => 500, 'shipping_length_mm' => 200, 'shipping_width_mm' => 150, 'shipping_height_mm' => 100]);
         $sku = InventorySku::create(['product_id' => $product->id, 'code' => 'SECOND-BASE', 'is_base' => true]);
         InventoryBalance::create(['inventory_sku_id' => $sku->id, 'on_hand' => 5, 'reserved' => 0]);
 

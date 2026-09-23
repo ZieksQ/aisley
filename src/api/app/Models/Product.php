@@ -43,6 +43,12 @@ class Product extends Model
         'status',
         'published_at',
         'purge_after',
+        'shipping_weight_grams',
+        'shipping_length_mm',
+        'shipping_width_mm',
+        'shipping_height_mm',
+        'unit_cost_cents',
+        'cost_currency',
     ];
 
     /**
@@ -63,6 +69,11 @@ class Product extends Model
             'status' => ProductStatus::class,
             'published_at' => 'datetime',
             'purge_after' => 'datetime',
+            'shipping_weight_grams' => 'integer',
+            'shipping_length_mm' => 'integer',
+            'shipping_width_mm' => 'integer',
+            'shipping_height_mm' => 'integer',
+            'unit_cost_cents' => 'integer',
         ];
     }
 

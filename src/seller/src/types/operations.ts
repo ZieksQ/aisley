@@ -8,6 +8,12 @@ export type Product = {
   description_markdown: string | null
   price: string
   original_price: string | null
+  shipping_weight_grams: number | null
+  shipping_length_mm: number | null
+  shipping_width_mm: number | null
+  shipping_height_mm: number | null
+  unit_cost_cents: number | null
+  cost_currency: 'PHP' | null
   currency: 'PHP'
   status: 'draft' | 'active' | 'archived'
   skus: { id: string; code: string; on_hand: number; reserved: number; available: number }[]
@@ -19,6 +25,12 @@ export type Product = {
     sku: string
     price: string | null
     original_price: string | null
+    shipping_weight_grams: number | null
+    shipping_length_mm: number | null
+    shipping_width_mm: number | null
+    shipping_height_mm: number | null
+    unit_cost_cents: number | null
+    cost_currency: 'PHP' | null
     effective_price: string
     effective_original_price: string | null
     inherits_price: boolean

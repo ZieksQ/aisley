@@ -100,6 +100,8 @@ class SellerCreateProductTest extends TestCase
         $productId = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Gallery Cover Product', 'category_id' => $category->id, 'sku' => 'COVER-1',
             'price' => '250.00', 'opening_stock' => 5, 'upload_token' => $token,
+            'shipping_weight_grams' => 500, 'shipping_length_mm' => 200,
+            'shipping_width_mm' => 150, 'shipping_height_mm' => 100,
             'gallery_upload_ids' => [$firstGallery, $defaultGallery],
             'default_gallery_upload_id' => $defaultGallery,
         ])->assertCreated()->json('data.id');

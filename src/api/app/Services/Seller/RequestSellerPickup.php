@@ -8,8 +8,10 @@ use App\Enums\PaymentStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Seller\SellerOrderException;
+use App\Models\FinancialHold;
 use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
+use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\Order;
 use App\Models\SellerPickupRequest;
 use App\Models\Shop;
@@ -37,6 +39,30 @@ class RequestSellerPickup
         $previous = SellerPickupRequest::query()->where('seller_id', $seller->id)->where('idempotency_key', $key)->with(['orders', 'waybills'])->first();
         if ($previous) {
             return $this->existing($previous, $orderIds, $pickupAddressId, $logisticsOrganizationId);
+        }
+        $quotedOrders = Order::query()->whereHas('shop', fn ($query) => $query->where('seller_id', $seller->id))
+            ->whereIn('id', $orderIds)->with('pricingSnapshot')->get();
+        if ($quotedOrders->count() === count($orderIds)) {
+            $snapshotOrders = $quotedOrders->filter(fn (Order $order) => $order->pricingSnapshot !== null);
+            $currentlyEligible = $snapshotOrders->mapWithKeys(function (Order $order) {
+                $snapshot = $order->pricingSnapshot;
+
+                return [$order->id => LogisticsShippingRateAcceptance::query()
+                    ->where('shipping_rate_version_id', $snapshot->shipping_rate_version_id)->whereNull('revoked_at')
+                    ->whereIn('logistics_organization_id', $snapshot->eligible_logistics_organization_ids)->pluck('logistics_organization_id')];
+            });
+            if ($currentlyEligible->contains(fn ($ids) => $ids->isEmpty())) {
+                foreach ($snapshotOrders->whereIn('id', $currentlyEligible->filter(fn ($ids) => $ids->isEmpty())->keys()) as $order) {
+                    FinancialHold::query()->firstOrCreate(
+                        ['order_id' => $order->id, 'reason_code' => 'NO_QUOTED_PARTNER_AVAILABLE', 'released_at' => null],
+                        ['placed_at' => now(), 'notes' => 'No Logistics partner can currently honor the saved shipping quote.'],
+                    );
+                }
+                throw SellerOrderException::conflict('QUOTED_LOGISTICS_UNAVAILABLE', 'Fulfillment is on hold because no Logistics partner can honor the saved quote. The Customer price remains unchanged.');
+            }
+            if ($currentlyEligible->contains(fn ($ids) => ! $ids->contains($logisticsOrganizationId))) {
+                throw SellerOrderException::conflict('LOGISTICS_RATE_NOT_ACCEPTED', 'Select a Logistics organization that honors every selected Order quote.');
+            }
         }
         $eligible = $this->eligibleLogistics->forSeller($seller->id);
         $provider = $eligible['options']->firstWhere('id', $logisticsOrganizationId);

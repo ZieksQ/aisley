@@ -334,3 +334,9 @@ Complete each unchecked question before creating physical operational migrations
 - Canonical project documents: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/domains/Buyer.md`, `docs/domains/Logistics.md`, and `docs/domains/Courier.md`.
 - Existing order specs: `docs/features/orders/logistics-pickups/spec.md` and `docs/features/orders/waybill/spec.md`.
 - Owning role specs: Seller Prepare Orders, Logistics Dashboard/Deploy Rider, Courier pickup/delivery, Customer Order Status, and Customer Checkout; Laravel references: [database transactions](https://laravel.com/framework/docs/12.x/database) and [queued work after database commit](https://laravel.com/framework/docs/12.x/queues).
+
+### Financial completion evidence (2026-09-24)
+
+- Confirmed delivery recognizes revenue and beneficiary liabilities using the immutable Order pricing snapshot; it does not imply remittance or payout.
+- Logistics allocation uses completed service evidence: 25% first mile, 35% final mile, and 40% split by completed linehaul distance among actual truck-owning organizations. Same-hub fulfillment assigns the complete Logistics pool to that organization.
+- Missing carrier or distance evidence creates a financial hold. Completed allocations remain frozen while uncommitted future route segments may be revised. See `docs/features/shared/commission-settlement/spec.md`.

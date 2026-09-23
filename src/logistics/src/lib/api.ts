@@ -2,6 +2,7 @@ const base = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 type Payload = { code?: string; message?: string; errors?: Record<string, string[]> }
 export class ApiError extends Error { constructor(readonly status: number, readonly payload: Payload) { super(payload.message ?? 'Something went wrong. Please try again.'); this.name = 'ApiError' } get code() { return this.payload.code }; get errors() { return this.payload.errors ?? {} } }
 const url = (path: string) => `${base}${path}`
+export const apiUrl = (path: string) => url(path)
 const token = () => document.cookie.split('; ').find((entry) => entry.startsWith('XSRF-TOKEN='))?.split('=').slice(1).join('=')
 export async function csrf() { const response = await fetch(url('/sanctum/csrf-cookie'), { credentials: 'include', headers: { Accept: 'application/json' } }); if (!response.ok) throw new ApiError(response.status, { message: 'Unable to start a secure session.' }) }
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> { const headers = new Headers(options.headers); headers.set('Accept', 'application/json'); if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json'); const xsrf = token(); if (xsrf) headers.set('X-XSRF-TOKEN', decodeURIComponent(xsrf)); const response = await fetch(url(path), { ...options, credentials: 'include', headers }); const payload = await response.json().catch(() => ({})) as Payload & T; if (!response.ok) throw new ApiError(response.status, payload); return payload }

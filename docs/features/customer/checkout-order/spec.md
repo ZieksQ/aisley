@@ -110,3 +110,10 @@ Buy Now or selected Cart lines
 - Define eligible-Logistics ranking, Seller pickup selection, and fulfillment persistence in `docs/features/orders/logistics-pickups/spec.md`; do not add that UI to Customer checkout.
 - Online payment, taxes/platform fees, return/refund policy, delivery failure, partial fulfillment, and Customer order mutation remain open product decisions.
 - Related contracts: `docs/features/customer/address-book/spec.md`, `docs/features/customer/order-status/spec.md`, Seller Order Approval/Prepare Orders, Inventory, and `docs/references/user-registration-requirements.md`.
+
+### Shipping quotation and COD extension (2026-09-24)
+
+- `docs/features/shared/shipping-quotation/spec.md` is authoritative for zone precedence, item-based billable weight, published rate acceptance, serviceability, quote expiry, and immutable rate inputs.
+- Checkout returns an exact shipping fee and COD amount for every Shop Order and for the complete checkout before placement. Platform commissions never increase Customer COD.
+- Placement revalidates the address, contents, rate revision, acceptance, coverage, vouchers, and commission policies. A material change requires a refreshed quote and Customer confirmation.
+- Each placed Order stores its rate, eligible Logistics organizations, discount funding, commissions, shipping fee, and collectible total. Rerouting and later rate changes cannot alter that total.

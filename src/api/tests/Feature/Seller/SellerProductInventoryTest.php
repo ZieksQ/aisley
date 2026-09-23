@@ -39,6 +39,10 @@ class SellerProductInventoryTest extends TestCase
             'description_markdown' => '## Details',
             'price' => 899.50,
             'opening_stock' => 10,
+            'shipping_weight_grams' => 700,
+            'shipping_length_mm' => 400,
+            'shipping_width_mm' => 300,
+            'shipping_height_mm' => 150,
             'upload_token' => $uploadToken,
             'gallery_upload_ids' => [$upload->json('data.id')],
         ])->assertCreated()

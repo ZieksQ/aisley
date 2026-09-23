@@ -34,6 +34,8 @@ use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
 use App\Services\Seller\LowStockAlertService;
+use App\Services\Finance\OrderPricingService;
+use App\Services\Finance\ShippingQuotationService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +43,11 @@ use Illuminate\Support\Str;
 
 class CheckoutService
 {
-    public function __construct(private readonly LowStockAlertService $lowStockAlerts) {}
+    public function __construct(
+        private readonly LowStockAlertService $lowStockAlerts,
+        private readonly ShippingQuotationService $shippingQuotation,
+        private readonly OrderPricingService $orderPricing,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public function quote(User $customer, array $data): array
@@ -130,6 +136,7 @@ class CheckoutService
             $customerOrderStatusEventIds = [];
             foreach ($calculation['groups'] as $group) {
                 $order = $this->createOrder($batch, $customer, $calculation['address'], $group, $placedAt);
+                $this->orderPricing->snapshot($order, $group);
                 $this->reserveInventory($batch, $order, $group['lines']);
                 $this->redeemVouchers($batch, $customer, $order, $group['applied_vouchers'], $placedAt);
                 $actionableOrderIds[] = $order->id;
@@ -241,7 +248,7 @@ class CheckoutService
         $balances = $balanceQuery->get()->keyBy('inventory_sku_id');
 
         $groups = [];
-        $state = ['address' => [$address->id, $address->updated_at?->getTimestamp()], 'shipping' => (string) config('checkout.shipping_fee_per_shop', '0.00'), 'lines' => [], 'vouchers' => []];
+        $state = ['address' => [$address->id, $address->updated_at?->getTimestamp()], 'shipping' => [], 'lines' => [], 'vouchers' => []];
         foreach ($lineIntents as $intent) {
             /** @var Product|null $product */
             $product = $products->get($intent['product_id']);
@@ -271,7 +278,7 @@ class CheckoutService
             ];
             $groups[$product->shop_id] ??= [
                 'shop' => $product->shop, 'lines' => [], 'subtotal_cents' => 0,
-                'shipping_cents' => $this->cents(config('checkout.shipping_fee_per_shop', '0.00')),
+                'shipping_cents' => 0,
                 'available_vouchers' => [], 'applied_vouchers' => [],
             ];
             $groups[$product->shop_id]['lines'][] = $line;
@@ -280,11 +287,23 @@ class CheckoutService
         }
         ksort($groups);
 
+        foreach ($groups as &$group) {
+            $group['shipping_quote'] = $this->shippingQuotation->quote($group['shop'], $address, $group['lines']);
+            $group['shipping_cents'] = $group['shipping_quote']['shipping_cents'];
+            $state['shipping'][] = $group['shipping_quote']['state'];
+        }
+        unset($group);
+
         $this->applyVouchers($customer, $groups, $input['vouchers'], $lock, $state);
         foreach ($groups as &$group) {
             $group['discount_cents'] = collect($group['applied_vouchers'])->where('benefit_type', VoucherBenefitType::Discount)->sum('discount_cents');
             $group['shipping_discount_cents'] = collect($group['applied_vouchers'])->where('benefit_type', VoucherBenefitType::Shipping)->sum('discount_cents');
             $group['payable_cents'] = max(0, $group['subtotal_cents'] - $group['discount_cents'] + $group['shipping_cents'] - $group['shipping_discount_cents']);
+            $group['finance'] = $this->orderPricing->calculate($group);
+            $state['shipping'][] = [
+                'seller_policy' => [$group['finance']['seller_policy']->id, $group['finance']['seller_policy']->revision],
+                'logistics_policy' => [$group['finance']['logistics_policy']->id, $group['finance']['logistics_policy']->revision],
+            ];
         }
         unset($group);
 
@@ -552,6 +571,9 @@ class CheckoutService
                 'sku' => $line['variant']?->sku ?? $line['sku']->code, 'selected_options' => $line['options'],
                 'unit_price' => $this->money($line['unit_cents']), 'quantity' => $line['quantity'],
                 'line_subtotal' => $this->money($line['subtotal_cents']), 'currency' => $batch->currency,
+                'unit_cost_cents' => $line['variant']?->unit_cost_cents ?? $line['product']->unit_cost_cents,
+                'cost_currency' => ($line['variant']?->unit_cost_cents ?? $line['product']->unit_cost_cents) === null
+                    ? null : ($line['variant']?->cost_currency ?? $line['product']->cost_currency ?? $batch->currency),
             ]);
         }
         $order->addressVersions()->create([
@@ -633,6 +655,16 @@ class CheckoutService
                 'issuerType' => $entry['voucher']->issuer_type->value, 'benefitType' => $entry['voucher']->benefit_type->value,
                 'qualifyingBasis' => $this->money($entry['basis_cents']), 'discountAmount' => $this->money($entry['discount_cents']),
             ])->values(),
+            'shippingQuote' => [
+                'serviceable' => true,
+                'rateVersionId' => $group['shipping_quote']['rate']->id,
+                'rateVersion' => $group['shipping_quote']['rate']->version_number,
+                'billableWeightGrams' => $group['shipping_quote']['billable_weight_grams'],
+                'baseFee' => $this->money($group['shipping_quote']['base_fee_cents']),
+                'additionalWeightFee' => $this->money($group['shipping_quote']['additional_weight_fee_cents']),
+                'destinationSurcharge' => $this->money($group['shipping_quote']['destination_surcharge_cents']),
+                'eligibleLogisticsCount' => count($group['shipping_quote']['eligible_logistics_organization_ids']),
+            ],
             'totals' => [
                 'merchandiseSubtotal' => $this->money($group['subtotal_cents']), 'shippingFee' => $this->money($group['shipping_cents']),
                 'discount' => $this->money($group['discount_cents']), 'shippingDiscount' => $this->money($group['shipping_discount_cents']),
@@ -686,7 +718,7 @@ class CheckoutService
 
     private function loadBatch(CheckoutBatch $batch): CheckoutBatch
     {
-        return $batch->fresh()->load(['orders' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'orders.shop', 'orders.items', 'orders.address', 'orders.vouchers']);
+        return $batch->fresh()->load(['orders' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'orders.shop', 'orders.items', 'orders.address', 'orders.vouchers', 'orders.pricingSnapshot.rate']);
     }
 
     private function hash(array $value): string
