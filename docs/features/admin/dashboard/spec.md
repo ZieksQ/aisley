@@ -3,7 +3,7 @@ feature: admin-dashboard
 title: Admin Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -24,7 +24,7 @@ scope: Admin Web Application
   - display important notifications
   - provide a high-level indication of platform/system health
 - **Architecture:**
-  - Next.js/React renders dashboard cards, lists, charts, loading/error states, and real-time updates.
+  - The `src/admin` React/Vite SPA renders dashboard cards, lists, charts, loading/error states, and real-time updates.
   - Laravel owns KPI calculations, authorization, aggregation queries, notification state, and dashboard DTOs.
   - Eloquent/database values returned by Laravel are authoritative.
 - **Dashboard is read-oriented.**
@@ -48,6 +48,7 @@ scope: Admin Web Application
 - **Relationship to Admin Authentication:**
   - successful Admin login enters `/dashboard`
   - Dashboard independently enforces Admin authentication and permissions
+- **Admin console navigation:** The shared `src/admin` React sidebar is the entry point to Dashboard and the other authorized Admin features. Grouping changes navigation only; it does not move feature ownership or change API authorization.
 - **Non-goals:**
   - approving/rejecting accounts inside the Dashboard
   - suspending users/sellers inside the Dashboard
@@ -76,6 +77,15 @@ scope: Admin Web Application
   - `403` forbidden
   - `422` invalid dashboard filter/request when applicable
 
+### Sidebar navigation
+
+- Keep Dashboard directly accessible at the top of the Admin sidebar.
+- Group the remaining links by task: **Accounts** (registrations, user accounts, seller compliance), **Communication** (support tickets, notifications, campaigns), **Platform** (finance, audit logs, platform settings, feature controls), and **My account** (account settings, policy consent).
+- Show a group only when at least one of its destinations is visible to the current Admin. Each feature link still follows its existing permission; hiding a link never replaces backend authorization.
+- Keep groups collapsed by default on Dashboard, with one group expanded at a time. Open the group containing the current route, including detail and editor routes, so the active destination remains discoverable after navigation or reload.
+- Group controls must be keyboard-operable and expose expanded state to assistive technology. Keep child links and active states clear in both themes and on the mobile sidebar.
+- Do not add Dashboard widgets or duplicate destination-feature workflows as part of navigation grouping.
+
 ### Initial dashboard snapshot
 
 - On entry, Dashboard must request a server-authoritative snapshot.
@@ -94,7 +104,7 @@ scope: Admin Web Application
 - Exact field names follow repository response conventions.
 - Include only data required to render the authorized dashboard.
 - `generatedAt` or equivalent freshness metadata is recommended when metrics may be cached.
-- Dashboard must not directly query the database from Next.js.
+- Dashboard must not directly query the database from the React SPA.
 
 ### KPI rules
 
@@ -292,6 +302,7 @@ destination
 - [ ] UI supports loading, empty, forbidden, error, and loaded states.
 - [ ] Dashboard remains usable when no notifications/action items exist.
 - [ ] Accessibility does not depend on color or pointer interaction alone.
+- [ ] Sidebar groups expose only authorized feature links, expand the current route's group, and work with keyboard and mobile navigation.
 
 ## HOW
 
@@ -373,7 +384,7 @@ GET /api/admin/dashboard
 - Never use stale cache to authorize access.
 - Do not prematurely create precomputed analytics tables unless real query performance requires them.
 
-### Next.js / React
+### React SPA
 
 - Implement `/dashboard` using the repository's router.
 - Fetch through the shared Laravel API client.

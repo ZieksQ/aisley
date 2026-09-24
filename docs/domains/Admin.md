@@ -2,7 +2,7 @@
 model: Admin
 type: Domain Context
 purpose: Shared Admin workflow and implementation context
-version: 1.1
+version: 1.2
 status: Revised — aligned with the implemented Admin console and deferred platform operations
 ---
 
@@ -34,17 +34,23 @@ Current protected routes are:
 
 ```text
 /dashboard
+/finance
 /registrations
 /users
 /seller-compliance
 /notifications
+/support-tickets
+/notification-campaigns
 /platform-settings
+/feature-controls
 /audit-logs
 /account
+/policy-consent
 ```
 
 - Each route calls its owning Laravel API and renders explicit loading, empty, forbidden, not-found, validation, conflict, retry, and unavailable states.
 - Navigation visibility may use the Admin's permission DTO, but hidden links are not security. Every API endpoint repeats the role, active-status, and permission checks.
+- The Admin sidebar keeps Dashboard directly accessible and groups permitted destinations into Accounts, Communication, Platform, and My account. The active destination's group opens on navigation, including detail routes; groups do not change feature ownership or permissions.
 - Admin responses use purpose-built, least-privilege DTOs. They omit password hashes, tokens, payment secrets, raw storage paths, private evidence bytes, unnecessary PII, and unrelated role data.
 - Admin-specific responses and notification lists must not be placed in a shared public cache. A stale UI never overrides a newer server decision.
 

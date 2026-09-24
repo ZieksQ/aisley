@@ -2,35 +2,17 @@ import { useState } from 'react'
 import {
   FaArrowRightFromBracket,
   FaBars,
-  FaClipboardCheck,
-  FaClockRotateLeft,
-  FaChartLine,
-  FaFileContract,
-  FaGaugeHigh,
-  FaInbox,
   FaShieldHalved,
-  FaUserGear,
-  FaUsers,
-  FaSliders,
-  FaScaleBalanced,
-  FaToggleOn,
   FaXmark,
-  FaBullhorn,
 } from 'react-icons/fa6'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { AdminAvatar } from '../components/AdminAvatar'
 import { AdminNotificationBell } from '../components/AdminNotificationBell'
+import { AdminSidebarNav } from '../components/AdminSidebarNav'
 
 const storefrontUrl = (import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
-
-const navClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${
-    isActive
-      ? 'bg-purple-50 text-[#4C1268] ring-1 ring-purple-100 dark:bg-white/10 dark:text-white dark:ring-white/10'
-      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-purple-100/60 dark:hover:bg-white/[0.07] dark:hover:text-white'
-  }`
 
 export function AdminLayout() {
   const { admin, logout } = useAuth()
@@ -41,15 +23,7 @@ export function AdminLayout() {
 
   const firstName = admin?.profile?.first_name ?? 'Administrator'
   const initials = `${admin?.profile?.first_name?.[0] ?? 'A'}${admin?.profile?.last_name?.[0] ?? ''}`
-  const canViewRegistrations = admin?.permissions.includes('registrations.view') ?? false
-  const canViewAuditLogs = admin?.permissions.includes('audit-logs.view') ?? false
-  const canViewPlatformSettings = admin?.permissions.includes('platform-settings.view') ?? false
   const canViewNotifications = admin?.permissions.includes('notifications.view') ?? false
-  const canViewCampaigns = admin?.permissions.includes('notification-campaigns.view') ?? false
-  const canViewUsers = admin?.permissions.includes('users.view') ?? false
-  const canManageSellerCompliance = admin?.permissions.includes('seller_compliance.manage') ?? false
-  const canViewFinance = admin?.permissions.includes('finance.view') ?? false
-  const canViewSupportTickets = admin?.permissions.includes('support-tickets.view') ?? false
   const isUserDetail = /^\/users\/[^/]+$/.test(location.pathname)
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
@@ -99,82 +73,7 @@ export function AdminLayout() {
         </div>
 
         <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
-          <nav className="mt-10" aria-label="Admin navigation">
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-purple-200/40">Workspace</p>
-            <div className="mt-3 space-y-1.5">
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
-                <FaGaugeHigh aria-hidden="true" />
-                Dashboard
-              </NavLink>
-              {canViewFinance && <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/finance"><FaChartLine aria-hidden="true" />Finance</NavLink>}
-              {canViewRegistrations && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/registrations">
-                  <FaClipboardCheck aria-hidden="true" />
-                  Account registrations
-                </NavLink>
-              )}
-              {canViewUsers && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/users">
-                  <FaUsers aria-hidden="true" />
-                  User accounts
-                </NavLink>
-              )}
-              {canManageSellerCompliance && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/seller-compliance">
-                  <FaScaleBalanced aria-hidden="true" />
-                  Seller compliance
-                </NavLink>
-              )}
-              {canViewAuditLogs && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/audit-logs">
-                  <FaClockRotateLeft aria-hidden="true" />
-                  System audit logs
-                </NavLink>
-              )}
-              {canViewPlatformSettings && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/platform-settings">
-                  <FaSliders aria-hidden="true" />
-                  Platform settings
-                </NavLink>
-              )}
-              {canViewPlatformSettings && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/feature-controls">
-                  <FaToggleOn aria-hidden="true" />
-                  Feature controls
-                </NavLink>
-              )}
-              {canViewNotifications && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/notifications">
-                  <FaInbox aria-hidden="true" />
-                  Notifications
-                </NavLink>
-              )}
-              {canViewSupportTickets && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/support-tickets">
-                  <FaInbox aria-hidden="true" />
-                  Support tickets
-                </NavLink>
-              )}
-              {canViewCampaigns && (
-                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/notification-campaigns">
-                  <FaBullhorn aria-hidden="true" />
-                  Campaigns
-                </NavLink>
-              )}
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
-                <FaUserGear aria-hidden="true" />
-                Account settings
-              </NavLink>
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/policy-consent">
-                <FaFileContract aria-hidden="true" />
-                Policy consent
-              </NavLink>
-            </div>
-          </nav>
-
-          <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-4 text-xs leading-5 text-slate-400 dark:border-white/15 dark:text-purple-100/50">
-            Additional admin tools will be added as their workflows are implemented.
-          </div>
+          <AdminSidebarNav onNavigate={() => setIsMenuOpen(false)} permissions={admin?.permissions ?? []} />
         </div>
 
         <div className="mt-6 shrink-0 border-t border-slate-200 pt-5 dark:border-white/10">
