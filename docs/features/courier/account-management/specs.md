@@ -196,9 +196,10 @@ Example:
 
 ### Flutter handoff
 
-- Use bearer tokens in OS secure storage; do not use browser cookies, shared preferences for tokens, or plaintext logs.
+- Use bearer tokens through the approved secure-storage package: OS secure storage on Android and reviewed package-provided browser storage for localhost `web-server` testing only. Do not use browser cookies, shared preferences for tokens, or plaintext logs.
 - Use Dart models matching the snake_case JSON names and call only the implemented photo routes.
 - Send multipart/form-data field photo, retain no Base64/blob URL as server identity, and refresh the private image only after 200.
+- For local Flutter `web-server`, send selected photo bytes through the shared multipart client; a browser file path cannot be passed to `MultipartFile.fromPath`. Preserve Android uploads and bearer-authenticated private reads. Follow the copied Flutter bundle's `docs/flutter-file-uploads.md`; browser acceptance remains unverified.
 - Keep local edits/previews separate from authoritative account state and never bypass server approval or revalidation.
 
 ### Tests and rollout

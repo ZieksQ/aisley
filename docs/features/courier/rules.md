@@ -21,7 +21,7 @@ The rules keep the backend contract, the copied Flutter documentation, and the e
 - Treat `docs/order-logistics-flow-decisions.md` as background decision history only. Accepted decisions must be copied into the applicable canonical documents; the worksheet cannot authorize an endpoint, migration, status, or client behavior and must not be treated as an implementation prerequisite.
 - A copied spec in the Flutter project must retain the same behavior and endpoint contract as this source document.
 - A Flutter copy may add client implementation notes, but it must not change server authority, permissions, fields, or state transitions.
-- Do not make a Courier web page, React component, or browser-cookie client in `src/`.
+- Do not make a separate Courier web page, React component, or browser-cookie client in `src/`. The external Flutter project's local `web-server` test target uses the same Flutter UI and bearer-token API; it does not authorize a new Laravel/webapp Courier client.
 - Courier screens, secure token storage, mobile networking, and mobile accessibility belong in the external Flutter project.
 
 ## Before adding or revising a spec
@@ -111,7 +111,7 @@ Do not leave the client to infer request names, status values, ownership, or err
 - Include Dart-friendly field names or an explicit JSON-to-Dart mapping when the API uses different naming conventions.
 - Identify multipart fields and nested keys exactly; document file MIME, size, progress, cancellation, and retry behavior.
 - Describe auth states such as checking session, signed out, pending approval, authenticated, rejected, suspended, invalid affiliation, and recoverable network failure.
-- State that tokens are returned once at login, stored only in OS secure storage, and sent as `Authorization: Bearer`.
+- State that tokens are returned once at login and sent as `Authorization: Bearer`. Android uses OS secure storage; localhost Flutter `web-server` testing requires reviewed browser storage and must not fall back to plaintext token persistence.
 - State that `/me` is an identity endpoint, not a pending-approval status endpoint, unless the backend explicitly provides that behavior.
 - Provide example `401`, `403`, `409`, `422`, `429`, timeout, and offline handling where relevant.
 - Describe loading, empty, forbidden, unavailable, retry, success, and stale-data UI states without fabricating data.
