@@ -81,6 +81,7 @@ use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
+use App\Http\Controllers\Seller\LogisticsConversationController as SellerLogisticsConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
@@ -276,6 +277,14 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
+    Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
+        Route::get('/', [SellerLogisticsConversationController::class, 'index'])->name('index');
+        Route::post('/', [SellerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [SellerLogisticsConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [SellerLogisticsConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [SellerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [SellerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::prefix('finance')->group(function () {
         Route::get('/summary', [SellerFinanceController::class, 'show']);
         Route::get('/series', [SellerFinanceController::class, 'show']);

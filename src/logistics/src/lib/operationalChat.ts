@@ -26,13 +26,20 @@ export type CustomerThread = Omit<CourierThread, 'kind' | 'leg' | 'task_id' | 't
   counterparty_role: 'customer'
 }
 
-export type OperationalThread = CourierThread | CustomerThread
+export type SellerThread = Omit<CourierThread, 'kind' | 'leg' | 'task_id' | 'task_reference' | 'counterparty_role'> & {
+  kind: 'seller_logistics'
+  pickup_request_id: string
+  pickup_request_reference: string | null
+  counterparty_role: 'seller'
+}
+
+export type OperationalThread = CourierThread | CustomerThread | SellerThread
 
 export type OperationalMessage = {
   id: string
   conversation_id: string
   sequence: number
-  sender_role: 'courier' | 'customer' | 'logistics'
+  sender_role: 'courier' | 'customer' | 'seller' | 'logistics'
   mine: boolean
   body: string
   created_at: string
@@ -53,6 +60,10 @@ export const operationalChat = {
   async startOrder(orderId: string, body: string, key: string) {
     await csrf()
     return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'order', context_id: orderId, body }) })
+  },
+  async startPickup(pickupRequestId: string, body: string, key: string) {
+    await csrf()
+    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'pickup_request', context_id: pickupRequestId, body }) })
   },
   async send(id: string, body: string, key: string) {
     await csrf()

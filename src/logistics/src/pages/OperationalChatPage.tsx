@@ -15,13 +15,14 @@ export function OperationalChatPage() {
   const leg = params.get('leg')
   const taskId = params.get('task_id')
   const orderId = params.get('order_id')
-  const context: { leg: 'first_mile' | 'final_mile'; taskId: string } | { orderId: string } | null =
-    orderId ? { orderId } : leg === 'first_mile' || leg === 'final_mile' ? taskId ? { leg, taskId } : null : null
+  const pickupRequestId = params.get('pickup_request_id')
+  const context: { leg: 'first_mile' | 'final_mile'; taskId: string } | { orderId: string } | { pickupRequestId: string } | null =
+    pickupRequestId ? { pickupRequestId } : orderId ? { orderId } : leg === 'first_mile' || leg === 'final_mile' ? taskId ? { leg, taskId } : null : null
   const selected = threads.find((thread) => thread.id === selectedId) ?? null
 
   useEffect(() => {
     if (context) setSelectedId(null)
-  }, [leg, taskId, orderId])
+  }, [leg, taskId, orderId, pickupRequestId])
 
   const load = useCallback(async (append = false, cursor?: string) => {
     if (!navigator.onLine) {
@@ -75,7 +76,7 @@ export function OperationalChatPage() {
         <div>
           <h2 className="text-xl font-semibold">Operational messages</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Private conversations tied to delivery tasks and handled Orders.
+            Private conversations tied to pickup requests, delivery tasks, and handled Orders.
             {unreadTotal ? ` ${unreadTotal} unread message${unreadTotal === 1 ? '' : 's'}.` : ''}
           </p>
         </div>
@@ -88,7 +89,7 @@ export function OperationalChatPage() {
         <aside aria-label="Conversation inbox" className="border-b border-zinc-200 dark:border-white/10 md:border-b-0 md:border-r">
           <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-white/10">Inbox</div>
           {loading && !threads.length ? <p className="p-4 text-sm text-zinc-500">Loading conversations…</p> : null}
-          {!loading && !threads.length ? <p className="p-4 text-sm text-zinc-500">No conversations yet. Open an assigned task or handled Order in Parcel search to start one.</p> : null}
+          {!loading && !threads.length ? <p className="p-4 text-sm text-zinc-500">No conversations yet. Open a pickup request, assigned task, or handled Order to start one.</p> : null}
           <ul className="max-h-[36rem] divide-y divide-zinc-200 overflow-y-auto dark:divide-white/10">
             {threads.map((thread) => (
               <li key={thread.id}>
@@ -102,7 +103,7 @@ export function OperationalChatPage() {
                     <span className="truncate text-sm font-semibold">{thread.counterparty_label}</span>
                     {thread.unread_count ? <span className="border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-xs font-semibold text-[#4C1268] dark:border-purple-400/25 dark:bg-purple-400/10 dark:text-purple-200">{thread.unread_count} unread</span> : null}
                   </span>
-                  <span className="mt-1 block truncate text-xs text-zinc-500">{thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)} · Customer` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}`}</span>
+                  <span className="mt-1 block truncate text-xs text-zinc-500">{thread.kind === 'seller_logistics' ? `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)} · Seller` : thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)} · Customer` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}`}</span>
                   <span className="mt-1 block truncate text-xs text-zinc-600 dark:text-zinc-400">{thread.last_message_preview}</span>
                 </button>
               </li>

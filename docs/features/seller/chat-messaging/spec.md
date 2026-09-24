@@ -17,6 +17,7 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - One Customer–Shop conversation and its messages serve both role apps. Seller replies do not create a Seller-only thread or separate message store.
 - The first release is persisted **text** over authenticated HTTP with bounded polling while the inbox/thread is visible. It is not instant realtime. Attachments, broadcasting, Seller-initiated outreach, archive/mute/report, typing, presence, and message deletion are deferred.
 - Product Q&A remains public and Product-scoped. Chat remains private and cannot change an Order, refund, delivery, or complaint decision.
+- Separate Seller–Logistics operational chat is available only for a Seller-owned pickup request selecting that organization. It is not a Customer–Shop conversation and does not appear in the Customer inbox. Its detailed cross-role contract is [Logistics Chat/Messaging](../../logistics/chat-messaging/specs.md).
 
 ## MUST
 
@@ -60,3 +61,4 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - Seller `/messages` and `/messages/:conversationId` use the existing React Router dashboard and authenticated API client; no Courier web UI is introduced.
 - Database fields are UUID-backed with string-independent message state; all schema changes are additive. SQLite and disposable PostgreSQL feature suites, two-worker races, and chat-migration rollback/reapply passed on 2026-09-24. The Chromium check covered both roles at 390px, reconnect/focus refresh, and bounded send timeout with retained draft/idempotency key.
 - Do not infer permission for Seller-started outreach, attachments, private broadcast channels, archive/mute/report, or Admin private-chat reading from this MVP. These need separate approved contracts and verification.
+- The separate `/api/v1/seller/logistics-conversations` route family and `/logistics-messages` dashboard page support Seller-initiated pickup coordination only; this does not grant Seller-initiated Customer outreach. The pickup page links to its selected organization's thread, while Logistics uses its own operational inbox. The API derives both participants from the immutable request and preserves read-only history after the relationship ends.

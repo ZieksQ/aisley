@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\User;
 use App\Services\Messaging\CustomerLogisticsConversationService;
 use App\Services\Messaging\OperationalConversationService;
+use App\Services\Messaging\SellerLogisticsConversationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class OperationalConversationController extends Controller
     public function __construct(
         private readonly OperationalConversationService $conversations,
         private readonly CustomerLogisticsConversationService $orders,
+        private readonly SellerLogisticsConversationService $pickups,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -41,7 +43,7 @@ class OperationalConversationController extends Controller
         return $this->response(['data' => $items, 'meta' => [
             'next_cursor' => $page->nextCursor()?->encode(),
             'unread_count' => $this->conversations->unreadTotal($actor, $role)
-                + ($role === 'logistics' ? $this->orders->unreadTotal($actor, 'logistics') : 0),
+                + ($role === 'logistics' ? $this->orders->unreadTotal($actor, 'logistics') + $this->pickups->unreadTotal($actor, 'logistics') : 0),
         ]]);
     }
 
@@ -53,9 +55,11 @@ class OperationalConversationController extends Controller
         if ($role === 'courier' && ($input['counterparty_role'] ?? null) !== 'logistics') {
             abort(422, 'Only Logistics messaging is available for Courier tasks.');
         }
-        $result = $role === 'logistics' && ($input['context_type'] ?? null) === 'order'
-            ? $this->orders->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey())
-            : $this->conversations->start($actor, $role, $input, $request->idempotencyKey());
+        $result = match ($role === 'logistics' ? ($input['context_type'] ?? null) : null) {
+            'order' => $this->orders->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey()),
+            'pickup_request' => $this->pickups->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey()),
+            default => $this->conversations->start($actor, $role, $input, $request->idempotencyKey()),
+        };
 
         return $this->writeResponse($result, $actor, $role);
     }
@@ -121,20 +125,27 @@ class OperationalConversationController extends Controller
         if ($role === 'logistics' && $record = $this->orders->scoped($actor, $role)->whereKey($id)->first()) {
             return $record;
         }
+        if ($role === 'logistics' && $record = $this->pickups->scoped($actor, $role)->whereKey($id)->first()) {
+            return $record;
+        }
 
         return $this->conversations->find($actor, $role, $id);
     }
 
-    private function service(Conversation $record): OperationalConversationService|CustomerLogisticsConversationService
+    private function service(Conversation $record): OperationalConversationService|CustomerLogisticsConversationService|SellerLogisticsConversationService
     {
-        return $record->kind === ConversationKind::CustomerLogistics ? $this->orders : $this->conversations;
+        return match ($record->kind) {
+            ConversationKind::CustomerLogistics => $this->orders,
+            ConversationKind::SellerLogistics => $this->pickups,
+            default => $this->conversations,
+        };
     }
 
     private function mixedScope(User $actor): Builder
     {
         $org = $actor->logisticsOrganization()->with('hub')->whereHas('hub')->firstOrFail();
 
-        return Conversation::query()->whereIn('kind', [ConversationKind::LogisticsCourier->value, ConversationKind::CustomerLogistics->value])
+        return Conversation::query()->whereIn('kind', [ConversationKind::LogisticsCourier->value, ConversationKind::CustomerLogistics->value, ConversationKind::SellerLogistics->value])
             ->where('logistics_user_id', $actor->id)
             ->where('logistics_organization_id', $org->id)
             ->where('logistics_hub_id', $org->hub->id)

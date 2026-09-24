@@ -185,11 +185,14 @@ class OperationalMessagingTest extends TestCase
         }
         $migration = require database_path('migrations/2026_09_24_000001_extend_conversations_for_operational_messaging.php');
         $orderMigration = require database_path('migrations/2026_09_24_000002_add_order_conversations.php');
+        $pickupMigration = require database_path('migrations/2026_09_24_000003_add_pickup_request_conversations.php');
         DB::statement('PRAGMA defer_foreign_keys = ON');
+        $pickupMigration->down();
         $orderMigration->down();
         $migration->down();
         $migration->up();
         $orderMigration->up();
+        $pickupMigration->up();
 
         $this->assertSame([], DB::select('PRAGMA foreign_key_check'));
         $this->assertDatabaseCount('conversations', 0);
@@ -293,6 +296,65 @@ class OperationalMessagingTest extends TestCase
             ->assertCreated()->assertJsonPath('conversation.id', $id)
             ->assertJsonPath('message.sequence', 2);
         $this->assertDatabaseCount('conversations', 1);
+    }
+
+    public function test_seller_and_logistics_share_only_their_selected_pickup_thread(): void
+    {
+        [$logistics, , $task] = $this->finalTask();
+        $order = $task->shipment->parcel->order;
+        $pickup = $order->waybill->pickupRequest;
+        $event = $order->statusEvents()->create(['from_status' => OrderStatus::Placed,
+            'to_status' => OrderStatus::ReadyForPickup, 'source' => 'seller_pickup', 'occurred_at' => now()]);
+        $pickup->orders()->create(['order_id' => $order->id, 'status_event_id' => $event->id, 'position' => 1]);
+        $order->update(['status' => OrderStatus::ReadyForPickup]);
+        $seller = $pickup->seller;
+        $foreignSeller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
+        $foreignLogistics = $this->logistics();
+        $input = ['context_type' => 'pickup_request', 'context_id' => $pickup->id, 'body' => ' Please confirm pickup. '];
+        $key = (string) Str::uuid();
+
+        $this->postJson('/api/v1/seller/logistics-conversations', $input, ['Idempotency-Key' => $key])->assertUnauthorized();
+        $this->actingAs($foreignSeller)->postJson('/api/v1/seller/logistics-conversations', $input,
+            ['Idempotency-Key' => (string) Str::uuid()])->assertNotFound();
+        $this->actingAs($foreignLogistics)->postJson('/api/v1/logistics/operational-conversations', $input,
+            ['Idempotency-Key' => (string) Str::uuid()])->assertNotFound();
+        $first = $this->actingAs($seller)->postJson('/api/v1/seller/logistics-conversations', $input,
+            ['Idempotency-Key' => $key])->assertCreated()->assertJsonPath('conversation.kind', 'seller_logistics')
+            ->assertJsonPath('message.body', 'Please confirm pickup.');
+        $id = $first->json('conversation.id');
+        $this->postJson('/api/v1/seller/logistics-conversations', $input, ['Idempotency-Key' => $key])
+            ->assertOk()->assertJsonPath('conversation.id', $id);
+        $this->postJson('/api/v1/seller/logistics-conversations', [...$input, 'body' => 'Changed'],
+            ['Idempotency-Key' => $key])->assertConflict();
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/operational-conversations')
+            ->assertOk()->assertJsonPath('data.0.unread_count', 1);
+        $this->postJson('/api/v1/logistics/operational-conversations', $input,
+            ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()
+            ->assertJsonPath('conversation.id', $id)->assertJsonPath('message.sequence', 2);
+        $this->actingAs($seller)->getJson('/api/v1/seller/logistics-conversations')
+            ->assertOk()->assertJsonPath('data.0.unread_count', 1);
+        $this->postJson("/api/v1/seller/logistics-conversations/{$id}/read", ['last_read_sequence' => 2])
+            ->assertOk()->assertJsonPath('data.unread_count', 0);
+        $this->postJson("/api/v1/seller/logistics-conversations/{$id}/read", ['last_read_sequence' => 1])
+            ->assertOk()->assertJsonPath('data.last_read_sequence', 2);
+        $this->postJson("/api/v1/seller/logistics-conversations/{$id}/messages", ['body' => 'The parcels are ready.'],
+            ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()->assertJsonPath('message.sequence', 3);
+        $this->getJson("/api/v1/seller/logistics-conversations/{$id}/messages?limit=2")
+            ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('data.1.body', 'The parcels are ready.')
+            ->assertJsonStructure(['meta' => ['next_cursor']]);
+        $this->actingAs($logistics)->getJson("/api/v1/logistics/operational-conversations/{$id}")
+            ->assertOk()->assertJsonPath('data.unread_count', 2);
+        $this->actingAs($foreignSeller)->getJson("/api/v1/seller/logistics-conversations/{$id}")->assertNotFound();
+        $this->actingAs($foreignLogistics)->getJson("/api/v1/logistics/operational-conversations/{$id}")->assertNotFound();
+        $this->actingAs($order->customer)->getJson("/api/v1/customer/logistics-conversations/{$id}")->assertNotFound();
+        $this->actingAs($seller)->getJson("/api/v1/seller/conversations/{$id}")->assertNotFound();
+        $order->update(['status' => OrderStatus::Delivered]);
+        $this->getJson("/api/v1/seller/logistics-conversations/{$id}")
+            ->assertOk()->assertJsonPath('data.send_allowed', false);
+        $this->postJson("/api/v1/seller/logistics-conversations/{$id}/messages", ['body' => 'Too late'],
+            ['Idempotency-Key' => (string) Str::uuid()])->assertConflict();
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseCount('messages', 3);
     }
 
     /** @return array{User, User, DeliveryTask} */

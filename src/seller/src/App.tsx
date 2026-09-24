@@ -27,6 +27,7 @@ import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FinancePage } from './pages/FinancePage'
 import { MessagesPage } from './pages/MessagesPage'
 import { MessageThreadPage } from './pages/MessageThreadPage'
+import { LogisticsMessagesPage } from './pages/LogisticsMessagesPage'
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
           <Route element={<FinancePage />} path="/finance" />
           <Route element={<MessagesPage />} path="/messages" />
           <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
+          <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />
           <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
           <Route element={<OrdersPage />} path="/orders/monitoring" />
           <Route element={<OrderApprovalPage />} path="/orders/approval" />

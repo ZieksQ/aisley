@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalMessage, type OperationalThread } from '../lib/operationalChat'
 
-type TaskContext = { leg: 'first_mile' | 'final_mile'; taskId: string } | { orderId: string }
+type TaskContext = { leg: 'first_mile' | 'final_mile'; taskId: string } | { orderId: string } | { pickupRequestId: string }
 
 function errorText(caught: unknown): string {
   if (!navigator.onLine) return 'You are offline. Reconnect before sending or refreshing messages.'
@@ -116,6 +116,8 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         ? await operationalChat.send(thread.id, attempt.body, attempt.key)
         : context ? 'orderId' in context
           ? await operationalChat.startOrder(context.orderId, attempt.body, attempt.key)
+          : 'pickupRequestId' in context
+            ? await operationalChat.startPickup(context.pickupRequestId, attempt.body, attempt.key)
           : await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key) : null
       if (!result) return
       pendingRef.current = null
@@ -137,15 +139,15 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
   }
 
   if (!thread && !context) {
-    return <div className="grid min-h-80 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open a task or Order to start messaging.</div>
+    return <div className="grid min-h-80 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open a pickup request, task, or Order to start messaging.</div>
   }
 
   return (
     <section aria-label="Operational conversation" className="flex min-h-[30rem] flex-col">
       <header className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-        <h2 className="font-semibold">{thread?.counterparty_label ?? (context && 'orderId' in context ? 'Message Customer' : 'Message task Courier')}</h2>
+        <h2 className="font-semibold">{thread?.counterparty_label ?? (context && 'pickupRequestId' in context ? 'Message Seller' : context && 'orderId' in context ? 'Message Customer' : 'Message task Courier')}</h2>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          {thread ? thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}` : context && 'orderId' in context ? `Order ${context.orderId.slice(0, 8)}` : context ? `Task ${context.taskId.slice(0, 8)} · ${context.leg.replaceAll('_', ' ')}` : ''}
+          {thread ? thread.kind === 'seller_logistics' ? `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)}` : thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}` : context && 'pickupRequestId' in context ? `Pickup ${context.pickupRequestId.slice(0, 8)}` : context && 'orderId' in context ? `Order ${context.orderId.slice(0, 8)}` : context ? `Task ${context.taskId.slice(0, 8)} · ${context.leg.replaceAll('_', ' ')}` : ''}
         </p>
         {thread?.read_only_reason ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This relationship ended. History is read-only.</p> : null}
       </header>
