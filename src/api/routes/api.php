@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
 use App\Http\Controllers\Admin\FinanceWorkflowController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\HubRoutingConfigurationController;
+use App\Http\Controllers\Admin\NotificationCampaignController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
@@ -35,13 +36,17 @@ use App\Http\Controllers\Customer\AddressController as CustomerAddressController
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
+use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
+use App\Http\Controllers\Customer\CourierConversationController as CustomerCourierConversationController;
 use App\Http\Controllers\Customer\HomepageController;
+use App\Http\Controllers\Customer\LogisticsConversationController as CustomerLogisticsConversationController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
 use App\Http\Controllers\Customer\ProductQAController as CustomerProductQAController;
 use App\Http\Controllers\Customer\ProductReviewController as CustomerProductReviewController;
 use App\Http\Controllers\Customer\ProductSearchController;
+use App\Http\Controllers\Customer\PromotionPreferenceController as CustomerPromotionPreferenceController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\WishlistController;
@@ -56,6 +61,7 @@ use App\Http\Controllers\Logistics\DeliveryConfirmationController;
 use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
+use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
 use App\Http\Controllers\Logistics\LinehaulController;
@@ -64,10 +70,10 @@ use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
+use App\Http\Controllers\Logistics\ShippingRateController;
 use App\Http\Controllers\Logistics\SortingController;
 use App\Http\Controllers\Logistics\SortingPlanController;
-use App\Http\Controllers\Logistics\ShippingRateController;
-use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
+use App\Http\Controllers\Messaging\OperationalConversationController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
@@ -75,16 +81,21 @@ use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
+use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
+use App\Http\Controllers\Seller\CourierConversationController as SellerCourierConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
+use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
+use App\Http\Controllers\Seller\LogisticsConversationController as SellerLogisticsConversationController;
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
 use App\Http\Controllers\Seller\NotificationController as SellerNotificationController;
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController;
+use App\Http\Controllers\Seller\ProductReviewController as SellerProductReviewController;
+use App\Http\Controllers\Seller\ProductReviewImageController as SellerProductReviewImageController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
-use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
 
@@ -128,6 +139,14 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
     Route::get('/commission-policies', [FinanceConfigurationController::class, 'policies'])->middleware('admin.permission:finance.view');
     Route::post('/commission-policies', [FinanceConfigurationController::class, 'storePolicy'])->middleware('admin.permission:finance.manage');
     Route::post('/commission-policies/{policy}/publish', [FinanceConfigurationController::class, 'publishPolicy'])->whereUuid('policy')->middleware('admin.permission:finance.manage');
+    Route::prefix('notification-campaigns')->name('notification-campaigns.')->group(function () {
+        Route::get('/', [NotificationCampaignController::class, 'index'])->middleware('admin.permission:notification-campaigns.view')->name('index');
+        Route::get('/{campaign}', [NotificationCampaignController::class, 'show'])->whereUuid('campaign')->middleware('admin.permission:notification-campaigns.view')->name('show');
+        Route::post('/', [NotificationCampaignController::class, 'store'])->middleware('admin.permission:notification-campaigns.manage')->name('store');
+        Route::patch('/{campaign}', [NotificationCampaignController::class, 'update'])->whereUuid('campaign')->middleware('admin.permission:notification-campaigns.manage')->name('update');
+        Route::post('/{campaign}/preview', [NotificationCampaignController::class, 'preview'])->whereUuid('campaign')->middleware(['admin.permission:notification-campaigns.manage', 'throttle:30,1'])->name('preview');
+        Route::post('/{campaign}/send', [NotificationCampaignController::class, 'send'])->whereUuid('campaign')->middleware(['admin.permission:notification-campaigns.manage', 'throttle:5,1'])->name('send');
+    });
     Route::get('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'index'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.view')->name('hub-routing.index');
     Route::post('/hub-routing/{kind}', [HubRoutingConfigurationController::class, 'store'])->where('kind', 'service-areas|connections')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.store');
     Route::patch('/hub-routing/{kind}/{id}', [HubRoutingConfigurationController::class, 'update'])->where('kind', 'service-areas|connections')->whereUuid('id')->middleware('admin.permission:platform-settings.manage')->name('hub-routing.update');
@@ -260,6 +279,22 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
+    Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
+        Route::get('/', [SellerCourierConversationController::class, 'index'])->name('index');
+        Route::post('/', [SellerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [SellerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [SellerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [SellerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [SellerCourierConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
+    Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
+        Route::get('/', [SellerLogisticsConversationController::class, 'index'])->name('index');
+        Route::post('/', [SellerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [SellerLogisticsConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [SellerLogisticsConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [SellerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [SellerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::prefix('finance')->group(function () {
         Route::get('/summary', [SellerFinanceController::class, 'show']);
         Route::get('/series', [SellerFinanceController::class, 'show']);
@@ -270,6 +305,14 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::get('/orders/{order}', [SellerFinanceController::class, 'order'])->whereUuid('order');
         Route::post('/costs', [SellerFinanceController::class, 'expense']);
         Route::post('/periods/{month}/close', [SellerFinanceController::class, 'close']);
+    });
+    Route::prefix('conversations')->name('conversations.')->group(function () {
+        Route::get('/', [SellerConversationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [SellerConversationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/{conversation}', [SellerConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [SellerConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [SellerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [SellerConversationController::class, 'read'])->whereUuid('conversation')->name('read');
     });
     Route::get('/account', [SellerAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
@@ -295,6 +338,21 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         ->whereUuid('question')
         ->middleware('throttle:seller-product-qa-answer')
         ->name('product-questions.answer');
+    Route::get('/reviews', [SellerProductReviewController::class, 'index'])
+        ->middleware('throttle:120,1')
+        ->name('reviews.index');
+    Route::get('/reviews/{review}', [SellerProductReviewController::class, 'show'])
+        ->whereUuid('review')
+        ->middleware('throttle:120,1')
+        ->name('reviews.show');
+    Route::post('/reviews/{review}/response', [SellerProductReviewController::class, 'respond'])
+        ->whereUuid('review')
+        ->middleware('throttle:seller-product-review-response')
+        ->name('reviews.response.store');
+    Route::get('/reviews/{review}/images/{image}', SellerProductReviewImageController::class)
+        ->whereUuid(['review', 'image'])
+        ->middleware('throttle:120,1')
+        ->name('reviews.images.show');
     Route::get('/products/options', [SellerProductController::class, 'options'])->name('products.options');
     Route::post('/product-uploads', [SellerProductUploadController::class, 'store'])->middleware('throttle:30,1')->name('product-uploads.store');
     Route::get('/product-uploads/{productUpload}', [SellerProductUploadController::class, 'show'])->whereUuid('productUpload')->name('product-uploads.show');
@@ -340,6 +398,14 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
+        Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
+        Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [OperationalConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [OperationalConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [OperationalConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::prefix('finance')->group(function () {
         Route::get('/summary', [LogisticsFinanceController::class, 'show']);
         Route::get('/series', [LogisticsFinanceController::class, 'show']);
@@ -457,6 +523,14 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 });
 
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active', 'policy.consent'])->group(function () {
+    Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
+        Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
+        Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [OperationalConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [OperationalConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [OperationalConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::get('/linehaul-trips', [CourierLinehaulTripController::class, 'index'])->name('linehaul-trips.index');
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');
@@ -544,10 +618,37 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
+            Route::get('/', [CustomerCourierConversationController::class, 'index'])->name('index');
+            Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::get('/{conversation}', [CustomerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+            Route::get('/{conversation}/messages', [CustomerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+            Route::post('/{conversation}/messages', [CustomerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/read', [CustomerCourierConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+        });
+        Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
+            Route::get('/', [CustomerLogisticsConversationController::class, 'index'])->name('index');
+            Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::get('/{conversation}', [CustomerLogisticsConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+            Route::get('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+            Route::post('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/read', [CustomerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+        });
+        Route::prefix('conversations')->name('conversations.')->group(function () {
+            Route::get('/', [CustomerConversationController::class, 'index'])->name('index');
+            Route::get('/unread-count', [CustomerConversationController::class, 'unreadCount'])->name('unread-count');
+            Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::get('/{conversation}', [CustomerConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+            Route::get('/{conversation}/messages', [CustomerConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+            Route::post('/{conversation}/messages', [CustomerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/read', [CustomerConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+        });
         Route::get('/notifications', [CustomerNotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{notification}', [CustomerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
         Route::post('/notifications/{notification}/read', [CustomerNotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
         Route::get('/account', [CustomerAccountController::class, 'show'])->name('account.show');
+        Route::get('/account/notification-preferences', [CustomerPromotionPreferenceController::class, 'show'])->name('account.notification-preferences.show');
+        Route::patch('/account/notification-preferences', [CustomerPromotionPreferenceController::class, 'update'])->middleware('throttle:30,1')->name('account.notification-preferences.update');
         Route::patch('/account/profile', [CustomerAccountController::class, 'updateProfile'])->name('account.profile.update');
         Route::patch('/account/password', [CustomerAccountController::class, 'updatePassword'])
             ->middleware('throttle:customer-account-password')

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { FiShoppingBag } from "react-icons/fi";
 
 import type { ShopDetail } from "@/lib/marketplace/types";
@@ -52,6 +53,7 @@ export function ShopHeader({ shop }: { shop: ShopDetail }) {
               {shop.description}
             </p>
           ) : null}
+          <Link className="mt-4 inline-flex min-h-10 items-center rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-[#E6007A]" href={`/messages/new?shop=${encodeURIComponent(shop.id)}`}>Chat with Shop</Link>
         </div>
       </div>
     </header>

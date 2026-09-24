@@ -24,7 +24,7 @@ scope: Laravel API and Customer storefront
 - Orders, immutable Order Items, `OrderStatus::Delivered = 'delivered'`, and Logistics-validated delivery completion exist.
 - Product Reviews, review-image metadata, the delivered Order Item mutation, public read API, Product Detail review list, and Order Detail review form are implemented.
 - Product aggregates are recomputed from published persisted Reviews; the Product catalog seeder now resets demonstration rating/count values to an empty projection.
-- Seller replies are specified in `docs/features/seller/review-management/spec.md`; its draft routes are not implemented by this spec.
+- Seller replies are implemented by `docs/features/seller/review-management/spec.md`; this Customer feature still owns review authorship, eligibility, media, and rating aggregates.
 
 ## MUST
 
@@ -74,7 +74,7 @@ scope: Laravel API and Customer storefront
 | POST | `/api/v1/customer/order-items/{orderItem}/review` | Owning Customer; delivered Item | `{ rating, body }` → created Review DTO |
 | POST | `/api/v1/customer/reviews/{review}/images` | Review-owning Customer | Validated image → asset DTO or pending state |
 
-- The listed paths are deployed by the Laravel API. Seller response management and video support remain separate/deferred contracts.
+- The listed paths are deployed by the Laravel API. Seller response management is implemented through its separate Seller contract; video support remains deferred.
 - Use `401` for unauthenticated, ownership-safe `403/404`, `409` for duplicate/stale state, `422` for field/media validation, and `429` for throttling. Do not reveal whether another Customer's Item/Review exists.
 - The public list accepts only bounded page size and allow-listed ordering/filter values; it contains no personalized eligibility flags or shared-cache Customer data.
 - Return a stable pagination cursor or page number and total/next-page indicator consistent with the Customer storefront's existing pagination convention.

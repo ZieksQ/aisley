@@ -27,6 +27,8 @@ class CustomerProfile extends Model
         'profile_photo_size',
         'profile_photo_width',
         'profile_photo_height',
+        'promotional_in_app_opted_in',
+        'promotional_in_app_opted_in_at',
     ];
 
     /**
@@ -48,6 +50,8 @@ class CustomerProfile extends Model
             'profile_photo_size' => 'integer',
             'profile_photo_width' => 'integer',
             'profile_photo_height' => 'integer',
+            'promotional_in_app_opted_in' => 'boolean',
+            'promotional_in_app_opted_in_at' => 'datetime',
         ];
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ProductReview extends Model
 {
@@ -72,5 +73,10 @@ class ProductReview extends Model
     public function images(): HasMany
     {
         return $this->hasMany(ProductReviewImage::class, 'review_id')->orderBy('position');
+    }
+
+    public function sellerResponse(): HasOne
+    {
+        return $this->hasOne(SellerReviewResponse::class, 'review_id');
     }
 }

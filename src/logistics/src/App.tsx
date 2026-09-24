@@ -19,6 +19,7 @@ import { LinehaulPage } from './pages/LinehaulPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NotificationsPage } from './pages/NotificationsPage'
+import { OperationalChatPage } from './pages/OperationalChatPage'
 import { PickupDetailPage } from './pages/PickupDetailPage'
 import { PickupsPage } from './pages/PickupsPage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
@@ -57,6 +58,7 @@ export default function App() {
         <Route element={<CourierVehiclePage />} path="/couriers/:courierId/vehicle" />
         <Route element={<NotificationsPage />} path="/notifications" />
         <Route element={<NotificationsPage />} path="/notifications/:notificationId" />
+        <Route element={<OperationalChatPage />} path="/messages" />
         <Route element={<AccountPage />} path="/account" />
         <Route element={<PolicyConsentPage />} path="/policy-consent" />
         <Route element={<NotFoundPage />} path="*" />

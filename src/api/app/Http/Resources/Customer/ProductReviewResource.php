@@ -10,6 +10,8 @@ class ProductReviewResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
+        $response = $this->relationLoaded('sellerResponse') ? $this->sellerResponse : null;
+
         return [
             'id' => $this->id,
             'rating' => $this->rating,
@@ -18,8 +20,17 @@ class ProductReviewResource extends JsonResource
             'authorLabel' => 'Verified Customer',
             'createdAt' => $this->created_at?->toIso8601String(),
             'photos' => ProductReviewImageResource::collection($this->whenLoaded('images')),
-            // Seller responses are a deferred feature; keep the public DTO stable.
-            'sellerResponse' => null,
+            'sellerResponse' => $response === null
+                || $response->status->value !== 'published'
+                || $response->published_at === null
+                || $response->published_at->isFuture()
+                ? null
+                : [
+                    'id' => $response->id,
+                    'shopName' => $response->shop_name_snapshot,
+                    'body' => $response->body,
+                    'publishedAt' => $response->published_at?->toIso8601String(),
+                ],
         ];
     }
 }

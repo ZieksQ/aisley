@@ -137,8 +137,8 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 ### 2. Seller Dashboard
 
 - **Purpose:** Provide a Shop-scoped operational overview and navigation.
-- **Owns:** Current catalog counts and safe section availability/loading/error states.
-- **Boundary:** Orders, finance, analytics, reviews, notifications, and inventory metrics must not be fabricated while their owning contracts are unavailable. Aggregates must be scoped to the authenticated Shop.
+- **Owns:** Current catalog counts, published Review total/answered/unanswered counts, and safe section availability/loading/error states. The separate placed-Order panel reads its owning Order API.
+- **Boundary:** Order aggregates, finance, analytics, notifications, and inventory metrics must not be fabricated while their owning contracts are unavailable. Aggregates must be scoped to the authenticated Shop.
 
 ### 3. Catalog / Product Management
 
@@ -184,17 +184,18 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 - **Owns:** Read-only delivery confirmation/notification after the authoritative downstream `delivered` transition.
 - **Boundary:** Seller does not mark an Order delivered and does not fabricate a Courier callback or proof of delivery.
 
-### 10. Seller Reporting
+### 10. Seller Finance and Reporting
 
-- **Purpose:** Show basic Shop-scoped sales, profit, and performance totals with a from/to date range.
-- **Owns:** Read-only aggregates and bounded exports once authoritative financial data exists.
-- **Boundary:** Commission, payout, tax, settlement, and large-report job policies remain separate/deferred; reports must not infer financial truth from incomplete Order data.
+- **Purpose:** Show Shop-scoped proceeds, costs, profit when complete, balances, payouts, and contributing ledger/Order records.
+- **Current state:** The role-isolated Finance workspace and ledger CSV use the shared commission and settlement authority. The separate Generate Report specification remains a draft; no dedicated `/reports` operational page or export job is deployed on this branch.
+- **Boundary:** Finance reads do not imply live payment-provider transfers, PDF exports, or a second report definition. Profit remains unavailable while required costs are incomplete.
 
 ### 11. Chat/Messaging
 
-- **Purpose:** Communicate with relevant Customers, Admins, Logistics operators, or Couriers for authorized product/order support.
-- **Owns:** Seller-authorized threads, message state, and operational context.
-- **Rules:** Access is tied to the Seller's Shop and relevant relationship; unrelated users, private evidence, payment secrets, and direct contact details are not exposed.
+- **Purpose:** Reply to Customers in one private text conversation per Customer and Shop for product/order support.
+- **Status:** Shared persistence/API and Seller inbox/reply UI are implemented with HTTP polling; realtime, attachments, Seller initiation, archive/mute/report, and other-role chat remain deferred.
+- **Owns:** Shop-authorized message history, Seller read marker, and safe Product/Order context alongside the Customer counterpart.
+- **Rules:** Access is tied to immutable participant and current Shop ownership; unrelated users, private evidence, payment secrets, and direct contact details are not exposed.
 
 ### 12. Account and Shop Management
 
@@ -205,8 +206,8 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 ### 13. Review Management
 
 - **Purpose:** Read and reply to verified Customer reviews on the Seller's Products.
-- **Owns:** Seller-scoped review list, public reply, and safe moderation/display states.
-- **Boundary:** Review eligibility and Customer authorship belong to the Customer review domain; Seller cannot edit the Customer's rating or review text.
+- **Owns:** Implemented Seller-scoped queue/detail and protected photo reads, bounded filters, one immutable idempotent public Shop response, and deterministic Seller/Customer alerts.
+- **Boundary:** Review eligibility and Customer authorship belong to the Customer review domain; Seller cannot edit the Customer's rating, text, photos, or aggregate contribution. The dashboard summary is read-only; response editing/deletion and moderation/reporting remain deferred.
 
 ### 14. Vacation Mode
 
@@ -250,7 +251,7 @@ Implemented Seller foundation:
 
 Deferred or dependent Seller operations:
 
-- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics receipt/sorting/dispatch, independent final-mile offers, QR handoff evidence, and Logistics-validated delivery completion. Photo/signature proof, financial reports/settlement, reviews, chat, bulk import/export, and abandoned-cart promotions remain dependent/deferred. The owning-Seller Product Q&A queue/detail UI, answer API, and notifications are implemented; answer editing/history and moderation remain deferred by the Product Q&A contract.
+- Seller order queue/approval, pickup addresses/provider selection, shared-waybill persistence, pickup scheduling/first-mile assignment, explicit Courier pickup confirmation, and related notifications are implemented. The shared Shipment/Parcel/DeliveryTask records support Logistics receipt/sorting/dispatch, independent final-mile offers, hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Seller Review Management, Product Q&A queue/detail/reply, private Customer–Shop text messaging, and the Shop-scoped Finance workspace are implemented. Response/answer editing, realtime/attachment chat, a separate Generate Report workflow, bulk import/export, and abandoned-cart promotions remain deferred.
 
 Future status-like columns must be stored as strings and cast to PHP enums. Future fulfillment migrations must preserve one Seller/one Shop tenancy, immutable Order snapshots, the shared high-level OrderStatus contract, and the separate Shipment/Delivery Task milestones.
 

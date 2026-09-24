@@ -4,6 +4,7 @@ namespace App\Services\Customer;
 
 use App\Enums\OrderStatus;
 use App\Exceptions\Customer\ProductReviewException;
+use App\Jobs\Reviews\DeliverProductReviewNotification;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -27,9 +28,12 @@ class ProductReviewService
         return ProductReview::query()
             ->published()
             ->where('product_id', $product->id)
-            ->with(['images' => fn ($query) => $query
-                ->where('status', 'approved')
-                ->orderBy('position')])
+            ->with([
+                'images' => fn ($query) => $query
+                    ->where('status', 'approved')
+                    ->orderBy('position'),
+                'sellerResponse',
+            ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate($perPage)
@@ -135,9 +139,10 @@ class ProductReviewService
             $this->refreshProductAggregate($product);
             $reviewId = $review->id;
             $created = true;
+            DB::afterCommit(fn () => $this->dispatchNotification($review->id, 'review_published'));
         }, 3);
 
-        $review = ProductReview::query()->with('images')->findOrFail($reviewId);
+        $review = ProductReview::query()->with(['images', 'sellerResponse'])->findOrFail($reviewId);
 
         return ['review' => $review, 'created' => $created];
     }
@@ -219,6 +224,15 @@ class ProductReviewService
                 ? null
                 : round((float) $aggregate->average_rating, 2),
         ])->save();
+    }
+
+    private function dispatchNotification(string $reviewId, string $event): void
+    {
+        try {
+            DeliverProductReviewNotification::dispatch($reviewId, $event);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     /** @return array{mime: string, extension: string, width: int, height: int, bytes: string} */

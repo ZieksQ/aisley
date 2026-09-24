@@ -7,7 +7,7 @@ type: Feature Specification
 version: 1.5
 status: First-mile acceptance and final-mile dispatch batch acceptance implemented
 implementation_status: First-mile listing/acceptance, atomic final-mile batch acceptance, and exceptional single-task reject/re-offer are implemented
-flutter_status: Both-leg client slices reported implemented in the supplied 2026-09-13 Flutter handoff; source/runtime and full test verification not performed here
+flutter_status: Supplied Flutter progress records legacy per-task offer UI; atomic dispatch-batch acceptance not verified/adopted
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378

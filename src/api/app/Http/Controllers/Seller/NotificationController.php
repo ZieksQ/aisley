@@ -22,6 +22,7 @@ class NotificationController extends Controller
         'pickup-schedule.cancelled',
         'pickup-schedule.reminder',
         'seller-product-qa.question-asked',
+        'seller-product-review.published',
     ];
 
     public function index(ListNotificationsRequest $request): JsonResponse

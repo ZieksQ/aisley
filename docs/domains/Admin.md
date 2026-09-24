@@ -130,11 +130,11 @@ Current protected routes are:
 - **Status:** Deferred. Orders and COD snapshots exist, but platform commission, Logistics per-order fees, payouts, taxes, refunds, and a financial ledger are not yet authoritative enough for an Admin report.
 - **Boundary:** Do not calculate commission from incomplete UI collections or label generic Order totals as profit. Exports, if added, require bounded asynchronous jobs, safe downloads, and an approved financial source of truth.
 
-### 13. Chat/Messaging
+### 13. Support Tickets
 
-- **Purpose:** Support secure Admin communication with authorized Customers, Sellers, Logistics operators, or Couriers.
-- **Status:** Deferred. Conversation, participant, message, attachment, and read-state persistence is not implemented.
-- **Boundary:** Future messaging must be relationship/permission scoped and must not duplicate notification, Compliance, Complaint, or Audit records or expose private evidence, addresses, or payment data.
+- **Purpose:** Triage and resolve requester-owned support tickets from eligible Customers, Sellers, Logistics operators, or Couriers through a status-driven Admin queue and persistent public replies.
+- **Status:** Deferred. Customer–Seller chat is implemented separately; Admin ticket tables, APIs, and role UI are not. See `docs/features/admin/chat-messaging/spec.md` for the replacement ticket contract.
+- **Boundary:** Ticket access needs explicit Admin support permissions and requester ownership. Tickets do not replace notifications, Compliance, Complaints, or Audit records or grant access to unrelated private chats, evidence, addresses, or payment data.
 
 ### 14. Global Ban / Blocklist
 
@@ -144,9 +144,9 @@ Current protected routes are:
 
 ### 15. Push Notification Management
 
-- **Purpose:** Compose and dispatch targeted promotional or critical push/SMS campaigns.
-- **Status:** Deferred. The `push-notification-bar` specification is not an implemented provider/campaign system.
-- **Boundary:** It is separate from the Admin in-app notification center and registration SMTP emails. Provider credentials, audience consent, recipient snapshots, retries, and campaign audit records require their own approved contract.
+- **Purpose:** Compose and dispatch consent-gated promotional in-app Customer campaigns.
+- **Status:** First-release Admin draft/preview/send/history and Customer inbox delivery are implemented. Browser/mobile push, SMS, critical transactional campaigns, and additional segments remain deferred.
+- **Boundary:** This is separate from the Admin inbound notification center, announcements, and source-owned alerts. Customer Account owns the default-off opt-in; Laravel freezes the eligible audience, deduplicates delivery, records safe audit history, and prunes per-recipient rows 90 days after completion while preserving aggregate history.
 
 ## Operational invariants
 
@@ -165,11 +165,11 @@ Implemented Admin foundation:
 
 - Admin role/profile, environment-backed initial bootstrap, Sanctum authentication, permissions, protected React console, and Admin self-service profile/email/password/profile-photo management.
 - Registration review for Customer, Seller, and Logistics applications with private evidence access, atomic approval/rejection, reviewer history, email notification, and Admin in-app notification.
-- Dashboard registration aggregate/action center, Admin notification inbox, User Account lifecycle management for non-Admin accounts, Seller Compliance cases/restrictions, Platform Settings announcement/policy versioning, and append-only Audit Logs/outbox.
+- Dashboard registration aggregate/action center, Admin notification inbox, consent-gated Customer in-app campaign management, User Account lifecycle management for non-Admin accounts, Seller Compliance cases/restrictions, Platform Settings announcement/policy versioning, and append-only Audit Logs/outbox.
 
 Deferred or dependent Admin operations:
 
-- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Chat/Messaging, Global Ban/Blocklist, Push/SMS campaign delivery, and 2FA/preferences.
+- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Support Tickets, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
 
 Admin does not own Seller catalog, Customer Cart/Checkout, Logistics hub operations, or Courier mobile UI. It may receive safe notifications or review records from those domains only through explicit feature contracts.
 

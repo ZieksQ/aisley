@@ -84,6 +84,14 @@ class AppServiceProvider extends ServiceProvider
             ]));
         });
 
+        RateLimiter::for('seller-product-review-response', function (Request $request): Limit {
+            return Limit::perMinute(20)->by(implode('|', [
+                'seller-product-review-response',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
         RateLimiter::for('courier-account-password', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [
                 'courier-account-password',

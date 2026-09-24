@@ -1,8 +1,8 @@
 # Database Schema
 
-> **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
+> **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-23 (Inbound Linehaul Receiving and Reconciliation)
+> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, Customer–Shop, Logistics–Courier, Customer–Logistics Order chat, Seller–Logistics pickup chat, and Courier–Seller/Buyer task chat)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -92,6 +92,15 @@ erDiagram
     USERS o|--o{ AUDIT_LOGS : historically_attributed_to
     USERS o|--o{ AUDIT_OUTBOX : performs
     USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ CONVERSATIONS : customer_or_seller
+    SHOPS ||--o{ CONVERSATIONS : hosts
+    CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
+    USERS ||--o{ CONVERSATION_PARTICIPANTS : reads
+    CONVERSATIONS ||--o{ MESSAGES : contains
+    USERS ||--o{ MESSAGES : sends
+    USERS ||--o{ NOTIFICATION_CAMPAIGNS : creates
+    NOTIFICATION_CAMPAIGNS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : snapshots
+    USERS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : may_receive
     USERS ||--o{ ACCOUNT_LIFECYCLE_EVENTS : undergoes
     USERS ||--o{ ACCOUNT_LIFECYCLE_EVENTS : administers
 
@@ -283,6 +292,8 @@ Each profile has a UUID primary key and a unique UUID `user_id`, enforcing at mo
 | `profile_photo_size` | BIGINT          | Yes      | Image bytes                                 |
 | `profile_photo_width` | INTEGER        | Yes      | Image width in pixels                       |
 | `profile_photo_height` | INTEGER       | Yes      | Image height in pixels                      |
+| `promotional_in_app_opted_in` | BOOLEAN | No | Customer-only, default `false`; explicit in-app marketing opt-in |
+| `promotional_in_app_opted_in_at` | TIMESTAMP | Yes | Customer-only latest opt-in time; cleared on opt-out |
 | `created_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 | `updated_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
 
@@ -632,6 +643,20 @@ Laravel's database notification table stores role-scoped per-user inbox records.
 | `created_at`, `updated_at` | TIMESTAMP       | Yes      | Managed by Laravel                                             |
 
 Indexes cover the polymorphic recipient and recipient/read/time inbox query. Notification destinations are generated and allow-listed by the API; database payloads are never accepted directly from an Admin client.
+
+### 7.5a `notification_campaigns` and `notification_campaign_recipients`
+
+`notification_campaigns` stores one Admin-created UUID draft/send history row: bounded plain-text title/body, `opted_in_customers` audience, optional Product/Shop destination descriptor, string-backed status, revision, preview timestamp/count, hashed send idempotency key, audience cutoff, frozen snapshot/result counts, and completion time. The creator is a restricted FK to `users`; history is indexed by status/creation and completion. Browser/mobile push and SMS are not represented.
+
+`notification_campaign_recipients` stores UUID recipient work rows with campaign and Customer FKs, deterministic unique notification UUID, string-backed pending/delivered/skipped/failed status, attempts, and a safe error category. Unique `(campaign_id, user_id)` and `(notification_id)` prevent repeat delivery. Delivery rechecks current Customer status and the default-off profile preference before inserting one `customer-campaign.promotion` inbox row. A daily command removes per-recipient rows 90 days after terminal completion; campaign aggregate counts and Customer inbox rows remain.
+
+### 7.5b `conversations`, `conversation_participants`, and `messages`
+
+`conversations` has a UUID primary key, a string-backed `kind` (`customer_shop` by default, `logistics_courier`, `customer_logistics`, `seller_logistics`, `courier_seller`, or `courier_customer`), and server-owned last sequence/message/activity. Customer–Shop rows retain unique `(customer_user_id, shop_id)` and Customer/Seller/Shop UUID FKs. Courier operational rows use nullable Customer/Seller/Shop fields and immutable Logistics organization, sole hub, DeliveryTask, Courier, Logistics user, and task-leg fields. Unique `(logistics_organization_id, delivery_task_id, courier_user_id, logistics_user_id)` prevents duplicate bilateral Logistics–Courier task threads. Additive unique `(logistics_organization_id, delivery_task_id, courier_user_id, seller_user_id)` and `(logistics_organization_id, delivery_task_id, courier_user_id, customer_user_id)` keys keep first-mile Seller and final-mile Buyer threads distinct per task and Courier. Customer delivery rows use a nullable `order_id` FK and unique `(logistics_organization_id, order_id, customer_user_id)` to keep one thread per handling organization and owned Order. Seller pickup rows use a nullable `seller_pickup_request_id` FK and unique `(logistics_organization_id, seller_pickup_request_id, seller_user_id)` so one selected-provider pickup request has one private Seller–Logistics thread. A new Courier offer or Logistics handler never inherits the former party's history. Current task, Order/pickup relationship, custody, affiliation, hub, and account state are rechecked before sends; ended relationships remain historical read-only for authorized participants.
+
+`conversation_participants` has UUID identity, unique `(conversation_id, user_id)`, and monotonic `last_read_sequence`. Only other-party messages above that marker count as unread.
+
+`messages` has UUID identity, conversation/sender UUID FKs, a unique per-thread sequence, unique `(sender_user_id, idempotency_key)`, a payload hash for conflicting-key detection, plain-text body, and nullable Product/Order UUID context. Text is not a notification payload; the shared history and read markers are authoritative. File attachments, broadcast state, participant archive/mute/report, and retention decisions are not represented in this first release.
 
 ### 7.6 `account_lifecycle_events`
 
@@ -1194,9 +1219,9 @@ New enum-like values use string columns and PHP enum casts. Receipt transactions
 
 Sorting plan/lane/session/item/scan enum-like columns remain PostgreSQL-safe strings with Logistics-scoped PHP enum casts. The dedicated sort transition appends a `hub_sort` Shipment event containing the session UUID, lane UUID, source, device capture time, request hash, and Logistics actor. Automatic routing resolves the tenant-owned tracking ID and current plan under the hub boundary; a missing plan, postal code, mapping, or usable lane selects the active exception lane. A Sorting exception updates only the session item's operational hold; it does not add an Order status or advance Shipment custody.
 
-### 9.19 `product_reviews` and `product_review_images`
+### 9.19 `product_reviews`, `product_review_images`, and `seller_review_responses`
 
-**Models:** `ProductReview`, `ProductReviewImage`
+**Models:** `ProductReview`, `ProductReviewImage`, `SellerReviewResponse`
 
 `product_reviews` is the authoritative verified-purchase review ledger. Each row links one active Customer to a delivered Order, one immutable Order Item, and the purchased Product, with an optional Variant reference and name snapshot. The UUID `order_item_id` unique constraint permits exactly one review per delivered line, including when the line quantity is greater than one. Reviews are published at commit in the MVP; `status` and `published_at` remain explicit so future moderation can add a state transition without changing Customer-authored content.
 
@@ -1204,14 +1229,17 @@ Sorting plan/lane/session/item/scan enum-like columns remain PostgreSQL-safe str
 
 Product `average_rating` and `review_count` are transactionally refreshed from published `product_reviews` rows. The catalog seed data resets those projections to `NULL`/`0`; it does not create verified-purchase evidence. Public review lists and summaries apply the same Product visibility and publication scopes.
 
+`seller_review_responses` stores one immutable public Shop response per Review. The unique `review_id` is the final one-response guard; Seller-scoped UUID idempotency keys and request hashes make identical retries stable. Restrictive Review/Seller/Shop foreign keys preserve attribution, while `shop_name_snapshot` keeps the public author label stable. The status column is PostgreSQL-safe text cast to `ReviewResponseStatus`; the MVP publishes immediately and has no edit/delete route.
+
 | Table | Key fields and constraints |
 | --- | --- |
 | `product_reviews` | UUID primary key; restrictive Customer/Order/Order Item/Product FKs; nullable Variant `SET NULL`; immutable Product/Variant snapshots; integer rating 1–5; plain-text body; string publication state; unique `order_item_id`; Product/publication/time indexes. |
 | `product_review_images` | UUID primary key; restrictive Review/Customer FKs; configured disk/path; detected MIME, byte size, dimensions, checksum, publication state, and position; unique (`review_id`, `position`) plus Review/status index. |
+| `seller_review_responses` | UUID primary key; restrictive Review/Seller/Shop FKs; immutable Shop-name snapshot and plain-text body; string publication state; UUID idempotency key/request hash; unique Review and Seller/idempotency constraints; Shop/Seller publication-time indexes. |
 
 ### 9.20 Deferred review extensions
 
-Customer editing/deletion, moderation/reporting, helpful votes, threaded replies, Seller response authoring, video reviews, and return/refund effects remain deferred. They must preserve the immutable delivered-line evidence and the aggregate projection contract when introduced.
+Customer editing/deletion, response editing/deletion, moderation/reporting, helpful votes, threaded replies, video reviews, and return/refund effects remain deferred. They must preserve the immutable delivered-line evidence and the aggregate projection contract when introduced.
 
 ## 10. Framework infrastructure tables
 
@@ -1264,6 +1292,7 @@ Numeric IDs in `jobs`, `failed_jobs`, and the migration repository are intention
 | Product review → Customer/Order/Order Item/Product                 | `RESTRICT`                  | Preserve verified-purchase evidence and its immutable purchased-line identity                     |
 | Product review → Variant                                           | `SET NULL`                  | Preserve the review if a purchased Variant is later removed                                        |
 | Product review image → Review/Customer                             | `RESTRICT`                  | Keep approved review media tied to its owner and immutable review                                  |
+| Seller review response → Review/Seller/Shop                        | `RESTRICT`                  | Preserve the single published response, actor, and immutable Shop attribution                       |
 | Product Q&A → Product/Customer/Seller                             | `RESTRICT`                  | Preserve public question/answer history and verified ownership attribution                         |
 | Flash deal item → Flash deal/Product                              | `CASCADE`                   | Deal membership has no meaning without either side                                                  |
 | Recently viewed item → User/Product                               | `CASCADE`                   | History has no meaning without either side                                                          |
@@ -1308,6 +1337,7 @@ The current foreign keys guarantee referential integrity, but they cannot encode
 22a. A Product Review must reference the authenticated Customer's delivered Order Item; the database unique constraint on `order_item_id` and the locked service path enforce one review per line.
 22b. Product Reviews accept only whole-number ratings from 1 through 5 and bounded plain text; public aggregates count published reviews only, while review images remain owner- and visibility-scoped.
 22c. Product review public reads require both a published review and `Product::storefrontVisible()`; hidden/restricted Products retain private history without exposing standalone review/photo URLs.
+22d. A Seller Review response is authorized through Review → Product → Shop ownership, remains one immutable published response per Review, and never changes Customer content or Product rating aggregates.
 23. `carts.customer_id` must identify an active Customer for Cart access, and every Cart query/mutation must derive ownership from the authenticated Customer rather than client input.
 24. A Cart Item with Product options must reference one active, complete Variant combination belonging to that Product; a Product without options must use `variant_id = NULL`.
 25. Cart quantities must be positive and within current Product/Variant stock when mutated. Cart writes do not reserve or decrement inventory, and reads preserve unavailable intent while reporting current availability.
@@ -1424,7 +1454,18 @@ Repository migrations are listed below in filename execution order; this invento
 73. `2026_09_16_000004_add_automatic_routing_to_sorting_scans.php` — automatic-routing marker and indexes for server-authoritative scan results.
 74. `2026_09_20_000001_allow_shared_hub_postal_coverage.php` — allows active postal-code coverage to be shared by multiple Logistics hubs while retaining hub/code uniqueness.
 75. `2026_09_20_000002_create_product_reviews.php` — delivered Order Item Product Reviews, authoritative rating projections, and validated Customer review-image metadata.
-76. `2026_09_23_000001_add_company_truck_linehaul_dispatch.php` — truck-driver capability, Logistics-owned company trucks, capacity-frozen outbound/return trips, and route-hop parcel reservations.
+76. `2026_09_22_000001_create_seller_review_responses.php` — one immutable public Shop response per Product Review with restrictive attribution, stable idempotency, and Seller/Shop publication indexes.
+77. `2026_09_23_000001_add_company_truck_linehaul_dispatch.php` — truck-driver capability, Logistics-owned company trucks, capacity-frozen outbound/return trips, and route-hop parcel reservations.
+78. `2026_09_23_000002_add_customer_promotional_notification_preference.php` — durable default-off Customer in-app promotional consent and opt-in time.
+79. `2026_09_23_000002_add_linehaul_receiving.php` — inbound trip receipts, discrepancy and reconciliation records, and Shipment condition holds.
+80. `2026_09_23_000003_add_cod_declaration_to_completion_intents.php` — last-mile COD collection declaration on completion intents.
+81. `2026_09_23_000003_create_notification_campaigns.php` — Admin campaign history and bounded per-recipient delivery snapshot with deduplication and 90-day retention.
+82. `2026_09_23_000004_create_customer_shop_conversations.php` — UUID-backed Customer–Shop conversations, per-participant read markers, and idempotent ordered text messages.
+83. `2026_09_24_000001_create_commission_settlement_finance.php` — shipping rates and commission policies, pricing snapshots, balanced finance ledger, remittance/allocations, expenses, holds, period closures, and sandbox payouts.
+84. `2026_09_24_000001_extend_conversations_for_operational_messaging.php` — string-backed conversation kind and tenant/task/Courier identity for Logistics–Courier messages, retaining the shared participant/read/message ledger.
+85. `2026_09_24_000002_add_order_conversations.php` — nullable Order FK and unique Logistics organization/Order/Customer identity for separate Customer–Logistics delivery conversations.
+86. `2026_09_24_000003_add_pickup_request_conversations.php` — nullable Seller pickup request FK and unique Logistics organization/request/Seller identity for separate Seller–Logistics pickup conversations.
+87. `2026_09_24_000004_add_courier_counterparty_conversations.php` — unique organization/task/Courier/Seller and organization/task/Courier/Buyer identities for separate accepted-task Courier conversations.
 
 ## 14. Fulfillment schema and deferred extensions
 
@@ -1493,12 +1534,12 @@ The following capabilities appear in requirements but have no migrations or mode
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Catalog and inventory      | Reservation release before first-mile pickup and conversion at `picked_up_from_seller` are implemented; post-pickup release, returns/refunds, and partial-fulfillment records remain deferred |
 | Promotions                 | Admin/Seller Voucher management and Customer claim UX; checkout eligibility, calculation, snapshot, and redemption persistence are implemented                                               |
-| Payments and finance       | Payment gateways beyond COD, platform fees, Seller payouts, commissions, taxes, refunds, and transaction ledgers                                                                             |
+| Payments and finance       | Live payment/payout providers, taxes, and customer refund workflows remain deferred. COD collection/remittance, commission snapshots, balanced finance ledgers, reversing corrections, and sandbox payouts are implemented. |
 | First-party logistics      | Courier availability/capacity, live location telemetry, returns/refunds/partial fulfillment, and Courier earnings remain deferred. Shared Shipment/Parcel milestones, hub receipt/sort/dispatch, final-mile batch acceptance, QR hub handoff, private photo POD, failed-attempt retry, advisory final-mile routing, and final-mile completion are implemented. |
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
-| Reviews                    | Customer verified-purchase ratings, review media, delivered-line eligibility, and public aggregates are implemented; moderation, editing, Seller responses, video, and refund effects remain deferred |
+| Reviews                    | Customer verified-purchase ratings/media/aggregates and Seller-scoped immutable public Shop responses are implemented; moderation, editing/deletion, video, and refund effects remain deferred |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
-| Messaging                  | Conversations, participants, messages, and conversation read state; the Admin database notification inbox is implemented separately                                                          |
+| Messaging and support      | Shared Customer–Shop text conversations, Logistics–Courier task chat, separate Customer–Logistics Order chat, separate Seller–Logistics pickup chat, and accepted-task Courier–Seller/Buyer API channels with participant read markers and ordered messages are implemented. Admin support-ticket tables/API/UI, Courier Flutter UI, Seller/Customer Courier-chat screens, attachments, broadcasting, and retention/moderation workflow remain deferred. |
 | Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 

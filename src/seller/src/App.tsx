@@ -21,8 +21,13 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { NotificationDetailPage } from './pages/NotificationDetailPage'
 import { ProductQuestionDetailPage } from './pages/ProductQuestionDetailPage'
 import { ProductQuestionsPage } from './pages/ProductQuestionsPage'
+import { ProductReviewDetailPage } from './pages/ProductReviewDetailPage'
+import { ProductReviewsPage } from './pages/ProductReviewsPage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FinancePage } from './pages/FinancePage'
+import { MessagesPage } from './pages/MessagesPage'
+import { MessageThreadPage } from './pages/MessageThreadPage'
+import { LogisticsMessagesPage } from './pages/LogisticsMessagesPage'
 
 function App() {
   return (
@@ -36,6 +41,9 @@ function App() {
         <Route element={<SellerLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<FinancePage />} path="/finance" />
+          <Route element={<MessagesPage />} path="/messages" />
+          <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
+          <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />
           <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
           <Route element={<OrdersPage />} path="/orders/monitoring" />
           <Route element={<OrderApprovalPage />} path="/orders/approval" />
@@ -46,6 +54,8 @@ function App() {
           <Route element={<NotificationDetailPage />} path="/notifications/:notificationId" />
           <Route element={<ProductQuestionsPage />} path="/product-questions" />
           <Route element={<ProductQuestionDetailPage />} path="/products/:productId/questions/:questionId" />
+          <Route element={<ProductReviewsPage />} path="/reviews" />
+          <Route element={<ProductReviewDetailPage />} path="/reviews/:reviewId" />
           <Route element={<ProductsPage />} path="/products" />
           <Route element={<ProductFormPage />} path="/products/new" />
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />

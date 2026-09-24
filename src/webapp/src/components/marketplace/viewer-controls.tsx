@@ -1,19 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import {
-  FiMessageCircle,
-  FiShoppingCart,
-} from "react-icons/fi";
+import { FiShoppingCart } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { AccountMenu } from "./account-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-
-function authDestination(path: string, isAuthenticated: boolean) {
-  return isAuthenticated ? path : `/login?next=${encodeURIComponent(path)}`;
-}
+import { MessageHeaderLink } from "@/components/messages/message-header-link";
 
 export function UtilityAccountControls() {
   const { auth } = useAuth();
@@ -54,13 +48,7 @@ export function HeaderAccountControls() {
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-      <Link
-        href={authDestination("/messages", auth.status === "authenticated")}
-        aria-label="Messages"
-        className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-      >
-        <FiMessageCircle aria-hidden="true" className="size-5" />
-      </Link>
+      <MessageHeaderLink />
 
       <NotificationBell />
 

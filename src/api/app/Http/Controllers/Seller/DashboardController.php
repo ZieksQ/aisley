@@ -17,6 +17,7 @@ class DashboardController extends Controller
         $seller = $request->user();
         $resource = new SellerDashboardResource($dashboard->forSeller($seller, $request->validated()));
 
-        return response()->json($resource->resolve($request));
+        return response()->json($resource->resolve($request))
+            ->header('Cache-Control', 'private, no-store');
     }
 }

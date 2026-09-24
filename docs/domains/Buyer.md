@@ -182,8 +182,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 13. Product Q&A and Chat/Messaging
 
 - **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
-- **Status:** Product Q&A Phase 1 is implemented in the Customer storefront and Laravel API. Chat/Messaging remains deferred.
-- **Boundary:** Future threads, questions, notifications, and unread counts must be Customer/Shop or relationship scoped. They must not expose registration evidence, private addresses, payment secrets, or unrelated users, and must not duplicate the order-status or Admin notification contracts.
+- **Status:** Product Q&A Phase 1, private Customer–Shop text messaging, and separate Order-scoped Customer–Logistics delivery messaging are implemented in the Customer storefront and Laravel API. Both chat channels use bounded polling; realtime transport, attachments, moderation, and Admin/Courier contact remain deferred.
+- **Boundary:** Shop and Logistics threads have distinct conversation kinds, role-owned inboxes, and unread counts; delivery contact follows the current handler of an owned active Order and becomes read-only after custody or terminal-state changes. Chat is separate from public Product Q&A and general notifications. It does not expose registration evidence, private addresses, payment secrets, or unrelated users, and cannot change an Order or complaint decision.
 
 ## Data, privacy, and consistency invariants
 
@@ -208,7 +208,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, QR evidence, and the Customer's high-level delivered projection. Customer live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds, Chat/Messaging, Customer notification preferences/inbox, and Wishlist alerts remain deferred. Customer cancellation/address correction, Product Q&A public read/ask with notifications, and verified Product Reviews are implemented.
+- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, QR evidence, and the Customer's high-level delivered projection. The Customer in-app inbox, default-off promotional preference, and private Customer–Shop text messaging are implemented; other notification preferences, Wishlist alerts, realtime/attachment chat, live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds remain deferred. Customer cancellation/address correction, Product Q&A public read/ask with notifications, and verified Product Reviews are implemented.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 

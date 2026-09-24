@@ -111,7 +111,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
 
           <div className="mt-7 rounded-lg border border-[#DED7E1] bg-white px-5 py-6 sm:px-7 lg:px-9">
-            <ShopSummary shop={product.shop} />
+            <ShopSummary productId={product.id} shop={product.shop} />
             <div className="grid gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-14">
               <div className="space-y-10">
                 <ProductDescription markdown={product.descriptionMarkdown} />
