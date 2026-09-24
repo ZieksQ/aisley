@@ -1,459 +1,160 @@
 ---
-feature: chat-messaging
-title: Admin Chat / Messaging
+feature: admin-support-tickets
+title: Admin Support Ticket System
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
+version: 2.0
+status: Revised target contract; ticket API, schema, and role UI not implemented
 role: Admin
-scope: Admin Web Application
+scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 ---
 
-# Admin Chat / Messaging
+# Admin Support Ticket System
 
 ## WHAT
 
-- **Purpose:** Secure, persistent Admin ↔ user messaging for support, account inquiries, compliance actions, and related platform communication.
-- **Primary actor:** Authenticated `ADMIN`.
-- **Participants:** Authorized Buyer, Seller, Courier, or Logistics accounts.
-- **Source-defined Admin behavior:**
-  - initiate/respond to user conversations
-  - handle support and account anomalies
-  - explain compliance/moderation actions
-  - send seller-compliance warnings
-  - support read receipts
-  - archive history for accountability
-- **Shared-domain requirement:** Buyer, Seller, Courier, and Logistics also use messaging; Admin Chat must use the same messaging domain, not a separate Admin-only store.
-- **Architecture:**
-  - Next.js/React: inbox, conversation UI, composer, unread/read presentation, real-time subscriptions.
-  - Laravel: authentication, authorization, validation, persistence, pagination, read state, events, broadcasting.
-  - Laravel data is authoritative; broadcasts synchronize committed state.
-- **Recommended flow:**
-
-```text
-open
-→ fetch persisted history
-→ authorize
-→ subscribe private channel
-
-send
-→ POST to Laravel
-→ validate + authorize
-→ persist
-→ commit
-→ broadcast
-
-read
-→ persist read marker
-→ broadcast read update
-```
-
-- **Recommended routes:** `/messages` and `/messages/{conversation}`.
-- **MVP:** text messages.
-- **Optional context:** existing order, complaint/dispute, or compliance-case relationship when supported by the real schema.
-- **Non-goals:** public rooms, anonymous chat, voice/video, blanket Admin surveillance, reactions, editing, hard deletion, arbitrary attachments, AI replies.
+- Replace the earlier Admin live-chat proposal with a tracked, asynchronous support-ticket
+  workflow. An eligible Customer, Seller, Logistics user, or Courier submits an issue; authorized
+  Admins triage, reply, and resolve it. “Buyer” is the storefront name for `customer`.
+- One ticket represents one issue, with a reference, subject, category, requester, status,
+  optional validated business context, ordered public replies, and immutable lifecycle history.
+  Tickets are not a permanently open Admin–user chat or a general user directory.
+- The Admin dashboard owns the support queue, ticket detail, assignment, replies, and status
+  actions. Each requester sees only their own tickets through their role app; Courier UI belongs
+  to the external Flutter project, not this repository.
+- Customer–Seller text chat is already implemented on `conversations`/`messages`. Those tables
+  currently require Customer, Seller, and Shop identities; Admin tickets need a distinct
+  ticket/workflow store and must not expose or repurpose Customer–Seller private history.
+- Ticket replies do not approve registrations, reverse account restrictions, decide a compliance
+  case, alter Orders, dispatch Couriers, or create a refund. Those actions stay with their owning
+  features and may be referenced only through an approved, authorized link.
+- MVP is authenticated, plain-text, persisted HTTP with polling/refetch. No WebSocket, email
+  ingestion, guest ticket, group chat, internal note, file attachment, AI reply, SLA timer,
+  automatic routing, or provider dependency is implied.
+- Admin-initiated outreach is deferred; compliance warnings remain source-owned.
 
 ## MUST
 
-### Authorization
+### Requesters and authority
 
-- Every messaging API and private broadcast channel requires authentication.
-- Admin actions require:
-  - authenticated `ADMIN`
-  - Chat/Messaging permission where configured
-  - authorization for the target conversation/user/context
-- Sender identity comes from the authenticated account.
-- Never trust client-submitted sender ID, role, permission, timestamp, or read state.
-- Check authorization for:
-  - conversation list/detail
-  - message history
-  - send
-  - mark read
-  - channel subscription
-  - attachment access if later added
-- Guessed conversation IDs must not expose data.
-- Frontend guards are UX only.
-- Use project error conventions: `401`, `403`, `404`, `422`, `409`.
+- Require `auth:sanctum`, current role/account authorization, and applicable policy consent on
+  every route. The server derives requester and role; a client cannot set `requester_user_id`,
+  Admin assignee, reply author, status, timestamps, or a linked record's ownership.
+- MVP requester creation is for active/approved accounts that can use their role app. Pending,
+  rejected, suspended, or deactivated account access needs a separately approved, narrowly
+  scoped support/appeal auth exception; do not claim those users can use this in-app flow yet.
+- A requester can list, open, reply to, and mark read only their own ticket. A foreign UUID or
+  reference returns a scoped `404`; same-email accounts in different roles do not share tickets.
+  Admins need `support-tickets.view`/`support-tickets.manage` permissions, not just the `admin` role.
+- An Admin may view authorized support tickets but has no blanket right to inspect unrelated
+  Customer–Seller, Logistics, or Courier chat. Compliance/evidence access follows those source
+  policies; ticket visibility does not grant private source-record access by association.
+- Validate optional Order, Shop, pickup, task, or compliance reference against the requester's
+  actual role relationship before linking. A reference is context, not an authorization grant;
+  unavailable context renders a safe label without leaking hidden record details.
 
-### Admin scope
+### Ticket lifecycle
 
-- Admin may initiate/respond to authorized Admin-user threads for support, account inquiries, and compliance communication.
-- Seller Compliance may reference an Admin ↔ Seller warning conversation.
-- Complaint/dispute flows may reference relevant Admin-user messages when explicitly linked.
-- Current sources do **not** grant Admin blanket access to unrelated Buyer ↔ Seller/Courier/Logistics conversations.
-- Do not implement global chat surveillance without a separate authorization/privacy requirement.
+- Create a ticket with a trimmed subject (1–150 characters), one of `general`, `account`,
+  `order`, or `delivery`, and a first nonempty plain-text description (1–2,000 characters).
+  The server assigns a UUID and a human-readable, non-authorizing reference.
+- Persist status as string-backed `open`, `in_progress`, `waiting_for_requester`, or `resolved`.
+  The public status is a server-owned projection; every transition appends an event with actor,
+  from/to, reason where required, and server UTC time.
+- Creation starts `open`. An authorized Admin can claim/assign to an active support-authorized
+  Admin and move it to `in_progress`; requesting information moves it to
+  `waiting_for_requester`. An Admin resolves with a visible resolution reply or reason.
+- A requester reply to `waiting_for_requester` or `resolved` reopens the same ticket to `open`
+  atomically with the reply. A reply to `open`/`in_progress` preserves its status. Admins may
+  reopen `resolved` with a reason. No automatic closure or silent status change from a read.
+- Assignment changes, status changes, and replies retain immutable actor/time history. A
+  reassigned Admin loses no previous event; an unassigned ticket remains in the support queue.
+  No hard deletion of tickets, replies, or events is offered in MVP.
+- Lock the ticket or check its revision for concurrent transitions. Require UUID idempotency keys
+  for create, reply, and status/assignment mutations; exact retries return the original result,
+  while the same key with a different payload returns `409`.
 
-### Shared data model
+### Replies, notifications, and privacy
 
-- Minimum conceptual entities:
+- Public replies are append-only ticket events with server UUID, author role, UTC time, and
+  per-ticket sequence. Render user text as text, never HTML/MDX. Admin-only internal notes are
+  deferred; no private note may accidentally appear in the requester projection.
+- Bound queue/history pagination with deterministic cursors. Persist requester/Admin read markers
+  separately from notification read state; stale reads cannot move a marker backward.
+- An after-commit in-app notification may link the opposite party to a newly committed reply or
+  relevant status change. Deduplicate by ticket/event and recipient. Notification delivery failure
+  never rolls back the ticket, reply, or event and never becomes the source of truth for history.
+- Ticket DTOs expose only safe requester identity, subject/category/status, minimal validated
+  context, assignee display name where appropriate, timeline, and counts. Do not expose emails,
+  phone numbers, addresses, payment secrets, private evidence, raw storage paths, or unrelated
+  user activity merely because a ticket exists.
+- Log safe ticket/event IDs, actor, action, and outcome, not reply bodies by default. Throttle
+  ticket creation and replies. Private API responses use `no-store`; no public search/index route
+  or unrestricted Admin transcript export exists.
+- Retention duration, abuse-reporting process, evidence attachments, and exceptional access for
+  ineligible accounts require separate policy before production release. Any later attachments
+  must follow `docs/references/file-upload-requirements.md` and source-owner access rules.
 
-```text
-conversations
-conversation_participants
-messages
-```
+### Role experience and errors
 
-- Participants reference the shared authenticated user/account record.
-- Conversation requires:
-  - immutable server ID
-  - participant membership
-  - created timestamp
-  - updated/last-message ordering value
-- Message requires:
-  - immutable server ID
-  - conversation ID
-  - authenticated sender ID
-  - body
-  - server-created timestamp
-- Participant rows must be unique.
-- Optional context may reference order, complaint/dispute, or compliance case only when those schemas exist.
-- Whether one canonical Admin-user thread or multiple threads are allowed is open.
-
-### Message validation and ordering
-
-- Validate message body server-side.
-- Reject empty/whitespace-only messages.
-- Define a server-side maximum length.
-- Render user text safely; do not trust it as HTML.
-- Order messages using server-generated IDs/timestamps, never client clock alone.
-- Persist before broadcast.
-- Broadcast failure must not roll back a committed message.
-- Apply the project idempotency/duplicate-submit mechanism to sends.
-
-### History
-
-- Admin source requires archived history.
-- History must be paginated with stable ordering.
-- Real-time events must merge without duplicating paginated messages.
-- MVP must not expose hard deletion of Admin-user messages.
-- Retention duration is open.
-- If deletion is introduced later, it must preserve dispute/compliance/accountability rules.
-
-### Read receipts
-
-- Persist read state in Laravel.
-- Recommended representation:
-
-```text
-conversation_participants.last_read_message_id
-conversation_participants.last_read_at
-```
-
-or equivalent.
-
-- Unread counts derive from backend state.
-- Users may mark only authorized conversations as read.
-- Read marker must reference a message in the same conversation.
-- Read state is monotonic; stale clients cannot move it backward.
-- Persist before broadcasting read-state changes.
-
-### Inbox
-
-- Admin inbox must be paginated.
-- Safe summary fields may include:
-  - conversation ID
-  - other participant display identity
-  - optional context summary
-  - last-message preview
-  - last-message timestamp
-  - unread count/status
-- Filters/sorts must be allow-listed.
-- Sensitive profile/contact data follows project masking rules.
-
-### Start conversation
-
-- Admin may start a thread only with an existing authorized account.
-- Conceptual endpoint:
-
-```http
-POST /api/messages/conversations
-```
-
-- Request may contain target account ID, supported context, and optional first message.
-- Laravel resolves the target and authorizes contact.
-- Reject invalid/self/duplicate combinations according to selected thread rules.
-- Do not expose unrestricted user-directory data just to support chat.
-
-### Send message
-
-- Conceptual endpoint:
-
-```http
-POST /api/messages/conversations/{conversation}/messages
-```
-
-- Conceptual request:
-
-```json
-{ "body": "Message text" }
-```
-
-- Backend sequence:
-  1. authenticate
-  2. scope/load conversation
-  3. authorize
-  4. validate
-  5. persist message
-  6. update conversation metadata if used
-  7. commit
-  8. broadcast/notify after commit
-
-### Real-time delivery
-
-- Use Laravel broadcasting consumed by React.
-- Use an authorized **private** channel per conversation or equivalent secure scheme.
-- Never broadcast private message content on public channels.
-- Channel authorization must verify conversation access.
-- Broadcast only safe message DTO fields.
-- Recommended events:
-  - `MessageSent`
-  - `ConversationRead`
-- Presence and typing indicators are not MVP requirements.
-- Do not assume Reverb/Pusher/Ably until repository configuration confirms the driver.
-
-### Real-time security
-
-- Production WebSockets use `wss://`.
-- Restrict allowed origins.
-- Socket authentication does not replace authorization of messaging mutations.
-- Apply message-size, send-rate, and connection limits.
-- Do not log full private message bodies in infrastructure/security logs by default.
-- Session/token invalidation must stop unauthorized private-channel access.
-
-### Notifications
-
-- A committed message may update:
-  - open conversation
-  - inbox summary
-  - unread count
-  - shared platform notification
-- Notification/broadcast failure must not undo message persistence.
-- Email/SMS/push for each chat message is not required.
-
-### Attachments
-
-- Attachments are not required by the Admin source.
-- If later enabled:
-  - Laravel-authorized upload
-  - type/size validation
-  - malware scan
-  - configured external storage
-  - asset references instead of server paths
-  - authorized/signed access
-
-### Audit and privacy
-
-- Chat history provides accountability.
-- Security-sensitive Admin chat actions may also write safe audit metadata:
-  - Admin ID
-  - conversation ID
-  - message ID
-  - action
-  - timestamp
-- Do not duplicate full private message bodies into immutable Admin audit logs unless policy requires it.
-- Never log auth secrets or private signed URLs/tokens.
-
-### Frontend states
-
-- Inbox: loading, empty, loaded, error, forbidden.
-- Conversation: loading, older-history loading, loaded, sending, validation error, send failure, disconnected/reconnecting.
-- Prevent/reconcile duplicate sends.
-- Optimistic messages, if used, must reconcile to the authoritative server message ID.
-- Reconnect must refetch enough state to recover missed messages.
-- Loaded persisted history remains usable during temporary real-time disconnect.
-
-### Accessibility
-
-- Inbox, conversation, and composer require semantic labels and keyboard navigation.
-- Read/unread state cannot rely on color alone.
-- Incoming messages must not steal focus.
-- Screen-reader announcements should avoid excessive interruption.
+- Admin UI offers a paginated queue with status/category/assignee filters, unread/updated time,
+  a detail timeline, claim/reassign, reply, wait, resolve, and reopen controls. It distinguishes
+  saved replies from pending drafts and shows the immutable event history.
+- Role apps offer **Support tickets** entry, submit form, own-ticket list/detail, and public reply.
+  Existing chat inboxes stay separate. Courier uses the same API contract through Flutter; no
+  Courier web screen is added here.
+- Poll visible ticket views and refetch on focus/reconnect. On uncertain timeout, preserve the
+  draft and its idempotency key; never label an unconfirmed reply as sent or queue offline writes.
+- Provide loading, empty, validation, sending, saved, read-only, forbidden/not-found, conflict,
+  throttled, timeout, and offline states. Admin UI follows dashboard light/dark design; all role
+  views use labeled controls, keyboard focus, semantic timelines, and non-color-only statuses.
+- Return `401` unauthenticated, `403` wrong role/status/permission/consent, scoped `404` foreign,
+  `409` stale revision/key conflict, `422` invalid input/transition, and `429` throttled.
 
 ### Acceptance criteria
 
-- [ ] Guest cannot access Admin Chat.
-- [ ] Non-Admin cannot use Admin-only chat actions.
-- [ ] Admin sees only authorized conversations.
-- [ ] Admin can start an authorized user conversation.
-- [ ] Admin can send a valid text message.
-- [ ] Sender identity is server-derived.
-- [ ] Empty/oversized messages are rejected.
-- [ ] Message persists before broadcast.
-- [ ] Broadcast failure does not remove committed message.
-- [ ] Unauthorized conversation-ID access fails.
-- [ ] Unauthorized private-channel subscription fails.
-- [ ] Private message content is never broadcast publicly.
-- [ ] History is paginated and stably ordered.
-- [ ] MVP provides no hard-delete action for archived Admin-user messages.
-- [ ] Read state is persisted and cannot regress.
-- [ ] Unread state is backend-derived.
-- [ ] Real-time events do not duplicate existing messages.
-- [ ] Reconnect/refetch recovers missed messages.
-- [ ] Direct API calls enforce conversation authorization.
-- [ ] Admin receives no blanket access to unrelated user chats.
-- [ ] Production real-time transport is secure and origin-restricted.
-- [ ] UI covers loading, empty, forbidden, send-error, and disconnected states.
+- [ ] Eligible users can create and view only their own tickets; forged requester, cross-role
+  same-email identity, foreign UUID, or unrelated business context cannot bypass authorization.
+- [ ] Only support-authorized Admins can list, claim, assign, reply, or change status; they cannot
+  see unrelated private chat or source evidence through ticket access.
+- [ ] Ticket transitions and requester reply/reopen behavior match the approved state rules and
+  preserve append-only actor/time/reason history under retries and concurrent Admin actions.
+- [ ] Exact create/reply/action retries return one result; changed-payload keys and stale
+  revisions conflict without duplicate replies, events, or notifications.
+- [ ] Queue/history pagination, read markers, safe DTOs, plain-text rendering, and role-specific
+  UI states work without conflating tickets with Customer–Seller chat or platform notifications.
+- [ ] A committed ticket/reply survives notification failure; a rolled-back action emits no
+  recipient alert, and private reply bodies are absent from ordinary logs.
+- [ ] SQLite and PostgreSQL tests cover migration, IDOR, permission/status gates, context
+  validation, transitions, concurrency, retries, pagination, and after-commit behavior.
 
 ## HOW
 
-### Project findings
-
-- `Admin.md`: Admin messaging covers support, account anomalies, compliance explanations, read receipts, and historical archiving.
-- Seller Compliance uses messaging for warnings.
-- Buyer, Seller, Courier, and Logistics also define messaging, requiring a shared domain.
-- Logistics explicitly mentions order-linked threads.
-- Courier messaging emphasizes protecting user contact information.
-- `README.md` selects Laravel broadcasting consumed by React and requires Laravel-owned authorization/validation, pagination, scoped data, and post-commit async work.
-- Exact code, Eloquent schema, auth guard, and broadcasting driver were not available during research.
-
-### Laravel model
-
-Recommended conceptual schema:
-
-```text
-conversations
-- id
-- optional supported context reference
-- created_at
-- updated_at
-
-conversation_participants
-- conversation_id
-- user_id
-- last_read_message_id nullable
-- last_read_at nullable
-
-messages
-- id
-- conversation_id
-- sender_user_id
-- body
-- created_at
-```
-
-- Use repository naming/types.
-- Index participant lookup, ordered conversation messages, and unread calculations.
-- Enforce unique conversation participant membership.
-- Add domain context fields only when supported by actual order/complaint/compliance schemas.
-
-### Laravel API
-
-Conceptual API:
-
-```http
-GET  /api/messages/conversations
-POST /api/messages/conversations
-GET  /api/messages/conversations/{conversation}
-GET  /api/messages/conversations/{conversation}/messages
-POST /api/messages/conversations/{conversation}/messages
-POST /api/messages/conversations/{conversation}/read
-```
-
-- Follow repository versioning/resource conventions.
-- Use Form Requests and Policies/Gates.
-- Suggested actions:
-  - `StartConversation`
-  - `SendMessage`
-  - `MarkConversationRead`
-- Scope records before returning/mutating.
-- Use API Resources or equivalent safe DTOs.
-- Use a transaction for message + conversation metadata changes.
-- Broadcast/notify only after commit.
-
-### Broadcasting
-
-- Use the configured Laravel broadcasting driver.
-- Recommended private channel:
-
-```text
-conversations.{conversationId}
-```
-
-- Authorize subscription against conversation access.
-- For Sanctum SPA auth, use Laravel's authenticated private-channel authorization configuration.
-- Broadcast a safe persisted DTO, not unrestricted Eloquent data.
-- Configure transaction-dependent broadcasts to dispatch after commit.
-- Reverb is a valid first-party option if the project has not selected a driver, but it is not mandatory.
-
-### Next.js / React
-
-- Build inbox, conversation history, and composer.
-- Keep HTTP access in the shared API client.
-- Use client components only where live subscription/composer state requires them.
-- Flow:
-  1. fetch persisted conversation/history
-  2. render
-  3. subscribe private channel
-  4. reconcile incoming events by server message ID
-- On reconnect, refetch recent state and deduplicate.
-- Use server ordering values.
-- Leave channels when conversation UI unmounts.
-
-### Read-state implementation
-
-- Client submits the highest message actually read.
-- Laravel verifies participant access and conversation ownership of that message.
-- Reject/ignore backward read markers.
-- Persist then broadcast the read state.
-
-### Tests
-
-- **Laravel:** guest/non-Admin denial, conversation isolation, start-thread authorization, valid/invalid send, forged sender protection, pagination/order, read-state persistence/non-regression, unread counts, post-commit broadcast, rollback behavior, idempotent duplicate send, private-channel authorization, safe DTOs.
-- **Frontend:** inbox states, history pagination, send/error states, incoming event, duplicate reconciliation, reconnect recovery, read/unread update, forbidden state, keyboard/accessibility behavior.
-
-### Research-backed recommendations
-
-- Use private Laravel broadcast channels with server-side channel authorization.
-- Use secure WebSocket transport and explicit allowed origins.
-- Treat message content as untrusted input.
-- Apply size/rate limits.
-- Persist first; broadcast after commit.
-- Avoid logging full private message content.
-- Prefer the repository's configured broadcasting driver; select Reverb only if the project chooses it.
-
-### Risks
-
-- **Privacy:** blanket Admin visibility exceeds the source scope.
-- **Fragmentation:** separate role-specific stores break shared conversations.
-- **Broadcast-before-commit:** clients could display rolled-back messages.
-- **Channel leakage:** weak authorization can expose private chat.
-- **Duplicates:** retries/reconnects can duplicate rows.
-- **Read races:** stale tabs can regress read state.
-- **History loss:** hard deletion conflicts with accountability.
-- **Logging leakage:** message bodies may expose private user data.
-- **Code gap:** exact models/routes/driver must follow the real repository.
-
-### Open questions
-
-- One canonical Admin-user thread or multiple threads.
-- Maximum message length.
-- Retention duration.
-- Local archive/hide behavior.
-- Attachments in MVP.
-- Complaint/dispute evidence linkage.
-- Automatic Seller thread for compliance warnings.
-- Order linkage for Admin threads.
-- Search/filter requirements.
-- Presence/typing indicators.
-- Delivery states beyond persisted/read.
-- Offline notification behavior.
-- Selected broadcasting driver.
-- Exact rate/connection limits.
-
-### Sources
-
-- Project rules: `SKILL.md`
-- Architecture contract: `README.md`
-- Role models: `Admin.md`, `Buyer.md`, `Seller.md`, `Courier.md`, `Logistics.md`
-- Laravel Sanctum private broadcast authorization:
-  - https://laravel.com/docs/12.x/sanctum#authorizing-private-broadcast-channels
-- Laravel broadcasting:
-  - https://laravel.com/docs/11.x/broadcasting
-- Laravel queues / after-commit:
-  - https://laravel.com/docs/12.x/queues#jobs-and-database-transactions
-- Laravel notifications:
-  - https://laravel.com/docs/12.x/notifications#broadcast-notifications
-- Laravel Reverb:
-  - https://reverb.laravel.com/
-- OWASP WebSocket Security Cheat Sheet:
-  - https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html
+- Add UUID-backed `support_tickets`, append-only `support_ticket_events`, idempotency receipts,
+  and participant read-marker tables through additive migrations. Events cover public replies,
+  status, and assignment; keep Customer–Seller `conversations`/`messages` unchanged.
+- Index requester/role, status/updated time, assignee/status, and ticket/sequence; enforce unique
+  ticket reference, per-ticket event sequence, and actor/action-scoped idempotency keys. Store
+  enum-like status/category values as strings with typed PHP enums.
+- Use the existing Sanctum, role middleware, Admin permission seeding, Form Requests, policies,
+  Resources, and focused service pattern. A ticket service owns relation validation, row locks,
+  transitions, immutable history, idempotency, and after-commit notification work.
+- Proposed **unavailable** Admin routes under `/api/v1/admin/support-tickets`: `GET /`,
+  `GET /{ticket}`, `POST /{ticket}/claim`, `POST /{ticket}/assign`,
+  `POST /{ticket}/replies`, `POST /{ticket}/status`, and `POST /{ticket}/read`.
+- Proposed **unavailable** requester routes under each of `/api/v1/customer/support-tickets`,
+  `/api/v1/seller/support-tickets`, `/api/v1/logistics/support-tickets`, and
+  `/api/v1/courier/support-tickets`: `GET /`, `POST /`, `GET /{ticket}`,
+  `POST /{ticket}/replies`, and `POST /{ticket}/read`.
+- Create accepts subject, category, first body, and optional context reference; reply accepts
+  body; actions accept expected revision and permitted reason/assignee. Mutations require a UUID
+  `Idempotency-Key`. Responses return ticket/reference/status/revision, safe context, role-safe
+  replies/events, unread count, and pagination cursor, never raw Eloquent models.
+- Add Admin `/support-tickets` queue/detail only when its API is ready. Requester entry points
+  require role-owned spec/app updates; this Admin spec does not implement their UI.
+- Use HTTP/polling first; dispatch optional notifications [after commit](https://laravel.com/docs/12.x/queues#jobs-and-database-transactions).
+  Realtime transport and email ingestion remain separate future choices.
+- Verify migration on SQLite/PostgreSQL, existing Customer–Seller chat regression, role-scoped
+  API tests, Admin and requester browser/mobile flows, accessibility, and timeout retry before
+  marking any route or UI implemented.
+- Open decision: define retention and support/appeal access for ineligible accounts before launch.

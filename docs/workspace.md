@@ -821,7 +821,7 @@ Relevant Admin/compliance/support notifications.
 
 Real-time notification transport is not mandated by the source. Polling is acceptable for MVP dashboards if real-time infrastructure is not yet required.
 
-15. Messaging
+15. Messaging and Support Tickets
 
 Role documents include communication capabilities for Admin, Buyer, Seller, Logistics, and Courier.
 
@@ -837,7 +837,7 @@ Courier ↔ Logistics.
 
 Seller ↔ Logistics.
 
-Admin ↔ users.
+Admin ↔ users through requester-owned support tickets, not unrestricted live chat.
 
 Advanced chat functionality such as real-time typing indicators or complex media messaging is not required for P0.
 

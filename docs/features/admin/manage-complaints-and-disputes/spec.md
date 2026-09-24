@@ -340,7 +340,7 @@ OPEN
 ### Project findings
 
 - `Admin.md` defines a ticket-style resolution center for user reports/complaints, evidence review, binding decisions, secure evidence storage, and an Admin action/message audit trail.
-- Admin Chat/Messaging provides the shared archived communication layer.
+- Future Admin Support Tickets may link to a complaint only through an approved, authorized reference; they do not replace the complaint decision, evidence, or audit history. No Admin chat archive is implemented.
 - Courier sources identify Delivery History and Proof of Delivery as dispute-relevant evidence.
 - `README.md` requires Laravel-owned authorization, validated transitions, transactions, audit trails, private evidence URLs, pagination, and after-commit async work.
 - Exact complaint-submission flows, state enum, remedy taxonomy, SLAs, and persistence schema are not defined.

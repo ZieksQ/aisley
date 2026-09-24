@@ -130,11 +130,11 @@ Current protected routes are:
 - **Status:** Deferred. Orders and COD snapshots exist, but platform commission, Logistics per-order fees, payouts, taxes, refunds, and a financial ledger are not yet authoritative enough for an Admin report.
 - **Boundary:** Do not calculate commission from incomplete UI collections or label generic Order totals as profit. Exports, if added, require bounded asynchronous jobs, safe downloads, and an approved financial source of truth.
 
-### 13. Chat/Messaging
+### 13. Support Tickets
 
-- **Purpose:** Support secure Admin communication with authorized Customers, Sellers, Logistics operators, or Couriers.
-- **Status:** Deferred. Conversation, participant, message, attachment, and read-state persistence is not implemented.
-- **Boundary:** Future messaging must be relationship/permission scoped and must not duplicate notification, Compliance, Complaint, or Audit records or expose private evidence, addresses, or payment data.
+- **Purpose:** Triage and resolve requester-owned support tickets from eligible Customers, Sellers, Logistics operators, or Couriers through a status-driven Admin queue and persistent public replies.
+- **Status:** Deferred. Customer–Seller chat is implemented separately; Admin ticket tables, APIs, and role UI are not. See `docs/features/admin/chat-messaging/spec.md` for the replacement ticket contract.
+- **Boundary:** Ticket access needs explicit Admin support permissions and requester ownership. Tickets do not replace notifications, Compliance, Complaints, or Audit records or grant access to unrelated private chats, evidence, addresses, or payment data.
 
 ### 14. Global Ban / Blocklist
 
@@ -169,7 +169,7 @@ Implemented Admin foundation:
 
 Deferred or dependent Admin operations:
 
-- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Chat/Messaging, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
+- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Support Tickets, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
 
 Admin does not own Seller catalog, Customer Cart/Checkout, Logistics hub operations, or Courier mobile UI. It may receive safe notifications or review records from those domains only through explicit feature contracts.
 

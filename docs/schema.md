@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, and Customer–Shop chat)
+> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, Customer–Shop, Logistics–Courier, Customer–Logistics Order chat, Seller–Logistics pickup chat, and Courier–Seller/Buyer task chat)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -652,7 +652,7 @@ Indexes cover the polymorphic recipient and recipient/read/time inbox query. Not
 
 ### 7.5b `conversations`, `conversation_participants`, and `messages`
 
-`conversations` has a UUID primary key, immutable Customer/Seller/Shop UUID FKs, unique `(customer_user_id, shop_id)`, and server-owned last sequence/message/activity. This is one Customer–Shop thread even when messages refer to different Products or Orders. Current Shop ownership and role/status are rechecked at the API boundary; a future Shop transfer does not inherit historical private chat.
+`conversations` has a UUID primary key, a string-backed `kind` (`customer_shop` by default, `logistics_courier`, `customer_logistics`, `seller_logistics`, `courier_seller`, or `courier_customer`), and server-owned last sequence/message/activity. Customer–Shop rows retain unique `(customer_user_id, shop_id)` and Customer/Seller/Shop UUID FKs. Courier operational rows use nullable Customer/Seller/Shop fields and immutable Logistics organization, sole hub, DeliveryTask, Courier, Logistics user, and task-leg fields. Unique `(logistics_organization_id, delivery_task_id, courier_user_id, logistics_user_id)` prevents duplicate bilateral Logistics–Courier task threads. Additive unique `(logistics_organization_id, delivery_task_id, courier_user_id, seller_user_id)` and `(logistics_organization_id, delivery_task_id, courier_user_id, customer_user_id)` keys keep first-mile Seller and final-mile Buyer threads distinct per task and Courier. Customer delivery rows use a nullable `order_id` FK and unique `(logistics_organization_id, order_id, customer_user_id)` to keep one thread per handling organization and owned Order. Seller pickup rows use a nullable `seller_pickup_request_id` FK and unique `(logistics_organization_id, seller_pickup_request_id, seller_user_id)` so one selected-provider pickup request has one private Seller–Logistics thread. A new Courier offer or Logistics handler never inherits the former party's history. Current task, Order/pickup relationship, custody, affiliation, hub, and account state are rechecked before sends; ended relationships remain historical read-only for authorized participants.
 
 `conversation_participants` has UUID identity, unique `(conversation_id, user_id)`, and monotonic `last_read_sequence`. Only other-party messages above that marker count as unread.
 
@@ -1462,6 +1462,10 @@ Repository migrations are listed below in filename execution order; this invento
 81. `2026_09_23_000003_create_notification_campaigns.php` — Admin campaign history and bounded per-recipient delivery snapshot with deduplication and 90-day retention.
 82. `2026_09_23_000004_create_customer_shop_conversations.php` — UUID-backed Customer–Shop conversations, per-participant read markers, and idempotent ordered text messages.
 83. `2026_09_24_000001_create_commission_settlement_finance.php` — shipping rates and commission policies, pricing snapshots, balanced finance ledger, remittance/allocations, expenses, holds, period closures, and sandbox payouts.
+84. `2026_09_24_000001_extend_conversations_for_operational_messaging.php` — string-backed conversation kind and tenant/task/Courier identity for Logistics–Courier messages, retaining the shared participant/read/message ledger.
+85. `2026_09_24_000002_add_order_conversations.php` — nullable Order FK and unique Logistics organization/Order/Customer identity for separate Customer–Logistics delivery conversations.
+86. `2026_09_24_000003_add_pickup_request_conversations.php` — nullable Seller pickup request FK and unique Logistics organization/request/Seller identity for separate Seller–Logistics pickup conversations.
+87. `2026_09_24_000004_add_courier_counterparty_conversations.php` — unique organization/task/Courier/Seller and organization/task/Courier/Buyer identities for separate accepted-task Courier conversations.
 
 ## 14. Fulfillment schema and deferred extensions
 
@@ -1535,7 +1539,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Customer verified-purchase ratings/media/aggregates and Seller-scoped immutable public Shop responses are implemented; moderation, editing/deletion, video, and refund effects remain deferred |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
-| Messaging                  | Shared Customer–Shop text conversations, participant read markers, and ordered messages are implemented. Attachments, broadcasting, retention/moderation workflow, and other-role chat remain deferred. |
+| Messaging and support      | Shared Customer–Shop text conversations, Logistics–Courier task chat, separate Customer–Logistics Order chat, separate Seller–Logistics pickup chat, and accepted-task Courier–Seller/Buyer API channels with participant read markers and ordered messages are implemented. Admin support-ticket tables/API/UI, Courier Flutter UI, Seller/Customer Courier-chat screens, attachments, broadcasting, and retention/moderation workflow remain deferred. |
 | Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 
