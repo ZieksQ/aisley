@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implementation-ready draft
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -29,7 +29,7 @@ scope: Seller Web Application and Laravel API
 - **Payment decision:** COD is the only current payment method. A valid COD Order may be approved while `payment_status = pending`; payment becomes `paid` only when delivery is completed by the downstream delivery/payment transition. Seller approval never changes payment state.
 - **Waybill decision:** Aisley creates one immutable shared waybill per Order in the Seller's pickup-request transaction; Seller and selected Logistics receive role-scoped access.
 - **Project boundary:** One Customer checkout creates one Seller/Shop Order per Shop. Seller reads and mutations are always scoped to the authenticated Seller's one Shop.
-- **Order navigation:** Seller Orders are separated into Monitoring, Approval, and Pickup sections. Monitoring provides status counts and sorting; Approval owns approve/reject decisions; Pickup owns multi-Order readiness requests.
+- **Order navigation:** The collapsible Seller sidebar Orders group retains separate Monitoring, Approval, and Pickup links. Monitoring provides status counts and sorting; Approval owns approve/reject decisions; Pickup owns multi-Order readiness requests. Order detail and preparation routes reopen the group without creating a fourth workflow.
 - **Non-goals:** payment collection, editable/client-generated waybill data, Courier assignment, Courier pickup confirmation, Logistics scans/transfers, delivery completion, Buyer address editing, and arbitrary Order edits.
 
 ## MUST

@@ -3,7 +3,7 @@ feature: dashboard
 title: Seller Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Implemented catalog slice, separate Order queue, and review summary
 role: Seller
 scope: Seller Web Application
@@ -21,6 +21,7 @@ source_coverage: docs/PROGRESS.md, docs/features/seller/review-management/spec.m
 - **Review slice:** a read-only summary from the Seller Review Management ledger: published Reviews, answered Reviews, and Reviews awaiting a Shop response.
 - **Later sections:** Orders, Inventory/low stock, finance, traffic, notifications, reports, and other metrics become available only when their owning domain defines a reconciled source.
 - **One-Shop rule:** the account owns one Shop. Registration creates it pending; after approval, setup edits that Shop rather than creating another one.
+- **Seller navigation:** The shared React sidebar keeps Dashboard directly accessible and groups existing feature links by workflow; this does not change their route ownership or API authorization.
 - **Non-goals:** mutations, platform-wide totals, fabricated analytics, duplicate metric stores, or Seller access to another Shop.
 
 ```text
@@ -79,6 +80,9 @@ active Seller session
 ### UX and acceptance
 
 - Render responsive light/dark layouts with keyboard focus, text labels, accessible chart summaries, and non-color-only states.
+- Keep Dashboard directly accessible and group the remaining sidebar routes as **Shop** (Products, Inventory, Low-stock alerts, Finance), **Orders** (Monitoring, Approval, Pickup), **Communication** (Product Q&A, Product reviews, Customer/Logistics messages, Support tickets), and **My account** (Account settings, Policy consent).
+- Show one expanded group at a time. On navigation or reload, automatically open the group containing the current route, including Product Q&A and Order detail/prepare routes. On Dashboard, groups begin collapsed.
+- Group buttons must be keyboard-operable, expose expanded state to assistive technology, and preserve clear active links in both themes and mobile navigation. Navigation grouping does not add new dashboard metrics or move actions between owning features.
 - Support loading, loaded, empty, setup-required, unavailable, partial-error, stale/refetch, session-expired, and retry states.
 - [x] Guests and inactive/non-Seller accounts cannot use the API or protected page.
 - [x] Every current catalog value and Shop identifier is authenticated-Seller scoped.
@@ -87,6 +91,7 @@ active Seller session
 - [x] The separate placed-Order panel reads the implemented Seller Order API without claiming `sections.orders` is available.
 - [x] Review `total`, `answered`, and `unanswered` reconcile with the Shop-scoped Review ledger for all-time and normalized periods, including hidden/archived Products and another Seller's data.
 - [x] Review empty, error, stale/refetch, consent/session, and responsive keyboard-accessible states are implemented; the card links to the existing queue without inventing a filtered period view. Browser interaction remains unverified.
+- [x] Seller sidebar groups preserve the existing feature routes and separate Monitoring, Approval, and Pickup links, with active-route expansion and keyboard/mobile controls.
 - [ ] Inventory, finance, traffic, notification, report, and comparison metrics are enabled only after their owning contracts and reconciliation tests exist.
 
 ## HOW

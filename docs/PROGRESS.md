@@ -38,3 +38,5 @@ Format:
 ## 2026-09-25
 
 - Grouped the Admin sidebar into Accounts, Communication, Platform, and My account while keeping Dashboard direct, feature-permission filtering, active-route expansion, keyboard controls, and mobile close behavior. Updated the Dashboard navigation contract and Admin domain route list. Admin TypeScript, changed-file oxlint, and Vite production build pass; the existing large-chunk build warning remains.
+
+- Grouped the Seller sidebar into Shop, Orders, Communication, and My account while keeping Dashboard direct and Monitoring/Approval/Pickup separate. The current group's navigation opens automatically for detail and preparation routes, with keyboard-operable controls and mobile close behavior. Updated the Seller Dashboard, Order Approval, and domain docs. Seller TypeScript, changed-file oxlint, and Vite production build pass; the existing large-chunk warning remains.

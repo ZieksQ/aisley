@@ -2,33 +2,17 @@ import { useState } from 'react'
 import {
   FaArrowRightFromBracket,
   FaBars,
-  FaClipboardList,
-  FaChartLine,
-  FaComments,
-  FaFileContract,
-  FaGaugeHigh,
-  FaBoxesStacked,
-  FaTriangleExclamation,
-  FaBoxOpen,
   FaStore,
-  FaStar,
-  FaUserGear,
   FaXmark,
 } from 'react-icons/fa6'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { SellerAvatar } from '../components/SellerAvatar'
 import { NotificationBell } from '../components/notifications/NotificationBell'
+import { SellerSidebarNav } from '../components/SellerSidebarNav'
 
 const storefrontUrl = (import.meta.env.VITE_STOREFRONT_URL ?? 'http://localhost:3000').replace(/\/$/, '')
-
-const navClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
-    isActive
-      ? 'bg-purple-50 text-[#4C1268] dark:bg-white/10 dark:text-white'
-      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-white'
-  }`
 
 export function SellerLayout() {
   const { seller, logout } = useAuth()
@@ -76,66 +60,7 @@ export function SellerLayout() {
         </div>
 
         <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
-          <nav aria-label="Seller navigation" className="mt-8">
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/dashboard">
-              <FaGaugeHigh aria-hidden="true" />
-              Dashboard
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/finance"><FaChartLine aria-hidden="true" />Finance</NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/products">
-              <FaBoxOpen aria-hidden="true" />
-              Products
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/product-questions">
-              <FaComments aria-hidden="true" />
-              Product Q&A
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/reviews">
-              <FaStar aria-hidden="true" />
-              Product reviews
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/messages">
-              <FaComments aria-hidden="true" />
-              Messages
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/logistics-messages">
-              <FaComments aria-hidden="true" />
-              Logistics messages
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/support-tickets">
-              <FaComments aria-hidden="true" />
-              Support tickets
-            </NavLink>
-            <div className="mt-1 flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              <FaClipboardList aria-hidden="true" />
-              Orders
-            </div>
-            <div className="ml-6 border-l border-zinc-200 pl-2 dark:border-white/10">
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/orders/monitoring">Monitoring</NavLink>
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/orders/approval">Approval</NavLink>
-              <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/orders/pickup">Pickup</NavLink>
-            </div>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/inventory">
-              <FaBoxesStacked aria-hidden="true" />
-              Inventory
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/low-stock-alerts">
-              <FaTriangleExclamation aria-hidden="true" />
-              Low-stock alerts
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/account">
-              <FaUserGear aria-hidden="true" />
-              Account settings
-            </NavLink>
-            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/policy-consent">
-              <FaFileContract aria-hidden="true" />
-              Policy consent
-            </NavLink>
-          </nav>
-
-          <p className="mt-5 border-t border-zinc-200 px-3 pt-5 text-xs leading-5 text-zinc-500 dark:border-white/10 dark:text-zinc-500">
-            Pickup requests include a shared A6 waybill for every prepared Order.
-          </p>
+          <SellerSidebarNav onNavigate={() => setIsMenuOpen(false)} />
         </div>
 
         <div className="mt-5 shrink-0 border-t border-zinc-200 pt-4 dark:border-white/10">
