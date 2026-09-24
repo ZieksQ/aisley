@@ -14,7 +14,7 @@ class StartOperationalConversationRequest extends OperationalMessageRequest
             'leg' => [$this->input('context_type') ? 'prohibited' : 'required', Rule::in(['first_mile', 'final_mile'])],
             'context_type' => [$this->routeIs('courier.*') ? 'prohibited' : 'sometimes', Rule::in(['order', 'pickup_request'])],
             'context_id' => [$this->input('context_type') ? 'required' : 'prohibited', 'uuid'],
-            'counterparty_role' => [$this->routeIs('courier.*') ? 'required' : 'prohibited', Rule::in(['logistics'])],
+            'counterparty_role' => [$this->routeIs('courier.*') ? 'required' : 'prohibited', Rule::in(['logistics', 'seller', 'customer'])],
         ];
     }
 

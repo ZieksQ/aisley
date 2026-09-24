@@ -37,6 +37,7 @@ use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
+use App\Http\Controllers\Customer\CourierConversationController as CustomerCourierConversationController;
 use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\LogisticsConversationController as CustomerLogisticsConversationController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
@@ -81,10 +82,11 @@ use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
-use App\Http\Controllers\Seller\LogisticsConversationController as SellerLogisticsConversationController;
+use App\Http\Controllers\Seller\CourierConversationController as SellerCourierConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
+use App\Http\Controllers\Seller\LogisticsConversationController as SellerLogisticsConversationController;
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
 use App\Http\Controllers\Seller\NotificationController as SellerNotificationController;
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
@@ -277,6 +279,14 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
+    Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
+        Route::get('/', [SellerCourierConversationController::class, 'index'])->name('index');
+        Route::post('/', [SellerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+        Route::get('/{conversation}', [SellerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+        Route::get('/{conversation}/messages', [SellerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+        Route::post('/{conversation}/messages', [SellerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+        Route::post('/{conversation}/read', [SellerCourierConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+    });
     Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
         Route::get('/', [SellerLogisticsConversationController::class, 'index'])->name('index');
         Route::post('/', [SellerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -608,6 +618,14 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
+            Route::get('/', [CustomerCourierConversationController::class, 'index'])->name('index');
+            Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::get('/{conversation}', [CustomerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+            Route::get('/{conversation}/messages', [CustomerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+            Route::post('/{conversation}/messages', [CustomerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/read', [CustomerCourierConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+        });
         Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
             Route::get('/', [CustomerLogisticsConversationController::class, 'index'])->name('index');
             Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');

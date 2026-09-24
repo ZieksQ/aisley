@@ -20,6 +20,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - This Customer spec owns initiation, inbox, thread, composer, unread state, and Customer-facing error behavior. The same shared conversation/message records must serve the Seller's authorized reply UI.
 - **MVP:** one text conversation per Customer and Shop, with optional Product/Order context on a message. Reopening Chat from another Product or Order reuses that thread.
 - Customer ↔ Logistics delivery chat is now a separate Order-scoped feature under the Logistics operational-chat contract and `/delivery-messages`; it never joins this Customer–Shop inbox. Admin and Courier contact still need separate role-owned rules.
+- A separate Courier–Buyer final-mile **API** now exists for an accepted task on the Customer's owned Order. The storefront has no Courier inbox or entry point yet; client implementation remains deferred. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md).
 - Product Q&A stays public and Product-scoped. Chat is private; it cannot change Orders, Inventory, delivery status, refunds, or complaint decisions.
 - Existing order tracking and seller-help links remain authoritative. A chat statement is not evidence that a delivery, refund, or policy action was committed.
 - No guest chat, file/image attachments, calls, typing indicators, online presence, message edits/deletion, AI replies, or WebSocket dependency in the first release.

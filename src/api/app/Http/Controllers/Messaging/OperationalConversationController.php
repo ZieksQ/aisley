@@ -8,6 +8,7 @@ use App\Http\Requests\Messaging\OperationalMessageRequest;
 use App\Http\Requests\Messaging\StartOperationalConversationRequest;
 use App\Models\Conversation;
 use App\Models\User;
+use App\Services\Messaging\CourierCounterpartyConversationService;
 use App\Services\Messaging\CustomerLogisticsConversationService;
 use App\Services\Messaging\OperationalConversationService;
 use App\Services\Messaging\SellerLogisticsConversationService;
@@ -22,6 +23,7 @@ class OperationalConversationController extends Controller
         private readonly OperationalConversationService $conversations,
         private readonly CustomerLogisticsConversationService $orders,
         private readonly SellerLogisticsConversationService $pickups,
+        private readonly CourierCounterpartyConversationService $counterparties,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -33,7 +35,7 @@ class OperationalConversationController extends Controller
         ]);
         $actor = $request->user();
         $role = $this->role($request);
-        $query = ($role === 'logistics' ? $this->mixedScope($actor) : $this->conversations->scoped($actor, $role))
+        $query = ($role === 'logistics' ? $this->mixedScope($actor) : $this->mixedCourierScope($actor))
             ->whereNotNull('last_message_at')
             ->when($input['leg'] ?? null, fn ($query, $leg) => $query->where('task_leg', $leg))
             ->orderByDesc('last_message_at')->orderByDesc('id');
@@ -43,7 +45,9 @@ class OperationalConversationController extends Controller
         return $this->response(['data' => $items, 'meta' => [
             'next_cursor' => $page->nextCursor()?->encode(),
             'unread_count' => $this->conversations->unreadTotal($actor, $role)
-                + ($role === 'logistics' ? $this->orders->unreadTotal($actor, 'logistics') + $this->pickups->unreadTotal($actor, 'logistics') : 0),
+                + ($role === 'logistics'
+                    ? $this->orders->unreadTotal($actor, 'logistics') + $this->pickups->unreadTotal($actor, 'logistics')
+                    : $this->counterparties->unreadTotal($actor, 'courier')),
         ]]);
     }
 
@@ -52,12 +56,10 @@ class OperationalConversationController extends Controller
         $actor = $request->user();
         $role = $this->role($request);
         $input = $request->validated();
-        if ($role === 'courier' && ($input['counterparty_role'] ?? null) !== 'logistics') {
-            abort(422, 'Only Logistics messaging is available for Courier tasks.');
-        }
-        $result = match ($role === 'logistics' ? ($input['context_type'] ?? null) : null) {
+        $result = match ($role === 'logistics' ? ($input['context_type'] ?? null) : ($input['counterparty_role'] ?? null)) {
             'order' => $this->orders->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey()),
             'pickup_request' => $this->pickups->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey()),
+            'seller', 'customer' => $this->counterparties->startFromTask($actor, $input['counterparty_role'], $input['leg'], $input['task_id'], $input['body'], $request->idempotencyKey()),
             default => $this->conversations->start($actor, $role, $input, $request->idempotencyKey()),
         };
 
@@ -128,15 +130,19 @@ class OperationalConversationController extends Controller
         if ($role === 'logistics' && $record = $this->pickups->scoped($actor, $role)->whereKey($id)->first()) {
             return $record;
         }
+        if ($role === 'courier' && $record = $this->counterparties->scoped($actor, $role)->whereKey($id)->first()) {
+            return $record;
+        }
 
         return $this->conversations->find($actor, $role, $id);
     }
 
-    private function service(Conversation $record): OperationalConversationService|CustomerLogisticsConversationService|SellerLogisticsConversationService
+    private function service(Conversation $record): OperationalConversationService|CustomerLogisticsConversationService|SellerLogisticsConversationService|CourierCounterpartyConversationService
     {
         return match ($record->kind) {
             ConversationKind::CustomerLogistics => $this->orders,
             ConversationKind::SellerLogistics => $this->pickups,
+            ConversationKind::CourierSeller, ConversationKind::CourierCustomer => $this->counterparties,
             default => $this->conversations,
         };
     }
@@ -149,6 +155,18 @@ class OperationalConversationController extends Controller
             ->where('logistics_user_id', $actor->id)
             ->where('logistics_organization_id', $org->id)
             ->where('logistics_hub_id', $org->hub->id)
+            ->whereHas('participants', fn ($query) => $query->where('user_id', $actor->id));
+    }
+
+    private function mixedCourierScope(User $actor): Builder
+    {
+        $affiliation = $actor->courierLogisticsAffiliation()->where('status', 'approved')->firstOrFail();
+
+        return Conversation::query()->whereIn('kind', [ConversationKind::LogisticsCourier->value,
+            ConversationKind::CourierSeller->value, ConversationKind::CourierCustomer->value])
+            ->where('courier_user_id', $actor->id)
+            ->where('logistics_organization_id', $affiliation->logistics_organization_id)
+            ->where('logistics_hub_id', $affiliation->logistics_hub_id)
             ->whereHas('participants', fn ($query) => $query->where('user_id', $actor->id));
     }
 
