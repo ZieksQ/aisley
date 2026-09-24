@@ -74,6 +74,16 @@ class AdminPermissionSeeder extends Seeder
             'slug' => 'finance.manage',
             'description' => 'Publish rates and commissions, reconcile remittances, manage holds, and run sandbox settlements.',
         ],
+        [
+            'name' => 'View support tickets',
+            'slug' => 'support-tickets.view',
+            'description' => 'View the Admin support-ticket queue and ticket history.',
+        ],
+        [
+            'name' => 'Manage support tickets',
+            'slug' => 'support-tickets.manage',
+            'description' => 'Claim, assign, reply to, and change the status of support tickets.',
+        ],
     ];
 
     public function run(): void

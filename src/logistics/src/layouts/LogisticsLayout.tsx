@@ -88,6 +88,8 @@ export function LogisticsLayout() {
 
   const title = location.pathname.startsWith('/finance')
     ? 'Finance'
+    : location.pathname.startsWith('/support-tickets')
+    ? 'Support tickets'
     : location.pathname.startsWith('/messages')
     ? 'Operational messages'
     : location.pathname.startsWith('/receive-at-hub')
@@ -140,6 +142,7 @@ export function LogisticsLayout() {
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/operations"><FaMagnifyingGlass />Parcel search</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/pickups"><FaBoxesPacking />Pickups</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/messages"><FaCommentDots />Operational messages</NavLink>
+        <NavLink className={navClass} onClick={() => setOpen(false)} to="/support-tickets"><FaCommentDots />Support tickets</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sorting"><FaArrowDownShortWide />Sorting</NavLink>
         <NavLink className={navClass} onClick={() => setOpen(false)} to="/sort-plan"><FaRoute /><span>Sort plan</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>

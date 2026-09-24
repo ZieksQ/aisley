@@ -20,6 +20,7 @@ import { FeatureControlsPage } from './pages/FeatureControlsPage'
 import { FinancePage } from './pages/FinancePage'
 import { NotificationCampaignsPage } from './pages/NotificationCampaignsPage'
 import { NotificationCampaignDetailPage } from './pages/NotificationCampaignDetailPage'
+import { SupportTicketsPage } from './pages/SupportTicketsPage'
 
 function App() {
   return (
@@ -43,6 +44,8 @@ function App() {
           <Route element={<NotificationsPage />} path="/notifications" />
           <Route element={<NotificationCampaignsPage />} path="/notification-campaigns" />
           <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/:campaignId" />
+          <Route element={<SupportTicketsPage />} path="/support-tickets" />
+          <Route element={<SupportTicketsPage />} path="/support-tickets/:ticketId" />
           <Route element={<UsersPage />} path="/users" />
           <Route element={<UserDetailPage />} path="/users/:userId" />
           <Route element={<SellerCompliancePage />} path="/seller-compliance" />

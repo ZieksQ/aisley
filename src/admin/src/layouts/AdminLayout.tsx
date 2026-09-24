@@ -49,16 +49,17 @@ export function AdminLayout() {
   const canViewUsers = admin?.permissions.includes('users.view') ?? false
   const canManageSellerCompliance = admin?.permissions.includes('seller_compliance.manage') ?? false
   const canViewFinance = admin?.permissions.includes('finance.view') ?? false
+  const canViewSupportTickets = admin?.permissions.includes('support-tickets.view') ?? false
   const isUserDetail = /^\/users\/[^/]+$/.test(location.pathname)
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
   const isHomepageAdEditor = location.pathname.startsWith('/platform-settings/homepage-ads/')
-  const pageTitle = location.pathname.startsWith('/notification-campaigns') ? 'Notification campaigns' : location.pathname.startsWith('/registrations')
+  const pageTitle = location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/notification-campaigns') ? 'Notification campaigns' : location.pathname.startsWith('/registrations')
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
       : location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/users') ? isUserDetail ? 'User account' : 'Manage user accounts' : location.pathname.startsWith('/seller-compliance') ? location.pathname.includes('/cases/') ? 'Compliance case' : 'Seller compliance' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : location.pathname.startsWith('/feature-controls') ? 'Feature controls' : location.pathname.startsWith('/platform-settings') ? isHomepageAdEditor ? 'Homepage advertisement' : 'Platform settings' : 'Dashboard'
-  const pageContext = location.pathname.startsWith('/notification-campaigns') ? 'Customer in-app messages' : location.pathname.startsWith('/registrations')
+  const pageContext = location.pathname.startsWith('/support-tickets') ? 'User support' : location.pathname.startsWith('/notification-campaigns') ? 'Customer in-app messages' : location.pathname.startsWith('/registrations')
     ? 'Account approvals'
     : location.pathname.startsWith('/audit-logs')
       ? 'System accountability'
@@ -146,6 +147,12 @@ export function AdminLayout() {
                 <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/notifications">
                   <FaInbox aria-hidden="true" />
                   Notifications
+                </NavLink>
+              )}
+              {canViewSupportTickets && (
+                <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/support-tickets">
+                  <FaInbox aria-hidden="true" />
+                  Support tickets
                 </NavLink>
               )}
               {canViewCampaigns && (

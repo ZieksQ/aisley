@@ -13,6 +13,7 @@
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/finance-ui": "workspace:*",
     "@aisley/ui": "workspace:*",
+    "@aisley/support-tickets": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",

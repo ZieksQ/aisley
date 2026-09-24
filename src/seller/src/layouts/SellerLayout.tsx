@@ -102,6 +102,10 @@ export function SellerLayout() {
               <FaComments aria-hidden="true" />
               Logistics messages
             </NavLink>
+            <NavLink className={navClass} onClick={() => setIsMenuOpen(false)} to="/support-tickets">
+              <FaComments aria-hidden="true" />
+              Support tickets
+            </NavLink>
             <div className="mt-1 flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               <FaClipboardList aria-hidden="true" />
               Orders
@@ -178,7 +182,7 @@ export function SellerLayout() {
             >
               <FaBars aria-hidden="true" />
             </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/logistics-messages') ? 'Logistics messages' : location.pathname.startsWith('/messages') ? 'Messages' : location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/reviews') ? 'Product reviews' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
+            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/logistics-messages') ? 'Logistics messages' : location.pathname.startsWith('/messages') ? 'Messages' : location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/reviews') ? 'Product reviews' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />

@@ -14,6 +14,7 @@
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/finance-ui": "workspace:*",
     "@aisley/ui": "workspace:*",
+    "@aisley/support-tickets": "workspace:*",
     "@mdxeditor/editor": "^3.55.0",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",

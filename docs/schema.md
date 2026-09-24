@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, Customer–Shop, Logistics–Courier, Customer–Logistics Order chat, Seller–Logistics pickup chat, and Courier–Seller/Buyer task chat)
+> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, private role chat, and Admin support tickets)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -98,6 +98,13 @@ erDiagram
     USERS ||--o{ CONVERSATION_PARTICIPANTS : reads
     CONVERSATIONS ||--o{ MESSAGES : contains
     USERS ||--o{ MESSAGES : sends
+    USERS ||--o{ SUPPORT_TICKETS : requests
+    USERS o|--o{ SUPPORT_TICKETS : assigned_as_admin
+    SUPPORT_TICKETS ||--o{ SUPPORT_TICKET_EVENTS : records
+    USERS ||--o{ SUPPORT_TICKET_EVENTS : acts
+    SUPPORT_TICKETS ||--o{ SUPPORT_TICKET_READ_MARKERS : tracks_reads
+    USERS ||--o{ SUPPORT_TICKET_READ_MARKERS : reads
+    USERS ||--o{ SUPPORT_TICKET_IDEMPOTENCY_RECEIPTS : retries
     USERS ||--o{ NOTIFICATION_CAMPAIGNS : creates
     NOTIFICATION_CAMPAIGNS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : snapshots
     USERS ||--o{ NOTIFICATION_CAMPAIGN_RECIPIENTS : may_receive
@@ -657,6 +664,12 @@ Indexes cover the polymorphic recipient and recipient/read/time inbox query. Not
 `conversation_participants` has UUID identity, unique `(conversation_id, user_id)`, and monotonic `last_read_sequence`. Only other-party messages above that marker count as unread.
 
 `messages` has UUID identity, conversation/sender UUID FKs, a unique per-thread sequence, unique `(sender_user_id, idempotency_key)`, a payload hash for conflicting-key detection, plain-text body, and nullable Product/Order UUID context. Text is not a notification payload; the shared history and read markers are authoritative. File attachments, broadcast state, participant archive/mute/report, and retention decisions are not represented in this first release.
+
+### 7.5c Admin support tickets
+
+`support_tickets` is a separate UUID-backed workflow store, not a conversation kind. Each row has a unique non-authorizing `SUP-` reference, requester User/role, optional assigned Admin User, subject, string-backed category/status, revision, last event sequence/activity, and optional resolution time. The first-release create API accepts subject/category/description only; it stores no Order, Shop, pickup, task, or compliance link.
+
+`support_ticket_events` records each public reply, status transition, and assignment as a unique per-ticket sequence with actor User/role and UTC time. A PostgreSQL/SQLite trigger rejects UPDATE/DELETE. `support_ticket_read_markers` has one UUID row per `(ticket_id, user_id)`, so every Admin has an independent monotonic read position and cannot clear another Admin's unread count. Requester markers are likewise independent from notification read state. `support_ticket_idempotency_receipts` stores an actor/action/key-unique payload hash and original safe response/status for exact retry. Ticket and event FKs restrict hard deletion. No source-record links, attachments, notification fanout, retention purge, or appeal exception are represented in this release.
 
 ### 7.6 `account_lifecycle_events`
 
@@ -1466,6 +1479,8 @@ Repository migrations are listed below in filename execution order; this invento
 85. `2026_09_24_000002_add_order_conversations.php` — nullable Order FK and unique Logistics organization/Order/Customer identity for separate Customer–Logistics delivery conversations.
 86. `2026_09_24_000003_add_pickup_request_conversations.php` — nullable Seller pickup request FK and unique Logistics organization/request/Seller identity for separate Seller–Logistics pickup conversations.
 87. `2026_09_24_000004_add_courier_counterparty_conversations.php` — unique organization/task/Courier/Seller and organization/task/Courier/Buyer identities for separate accepted-task Courier conversations.
+88. `2026_09_24_000005_create_support_tickets.php` — UUID-backed support tickets, immutable-event rows, individual read markers, and idempotency receipts.
+89. `2026_09_24_000006_enforce_support_ticket_event_history.php` — PostgreSQL/SQLite append-only history triggers for support-ticket events.
 
 ## 14. Fulfillment schema and deferred extensions
 
@@ -1539,7 +1554,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Customer verified-purchase ratings/media/aggregates and Seller-scoped immutable public Shop responses are implemented; moderation, editing/deletion, video, and refund effects remain deferred |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
-| Messaging and support      | Shared Customer–Shop text conversations, Logistics–Courier task chat, separate Customer–Logistics Order chat, separate Seller–Logistics pickup chat, and accepted-task Courier–Seller/Buyer API channels with participant read markers and ordered messages are implemented. Admin support-ticket tables/API/UI, Courier Flutter UI, Seller/Customer Courier-chat screens, attachments, broadcasting, and retention/moderation workflow remain deferred. |
+| Messaging and support      | Shared Customer–Shop text conversations, Logistics–Courier task chat, separate Customer–Logistics Order chat, separate Seller–Logistics pickup chat, and accepted-task Courier–Seller/Buyer API channels are implemented. Separate Admin support-ticket tables/API and Admin/Customer/Seller/Logistics web UI are implemented with per-Admin read markers; Courier Flutter UI, Seller/Customer Courier-chat screens, attachments, broadcasting, linked ticket context, and retention/moderation workflow remain deferred. |
 | Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 
