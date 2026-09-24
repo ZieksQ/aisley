@@ -2,8 +2,9 @@ import { csrf, requestWithTimeout } from './api'
 
 const base = '/api/v1/logistics/operational-conversations'
 
-export type OperationalThread = {
+export type CourierThread = {
   id: string
+  kind: 'logistics_courier'
   leg: 'first_mile' | 'final_mile'
   task_id: string
   task_reference: string | null
@@ -18,11 +19,20 @@ export type OperationalThread = {
   read_only_reason: string | null
 }
 
+export type CustomerThread = Omit<CourierThread, 'kind' | 'leg' | 'task_id' | 'task_reference' | 'counterparty_role'> & {
+  kind: 'customer_logistics'
+  order_id: string
+  order_reference: string | null
+  counterparty_role: 'customer'
+}
+
+export type OperationalThread = CourierThread | CustomerThread
+
 export type OperationalMessage = {
   id: string
   conversation_id: string
   sequence: number
-  sender_role: 'courier' | 'logistics'
+  sender_role: 'courier' | 'customer' | 'logistics'
   mine: boolean
   body: string
   created_at: string
@@ -39,6 +49,10 @@ export const operationalChat = {
   async start(leg: 'first_mile' | 'final_mile', taskId: string, body: string, key: string) {
     await csrf()
     return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ leg, task_id: taskId, body }) })
+  },
+  async startOrder(orderId: string, body: string, key: string) {
+    await csrf()
+    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'order', context_id: orderId, body }) })
   },
   async send(id: string, body: string, key: string) {
     await csrf()

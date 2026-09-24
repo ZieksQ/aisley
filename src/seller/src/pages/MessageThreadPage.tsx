@@ -4,6 +4,7 @@ import { ApiError } from '../lib/api'
 import { getConversation, listMessages, markRead, sendMessage, type Conversation, type Message } from '../lib/messages'
 
 function errorText(reason: unknown) {
+  if (reason instanceof Error && reason.message.startsWith('Message delivery was not confirmed')) return reason.message
   if (!(reason instanceof ApiError)) return 'Your connection may be unavailable. Retry with the same message.'
   if (reason.status === 404) return 'This conversation is unavailable to your Shop.'
   if (reason.status === 429) return 'Too many messages. Wait a moment and retry.'
@@ -91,7 +92,7 @@ export function MessageThreadPage() {
       await refresh()
     } catch (reason) {
       setSendError(errorText(reason))
-      await refresh()
+      void refresh()
     } finally { setBusy(false) }
   }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Messaging;
 
+use App\Enums\ConversationKind;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
@@ -20,7 +21,7 @@ class ConversationService
 {
     public function scoped(User $actor, string $role): Builder
     {
-        return Conversation::query()->when($role === 'customer',
+        return Conversation::query()->where('kind', ConversationKind::CustomerShop->value)->when($role === 'customer',
             fn (Builder $query) => $query->where('customer_user_id', $actor->id),
             fn (Builder $query) => $query->where('seller_user_id', $actor->id)
                 ->whereHas('shop', fn (Builder $shop) => $shop->where('seller_id', $actor->id)));
@@ -35,6 +36,7 @@ class ConversationService
     {
         return (int) DB::table('messages')
             ->join('conversations', 'conversations.id', '=', 'messages.conversation_id')
+            ->where('conversations.kind', ConversationKind::CustomerShop->value)
             ->join('conversation_participants', function ($join) use ($actor): void {
                 $join->on('conversation_participants.conversation_id', '=', 'conversations.id')
                     ->where('conversation_participants.user_id', '=', $actor->id);

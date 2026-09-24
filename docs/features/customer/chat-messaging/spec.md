@@ -4,7 +4,7 @@ title: Customer Chat with Seller
 system: AISLEY
 type: Feature Specification
 version: 2.0
-status: First-release shared text chat implemented; PostgreSQL/browser verification and retention policy pending
+status: Customer–Shop text chat verified on SQLite, PostgreSQL, and role browsers; retention policy pending
 role: Customer
 scope: Customer Next.js storefront and shared Laravel messaging domain
 ---
@@ -19,7 +19,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - AISLEY has Product Q&A, Customer/Seller notifications, Shop/Product pages, Order Detail, one shared conversation/message store, role-scoped chat APIs, and Customer/Seller inbox and thread pages.
 - This Customer spec owns initiation, inbox, thread, composer, unread state, and Customer-facing error behavior. The same shared conversation/message records must serve the Seller's authorized reply UI.
 - **MVP:** one text conversation per Customer and Shop, with optional Product/Order context on a message. Reopening Chat from another Product or Order reuses that thread.
-- Customer ↔ Admin, Courier, or Logistics chat uses future role-owned initiation rules; this feature does not grant unrestricted contact with those roles.
+- Customer ↔ Logistics delivery chat is now a separate Order-scoped feature under the Logistics operational-chat contract and `/delivery-messages`; it never joins this Customer–Shop inbox. Admin and Courier contact still need separate role-owned rules.
 - Product Q&A stays public and Product-scoped. Chat is private; it cannot change Orders, Inventory, delivery status, refunds, or complaint decisions.
 - Existing order tracking and seller-help links remain authoritative. A chat statement is not evidence that a delivery, refund, or policy action was committed.
 - No guest chat, file/image attachments, calls, typing indicators, online presence, message edits/deletion, AI replies, or WebSocket dependency in the first release.
@@ -84,15 +84,17 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 
 ### Acceptance criteria
 
-- [ ] Guests and other roles cannot use Customer chat endpoints; one Customer cannot list, read, send, or mark read in another Customer's thread.
+- [x] Guests and other roles cannot use Customer chat endpoints; one Customer cannot list, read, send, or mark read in another Customer's thread.
 - [ ] Shop/Product/Order entry points resolve the correct Seller server-side; forged, invisible, cross-Shop, or unowned context is rejected.
-- [ ] Two concurrent first sends and exact retries create one Customer-Shop conversation and one copy of each intended message.
-- [ ] Sender, sequence, timestamp, recipient, and read state are server-controlled; empty/oversized/HTML-like text is safely rejected or displayed as text.
+- [x] Two concurrent first sends and exact retries create one Customer-Shop conversation and one copy of each intended message.
+- [x] Sender, sequence, timestamp, recipient, and read state are server-controlled; empty/oversized/HTML-like text is safely rejected or displayed as text.
 - [ ] Inbox/history pagination and unread counts reconcile across refreshes and devices; stale read updates never move backward.
 - [ ] A committed message survives notification/polling failure, and a rolled-back send creates no visible success or recipient alert.
-- [ ] Seller can reply through the shared authorized domain before Customer chat is enabled; no private Shop, Customer, or Order data leaks.
-- [ ] A suspended Seller cannot newly receive/send while the Customer can still read the permitted historical thread.
+- [x] Seller can reply through the shared authorized domain before Customer chat is enabled; no private Shop, Customer, or Order data leaks.
+- [x] A suspended Seller cannot newly receive/send while the Customer can still read the permitted historical thread.
 - [ ] Customer screens handle unavailable contexts, offline/timeout, 401/403/404/409/422/429, keyboard use, and narrow viewports.
+
+Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passed; PostgreSQL two-worker first-send/send races produced one Customer–Shop thread and monotonic messages; shared chat migrations rolled back and reapplied on PostgreSQL. Chromium covered Customer/Seller login, a 390px thread, plain-text rendering, cross-role reply, focus/reconnect, offline draft retention, and 15-second timeout/retry with the same idempotency key. Broad error-state/accessibility checks and private-message retention/abuse policy remain open; unchecked criteria are not claimed complete.
 
 ## HOW
 

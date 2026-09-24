@@ -38,6 +38,7 @@ use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
 use App\Http\Controllers\Customer\HomepageController;
+use App\Http\Controllers\Customer\LogisticsConversationController as CustomerLogisticsConversationController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Customer\ProductDetailController;
@@ -59,6 +60,7 @@ use App\Http\Controllers\Logistics\DeliveryConfirmationController;
 use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
+use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
 use App\Http\Controllers\Logistics\LinehaulController;
@@ -67,10 +69,9 @@ use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
 use App\Http\Controllers\Logistics\ReceivingController;
+use App\Http\Controllers\Logistics\ShippingRateController;
 use App\Http\Controllers\Logistics\SortingController;
 use App\Http\Controllers\Logistics\SortingPlanController;
-use App\Http\Controllers\Logistics\ShippingRateController;
-use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
 use App\Http\Controllers\Messaging\OperationalConversationController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
@@ -81,6 +82,7 @@ use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
 use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
+use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\InventoryController as SellerInventoryController;
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
 use App\Http\Controllers\Seller\NotificationController as SellerNotificationController;
@@ -91,7 +93,6 @@ use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController
 use App\Http\Controllers\Seller\ProductReviewController as SellerProductReviewController;
 use App\Http\Controllers\Seller\ProductReviewImageController as SellerProductReviewImageController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
-use App\Http\Controllers\Seller\FinanceController as SellerFinanceController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
 use Illuminate\Support\Facades\Route;
 
@@ -598,6 +599,14 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
+            Route::get('/', [CustomerLogisticsConversationController::class, 'index'])->name('index');
+            Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::get('/{conversation}', [CustomerLogisticsConversationController::class, 'show'])->whereUuid('conversation')->name('show');
+            Route::get('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
+            Route::post('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/read', [CustomerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
+        });
         Route::prefix('conversations')->name('conversations.')->group(function () {
             Route::get('/', [CustomerConversationController::class, 'index'])->name('index');
             Route::get('/unread-count', [CustomerConversationController::class, 'unreadCount'])->name('unread-count');

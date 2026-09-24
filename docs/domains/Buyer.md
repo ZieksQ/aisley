@@ -182,8 +182,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 13. Product Q&A and Chat/Messaging
 
 - **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
-- **Status:** Product Q&A Phase 1 and private Customer–Shop text messaging are implemented in the Customer storefront and Laravel API. Chat uses a shared Seller reply store and polling; realtime transport, attachments, moderation, and other-role contact remain deferred.
-- **Boundary:** Chat threads and unread counts are Customer/Shop scoped and separate from public Product Q&A and general notifications. They do not expose registration evidence, private addresses, payment secrets, or unrelated users, and cannot change an Order or complaint decision.
+- **Status:** Product Q&A Phase 1, private Customer–Shop text messaging, and separate Order-scoped Customer–Logistics delivery messaging are implemented in the Customer storefront and Laravel API. Both chat channels use bounded polling; realtime transport, attachments, moderation, and Admin/Courier contact remain deferred.
+- **Boundary:** Shop and Logistics threads have distinct conversation kinds, role-owned inboxes, and unread counts; delivery contact follows the current handler of an owned active Order and becomes read-only after custody or terminal-state changes. Chat is separate from public Product Q&A and general notifications. It does not expose registration evidence, private addresses, payment secrets, or unrelated users, and cannot change an Order or complaint decision.
 
 ## Data, privacy, and consistency invariants
 

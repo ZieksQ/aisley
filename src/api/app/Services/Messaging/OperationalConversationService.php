@@ -199,6 +199,7 @@ class OperationalConversationService
 
         return [
             'id' => $conversation->id,
+            'kind' => ConversationKind::LogisticsCourier->value,
             'leg' => $conversation->task_leg,
             'task_id' => $role === 'courier' && $conversation->task_leg === 'first_mile'
                 ? $conversation->task?->legacy_first_mile_task_id : $conversation->delivery_task_id,

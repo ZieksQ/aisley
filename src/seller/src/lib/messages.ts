@@ -1,4 +1,4 @@
-import { apiRequest, initializeCsrf } from './api'
+import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from './api'
 
 export type Conversation = {
   id: string
@@ -29,8 +29,7 @@ export const getConversation = (id: string) => apiRequest<{ data: Conversation }
 export const listMessages = (id: string, cursor?: string) => apiRequest<{ items: Message[]; next_cursor: string | null }>(`${base}/${id}/messages${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
 
 export async function sendMessage(id: string, body: string, key: string) {
-  await initializeCsrf()
-  return apiRequest<{ conversation: Conversation; message: Message }>(`${base}/${id}/messages`, {
+  return apiWriteWithCsrfTimeout<{ conversation: Conversation; message: Message }>(`${base}/${id}/messages`, {
     method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ body }),
   })
 }

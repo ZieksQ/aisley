@@ -8,6 +8,7 @@ import { getConversation, listMessages, markConversationRead, sendMessage } from
 import type { ConversationMessage, ConversationSummary } from "@/lib/messages";
 
 function errorText(reason: unknown) {
+  if (reason instanceof Error && reason.message.startsWith("Message delivery was not confirmed")) return reason.message;
   if (!(reason instanceof ApiError)) return "Your connection may be unavailable. Retry with the same message.";
   if (reason.status === 404) return "This conversation is unavailable to your account.";
   if (reason.status === 409) return "This Shop cannot receive a new message right now. Your history is still available.";
@@ -111,7 +112,7 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
       await refresh();
     } catch (reason) {
       setSendError(errorText(reason));
-      await refresh();
+      void refresh();
     } finally {
       setBusy(false);
     }

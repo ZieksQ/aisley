@@ -4,7 +4,7 @@ title: Seller Chat / Messaging
 system: AISLEY
 type: Feature Specification
 version: 2.0
-status: First-release shared text inbox/reply implemented; PostgreSQL/browser verification pending
+status: First-release shared text inbox/reply verified on PostgreSQL and role browsers; retention policy pending
 role: Seller
 scope: Seller React dashboard and shared Laravel messaging domain
 ---
@@ -49,8 +49,8 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - [x] Customer and Seller share a single private, Shop-scoped conversation/message store and can send/reply through role-gated APIs.
 - [x] Text sends use server sequence and UUID idempotency; persisted participant markers derive unread counts independently of general notifications.
 - [x] Seller React provides inbox, history, reply, polling, retry, and light/dark states.
-- [ ] Verify PostgreSQL two-worker first-send and concurrent send races, migration rollback, and scoped authorization.
-- [ ] Verify Customer/Seller browser interaction, narrow viewport, focus/reconnect, and uncertain timeout retry before production release.
+- [x] Verify PostgreSQL two-worker first-send and concurrent send races, migration rollback, and scoped authorization.
+- [x] Verify Customer/Seller browser interaction, narrow viewport, focus/reconnect, and uncertain timeout retry before production release.
 - [ ] Decide retention and abuse-reporting ownership before a production policy declares how long private message text is kept.
 
 ## HOW
@@ -58,5 +58,5 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - Seller routes under `/api/v1/seller/conversations`: `GET /`, `GET /unread-count`, `GET /{conversation}`, `GET /{conversation}/messages`, `POST /{conversation}/messages`, and `POST /{conversation}/read`. Customer initiation and the matching Customer route family are owned by the Customer spec.
 - Shared `ConversationService` owns membership, status, Shop relationship, validated context, transactional sequence and idempotency, read marker, and safe projections. Role controllers only delegate into this authority.
 - Seller `/messages` and `/messages/:conversationId` use the existing React Router dashboard and authenticated API client; no Courier web UI is introduced.
-- Database fields are UUID-backed with string-independent message state; all schema changes are additive. Tests use SQLite now and require a disposable PostgreSQL concurrency pass before release.
+- Database fields are UUID-backed with string-independent message state; all schema changes are additive. SQLite and disposable PostgreSQL feature suites, two-worker races, and chat-migration rollback/reapply passed on 2026-09-24. The Chromium check covered both roles at 390px, reconnect/focus refresh, and bounded send timeout with retained draft/idempotency key.
 - Do not infer permission for Seller-started outreach, attachments, private broadcast channels, archive/mute/report, or Admin private-chat reading from this MVP. These need separate approved contracts and verification.

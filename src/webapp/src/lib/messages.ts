@@ -1,4 +1,4 @@
-import { apiRequest, initializeCsrf } from "@/lib/api";
+import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from "@/lib/api";
 
 export type ConversationSummary = {
   id: string;
@@ -42,15 +42,13 @@ export function listMessages(id: string, cursor?: string) {
 }
 
 export async function startConversation(shopId: string, input: MessageInput, key: string) {
-  await initializeCsrf();
-  return apiRequest<SendResult>(base, {
+  return apiWriteWithCsrfTimeout<SendResult>(base, {
     method: "POST", headers: { "Idempotency-Key": key }, body: JSON.stringify({ shop_id: shopId, ...input }),
   });
 }
 
 export async function sendMessage(id: string, input: MessageInput, key: string) {
-  await initializeCsrf();
-  return apiRequest<SendResult>(`${base}/${id}/messages`, {
+  return apiWriteWithCsrfTimeout<SendResult>(`${base}/${id}/messages`, {
     method: "POST", headers: { "Idempotency-Key": key }, body: JSON.stringify(input),
   });
 }

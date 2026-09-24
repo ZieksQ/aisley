@@ -6,4 +6,5 @@ enum ConversationKind: string
 {
     case CustomerShop = 'customer_shop';
     case LogisticsCourier = 'logistics_courier';
+    case CustomerLogistics = 'customer_logistics';
 }

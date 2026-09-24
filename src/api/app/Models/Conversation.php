@@ -13,7 +13,7 @@ class Conversation extends Model
     use HasUuids;
 
     protected $fillable = [
-        'kind', 'customer_user_id', 'seller_user_id', 'shop_id',
+        'kind', 'customer_user_id', 'seller_user_id', 'shop_id', 'order_id',
         'logistics_organization_id', 'logistics_hub_id', 'delivery_task_id',
         'courier_user_id', 'logistics_user_id', 'task_leg',
         'last_sequence', 'last_message_id', 'last_message_at',
@@ -27,6 +27,11 @@ class Conversation extends Model
     public function shop(): BelongsTo
     {
         return $this->belongsTo(Shop::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function customer(): BelongsTo

@@ -38,9 +38,10 @@ function csrfToken() {
     : null;
 }
 
-export async function initializeCsrf() {
+export async function initializeCsrf(signal?: AbortSignal) {
   const response = await fetch(apiUrl("/sanctum/csrf-cookie"), {
     credentials: "include",
+    signal,
     headers: {
       Accept: "application/json",
       "X-Requested-With": "XMLHttpRequest",
@@ -51,6 +52,26 @@ export async function initializeCsrf() {
     throw new ApiError(response.status, {
       message: "We could not start a secure session. Please try again.",
     });
+  }
+}
+
+export async function apiWriteWithCsrfTimeout<T>(
+  path: string,
+  options: RequestInit,
+  timeoutMs = 15000,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await initializeCsrf(controller.signal);
+    return await apiRequest<T>(path, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("Message delivery was not confirmed. Retry the same message safely.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

@@ -3,12 +3,12 @@ import type { FormEvent } from 'react'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalMessage, type OperationalThread } from '../lib/operationalChat'
 
-type TaskContext = { leg: 'first_mile' | 'final_mile'; taskId: string }
+type TaskContext = { leg: 'first_mile' | 'final_mile'; taskId: string } | { orderId: string }
 
 function errorText(caught: unknown): string {
   if (!navigator.onLine) return 'You are offline. Reconnect before sending or refreshing messages.'
   if (caught instanceof ApiError) {
-    if (caught.status === 409) return 'This task or message changed. Refresh the conversation before trying again.'
+    if (caught.status === 409) return 'This relationship or message changed. Refresh the conversation before trying again.'
     if (caught.status === 429) return 'Too many messages. Wait a moment before trying again.'
     return caught.message
   }
@@ -114,7 +114,9 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     try {
       const result = thread
         ? await operationalChat.send(thread.id, attempt.body, attempt.key)
-        : context ? await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key) : null
+        : context ? 'orderId' in context
+          ? await operationalChat.startOrder(context.orderId, attempt.body, attempt.key)
+          : await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key) : null
       if (!result) return
       pendingRef.current = null
       setPending(null)
@@ -135,28 +137,28 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
   }
 
   if (!thread && !context) {
-    return <div className="grid min-h-80 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open an assigned task to message its Courier.</div>
+    return <div className="grid min-h-80 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open a task or Order to start messaging.</div>
   }
 
   return (
-    <section aria-label="Courier conversation" className="flex min-h-[30rem] flex-col">
+    <section aria-label="Operational conversation" className="flex min-h-[30rem] flex-col">
       <header className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-        <h2 className="font-semibold">{thread?.counterparty_label ?? 'Message task Courier'}</h2>
+        <h2 className="font-semibold">{thread?.counterparty_label ?? (context && 'orderId' in context ? 'Message Customer' : 'Message task Courier')}</h2>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          {thread?.task_reference ?? (context ? `Task ${context.taskId.slice(0, 8)}` : '')} · {(thread?.leg ?? context?.leg)?.replaceAll('_', ' ')}
+          {thread ? thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}` : context && 'orderId' in context ? `Order ${context.orderId.slice(0, 8)}` : context ? `Task ${context.taskId.slice(0, 8)} · ${context.leg.replaceAll('_', ' ')}` : ''}
         </p>
-        {thread?.read_only_reason ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This task relationship ended. History is read-only.</p> : null}
+        {thread?.read_only_reason ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This relationship ended. History is read-only.</p> : null}
       </header>
       <div aria-live="polite" className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-5">
         {olderCursor ? <button className="text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" disabled={loading} onClick={() => void loadOlder()} type="button">Load older messages</button> : null}
         {loading && !messages.length ? <p className="text-sm text-zinc-500">Loading messages…</p> : null}
-        {!loading && !messages.length ? <p className="text-sm text-zinc-500">No messages yet. The first message creates this private task conversation.</p> : null}
+        {!loading && !messages.length ? <p className="text-sm text-zinc-500">No messages yet. The first message creates this private conversation.</p> : null}
         {messages.map((message) => (
           <div className={`flex ${message.mine ? 'justify-end' : 'justify-start'}`} key={message.id}>
             <article className={`max-w-[85%] border px-3 py-2 text-sm sm:max-w-[70%] ${message.mine ? 'border-purple-200 bg-purple-50 dark:border-purple-400/25 dark:bg-purple-400/10' : 'border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[0.04]'}`}>
               <p className="whitespace-pre-wrap break-words">{message.body}</p>
               <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                {message.mine ? 'You' : 'Courier'} · {new Date(message.created_at).toLocaleString('en-PH')}
+                {message.mine ? 'You' : thread?.counterparty_role === 'customer' ? 'Customer' : 'Courier'} · {new Date(message.created_at).toLocaleString('en-PH')}
               </p>
             </article>
           </div>
@@ -168,14 +170,14 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         {pending ? <p className="mb-2 text-xs text-amber-800 dark:text-amber-300">Delivery was not confirmed. Retry this exact message with the same send key.</p> : null}
         {thread?.read_only_reason ? null : (
           <form onSubmit={(event) => void send(event)}>
-            <label className="sr-only" htmlFor="courier-message">Message Courier</label>
+            <label className="sr-only" htmlFor="courier-message">Message {thread?.counterparty_role === 'customer' || (context && 'orderId' in context) ? 'Customer' : 'Courier'}</label>
             <textarea
               className="min-h-24 w-full resize-y border border-zinc-300 bg-white p-3 text-sm outline-none focus:border-[#4C1268] dark:border-white/20 dark:bg-[#171719]"
               disabled={sending || Boolean(pending)}
               id="courier-message"
               maxLength={2000}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Write a task-related message"
+              placeholder="Write an order-related message"
               value={draft}
             />
             <div className="mt-2 flex justify-end gap-2">
