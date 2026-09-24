@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaArrowDownShortWide, FaArrowRightFromBracket, FaBars, FaBell, FaBoxOpen, FaBoxesPacking, FaCarSide, FaChartLine, FaChevronUp, FaClipboardCheck, FaCommentDots, FaFileContract, FaGaugeHigh, FaGear, FaMagnifyingGlass, FaRoute, FaTruckFast, FaUserCheck, FaUserGear, FaXmark } from 'react-icons/fa6'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { FaArrowRightFromBracket, FaBars, FaBell, FaChevronUp, FaFileContract, FaGear, FaTruckFast, FaUserGear, FaXmark } from 'react-icons/fa6'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
 import { LogisticsAvatar } from '../components/LogisticsAvatar'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { LogisticsSidebarNav } from '../components/LogisticsSidebarNav'
 import type { LogisticsUser } from '../types/auth'
 
-const navClass = ({ isActive }: { isActive: boolean }) => `flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium ${isActive ? 'bg-purple-50 text-[#4C1268] dark:bg-white/10 dark:text-white' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-white'}`
 const menuItemClass = 'flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4C1268] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white'
 
 function displayName(logistics: LogisticsUser | null): string {
@@ -136,25 +136,7 @@ export function LogisticsLayout() {
         <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-md bg-[#4C1268] text-white"><FaTruckFast /></span><span><span className="block font-semibold">Aisley</span><span className="block text-xs text-zinc-500">Logistics workspace</span></span></div>
         <button aria-label="Close navigation" className="grid size-9 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10 lg:hidden" onClick={() => setOpen(false)} type="button"><FaXmark /></button>
       </div>
-      <nav aria-label="Logistics navigation" className="mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto">
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/dashboard"><FaGaugeHigh />Dashboard</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/finance"><FaChartLine />Finance</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/operations"><FaMagnifyingGlass />Parcel search</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/pickups"><FaBoxesPacking />Pickups</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/messages"><FaCommentDots />Operational messages</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/support-tickets"><FaCommentDots />Support tickets</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/receive-at-hub"><FaBoxOpen />Receive at hub</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/sorting"><FaArrowDownShortWide />Sorting</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/sort-plan"><FaRoute /><span>Sort plan</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/linehaul"><FaRoute /><span>Linehaul</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/linehaul-dispatch"><FaTruckFast /><span>Linehaul dispatch</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/inbound-linehaul"><FaTruckFast /><span>Inbound linehaul</span><span className="ml-auto border border-current/20 px-1.5 py-0.5 text-[10px] font-medium leading-none">Beta</span></NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/dispatch"><FaTruckFast />Last-mile dispatch</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/delivery-confirmations"><FaClipboardCheck />Delivery confirmations</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/courier-applications"><FaUserCheck />Courier applications</NavLink>
-        <NavLink className={({ isActive }) => navClass({ isActive: isActive || (location.pathname.startsWith('/couriers/') && location.pathname.endsWith('/vehicle')) })} onClick={() => setOpen(false)} to="/vehicles"><FaCarSide />Vehicles</NavLink>
-        <NavLink className={navClass} onClick={() => setOpen(false)} to="/fleet"><FaTruckFast />Company fleet</NavLink>
-      </nav>
+      <LogisticsSidebarNav onNavigate={() => setOpen(false)} />
       <div className="mt-4 shrink-0 border-t border-zinc-200 pt-3 dark:border-white/10"><AccountMenu logistics={logistics} onLogout={() => void signOut()} onNavigate={() => setOpen(false)} signingOut={signingOut} /></div>
     </aside>
     {open ? <button aria-label="Close navigation overlay" className="fixed inset-0 z-20 bg-black/55 lg:hidden" onClick={() => setOpen(false)} type="button" /> : null}

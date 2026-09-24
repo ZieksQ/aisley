@@ -2,7 +2,7 @@
 model: Logistics
 type: Domain Context
 purpose: Shared Logistics workflow and implementation context
-version: 1.3
+version: 1.4
 status: Revised — aligned with the approved order/Logistics flow and implemented foundation
 ---
 
@@ -108,6 +108,7 @@ Implemented hub-location capability: Logistics may confirm its actual sole-hub p
 - **System context:** Read-only aggregation over authoritative Order/Shipment/Delivery Task records. Counts, rows, filters, caches, and events must never cross Logistics organizations or imply that assignment is physical pickup.
 - Courier-submitted waybill QR/reference scans and handoff evidence are validated and recorded by an authorized Logistics account. The event preserves the Courier who performed the physical action, the Logistics account that recorded it, and the event timestamp; a scan or waybill access event alone never advances custody.
 - The protected authentication and hub scaffold remain available at `/dashboard`; the deployed `/dashboard/queue` projection and `/operations` Hub operations page consume the additive Shipment/Parcel/DeliveryTask schema. Advanced ranking, realtime, and stale-threshold policy remain deferred.
+- The Logistics sidebar keeps Dashboard directly accessible and groups the existing routes into Hub operations, Transport & delivery, Organization, and Communication. The active route's group opens automatically, while the separate account menu retains profile, policy, and notification access; grouping never changes operational authority.
 
 Subscription status is not a dashboard or operational gate in the MVP. Billing, provider, subscription records, and enforcement remain deferred; an approved active Logistics account with its sole hub is sufficient for current access.
 
