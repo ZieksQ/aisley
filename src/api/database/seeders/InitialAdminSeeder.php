@@ -55,6 +55,8 @@ class InitialAdminSeeder extends Seeder
                     'seller_compliance.manage',
                     'finance.view',
                     'finance.manage',
+                    'support-tickets.view',
+                    'support-tickets.manage',
                 ])
                 ->pluck('id'),
         );

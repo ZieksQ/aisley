@@ -6,7 +6,7 @@ type: Feature Specification
 version: 1.5
 status: Implemented photo POD completion intent and Logistics confirmation
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
-flutter_status: Supplied Flutter progress records legacy completion intent UI; photo-linked Delivered intent and rejected-photo retry not verified/adopted
+flutter_status: Supplied Flutter progress records partial photo-linked completion intent adoption; Logistics validation, rejected-photo retry, and COD confirmation remain unverified
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application

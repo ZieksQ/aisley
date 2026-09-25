@@ -13,6 +13,7 @@
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/finance-ui": "workspace:*",
     "@aisley/ui": "workspace:*",
+    "@aisley/support-tickets": "workspace:*",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "dexie": "^4.4.6",

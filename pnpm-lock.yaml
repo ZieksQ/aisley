@@ -36,6 +36,19 @@ importers:
 
   packages/psgc-address-data: {}
 
+  packages/support-tickets:
+    dependencies:
+      '@aisley/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.18
+
   packages/ui:
     dependencies:
       react:
@@ -48,6 +61,9 @@ importers:
 
   src/admin:
     dependencies:
+      '@aisley/support-tickets':
+        specifier: workspace:*
+        version: link:../../packages/support-tickets
       '@aisley/finance-ui':
         specifier: workspace:*
         version: link:../../packages/finance-ui
@@ -171,6 +187,9 @@ importers:
 
   src/logistics:
     dependencies:
+      '@aisley/support-tickets':
+        specifier: workspace:*
+        version: link:../../packages/support-tickets
       '@aisley/finance-ui':
         specifier: workspace:*
         version: link:../../packages/finance-ui
@@ -241,6 +260,9 @@ importers:
 
   src/seller:
     dependencies:
+      '@aisley/support-tickets':
+        specifier: workspace:*
+        version: link:../../packages/support-tickets
       '@aisley/finance-ui':
         specifier: workspace:*
         version: link:../../packages/finance-ui
@@ -308,6 +330,9 @@ importers:
 
   src/webapp:
     dependencies:
+      '@aisley/support-tickets':
+        specifier: workspace:*
+        version: link:../../packages/support-tickets
       '@aisley/psgc-address-data':
         specifier: workspace:*
         version: link:../../packages/psgc-address-data

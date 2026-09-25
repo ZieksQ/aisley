@@ -28,6 +28,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SortingPage } from './pages/SortingPage'
 import { SortPlanPage } from './pages/SortPlanPage'
+import { SupportTicketsPage } from './pages/SupportTicketsPage'
 
 export default function App() {
   return <Routes>
@@ -59,6 +60,7 @@ export default function App() {
         <Route element={<NotificationsPage />} path="/notifications" />
         <Route element={<NotificationsPage />} path="/notifications/:notificationId" />
         <Route element={<OperationalChatPage />} path="/messages" />
+        <Route element={<SupportTicketsPage />} path="/support-tickets" />
         <Route element={<AccountPage />} path="/account" />
         <Route element={<PolicyConsentPage />} path="/policy-consent" />
         <Route element={<NotFoundPage />} path="*" />

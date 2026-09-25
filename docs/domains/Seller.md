@@ -2,7 +2,7 @@
 model: Seller
 type: Domain Context
 purpose: Shared Seller workflow and implementation context
-version: 1.3
+version: 1.4
 status: Revised — aligned with the approved order/Logistics flow and implemented catalog/inventory foundation
 ---
 
@@ -138,6 +138,7 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 
 - **Purpose:** Provide a Shop-scoped operational overview and navigation.
 - **Owns:** Current catalog counts, published Review total/answered/unanswered counts, and safe section availability/loading/error states. The separate placed-Order panel reads its owning Order API.
+- **Navigation:** Dashboard stays directly accessible; the Seller sidebar groups implemented routes into Shop, Orders, Communication, and My account. The active route's group opens automatically, while each destination retains its owning feature and API boundary.
 - **Boundary:** Order aggregates, finance, analytics, notifications, and inventory metrics must not be fabricated while their owning contracts are unavailable. Aggregates must be scoped to the authenticated Shop.
 
 ### 3. Catalog / Product Management

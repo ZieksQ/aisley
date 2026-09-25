@@ -2,7 +2,7 @@
 model: Admin
 type: Domain Context
 purpose: Shared Admin workflow and implementation context
-version: 1.1
+version: 1.2
 status: Revised — aligned with the implemented Admin console and deferred platform operations
 ---
 
@@ -34,17 +34,23 @@ Current protected routes are:
 
 ```text
 /dashboard
+/finance
 /registrations
 /users
 /seller-compliance
 /notifications
+/support-tickets
+/notification-campaigns
 /platform-settings
+/feature-controls
 /audit-logs
 /account
+/policy-consent
 ```
 
 - Each route calls its owning Laravel API and renders explicit loading, empty, forbidden, not-found, validation, conflict, retry, and unavailable states.
 - Navigation visibility may use the Admin's permission DTO, but hidden links are not security. Every API endpoint repeats the role, active-status, and permission checks.
+- The Admin sidebar keeps Dashboard directly accessible and groups permitted destinations into Accounts, Communication, Platform, and My account. The active destination's group opens on navigation, including detail routes; groups do not change feature ownership or permissions.
 - Admin responses use purpose-built, least-privilege DTOs. They omit password hashes, tokens, payment secrets, raw storage paths, private evidence bytes, unnecessary PII, and unrelated role data.
 - Admin-specific responses and notification lists must not be placed in a shared public cache. A stale UI never overrides a newer server decision.
 
@@ -133,7 +139,7 @@ Current protected routes are:
 ### 13. Support Tickets
 
 - **Purpose:** Triage and resolve requester-owned support tickets from eligible Customers, Sellers, Logistics operators, or Couriers through a status-driven Admin queue and persistent public replies.
-- **Status:** Deferred. Customer–Seller chat is implemented separately; Admin ticket tables, APIs, and role UI are not. See `docs/features/admin/chat-messaging/spec.md` for the replacement ticket contract.
+- **Status:** Ticket tables, scoped APIs, and the Admin queue/detail UI are implemented separately from private chat. Per-Admin read markers are authoritative; linked business records, notification fanout, Courier Flutter UI, and production retention/appeal policy remain deferred. See `docs/features/admin/chat-messaging/spec.md`.
 - **Boundary:** Ticket access needs explicit Admin support permissions and requester ownership. Tickets do not replace notifications, Compliance, Complaints, or Audit records or grant access to unrelated private chats, evidence, addresses, or payment data.
 
 ### 14. Global Ban / Blocklist

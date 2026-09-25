@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SellerComplianceController;
+use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
@@ -97,6 +98,7 @@ use App\Http\Controllers\Seller\ProductReviewController as SellerProductReviewCo
 use App\Http\Controllers\Seller\ProductReviewImageController as SellerProductReviewImageController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
+use App\Http\Controllers\Support\RequesterSupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/address-options')->name('address-options.')->middleware('throttle:60,1')->group(function () {
@@ -116,6 +118,16 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
+    Route::prefix('support-tickets')->name('support-tickets.')->middleware('admin.permission:support-tickets.view')->group(function () {
+        Route::get('/', [AdminSupportTicketController::class, 'index'])->middleware('admin.permission:support-tickets.view')->name('index');
+        Route::get('/assignees', [AdminSupportTicketController::class, 'assignees'])->middleware('admin.permission:support-tickets.view')->name('assignees');
+        Route::get('/{ticket}', [AdminSupportTicketController::class, 'show'])->middleware('admin.permission:support-tickets.view')->whereUuid('ticket')->name('show');
+        Route::post('/{ticket}/claim', [AdminSupportTicketController::class, 'claim'])->middleware('admin.permission:support-tickets.manage')->whereUuid('ticket')->name('claim');
+        Route::post('/{ticket}/assign', [AdminSupportTicketController::class, 'assign'])->middleware('admin.permission:support-tickets.manage')->whereUuid('ticket')->name('assign');
+        Route::post('/{ticket}/replies', [AdminSupportTicketController::class, 'reply'])->middleware(['admin.permission:support-tickets.manage', 'throttle:30,1'])->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/status', [AdminSupportTicketController::class, 'status'])->middleware('admin.permission:support-tickets.manage')->whereUuid('ticket')->name('status');
+        Route::post('/{ticket}/read', [AdminSupportTicketController::class, 'read'])->middleware('admin.permission:support-tickets.view')->whereUuid('ticket')->name('read');
+    });
     Route::prefix('finance')->middleware('admin.permission:finance.view')->group(function () {
         Route::get('/summary', [AdminFinanceController::class, 'show']);
         Route::get('/series', [AdminFinanceController::class, 'show']);
@@ -279,6 +291,13 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
+    Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
+        Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
+        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
+        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
+    });
     Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
         Route::get('/', [SellerCourierConversationController::class, 'index'])->name('index');
         Route::post('/', [SellerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -398,6 +417,13 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
+        Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
+        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
+        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
+    });
     Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
         Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
         Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -523,6 +549,13 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 });
 
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active', 'policy.consent'])->group(function () {
+    Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
+        Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
+        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
+        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
+    });
     Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
         Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
         Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -618,6 +651,13 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
+            Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
+            Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+            Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
+            Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+            Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
+        });
         Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
             Route::get('/', [CustomerCourierConversationController::class, 'index'])->name('index');
             Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');

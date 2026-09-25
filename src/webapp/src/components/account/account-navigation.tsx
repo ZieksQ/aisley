@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiClock, FiFileText, FiHeart, FiMapPin, FiPackage, FiUser } from "react-icons/fi";
+import { FiClock, FiFileText, FiHeart, FiHelpCircle, FiMapPin, FiPackage, FiUser } from "react-icons/fi";
 
 const entries = [
   { href: "/account/profile", label: "Profile", icon: FiUser },
@@ -11,6 +11,7 @@ const entries = [
   { href: "/account/recently-viewed", label: "Recently viewed", icon: FiClock },
   { href: "/orders", label: "Orders", icon: FiPackage },
   { href: "/account/policy-consent", label: "Policy consent", icon: FiFileText },
+  { href: "/account/support-tickets", label: "Support tickets", icon: FiHelpCircle },
 ];
 
 export function AccountNavigation() {

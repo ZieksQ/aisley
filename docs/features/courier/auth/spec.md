@@ -91,7 +91,7 @@ GET active Logistics options
 - Login requires `email`, `password`, and `device_name`; `role` and `abilities` are prohibited.
 - Verify password, Courier role, active account, approved affiliation, active Logistics owner, and valid hub before creating a token.
 - Issue only the server-owned `courier` ability and return the plain-text token once. `/me` never returns the token.
-- Flutter stores the token only in OS secure storage and sends `Authorization: Bearer <token>`; it must not log or ordinary-cache tokens.
+- Flutter sends `Authorization: Bearer <token>` and stores the token through its approved secure-storage package: OS secure storage on Android, with reviewed browser storage limited to localhost `web-server` testing. Never use plaintext token storage, browser cookies, or token logging.
 - `/me` and logout require `auth:sanctum` and `courier.active`. Logout deletes only the current personal access token.
 - After active Courier and approved-affiliation checks, protected Courier APIs require current shared Terms of Service and Privacy Policy consent. `/me`, logout, policy status, and policy acceptance remain reachable so Flutter can present the consent flow.
 

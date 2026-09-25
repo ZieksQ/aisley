@@ -3,8 +3,8 @@ feature: admin-support-tickets
 title: Admin Support Ticket System
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Revised target contract; ticket API, schema, and role UI not implemented
+version: 2.1
+status: Ticket schema/API and Admin, Customer, Seller, Logistics web screens implemented; Courier Flutter and production release checks pending
 role: Admin
 scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 ---
@@ -17,14 +17,13 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
   workflow. An eligible Customer, Seller, Logistics user, or Courier submits an issue; authorized
   Admins triage, reply, and resolve it. “Buyer” is the storefront name for `customer`.
 - One ticket represents one issue, with a reference, subject, category, requester, status,
-  optional validated business context, ordered public replies, and immutable lifecycle history.
+  ordered public replies, and immutable lifecycle history. Linked business context is deferred.
   Tickets are not a permanently open Admin–user chat or a general user directory.
 - The Admin dashboard owns the support queue, ticket detail, assignment, replies, and status
   actions. Each requester sees only their own tickets through their role app; Courier UI belongs
   to the external Flutter project, not this repository.
-- Customer–Seller text chat is already implemented on `conversations`/`messages`. Those tables
-  currently require Customer, Seller, and Shop identities; Admin tickets need a distinct
-  ticket/workflow store and must not expose or repurpose Customer–Seller private history.
+- Customer–Seller and operational text chat use `conversations`/`messages`. Admin tickets use a
+  distinct ticket/workflow store and never expose or repurpose private conversation history.
 - Ticket replies do not approve registrations, reverse account restrictions, decide a compliance
   case, alter Orders, dispatch Couriers, or create a refund. Those actions stay with their owning
   features and may be referenced only through an approved, authorized link.
@@ -49,9 +48,10 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 - An Admin may view authorized support tickets but has no blanket right to inspect unrelated
   Customer–Seller, Logistics, or Courier chat. Compliance/evidence access follows those source
   policies; ticket visibility does not grant private source-record access by association.
-- Validate optional Order, Shop, pickup, task, or compliance reference against the requester's
-  actual role relationship before linking. A reference is context, not an authorization grant;
-  unavailable context renders a safe label without leaking hidden record details.
+- This release accepts only subject, category, and description on creation. `context_type`,
+  `context_id`, and other undeclared fields are rejected. Optional Order, Shop, pickup, task,
+  or compliance links are deferred until each requester role has an approved relationship and
+  visibility matrix. A future reference must never grant source-record access by itself.
 
 ### Ticket lifecycle
 
@@ -79,15 +79,17 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 - Public replies are append-only ticket events with server UUID, author role, UTC time, and
   per-ticket sequence. Render user text as text, never HTML/MDX. Admin-only internal notes are
   deferred; no private note may accidentally appear in the requester projection.
-- Bound queue/history pagination with deterministic cursors. Persist requester/Admin read markers
-  separately from notification read state; stale reads cannot move a marker backward.
-- An after-commit in-app notification may link the opposite party to a newly committed reply or
+- Bound queue/history pagination with deterministic cursors. Persist one read marker per
+  ticket **and User**, including each individual Admin. Admin A opening a ticket cannot clear
+  Admin B's unread count. Requester/Admin markers are separate from notification read state;
+  stale reads cannot move a marker backward.
+- A future after-commit in-app notification may link the opposite party to a newly committed reply or
   relevant status change. Deduplicate by ticket/event and recipient. Notification delivery failure
   never rolls back the ticket, reply, or event and never becomes the source of truth for history.
-- Ticket DTOs expose only safe requester identity, subject/category/status, minimal validated
-  context, assignee display name where appropriate, timeline, and counts. Do not expose emails,
-  phone numbers, addresses, payment secrets, private evidence, raw storage paths, or unrelated
-  user activity merely because a ticket exists.
+- Ticket DTOs expose only safe requester identity, subject/category/status, assignee display
+  name where appropriate, timeline, and counts. No linked context is exposed in this release.
+  Do not expose emails, phone numbers, addresses, payment secrets, private evidence, raw storage
+  paths, or unrelated user activity merely because a ticket exists.
 - Log safe ticket/event IDs, actor, action, and outcome, not reply bodies by default. Throttle
   ticket creation and replies. Private API responses use `no-store`; no public search/index route
   or unrestricted Admin transcript export exists.
@@ -133,28 +135,32 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 - Add UUID-backed `support_tickets`, append-only `support_ticket_events`, idempotency receipts,
   and participant read-marker tables through additive migrations. Events cover public replies,
   status, and assignment; keep Customer–Seller `conversations`/`messages` unchanged.
-- Index requester/role, status/updated time, assignee/status, and ticket/sequence; enforce unique
+- Index requester/activity, status/activity, assignee/status, and ticket/sequence; enforce unique
   ticket reference, per-ticket event sequence, and actor/action-scoped idempotency keys. Store
   enum-like status/category values as strings with typed PHP enums.
-- Use the existing Sanctum, role middleware, Admin permission seeding, Form Requests, policies,
-  Resources, and focused service pattern. A ticket service owns relation validation, row locks,
-  transitions, immutable history, idempotency, and after-commit notification work.
-- Proposed **unavailable** Admin routes under `/api/v1/admin/support-tickets`: `GET /`,
+- Use the existing Sanctum, role middleware, Admin permission seeding, Form Requests, safe DTOs,
+  and focused service pattern. The ticket writer owns row locks, transitions, immutable history,
+  and idempotency. Linked-record validation and after-commit notification fanout are deferred.
+- Implemented Admin routes under `/api/v1/admin/support-tickets`: `GET /`,
   `GET /{ticket}`, `POST /{ticket}/claim`, `POST /{ticket}/assign`,
-  `POST /{ticket}/replies`, `POST /{ticket}/status`, and `POST /{ticket}/read`.
-- Proposed **unavailable** requester routes under each of `/api/v1/customer/support-tickets`,
+  `POST /{ticket}/replies`, `POST /{ticket}/status`, and `POST /{ticket}/read`. `GET /assignees`
+  lists only active support-authorized Admin display names/IDs for the assignment control.
+- Implemented requester routes under each of `/api/v1/customer/support-tickets`,
   `/api/v1/seller/support-tickets`, `/api/v1/logistics/support-tickets`, and
   `/api/v1/courier/support-tickets`: `GET /`, `POST /`, `GET /{ticket}`,
   `POST /{ticket}/replies`, and `POST /{ticket}/read`.
-- Create accepts subject, category, first body, and optional context reference; reply accepts
-  body; actions accept expected revision and permitted reason/assignee. Mutations require a UUID
-  `Idempotency-Key`. Responses return ticket/reference/status/revision, safe context, role-safe
-  replies/events, unread count, and pagination cursor, never raw Eloquent models.
-- Add Admin `/support-tickets` queue/detail only when its API is ready. Requester entry points
-  require role-owned spec/app updates; this Admin spec does not implement their UI.
-- Use HTTP/polling first; dispatch optional notifications [after commit](https://laravel.com/docs/12.x/queues#jobs-and-database-transactions).
+- Create accepts subject, category, and first body only; reply accepts body; actions accept
+  expected revision and permitted reason/assignee. Mutations require a UUID `Idempotency-Key`.
+  Responses return ticket/reference/status/revision, role-safe replies/events, unread count,
+  and pagination cursor, never raw Eloquent models.
+- Admin `/support-tickets` queue/detail and Customer, Seller, and Logistics requester web entry
+  points are implemented. Courier's `/api/v1/courier/support-tickets` routes are available to
+  the external Flutter app; no Courier web screen was added here. See the role-owned requester
+  specs for their current UI boundary.
+- Use HTTP/polling first. Optional notifications, if added later, must dispatch
+  [after commit](https://laravel.com/docs/12.x/queues#jobs-and-database-transactions).
   Realtime transport and email ingestion remain separate future choices.
-- Verify migration on SQLite/PostgreSQL, existing Customer–Seller chat regression, role-scoped
-  API tests, Admin and requester browser/mobile flows, accessibility, and timeout retry before
-  marking any route or UI implemented.
+- SQLite role-scoped feature tests cover ownership, permission gates, per-Admin read markers,
+  retries, assignment, and lifecycle transitions. PostgreSQL concurrency, browser/mobile flows,
+  accessibility, and timeout interaction checks remain release verification gates.
 - Open decision: define retention and support/appeal access for ineligible accounts before launch.
