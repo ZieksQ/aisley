@@ -26,7 +26,7 @@ The workspace is managed via `pnpm-workspace`. Applications and shared resources
 
 ```text
 /
-├── packages/          # Shared reusable React components across all frontends
+├── packages/          # Shared React UI/feature packages and address data
 └── src/
     ├── webapp/        # Customer-facing storefront (Next.js)
     ├── seller/        # Seller dashboard (React SPA)
@@ -35,6 +35,21 @@ The workspace is managed via `pnpm-workspace`. Applications and shared resources
     └── api/           # Core Backend (Laravel)
 
 ```
+
+## Web frontend design ownership
+
+`docs/design.md` is the mandatory visual and interaction contract for the four production web applications and shared UI they consume. Root `AGENTS.md` requires frontend changes to follow it; matching feature specifications supply workflows, permissions, and role-specific navigation.
+
+| Application | Rendering model | Theme and layout contract |
+| --- | --- | --- |
+| `src/webapp` | Next.js server/client boundaries | Light-only, mobile-first Customer storefront |
+| `src/admin` | React Router SPA | Mobile-first dashboard with light and dark themes |
+| `src/seller` | React Router SPA | Mobile-first dashboard with light and dark themes |
+| `src/logistics` | React Router SPA | Mobile-first dashboard with light and dark themes |
+
+Reuse compatible `packages/ui` primitives and existing shared feature packages while keeping each app's role-specific screens and navigation separate. Shared presentation must support the consuming app's theme; it does not require moving the SPA dashboards to Next.js or applying storefront SEO rules to them.
+
+This web design contract excludes the existing `src/couriermockup` harness and external Flutter documentation. It does not change their design rules or implementation scope.
 
 ## Backend Architecture (Laravel)
 
