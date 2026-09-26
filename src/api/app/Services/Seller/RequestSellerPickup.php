@@ -11,13 +11,13 @@ use App\Exceptions\Seller\SellerOrderException;
 use App\Models\FinancialHold;
 use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
-use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\Order;
 use App\Models\SellerPickupRequest;
 use App\Models\Shop;
 use App\Models\User;
 use App\Services\Logistics\EligibleLogisticsQuery;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Logistics\Routing\ShipmentRouteService;
 use App\Services\Logistics\SortingPlanService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
@@ -29,6 +29,7 @@ class RequestSellerPickup
         private readonly OrderTransitionService $transitions,
         private readonly SellerOrderInventory $inventory,
         private readonly EligibleLogisticsQuery $eligibleLogistics,
+        private readonly ShipmentRouteService $shipmentRoutes,
         private readonly SortingPlanService $sortingPlans,
         private readonly CreateWaybill $createWaybill,
         private readonly LogisticsNotificationService $notifications,
@@ -44,29 +45,30 @@ class RequestSellerPickup
             ->whereIn('id', $orderIds)->with('pricingSnapshot')->get();
         if ($quotedOrders->count() === count($orderIds)) {
             $snapshotOrders = $quotedOrders->filter(fn (Order $order) => $order->pricingSnapshot !== null);
-            $currentlyEligible = $snapshotOrders->mapWithKeys(function (Order $order) {
-                $snapshot = $order->pricingSnapshot;
-
-                return [$order->id => LogisticsShippingRateAcceptance::query()
-                    ->where('shipping_rate_version_id', $snapshot->shipping_rate_version_id)->whereNull('revoked_at')
-                    ->whereIn('logistics_organization_id', $snapshot->eligible_logistics_organization_ids)->pluck('logistics_organization_id')];
-            });
-            if ($currentlyEligible->contains(fn ($ids) => $ids->isEmpty())) {
-                foreach ($snapshotOrders->whereIn('id', $currentlyEligible->filter(fn ($ids) => $ids->isEmpty())->keys()) as $order) {
+            if ($snapshotOrders->contains(fn (Order $order) => $order->selected_logistics_organization_id !== $logisticsOrganizationId)) {
+                throw SellerOrderException::conflict('CHECKOUT_LOGISTICS_MISMATCH', 'Use the Logistics provider selected for every Order at checkout.');
+            }
+            $unusable = $snapshotOrders->filter(fn (Order $order) => ! $this->shipmentRoutes
+                ->pricingSnapshotUsable((array) $order->pricingSnapshot->shipping_route_snapshot));
+            if ($unusable->isNotEmpty()) {
+                foreach ($unusable as $order) {
                     FinancialHold::query()->firstOrCreate(
-                        ['order_id' => $order->id, 'reason_code' => 'NO_QUOTED_PARTNER_AVAILABLE', 'released_at' => null],
-                        ['placed_at' => now(), 'notes' => 'No Logistics partner can currently honor the saved shipping quote.'],
+                        ['order_id' => $order->id, 'reason_code' => 'FROZEN_ROUTE_UNAVAILABLE', 'released_at' => null],
+                        ['placed_at' => now(), 'notes' => 'A frozen checkout route is no longer operational. Customer pricing remains unchanged.'],
                     );
                 }
-                throw SellerOrderException::conflict('QUOTED_LOGISTICS_UNAVAILABLE', 'Fulfillment is on hold because no Logistics partner can honor the saved quote. The Customer price remains unchanged.');
-            }
-            if ($currentlyEligible->contains(fn ($ids) => ! $ids->contains($logisticsOrganizationId))) {
-                throw SellerOrderException::conflict('LOGISTICS_RATE_NOT_ACCEPTED', 'Select a Logistics organization that honors every selected Order quote.');
+                throw SellerOrderException::conflict('FROZEN_ROUTE_UNAVAILABLE', 'Fulfillment is on hold because a frozen route is unavailable. The Customer price remains unchanged.');
             }
         }
         $eligible = $this->eligibleLogistics->forSeller($seller->id);
         $provider = $eligible['options']->firstWhere('id', $logisticsOrganizationId);
         if (! $provider || ! $provider['available']) {
+            foreach ($quotedOrders as $order) {
+                FinancialHold::query()->firstOrCreate(
+                    ['order_id' => $order->id, 'reason_code' => 'SELECTED_LOGISTICS_UNAVAILABLE', 'released_at' => null],
+                    ['placed_at' => now(), 'notes' => 'The checkout-selected Logistics provider is no longer operational. Customer pricing remains unchanged.'],
+                );
+            }
             throw SellerOrderException::conflict('LOGISTICS_PROVIDER_UNAVAILABLE', 'The selected Logistics organization is no longer eligible.');
         }
 

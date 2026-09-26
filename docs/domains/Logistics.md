@@ -22,6 +22,14 @@ Logistics is Aisley's first-party parcel-operations role. It operates one organi
 
 The Logistics web dashboard is separate from the Customer and Seller applications. Courier operations are consumed through the external mobile application; this repository does not build a Courier web UI.
 
+## Shipping rates and route compensation
+
+- Logistics accepts an exact Admin platform base/region tariff before participating in new quotes under that version.
+- Each organization publishes category-specific `first_mile`, `linehaul`, and `last_mile` rate rules with packed-weight and dimension limits.
+- A Seller enables the organization for its Shop; the Customer selects it at checkout. Logistics cannot replace the frozen first-mile provider.
+- A complete active sort-plan route freezes one quoted charge per service leg. After the single platform Logistics commission, the pool is distributed pro rata by those quoted charges and verified actual ownership.
+- An unplanned base/region fallback is operationally valid but payout-held until Admin reconciles actual participants and any platform subsidy.
+
 ## MVP organization and hub boundary
 
 - Each Logistics organization has exactly one operational hub/sorting center.
@@ -49,7 +57,7 @@ pending_payment
 
 Its Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete, `picked_up` projects explicit first-mile confirmation, and `assigned` projects a committed dispatch schedule/final-mile Courier offer. Detailed task events remain authoritative proof of custody.
 
-Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. At final-mile delivery, Logistics reviews the Courier's server-derived COD declaration in the hub-scoped Delivery confirmations queue and confirms collection before approval; delivery and COD `payment_status = paid` commit atomically. The Seller's selected eligible Logistics organization is retained in the fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
+Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. At final-mile delivery, Logistics reviews the Courier's server-derived COD declaration in the hub-scoped Delivery confirmations queue and confirms collection before approval; delivery and COD `payment_status = paid` commit atomically. The Customer's checkout-selected Logistics organization is retained in the fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
 
 Detailed physical milestones belong to a separate Shipment/Delivery Task contract and must not be added to `orders.status` without an approved migration:
 
@@ -170,7 +178,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 - Linehaul may consolidate different physical source lanes when every parcel has the same immediate destination hub. Final-mile dispatch remains a separate 1–15 parcel schedule and cannot use visiting company trucks or visiting drivers.
 
 - Only an authenticated active Logistics account may operate its organization's sole hub.
-- Every Order/Shipment/Delivery Task, Courier affiliation, waybill, scan, assignment, cache entry, and event must be resolved server-side to that organization and hub. A pickup is eligible only when its immutable Seller-selected Logistics organization is this organization.
+- Every Order/Shipment/Delivery Task, Courier affiliation, waybill, scan, assignment, cache entry, and event must be resolved server-side to that organization and hub. A pickup is eligible only when its immutable checkout-selected Logistics organization is this organization.
 - `delivery_assigned` is not `delivery_accepted`, and neither means `picked_up_from_hub`.
 - First-mile pickup is `picked_up_from_seller`; final-mile hub pickup is `picked_up_from_hub`.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; the same or a different eligible Courier may be selected by Logistics for the second leg.
@@ -182,7 +190,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 
 ## Deferred operational data
 
-The current schema implements Logistics identity, organization, sole hub, Courier affiliation, Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, additive Shipment/Parcel/DeliveryTask records, dedicated Sorting lanes/sessions/snapshot items/idempotent scans, tenant-scoped sort plans, and company-truck linehaul trips with parcel-count capacity and scheduled returns. Logistics can record offline-first hub receipt and sorting, scheduled final-mile dispatch, route-aware linehaul, independent final-mile offers, QR hub-pickup/delivery evidence, and final delivery through the shared transition service. Geocoding, postal ranges, handling containers, personal-Courier vehicle capacity, RFID/automation, live GPS, general returns, and exceptional recovery beyond sort holds remain deferred. Operational records preserve the one-organization/one-hub invariant, immutable Seller-selected provider context, one shared waybill/tracking ID, append-only custody history, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
+The current schema implements Logistics identity, organization, sole hub, Courier affiliation, platform-tariff acceptance, versioned rate cards, Seller provider allow-lists, checkout-selected provider/route pricing snapshots, Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, additive Shipment/Parcel/DeliveryTask records, dedicated Sorting lanes/sessions/snapshot items/idempotent scans, tenant-scoped sort plans, and company-truck linehaul trips with parcel-count capacity and scheduled returns. Logistics can record offline-first hub receipt and sorting, scheduled final-mile dispatch, route-aware linehaul, independent final-mile offers, QR hub-pickup/delivery evidence, and final delivery through the shared transition service. Geocoding, postal ranges, handling containers, personal-Courier vehicle capacity, RFID/automation, live GPS, general returns, and exceptional recovery beyond sort holds remain deferred. Operational records preserve the one-organization/one-hub invariant, immutable checkout-selected provider context, one shared waybill/tracking ID, append-only custody history, and string-backed status columns with PHP enum casts. Subscription billing, records, and enforcement are also deferred.
 
 ## Shared contracts
 

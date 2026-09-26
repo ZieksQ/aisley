@@ -46,6 +46,9 @@ class OrderPricingService
 
         return OrderPricingSnapshot::create([
             'order_id' => $order->id, 'shipping_rate_version_id' => $shipping['rate']->id,
+            'selected_logistics_organization_id' => $shipping['selected_logistics_organization_id'],
+            'shipping_route_status' => $shipping['route_snapshot']['status'],
+            'shipping_route_snapshot' => $shipping['route_snapshot'],
             'seller_commission_policy_id' => $pricing['seller_policy']->id,
             'logistics_commission_policy_id' => $pricing['logistics_policy']->id, 'currency' => $order->currency,
             'billable_weight_grams' => $shipping['billable_weight_grams'], 'base_fee_cents' => $shipping['base_fee_cents'],
@@ -57,6 +60,7 @@ class OrderPricingService
             'logistics_commission_cents' => $pricing['logistics_commission_cents'], 'logistics_pool_cents' => $pricing['logistics_pool_cents'],
             'cod_total_cents' => $group['payable_cents'], 'origin_snapshot' => $shipping['origin'],
             'destination_snapshot' => $shipping['destination'], 'line_inputs' => $shipping['line_inputs'],
+            'logistics_charge_inputs' => $shipping['logistics_charge_inputs'],
             'voucher_funding' => $pricing['voucher_funding'],
             'eligible_logistics_organization_ids' => $shipping['eligible_logistics_organization_ids'], 'snapshotted_at' => now(),
         ]);

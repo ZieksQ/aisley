@@ -1481,6 +1481,18 @@ Repository migrations are listed below in filename execution order; this invento
 87. `2026_09_24_000004_add_courier_counterparty_conversations.php` — unique organization/task/Courier/Seller and organization/task/Courier/Buyer identities for separate accepted-task Courier conversations.
 88. `2026_09_24_000005_create_support_tickets.php` — UUID-backed support tickets, immutable-event rows, individual read markers, and idempotency receipts.
 89. `2026_09_24_000006_enforce_support_ticket_event_history.php` — PostgreSQL/SQLite append-only history triggers for support-ticket events.
+90. `2026_09_27_000001_add_route_based_shipping_rates.php` — Admin destination-region surcharges, Seller Shop provider allow-lists, versioned Logistics category/service rate cards, selected-provider and frozen-route pricing snapshots, quoted allocation weights, and audited route reconciliation.
+
+### Route-based shipping and allocation extension
+
+- `shipping_rate_region_surcharges` belongs to one platform tariff version and uniquely normalizes one destination region within it.
+- `shop_logistics_providers` uniquely records one Shop/organization enabled state, configuring Seller, and optimistic revision.
+- `logistics_rate_cards` are organization-scoped immutable versions with string-backed status; `logistics_rate_rules` uniquely key category plus string-backed service type within a card.
+- `orders.selected_logistics_organization_id` is the checkout-selected first-mile provider used by pickup authorization.
+- `order_pricing_snapshots` stores selected provider, string-backed route pricing status, frozen route JSON, and private Logistics charge inputs. Existing rate/commission/Customer total fields remain immutable.
+- `logistics_service_allocations.quoted_charge_cents` records the frozen pro-rata weight separately from the final payout amount.
+- `logistics_route_reconciliations` stores one audited Admin decision per held Order, original pool, explicit platform subsidy, final allocations, note, actor, and time.
+- Product/Variant shipping measurement columns remain in the earlier finance migration; the API now requires Product measurements at creation and accepts only complete four-field Variant overrides.
 
 ## 14. Fulfillment schema and deferred extensions
 

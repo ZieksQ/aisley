@@ -10,6 +10,7 @@ use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\HubConnection;
 use App\Models\HubServiceArea;
 use App\Models\LogisticsHub;
+use App\Models\LogisticsOrganization;
 use App\Models\Shipment;
 use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
@@ -29,7 +30,69 @@ class ShipmentRouteService
             return null;
         }
 
+        $waybill->loadMissing('order.pricingSnapshot');
+        $pricingRoute = $waybill->order?->pricingSnapshot?->shipping_route_snapshot;
+        if (is_array($pricingRoute) && in_array($pricingRoute['status'] ?? null, [HubRouteStatus::Planned->value, HubRouteStatus::Local->value], true)) {
+            return DB::transaction(fn () => $this->materialize($waybill, $pricingRoute));
+        }
+
         return DB::transaction(fn () => $this->calculate($waybill));
+    }
+
+    /** @param array<string, mixed> $snapshot */
+    public function pricingSnapshotUsable(array $snapshot): bool
+    {
+        if (($snapshot['status'] ?? null) === 'unplanned') {
+            return true;
+        }
+        $connectionIds = collect($snapshot['hops'] ?? [])->pluck('hub_connection_id')->filter()->values();
+        if ($connectionIds->isNotEmpty() && HubConnection::query()->whereIn('id', $connectionIds)
+            ->where('is_active', true)->where('receiver_accepted', true)->count() !== $connectionIds->count()) {
+            return false;
+        }
+        $organizationIds = collect([$snapshot['origin_organization_id'] ?? null, $snapshot['destination_organization_id'] ?? null])
+            ->merge(collect($snapshot['hops'] ?? [])->pluck('from_organization_id'))->filter()->unique();
+
+        return LogisticsOrganization::query()->whereIn('id', $organizationIds)
+            ->whereHas('user', fn ($query) => $query->where('status', UserStatus::Active))->count() === $organizationIds->count();
+    }
+
+    /** @param array<string, mixed> $snapshot */
+    private function materialize(Waybill $waybill, array $snapshot): ShipmentRoute
+    {
+        abort_unless($this->pricingSnapshotUsable($snapshot), 409, 'The frozen checkout route is no longer operational.');
+        abort_unless($waybill->logistics_hub_id === ($snapshot['origin_hub_id'] ?? null)
+            && $waybill->logistics_organization_id === ($snapshot['origin_organization_id'] ?? null), 409, 'The waybill provider does not match the frozen checkout route.');
+        $route = ShipmentRoute::create([
+            'waybill_id' => $waybill->id,
+            'origin_hub_id' => $snapshot['origin_hub_id'],
+            'destination_hub_id' => $snapshot['destination_hub_id'],
+            'status' => $snapshot['status'],
+            'objective' => $snapshot['objective'] ?? 'travel_handling_distance',
+            'graph_revision' => $snapshot['graph_revision'] ?? null,
+            'distance_meters' => $snapshot['distance_meters'] ?? 0,
+            'duration_seconds' => $snapshot['duration_seconds'] ?? 0,
+            'failure_code' => null,
+            'calculated_at' => $snapshot['calculated_at'] ?? now(),
+        ]);
+        foreach ($snapshot['hops'] ?? [] as $index => $hop) {
+            $route->hops()->create([
+                'hub_connection_id' => $hop['hub_connection_id'],
+                'sequence' => $index + 1,
+                'from_hub_id' => $hop['from_hub_id'],
+                'to_hub_id' => $hop['to_hub_id'],
+                'distance_meters' => $hop['distance_meters'],
+                'duration_seconds' => $hop['duration_seconds'],
+                'source_fingerprint' => $hop['source_fingerprint'],
+                'destination_fingerprint' => $hop['destination_fingerprint'],
+                'provider' => $hop['provider'],
+                'provider_status' => $hop['provider_status'],
+                'provider_request_id' => $hop['provider_request_id'],
+                'metric_calculated_at' => $hop['metric_calculated_at'],
+            ]);
+        }
+
+        return $route->load('hops');
     }
 
     private function calculate(Waybill $waybill, ?ShipmentRoute $route = null): ShipmentRoute

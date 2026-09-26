@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ShippingRoutePricingStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,8 @@ class OrderPricingSnapshot extends Model
             'logistics_pool_cents' => 'integer', 'cod_total_cents' => 'integer',
             'origin_snapshot' => 'array', 'destination_snapshot' => 'array', 'line_inputs' => 'array',
             'voucher_funding' => 'array', 'eligible_logistics_organization_ids' => 'array',
+            'shipping_route_status' => ShippingRoutePricingStatus::class,
+            'shipping_route_snapshot' => 'array', 'logistics_charge_inputs' => 'array',
             'snapshotted_at' => 'immutable_datetime',
         ];
     }

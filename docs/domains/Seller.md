@@ -12,7 +12,7 @@ status: Revised — aligned with the approved order/Logistics flow and implement
 
 Seller is Aisley's merchant role. An approved Seller operates exactly one Shop through the separate React/Vite Seller web application; Laravel APIs and the database remain authoritative. Seller-owned reads and writes are always scoped from the authenticated Seller to that one Shop.
 
-The Seller owns catalog and inventory preparation. After a Customer places an Order, the Seller verifies and packs the purchased items, selects an eligible Logistics organization, and requests pickup. That transaction creates the immutable shared waybill and confirms `ready_for_pickup`; Logistics and Couriers own later scheduling and physical handoffs.
+The Seller owns catalog and inventory preparation and configures which Logistics organizations its Shop offers. After a Customer selects one at checkout and places an Order, the Seller verifies and packs the purchased items and requests that provider. The pickup transaction creates the immutable shared waybill and confirms `ready_for_pickup`; Logistics and Couriers own later scheduling and physical handoffs.
 
 ## Account, Shop, and approval boundary
 
@@ -101,7 +101,7 @@ seller_pickup_assigned
 
 The Seller does not write Logistics/Courier states. After `ready_for_pickup`, a first-mile Courier may be assigned independently from the final-mile Courier; assignment, scanning, and delivery completion belong to the downstream contracts.
 
-The Seller selects one eligible Logistics organization when requesting pickup. The API recommends exact city/province/country matches before Geoapify road-distance ranking, revalidates eligibility at commit, and freezes the selection. Seller cannot create a first-mile task or assign a Courier.
+The Seller enables or disables active Logistics providers for its Shop. Customer checkout freezes one enabled provider per Shop Order; pickup revalidates and enforces that provider. Seller cannot replace it, create a first-mile task, or assign a Courier.
 
 For the high-level Order projection, explicit first-mile confirmation advances `ready_for_pickup → picked_up`; the detailed `picked_up_from_seller` task event remains authoritative. Later Logistics dispatch scheduling may advance `picked_up → assigned`; pickup scheduling never writes that final-mile projection.
 
@@ -112,7 +112,7 @@ Customer places an Order (`placed`)
 → Seller opens and verifies immutable purchased item/SKU snapshots
 → Seller begins processing (`seller_processing`)
 → Seller packs the correct items and records package details
-→ Seller selects Logistics and requests pickup
+→ Seller requests the checkout-selected Logistics provider
 → Aisley creates the immutable shared waybill and confirms `ready_for_pickup`
 → Seller prints and attaches the waybill
 → selected Logistics organization creates and offers the first-mile task to an eligible Courier
@@ -235,7 +235,7 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 - Product publication requires a valid active Shop/Seller, valid catalog/media/Inventory state, and no active compliance restriction. Storefront visibility is centrally enforced by the shared visibility predicate.
 - Inventory balances and Order snapshots are authoritative records. Catalog edits, low-stock evaluation, notifications, and Seller UI state cannot silently rewrite them.
 - Seller order transitions are validated, transactional, idempotent, and append immutable history. A notification, mapping, upload, or downstream delivery failure must not undo a committed Seller decision.
-- The Seller-selected Logistics organization is server-validated and retained in fulfillment context; it cannot be replaced after pickup-request commitment.
+- The checkout-selected Logistics organization is server-validated and retained in fulfillment context; Seller pickup cannot replace it.
 - Reservation release and fulfillment conversion are idempotent: pre-`picked_up_from_seller` cancellation/rejection releases the exact reserved quantity once, while first-mile pickup commits it once without decrementing `on_hand` twice.
 - The shared waybill tracking ID/reference, thin Code 128/QR identifiers, snapshot, selected Logistics organization, and Order/Parcel link become immutable in the Seller pickup transaction at `ready_for_pickup`; the Buyer postal code and selected Logistics sort-plan match are stored as a routing hint, while later activity appends events.
 - Private registration/profile assets and draft/private description assets remain authorization-gated; eligible public media receives only safe delivery URLs and never exposes raw disk paths or credentials.

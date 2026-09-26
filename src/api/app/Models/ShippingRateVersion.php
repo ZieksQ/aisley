@@ -29,4 +29,9 @@ class ShippingRateVersion extends Model
     {
         return $this->hasMany(LogisticsShippingRateAcceptance::class);
     }
+
+    public function regionSurcharges(): HasMany
+    {
+        return $this->hasMany(ShippingRateRegionSurcharge::class);
+    }
 }

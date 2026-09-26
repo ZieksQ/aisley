@@ -70,6 +70,7 @@ use App\Http\Controllers\Logistics\LinehaulReceivingController;
 use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
+use App\Http\Controllers\Logistics\RateCardController;
 use App\Http\Controllers\Logistics\ReceivingController;
 use App\Http\Controllers\Logistics\ShippingRateController;
 use App\Http\Controllers\Logistics\SortingController;
@@ -98,6 +99,7 @@ use App\Http\Controllers\Seller\ProductReviewController as SellerProductReviewCo
 use App\Http\Controllers\Seller\ProductReviewImageController as SellerProductReviewImageController;
 use App\Http\Controllers\Seller\ProductUploadController as SellerProductUploadController;
 use App\Http\Controllers\Seller\RegistrationAddressController as SellerRegistrationAddressController;
+use App\Http\Controllers\Seller\ShippingProviderController;
 use App\Http\Controllers\Support\RequesterSupportTicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -141,6 +143,7 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::post('/remittances/{batch}/clear', [FinanceWorkflowController::class, 'clearRemittance'])->whereUuid('batch')->middleware('admin.permission:finance.manage');
         Route::post('/orders/{order}/holds', [FinanceWorkflowController::class, 'hold'])->whereUuid('order')->middleware('admin.permission:finance.manage');
         Route::post('/holds/{hold}/release', [FinanceWorkflowController::class, 'releaseHold'])->whereUuid('hold')->middleware('admin.permission:finance.manage');
+        Route::post('/holds/{hold}/reconcile-logistics', [FinanceWorkflowController::class, 'reconcileLogistics'])->whereUuid('hold')->middleware('admin.permission:finance.manage');
         Route::put('/sandbox-beneficiaries/{type}/{beneficiary}', [FinanceWorkflowController::class, 'sandboxAccount'])->whereUuid('beneficiary')->middleware('admin.permission:finance.manage');
         Route::post('/sandbox-settlement/run', [FinanceWorkflowController::class, 'settle'])->middleware('admin.permission:finance.manage');
         Route::post('/sandbox-payouts/{reference}/callback', [FinanceWorkflowController::class, 'callback'])->middleware('admin.permission:finance.manage');
@@ -398,6 +401,8 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/orders/{order}/reject', [SellerOrderController::class, 'reject'])->whereUuid('order')->name('orders.reject');
     Route::post('/orders/pickup-requests', [SellerOrderController::class, 'requestPickup'])->name('orders.pickup-requests.store');
     Route::get('/logistics-options', [SellerOrderController::class, 'logisticsOptions'])->name('logistics-options.index');
+    Route::get('/shipping-providers', [ShippingProviderController::class, 'index'])->name('shipping-providers.index');
+    Route::put('/shipping-providers/{organization}', [ShippingProviderController::class, 'update'])->whereUuid('organization')->name('shipping-providers.update');
     Route::get('/pickup-requests/{pickup}/waybills.pdf', [SellerOrderController::class, 'pickupWaybills'])->whereUuid('pickup')->name('pickup-requests.waybills');
     Route::get('/notifications', [SellerNotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{notification}', [SellerNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.show');
@@ -446,6 +451,9 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     });
     Route::get('/shipping-rates', [ShippingRateController::class, 'index'])->name('shipping-rates.index');
     Route::post('/shipping-rates/{rate}/accept', [ShippingRateController::class, 'accept'])->whereUuid('rate')->name('shipping-rates.accept');
+    Route::get('/rate-cards', [RateCardController::class, 'index'])->name('rate-cards.index');
+    Route::post('/rate-cards', [RateCardController::class, 'store'])->name('rate-cards.store');
+    Route::post('/rate-cards/{card}/publish', [RateCardController::class, 'publish'])->whereUuid('card')->name('rate-cards.publish');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');
     Route::post('/fleet/trucks', [CompanyFleetController::class, 'store'])->name('fleet.trucks.store');
     Route::patch('/fleet/trucks/{truck}', [CompanyFleetController::class, 'update'])->whereUuid('truck')->name('fleet.trucks.update');
@@ -725,6 +733,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::post('/recently-viewed/merge', [RecentlyViewedController::class, 'merge'])->name('recently-viewed.merge');
         Route::delete('/recently-viewed/{product}', [RecentlyViewedController::class, 'destroy'])->whereUuid('product')->name('recently-viewed.destroy');
         Route::delete('/recently-viewed', [RecentlyViewedController::class, 'clear'])->name('recently-viewed.clear');
+        Route::post('/checkout/logistics-options', [CheckoutController::class, 'logisticsOptions'])->name('checkout.logistics-options');
         Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');
         Route::post('/checkout/place', [CheckoutController::class, 'place'])->name('checkout.place');
         Route::get('/checkout/{batch}', [CheckoutController::class, 'show'])

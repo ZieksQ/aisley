@@ -50,7 +50,7 @@ active Logistics session
 
 ### Queue and task projections
 
-- Include a row only when the pickup request's immutable Seller-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. The current provider-less rows remain transitional and cannot be claimed by any tenant.
+- Include a row only when the pickup request's immutable checkout-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. Provider-less historical rows remain transitional and cannot be claimed by any tenant.
 - Later rows may enter only through approved Shipment/Delivery Task ownership and transitions: first-mile `picked_up_from_seller`, hub `received_at_hub`/`sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, and final-mile `delivery_assigned`/`picked_up_from_hub`.
 - Keep high-level Order values lowercase `snake_case`: `ready_for_pickup`, `picked_up` (explicit first-mile Seller handoff projection), `assigned` (committed scheduled final-mile assignment), `in_transit`, and `out_for_delivery`. Uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER` are source/UI wording only.
 - Do not accept or persist a future/source status until the shared operational schema and transition service approve it. Dashboard display must not turn a label into state.

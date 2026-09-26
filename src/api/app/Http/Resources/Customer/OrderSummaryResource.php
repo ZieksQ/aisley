@@ -26,6 +26,10 @@ class OrderSummaryResource extends JsonResource
                 'name' => $this->shop->name,
                 'logoUrl' => MediaUrl::from('public', $this->shop->logo_path),
             ],
+            'shippingProvider' => $this->selectedLogisticsOrganization === null ? null : [
+                'id' => $this->selectedLogisticsOrganization->id,
+                'businessName' => $this->selectedLogisticsOrganization->business_name,
+            ],
             'itemPreview' => $preview === null ? null : [
                 'productId' => $preview->product_id,
                 'productName' => $preview->product_name,

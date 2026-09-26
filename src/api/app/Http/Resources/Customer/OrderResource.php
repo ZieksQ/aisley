@@ -39,6 +39,10 @@ class OrderResource extends JsonResource
                 'name' => $this->shop->name,
                 'logoUrl' => MediaUrl::from('public', $this->shop->logo_path),
             ],
+            'shippingProvider' => $this->selectedLogisticsOrganization === null ? null : [
+                'id' => $this->selectedLogisticsOrganization->id,
+                'businessName' => $this->selectedLogisticsOrganization->business_name,
+            ],
             'items' => $this->items->map(fn ($item) => [
                 'id' => $item->id,
                 'productId' => $item->product_id,

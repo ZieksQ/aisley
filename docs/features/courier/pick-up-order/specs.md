@@ -50,7 +50,7 @@ Seller packs Orders and requests one Logistics provider
 
 ### Ownership and non-goals
 - Pick Up Order owns parcel verification, physical handoff confirmation, pickup timestamp/actor, transition history, and the handoff to the next Logistics feature.
-- Seller selects the Logistics provider. Logistics owns Courier eligibility, scheduling, hub validation, and final-mile assignment.
+- Customer checkout selects one Seller-enabled Logistics provider per Shop Order; Seller pickup enforces it. Logistics owns Courier eligibility, scheduling, hub validation, and final-mile assignment.
 - Waybill creation/printing, Seller packing, Courier assignment, hub receipt, sorting, dispatch, delivery, proof of delivery, earnings, and incident resolution are outside this feature.
 
 ## MUST

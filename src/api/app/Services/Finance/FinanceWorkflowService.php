@@ -9,6 +9,8 @@ use App\Models\FinanceExpense;
 use App\Models\FinancePeriodClosure;
 use App\Models\FinancialHold;
 use App\Models\LinehaulTrip;
+use App\Models\LogisticsRouteReconciliation;
+use App\Models\LogisticsServiceAllocation;
 use App\Models\Order;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -189,10 +191,80 @@ class FinanceWorkflowService
                 }
                 $this->ledger->post('logistics-allocation:'.$order->id, 'logistics_allocation_resolved', $order->currency, $lines, now(), $order->id, 'Held Logistics service allocation resolved from completed evidence.');
             }
+            abort_if(in_array($hold->reason_code, ['UNPLANNED_ROUTE_RECONCILIATION_REQUIRED', 'LOGISTICS_QUOTED_CHARGES_MISSING'], true), 409, 'Reconcile the Logistics allocations before releasing this hold.');
             $hold->update(['released_by' => $admin->id, 'released_at' => now()]);
         }
 
         return $hold->refresh();
+    }
+
+    /** @param array<string, mixed> $data */
+    public function reconcileLogistics(User $admin, string $holdId, array $data): LogisticsRouteReconciliation
+    {
+        return DB::transaction(function () use ($admin, $holdId, $data): LogisticsRouteReconciliation {
+            $hold = FinancialHold::query()->whereKey($holdId)->whereNull('released_at')->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($hold->reason_code, [
+                'UNPLANNED_ROUTE_RECONCILIATION_REQUIRED',
+                'LOGISTICS_QUOTED_CHARGES_MISSING',
+                'LOGISTICS_EVIDENCE_MISSING',
+                'LINEHAUL_EVIDENCE_MISSING',
+            ], true), 409, 'This hold does not support Logistics reconciliation.');
+            $order = Order::query()->with('pricingSnapshot')->whereKey($hold->order_id)->lockForUpdate()->firstOrFail();
+            abort_if($order->pricingSnapshot === null, 409, 'The Order has no pricing snapshot.');
+            $subsidy = (int) ($data['platform_subsidy_cents'] ?? 0);
+            $pool = $order->pricingSnapshot->logistics_pool_cents;
+            $total = collect($data['allocations'])->sum('amount_cents');
+            if ($total !== $pool + $subsidy) {
+                throw ValidationException::withMessages(['allocations' => 'Allocations must equal the frozen Logistics pool plus the declared platform subsidy.']);
+            }
+            $keys = collect($data['allocations'])->map(fn (array $entry) => $entry['logistics_organization_id'].':'.$entry['service_type']);
+            if ($keys->unique()->count() !== $keys->count()) {
+                throw ValidationException::withMessages(['allocations' => 'Combine duplicate organization and service allocations.']);
+            }
+            $reconciliation = LogisticsRouteReconciliation::create([
+                'order_id' => $order->id,
+                'financial_hold_id' => $hold->id,
+                'shipping_pool_cents' => $pool,
+                'platform_subsidy_cents' => $subsidy,
+                'total_allocation_cents' => $total,
+                'allocations' => $data['allocations'],
+                'notes' => $data['notes'],
+                'reconciled_by' => $admin->id,
+                'reconciled_at' => now(),
+            ]);
+            foreach ($data['allocations'] as $allocation) {
+                LogisticsServiceAllocation::create([
+                    'order_id' => $order->id,
+                    'logistics_organization_id' => $allocation['logistics_organization_id'],
+                    'service_type' => $allocation['service_type'],
+                    'shipment_route_hop_id' => null,
+                    'quoted_charge_cents' => null,
+                    'amount_cents' => $allocation['amount_cents'],
+                    'status' => 'reconciled',
+                    'committed_at' => now(),
+                ]);
+            }
+            $lines = [[
+                'account_code' => 'logistics_allocation_pending',
+                'owner_type' => 'platform',
+                'debit_cents' => $pool,
+            ]];
+            if ($subsidy > 0) {
+                $lines[] = ['account_code' => 'shipping_subsidy_expense', 'owner_type' => 'platform', 'debit_cents' => $subsidy];
+            }
+            foreach (collect($data['allocations'])->groupBy('logistics_organization_id') as $organizationId => $allocations) {
+                $lines[] = [
+                    'account_code' => 'logistics_liability',
+                    'owner_type' => 'logistics',
+                    'owner_id' => $organizationId,
+                    'credit_cents' => $allocations->sum('amount_cents'),
+                ];
+            }
+            $this->ledger->post('logistics-reconciliation:'.$order->id, 'logistics_route_reconciled', $order->currency, $lines, now(), $order->id, $data['notes']);
+            $hold->update(['released_by' => $admin->id, 'released_at' => now()]);
+
+            return $reconciliation;
+        }, 3);
     }
 
     private function cents(mixed $amount): int

@@ -14,7 +14,7 @@ class ShippingRateController extends Controller
     public function index(Request $request): JsonResponse
     {
         $organization = $request->user()->logisticsOrganization()->firstOrFail();
-        $rates = ShippingRateVersion::query()->where('status', 'published')->orderByDesc('version_number')->get()
+        $rates = ShippingRateVersion::query()->where('status', 'published')->with('regionSurcharges')->orderByDesc('version_number')->get()
             ->map(function (ShippingRateVersion $rate) use ($organization): array {
                 $acceptance = LogisticsShippingRateAcceptance::query()->where('shipping_rate_version_id', $rate->id)
                     ->where('logistics_organization_id', $organization->id)->first();

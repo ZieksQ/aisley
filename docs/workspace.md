@@ -155,7 +155,7 @@ Apply eligible vouchers and discounts.
 
 Select a shipping address.
 
-Checkout remains provider-neutral. The Seller selects one eligible Logistics organization when requesting pickup.
+The Seller configures allowed Shop providers. Checkout returns server-priced options and the Customer selects one Logistics organization per Shop Order; Seller pickup must use the frozen selection.
 
 Use the current COD payment flow. Future online payment methods require a separate payment contract.
 
@@ -263,7 +263,7 @@ Seller shall be able to process/approve an order and prepare it for fulfillment.
 
 Core flow:
 
-Customer places the Order → Seller processes and packs → Seller selects an eligible Logistics organization and confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
+Customer selects an enabled Logistics provider and places the Order → Seller processes and packs → Seller requests the selected provider and confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
 
 Seller order processing does not assign a Courier; the later pickup-request transaction creates the shared waybill.
 
@@ -618,7 +618,7 @@ Buyer places order
 ↓
 Seller begins processing and prepares the order
 ↓
-Seller selects an eligible Logistics organization, requests pickup, creates each waybill, and confirms `ready_for_pickup`
+Seller requests pickup from each Order's checkout-selected Logistics organization, creates each waybill from the frozen route snapshot, and confirms `ready_for_pickup`
 ↓
 First-mile Courier accepts the Seller pickup task
 ↓
@@ -787,13 +787,11 @@ Subscription billing, the base subscription, and the ₱10 per-order Logistics S
 
 13.2 Shipping Fee
 
-Default shipping fee:
+Admin publishes a versioned platform base shipping fee and optional surcharge per Buyer destination region. Each Logistics organization accepts that tariff and publishes category/service rules using packed weight and dimensions. Each Seller enables providers for its Shop, and the Customer chooses one per Shop Order.
 
-₱50
+For a complete active sort-plan route, Customer shipping equals platform base plus destination-region surcharge plus every first-mile, linehaul, and last-mile quoted charge. When no complete route can be planned, checkout charges only the base and regional surcharge, marks the route unplanned, and keeps the later payout on hold for Admin reconciliation.
 
-The source identifies this as the component where Logistics receives its commission.
-
-The MVP may use these as default values. Future configurability is recommended but is not required to prove the workflow.
+Logistics commission applies once to the frozen shipping amount. The remaining pool is allocated pro rata by approved frozen leg charges and actual service evidence; there is no fixed first/linehaul/last-mile percentage. Admin reconciliation may record actual allocations and an explicit platform subsidy without changing Customer COD.
 
 14. Notifications
 
