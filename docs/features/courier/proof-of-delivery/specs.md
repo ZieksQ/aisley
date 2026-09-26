@@ -4,10 +4,10 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.7
+version: 1.8
 status: Implemented photo POD submission and Logistics validation; signature deferred
 implementation_status: Courier private photo submission and Logistics private preview/validation are implemented; former reference proof is retired for delivery
-flutter_status: Supplied Flutter progress records partial photo POD upload adoption; Logistics validation, installed-device upload, and current COD completion remain unverified
+flutter_status: Photo upload and COD confirmation are implemented locally in Flutter; authenticated Logistics validation and installed-device acceptance remain unverified
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
@@ -23,7 +23,7 @@ The Courier's final-mile delivery action is photo POD: **Open camera for POD** i
 
 ## COD capture confirmation (2026-09-23)
 
-For COD Orders, the Courier mockup shows the server-projected payable total and requires a positive acknowledgment that the full cash amount was collected before sending Delivered intent. It does not accept a manually entered amount. The completion API derives amount/currency/time from the Order. Logistics reviews that declaration and confirms collection before delivery approval; an unsuccessful cash collection is recorded as an unsuccessful delivery attempt.
+For COD Orders, show the authorized delivery context's `data.order.payable_total` and `data.order.currency` when `data.order.payment_method` is `cod`, then require a positive acknowledgment that the full cash amount was collected before sending Delivered intent. Do not substitute `data.parcel.price`, accept a manually entered amount, or proceed when payment fields are missing. The completion API derives amount/currency/time from the Order. Logistics reviews that declaration and confirms collection before delivery approval; an unsuccessful cash collection is recorded as an unsuccessful delivery attempt. See Deliver Order for the response example and Complete Delivery for the intent request.
 
 ## Final-mile photo revision (2026-09-20)
 

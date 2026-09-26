@@ -4,7 +4,7 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implemented final-mile task, batch route, movement, and delivery-context API
 implementation_status: Final-mile tasks, batch acceptance, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
 flutter_status: Supplied Flutter progress records legacy delivery context/movement UI; final-mile batch route/map and parcel-price projection not verified/adopted
@@ -20,6 +20,16 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## Map and parcel-price revision (2026-09-21)
 
 The accepted final-mile batch route must display the Logistics hub as a labelled start marker, every delivery stop with known coordinates as a numbered circle, and a visible line in sequence when at least two coordinates exist. The API uses Geoapify Matrix for stop order and Geoapify Routing for the road `LineString`; the development Courier mockup renders these GeoJSON coordinates over authenticated Geoapify `osm-bright` raster tiles with MapLibre GL JS. A Routing or Matrix failure keeps a labelled straight-line fallback through known stops; missing coordinates are reported as unavailable and never fabricated. The Courier task projection includes `parcel.price` from the Order merchandise subtotal and `parcel.currency`, so the Courier can see the parcel's merchandise price without payment credentials. The Courier screen need not display parcel/waybill/Order identifiers for delivery actions. Older optional-map and route-deferred statements below describe the former baseline.
+
+## Authorized COD amount read (verified against Laravel checkout `ca1487c`, 2026-09-25)
+
+After acceptance, `GET /api/v1/courier/tasks/{task}/delivery` returns `data.order.payment_method`, `data.order.payment_status`, `data.order.payable_total`, and `data.order.currency` inside the private, no-store task projection. The final-mile task detail read has the same `order` fields; use the accepted-task delivery read for the cash-collection screen. Redacted JSON excerpt:
+
+```json
+{"data":{"task_id":"<authorized-task-uuid>","revision":4,"order":{"payment_method":"cod","payment_status":"pending","payable_total":"115.00","currency":"PHP"},"parcel":{"price":"100.00","currency":"PHP"}}}
+```
+
+`order.payable_total` is the amount to collect; `parcel.price` is only the merchandise subtotal. Do not infer a missing total or treat the example values as a live Order. The current backend payment-method enum contains only `cod`; future methods need an approved contract.
 
 ## Final-mile batch route revision (2026-09-20)
 

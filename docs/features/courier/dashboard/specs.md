@@ -3,10 +3,10 @@ feature: courier-dashboard
 title: Courier Dashboard
 system: AISLEY
 type: Feature Specification
-version: 2.6
-status: Implemented scaffold; operational task aggregation deferred
+version: 2.7
+status: Flutter dashboard partially implemented with read-only task previews; Laravel aggregate scaffold-only
 implementation_status: Protected dashboard scaffold and separate Courier notification/task APIs implemented; aggregate operational sections unavailable
-flutter_status: Scaffold, navigation, and inbox implemented; final-mile handoff/photo POD partially adopted; batch offers and aggregate cards not adopted
+flutter_status: Scaffold validation, inbox badge, feature/chat links, and separate read-only task previews implemented; live acceptance unverified
 canonical: true
 role: Courier / Rider
 scope: External Flutter mobile client and Laravel read API scaffold
@@ -20,19 +20,19 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - **Purpose:** Provide the external Flutter Courier app with one read-oriented view of new allocations, available pickup/delivery requests, and the Courier's active work.
-- **Current status:** `GET /api/v1/courier/dashboard` is an implemented protected scaffold. Its notification, available-task, and active-task aggregate sections remain unavailable, despite implemented separate task and inbox APIs. The Flutter dashboard renders the scaffold, an inbox badge, and links to owning screens; it does not have live operational cards.
-- **Client adoption:** Flutter has partially adopted task-bound final-mile hub pickup and photo POD, but normal 1–15-parcel batch acceptance lacks a complete copied DTO/retry contract and is disabled. Do not treat a linked screen or the development Courier mockup as proof that its current flow works end-to-end.
-- **Future scope:** A versioned dashboard revision may aggregate server-authorized task or batch summaries. Rejected offers and informationally stale unfinished tasks are not Order cancellations. No Courier UI belongs in the Laravel repository.
+- **Current scaffold:** `GET /api/v1/courier/dashboard` still returns unavailable notification, available-task, and active-task aggregate sections. Flutter validates that shape, shows its independent inbox badge, and links to owning features.
+- **Partial Flutter implementation:** Separate read-only first-/final-mile previews consume the Courier-scoped task-list APIs with independent loading/error states. They are client composition, not a new Laravel aggregate DTO or authority for mutations.
+- **Future scope:** A versioned dashboard aggregate may replace those previews. Normal atomic final-mile batch acceptance remains unadopted, and no Courier UI belongs in this Laravel repository.
 - **Mobile boundary:** Flutter owns screens, secure token storage, refresh behavior, and accessibility. Laravel owns identity, authorization, tenant scope, task eligibility, status, and data freshness.
 - **MVP relationship:** A Courier operates only within one approved Logistics organization and its sole operational hub. First-mile Seller pickup and final-mile hub delivery are independent task legs.
 - **Non-goals:** Accepting tasks, creating assignments, scanning, pickup confirmation, transit updates, delivery completion, proof upload, route optimization, chat persistence, incidents, earnings, or hub management.
 
 ```text
 approved Courier session
-→ dashboard scaffold returns unavailable aggregate sections
-→ Flutter shows honest unavailable cards, separate inbox badge, and feature links
-→ owning feature refetches its authorized task or batch
-→ only the owning API may perform an explicit mutation
+→ dashboard aggregate remains explicitly unavailable
+→ separate inbox and task APIs supply independent read-only previews
+→ tap opens the owning feature, which refetches before any explicit action
+→ only the owning API may perform a mutation
 ```
 
 ## MUST
@@ -106,13 +106,13 @@ approved Courier session
 - [x] The repository exposes only a read-only Courier dashboard scaffold and builds no Courier web UI.
 - [x] The specification identifies the dashboard as read-only and separates each mutation-owning Courier feature.
 - [x] One-organization/one-hub scope and independent first-/final-mile assignments are explicit.
-- [x] Implemented task APIs are distinguished from unavailable dashboard aggregation; Flutter links to owning screens without creating operational dashboard cards.
+- [x] Implemented task APIs are distinguished from unavailable dashboard aggregation; Flutter shows source-labelled read-only previews and refetches in owning screens before mutations.
 - [x] The protected dashboard scaffold returns bounded empty data, explicit unavailable section reasons, freshness metadata, and private cache headers.
 - [x] The scaffold's guest, wrong-role, pending-account, privacy, and no-operational-data behavior is covered by API tests.
 - [x] A bounded, tenant-scoped Courier notification API returns safe inbox DTOs, unread counts, detail, and idempotent read state.
 - [x] Flutter consumes the separate inbox API and shows its unread badge without interpreting the scaffold notification section as live.
-- [x] The current Flutter handoff records partial task-bound hub pickup/photo POD adoption; installed-device and end-to-end Logistics validation remain unverified.
-- [ ] Adopt the documented atomic final-mile batch action only after its authorized request/response, pagination/order, and retry details are verified; do not reactivate normal per-task acceptance meanwhile.
+- [x] The current Flutter handoff records dashboard previews and COD-aware completion intent; installed-device and end-to-end Logistics validation remain unverified.
+- [ ] Adopt the documented atomic final-mile batch action using its exact state-idempotent contract; do not reactivate normal per-task acceptance or loop task calls.
 - [ ] An operational dashboard API returns available-task and active-task summaries alongside notifications.
 - [ ] Offered task rows identify first-mile or final-mile leg, expose only authorized operational Order data, and include provider-neutral distance/ETA when available.
 - [x] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task from the dedicated Dispatch page without changing the Order or duplicating task/waybill history.

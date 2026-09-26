@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-24 (Inbound Linehaul, Finance, Admin campaigns, private role chat, and Admin support tickets)
+> **Last synchronized:** 2026-09-25 (Inbound Linehaul, Finance, Admin campaigns, private role chat, Admin support tickets, and Courier contract alignment)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -667,7 +667,7 @@ Indexes cover the polymorphic recipient and recipient/read/time inbox query. Not
 
 ### 7.5c Admin support tickets
 
-`support_tickets` is a separate UUID-backed workflow store, not a conversation kind. Each row has a unique non-authorizing `SUP-` reference, requester User/role, optional assigned Admin User, subject, string-backed category/status, revision, last event sequence/activity, and optional resolution time. The first-release create API accepts subject/category/description only; it stores no Order, Shop, pickup, task, or compliance link.
+`support_tickets` is a separate UUID-backed workflow store, not a conversation kind. Each row has a unique non-authorizing `SUP-` reference, requester User/role, optional assigned Admin User, subject, string-backed category/status, revision, last event sequence/activity, and optional resolution time. The first-release create API accepts `subject`, `category`, and plain-text `body` only; it stores no Order, Shop, pickup, task, or compliance link.
 
 `support_ticket_events` records each public reply, status transition, and assignment as a unique per-ticket sequence with actor User/role and UTC time. A PostgreSQL/SQLite trigger rejects UPDATE/DELETE. `support_ticket_read_markers` has one UUID row per `(ticket_id, user_id)`, so every Admin has an independent monotonic read position and cannot clear another Admin's unread count. Requester markers are likewise independent from notification read state. `support_ticket_idempotency_receipts` stores an actor/action/key-unique payload hash and original safe response/status for exact retry. Ticket and event FKs restrict hard deletion. No source-record links, attachments, notification fanout, retention purge, or appeal exception are represented in this release.
 

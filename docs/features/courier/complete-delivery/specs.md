@@ -3,10 +3,10 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implemented photo POD completion intent and Logistics confirmation
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
-flutter_status: Supplied Flutter progress records partial photo-linked completion intent adoption; Logistics validation, rejected-photo retry, and COD confirmation remain unverified
+flutter_status: Photo-linked COD completion intent is implemented locally in Flutter; authenticated Logistics validation, rejected-photo retry, and installed-device acceptance remain unverified
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
@@ -23,7 +23,7 @@ The Courier's **Delivered** action sends an intent linked to the current photo P
 
 ## COD confirmation revision (2026-09-23)
 
-For COD Orders, completion intent requires `cod_collected: true`. The API derives the declared amount, currency, and declaration timestamp from the Order's current `payable_total` and currency; the Courier cannot submit or alter an amount. If the cash was not collected, the Courier records an unsuccessful attempt instead. Logistics sees the declaration in the pending confirmation queue and confirms collection explicitly before approval. Delivery finalization and setting COD `payment_status` to `paid` occur atomically after Logistics confirms proof, task revision, and declaration. Prepaid Orders do not require a COD field and are not changed by COD payment handling.
+For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; use the failed-attempt flow instead. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Future prepaid methods require an approved contract.
 
 ## WHAT
 
@@ -80,8 +80,7 @@ out_for_delivery
 - Commit all three projections and one completion event in the same transaction.
 - Record delivered_at from the server's successful finalization time in UTC.
 - Preserve evidence performance/submission times separately from delivered_at.
-- The completed first-mile task remains unchanged.
-- Final-mile completion does not reserve, release, or fulfill stock again.
+- The completed first-mile task remains unchanged; final-mile completion does not reserve, release, or fulfill stock again.
 - Do not infer COD payment collection from delivered alone. For COD only, the Courier declaration plus Logistics confirmation authorizes an atomic `payment_status = paid` update with final delivery.
 - Post-pickup cancellation, failure recovery, returns, refunds, and partial fulfillment remain deferred.
 
@@ -119,7 +118,7 @@ out_for_delivery
 - Production UI belongs in the external Flutter repository.
 - Store bearer tokens in OS secure storage and send Authorization: Bearer.
 - Use JSON model keys exactly as specified by the implemented API revision.
-- Load safe Order/task references, delivery state, proof status, and capability reasons.
+- Load safe Order/task references, delivery state, proof status, and capability reasons; refetch delivery context before displaying COD due or requesting confirmation.
 - Show recipient/destination details only when returned by the authorized active-task contract.
 - Never expose registration documents, payment secrets, private reviewer notes, or raw paths.
 - Show “Awaiting Logistics validation” for accepted intent that is not finalized.
@@ -149,7 +148,7 @@ out_for_delivery
 - The Logistics route is owned by Update Status; this spec does not create a second validation endpoint.
 - Courier POST uses application/json plus a UUID Idempotency-Key header.
 - Request fields: expected_revision (integer at least 1), evidence_id (UUID), confirmed (must be true), and `cod_collected: true` for COD Orders only.
-- COD declaration amount/currency/time are server-derived from the Order and are returned to Logistics in the pending confirmation queue; no amount is accepted from the Courier.
+- Read COD fields from `data.order.payment_method`, `data.order.payable_total`, and `data.order.currency`; declaration amount/currency/time remain server-derived and the Courier POST accepts no amount.
 - Reject unknown authority fields and unrelated evidence references.
 - GET has no body and no client-controlled ownership parameters.
 - New intent and matching replay return 202. Replay may reflect updated intent/task state but still returns `delivered_at: null`; use GET for the authoritative completion projection and timestamp.
@@ -157,7 +156,7 @@ out_for_delivery
 - Initial GET may return `intent_id: null`, `completion_status: null`, `evidence_id: null`, and `delivered_at: null`; no intent is a valid state, not a parsing error.
 
 ```json
-{"expected_revision":4,"evidence_id":"00000000-0000-4000-8000-000000000001","confirmed":true}
+{"expected_revision":4,"evidence_id":"00000000-0000-4000-8000-000000000001","confirmed":true,"cod_collected":true}
 ```
 
 ```json
@@ -201,7 +200,7 @@ out_for_delivery
 - Test pending/rejected proof, premature completion, and duplicate intent.
 - Test concurrent Logistics decisions and stale assignments without double completion.
 - Test rollback atomicity across task, Shipment, Order, event, and notification work.
-- Test that final delivery leaves inventory and payment fields unchanged.
+- Test that final delivery leaves Inventory unchanged; COD payment becomes `paid` only after Logistics validates proof and collection.
 - Test legacy pickup bridge records do not create false final-mile history.
 - Test notification failures and retries independently from completion state.
 - Flutter tests cover pending 202 versus delivered 200, nullable fields, timeout retry, and secure-storage failures.
