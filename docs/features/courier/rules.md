@@ -102,7 +102,7 @@ Do not leave the client to infer request names, status values, ownership, or err
 - Use transactional writes, row locks or compare-and-update guards, stable idempotency keys, and append-only history for state changes.
 - Keep one immutable shared waybill created by the Seller pickup transaction; Seller and selected Logistics have role-scoped access, and assigned Courier QR resolution remains task-authorized.
 - Do not put detailed physical shipment milestones directly in `orders.status` without an approved shared migration.
-- Do not invent Shipment, Parcel, Scan, Delivery Task, assignment, or proof records while the shared operational schema is deferred.
+- Reuse the deployed Shipment, Parcel, Delivery Task, offer, evidence, custody, and proof records. Do not invent parallel records, statuses, or unapproved schema extensions.
 
 ## External Flutter handoff
 

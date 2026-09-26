@@ -79,7 +79,7 @@ Database: Postgres (containerized)
 | --------------------------------------------------------------------------------- | --------------------------------------------------- |
 | What a feature/role is supposed to do, scope, acceptance criteria                 | `docs/requirements.md`                              |
 | Folder structure, tech stack, DB, auth, environment setup, how components connect | `docs/architecture.md`                              |
-| Step-by-step user flows, state transitions, approval logic, order lifecycle       | `docs/workflows.md`                                 |
+| Step-by-step user flows, state transitions, approval logic, order lifecycle       | `docs/workspace.md` and the applicable shared/role feature specifications |
 | What's already built, to avoid re-doing or conflicting work                       | `docs/PROGRESS.md`                                  |
 | domain design, context about users role                                           | `docs/domains/*`                                    |
 | Customer/Admin/Seller/Logistics UI, styling, layout, accessibility, or client behavior | `docs/design.md` (mandatory web design contract) |

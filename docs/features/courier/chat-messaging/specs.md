@@ -4,8 +4,8 @@ title: Courier Operational Messaging
 system: AISLEY
 type: Feature Specification
 version: 2.1
-status: Logistics, Seller, and Buyer task-scoped API channels implemented; Flutter and counterpart UIs deferred
-implementation_status: All three Courier operational chat counterparts have Laravel routes; external Flutter and Seller/Customer screens are not implemented or verified
+status: Logistics, Seller, and Buyer task-scoped API channels implemented; Flutter Logistics client implemented locally, live exchange pending
+implementation_status: Courier Flutter Logistics task chat and inbox implemented locally; live cross-role exchange and Seller/Customer reply screens unverified
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter client
@@ -27,7 +27,7 @@ backend_contract_version: courier-operational-messaging-v2
   Logistics may initiate its Courier thread under the same task/organization relationship.
 - The Laravel API has separate Logistics–Courier, Courier–Seller, and Courier–Buyer task
   channels using shared conversation, participant, and message records. Seller/Customer
-  counterpart screens and the external Flutter client have not been updated or verified.
+  counterpart screens remain deferred; Flutter Logistics chat awaits live verification.
 - Chat coordinates pickup, access instructions, and delays. It cannot accept/reject a task,
   confirm a scan or delivery, change an address/route, create an Incident or SOS alert, or
   approve a Logistics action. Those features remain authoritative.
@@ -65,15 +65,13 @@ backend_contract_version: courier-operational-messaging-v2
   deactivation blocks API access; no old thread is transferred to a new organization.
 - The thread's immutable organization/task context is not silently changed when a
   Shipment later moves by linehaul. Each new leg/organization needs its own context.
-- A guessed task, thread, message, or same-email account from another role/tenant
-  receives a scoped denial without disclosing the foreign record.
+- A guessed task, thread, message, or same-email account from another role/tenant receives a scoped denial without disclosing the foreign record.
 
 ### Thread, send, and read rules
 
 - The first valid message lazily creates one conversation for the organization, task,
   Courier, and counterpart role/user. Opening a task screen creates no empty thread.
-- The Logistics-side task-start action and Courier-side start action resolve to the
-  same Courier–Logistics thread, never parallel role-specific histories.
+- The Logistics-side task-start action and Courier-side start action resolve to the same Courier–Logistics thread, never parallel role-specific histories.
 - Trim nonempty body to 2,000 characters; store and render as untrusted plain text,
   not HTML or MDX. Message ID, sender, UTC time, and per-thread sequence are server-owned.
 - Send requires a UUID `Idempotency-Key`; exact retry returns the original committed
@@ -97,8 +95,7 @@ backend_contract_version: courier-operational-messaging-v2
 - Gate codes or location clarifications typed into chat are sensitive: restrict the
   thread to participants, avoid message-body logging, and do not rewrite the
   Customer checkout/address snapshot based on text.
-- Rate-limit start/send, log safe IDs/actor/outcome, and use private role-scoped
-  projections. Admin has no automatic access to operational chat bodies.
+- Rate-limit start/send, log safe IDs/actor/outcome, and use private role-scoped projections. Admin has no automatic access to operational chat bodies.
 
 ### Flutter behavior and failures
 
@@ -107,10 +104,8 @@ backend_contract_version: courier-operational-messaging-v2
 - Show **Message Logistics** on an active offered/accepted task; **Message Seller**
   appears only after first-mile acceptance; **Message Buyer** only after final-mile
   acceptance. Hide unavailable actions, but let Laravel make the final decision.
-- A thread header names the task reference, `first_mile` or `final_mile`, and safe
-  counterpart label to prevent messaging in the wrong Order context.
-- Poll visible/online inbox or thread, refetch on focus/reconnect, and reconcile by
-  server message UUID/sequence. Pause polling in background or offline.
+- A thread header names the task reference, `first_mile` or `final_mile`, and safe counterpart label to prevent messaging in the wrong Order context.
+- Poll visible/online inbox or thread, refetch on focus/reconnect, and reconcile by server message UUID/sequence. Pause polling in background or offline.
 - Preserve a pending draft and its idempotency key across an uncertain timeout;
   retry only the same intended send. Do not queue offline chat writes or claim
   success before the authoritative API response.
@@ -127,18 +122,13 @@ backend_contract_version: courier-operational-messaging-v2
 
 ### Acceptance criteria
 
-- [ ] Courier and owning Logistics share one task-scoped thread; Seller contact is
-  first-mile accepted only, Buyer contact final-mile accepted only.
+- [ ] Courier and owning Logistics share one task-scoped thread; Seller contact is first-mile accepted only, Buyer contact final-mile accepted only.
 - [x] Laravel provides separate accepted-task Courier–Seller and Courier–Buyer threads,
   with role-scoped counterpart routes, immutable task identity, and participant-only history.
-- [ ] Offered, rejected, re-offered, completed, cross-Courier, cross-role, and
-  cross-organization cases enforce the stated send/read boundaries.
-- [ ] Active affiliation without an active task cannot initiate Logistics chat;
-  a linehaul trip does not masquerade as a DeliveryTask.
-- [ ] Concurrent first sends and exact retries create one thread/message; changed
-  payload keys conflict without duplicate messages or alerts.
-- [ ] Read markers never regress, private history is cursor-bounded, and a new
-  Courier never receives a predecessor's thread or cached text.
+- [ ] Offered, rejected, re-offered, completed, cross-Courier, cross-role, and cross-organization cases enforce the stated send/read boundaries.
+- [ ] Active affiliation without an active task cannot initiate Logistics chat; a linehaul trip does not masquerade as a DeliveryTask.
+- [ ] Concurrent first sends and exact retries create one thread/message; changed payload keys conflict without duplicate messages or alerts.
+- [ ] Read markers never regress, private history is cursor-bounded, and a new Courier never receives a predecessor's thread or cached text.
 - [ ] Chat text cannot mutate Order, task, custody, address, Incident, SOS, or POD;
   private phone, evidence, secrets, and raw paths stay out of DTOs/logs.
 - [ ] Flutter handles bearer auth, read-only history, timeout retry, offline,
@@ -176,8 +166,7 @@ backend_contract_version: courier-operational-messaging-v2
 - Reject request fields for IDs/roles/status/sequence/timestamps other than the
   allowed `leg`, `task_id`, and `counterparty_role` start selectors. Those three
   selectors must still be resolved and authorized server-side.
-- Start returns `201` on first commit or `200` for exact retry; send
-  returns `201` or `200` retry; reads and GETs return `200`. All use private
+- Start returns `201` on first commit or `200` for exact retry; send returns `201` or `200` retry; reads and GETs return `200`. All use private
   `no-store` JSON, with server-owned UUIDs and nullable next cursor.
 - Start response includes both the authorized conversation projection and its
   first committed message; an exact retry returns those same UUIDs and sequence.
@@ -190,8 +179,7 @@ backend_contract_version: courier-operational-messaging-v2
   `last_read_sequence` and recalculated `unread_count`, not a client echo.
 - Error envelope: `{"message":"Unable to send message.","code":"TASK_NOT_ACTIVE","errors":{}}`;
   field errors use `errors.<field>`, and no response includes foreign IDs.
-- Implemented messaging conflict codes include `TASK_NOT_ACTIVE`,
-  `CONVERSATION_READ_ONLY`, and `IDEMPOTENCY_CONFLICT`. Policy-consent errors
+- Implemented messaging conflict codes include `TASK_NOT_ACTIVE`, `CONVERSATION_READ_ONLY`, and `IDEMPOTENCY_CONFLICT`. Policy-consent errors
   continue to use the shared protected-route contract.
 
 ### Seller and Buyer counterpart API
@@ -223,8 +211,7 @@ backend_contract_version: courier-operational-messaging-v2
 - Unique logical thread key: organization, task/leg, Courier, and counterpart
   role/user. First-mile legacy task ID maps to its shared task before storage.
   Do not create a parallel Courier-only message store or use email as identity.
-- A focused Laravel messaging service owns relationship checks, row locks,
-  idempotency, sequence/read state, safe DTOs, and after-commit alerts;
+- A focused Laravel messaging service owns relationship checks, row locks, idempotency, sequence/read state, safe DTOs, and after-commit alerts;
   controllers stay thin and enum-like DB fields remain strings.
 - Seller and Customer role owners must still add authorized read/reply screens
   before enabling the channels in a user-facing app; do not launch a one-sided composer.

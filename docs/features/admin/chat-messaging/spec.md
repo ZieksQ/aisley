@@ -48,7 +48,7 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 - An Admin may view authorized support tickets but has no blanket right to inspect unrelated
   Customer–Seller, Logistics, or Courier chat. Compliance/evidence access follows those source
   policies; ticket visibility does not grant private source-record access by association.
-- This release accepts only subject, category, and description on creation. `context_type`,
+- This release accepts only `subject`, `category`, and plain-text `body` on creation. `context_type`,
   `context_id`, and other undeclared fields are rejected. Optional Order, Shop, pickup, task,
   or compliance links are deferred until each requester role has an approved relationship and
   visibility matrix. A future reference must never grant source-record access by itself.
@@ -56,7 +56,7 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 ### Ticket lifecycle
 
 - Create a ticket with a trimmed subject (1–150 characters), one of `general`, `account`,
-  `order`, or `delivery`, and a first nonempty plain-text description (1–2,000 characters).
+  `order`, or `delivery`, and a first nonempty plain-text `body` (1–2,000 characters).
   The server assigns a UUID and a human-readable, non-authorizing reference.
 - Persist status as string-backed `open`, `in_progress`, `waiting_for_requester`, or `resolved`.
   The public status is a server-owned projection; every transition appends an event with actor,
