@@ -17,7 +17,7 @@ class Order extends Model
     use HasUuids;
 
     protected $fillable = [
-        'checkout_batch_id', 'customer_id', 'shop_id', 'reference', 'status',
+        'checkout_batch_id', 'customer_id', 'shop_id', 'selected_logistics_organization_id', 'reference', 'status',
         'payment_method', 'payment_status', 'currency', 'merchandise_subtotal',
         'shipping_fee', 'discount_total', 'shipping_discount_total', 'payable_total', 'placed_at',
     ];
@@ -50,6 +50,11 @@ class Order extends Model
     public function shop(): BelongsTo
     {
         return $this->belongsTo(Shop::class);
+    }
+
+    public function selectedLogisticsOrganization(): BelongsTo
+    {
+        return $this->belongsTo(LogisticsOrganization::class, 'selected_logistics_organization_id');
     }
 
     public function items(): HasMany

@@ -31,7 +31,7 @@ For `delivered`, Logistics selects the matching Courier photo POD and completion
 
 - Require `auth:sanctum` and active Logistics role/status on every Logistics endpoint; web mutations also require configured Sanctum CSRF protection.
 - Resolve the authenticated user to its one Logistics organization and sole hub. A waybill, Order, Parcel, Courier, or QR value supplied by the client never bypasses scope checks.
-- Only records whose immutable Seller-selected Logistics organization is the current organization may be looked up or changed.
+- Only records whose immutable checkout-selected Logistics organization or current frozen-route custody belongs to the current organization may be looked up or changed.
 - Derive actor, organization, hub, current status, allowed transition, recipient, and timestamps server-side. Never trust client role, status, actor, or notification fields.
 
 ### Canonical state contract

@@ -71,8 +71,8 @@ Seller Prepare Orders ends at `ready_for_pickup`, but the documents do not yet n
 - [ ] The system automatically creates the task when the Seller marks the order `ready_for_pickup`; Logistics manages eligibility and offers.
 - [ ] The Seller creates or assigns the first-mile task. (This would require changing the current role boundaries.)
 
-  **Decision:** The Seller-selected Logistics organization creates the first-mile task and assigns/offers it to an eligible affiliated Courier after `ready_for_pickup`.
-  **Trigger:** The Seller selects an eligible Logistics organization and marks the Order `ready_for_pickup`, and no active first-mile task already exists.
+  **Decision:** The Customer checkout-selected, Seller-enabled Logistics organization creates the first-mile task and assigns/offers it to an eligible affiliated Courier after `ready_for_pickup`.
+  **Trigger:** Seller pickup validates the Order's frozen Logistics organization and marks the Order `ready_for_pickup`, and no active first-mile task already exists.
   **Actor allowed to assign:** An authorized Logistics account belonging to the selected Logistics organization.
 
 **Affected documents:** `docs/domains/Logistics.md`, `docs/domains/Courier.md`, `docs/features/seller/prepare-orders/spec.md`, Logistics deploy-rider/task specs, `docs/schema.md`.

@@ -50,7 +50,7 @@ active Logistics session
 
 ### Queue and task projections
 
-- Include a row only when the pickup request's immutable Seller-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. The current provider-less rows remain transitional and cannot be claimed by any tenant.
+- Include a row only when the pickup request's immutable checkout-selected Logistics organization is this organization and preparation has committed `ready_for_pickup`. Provider-less historical rows remain transitional and cannot be claimed by any tenant.
 - Later rows may enter only through approved Shipment/Delivery Task ownership and transitions: first-mile `picked_up_from_seller`, hub `received_at_hub`/`sorted_at_hub`, `in_transfer`, `dispatched_from_hub`, and final-mile `delivery_assigned`/`picked_up_from_hub`.
 - Keep high-level Order values lowercase `snake_case`: `ready_for_pickup`, `picked_up` (explicit first-mile Seller handoff projection), `assigned` (committed scheduled final-mile assignment), `in_transit`, and `out_for_delivery`. Uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER` are source/UI wording only.
 - Do not accept or persist a future/source status until the shared operational schema and transition service approve it. Dashboard display must not turn a label into state.
@@ -84,7 +84,7 @@ active Logistics session
 
 - Keep Dashboard directly accessible. Group the other sidebar destinations into **Hub operations** (Parcel search, Pickups, Receive at hub, Sorting, Sort plan), **Transport & delivery** (Linehaul, Linehaul dispatch, Inbound linehaul, Last-mile dispatch, Delivery confirmations), **Organization** (Courier applications, Vehicles, Company fleet, Finance), and **Communication** (Operational messages, Support tickets).
 - Show one expanded group at a time. Open the group containing the current route after navigation or reload, including pickup/application detail and `/couriers/:courierId/vehicle` under Vehicles. On Dashboard, groups begin collapsed.
-- Keep existing Beta labels on Sort plan, Linehaul, Linehaul dispatch, and Inbound linehaul. Preserve the separate account menu for Account, policy consent, notifications, and sign-out.
+- Keep existing Beta labels on Sort plan, Linehaul, Linehaul dispatch, and Inbound linehaul. Preserve the separate account menu for Account, Shipping settings, policy consent, notifications, and sign-out.
 - Group controls must be keyboard-operable and expose expanded state; links must have visible active states in both themes and work in the mobile sidebar. This navigation change does not create new operational actions, queue data, or permissions.
 
 ### Acceptance criteria
@@ -96,7 +96,7 @@ active Logistics session
 - [x] Organization/sole-hub scoped queue rows, real counts, status/search/evidence filters, bounded pagination, authoritative freshness, and truthful empty/error states are implemented.
 - [x] Parcel search has tenant-scoped offline queue/detail cache, local barcode/QR decoding with online authoritative lookup, ten-row online pagination, camera scanning, and read-only cached fallback.
 - [x] Evidence status, completion intents, and recovery transitions remain visible in Hub operations; receipt, sorting, and scheduled dispatch are separated into their own navigation and pages.
-- [x] Sidebar groups preserve all deployed Logistics destinations, Beta labels, detail-route active states, and keyboard/mobile navigation.
+- [x] Sidebar groups and the account menu preserve all deployed Logistics destinations, including Shipping settings, Beta labels, detail-route active states, and keyboard/mobile navigation.
 - [ ] A configured stale threshold, private realtime transport, advanced ranking, date filters, and automatic reassignment remain deferred.
 
 ## HOW

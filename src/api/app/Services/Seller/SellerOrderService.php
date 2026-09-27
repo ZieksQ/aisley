@@ -77,6 +77,7 @@ class SellerOrderService
     private function relations(): array
     {
         return [
+            'selectedLogisticsOrganization:id,business_name',
             'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
             'address',
             'statusEvents' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),

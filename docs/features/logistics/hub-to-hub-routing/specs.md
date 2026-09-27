@@ -3,13 +3,24 @@ role: Logistics
 feature: Linehaul
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Existing routing implemented; 2026-09-20 connection and Sort plan revision specified, pending implementation
+version: 1.1
+status: Existing routing implemented; checkout route pricing snapshot added 2026-09-27
 scope: Laravel API, PostgreSQL, and Logistics Linehaul / Sorting / Sort plan UI
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/maps-location-api.md, docs/features/orders/logistics-sorting/spec.md, docs/features/orders/lane-aware-dispatch/spec.md
 ---
 
 # Linehaul
+
+## Checkout route pricing revision — 2026-09-27
+
+- Checkout now previews the complete commercial route from the Customer-selected provider's hub to a destination hub serving the Buyer postal code.
+- A route is priceable only when every sending hub has an active standard sort-plan lane for the frozen next hub and the destination hub has an active standard postal-code lane.
+- Checkout freezes the chosen hubs, accepted connection revisions, road metrics, sort-plan identifiers/revisions, and ordered hops in the Order pricing snapshot.
+- Waybill creation materializes a planned/local route from that snapshot. Later plan edits do not reprice or replace committed hops.
+- A connection or participant that becomes operationally unavailable before pickup creates a hold; Customer COD remains unchanged.
+- If no complete route exists at quote time, checkout uses the platform base plus buyer-region surcharge and marks pricing `unplanned`. Operational retry may later find a route, but Finance must reconcile actual participants because no leg weights were quoted.
+- Logistics linehaul commission is not selected by the first- or last-mile organization alone. The post-commission pool is divided pro rata using frozen quoted charges for every evidenced service leg.
+- This revision supersedes references below that calculate a new route only at waybill creation or identify the Seller as provider-selection authority.
 
 ## Parcel receiving and reconciliation — 2026-09-23
 

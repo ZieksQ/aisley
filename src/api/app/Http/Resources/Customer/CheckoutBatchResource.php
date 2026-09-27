@@ -59,10 +59,10 @@ class CheckoutBatchResource extends JsonResource
                     'termsSummary' => $voucher->terms_summary,
                 ])->values(),
                 'shippingQuote' => $order->pricingSnapshot === null ? null : [
-                    'rateVersionId' => $order->pricingSnapshot->shipping_rate_version_id,
-                    'rateVersion' => $order->pricingSnapshot->rate->version_number,
-                    'billableWeightGrams' => $order->pricingSnapshot->billable_weight_grams,
-                    'eligibleLogisticsCount' => count($order->pricingSnapshot->eligible_logistics_organization_ids),
+                    'logisticsOrganizationId' => $order->selected_logistics_organization_id,
+                    'logisticsBusinessName' => $order->selectedLogisticsOrganization?->business_name,
+                    'routeStatus' => $order->pricingSnapshot->shipping_route_status->value,
+                    'shippingFee' => $order->shipping_fee,
                 ],
                 'totals' => [
                     'merchandiseSubtotal' => $order->merchandise_subtotal,

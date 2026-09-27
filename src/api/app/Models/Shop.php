@@ -73,6 +73,11 @@ class Shop extends Model
         return $this->hasMany(LowStockAlert::class);
     }
 
+    public function logisticsProviders(): HasMany
+    {
+        return $this->hasMany(ShopLogisticsProvider::class);
+    }
+
     /**
      * Limit shops to records that may be exposed on the public storefront.
      *

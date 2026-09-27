@@ -2,6 +2,7 @@
 
 namespace App\Services\Finance;
 
+use App\Enums\ShippingRoutePricingStatus;
 use App\Models\FinancialHold;
 use App\Models\LinehaulTripShipment;
 use App\Models\LogisticsServiceAllocation;
@@ -10,72 +11,85 @@ use App\Models\Shipment;
 
 class LogisticsAllocationService
 {
-    /** @return array{held: bool, allocations: list<array{organization_id: string, service_type: string, hop_id: string|null, distance_meters: int|null, amount_cents: int}>} */
+    /** @return array{held: bool, allocations: list<array<string, mixed>>} */
     public function allocate(Order $order, Shipment $shipment, int $pool): array
     {
         if ($pool === 0) {
             return ['held' => false, 'allocations' => []];
         }
+        $order->loadMissing('pricingSnapshot');
+        $snapshot = $order->pricingSnapshot;
+        if ($snapshot === null || $snapshot->shipping_route_status === ShippingRoutePricingStatus::Unplanned) {
+            return $this->hold($order, 'UNPLANNED_ROUTE_RECONCILIATION_REQUIRED');
+        }
+        $charges = collect($snapshot->logistics_charge_inputs ?? [])->values();
+        $quotedTotal = $charges->sum('quoted_charge_cents');
+        if ($charges->isEmpty() || $quotedTotal < 1) {
+            return $this->hold($order, 'LOGISTICS_QUOTED_CHARGES_MISSING');
+        }
+
         $shipment->loadMissing(['route.hops', 'organization', 'currentHub.organization']);
         $route = $shipment->route;
-        $firstOrg = $shipment->logistics_organization_id;
-        $lastOrg = $shipment->current_logistics_organization_id;
-        if ($firstOrg === null || $lastOrg === null || $route === null) {
+        if ($route === null || $shipment->logistics_organization_id !== $snapshot->selected_logistics_organization_id) {
             return $this->hold($order, 'LOGISTICS_EVIDENCE_MISSING');
         }
-        if ($route->origin_hub_id === $route->destination_hub_id && $firstOrg === $lastOrg) {
-            return ['held' => false, 'allocations' => [[
-                'organization_id' => $firstOrg, 'service_type' => 'same_hub', 'hop_id' => null,
-                'distance_meters' => null, 'amount_cents' => $pool,
-            ]]];
-        }
-        if ($route->hops->isEmpty()) {
-            return $this->hold($order, 'LINEHAUL_EVIDENCE_MISSING');
-        }
-
-        $completed = [];
-        foreach ($route->hops as $hop) {
-            $tripLink = LinehaulTripShipment::query()->where('shipment_route_hop_id', $hop->id)
-                ->whereHas('trip', fn ($query) => $query->whereNotNull('departed_at'))
-                ->with('trip')->latest('created_at')->first();
-            $distance = (int) round((float) $hop->distance_meters);
-            if ($hop->arrived_at === null || $distance < 1 || $tripLink?->trip?->owner_logistics_organization_id === null) {
-                return $this->hold($order, 'LINEHAUL_EVIDENCE_MISSING');
+        $hops = $route->hops->keyBy('sequence');
+        $prepared = [];
+        foreach ($charges as $index => $charge) {
+            $hop = null;
+            if ($charge['service_type'] === 'first_mile') {
+                if ($shipment->logistics_organization_id !== $charge['organization_id']) {
+                    return $this->hold($order, 'LOGISTICS_EVIDENCE_MISSING');
+                }
+            } elseif ($charge['service_type'] === 'last_mile') {
+                if ($shipment->current_logistics_organization_id !== $charge['organization_id']) {
+                    return $this->hold($order, 'LOGISTICS_EVIDENCE_MISSING');
+                }
+            } elseif ($charge['service_type'] === 'linehaul') {
+                $hop = $hops->get((int) $charge['hop_sequence']);
+                $tripLink = $hop === null ? null : LinehaulTripShipment::query()
+                    ->where('shipment_route_hop_id', $hop->id)
+                    ->whereHas('trip', fn ($query) => $query->whereNotNull('departed_at'))
+                    ->with('trip')->latest('created_at')->first();
+                if ($hop?->arrived_at === null || $tripLink?->trip?->owner_logistics_organization_id !== $charge['organization_id']) {
+                    return $this->hold($order, 'LINEHAUL_EVIDENCE_MISSING');
+                }
             }
-            $completed[] = ['hop' => $hop, 'organization_id' => $tripLink->trip->owner_logistics_organization_id, 'distance' => $distance];
-        }
-
-        $first = intdiv($pool * 25, 100);
-        $last = intdiv($pool * 35, 100);
-        $linehaul = $pool - $first - $last;
-        $allocations = [
-            ['organization_id' => $firstOrg, 'service_type' => 'first_mile', 'hop_id' => null, 'distance_meters' => null, 'amount_cents' => $first],
-            ['organization_id' => $lastOrg, 'service_type' => 'last_mile', 'hop_id' => null, 'distance_meters' => null, 'amount_cents' => $last],
-        ];
-        $distanceTotal = collect($completed)->sum('distance');
-        $distributed = 0;
-        $shares = collect($completed)->map(function (array $leg) use ($linehaul, $distanceTotal, &$distributed): array {
-            $numerator = $linehaul * $leg['distance'];
-            $amount = intdiv($numerator, $distanceTotal);
-            $distributed += $amount;
-
-            return [...$leg, 'amount_cents' => $amount, 'remainder' => $numerator % $distanceTotal];
-        })->sort(function (array $left, array $right): int {
-            return ($right['remainder'] <=> $left['remainder'])
-                ?: ($left['organization_id'] <=> $right['organization_id'])
-                ?: ($left['hop']->id <=> $right['hop']->id);
-        })->values();
-        for ($index = 0; $index < $linehaul - $distributed; $index++) {
-            $shares[$index]['amount_cents']++;
-        }
-        foreach ($shares as $share) {
-            $allocations[] = [
-                'organization_id' => $share['organization_id'], 'service_type' => 'linehaul',
-                'hop_id' => $share['hop']->id, 'distance_meters' => $share['distance'], 'amount_cents' => $share['amount_cents'],
+            $prepared[] = [
+                'organization_id' => $charge['organization_id'],
+                'service_type' => $charge['service_type'],
+                'hop_id' => $hop?->id,
+                'distance_meters' => $hop === null ? null : (int) round((float) $hop->distance_meters),
+                'quoted_charge_cents' => (int) $charge['quoted_charge_cents'],
+                'stable_index' => $index,
             ];
         }
+        $prepared = $this->distribute($prepared, $pool);
 
-        return ['held' => false, 'allocations' => $allocations];
+        return ['held' => false, 'allocations' => array_map(fn (array $entry) => collect($entry)->except('stable_index')->all(), $prepared)];
+    }
+
+    /** @param list<array<string, mixed>> $allocations @return list<array<string, mixed>> */
+    public function distribute(array $allocations, int $pool): array
+    {
+        $quotedTotal = collect($allocations)->sum('quoted_charge_cents');
+        if ($quotedTotal < 1) {
+            throw new \InvalidArgumentException('Quoted route charges must be positive.');
+        }
+        foreach ($allocations as &$allocation) {
+            $numerator = $pool * (int) $allocation['quoted_charge_cents'];
+            $allocation['amount_cents'] = intdiv($numerator, $quotedTotal);
+            $allocation['remainder'] = $numerator % $quotedTotal;
+        }
+        unset($allocation);
+        $distributed = collect($allocations)->sum('amount_cents');
+        usort($allocations, fn (array $left, array $right) => ($right['remainder'] <=> $left['remainder']) ?: ($left['stable_index'] <=> $right['stable_index']));
+        for ($index = 0; $index < $pool - $distributed; $index++) {
+            $allocations[$index]['amount_cents']++;
+        }
+        usort($allocations, fn (array $left, array $right) => $left['stable_index'] <=> $right['stable_index']);
+
+        return array_map(fn (array $entry) => collect($entry)->except('remainder')->all(), $allocations);
     }
 
     /** @param list<array<string, mixed>> $allocations */
@@ -83,9 +97,17 @@ class LogisticsAllocationService
     {
         foreach ($allocations as $allocation) {
             LogisticsServiceAllocation::query()->firstOrCreate([
-                'order_id' => $order->id, 'logistics_organization_id' => $allocation['organization_id'],
-                'service_type' => $allocation['service_type'], 'shipment_route_hop_id' => $allocation['hop_id'],
-            ], ['distance_meters' => $allocation['distance_meters'], 'amount_cents' => $allocation['amount_cents'], 'status' => 'committed', 'committed_at' => now()]);
+                'order_id' => $order->id,
+                'logistics_organization_id' => $allocation['organization_id'],
+                'service_type' => $allocation['service_type'],
+                'shipment_route_hop_id' => $allocation['hop_id'],
+            ], [
+                'distance_meters' => $allocation['distance_meters'],
+                'quoted_charge_cents' => $allocation['quoted_charge_cents'],
+                'amount_cents' => $allocation['amount_cents'],
+                'status' => 'committed',
+                'committed_at' => now(),
+            ]);
         }
     }
 
@@ -94,7 +116,7 @@ class LogisticsAllocationService
     {
         FinancialHold::query()->firstOrCreate(
             ['order_id' => $order->id, 'reason_code' => $reason, 'released_at' => null],
-            ['placed_at' => now(), 'notes' => 'Automatic hold: Logistics service allocation evidence is incomplete.'],
+            ['placed_at' => now(), 'notes' => 'Automatic hold: route pricing or completed Logistics evidence requires Admin reconciliation.'],
         );
 
         return ['held' => true, 'allocations' => []];

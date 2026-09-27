@@ -28,6 +28,20 @@ class FinanceWorkflowController extends Controller
         return response()->json(['data' => $workflow->releaseHold($request->user(), $hold)]);
     }
 
+    public function reconcileLogistics(Request $request, string $hold, FinanceWorkflowService $workflow): JsonResponse
+    {
+        $data = $request->validate([
+            'platform_subsidy_cents' => ['sometimes', 'integer', 'min:0'],
+            'notes' => ['required', 'string', 'max:2000'],
+            'allocations' => ['required', 'array', 'min:1', 'max:100'],
+            'allocations.*.logistics_organization_id' => ['required', 'uuid', 'exists:logistics_organizations,id'],
+            'allocations.*.service_type' => ['required', 'in:first_mile,linehaul,last_mile'],
+            'allocations.*.amount_cents' => ['required', 'integer', 'min:1'],
+        ]);
+
+        return response()->json(['data' => $workflow->reconcileLogistics($request->user(), $hold, $data)], 201);
+    }
+
     public function sandboxAccount(Request $request, string $type, string $beneficiary): JsonResponse
     {
         abort_unless(in_array($type, ['seller', 'logistics'], true), 404);

@@ -133,8 +133,8 @@ Current protected routes are:
 ### 12. Reports Overview
 
 - **Purpose:** Show platform commission and financial performance totals with date filtering.
-- **Status:** Deferred. Orders and COD snapshots exist, but platform commission, Logistics per-order fees, payouts, taxes, refunds, and a financial ledger are not yet authoritative enough for an Admin report.
-- **Boundary:** Do not calculate commission from incomplete UI collections or label generic Order totals as profit. Exports, if added, require bounded asynchronous jobs, safe downloads, and an approved financial source of truth.
+- **Status:** The API now persists effective-dated Seller/Logistics commission snapshots, route-based shipping inputs, balanced ledger entries, holds, Logistics allocation/reconciliation, and sandbox payouts. Full Admin frontend reporting remains separate.
+- **Boundary:** Admin publishes platform base/region tariffs and commission policies; Logistics owns its rate cards. Do not calculate commission from incomplete UI collections or label generic Order totals as profit.
 
 ### 13. Support Tickets
 

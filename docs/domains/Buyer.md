@@ -14,7 +14,7 @@ Buyer is Aisley's marketplace customer role. **Customer** is the canonical API a
 
 Guests may browse public storefront content. An active, approved Customer is required for account data, Cart, Wishlist, Recently Viewed synchronization, checkout, order history, and other protected actions. The Buyer app never decides ownership, price, stock, eligibility, or fulfillment status from client-provided values.
 
-Aisley uses first-party Logistics organizations and their sole operational hubs for fulfillment. Customer checkout remains provider-neutral; the Seller selects one eligible Logistics organization when requesting pickup, and that committed selection is retained downstream. Customer tracking consumes safe read-only projections of shared Order and deployed Shipment/Delivery Task contracts.
+Aisley uses first-party Logistics organizations and their sole operational hubs for fulfillment. The Seller enables providers for its Shop and Customer checkout selects and freezes one provider per Shop Order. Customer tracking consumes safe read-only projections of shared Order and deployed Shipment/Delivery Task contracts.
 
 ## Account and access boundary
 
@@ -69,7 +69,7 @@ The physical flow is:
 ```text
 Customer places Order (`placed`)
 → Seller processes and confirms `ready_for_pickup`
-→ Seller selects Logistics; the pickup transaction freezes a shared waybill with the immutable Order/Parcel reference and Customer destination snapshot
+→ Seller requests the checkout-selected Logistics provider; pickup materializes the frozen route and shared waybill
 → selected Logistics organization creates and offers the first-mile task to an eligible Courier
 → first-mile Courier accepts and confirms pickup from Seller (`picked_up_from_seller`; Order `picked_up`)
 → Logistics receives the parcel at `received_at_hub` using the same shared tracking ID/reference
@@ -136,7 +136,7 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 
 - **Purpose:** Convert Buy Now or selected Cart intent into one or more valid Shop Orders.
 - **Current state:** Server-authoritative quote/place APIs and storefront flow are implemented for COD. Lines are grouped by Shop; one Shop group creates one Order, while a multi-Shop submission is one atomic checkout batch with separate Orders.
-- **Rules:** The Customer selects a Customer-owned address. The API rechecks catalog/inventory/vouchers and creates immutable item, financial, payment, and delivery-address snapshots. Placement uses a Customer-scoped idempotency key and does not accept client prices, totals, status, ownership, payment secrets, or a Logistics provider; Seller pickup owns provider selection.
+- **Rules:** The Customer selects a Customer-owned address and one Seller-enabled Logistics provider per Shop Order. The API prices and freezes that selection while rejecting client prices, totals, status, ownership, route calculations, and payment secrets. Placement uses a Customer-scoped idempotency key.
 - **Boundary:** Payment gateways, returns/refunds, Seller preparation, Shipment/Delivery Task persistence, and Logistics/Courier assignment are separate features. No Customer action may create or mutate a shipment/task record before the shared operational schema is approved.
 
 ### 7. Order History and Status Monitoring
@@ -192,7 +192,7 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 - Cart and Checkout use server prices, voucher eligibility, address validation, and inventory locks. Order placement is atomic and idempotent: failed validation creates no partial Orders, reservations, voucher redemption, or notifications.
 - Checkout reserves the requested SKU quantity at placement. An accepted cancellation or rejection before `picked_up_from_seller` releases only that Order's reservation once and transactionally; first-mile pickup commits the reservation once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred.
 - Placed Order items, money, payment method/status, delivery address, and voucher data are immutable snapshots. Mutable Address Book, Product, Shop, or Seller changes cannot rewrite historical Orders.
-- A future fulfillment record must retain the server-validated Seller-selected Logistics organization per pickup request/Order; it must not silently substitute another provider.
+- Fulfillment retains the server-validated checkout-selected Logistics organization per Order; Seller pickup must not silently substitute another provider.
 - One shared waybill freezes at `ready_for_pickup`; its identifier, snapshot, Logistics organization, and Order/Parcel link are immutable, with routing/assignment/scan changes represented by append-only events.
 - Order status transitions and status events are owned by the relevant Seller, Logistics, or Courier contract and are validated, transactional, idempotent, and append-only. Notification or map delivery failure cannot roll back a committed business decision.
 - Customer-specific APIs and pages use private/no-store semantics where required. Logs and DTOs omit tokens, password hashes, full addresses, raw GPS history, private media paths, and payment credentials.

@@ -33,9 +33,9 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
-use App\Services\Seller\LowStockAlertService;
 use App\Services\Finance\OrderPricingService;
 use App\Services\Finance\ShippingQuotationService;
+use App\Services\Seller\LowStockAlertService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +70,26 @@ class CheckoutService
             'address' => $this->addressPayload($calculation['address']),
             'groups' => $this->groupPayloads($calculation['groups']),
             'summary' => $this->summaryPayload($calculation['groups']),
+        ];
+    }
+
+    /** @param array<string, mixed> $data @return array<string, mixed> */
+    public function logisticsOptions(User $customer, array $data): array
+    {
+        $input = $this->normalizedInput($data);
+        $calculation = $this->calculate($customer, $input, false, true);
+
+        return [
+            'address' => $this->addressPayload($calculation['address']),
+            'groups' => collect($calculation['groups'])->map(fn (array $group) => [
+                'shop' => ['id' => $group['shop']->id, 'name' => $group['shop']->name],
+                'options' => collect($group['logistics_options'])->map(fn (array $option) => [
+                    'organizationId' => $option['organization_id'],
+                    'businessName' => $option['business_name'],
+                    'shippingFee' => $this->money($option['shipping_cents']),
+                    'routeStatus' => $option['route_status'],
+                ])->values()->all(),
+            ])->values()->all(),
         ];
     }
 
@@ -183,12 +203,17 @@ class CheckoutService
             'voucher_id' => strtolower($selection['voucher_id']),
             'target_shop_id' => strtolower($selection['target_shop_id']),
         ])->sortBy(['target_shop_id', 'voucher_id'])->values()->all();
+        $logistics = collect($data['logistics_selections'] ?? [])->map(fn (array $selection) => [
+            'shop_id' => strtolower($selection['shop_id']),
+            'logistics_organization_id' => strtolower($selection['logistics_organization_id']),
+        ])->sortBy('shop_id')->values()->all();
 
         $input = [
             'mode' => $data['mode'],
             'address_id' => strtolower($data['address_id']),
             'payment_method' => $data['payment_method'],
             'vouchers' => $vouchers,
+            'logistics_selections' => $logistics,
         ];
         if ($data['mode'] === CheckoutMode::Cart->value) {
             $input['cart_item_ids'] = collect($data['cart_item_ids'])->map('strtolower')->sort()->values()->all();
@@ -204,7 +229,7 @@ class CheckoutService
     }
 
     /** @param array<string, mixed> $input @return array<string, mixed> */
-    private function calculate(User $customer, array $input, bool $lock): array
+    private function calculate(User $customer, array $input, bool $lock, bool $optionsOnly = false): array
     {
         $addressQuery = Address::query()->where('user_id', $customer->id)->whereKey($input['address_id']);
         $address = ($lock ? $addressQuery->lockForUpdate() : $addressQuery)->first();
@@ -287,8 +312,33 @@ class CheckoutService
         }
         ksort($groups);
 
-        foreach ($groups as &$group) {
-            $group['shipping_quote'] = $this->shippingQuotation->quote($group['shop'], $address, $group['lines']);
+        if ($optionsOnly) {
+            foreach ($groups as &$group) {
+                $group['logistics_options'] = $this->shippingQuotation->options($group['shop'], $address, $group['lines']);
+            }
+            unset($group);
+
+            return ['address' => $address, 'groups' => $groups, 'state_hash' => ''];
+        }
+
+        $selections = collect($input['logistics_selections'])->keyBy('shop_id');
+        $unknown = $selections->keys()->diff(array_keys($groups));
+        if ($unknown->isNotEmpty()) {
+            throw CheckoutException::invalid('LOGISTICS_SELECTION_INVALID', 'A Logistics selection targets a Shop outside this checkout.', 'logistics_selections');
+        }
+
+        foreach ($groups as $shopId => &$group) {
+            $organizationId = $selections->get($shopId)['logistics_organization_id'] ?? null;
+            if ($organizationId === null) {
+                $options = $this->shippingQuotation->options($group['shop'], $address, $group['lines']);
+                if (count($options) !== 1) {
+                    $code = $options === [] ? 'SHIPPING_COVERAGE_UNAVAILABLE' : 'LOGISTICS_SELECTION_REQUIRED';
+                    $message = $options === [] ? 'No enabled Logistics provider can quote this Shop order.' : 'Choose one Logistics provider for each Shop order.';
+                    throw CheckoutException::conflict($code, $message, 'logistics_selections');
+                }
+                $organizationId = $options[0]['organization_id'];
+            }
+            $group['shipping_quote'] = $this->shippingQuotation->quote($group['shop'], $address, $group['lines'], $organizationId);
             $group['shipping_cents'] = $group['shipping_quote']['shipping_cents'];
             $state['shipping'][] = $group['shipping_quote']['state'];
         }
@@ -556,6 +606,7 @@ class CheckoutService
     {
         $order = Order::create([
             'checkout_batch_id' => $batch->id, 'customer_id' => $customer->id, 'shop_id' => $group['shop']->id,
+            'selected_logistics_organization_id' => $group['shipping_quote']['selected_logistics_organization_id'],
             'reference' => 'ASL-'.now()->format('Ymd').'-'.Str::upper(Str::random(10)),
             'status' => OrderStatus::Placed, 'payment_method' => PaymentMethod::CashOnDelivery,
             'payment_status' => PaymentStatus::Pending, 'currency' => $batch->currency,
@@ -657,13 +708,10 @@ class CheckoutService
             ])->values(),
             'shippingQuote' => [
                 'serviceable' => true,
-                'rateVersionId' => $group['shipping_quote']['rate']->id,
-                'rateVersion' => $group['shipping_quote']['rate']->version_number,
-                'billableWeightGrams' => $group['shipping_quote']['billable_weight_grams'],
-                'baseFee' => $this->money($group['shipping_quote']['base_fee_cents']),
-                'additionalWeightFee' => $this->money($group['shipping_quote']['additional_weight_fee_cents']),
-                'destinationSurcharge' => $this->money($group['shipping_quote']['destination_surcharge_cents']),
-                'eligibleLogisticsCount' => count($group['shipping_quote']['eligible_logistics_organization_ids']),
+                'logisticsOrganizationId' => $group['shipping_quote']['selected_logistics_organization_id'],
+                'logisticsBusinessName' => $group['shipping_quote']['selected_logistics_business_name'],
+                'routeStatus' => $group['shipping_quote']['route_snapshot']['status'],
+                'shippingFee' => $this->money($group['shipping_quote']['shipping_cents']),
             ],
             'totals' => [
                 'merchandiseSubtotal' => $this->money($group['subtotal_cents']), 'shippingFee' => $this->money($group['shipping_cents']),
@@ -718,7 +766,7 @@ class CheckoutService
 
     private function loadBatch(CheckoutBatch $batch): CheckoutBatch
     {
-        return $batch->fresh()->load(['orders' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'orders.shop', 'orders.items', 'orders.address', 'orders.vouchers', 'orders.pricingSnapshot.rate']);
+        return $batch->fresh()->load(['orders' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'orders.shop', 'orders.selectedLogisticsOrganization', 'orders.items', 'orders.address', 'orders.vouchers', 'orders.pricingSnapshot.rate']);
     }
 
     private function hash(array $value): string

@@ -4,7 +4,7 @@ title: Customer Checkout & Order Creation
 system: AISLEY
 type: Feature Specification
 version: 1.2
-status: Implemented foundation; Seller pickup selection downstream
+status: Implemented API; frontend provider-selection flow pending
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -19,8 +19,8 @@ scope: Customer storefront and Laravel API
 - The checkout address is selected from the Customer Address Book and copied into each Order's immutable delivery snapshot.
 - Current COD placement starts at `placed` with `payment_status = pending`; `pending_payment` remains a future payment-method status.
 - Customer checkout is not a Seller, Logistics, or Courier action. Seller acceptance, first-mile handoff, hub processing, waybill creation, delivery, returns, and refunds belong to their owning domains.
-- **Downstream boundary:** Customer checkout does not select Logistics. The Seller chooses one server-validated eligible Logistics organization when requesting pickup for prepared Orders; checkout continues to use the server-owned per-Shop quote.
-- **Non-goals:** online payment, Customer order editing/cancellation, shipment/parcel/waybill records, route selection, courier assignment, returns/refunds, or arbitrary address entry outside the Address Book contract.
+- **Shipping boundary:** The Customer selects one Seller-enabled Logistics organization per Shop Order. The server calculates and freezes the commercial route; the Seller must use that selected provider when requesting pickup.
+- **Non-goals:** online payment, Customer order editing/cancellation, client-side route calculation, courier assignment, returns/refunds, or arbitrary address entry outside the Address Book contract.
 
 ```text
 Buy Now or selected Cart lines
@@ -50,13 +50,15 @@ Buy Now or selected Cart lines
 - Store immutable Order Item snapshots: Product/Variant IDs, names, selected option labels, SKU, unit price, quantity, line subtotal, and currency.
 - Historical snapshots remain intact when a Product is edited, archived, restricted, or deleted.
 
-### Address and downstream Logistics boundary
+### Address and Logistics selection boundary
 
 - Accept one `address_id` that belongs to the authenticated Customer and is eligible for shipping (`shipping` or `both`). Revalidate completeness at quote and placement.
 - Copy recipient, contact, address lines, PSGC/manual locality names, country, and optional coordinates into one `order_addresses` row per Order inside the placement transaction.
 - Address Book edits/deletes never rewrite a placed Order snapshot.
 - Manual/PSGC address fields are authoritative. Optional coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
-- Do not offer or accept a Logistics organization at checkout. The later Seller pickup contract validates and freezes that selection without rewriting the Customer's Order/address/financial snapshots.
+- Return final-fee Logistics options per Shop from `POST /checkout/logistics-options`; accept one `logistics_selections` entry per Shop for quote and placement.
+- Never expose billable weight, parcel dimensions, tariff components, route hops, Logistics rules, commission, or payout shares to the Customer.
+- Store the chosen Logistics organization on the Order and pricing snapshot. Seller pickup must match it; later route/rate changes never rewrite Customer COD.
 
 ### COD, pricing, vouchers, and totals
 
@@ -86,13 +88,13 @@ Buy Now or selected Cart lines
 - [x] Orders contain immutable item, address, financial, and voucher snapshots.
 - [x] COD placement starts at `placed`/pending payment and reserves inventory transactionally.
 - [x] Quote/place ownership, stale-state, rollback, and duplicate-retry paths are covered by API tests.
-- [ ] Downstream Seller-selected Logistics and operational Shipment/Parcel records are implemented; checkout itself remains provider-neutral.
+- [x] Checkout-selected Logistics, private route pricing snapshots, and Seller pickup enforcement are implemented in the API; storefront UI remains pending.
 
 ## HOW
 
 ### Current interfaces and implementation
 
-- API routes are `POST /api/v1/customer/checkout/quote`, `POST /api/v1/customer/checkout/place` with a UUID `Idempotency-Key`, and `GET /api/v1/customer/checkout/{batch}`.
+- API routes are `POST /api/v1/customer/checkout/logistics-options`, `POST /api/v1/customer/checkout/quote`, `POST /api/v1/customer/checkout/place` with a UUID `Idempotency-Key`, and `GET /api/v1/customer/checkout/{batch}`.
 - Laravel uses `CheckoutController`, `CheckoutService`, `CheckoutQuoteRequest`, `PlaceCheckoutRequest`, `CheckoutBatchResource`, `CheckoutBatch`, `CheckoutQuote`, `Order`, `OrderItem`, `OrderAddress`, `OrderVoucher`, and `VoucherRedemption`.
 - The additive checkout migration is `2026_08_30_000125_create_checkout_orders_and_vouchers.php`; enum-like columns remain string-backed with PHP enum casts.
 - The storefront uses `/checkout`, the Product Detail Buy Now handoff, selected Cart handoff, saved-address selection, server requoting, and private `/checkout/result/{batchId}` confirmation.
@@ -107,13 +109,13 @@ Buy Now or selected Cart lines
 
 ### Deferred work and references
 
-- Define eligible-Logistics ranking, Seller pickup selection, and fulfillment persistence in `docs/features/orders/logistics-pickups/spec.md`; do not add that UI to Customer checkout.
+- Implement storefront provider selection from the server-returned per-Shop options before changing Seller pickup UI.
 - Online payment, taxes/platform fees, return/refund policy, delivery failure, partial fulfillment, and Customer order mutation remain open product decisions.
 - Related contracts: `docs/features/customer/address-book/spec.md`, `docs/features/customer/order-status/spec.md`, Seller Order Approval/Prepare Orders, Inventory, and `docs/references/user-registration-requirements.md`.
 
-### Shipping quotation and COD extension (2026-09-24)
+### Route-based shipping quotation and COD extension (2026-09-27)
 
-- `docs/features/shared/shipping-quotation/spec.md` is authoritative for zone precedence, item-based billable weight, published rate acceptance, serviceability, quote expiry, and immutable rate inputs.
+- `docs/features/shared/shipping-quotation/spec.md` is authoritative for platform base/region fees, item-based billable weight, Seller-enabled providers, Logistics rate cards, route fallback, quote expiry, and immutable rate inputs.
 - Checkout returns an exact shipping fee and COD amount for every Shop Order and for the complete checkout before placement. Platform commissions never increase Customer COD.
-- Placement revalidates the address, contents, rate revision, acceptance, coverage, vouchers, and commission policies. A material change requires a refreshed quote and Customer confirmation.
-- Each placed Order stores its rate, eligible Logistics organizations, discount funding, commissions, shipping fee, and collectible total. Rerouting and later rate changes cannot alter that total.
+- Placement revalidates the address, contents, selected provider, rate revisions, acceptance, route, coverage, vouchers, and commission policies. A material change requires a refreshed quote and Customer confirmation.
+- Each placed Order stores its selected provider, platform tariff, frozen route/fallback status, private leg charges, discount funding, commissions, shipping fee, and collectible total. Rerouting and later rate changes cannot alter that total.

@@ -12,6 +12,7 @@ use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\Product;
 use App\Models\ShippingRateVersion;
 use App\Models\Shop;
+use App\Models\ShopLogisticsProvider;
 use App\Models\User;
 
 trait ConfiguresCheckoutFinance
@@ -26,6 +27,14 @@ trait ConfiguresCheckoutFinance
         $hubAddress = $this->pickupAddress($logisticsUser, 'Test Logistics');
         $organization = LogisticsOrganization::create(['user_id' => $logisticsUser->id, 'business_name' => 'Test Logistics']);
         $organization->hub()->create(['address_id' => $hubAddress->id, 'name' => 'Test Hub']);
+        foreach (Shop::query()->get() as $shop) {
+            ShopLogisticsProvider::create([
+                'shop_id' => $shop->id,
+                'logistics_organization_id' => $organization->id,
+                'configured_by' => $shop->seller_id,
+                'is_enabled' => true,
+            ]);
+        }
         $rate = ShippingRateVersion::create([
             'version_number' => 1, 'status' => 'published', 'base_fee_cents' => 0,
             'included_weight_grams' => 1000, 'additional_weight_grams' => 500, 'additional_fee_cents' => 0,
