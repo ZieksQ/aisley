@@ -18,6 +18,8 @@ import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FeatureControlsPage } from './pages/FeatureControlsPage'
 import { FinancePage } from './pages/FinancePage'
+import { FinanceHoldsPage } from './pages/FinanceHoldsPage'
+import { PricingSettingsPage } from './pages/PricingSettingsPage'
 import { NotificationCampaignsPage } from './pages/NotificationCampaignsPage'
 import { NotificationCampaignDetailPage } from './pages/NotificationCampaignDetailPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
@@ -31,6 +33,9 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<FinancePage />} path="/finance" />
+          <Route element={<PricingSettingsPage />} path="/pricing-and-fees" />
+          <Route element={<FinanceHoldsPage />} path="/finance-holds" />
+          <Route element={<FinanceHoldsPage />} path="/finance-holds/:holdId" />
           <Route element={<AccountPage />} path="/account" />
           <Route element={<PolicyConsentPage />} path="/policy-consent" />
           <Route element={<PlatformSettingsPage />} path="/platform-settings" />

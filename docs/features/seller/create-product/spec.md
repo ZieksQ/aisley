@@ -129,3 +129,5 @@
 - Sellers record packed weight in grams and packed length, width, and height in millimeters on each Product creation request. Variants inherit these values unless all four fields are overridden together; partial Variant overrides are invalid.
 - Drafts remain editable, but publishing requires complete positive shipping measurements for every active sellable SKU.
 - Sellers may record a PHP unit cost on the Product or Variant. The effective cost is snapshotted on the Order item and remains unknown when omitted; reporting must never coerce a missing cost to zero.
+- The Seller form presents one required packed-package section for Product defaults. Each Variant has an explicit `Use different package` control; enabling it requires all four positive override fields, while disabling it clears the complete override and restores inheritance.
+- Development catalog seeds include positive Product measurements, representative Variant combinations, and several complete Variant measurement overrides so checkout and Seller UI states are testable without hand-editing records.

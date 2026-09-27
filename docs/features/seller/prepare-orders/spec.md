@@ -14,7 +14,7 @@ scope: Seller Web Application
 ## WHAT
 
 - **Purpose:** Let a Seller verify and pack purchased Shop Orders, request pickup from the Customer-selected Logistics organization, and print each resulting shared waybill.
-- **Current implementation:** Order list/detail, COD approval/rejection, saved pickup addresses, checkout-selected Logistics enforcement, grouping up to 50 same-provider processing Orders, immutable shared-waybill creation/PDF reads, and notifications are implemented. The pickup transaction moves `seller_processing → ready_for_pickup`, creates the explicit tracking ID, and materializes a planned/local route from the checkout pricing snapshot. Product packed measurements are already frozen in pricing inputs.
+- **Current implementation:** Order list/detail, COD approval/rejection, saved pickup addresses, visible checkout-locked provider groups, selection of up to 50 same-provider processing Orders, immutable shared-waybill creation/PDF reads, and notifications are implemented. The pickup transaction moves `seller_processing → ready_for_pickup`, creates the explicit tracking ID, and materializes a planned/local route from the checkout pricing snapshot. Product packed measurements are already frozen in pricing inputs.
 - **Ownership boundary:** Order Approval owns `placed → seller_processing`; Prepare Orders owns packing, selected-provider validation, readiness, and shared-waybill creation; Logistics owns scheduling/hub operations; Courier owns assigned tasks in the external mobile app.
 - **Provider rule:** The Customer selects one Seller-enabled Logistics organization per Shop Order at checkout. Seller pickup must use that exact organization and cannot silently replace it.
 - **Waybill rule:** The pickup transaction creates one immutable waybill/tracking ID per Order; Seller and selected Logistics view the same artifact. Its thin Code 128 barcode encodes the tracking ID; the existing QR remains a compatibility/fallback identifier.
@@ -60,6 +60,7 @@ Seller opens Seller-scoped processing Order
 
 - Notification/event delivery runs after commit. A delivery failure cannot roll back readiness; it is retried/observed separately.
 - DTOs omit private evidence, unnecessary Buyer PII, payment secrets, raw storage paths, and cross-Shop identifiers.
+- Show the locked provider on Order detail/preparation and group the processing queue by that provider. Once one group has a selection, disable other provider groups until the selection is cleared; do not present a provider picker during preparation.
 - Provide loading, processing, package-validation, label-generating/ready/superseded, stale/cancelled/payment-invalid, success, conflict, retry, and accessible print/download states.
 - [x] Seller can review Shop-scoped Order list/detail and immutable snapshots.
 - [x] Seller can approve/reject eligible COD Orders with locked idempotent transitions and reservation release on rejection.
@@ -73,7 +74,7 @@ Seller opens Seller-scoped processing Order
 ## HOW
 
 - Current Seller routes include `POST /orders/pickup-requests` and a fail-closed `/orders/{order}/waybill`; the latter becomes available after the pickup transaction creates its waybill.
-- Current implementation is `OrderController`, `SellerOrderService`, `AcceptSellerOrder`, `RejectSellerOrder`, `RequestSellerPickup`, and the Seller Orders/Approval/Pickup pages. Provider selection, pickup requests, and shared waybills are implemented; preserve them when adding the operational schema.
+- Current implementation is `OrderController`, `SellerOrderService`, `AcceptSellerOrder`, `RejectSellerOrder`, `RequestSellerPickup`, and the Seller Orders/Approval/Pickup pages. Customer checkout provider selection, Seller same-provider grouping, pickup requests, and shared waybills are implemented; preserve them when adding the operational schema.
 - Downstream physical package/custody actions use the deployed `Shipment`, `Parcel`, `DeliveryTask`, evidence, and event records linked to the existing immutable waybill and first-mile history; Seller must not recreate or mutate those records. Keep enum-like columns as strings with PHP enum casts and use additive migrations for future extensions only.
 - Recommended records are one immutable shared waybill snapshot per Order plus separate append-only print, route, assignment, and scan events; the snapshot includes the pickup-time sort-plan hint while the scan result records the authoritative current mapping.
 - Readiness transaction: lock Seller-scoped Order → validate `seller_processing`, payment, package, label, reservation, and idempotency → write status/event/pickup association → commit → dispatch Logistics/Buyer notifications after commit.

@@ -4,7 +4,7 @@ title: Customer Checkout & Order Creation
 system: AISLEY
 type: Feature Specification
 version: 1.2
-status: Implemented API; frontend provider-selection flow pending
+status: Implemented; storefront provider-selection flow added
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -57,6 +57,7 @@ Buy Now or selected Cart lines
 - Address Book edits/deletes never rewrite a placed Order snapshot.
 - Manual/PSGC address fields are authoritative. Optional coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
 - Return final-fee Logistics options per Shop from `POST /checkout/logistics-options`; accept one `logistics_selections` entry per Shop for quote and placement.
+- Show each Shop's eligible provider choices as radio options with only the provider name and final shipping fee. Requote server-side after a provider choice and use the returned shipping fee and COD totals for review and placement.
 - Never expose billable weight, parcel dimensions, tariff components, route hops, Logistics rules, commission, or payout shares to the Customer.
 - Store the chosen Logistics organization on the Order and pricing snapshot. Seller pickup must match it; later route/rate changes never rewrite Customer COD.
 
@@ -81,6 +82,7 @@ Buy Now or selected Cart lines
 
 - Buy Now and selected-Cart flows require an authenticated Customer; a guest is redirected to login and must intentionally retry.
 - Show one selected shipping-capable address, COD, each Shop group, items, current prices, voucher reasons, fees, savings, payable amount, loading, validation, stale, conflict, and retry states.
+- Retrieve provider options for every Shop, keep a separate selection per Shop, and requote after each selection. Require a selection when multiple providers are available; automatically use the sole available provider. Hide route status, weights, parcel dimensions, tariff details, route legs, and internal pricing data.
 - A successful result lists every Order reference and links to Customer Order Status. Partial-success UI is forbidden because placement is atomic.
 - Use semantic labels, keyboard-operable controls, field-level errors, and non-color-only stock/error cues.
 - [x] Buy Now creates a valid Order without adding a Cart line.
@@ -88,7 +90,8 @@ Buy Now or selected Cart lines
 - [x] Orders contain immutable item, address, financial, and voucher snapshots.
 - [x] COD placement starts at `placed`/pending payment and reserves inventory transactionally.
 - [x] Quote/place ownership, stale-state, rollback, and duplicate-retry paths are covered by API tests.
-- [x] Checkout-selected Logistics, private route pricing snapshots, and Seller pickup enforcement are implemented in the API; storefront UI remains pending.
+- [x] Checkout-selected Logistics, private route pricing snapshots, and Seller pickup enforcement are implemented in the API.
+- [x] Storefront retrieves provider options per Shop, requotes on selection, and shows only the selected provider with its final shipping fee.
 
 ## HOW
 
@@ -109,7 +112,7 @@ Buy Now or selected Cart lines
 
 ### Deferred work and references
 
-- Implement storefront provider selection from the server-returned per-Shop options before changing Seller pickup UI.
+- Customer checkout provider selection is required before placement; Seller pickup continues to enforce the frozen Customer selection.
 - Online payment, taxes/platform fees, return/refund policy, delivery failure, partial fulfillment, and Customer order mutation remain open product decisions.
 - Related contracts: `docs/features/customer/address-book/spec.md`, `docs/features/customer/order-status/spec.md`, Seller Order Approval/Prepare Orders, Inventory, and `docs/references/user-registration-requirements.md`.
 

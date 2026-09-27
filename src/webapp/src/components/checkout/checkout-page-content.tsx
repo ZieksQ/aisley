@@ -2,13 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FiCheck,
-  FiChevronDown,
-  FiMapPin,
   FiRefreshCw,
-  FiShield,
+  FiMapPin,
 } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
@@ -16,6 +13,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { ApiError } from "@/lib/api";
 import {
   fetchAddresses,
+  fetchCheckoutLogisticsOptions,
   placeCheckout,
   quoteCheckout,
 } from "@/lib/checkout/client";
@@ -26,12 +24,18 @@ import {
 } from "@/lib/checkout/intent";
 import type {
   CheckoutIntent,
+  CheckoutLogisticsOptions,
   CheckoutQuote,
   CheckoutRequestPayload,
   CheckoutVoucher,
   CustomerAddress,
+  LogisticsSelection,
   VoucherSelection,
 } from "@/lib/checkout/types";
+import { CheckoutDeliverySection, CheckoutPaymentSection } from "./checkout-delivery-sections";
+import { CheckoutSummary } from "./checkout-summary";
+import { ShopCheckoutGroup } from "./shop-checkout-group";
+import { ShippingProviderSelector } from "./shipping-provider-selector";
 
 const money = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -56,25 +60,24 @@ function amount(value: string) {
   return money.format(Number(value));
 }
 
-function addressSummary(address: CustomerAddress) {
-  return [
-    address.addressLine1,
-    address.addressLine2,
-    address.barangay,
-    address.cityMunicipality,
-    address.province,
-    address.postalCode,
-  ]
-    .filter(Boolean)
-    .join(", ");
-}
-
 function payload(
   intent: CheckoutIntent,
   addressId: string,
   vouchers: VoucherSelection[],
+  logisticsSelections: LogisticsSelection[] = [],
 ): CheckoutRequestPayload {
-  return { ...checkoutPayloadForIntent(intent, addressId), vouchers };
+  return {
+    ...checkoutPayloadForIntent(intent, addressId),
+    vouchers,
+    logistics_selections: logisticsSelections,
+  };
+}
+
+function logisticsSelectionList(selected: Record<string, string>): LogisticsSelection[] {
+  return Object.entries(selected).map(([shop_id, logistics_organization_id]) => ({
+    shop_id,
+    logistics_organization_id,
+  }));
 }
 
 export function CheckoutPageContent() {
@@ -87,23 +90,29 @@ export function CheckoutPageContent() {
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [selectedVouchers, setSelectedVouchers] = useState<VoucherSelection[]>([]);
+  const [logisticsOptions, setLogisticsOptions] = useState<CheckoutLogisticsOptions | null>(null);
+  const [selectedLogistics, setSelectedLogistics] = useState<Record<string, string>>({});
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "quoting" | "placing" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
 
-  async function loadQuote(
+  const loadQuote = useCallback(async (
     nextIntent: CheckoutIntent,
     addressId: string,
     vouchers: VoucherSelection[],
-  ) {
+    logistics: Record<string, string>,
+  ) => {
     const sequence = ++quoteSequence.current;
     setStatus("quoting");
     setMessage(null);
     try {
-      const nextQuote = await quoteCheckout(payload(nextIntent, addressId, vouchers));
+      const nextQuote = await quoteCheckout(
+        payload(nextIntent, addressId, vouchers, logisticsSelectionList(logistics)),
+      );
       if (sequence !== quoteSequence.current) return null;
       setQuote(nextQuote);
       setSelectedVouchers(vouchers);
+      setSelectedLogistics(logistics);
       setStatus("ready");
       idempotencyKey.current = null;
       return nextQuote;
@@ -118,7 +127,56 @@ export function CheckoutPageContent() {
       setStatus("error");
       return null;
     }
-  }
+  }, []);
+
+  const loadShippingOptions = useCallback(async (
+    nextIntent: CheckoutIntent,
+    addressId: string,
+    vouchers: VoucherSelection[],
+    preferredSelections: Record<string, string> = {},
+  ) => {
+    const sequence = ++quoteSequence.current;
+    setStatus("quoting");
+    setMessage(null);
+    setQuote(null);
+    try {
+      const result = await fetchCheckoutLogisticsOptions(
+        payload(nextIntent, addressId, vouchers),
+      );
+      if (sequence !== quoteSequence.current) return null;
+
+      const selections: Record<string, string> = {};
+      for (const group of result.groups) {
+        const preferred = preferredSelections[group.shop.id];
+        const stillAvailable = group.options.some(
+          (option) => option.organizationId === preferred,
+        );
+        if (stillAvailable) {
+          selections[group.shop.id] = preferred;
+        } else if (group.options.length === 1) {
+          selections[group.shop.id] = group.options[0].organizationId;
+        }
+      }
+
+      setLogisticsOptions(result);
+      setSelectedLogistics(selections);
+      const allSelected = result.groups.length > 0 && result.groups.every(
+        (group) => group.options.length > 0 && selections[group.shop.id],
+      );
+      if (allSelected) {
+        return await loadQuote(nextIntent, addressId, vouchers, selections);
+      }
+
+      setStatus("ready");
+      return null;
+    } catch (caught) {
+      if (sequence !== quoteSequence.current) return null;
+      const error = caught instanceof ApiError ? caught : null;
+      setMessage(error?.message ?? "We could not load shipping options for your Shops.");
+      setStatus("error");
+      return null;
+    }
+  }, [loadQuote]);
 
   useEffect(() => {
     if (auth.status === "guest") {
@@ -153,7 +211,7 @@ export function CheckoutPageContent() {
           return;
         }
         setSelectedAddressId(selected.id);
-        await loadQuote(nextIntent, selected.id, []);
+        await loadShippingOptions(nextIntent, selected.id, []);
       })
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError") return;
@@ -162,7 +220,7 @@ export function CheckoutPageContent() {
       });
 
     return () => controller.abort();
-  }, [auth.status, router]);
+  }, [auth.status, loadShippingOptions, router]);
 
   if (auth.status !== "authenticated" || status === "loading") {
     return <CheckoutLoading />;
@@ -210,7 +268,20 @@ export function CheckoutPageContent() {
         { voucher_id: voucher.id, target_shop_id: targetShopId },
       ];
     }
-    await loadQuote(intent, selectedAddressId, next);
+    await loadQuote(intent, selectedAddressId, next, selectedLogistics);
+  }
+
+  async function selectLogisticsProvider(shopId: string, providerId: string) {
+    if (!intent || !selectedAddressId) return;
+    const next = { ...selectedLogistics, [shopId]: providerId };
+    setSelectedLogistics(next);
+    setQuote(null);
+    const allSelected = logisticsOptions?.groups.every(
+      (group) => group.options.length > 0 && next[group.shop.id],
+    );
+    if (allSelected) {
+      await loadQuote(intent, selectedAddressId, selectedVouchers, next);
+    }
   }
 
   async function placeOrder() {
@@ -222,7 +293,7 @@ export function CheckoutPageContent() {
     try {
       const batch = await placeCheckout(
         {
-          ...payload(intent, selectedAddressId, selectedVouchers),
+          ...payload(intent, selectedAddressId, selectedVouchers, logisticsSelectionList(selectedLogistics)),
           quote_id: quote.quoteId,
         },
         idempotencyKey.current,
@@ -237,11 +308,8 @@ export function CheckoutPageContent() {
     } catch (caught) {
       const error = caught instanceof ApiError ? caught : null;
       if (error?.status === 409) {
-        setMessage(`${error.message} We refreshed the checkout for review.`);
-        const refreshed = await loadQuote(intent, selectedAddressId, selectedVouchers);
-        if (!refreshed && selectedVouchers.length > 0) {
-          await loadQuote(intent, selectedAddressId, []);
-        }
+        setMessage(`${error.message} Shipping options and fees were refreshed for review.`);
+        await loadShippingOptions(intent, selectedAddressId, selectedVouchers, selectedLogistics);
       } else {
         setMessage(error?.message ?? "We could not place your order. You can safely try again.");
         setStatus("ready");
@@ -254,120 +322,68 @@ export function CheckoutPageContent() {
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-5">
-        <section className="border border-[#DED7E1] bg-white p-4 sm:p-5" aria-labelledby="delivery-heading">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="delivery-heading" className="text-base font-semibold text-[#2D2231]">Delivery address</h2>
-            <Link href="/account/addresses?returnTo=%2Fcheckout" className="inline-flex min-h-9 items-center rounded-md px-2 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
-              {selectedAddress ? "Change address" : "Add address"}
-            </Link>
-          </div>
+        <CheckoutDeliverySection address={selectedAddress} />
+        <CheckoutPaymentSection />
 
-          {selectedAddress ? (
-            <div className="mt-4 flex gap-3 border border-[#DDD5E0] p-3.5">
-              <FiMapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-[#E6007A]" />
-              <div className="min-w-0 text-sm">
-                <p className="font-semibold text-[#302534]">
-                  {selectedAddress.label || "Delivery address"}
-                  {selectedAddress.isDefault ? <span className="ml-2 text-xs font-medium text-[#6D1748]">Default</span> : null}
-                </p>
-                <p className="mt-1 text-[#514656]">{selectedAddress.recipientName} · {selectedAddress.contactNumber}</p>
-                <p className="mt-1 leading-5 text-[#746978]">{addressSummary(selectedAddress)}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm leading-6 text-[#665A6A]">No shipping address is saved. Add one from your Address Book to continue.</p>
-          )}
-        </section>
+        {logisticsOptions?.groups.map((group) => {
+          const quoteGroup = quote?.groups.find((item) => item.shop.id === group.shop.id);
+          if (quoteGroup) {
+            return (
+              <ShopCheckoutGroup
+                key={group.shop.id}
+                group={quoteGroup}
+                shippingOptions={group}
+                selectedProviderId={selectedLogistics[group.shop.id]}
+                onSelectProvider={(providerId) => void selectLogisticsProvider(group.shop.id, providerId)}
+                disabled={status === "quoting" || status === "placing"}
+                selectedVouchers={selectedVouchers}
+                onToggleVoucher={toggleVoucher}
+                formatAmount={amount}
+                voucherReasons={voucherReasons}
+              />
+            );
+          }
 
-        <section className="border border-[#DED7E1] bg-white p-4 sm:p-5" aria-labelledby="payment-heading">
-          <h2 id="payment-heading" className="text-base font-semibold text-[#2D2231]">Payment</h2>
-          <div className="mt-3 flex items-start gap-3 border border-[#E6007A] bg-[#FFF7FB] p-3.5">
-            <span className="mt-0.5 grid size-5 place-items-center rounded-full bg-[#E6007A] text-white"><FiCheck aria-hidden="true" className="size-3.5" /></span>
-            <div><p className="text-sm font-semibold text-[#302534]">Cash on delivery</p><p className="mt-1 text-xs leading-5 text-[#746978]">Pay when your order is delivered. Other payment methods are not available yet.</p></div>
-          </div>
-        </section>
+          return (
+            <section
+              key={`shipping-${group.shop.id}`}
+              className="border border-[#DED7E1] bg-white"
+              aria-labelledby={`shipping-shop-${group.shop.id}`}
+            >
+              <h2
+                id={`shipping-shop-${group.shop.id}`}
+                className="border-b border-[#E6E0E8] px-4 py-3.5 text-base font-semibold text-[#2D2231] sm:px-5"
+              >
+                Shipping · {group.shop.name}
+              </h2>
+              <ShippingProviderSelector
+                disabled={status === "quoting" || status === "placing"}
+                options={group}
+                selectedProviderId={selectedLogistics[group.shop.id]}
+                onSelect={(providerId) => void selectLogisticsProvider(group.shop.id, providerId)}
+                formatAmount={amount}
+              />
+            </section>
+          );
+        })}
 
-        {quote?.groups.map((group) => (
-          <ShopCheckoutGroup
-            key={group.shop.id}
-            group={group}
-            disabled={status === "quoting" || status === "placing"}
-            selectedVouchers={selectedVouchers}
-            onToggleVoucher={toggleVoucher}
-          />
-        ))}
-
-        {selectedAddress && !quote && status !== "quoting" ? (
-          <button type="button" onClick={() => void loadQuote(intent, selectedAddress.id, selectedVouchers)} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-4 text-sm font-semibold text-[#4C1268]">
-            <FiRefreshCw aria-hidden="true" /> Refresh checkout
+        {selectedAddress && status !== "quoting" && (logisticsOptions || status === "error") ? (
+          <button type="button" onClick={() => void loadShippingOptions(intent, selectedAddress.id, selectedVouchers, selectedLogistics)} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-4 text-sm font-semibold text-[#4C1268]">
+            <FiRefreshCw aria-hidden="true" /> Refresh shipping options
           </button>
         ) : null}
       </div>
 
-      <aside className="border border-[#DED7E1] bg-white p-5 lg:sticky lg:top-32" aria-labelledby="summary-heading">
-        <h2 id="summary-heading" className="text-base font-semibold text-[#2D2231]">Order summary</h2>
-        {quote ? (
-          <>
-            <dl className="mt-4 space-y-3 text-sm">
-              <SummaryRow label="Merchandise" value={amount(quote.summary.merchandiseSubtotal)} />
-              <SummaryRow label="Shipping" value={amount(quote.summary.shippingFee)} />
-              {Number(quote.summary.discount) > 0 ? <SummaryRow label="Voucher discount" value={`−${amount(quote.summary.discount)}`} saving /> : null}
-              {Number(quote.summary.shippingDiscount) > 0 ? <SummaryRow label="Shipping discount" value={`−${amount(quote.summary.shippingDiscount)}`} saving /> : null}
-              <div className="flex items-end justify-between gap-4 border-t border-[#E6E0E8] pt-4"><dt className="font-semibold text-[#2D2231]">Total COD</dt><dd className="text-xl font-semibold text-[#E6007A]">{amount(quote.summary.payable)}</dd></div>
-            </dl>
-            <p className="mt-3 text-xs leading-5 text-[#746978]">{quote.summary.orderCount} {quote.summary.orderCount === 1 ? "order" : "orders"} will be created, one per Shop.</p>
-          </>
-        ) : (
-          <p className="mt-4 text-sm leading-6 text-[#746978]">Choose a delivery address to calculate current prices, vouchers, shipping, and totals.</p>
-        )}
-
-        {message ? <p role="alert" className="mt-4 border-l-2 border-[#FF3B30] pl-3 text-sm leading-5 text-[#B42318]">{message}</p> : null}
-        {status === "quoting" ? <p role="status" className="mt-4 text-sm text-[#665A6A]">Refreshing prices and availability…</p> : null}
-
-        <button type="button" disabled={!quote || status === "quoting" || status === "placing"} onClick={() => void placeOrder()} className="mt-5 min-h-12 w-full rounded-md bg-[#E6007A] px-4 text-sm font-semibold text-white hover:bg-[#C8006B] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:cursor-not-allowed disabled:bg-[#CFC6D2]">
-          {status === "placing" ? "Placing order…" : "Place order"}
-        </button>
-        <p className="mt-3 flex gap-2 text-xs leading-5 text-[#746978]"><FiShield aria-hidden="true" className="mt-0.5 size-4 shrink-0" />Stock and vouchers are reserved only after the complete order is accepted.</p>
-      </aside>
+      <CheckoutSummary
+        quote={quote}
+        message={message}
+        status={status}
+        onPlaceOrder={() => void placeOrder()}
+        formatAmount={amount}
+      />
     </div>
   );
 }
-
-function ShopCheckoutGroup({ group, disabled, onToggleVoucher, selectedVouchers }: { group: CheckoutQuote["groups"][number]; disabled: boolean; onToggleVoucher: (voucher: CheckoutVoucher, shopId: string) => Promise<void>; selectedVouchers: VoucherSelection[] }) {
-  return (
-    <section className="border border-[#DED7E1] bg-white" aria-labelledby={`shop-${group.shop.id}`}>
-      <div className="border-b border-[#E6E0E8] px-4 py-3.5 sm:px-5"><h2 id={`shop-${group.shop.id}`} className="text-base font-semibold text-[#2D2231]">{group.shop.name}</h2></div>
-      <div className="divide-y divide-[#EEE9EF]">
-        {group.items.map((item) => (
-          <div key={`${item.productId}:${item.variantId ?? "base"}`} className="flex items-start justify-between gap-4 px-4 py-4 text-sm sm:px-5">
-            <div className="min-w-0"><p className="font-medium text-[#302534]">{item.productName}</p>{item.selectedOptions.length ? <p className="mt-1 text-xs text-[#746978]">{item.selectedOptions.map((option) => `${option.group}: ${option.value}`).join(" · ")}</p> : null}<p className="mt-1 text-xs text-[#887D8B]">Qty {item.quantity} · SKU {item.sku}</p></div>
-            <strong className="shrink-0 text-[#3A2E3E]">{amount(item.lineSubtotal)}</strong>
-          </div>
-        ))}
-      </div>
-      {group.availableVouchers.length ? (
-        <details className="border-t border-[#E6E0E8] px-4 py-4 sm:px-5">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[#4C1268] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Shop and Aisley vouchers <FiChevronDown aria-hidden="true" /></summary>
-          <div className="mt-3 space-y-2">
-            {group.availableVouchers.map((voucher) => {
-              const selected = selectedVouchers.some((item) => item.voucher_id === voucher.id && item.target_shop_id === group.shop.id);
-              return (
-                <button key={voucher.id} type="button" disabled={disabled || !voucher.eligible} onClick={() => void onToggleVoucher(voucher, group.shop.id)} aria-pressed={selected} className={`w-full border p-3 text-left disabled:cursor-not-allowed ${selected ? "border-[#E6007A] bg-[#FFF7FB]" : "border-[#DDD5E0] bg-white"} disabled:bg-[#F5F2F5] disabled:text-[#8B808F]`}>
-                  <span className="flex items-start justify-between gap-3"><span><span className="block text-sm font-semibold">{voucher.code} · {voucher.issuerType === "app" ? "Aisley" : "Shop"} {voucher.benefitType}</span><span className="mt-1 block text-xs leading-5">{voucher.termsSummary || `${voucher.valueType === "percent" ? `${voucher.value}%` : amount(voucher.value)} savings`}</span></span><span className="shrink-0 text-xs font-semibold">{voucher.eligible ? `Save ${amount(voucher.saving)}` : "Unavailable"}</span></span>
-                  {!voucher.eligible && voucher.reason ? <span className="mt-2 block text-xs text-[#765226]">{voucherReasons[voucher.reason] ?? "This voucher is not eligible for this Shop order."}</span> : null}
-                  {voucher.issuerType === "app" ? <span className="mt-2 block text-xs text-[#746978]">Applies only to {group.shop.name} when selected here.</span> : null}
-                </button>
-              );
-            })}
-          </div>
-        </details>
-      ) : null}
-      <dl className="space-y-2 border-t border-[#E6E0E8] bg-[#FCFAFC] px-4 py-4 text-sm sm:px-5"><SummaryRow label="Merchandise" value={amount(group.totals.merchandiseSubtotal)} /><SummaryRow label="Shipping" value={amount(group.totals.shippingFee)} /><div className="flex justify-between gap-4 text-xs text-[#746978]"><dt>Published rate v{group.shippingQuote.rateVersion}</dt><dd>{group.shippingQuote.billableWeightGrams.toLocaleString()} g billable</dd></div>{Number(group.totals.discount) > 0 ? <SummaryRow label="Voucher discount" value={`−${amount(group.totals.discount)}`} saving /> : null}{Number(group.totals.shippingDiscount) > 0 ? <SummaryRow label="Shipping discount" value={`−${amount(group.totals.shippingDiscount)}`} saving /> : null}<div className="flex justify-between gap-4 border-t border-[#E6E0E8] pt-2 font-semibold"><dt>COD for this order</dt><dd className="text-[#E6007A]">{amount(group.totals.payable)}</dd></div></dl>
-    </section>
-  );
-}
-
-function SummaryRow({ label, saving = false, value }: { label: string; saving?: boolean; value: string }) { return <div className="flex items-center justify-between gap-4"><dt className="text-[#665A6A]">{label}</dt><dd className={saving ? "font-medium text-[#3F6846]" : "text-[#3A2E3E]"}>{value}</dd></div>; }
 
 function CheckoutLoading() { return <div aria-label="Loading checkout" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]"><div className="space-y-5">{[180, 130, 260].map((height) => <div key={height} style={{ height }} className="animate-pulse border border-[#DED7E1] bg-white" />)}</div><div className="h-72 animate-pulse border border-[#DED7E1] bg-white" /></div>; }
 

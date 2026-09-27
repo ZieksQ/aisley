@@ -138,14 +138,14 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 
 - **Purpose:** Provide a Shop-scoped operational overview and navigation.
 - **Owns:** Current catalog counts, published Review total/answered/unanswered counts, and safe section availability/loading/error states. The separate placed-Order panel reads its owning Order API.
-- **Navigation:** Dashboard stays directly accessible; the Seller sidebar groups implemented routes into Shop, Orders, Communication, and My account. The active route's group opens automatically, while each destination retains its owning feature and API boundary.
+- **Navigation:** Dashboard stays directly accessible; the Seller sidebar groups implemented routes into Shop, Orders, Communication, and My account. Shop includes the separate Shipping providers configuration page. The active route's group opens automatically, while each destination retains its owning feature and API boundary.
 - **Boundary:** Order aggregates, finance, analytics, notifications, and inventory metrics must not be fabricated while their owning contracts are unavailable. Aggregates must be scoped to the authenticated Shop.
 
 ### 3. Catalog / Product Management
 
 - **Purpose:** Create, edit, publish, archive, and unarchive Products with categories, prices, options, Variants, SKUs, gallery media, and Markdown descriptions.
 - **Owns:** Product lifecycle and catalog validation. The legacy feature name `Order Management` refers to this catalog surface, not purchased-order fulfillment.
-- **Current state:** Product, Variant, media, category, publication, archival, and Seller-scoped authoring workflows are implemented. The seeded canonical taxonomy contains 14 Shop Categories and 83 Product Categories.
+- **Current state:** Product, Variant, media, category, packed-package measurement/default and Variant-override controls, publication, archival, and Seller-scoped authoring workflows are implemented. The seeded canonical taxonomy contains 14 Shop Categories and 83 Product Categories.
 
 ### 4. Markdown Product Descriptions
 
@@ -172,10 +172,10 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 - **Owns:** Seller-scoped notification/inbox presentation and navigation into the authoritative Order detail.
 - **Boundary:** A notification does not approve, process, pack, assign Logistics/Courier, or change the Order. Delivery failures are retried separately and never roll back a committed Order event.
 
-### 8. Prepare Orders and First-Mile Handoff
+### 8. Shipping Providers, Prepare Orders, and First-Mile Handoff
 
-- **Purpose:** Verify purchased snapshots, begin Seller processing, pack the parcel, select Logistics, request pickup, and print/reprint the immutable shared waybill.
-- **Owns:** `placed → seller_processing → ready_for_pickup`, provider selection, shared-waybill creation, the immutable Order/Parcel reference, and readiness history.
+- **Purpose:** Configure which providers Customers may select, verify purchased snapshots, begin Seller processing, pack the parcel, request the checkout-locked provider, and print/reprint the immutable shared waybill.
+- **Owns:** Shop-scoped provider enablement, `placed → seller_processing → ready_for_pickup`, same-provider pickup grouping, shared-waybill creation, the immutable Order/Parcel reference, and readiness history.
 - **Waybill rule:** Aisley creates the reference, QR, and immutable Shop/pickup/destination/provider snapshot inside the pickup transaction. Seller and selected Logistics access the same artifact.
 - **Boundary:** The selected Logistics organization creates first-mile tasks/schedules after readiness and owns parcel receipt, scanning, sorting, assignment, transit, and delivery. Seller creates no task and assigns no Courier.
 

@@ -3,7 +3,7 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 1.9
+version: 2.0
 status: Implemented (scheduling, schedule lifecycle, and bounded reconciliation)
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
@@ -14,13 +14,14 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## WHAT
 
-- **Purpose:** Let a Seller hand prepared Orders to one selected Logistics organization, then let that organization assign an employed Courier and pickup schedule.
-- **Actors:** Seller selects the provider and requests pickup; Logistics owns its Pickups dashboard and schedule; Courier receives the assigned first-mile task through the external mobile app.
+- **Purpose:** Let a Seller hand prepared Orders to the Customer-selected Logistics organization, then let that organization assign an employed Courier and pickup schedule.
+- **Actors:** Customer selects a Seller-enabled provider at checkout; Seller packs same-provider Orders and requests pickup; Logistics owns its Pickups dashboard and schedule; Courier receives the assigned first-mile task through the external mobile app.
 - **Scope:** Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler, database notifications, and Geoapify-backed distance ranking.
 - **Current baseline:** Sellers can submit solo or bulk pickup requests with up to 50 Orders, and Logistics can combine eligible parcels from multiple Seller requests into one Courier schedule. Each created waybill has an explicit tracking ID, and the pickup transaction snapshots the Buyer postal code plus the selected Logistics hub's current sort-plan hint for later routing.
 - **Target flow:**
   ```text
-  Seller packs Orders → chooses Logistics → requests pickup
+  Seller enables providers → Customer chooses one at checkout
+  → Seller packs same-provider Orders → requests pickup from the locked provider
   → Orders become ready_for_pickup and waybills are created
   → selected Logistics sees the request in Pickups
   → Logistics combines one or more Seller handoffs (up to 30 parcels)
@@ -38,7 +39,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## MUST
 
-### Seller provider selection
+### Seller provider settings and locked pickup
 
 - Require Sanctum, active approved Seller access, and a server-derived Shop for every option and pickup request.
 - Seller may request only its own `seller_processing` Orders with valid payment, address snapshots, and Inventory reservations.
@@ -47,14 +48,15 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Normalize country, province, and city/municipality using the project's PSGC conventions; compare case-insensitively after trimming.
 - Rank eligible options in this order:
   - exact country + province + city/municipality matches first;
+  - then exact country + province, then exact country + region;
   - within a tier, shortest Geoapify driving distance first when both endpoints have coordinates;
   - options without a distance last, ordered by business name and UUID.
-- Preselect the sole exact match; if several exact matches exist, preselect the shortest returned distance; if no exact match exists, preselect the nearest ranked option.
+- Use this rank as advisory ordering on the separate Seller provider-settings page. It does not enable a provider, select a Customer checkout choice, or replace explicit Seller confirmation of an enable/disable change.
 - Display the recommendation reason, availability, and rounded one-decimal kilometre distance; label unavailable distance honestly.
-- Seller must confirm the preselection and may choose another eligible option before submitting.
-- If Geoapify, coordinates, or quota are unavailable, list all eligible providers without a distance and require explicit Seller selection; never fabricate `0 km` or block packing.
+- Order preparation derives the provider from the immutable checkout selection. Seller cannot replace it and may submit one or more Orders only when every selected Order has that same provider.
+- If Geoapify, coordinates, or quota are unavailable, list all eligible providers without a distance and require explicit Seller enable/disable changes; never fabricate `0 km` or block provider configuration.
 - If no provider is eligible, do not advance Orders or create waybills; show a retryable unavailable state.
-- Provider selection becomes immutable when the pickup request commits; reassignment needs an explicit future exception workflow.
+- Customer provider selection is immutable when the Order commits; reassignment needs an explicit future exception workflow.
 
 ### Request, queue, and tenant isolation
 
@@ -106,7 +108,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Acceptance criteria
 
 - [x] Exact PSGC matches are recommended before proximity results, and displayed kilometres come only from a successful authoritative calculation.
-- [x] Seller selection is validated and frozen; only that Logistics tenant receives and sees the request.
+- [x] Customer selection is validated and frozen; Seller pickup revalidates it and only that Logistics tenant receives and sees the request.
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
 - [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
 - [x] The schedule list defaults to scheduled work and supports ascending or descending pickup-window sorting.
@@ -140,10 +142,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Interfaces and UI
 
-- Seller: `GET /api/v1/seller/logistics-options`, `POST /api/v1/seller/orders/pickup-requests`.
+- Seller: `GET/PUT /api/v1/seller/shipping-providers`, advisory `GET /api/v1/seller/logistics-options`, and `POST /api/v1/seller/orders/pickup-requests`.
 - Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-couriers` (optionally with `starts_at`, `ends_at`, and `exclude_schedule_id` for server-calculated availability), `GET /pickup-schedules`, `POST /pickup-schedules`, and revision/cancel endpoints.
 - Courier API: read assigned first-mile tasks and acknowledge/accept under the existing mobile-only boundary.
-- Add Seller provider-selection states and packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
+- Add a dedicated Seller provider-settings page and a checkout-locked, provider-grouped packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
 - API resources expose server-calculated capabilities; frontends never infer assignability, availability, distance validity, or tenant ownership.
 - Keep list selections across a recoverable refetch only while each Order remains eligible; announce selection counts and validation errors to assistive technology.
 - Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation. Schedule endpoints use combined Flatpickr date/time widgets with the mobile fallback disabled; the Courier picker shows contact information, account status, schedules affecting the requested dates, and whether the requested window is open.
