@@ -3,12 +3,13 @@ import type { FormEvent } from 'react'
 import { FaImage, FaPlus, FaTrash } from 'react-icons/fa6'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ProductDescriptionEditor } from '../components/products/ProductDescriptionEditor'
+import { VariantShippingOverrides, type ShippingOverrideVariant } from '../components/products/VariantShippingOverrides'
 import { ApiError, apiAssetUrl, apiRequest, uploadForm } from '../lib/api'
 import type { Product } from '../types/operations'
 
 type Category = { id: string; name: string }
 type OptionGroup = { name: string; values: string[] }
-type Variant = { key: string; id?: string; option_value_indexes: number[]; labels: string[]; sku: string; opening_stock: string; price: string; original_price: string; shipping_weight_grams: string; shipping_length_mm: string; shipping_width_mm: string; shipping_height_mm: string; unit_cost: string; status: 'active' | 'inactive'; image_upload_id?: string; image_preview?: string; inventory_sku_id?: string | null; on_hand?: number; reserved?: number; available?: number }
+type Variant = ShippingOverrideVariant & { id?: string; option_value_indexes: number[]; labels: string[]; opening_stock: string; price: string; original_price: string; status: 'active' | 'inactive'; image_upload_id?: string; image_preview?: string; inventory_sku_id?: string | null; on_hand?: number; reserved?: number; available?: number }
 type UploadedAsset = { id: string; preview_url: string }
 type ProductLimits = { gallery_images: number; variant_images_per_variant: number; image_max_bytes: number; image_max_edge: number; image_max_pixels: number }
 type GalleryUpload = { id: string; name: string }
@@ -48,6 +49,7 @@ export function ProductFormPage() {
         option_value_indexes: data.option_groups.map((group) => group.values.findIndex((value) => variant.option_value_ids.includes(value.id))),
         labels: data.option_groups.map((group) => group.values.find((value) => variant.option_value_ids.includes(value.id))?.value ?? ''),
         sku: variant.sku, opening_stock: String(variant.on_hand ?? 0), price: variant.price ?? '', original_price: variant.original_price ?? '', status: variant.status,
+        shipping_override_enabled: [variant.shipping_weight_grams, variant.shipping_length_mm, variant.shipping_width_mm, variant.shipping_height_mm].some((value) => value !== null),
         shipping_weight_grams: String(variant.shipping_weight_grams ?? ''), shipping_length_mm: String(variant.shipping_length_mm ?? ''), shipping_width_mm: String(variant.shipping_width_mm ?? ''), shipping_height_mm: String(variant.shipping_height_mm ?? ''), unit_cost: variant.unit_cost_cents === null ? '' : (variant.unit_cost_cents / 100).toFixed(2),
         inventory_sku_id: variant.inventory_sku_id, on_hand: variant.on_hand, reserved: variant.reserved, available: variant.available,
       })))
@@ -102,7 +104,7 @@ export function ProductFormPage() {
     findUnused(0, [])
     if (!indexes) { setError('All available option combinations are already listed.'); return }
     const selectedIndexes = indexes
-    setVariants((current) => [...current, { key: crypto.randomUUID(), option_value_indexes: selectedIndexes, labels: labelsFor(selectedIndexes), sku: (form.sku || 'SKU') + '-' + (current.length + 1), opening_stock: '0', price: '', original_price: '', shipping_weight_grams: '', shipping_length_mm: '', shipping_width_mm: '', shipping_height_mm: '', unit_cost: '', status: 'active' }])
+    setVariants((current) => [...current, { key: crypto.randomUUID(), option_value_indexes: selectedIndexes, labels: labelsFor(selectedIndexes), sku: (form.sku || 'SKU') + '-' + (current.length + 1), opening_stock: '0', price: '', original_price: '', shipping_override_enabled: false, shipping_weight_grams: '', shipping_length_mm: '', shipping_width_mm: '', shipping_height_mm: '', unit_cost: '', status: 'active' }])
     setVariantsDirty(true); setDirty(true); setError('')
   }
 
@@ -122,6 +124,15 @@ export function ProductFormPage() {
 
   function updateVariantShipping(variantIndex: number, key: 'shipping_weight_grams' | 'shipping_length_mm' | 'shipping_width_mm' | 'shipping_height_mm' | 'unit_cost', value: string) {
     setVariants((current) => current.map((variant, index) => index === variantIndex ? { ...variant, [key]: value } : variant))
+    setVariantsDirty(true); setDirty(true)
+  }
+
+  function toggleVariantShipping(variantIndex: number, enabled: boolean) {
+    setVariants((current) => current.map((variant, index) => index === variantIndex ? {
+      ...variant,
+      shipping_override_enabled: enabled,
+      ...(enabled ? {} : { shipping_weight_grams: '', shipping_length_mm: '', shipping_width_mm: '', shipping_height_mm: '' }),
+    } : variant))
     setVariantsDirty(true); setDirty(true)
   }
 
@@ -190,6 +201,12 @@ export function ProductFormPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setSaving(true); setError('')
+    const incompleteOverride = variants.findIndex((variant) => variant.shipping_override_enabled && [variant.shipping_weight_grams, variant.shipping_length_mm, variant.shipping_width_mm, variant.shipping_height_mm].some((value) => value === ''))
+    if (incompleteOverride >= 0) {
+      setError(`Complete all packed measurements for ${variantContext(variants[incompleteOverride]) || variants[incompleteOverride].sku}.`)
+      setSaving(false)
+      return
+    }
     const common = {
       name: form.name, category_id: form.category_id, short_description: form.short_description || null,
       description_markdown: form.description_markdown || null,
@@ -198,9 +215,9 @@ export function ProductFormPage() {
       shipping_weight_grams: Number(form.shipping_weight_grams), shipping_length_mm: Number(form.shipping_length_mm), shipping_width_mm: Number(form.shipping_width_mm), shipping_height_mm: Number(form.shipping_height_mm),
       unit_cost_cents: form.unit_cost === '' ? null : Math.round(Number(form.unit_cost) * 100), cost_currency: form.unit_cost === '' ? null : 'PHP',
     }
-    const matrix = variants.map(({ id, sku, opening_stock, price, original_price, status, option_value_indexes, image_upload_id, shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm, unit_cost }) => ({
+    const matrix = variants.map(({ id, sku, opening_stock, price, original_price, status, option_value_indexes, image_upload_id, shipping_override_enabled, shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm, unit_cost }) => ({
       ...(productId && id ? { id } : {}), sku, price: price || null, original_price: original_price || null, status, option_value_indexes, image_upload_id: image_upload_id || null,
-      shipping_weight_grams: shipping_weight_grams === '' ? null : Number(shipping_weight_grams), shipping_length_mm: shipping_length_mm === '' ? null : Number(shipping_length_mm), shipping_width_mm: shipping_width_mm === '' ? null : Number(shipping_width_mm), shipping_height_mm: shipping_height_mm === '' ? null : Number(shipping_height_mm),
+      shipping_weight_grams: shipping_override_enabled ? Number(shipping_weight_grams) : null, shipping_length_mm: shipping_override_enabled ? Number(shipping_length_mm) : null, shipping_width_mm: shipping_override_enabled ? Number(shipping_width_mm) : null, shipping_height_mm: shipping_override_enabled ? Number(shipping_height_mm) : null,
       unit_cost_cents: unit_cost === '' ? null : Math.round(Number(unit_cost) * 100), cost_currency: unit_cost === '' ? null : 'PHP',
       ...(productId ? {} : { opening_stock: Number(opening_stock) }),
     }))
@@ -241,8 +258,9 @@ export function ProductFormPage() {
         <label className="block text-sm font-medium">Short description<textarea className="mt-1.5 min-h-20 w-full rounded-lg border border-zinc-300 bg-white p-3 dark:border-white/15 dark:bg-[#18181b]" maxLength={500} onChange={(e) => updateField('short_description', e.target.value)} value={form.short_description} /></label>
       </section>
 
-      <section className="space-y-4 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="shipping-heading"><div><h3 className="text-lg font-semibold" id="shipping-heading">Shipping and cost</h3><p className="mt-1 text-sm text-zinc-500">Packed measurements are required before publishing and determine the checkout shipping quote. Variant values may override these defaults.</p></div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{field('shipping_weight_grams', 'Weight (grams)', true, 'number')}{field('shipping_length_mm', 'Length (mm)', true, 'number')}{field('shipping_width_mm', 'Width (mm)', true, 'number')}{field('shipping_height_mm', 'Height (mm)', true, 'number')}</div>
+      <section className="space-y-4 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="shipping-heading"><div><h3 className="text-lg font-semibold" id="shipping-heading">Packed package</h3><p className="mt-1 text-sm text-zinc-500">Measure the parcel after protective packaging. These required defaults determine the Customer shipping quote.</p></div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{field('shipping_weight_grams', 'Packed weight (g)', true, 'number')}{field('shipping_length_mm', 'Length (mm)', true, 'number')}{field('shipping_width_mm', 'Width (mm)', true, 'number')}{field('shipping_height_mm', 'Height (mm)', true, 'number')}</div>
+        <p className="border-l-2 border-[#FF8800] pl-3 text-xs leading-5 text-zinc-600 dark:text-zinc-300">Use the outermost length, width, and height. Incorrect values can make a provider unavailable or produce the wrong checkout rate.</p>
         <div className="max-w-sm">{field('unit_cost', 'Unit cost (PHP)', false, 'number')}</div>
       </section>
 
@@ -256,7 +274,7 @@ export function ProductFormPage() {
         {groups.map((group, groupIndex) => <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-white/10" key={groupIndex}><div className="flex gap-3"><input aria-label={'Option ' + (groupIndex + 1) + ' name'} className="h-10 flex-1 rounded-lg border border-zinc-300 px-3 dark:border-white/15 dark:bg-[#18181b]" onChange={(event) => { setGroups((current) => current.map((item, index) => index === groupIndex ? { ...item, name: event.target.value } : item)); setVariantsDirty(true); setDirty(true) }} placeholder="Option name, e.g. Color" value={group.name} /><button aria-label={'Remove option ' + (groupIndex + 1)} className="px-2 text-zinc-500 hover:text-red-700" onClick={() => removeOptionGroup(groupIndex)} type="button"><FaTrash /></button></div><div className="grid gap-2 sm:grid-cols-3">{group.values.map((value, valueIndex) => <div className="flex gap-1" key={valueIndex}><input aria-label={(group.name || 'Option ' + (groupIndex + 1)) + ' value ' + (valueIndex + 1)} className="h-9 min-w-0 flex-1 rounded-lg border border-zinc-300 px-2 text-sm dark:border-white/15 dark:bg-[#18181b]" onChange={(event) => updateOptionValue(groupIndex, valueIndex, event.target.value)} placeholder="Value" value={value} /><button aria-label="Remove value" className="px-2 text-zinc-500" onClick={() => removeOptionValue(groupIndex, valueIndex)} type="button">×</button></div>)}<button className="h-9 rounded-lg border border-dashed border-zinc-300 px-3 text-sm text-zinc-600 dark:border-white/15 dark:text-zinc-300" onClick={() => addOptionValue(groupIndex)} type="button">Add value</button></div></div>)}
         <div className="border-t border-zinc-200 pt-3 dark:border-white/10"><button className="inline-flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900" onClick={addVariant} disabled={!groups.length} type="button"><FaPlus /> Add variant</button></div>
         {variants.length ? <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-zinc-200 text-xs text-zinc-500 dark:border-white/10"><tr><th className="py-2 pr-3">Options</th><th className="px-3 py-2">SKU</th><th className="px-3 py-2">Price override</th><th className="px-3 py-2">Image</th><th className="px-3 py-2">Stock</th><th className="pl-3 py-2"><span className="sr-only">Actions</span></th></tr></thead><tbody className="divide-y divide-zinc-200 dark:divide-white/10">{variants.map((variant, index) => { const context = variantContext(variant); return <tr key={variant.key}><td className="py-2 pr-3"><div className="space-y-1.5">{groups.map((group, groupIndex) => <select aria-label={context + ' ' + (group.name || 'option')} className="h-8 w-36 rounded-md border border-zinc-300 px-2 text-xs dark:border-white/15 dark:bg-[#18181b]" key={groupIndex} onChange={(event) => updateVariantOption(index, groupIndex, event.target.value)} value={variant.option_value_indexes[groupIndex] >= 0 ? String(variant.option_value_indexes[groupIndex]) : ''}><option value="">Select {group.name || 'option'}</option>{group.values.map((value, valueIndex) => <option key={valueIndex} value={valueIndex}>{value || 'Value ' + (valueIndex + 1)}</option>)}</select>)}</div></td><td className="px-3 py-2"><input aria-label={context + ' SKU'} className="h-9 w-40 rounded-lg border border-zinc-300 px-2 dark:border-white/15 dark:bg-[#18181b]" onChange={(event) => { setVariants((current) => current.map((item, position) => position === index ? { ...item, sku: event.target.value } : item)); setVariantsDirty(true); setDirty(true) }} required value={variant.sku} /></td><td className="px-3 py-2"><div className="space-y-1"><input aria-label={context + ' price override'} className="h-9 w-32 rounded-lg border border-zinc-300 px-2 dark:border-white/15 dark:bg-[#18181b]" min="0.01" onChange={(event) => { setVariants((current) => current.map((item, position) => position === index ? { ...item, price: event.target.value } : item)); setVariantsDirty(true); setDirty(true) }} placeholder="Selling price" step="0.01" type="number" value={variant.price} /><input aria-label={context + ' original price override'} className="h-9 w-32 rounded-lg border border-zinc-300 px-2 dark:border-white/15 dark:bg-[#18181b]" min="0.01" onChange={(event) => { setVariants((current) => current.map((item, position) => position === index ? { ...item, original_price: event.target.value } : item)); setVariantsDirty(true); setDirty(true) }} placeholder="Original price" step="0.01" type="number" value={variant.original_price} /></div></td><td className="px-3 py-2"><label className="cursor-pointer text-sm font-medium text-[#4C1268] dark:text-purple-300">{variant.image_preview ? 'Replace' : 'Add image'}<input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(file, 'variant', index) }} type="file" /></label></td><td className="px-3 py-2">{productId ? <><p>{variant.on_hand ?? 0} on hand</p>{variant.inventory_sku_id ? <Link className="text-xs font-medium text-[#4C1268] dark:text-purple-300" to={'/inventory/' + variant.inventory_sku_id}>Manage inventory</Link> : null}</> : <input aria-label={context + ' opening stock'} className="h-9 w-24 rounded-lg border border-zinc-300 px-2 dark:border-white/15 dark:bg-[#18181b]" min="0" onChange={(event) => { setVariants((current) => current.map((item, position) => position === index ? { ...item, opening_stock: event.target.value } : item)); setDirty(true) }} type="number" value={variant.opening_stock} />}</td><td className="pl-3 py-2"><button aria-label={'Delete variant ' + (index + 1)} className="inline-flex h-8 items-center gap-1 rounded-md border border-zinc-300 px-2 text-xs font-medium dark:border-white/15" onClick={() => removeVariant(index)} type="button"><FaTrash /> Delete</button></td></tr> })}</tbody></table></div> : groups.length ? <p className="rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-500 dark:border-white/15">No variants yet. Add one sellable combination above.</p> : null}
-        {variants.length ? <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-white/10"><div><h4 className="text-sm font-semibold">Variant shipping and cost overrides</h4><p className="mt-1 text-xs text-zinc-500">Leave fields blank to use the Product values above.</p></div>{variants.map((variant, index) => <fieldset className="rounded-md border border-zinc-200 p-3 dark:border-white/10" key={variant.key}><legend className="px-1 text-xs font-semibold">{variantContext(variant) || variant.sku}</legend><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{([['shipping_weight_grams', 'Weight (g)'], ['shipping_length_mm', 'Length (mm)'], ['shipping_width_mm', 'Width (mm)'], ['shipping_height_mm', 'Height (mm)'], ['unit_cost', 'Unit cost (PHP)']] as const).map(([key, label]) => <label className="text-xs font-medium" key={key}>{label}<input className="mt-1 h-9 w-full rounded-md border border-zinc-300 px-2 text-sm dark:border-white/15 dark:bg-[#18181b]" min="0" onChange={(event) => updateVariantShipping(index, key, event.target.value)} placeholder="Inherit" step={key === 'unit_cost' ? '0.01' : '1'} type="number" value={variant[key]} /></label>)}</div></fieldset>)}</div> : null}
+        {variants.length ? <VariantShippingOverrides labelFor={(variant) => variantContext(variant as Variant)} onChange={updateVariantShipping} onToggle={toggleVariantShipping} productMeasurements={{ weight: form.shipping_weight_grams, length: form.shipping_length_mm, width: form.shipping_width_mm, height: form.shipping_height_mm }} variants={variants} /> : null}
       </section>
 
       <section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="description-heading"><div><h3 className="text-lg font-semibold" id="description-heading">Description</h3><p className="mt-1 text-sm text-zinc-500">Rich text is saved as safe Markdown. Images uploaded before the first save remain temporary for 24 hours.</p></div><ProductDescriptionEditor markdown={form.description_markdown} onAsset={addDescriptionAsset} onChange={(value) => updateField('description_markdown', value)} uploadToken={uploadToken} /></section>

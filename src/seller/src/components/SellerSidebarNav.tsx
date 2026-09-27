@@ -9,6 +9,7 @@ import {
   FaFileContract,
   FaGaugeHigh,
   FaStar,
+  FaTruck,
   FaTriangleExclamation,
   FaUserGear,
 } from 'react-icons/fa6'
@@ -33,6 +34,7 @@ const groups: NavGroup[] = [
     label: 'Shop',
     items: [
       { label: 'Products', path: '/products', icon: FaBoxOpen },
+      { label: 'Shipping providers', path: '/shipping-providers', icon: FaTruck },
       { label: 'Inventory', path: '/inventory', icon: FaBoxesStacked },
       { label: 'Low-stock alerts', path: '/low-stock-alerts', icon: FaTriangleExclamation },
       { label: 'Finance', path: '/finance', icon: FaChartLine },

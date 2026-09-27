@@ -76,6 +76,22 @@ class LogisticsPickupWaybillTest extends TestCase
             && $request['mode'] === 'drive' && count($request['sources']) === 1 && count($request['targets']) === 2);
     }
 
+    public function test_options_prefer_the_same_region_before_other_domestic_hubs(): void
+    {
+        [$seller] = $this->sellerShop();
+        $seller->addresses()->sole()->update(['region' => 'Region IV-A']);
+        [, $otherRegion] = $this->logistics('A Other Region Logistics', 'Cebu City', 'Cebu', false, 14.65, 121.03, 'Region VII');
+        [, $sameRegion] = $this->logistics('Z Same Region Logistics', 'Calamba City', 'Laguna', false, 14.65, 121.03, 'Region IV-A');
+        config()->set('services.geoapify.server_key', null);
+
+        $this->actingAs($seller)->getJson('/api/v1/seller/logistics-options')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $sameRegion->id)
+            ->assertJsonPath('data.0.match_tier', 'same_region')
+            ->assertJsonPath('data.0.recommendation_reason', 'same_region')
+            ->assertJsonPath('data.1.id', $otherRegion->id);
+    }
+
     public function test_pickup_creates_immutable_waybill_and_notifies_only_selected_logistics(): void
     {
         [$seller, $shop] = $this->sellerShop();
@@ -793,10 +809,10 @@ class LogisticsPickupWaybillTest extends TestCase
         return [$seller, $shop];
     }
 
-    private function logistics(string $name, string $city, string $province, bool $coordinates = false, float $latitude = 14.65, float $longitude = 121.03): array
+    private function logistics(string $name, string $city, string $province, bool $coordinates = false, float $latitude = 14.65, float $longitude = 121.03, string $region = 'NCR'): array
     {
         $user = User::factory()->create(['role' => UserRole::Logistics, 'status' => UserStatus::Active]);
-        $address = $user->addresses()->create(['type' => AddressType::Both, 'label' => 'Hub', 'recipient_name' => 'Operator', 'contact_number' => '09172222222', 'address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion', 'city_municipality' => $city, 'province' => $province, 'region' => 'NCR', 'postal_code' => '1000', 'country' => 'PH', 'latitude' => $coordinates ? $latitude : null, 'longitude' => $coordinates ? $longitude : null, 'is_default' => true]);
+        $address = $user->addresses()->create(['type' => AddressType::Both, 'label' => 'Hub', 'recipient_name' => 'Operator', 'contact_number' => '09172222222', 'address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion', 'city_municipality' => $city, 'province' => $province, 'region' => $region, 'postal_code' => '1000', 'country' => 'PH', 'latitude' => $coordinates ? $latitude : null, 'longitude' => $coordinates ? $longitude : null, 'is_default' => true]);
         $organization = $user->logisticsOrganization()->create(['business_name' => $name]);
         $hub = $organization->hub()->create(['address_id' => $address->id, 'name' => $name.' Hub']);
 

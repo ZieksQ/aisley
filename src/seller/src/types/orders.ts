@@ -22,6 +22,7 @@ export type SellerOrder = {
   placed_at: string
   latest_activity_at: string
   payment: { method: string; status: string }
+  shipping_provider: null | { id: string; business_name: string }
   items: Array<{
     id: string; product_id: string | null; variant_id: string | null
     product_name: string; variant_name: string | null; sku: string | null

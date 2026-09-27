@@ -229,6 +229,10 @@ class ProductSeeder extends Seeder
                     'original_price' => $definition['original_price'] ?? null,
                     'stock_quantity' => $definition['stock_quantity'],
                     'status' => ProductVariantStatus::Active,
+                    'shipping_weight_grams' => $definition['shipping_weight_grams'] ?? null,
+                    'shipping_length_mm' => $definition['shipping_length_mm'] ?? null,
+                    'shipping_width_mm' => $definition['shipping_width_mm'] ?? null,
+                    'shipping_height_mm' => $definition['shipping_height_mm'] ?? null,
                 ],
             );
             $variant->optionValues()->sync(
@@ -313,6 +317,9 @@ class ProductSeeder extends Seeder
     /** @return array<string, mixed> */
     private function simpleProduct(string $slug, string $category, string $name, string $description, int $price, ?int $originalPrice, int $stock, float $rating, int $reviews, int $sold, array $badges, bool $promoted, string $image, string $altText, array $specifications): array
     {
+        $package = $this->packageFor($slug, $category);
+        $variantSetup = $this->simpleVariants($slug, $price, $stock, $package);
+
         return [
             'slug' => $slug,
             'category' => $category,
@@ -329,9 +336,92 @@ class ProductSeeder extends Seeder
             'sold_count' => $sold,
             'badges' => $badges,
             'is_promoted' => $promoted,
+            ...$package,
             'media' => [['path' => $image, 'alt_text' => $altText]],
-            'option_groups' => [],
-            'variants' => [],
+            'option_groups' => $variantSetup['option_groups'],
+            'variants' => $variantSetup['variants'],
+        ];
+    }
+
+    /** @return array{shipping_weight_grams:int,shipping_length_mm:int,shipping_width_mm:int,shipping_height_mm:int} */
+    private function packageFor(string $slug, string $category): array
+    {
+        $specific = [
+            'portable-bluetooth-speaker' => [720, 230, 120, 110],
+            'mechanical-work-keyboard' => [1100, 390, 170, 60],
+            'wireless-precision-mouse' => [210, 150, 100, 60],
+            'minimal-led-desk-lamp' => [1450, 460, 180, 110],
+            'usb-c-fast-charger' => [140, 110, 85, 45],
+            'everyday-laptop-sleeve' => [420, 390, 285, 45],
+            'compact-webcam' => [260, 145, 105, 75],
+            'creator-tripod-kit' => [1850, 620, 130, 125],
+            'camera-everyday-sling' => [760, 330, 230, 160],
+            'lens-cleaning-kit' => [180, 180, 110, 55],
+            'daily-commute-backpack' => [980, 480, 360, 140],
+            'canvas-weekend-tote' => [620, 420, 320, 90],
+            'classic-leather-belt' => [280, 220, 170, 55],
+            'polarized-day-sunglasses' => [190, 180, 90, 75],
+            'everyday-canvas-sneakers' => [920, 350, 240, 130],
+            'trail-ready-shoes' => [1150, 370, 255, 145],
+            'minimalist-running-shoes' => [870, 355, 245, 135],
+            'woven-leather-wallet' => [170, 145, 115, 45],
+        ];
+        [$weight, $length, $width, $height] = $specific[$slug] ?? match ($category) {
+            'watches-men-women' => [260, 130, 110, 80],
+            'cameras-photography' => [950, 300, 220, 150],
+            'mens-shoes-accessories' => [850, 340, 240, 130],
+            default => [650, 280, 190, 120],
+        };
+
+        return [
+            'shipping_weight_grams' => $weight,
+            'shipping_length_mm' => $length,
+            'shipping_width_mm' => $width,
+            'shipping_height_mm' => $height,
+        ];
+    }
+
+    /** @param array{shipping_weight_grams:int,shipping_length_mm:int,shipping_width_mm:int,shipping_height_mm:int} $package */
+    private function simpleVariants(string $slug, int $price, int $stock, array $package): array
+    {
+        $definitions = match ($slug) {
+            'portable-bluetooth-speaker' => ['Color', ['Charcoal', 'Sand'], ['CHR', 'SND']],
+            'everyday-canvas-sneakers' => ['Size', ['40', '41', '42'], ['40', '41', '42']],
+            'rose-gold-minimal-watch' => ['Strap size', ['Small', 'Large'], ['S', 'L']],
+            default => null,
+        };
+        if ($definitions === null) {
+            return ['option_groups' => [], 'variants' => []];
+        }
+
+        [$group, $values, $suffixes] = $definitions;
+        $baseSku = 'AIS-'.strtoupper(str_replace('-', '', $slug));
+        $variantCount = count($values);
+        $baseStock = intdiv($stock, $variantCount);
+        $remainder = $stock % $variantCount;
+        $variants = [];
+        foreach ($values as $index => $value) {
+            $override = $index === $variantCount - 1 ? [
+                'shipping_weight_grams' => $package['shipping_weight_grams'] + 30,
+                'shipping_length_mm' => $package['shipping_length_mm'],
+                'shipping_width_mm' => $package['shipping_width_mm'],
+                'shipping_height_mm' => $package['shipping_height_mm'] + 10,
+            ] : [];
+            $variants[] = [
+                'sku' => $baseSku.'-'.$suffixes[$index],
+                'price' => $index === $variantCount - 1 ? $price + 100 : null,
+                'stock_quantity' => $baseStock + ($index < $remainder ? 1 : 0),
+                'options' => ["{$group}:{$value}"],
+                ...$override,
+            ];
+        }
+
+        return [
+            'option_groups' => [[
+                'name' => $group,
+                'values' => array_map(fn (string $value) => ['value' => $value], $values),
+            ]],
+            'variants' => $variants,
         ];
     }
 
@@ -354,6 +444,10 @@ class ProductSeeder extends Seeder
             'sold_count' => 381,
             'badges' => ['best_seller', 'free_shipping'],
             'is_promoted' => true,
+            'shipping_weight_grams' => 850,
+            'shipping_length_mm' => 250,
+            'shipping_width_mm' => 220,
+            'shipping_height_mm' => 110,
             'media' => [
                 ['path' => 'https://images.unsplash.com/photo-1547932087-59a8f2be576e?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Black studio headphones on a desk'],
                 ['path' => 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Black over-ear headphones', 'variant_sku' => 'AWH-BLK'],
@@ -368,7 +462,7 @@ class ProductSeeder extends Seeder
             ]],
             'variants' => [
                 ['sku' => 'AWH-BLK', 'stock_quantity' => 20, 'options' => ['Color:Black'], 'primary_media_position' => 1],
-                ['sku' => 'AWH-SLV', 'price' => 4199, 'original_price' => 4999, 'stock_quantity' => 12, 'options' => ['Color:Silver'], 'primary_media_position' => 2],
+                ['sku' => 'AWH-SLV', 'price' => 4199, 'original_price' => 4999, 'stock_quantity' => 12, 'options' => ['Color:Silver'], 'primary_media_position' => 2, 'shipping_weight_grams' => 880, 'shipping_length_mm' => 250, 'shipping_width_mm' => 220, 'shipping_height_mm' => 115],
             ],
         ];
     }
@@ -392,6 +486,10 @@ class ProductSeeder extends Seeder
             'sold_count' => 176,
             'badges' => ['free_shipping'],
             'is_promoted' => true,
+            'shipping_weight_grams' => 720,
+            'shipping_length_mm' => 180,
+            'shipping_width_mm' => 150,
+            'shipping_height_mm' => 110,
             'media' => [
                 ['path' => 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Compact camera viewed from the front'],
                 ['path' => 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Compact camera held in one hand'],
@@ -421,6 +519,10 @@ class ProductSeeder extends Seeder
             'sold_count' => 245,
             'badges' => ['new_arrival'],
             'is_promoted' => false,
+            'shipping_weight_grams' => 900,
+            'shipping_length_mm' => 350,
+            'shipping_width_mm' => 240,
+            'shipping_height_mm' => 130,
             'media' => [
                 ['path' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Red city runner sneaker'],
                 ['path' => 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'White city runner sneaker', 'variant_sku' => 'CRS-WHT-40'],
@@ -437,7 +539,7 @@ class ProductSeeder extends Seeder
                 ['sku' => 'CRS-RED-40', 'stock_quantity' => 10, 'options' => ['Color:Red', 'Size:40'], 'primary_media_position' => 0],
                 ['sku' => 'CRS-RED-41', 'stock_quantity' => 0, 'options' => ['Color:Red', 'Size:41'], 'primary_media_position' => 0],
                 ['sku' => 'CRS-WHT-40', 'stock_quantity' => 8, 'options' => ['Color:White', 'Size:40'], 'primary_media_position' => 1],
-                ['sku' => 'CRS-WHT-41', 'price' => 2990, 'stock_quantity' => 8, 'options' => ['Color:White', 'Size:41'], 'primary_media_position' => 2],
+                ['sku' => 'CRS-WHT-41', 'price' => 2990, 'stock_quantity' => 8, 'options' => ['Color:White', 'Size:41'], 'primary_media_position' => 2, 'shipping_weight_grams' => 940, 'shipping_length_mm' => 355, 'shipping_width_mm' => 245, 'shipping_height_mm' => 135],
             ],
         ];
     }
@@ -461,6 +563,10 @@ class ProductSeeder extends Seeder
             'sold_count' => 164,
             'badges' => ['top_rated'],
             'is_promoted' => false,
+            'shipping_weight_grams' => 260,
+            'shipping_length_mm' => 130,
+            'shipping_width_mm' => 110,
+            'shipping_height_mm' => 80,
             'media' => [
                 ['path' => 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Classic everyday watch'],
                 ['path' => 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1200&q=80', 'alt_text' => 'Classic watch face and leather strap'],
