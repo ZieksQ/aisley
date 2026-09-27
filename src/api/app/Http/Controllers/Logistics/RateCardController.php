@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Logistics;
 
+use App\Enums\CategoryStatus;
 use App\Enums\LogisticsRateCardStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\StoreRateCardRequest;
+use App\Models\Category;
 use App\Models\LogisticsRateCard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,11 +19,28 @@ class RateCardController extends Controller
     {
         $organization = $request->user()->logisticsOrganization()->firstOrFail();
 
-        return response()->json(['data' => LogisticsRateCard::query()
+        $cards = LogisticsRateCard::query()
             ->where('logistics_organization_id', $organization->id)
-            ->with('rules.category:id,name')
+            ->with('rules.category:id,name,shop_category_id')
             ->latest('version_number')
-            ->get()])->header('Cache-Control', 'private, no-store');
+            ->get();
+        $categories = Category::query()
+            ->where('status', CategoryStatus::Active)
+            ->with('shopCategory:id,name')
+            ->orderBy('shop_category_id')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get(['id', 'shop_category_id', 'name'])
+            ->map(fn (Category $category): array => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'group_name' => $category->shopCategory?->name,
+            ]);
+
+        return response()->json([
+            'data' => $cards,
+            'meta' => ['categories' => $categories],
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function store(StoreRateCardRequest $request): JsonResponse

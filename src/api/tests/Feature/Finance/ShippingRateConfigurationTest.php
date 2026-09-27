@@ -73,6 +73,21 @@ class ShippingRateConfigurationTest extends TestCase
         ])->assertCreated()->assertJsonPath('data.status', 'draft')->json('data');
         $this->postJson('/api/v1/logistics/rate-cards/'.$card['id'].'/publish')
             ->assertOk()->assertJsonPath('data.status', 'published');
+        $this->getJson('/api/v1/logistics/rate-cards')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.0.id', $card['id'])
+            ->assertJsonPath('meta.categories.0.id', $category->id)
+            ->assertJsonPath('meta.categories.0.name', 'Products')
+            ->assertJsonPath('meta.categories.0.group_name', 'General');
+
+        [$otherLogistics] = $this->logistics('Provider Two');
+        Sanctum::actingAs($otherLogistics);
+        $this->getJson('/api/v1/logistics/rate-cards')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/logistics/shipping-rates')
+            ->assertOk()
+            ->assertJsonPath('data.0.accepted', false);
+        $this->postJson('/api/v1/logistics/rate-cards/'.$card['id'].'/publish')->assertNotFound();
 
         Sanctum::actingAs($seller);
         $this->getJson('/api/v1/seller/shipping-providers')

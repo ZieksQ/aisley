@@ -29,6 +29,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SortingPage } from './pages/SortingPage'
 import { SortPlanPage } from './pages/SortPlanPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 export default function App() {
   return <Routes>
@@ -62,6 +63,7 @@ export default function App() {
         <Route element={<OperationalChatPage />} path="/messages" />
         <Route element={<SupportTicketsPage />} path="/support-tickets" />
         <Route element={<AccountPage />} path="/account" />
+        <Route element={<SettingsPage />} path="/settings" />
         <Route element={<PolicyConsentPage />} path="/policy-consent" />
         <Route element={<NotFoundPage />} path="*" />
       </Route>
