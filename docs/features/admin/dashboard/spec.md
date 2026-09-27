@@ -80,7 +80,7 @@ scope: Admin Web Application
 ### Sidebar navigation
 
 - Keep Dashboard directly accessible at the top of the Admin sidebar.
-- Group the remaining links by task: **Accounts** (registrations, user accounts, seller compliance), **Communication** (support tickets, notifications, campaigns), **Platform** (finance, audit logs, platform settings, feature controls), and **My account** (account settings, policy consent).
+- Group the remaining links by task: **Accounts** (registrations, user accounts, seller compliance), **Communication** (support tickets, notifications, campaigns), **Platform** (finance, pricing & fees, finance holds, audit logs, platform settings, feature controls), and **My account** (account settings, policy consent).
 - Show a group only when at least one of its destinations is visible to the current Admin. Each feature link still follows its existing permission; hiding a link never replaces backend authorization.
 - Keep groups collapsed by default on Dashboard, with one group expanded at a time. Open the group containing the current route, including detail and editor routes, so the active destination remains discoverable after navigation or reload.
 - Group controls must be keyboard-operable and expose expanded state to assistive technology. Keep child links and active states clear in both themes and on the mobile sidebar.

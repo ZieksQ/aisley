@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureControlController;
 use App\Http\Controllers\Admin\FinanceConfigurationController;
 use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
+use App\Http\Controllers\Admin\FinanceHoldController;
 use App\Http\Controllers\Admin\FinanceWorkflowController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\HubRoutingConfigurationController;
@@ -138,6 +139,8 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::get('/ledger', [AdminFinanceController::class, 'ledger']);
         Route::get('/ledger.csv', [AdminFinanceController::class, 'csv']);
         Route::get('/orders/{order}', [AdminFinanceController::class, 'order'])->whereUuid('order');
+        Route::get('/holds', [FinanceHoldController::class, 'index']);
+        Route::get('/holds/{hold}', [FinanceHoldController::class, 'show'])->whereUuid('hold');
         Route::post('/costs', [AdminFinanceController::class, 'expense'])->middleware('admin.permission:finance.manage');
         Route::post('/periods/{month}/close', [AdminFinanceController::class, 'close'])->middleware('admin.permission:finance.manage');
         Route::post('/remittances/{batch}/clear', [FinanceWorkflowController::class, 'clearRemittance'])->whereUuid('batch')->middleware('admin.permission:finance.manage');

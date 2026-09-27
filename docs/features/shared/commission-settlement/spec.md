@@ -40,7 +40,7 @@
 ## API
 
 - Shared role prefixes expose `/finance/summary`, `/finance/series`, `/finance/ledger`, `/finance/ledger.csv`, `/finance/orders/{order}`, `/finance/costs`, `/finance/periods/{month}/close`, `/finance/forecast`, and `/finance/payouts`.
-- Admin additionally manages commission policies, remittance clearing, financial holds, route reconciliation through `POST /finance/holds/{hold}/reconcile-logistics`, and payout callbacks.
+- Admin additionally manages commission policies, remittance clearing, financial holds, route reconciliation through `GET /finance/holds`, `GET /finance/holds/{hold}`, and `POST /finance/holds/{hold}/reconcile-logistics`, and payout callbacks.
 
 ## VERIFICATION
 
