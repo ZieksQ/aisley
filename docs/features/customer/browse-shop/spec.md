@@ -3,120 +3,147 @@ feature: browse-shop
 title: Customer Browse Seller Shops
 system: AISLEY
 type: Feature Specification
-version: 2.1
-status: Implemented (Phase 1)
+version: 2.2
+status: Implemented browse baseline; Shop-scoped keyword search planned
+implementation_status: Directory, Shop pages, and category filtering implemented; q extension and dedicated Shop search control unimplemented
+canonical: true
 role: Customer
 scope: Customer web application and public Laravel read APIs
+reviewed: 2026-10-02
+backend_contract_commit: 8188da9
 ---
 
 # Customer Browse Seller Shops
 
 ## WHAT
 
-- Provide a public Shop directory and a public, Seller-scoped storefront at `/shops/{slug}`.
-- Let guests and signed-in Customers discover active Shops, open a Shop, and browse that Shop's currently storefront-visible Products.
-- Let a Customer narrow the Shop's Products by the existing canonical Product Category taxonomy.
-- The Phase 1 API and Next.js directory/storefront pages are implemented and covered by focused tests.
-- The route identity is `shops.slug`; it is globally unique in the implemented schema and is already emitted by Product Detail as `storefrontUrl`.
-- A Shop has one Seller (`shops.seller_id` is unique); this feature never accepts a browser-supplied Seller ID as a scope.
-- Reuse the existing `Product::storefrontVisible()` scope and `ProductSummaryResource`; public Shop browsing must have the same Product availability boundary as homepage, search, Product Detail, Cart, and Checkout.
+### Purpose and implementation boundary
 
-- The Shop directory owns Shop discovery only. Product Detail owns Product detail and variant selection; Search owns marketplace-wide keyword search; Wishlist and Cart own their mutations; Seller Account Management owns Shop content and vacation mode.
-- Shop Category classifies a Shop's business. Product Category is the canonical hierarchical taxonomy for Products; neither is a Seller-created category tree.
-- This feature does not create Shop/Product CRUD, Seller ranking, reviews, messaging, vouchers, checkout, quick-add behavior, or a search-within-Shop field.
+- Provide a public Shop directory and a public Seller-scoped storefront at `/shops/{slug}`.
+- Guests and Customers can open visible Shops and paginate their visible Products using the existing Product Category filter.
+- The directory, header, Product list, Resources, Next.js pages, and focused API tests are implemented.
+- This revision adds planned keyword search within one Shop; the current Products API and page do not accept `q`.
+- A Shop belongs to one Seller; `shops.seller_id` is unique and the globally unique `shops.slug` resolves the public route.
+- Browse Shop owns the Shop-scoped search/filter contract. Customer Search owns marketplace-wide Products and planned Shop result records.
+- Share only compatible query normalization, literal wildcard escaping, public visibility, and pagination conventions—not query scope or ranking.
+- Product Detail owns configuration; Wishlist, Cart, and Checkout own mutations; Seller Account Management owns Shop content/vacation.
+- Exclude Shop/Product CRUD, Shop ratings, vouchers, following, quick-add, arbitrary sorting, autocomplete, and search-provider changes.
 
 ## MUST
 
-### Public availability and privacy
+### Availability, ownership, and privacy
 
-- Both directory and Shop reads are guest-readable. A missing or non-public Shop returns the same `404` response so suspended/inactive Shop and Seller state is not disclosed.
-- A public Shop is active, belongs to an active Seller with the Seller role, and is not on vacation. This must align with `Product::storefrontVisible()`.
-- A vacation Shop is not browseable. Do not expose its vacation message through a separately reachable public Shop endpoint while its catalog is hidden.
-- The public Shop DTO may contain only `id`, `slug`, `name`, `description`, `logoUrl`, `bannerUrl`, and safe Shop Category summary. Do not expose contact details, Seller profile details, payout data, documents, account status, Admin notes, compliance data, or storage paths.
-- Product results are always built with `storefrontVisible()` and `where('products.shop_id', $shop->id)` (or the equivalent Shop relationship). Compliance-restricted, unpublished, archived, future-published, vacation, inactive-Shop, and inactive-Seller Products never appear.
-- Product cards reuse the existing safe `ProductSummaryResource`; prices remain Laravel-authoritative snapshots. Product Detail, Cart, and Checkout independently revalidate current visibility, price, variant, and stock.
-- Public responses must not contain Customer-specific Wishlist, Cart, address, order, or session data. `Vary` and caching must not permit a shared response to leak private state.
+- Public reads require no Customer authentication; private Wishlist/Cart enrichment stays in separate owning APIs.
+- Resolve the Shop with `Shop::storefrontVisible()`: active Shop, active Seller-role account, and not on vacation.
+- A missing or unavailable Shop returns the same `404`; do not disclose suspension reasons or expose vacation messages through another public route.
+- Every Product query starts with `Product::storefrontVisible()` and the resolved `products.shop_id`.
+- Publication, compliance, Shop vacation/status, and Seller status rules apply before every category or keyword condition.
+- Category and keyword conditions only narrow this scope; request manipulation cannot select another Seller/Shop or widen it through an OR clause.
+- Out-of-stock visible Products may appear with their current compact stock status; discovery never guarantees purchase availability.
+- Return only safe Shop fields: `id`, `slug`, `name`, `description`, `logoUrl`, `bannerUrl`, and active public Shop Category summary or null.
+- Products reuse `ProductSummaryResource`; exclude private Seller contacts/evidence, Admin notes, Customer data, inventory internals, and raw storage paths.
+- Preserve existing numeric display-price fields; Cart/Checkout remain authoritative for stock, price, variants, quantity, and monetary calculations.
 
-### Directory
+### Implemented directory and storefront
 
-- `GET /api/v1/customer/shops` returns paginated public Shop summaries, newest stable order by default, with `page` and bounded `limit` validation consistent with Product Search (`limit` 8–50, default 20).
-- The only initial directory filter is optional `shop_category` by canonical Shop Category slug. It accepts one value, validates that the category is active, and returns `422` for malformed/unknown values.
-- Do not introduce popularity, rating, distance, promoted placement, or arbitrary client-driven sorting until their authoritative data and rules exist.
-- A directory page has loading, populated, empty, invalid-filter, API-error/retry, and accessible pagination states. It must link to the canonical Shop URL.
+- `GET /api/v1/customer/shops` returns public Shop summaries and active Shop Category options.
+- Its optional `shop_category` accepts an active canonical Shop Category slug; invalid/unknown values return `422`.
+- Directory order remains Shop creation time descending, then UUID descending; do not add rating/distance/popularity sorts.
+- `GET /api/v1/customer/shops/{slug}` returns the safe Shop header.
+- `GET /api/v1/customer/shops/{slug}/products` currently accepts only `category`, `page`, and `limit`; unknown keys are rejected.
+- Collection `page` is integer 1–10000; `limit` is integer 8–50, default 20. The storefront uses 20 per page.
+- Product Category options are distinct active categories attached to this Shop's visible Products, ordered by taxonomy position then name.
+- A selected Product Category must be in these Shop-scoped options; an unrelated, inactive, malformed, or unavailable category returns `422`.
+- Shop Category classifies the business; Product Category filters Products. Neither is a Seller-created category tree.
+- Product order remains publication time descending, then Product UUID descending, whether filtered or not.
+- Empty visible Shops are valid browse responses; unavailable Shops are not valid empty catalogues.
 
-### Shop storefront
+### Planned Shop-scoped keyword extension
 
-- `GET /api/v1/customer/shops/{slug}` resolves the public Shop header. `GET /api/v1/customer/shops/{slug}/products` returns its paginated Products and available category filters.
-- The Products endpoint accepts optional `category` Product Category slug, `page`, and `limit`; it rejects unrecognised query keys and invalid values with the repository's normal validation response.
-- Category options are distinct active Product Categories attached to this Shop's storefront-visible Products, ordered by taxonomy `position`, then name. Categories with no visible Shop Product are omitted.
-- A supplied category must be one of those Shop category options. It must never widen the query to another Shop, even if its global slug is valid.
-- The initial product order is deterministic: newest publication first with Product UUID as the tie breaker. Do not expose product sort controls until allowed sort semantics are approved.
-- Products remain paginated. Preserve valid query parameters in pagination links and in the browser URL: `/shops/{slug}?category={category}&page={page}`.
-- A Shop with no visible Products is a valid Shop response with an explicit empty-catalogue state. A valid selected category with no Products should normally be impossible because options are derived from visible Products; handle it safely if state becomes stale.
-- Product cards link to the existing canonical `/products/{id}` page. They may reuse the existing Wishlist control; variant-dependent Add to Cart remains on Product Detail.
+- Extend the existing Products endpoint with optional `q`; no new global or authenticated search endpoint is needed.
+- Accept one string, trim surrounding whitespace, and cap it at 100 characters; missing/empty/whitespace-only `q` means no keyword filter.
+- Reject arrays, malformed/repeated scalar inputs, oversized text, invalid pagination, and unsupported keys with `422`; do not silently truncate.
+- After implementation, the Products allow-list is `q`, `category`, `page`, and `limit`; `search`, `seller_id`, and `shop_id` are not aliases.
+- Match only Product name by case-insensitive literal substring; descriptions, SKU, Shop name, and category name are not keyword targets.
+- Use bound values and escape `!`, `%`, and `_` for LIKE matching, consistent with Customer Product Search.
+- Combine Shop visibility/ownership, selected category, and keyword with AND; never call global Search and filter a fetched page in the browser.
+- Preserve the existing newest-publication order; global Search's exact/prefix/sales ranking does not apply here.
+- Derive category options from the Shop's visible catalogue before applying `q` or the selected category.
+- Category options must not disappear because the current keyword has zero matches; the selected category may legitimately return zero matches.
+- If a category becomes unavailable after catalogue changes, return validation feedback and offer explicit clearing/retry—not an automatic marketplace search.
+- A successful no-match or beyond-last-page response remains `200` with empty `items`, safe Shop header, category options, and accurate pagination.
+- Clearing `q` preserves the selected category; clearing the category preserves `q`; clearing both shows only this Shop's visible catalogue.
+- Search reads cannot record Recently Viewed, reserve inventory, create Wishlist/Cart rows, or place Orders.
 
-### HTTP response and freshness rules
+### URL state and Customer experience
 
-- Successful collection responses return an `items` array and the standard pagination object. The Shop-products response also returns the resolved safe Shop header and the derived category options so they share one authoritative scope.
-- Use `404` only for the route identity/public-availability boundary and `422` only for invalid validated parameters; do not turn an empty catalogue into an error.
-- Do not add an authenticated-only endpoint or a Next.js proxy that repeats Laravel's public visibility logic.
-- Set an explicit short public cache policy consistent with Product Search. Any authenticated private enrichment must be `no-store` and separate.
-- Changes to Shop status/vacation, Seller active status, Product publication/archive, Product compliance restriction, visible price/media, or Product category must make affected Shop browse responses stale promptly.
-- A stale page can never authorize a Cart or Checkout mutation; those services retain their existing transactional validation.
+- Target URL: `/shops/{slug}?q={keyword}&category={category}&page={page}`; omit absent/blank filters.
+- Keep existing category-only URLs working; submitting/changing/clearing keyword or category resets page to 1.
+- Pagination, refresh, and back/forward preserve the normalized keyword and selected category within the same Shop.
+- Add a dedicated labeled “Search in this Shop” control near the Product list, with submit and clear actions.
+- The marketplace header remains global Search; the Shop control never navigates to `/search` or another Shop.
+- Submit-based search is sufficient; no live-as-you-type request loop or debounce timing is required.
+- Show Shop name as the page heading and filtered Product totals as Product-list context.
+- Distinguish empty catalogue, valid no-match, unavailable Shop, invalid filter, throttling, offline/timeout, and retriable service failure.
+- Keep query/category drafts during failures; a failed request must not render “No products matched.”
+- Follow `docs/design.md`: light-only, mobile-first layout, existing Shop/header/Product-card patterns, and compatible shared primitives.
+- Label inputs/filters, expose busy/result state text, support keyboard submit/clear/pagination, and maintain visible focus after navigation.
+- Preserve canonical Shop metadata at `/shops/{slug}`; do not infer ratings or emit unavailable-Shop structured data.
+- Product cards open `/products/{id}`; Wishlist remains independent and variant-dependent purchase controls stay on Product Detail.
 
-### Customer experience and accessibility
+### Responses and freshness
 
-- The implemented `/shops` and `/shops/[slug]` pages use the existing Next.js App Router, shared Laravel API client, and marketplace header/product-card patterns.
-- Read directory/filter/page query state on the server page and use a small client control only to change URL parameters. Reset `page` to `1` when changing a category.
-- Render Shop name as the page `h1`; give category controls a visible label, semantic buttons or links, an announced selected state, and keyboard support.
-- Use meaningful Shop/logo/banner alt text, maintain focus after filter or pagination navigation, and distinguish not-found, empty directory, empty catalogue, validation, loading, and retriable service-error states.
-- Generate canonical metadata for `/shops/{slug}` from the safe Shop DTO. Do not emit structured data for unavailable Shops or infer ratings/reviews.
+- Directory returns `{items, categories, pagination}`; Shop header returns `{data}`; Products return `{shop, categories, items, pagination}`.
+- Preserve those envelopes for the `q` extension; pagination fields remain `currentPage`, `lastPage`, `perPage`, and `total`.
+- Existing HTTP responses use `public, max-age=60` and `Vary: Accept, Authorization, Cookie`; Next public fetches revalidate after 60 seconds.
+- Cache identity includes endpoint, Shop slug/ID, normalized `q`, category, page, and limit; no private enrichment enters shared caching.
+- Visibility/price/media may lag within the current window; do not claim immediate cache invalidation exists.
+- Product Detail and purchase services revalidate authoritative state independently; cache snapshots never authorize mutations.
+- GET retries are read-only and need no mutation idempotency header; unavailable responses are not successful zero-result snapshots.
 
 ### Acceptance criteria
 
-- [x] Guests and authenticated Customers can paginate the public Shop directory and open an active Shop by its slug.
-- [x] A non-existent, inactive, suspended, or vacation Shop has no public browse response.
-- [x] Every Shop Product belongs to the resolved Shop; query manipulation cannot reveal another Shop's Product or category.
-- [x] The directory and Shop list exclude every Product excluded by `storefrontVisible()`, including active compliance restrictions.
-- [x] Only active, visible Product Categories appear as Shop filters, and a selected filter remains Seller/Shop-scoped.
-- [x] Product pagination is bounded, deterministic, and retains valid URL state.
-- [x] Public DTOs contain no private Seller, Admin, or Customer information and do not expose raw media paths.
-- [x] The Customer UI has responsive, keyboard-accessible loading, empty, not-found, validation, and retry states.
+Existing baseline checks are retained from the implemented contract; source/tests were inspected, not rerun or newly browser-certified.
+
+- [x] Public directory/Shop reads enforce Shop/Seller availability and indistinguishable unavailable-Shop responses.
+- [x] Shop Products and Product Categories remain visible and Shop-scoped, including compliance exclusions.
+- [x] Existing category validation, deterministic bounded pagination, safe Resources, and query-count regression coverage exist.
+- [x] Existing pages provide Product Detail navigation and category/loading/empty/not-found/validation/retry presentation.
+
+New search criteria remain unchecked until implemented and verified.
+
+- [ ] Optional `q` validates/normalizes correctly, escapes literal wildcard text, and searches Product names only within the resolved Shop.
+- [ ] Keyword/category intersection never exposes another Shop's Product/category, including crafted inputs and hidden matching records.
+- [ ] Category options remain independent of keyword results; valid zero-match responses retain filters and truthful totals.
+- [ ] Submit/clear/category/pagination/reset/back/forward behavior preserves the declared Shop URL state without global navigation.
+- [ ] Existing response envelopes, ordering, cache isolation, and no-query/category-only behavior remain compatible.
+- [ ] No search mutation changes inventory, Wishlist, Cart, Recently Viewed, Orders, or operational shipment state.
+- [ ] Validation, loading, throttling, offline/error/retry, keyboard/focus, and narrow/intermediate/wide light-only states pass verification.
+- [ ] Focused SQLite/PostgreSQL API regressions, query-count checks, TypeScript, lint, and storefront build pass.
 
 ## HOW
 
-### API and data flow
+### API and UI implementation plan
 
-- `ShopBrowseController`, `ShopDirectoryRequest`, `ShopProductsRequest`, `ShopSummaryResource`, `ShopDetailResource`, and `ShopCategorySummaryResource` implement the public contract; Product cards reuse `ProductSummaryResource`.
-- `ShopBrowseService` resolves public Shops by slug and composes `Product::query()->storefrontVisible()->where('shop_id', $shop->id)` before category filtering and pagination.
-- The service eager-loads only the Shop/category/media relationships required by the DTOs and Product cards. A query-count regression test verifies that page size does not create N+1 growth.
-- Category options are derived from the final visible Shop Product scope, and the selected category is resolved from those Shop-scoped options rather than trusted from client input.
-- The API returns the Product Search-compatible pagination fields `currentPage`, `lastPage`, `perPage`, and `total` using bounded page pagination.
-- Public API responses and Next.js server fetches use a 60-second cache window. Cache identity includes the endpoint, Shop slug/ID, validated category, page, and limit; Cart and Checkout still revalidate visibility and stock before mutation.
+- Current route is public under the existing Customer `throttle:120,1` group; it needs no request body or bearer token.
+- Planned example: `GET /api/v1/customer/shops/{slug}/products?q=shirt&category=clothing&page=1&limit=20`; `q` currently returns `422`.
+- Extend `ShopProductsRequest` normalization/validation and its unknown-key allow-list; pass the validated optional query through `ShopBrowseController`.
+- Keep `ShopBrowseService::findPublicShop()` and `productCategories()` authoritative; add a bound name condition to its owned Product query before pagination.
+- Do not reuse `ProductSearchService::search()` directly: its Shop/category-name matching, global scope, and ranking differ.
+- Reuse a focused literal-query helper only if useful; do not change global Search semantics as a side effect.
+- Extend `getPublicShopProducts()` and the Shop page's URL parser to accept `q`; the page currently permits only category/page URL keys.
+- Keep public server fetching and typed response handling; distinguish throttling/timeouts when extending the existing invalid/error result states.
+- Extract a focused Shop search control; reuse category/pagination components while preserving their existing directory consumers.
+- Fetch the deployed extension before exposing a working control; absence of `q` must retain the original API behavior.
+- Measure substring-query cost and eager-load only required card relationships; no external search provider or new migration is assumed.
 
-### Customer application
+### Verification, dependencies, and sources
 
-- Typed `ShopSummary`, `ShopDetail`, `ShopDirectoryResponse`, `ShopBrowseResponse`, and shared server API helpers live under `src/webapp/src/lib/marketplace/`.
-- `src/webapp/src/app/shops/page.tsx` implements the directory; `src/webapp/src/app/shops/[slug]/page.tsx` implements the storefront, with route-level loading and not-found states.
-- The pages reuse `MarketplaceHeader`, `ProductCard`, responsive image handling, Product Detail links, and focused Shop header/card/filter/pagination components.
-- Public data is fetched without Customer credentials. Wishlist controls remain separate Product-card behavior and do not alter the cached public Shop payload.
-
-### Validation and tests
-
-- Laravel feature tests: public guest access; active Shop lookup; indistinguishable unavailable `404`; Seller/Shop scope isolation; Product visibility/compliance/vacation exclusions; category derivation and validation; pagination bounds/order; safe resources; and no N+1 regression for a representative list.
-- Customer tests: directory and Shop routing; query-string category/page behavior; Product Detail navigation; loading, empty, `404`, validation, and retry rendering; responsive controls; keyboard navigation and labelled filter state.
-- Focused API coverage exists in `CustomerBrowseShopTest` for public access, unavailable-Shop boundaries, visibility, scope isolation, validation, pagination, safe resources, and query-count stability. Customer routing, URL state, accessibility, loading, empty, not-found, validation, and retry behavior is implemented in the Shop pages.
-- Run the focused API tests and Customer lint, strict TypeScript, and production build when this implementation changes. Append an accurate dated `docs/PROGRESS.md` entry after runtime changes; this revision only corrects the specification metadata and implementation description.
-
-### Deferred enhancements and maintenance choices
-
-- The current Shop cards display the safe banner, logo, name, active Shop Category, and optional description. Any density or presentation change belongs in a UI revision, not a new API contract.
-- The API and UI use a default page size of 20 within the validated 8–50 range. A different default requires coordinated API/UI and test changes.
-- The current public cache window is 60 seconds. If freshness requirements change, update the cache contract and invalidation strategy before changing the TTL.
-- Add Shop ratings, in-Shop keyword search, sorting, vouchers, and Shop-following only through their own approved specifications and authoritative data contracts.
-
-### Sources
-
-- Existing implementation: `src/api/app/Http/Controllers/Customer/ShopBrowseController.php`, `src/api/app/Http/Requests/Customer/ShopDirectoryRequest.php`, `src/api/app/Http/Requests/Customer/ShopProductsRequest.php`, `src/api/app/Services/Customer/ShopBrowseService.php`, `src/api/app/Models/Shop.php`, `src/api/app/Models/Product.php`, `src/api/app/Http/Resources/Customer/ProductSummaryResource.php`, `src/api/tests/Feature/Customer/CustomerBrowseShopTest.php`, and `src/webapp/src/app/shops/`.
-- [Laravel pagination](https://laravel.com/docs/12.x/pagination) supports bounded page-based API collections.
-- [Next.js dynamic route and search-parameter guidance](https://nextjs.org/docs/app/getting-started/layouts-and-pages) supports the existing App Router route and URL-state design.
+- Extend `CustomerBrowseShopTest` for keyword normalization, wildcard text, scope attacks, category intersection/options, zero matches, bounds, privacy, and stable ordering/query counts.
+- Run Customer Product Search/directory regressions; changed helpers/components must not alter global results or directory filtering.
+- Verify URL state, both clear actions, retry, keyboard/focus, and responsive light-only states; record actual checks in `docs/PROGRESS.md`.
+- Runtime implementation requires coordinated API/page/helper/control changes, but no fulfillment or groupmate-managed logistics dependency.
+- Authorities: `docs/requirements.md`, `docs/workspace.md`, `docs/domains/Buyer.md`, `docs/design.md`, and the Customer Search spec for ownership boundaries.
+- Evidence: `ShopBrowseController`, `ShopProductsRequest`, `ShopDirectoryRequest`, `ShopBrowseService`, Shop/Product Resources, `CustomerBrowseShopTest`, and `src/webapp/src/app/shops/`.
+- [Next.js URL search/pagination guidance](https://nextjs.org/learn/dashboard-app/adding-search-and-pagination) supports bookmarkable, server-consumable filter state.
+- Shop ratings, vouchers, following, configurable sorting, advanced keyword fields, and alternate search infrastructure remain deferred.
