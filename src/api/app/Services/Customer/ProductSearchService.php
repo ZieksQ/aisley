@@ -3,6 +3,7 @@
 namespace App\Services\Customer;
 
 use App\Models\Product;
+use App\Support\LiteralSearchText;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ class ProductSearchService
     public function search(string $query, int $perPage): LengthAwarePaginator
     {
         $normalizedQuery = Str::lower($query);
-        $escapedQuery = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $normalizedQuery);
+        $escapedQuery = LiteralSearchText::escape($query);
         $contains = "%{$escapedQuery}%";
         $startsWith = "{$escapedQuery}%";
 

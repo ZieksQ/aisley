@@ -2,7 +2,7 @@
 model: Buyer
 type: Domain Context
 purpose: Shared Customer/Buyer workflow and implementation context
-version: 1.3
+version: 1.4
 status: Revised — aligned with the approved Customer order/Logistics flow and implemented storefront foundation
 ---
 
@@ -111,7 +111,7 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 2. Homepage, Search, and Discovery
 
 - **Purpose:** Help guests and Customers find public Products, Shops, categories, campaigns, and deals.
-- **Current state:** Public homepage aggregation, bounded Product/Shop/category search, safe Product cards, responsive storefront sections, and authenticated context are implemented.
+- **Current state:** Public homepage aggregation, bounded Product-name/Shop-name/category-name Product search, a separate name-only Shops result mode, safe Product/Shop cards, responsive storefront sections, and authenticated context are implemented. `/search` preserves query/mode/pagination and defaults to Products; only the selected public result collection is fetched.
 - **Boundary:** Search and homepage are read projections. They do not create Recently Viewed entries, reserve stock, add Wishlist rows, or promise a price/availability that Checkout has not revalidated.
 
 ### 3. Product Detail
@@ -122,8 +122,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 
 ### 4. Browse Shops
 
-- **Purpose:** Let guests and Customers open the public Shop directory and a Shop by slug, then filter that Shop's visible Products by the canonical Product Category taxonomy.
-- **Current state:** Paginated directory, Shop-scoped category filtering, deterministic Product pagination, safe Shop summaries, metadata, and accessible loading/empty/not-found/retry states are implemented.
+- **Purpose:** Let guests and Customers open the public Shop directory and a Shop by slug, then search Product names and filter by the canonical Product Category taxonomy within that Shop.
+- **Current state:** Paginated directory, Shop-scoped keyword/category intersection, stable category options, independent filter clearing, deterministic Product pagination, safe Shop summaries, metadata, and loading/empty/not-found/validation/throttle/deadline/retry states are implemented. The dedicated Shop search stays on `/shops/{slug}`; the marketplace header remains global.
 - **Boundary:** A Shop page can return only Products belonging to the resolved active Shop and never bypasses `storefrontVisible()`.
 
 ### 5. Cart

@@ -50,6 +50,7 @@ use App\Http\Controllers\Customer\ProductSearchController;
 use App\Http\Controllers\Customer\PromotionPreferenceController as CustomerPromotionPreferenceController;
 use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
+use App\Http\Controllers\Customer\ShopSearchController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
@@ -646,6 +647,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/home/recommendations', [HomepageController::class, 'recommendations'])
         ->name('home.recommendations');
     Route::get('/products/search', ProductSearchController::class)->name('products.search');
+    Route::get('/search/shops', ShopSearchController::class)->name('search.shops');
     Route::post('/products/resolve', [RecentlyViewedController::class, 'resolve'])->name('products.resolve');
     Route::get('/shops', [ShopBrowseController::class, 'index'])->name('shops.index');
     Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');

@@ -2,14 +2,16 @@
 
 namespace App\Http\Requests\Customer;
 
+use App\Support\ScalarQueryParameters;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class ProductSearchRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if ($this->has('q')) {
-            $this->merge(['q' => trim((string) $this->input('q'))]);
+        if (is_string($this->input('q'))) {
+            $this->merge(['q' => trim($this->input('q'))]);
         }
     }
 
@@ -33,6 +35,11 @@ class ProductSearchRequest extends FormRequest
     public function queryText(): string
     {
         return (string) $this->validated('q');
+    }
+
+    public function after(): array
+    {
+        return [fn (Validator $validator) => ScalarQueryParameters::validate($this, $validator, ['q', 'page', 'limit'], false)];
     }
 
     public function pageSize(): int
