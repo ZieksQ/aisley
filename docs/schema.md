@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-09-27 (Courier Flutter support tickets, atomic batch acceptance, private photo review, and contract alignment)
+> **Last synchronized:** 2026-10-02 (Flutter truck selection, Buyer chat, and first-mile schedule-filter adoption; no schema change)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -1554,7 +1554,7 @@ The following capabilities appear in requirements but have no migrations or mode
 | Logistics subscriptions   | Subscription billing, providers, subscription records, active-status checks, and operational gates are deferred; approved active Logistics access is not subscription-gated in the MVP |
 | Reviews                    | Customer verified-purchase ratings/media/aggregates and Seller-scoped immutable public Shop responses are implemented; moderation, editing/deletion, video, and refund effects remain deferred |
 | Support and compliance     | Complaints/disputes, source-owned evidence, appeals, resolutions, automatic detection, and strike-threshold policy; manual compliance cases/actions and Product restrictions are implemented |
-| Messaging and support      | Shared Customer–Shop text conversations, Logistics–Courier task chat, separate Customer–Logistics Order chat, separate Seller–Logistics pickup chat, and accepted-task Courier–Seller/Buyer API channels are implemented. Separate Admin support-ticket tables/API and Admin/Customer/Seller/Logistics web UI plus the Courier Flutter ticket flow are implemented with independent read markers; live Courier ticket acceptance, Seller/Customer Courier-chat screens, attachments, broadcasting, linked ticket context, and retention/moderation workflow remain deferred. |
+| Messaging and support      | Shared Customer–Shop text conversations, Logistics–Courier task chat, separate Customer–Logistics Order chat, separate Seller–Logistics pickup chat, and accepted-task Courier–Seller/Buyer API channels are implemented. Separate Admin support-ticket tables/API and Admin/Customer/Seller/Logistics web UI plus the Courier Flutter ticket flow are implemented with independent read markers; live Courier ticket/chat exchange and installed-device acceptance, attachments, broadcasting, linked ticket context, and retention/moderation workflow remain deferred. |
 | Policy consent integration | Public policy reads, status/acceptance APIs, role-owned web consent screens, and protected-action enforcement are implemented; login/session bootstrap, logout, status, and acceptance remain reachable so users can complete consent |
 | Reporting                  | Derived Seller/Admin aggregates; avoid report tables until query performance requires them                                                                                                   |
 

@@ -22,7 +22,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - **Purpose:** Provide the external Flutter Courier app with one read-oriented view of new allocations, available pickup/delivery requests, and the Courier's active work.
 - **Current scaffold:** `GET /api/v1/courier/dashboard` still returns unavailable notification, available-task, and active-task aggregate sections. Flutter validates that shape, shows its independent inbox badge, and links to owning features.
 - **Partial Flutter implementation:** Separate read-only first-/final-mile previews consume the Courier-scoped task-list APIs with independent loading/error states. They are client composition, not a new Laravel aggregate DTO or authority for mutations.
-- **Later scope:** A versioned dashboard aggregate may replace those previews. Atomic final-mile batch acceptance, COD intent, support tickets, and Logistics/Seller chat are locally implemented in Flutter but still require live acceptance; batch-route display remains unadopted. No Courier UI belongs in this Laravel repository.
+- **Later scope:** A versioned dashboard aggregate may replace those previews. Atomic final-mile batch acceptance, COD intent, support tickets, and Logistics/Seller/Buyer chat are locally implemented in Flutter but still require live acceptance; batch-route display remains unadopted. No Courier UI belongs in this Laravel repository.
 - **Mobile boundary:** Flutter owns screens, secure token storage, refresh behavior, and accessibility. Laravel owns identity, authorization, tenant scope, task eligibility, status, and data freshness.
 - **MVP relationship:** A Courier operates only within one approved Logistics organization and its sole operational hub. First-mile Seller pickup and final-mile hub delivery are independent task legs.
 - **Non-goals:** Accepting tasks, creating assignments, scanning, pickup confirmation, transit updates, delivery completion, proof upload, route optimization, chat persistence, incidents, earnings, or hub management.
@@ -53,7 +53,7 @@ approved Courier session
 - Accept Delivery Requests owns first-mile task acceptance and normal atomic final-mile dispatch-batch acceptance; individual final-mile acceptance is exceptional recovery, not the normal batch action.
 - Pick Up Order owns first-mile identifier verification and explicit Seller pickup. Final-mile hub handoff uses the accepted task and revision without an identifier; Logistics validation, not evidence submission, establishes `picked_up_from_hub`.
 - Deliver Order owns final-mile transit context; Proof of Delivery owns private photo evidence; Complete Delivery owns the photo-linked intent, while Logistics validates before `delivered`.
-- Delivery History owns completed-task reads. Flutter Dashboard links to its task-chat inbox; Logistics/Seller messaging is locally implemented, while Buyer threads remain read-only and live cross-role behavior is unverified. Incident Reporting and Profit Dashboard remain drafts and cannot supply dashboard data or actions.
+- Delivery History owns completed-task reads. Flutter Dashboard links to its task-chat inbox; Logistics/Seller/Buyer messaging is locally implemented; live cross-role behavior remains unverified. Incident Reporting and Profit Dashboard remain drafts and cannot supply dashboard data or actions.
 
 ### Current versus future content
 

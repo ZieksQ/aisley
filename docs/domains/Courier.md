@@ -238,6 +238,8 @@ Implemented foundation:
 - One current `CourierLogisticsAffiliation` linking the Courier to the selected organization and derived sole hub, with Logistics reviewer, decision, reason, and timestamp.
 - Registration applications, private evidence documents, addresses, Sanctum tokens, Courier auth endpoints, and Logistics approval endpoints.
 
+External Flutter adoption (imported log, 2026-10-02): personal-vehicle registration/editing exposes all four backend types, including `truck`; accepted final-mile tasks expose Buyer messaging through Courier-only routes; first-mile work supports a bounded schedule filter using IDs from the latest authorized task page. Backend ownership, task eligibility, and API contracts are unchanged. These are locally reported client implementations, not authenticated live/device verification or a new dashboard aggregate.
+
 Deferred or dependent Courier operations:
 
 - Signature proof, incidents, Courier availability/capacity, earnings, tips, metrics, live location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/tracking-ID/manual verification and pickup confirmation, Inventory fulfillment, schedule route manifests, private final-mile photo POD, task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history are implemented. Advanced recovery remains deferred.
