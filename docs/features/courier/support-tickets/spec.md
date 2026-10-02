@@ -4,14 +4,14 @@ title: Courier Support Tickets
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Courier API implemented; external Flutter UI pending
-implementation_status: Five protected requester routes and shared ticket persistence are implemented
+status: Courier API and external Flutter UI implemented; live acceptance pending
+implementation_status: Five protected requester routes, Flutter requester flow, and shared ticket persistence are implemented
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter mobile application
 backend_contract_commit: 40c68de
 backend_contract_version: courier-support-tickets-v1
-source_coverage: docs/features/admin/chat-messaging/spec.md, docs/schema.md, docs/domains/Courier.md
+source_coverage: docs/features/admin/support-ticket-system/spec.md, docs/schema.md, docs/domains/Courier.md
 ---
 
 # Courier Support Tickets
@@ -115,8 +115,8 @@ The API currently uses Laravel's standard `message` and `errors` response shape;
 - [x] Create/reply validation, revisions, exact retries, and changed-key conflicts are server-owned.
 - [x] Ticket events are append-only and Courier/Admin read markers remain independent.
 - [x] Courier DTOs omit Admin-only IDs, unrelated PII, private evidence, and raw paths.
-- [ ] Flutter implements create, list, detail, reply, and mark-read screens against this exact contract.
-- [ ] Flutter contract/widget tests cover parsing, pagination, drafts, retry, errors, accessibility, and logout cleanup.
+- [x] Flutter implements create, list, detail, reply, and mark-read screens against this exact contract.
+- [x] Flutter contract/widget tests cover parsing, pagination, drafts, retry, errors, accessibility, and logout cleanup.
 - [ ] Authenticated mobile/API integration and installed-device interaction are verified.
 - [ ] PostgreSQL concurrency/retry verification passes before production release.
 
@@ -196,5 +196,5 @@ Mutation responses contain `data` with the full safe summary and `event` with th
 - Add Flutter repository fixtures for all envelopes and nullable summary/event fields.
 - Add controller/widget tests for cursor continuation, unknown safe fields, conflicts, throttling, timeout reconciliation, offline blocking, and session cleanup.
 - Record the adopted Laravel commit/API version in Flutter `docs/PROGRESS.md`.
-- Keep the feature unavailable in Flutter navigation until its screens and contract tests are present; API availability alone does not prove client implementation.
+- Flutter dashboard navigation exposes the implemented screens; live API availability and authenticated acceptance still require separate verification.
 - Retention, attachments, ticket notifications, linked business records, and ineligible-account appeals require separate approved revisions.

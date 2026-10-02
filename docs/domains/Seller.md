@@ -266,4 +266,4 @@ Future status-like columns must be stored as strings and cast to PHP enums. Futu
 - `docs/references/seller-shop-catagories.md` — canonical Shop/Product Category taxonomy.
 - `docs/features/seller/*/spec.md` — feature-specific implementation contracts.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; photo/signature proof media, route/location telemetry, and exceptional recovery remain future extensions.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; private final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.

@@ -139,7 +139,7 @@ Current protected routes are:
 ### 13. Support Tickets
 
 - **Purpose:** Triage and resolve requester-owned support tickets from eligible Customers, Sellers, Logistics operators, or Couriers through a status-driven Admin queue and persistent public replies.
-- **Status:** Ticket tables, scoped APIs, and the Admin queue/detail UI are implemented separately from private chat. Per-Admin read markers are authoritative; linked business records, notification fanout, Courier Flutter UI, and production retention/appeal policy remain deferred. See `docs/features/admin/chat-messaging/spec.md`.
+- **Status:** Ticket tables, scoped APIs, the Admin queue/detail UI, role web requester screens, and the Courier Flutter requester flow are implemented separately from private chat. Per-User read markers are authoritative; live mobile acceptance, linked business records, notification fanout, and production retention/appeal policy remain deferred. See `docs/features/admin/support-ticket-system/spec.md`.
 - **Boundary:** Ticket access needs explicit Admin support permissions and requester ownership. Tickets do not replace notifications, Compliance, Complaints, or Audit records or grant access to unrelated private chats, evidence, addresses, or payment data.
 
 ### 14. Global Ban / Blocklist

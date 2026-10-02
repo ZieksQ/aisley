@@ -212,7 +212,7 @@ out_for_delivery
 - [x] Logistics validation and required photo POD gate delivered.
 - [x] Task, Shipment, Order, history, and notification work commit atomically.
 - [x] Retries/concurrency cannot duplicate delivery or Inventory effects.
-- [ ] Verify external Flutter distinguishes pending evidence from confirmed delivery; this repository cannot certify its screens.
+- [x] Supplied Flutter tests distinguish pending evidence from confirmed delivery; authenticated Logistics validation and installed-device acceptance remain open.
 - [x] Private DTOs and history remain scoped and immutable.
 - [ ] Complete PostgreSQL release verification and external Flutter contract tests; recorded SQLite coverage alone does not satisfy this gate.
 

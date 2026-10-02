@@ -7,7 +7,7 @@ role: Logistics
 
 # Logistics Support Tickets
 
-An active, Admin-approved Logistics account uses its own dashboard's `/support-tickets` page for private Admin support. This is separate from Courier operations and operational chat. The shared lifecycle and privacy rules are in `docs/features/admin/chat-messaging/spec.md`.
+An active, Admin-approved Logistics account uses its own dashboard's `/support-tickets` page for private Admin support. This is separate from Courier operations and operational chat. The shared lifecycle and privacy rules are in `docs/features/admin/support-ticket-system/spec.md`.
 
 - The first-release form contains subject (1–150 characters), category (`general`, `account`, `order`, `delivery`), and plain-text description (1–2,000 characters). No parcel, pickup, Courier task, or organization-record link is accepted yet.
 - `/api/v1/logistics/support-tickets` provides cursor-paginated list/create/detail/reply/read routes under active Logistics, Sanctum, and policy-consent gates. The API derives and scopes ownership to the authenticated Logistics User.

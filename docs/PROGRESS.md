@@ -46,3 +46,11 @@ Format:
 - Reconciled the web design guide, root/frontend instructions, architecture, and project README for Customer, Admin, Seller, and Logistics: mandatory design-guide compliance, mobile-first layouts, light-only storefront, light/dark dashboards, actual shared UI exports, and scoped frontend verification. Courier mockup, Courier/Flutter contracts, and frontend runtime code were not changed; this documentation update does not certify existing screens.
 
 - Reconciled canonical Courier and portable Flutter documentation against checkout `ca1487c`: replaced stale deferred-schema wording, documented the exact state-idempotent final-mile batch acceptance contract, synchronized dashboard/chat/COD client-adoption boundaries, expanded the implemented Courier support-ticket API into a Flutter-ready specification, and added its schema/index coverage to the copied bundle. No backend or Flutter runtime behavior changed; support-ticket and batch-acceptance Flutter screens remain unimplemented.
+
+## 2026-09-27
+
+- Synchronized canonical and portable Courier documentation with the imported Flutter implementation record: atomic final-mile batch acceptance, Courier support tickets, Android/file photo POD, private proof rereads, delivered-history preview, and Logistics/Seller task chat are now marked locally implemented without claiming live authenticated or physical-device acceptance. Corrected stale photo-POD deferrals and Admin support-ticket references, refreshed the planning snapshots, and advanced the portable backend baseline to `02aae38`; no backend, web, database, or Flutter runtime code changed.
+
+## 2026-10-02
+
+- Corrected remaining pickup/evidence contradictions in requirements, workspace, schema, Buyer/Courier/Logistics context, shared shipment guidance, and owning Courier/Logistics/Waybill/dispatch specs. First-mile identifier verification and explicit confirmation retain their compatibility writer; final-mile hub handoff submits only task revision with a UUID idempotency header and awaits Logistics validation; destination delivery requires private photo POD plus matching completion intent. Mirrored applicable corrections into the ignored Flutter documentation bundle without changing client implementation claims or runtime code. Documentation diff/contract checks only; no migrations, seeds, or application tests were run.
