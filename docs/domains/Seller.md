@@ -194,7 +194,7 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 ### 11. Chat/Messaging
 
 - **Purpose:** Reply to Customers in one private text conversation per Customer and Shop for product/order support.
-- **Status:** Shared persistence/API and Seller inbox/reply UI are implemented with HTTP polling; realtime, attachments, Seller initiation, archive/mute/report, and other-role chat remain deferred.
+- **Status:** Customer–Shop inbox/reply, separate selected-pickup Seller–Logistics chat, and accepted-first-mile Courier–Seller inbox/reply are implemented with HTTP polling. Courier contact is available from eligible owned Orders and the Communication sidebar; handoff/reassignment preserves read-only history. Realtime, attachments, unsolicited Seller-to-Customer initiation, and archive/mute/report remain deferred. Live external Flutter exchange remains unverified.
 - **Owns:** Shop-authorized message history, Seller read marker, and safe Product/Order context alongside the Customer counterpart.
 - **Rules:** Access is tied to immutable participant and current Shop ownership; unrelated users, private evidence, payment secrets, and direct contact details are not exposed.
 

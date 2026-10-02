@@ -52,6 +52,33 @@ class CourierCounterpartyConversationService
         return $this->scoped($actor, $role)->whereKey($id)->firstOrFail();
     }
 
+    /** Safe, read-only entry point; starting/sending still rechecks eligibility under locks. */
+    public function sellerOrderContext(User $seller, string $orderId): array
+    {
+        $order = Order::query()->whereKey($orderId)
+            ->whereHas('shop', fn (Builder $shop) => $shop->where('seller_id', $seller->id))->firstOrFail();
+        $task = DeliveryTask::query()->where('leg', FulfillmentTaskLeg::FirstMile->value)
+            ->where('status', FulfillmentTaskStatus::SellerPickupAccepted->value)
+            ->whereHas('shipment.parcel', fn (Builder $parcel) => $parcel->where('order_id', $order->id))
+            ->orderByDesc('updated_at')->first();
+        $allowed = false;
+        if ($task) {
+            try {
+                $allowed = $this->eligibility->resolve($task, 'seller')['counterpart_id'] === $seller->id;
+            } catch (HttpExceptionInterface|FulfillmentException|ModelNotFoundException) {
+                // An ended relationship is not permission to start a new conversation.
+            }
+        }
+        $conversation = $this->scoped($seller, 'seller')
+            ->whereHas('task.shipment.parcel', fn (Builder $parcel) => $parcel->where('order_id', $order->id))
+            ->when($allowed, fn (Builder $query) => $query->where('delivery_task_id', $task->id)
+                ->where('courier_user_id', $task->courier_id))
+            ->whereNotNull('last_message_at')->orderByDesc('last_message_at')->first();
+
+        return ['order_id' => $order->id, 'order_reference' => $order->reference,
+            'send_allowed' => $allowed, 'conversation_id' => $conversation?->id];
+    }
+
     public function unreadTotal(User $actor, string $role): int
     {
         return (int) DB::table('messages')

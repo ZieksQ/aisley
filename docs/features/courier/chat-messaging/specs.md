@@ -3,9 +3,9 @@ feature: courier-chat-messaging
 title: Courier Operational Messaging
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 2.2
 status: Logistics, Seller, and Buyer task-scoped API channels implemented; Flutter Logistics/Seller clients implemented locally, live exchange pending
-implementation_status: Courier Flutter Logistics/Seller task chat and inbox implemented locally; live cross-role exchange and Seller/Customer reply screens unverified
+implementation_status: Courier Flutter Logistics/Seller task chat and inbox implemented locally; Seller web counterpart implemented; Customer web counterpart deferred and live Flutter exchange unverified
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter client
@@ -26,8 +26,9 @@ backend_contract_version: courier-operational-messaging-v2
   final-mile task, and its owning Logistics organization for an active offered/accepted task.
   Logistics may initiate its Courier thread under the same task/organization relationship.
 - The Laravel API has separate Logistics–Courier, Courier–Seller, and Courier–Buyer task
-  channels using shared conversation, participant, and message records. Seller/Customer
-  counterpart screens remain deferred; Flutter Logistics/Seller chat awaits live verification.
+  channels using shared conversation, participant, and message records. Seller counterpart
+  screens are implemented; Customer counterpart screens remain deferred. Flutter
+  Logistics/Seller chat awaits live verification.
 - Chat coordinates pickup, access instructions, and delays. It cannot accept/reject a task,
   confirm a scan or delivery, change an address/route, create an Incident or SOS alert, or
   approve a Logistics action. Those features remain authoritative.
@@ -187,7 +188,8 @@ backend_contract_version: courier-operational-messaging-v2
 - `/api/v1/seller/courier-conversations` and
   `/api/v1/customer/courier-conversations` each provide the same six
   list/start/detail/history/send/read actions. All require their role's Sanctum,
-  active-account, and policy-consent gates. No counterpart web UI is shipped yet.
+  active-account, and policy-consent gates. Seller web inbox, replies, and eligible Order
+  contact are implemented; Customer counterpart web UI remains deferred.
 - Seller or Buyer starts with JSON
   `{"context_type":"order","context_id":"<owned-order-uuid>","body":"..."}`
   and a UUID `Idempotency-Key` header. Laravel resolves the currently accepted
@@ -213,8 +215,11 @@ backend_contract_version: courier-operational-messaging-v2
   Do not create a parallel Courier-only message store or use email as identity.
 - A focused Laravel messaging service owns relationship checks, row locks, idempotency, sequence/read state, safe DTOs, and after-commit alerts;
   controllers stay thin and enum-like DB fields remain strings.
-- Seller and Customer role owners must still add authorized read/reply screens
-  before production release; Courier Seller messaging remains an unverified integration flow.
+- Seller authorized inbox/read/reply screens and an eligible Order contact link are
+  implemented. `GET /api/v1/seller/courier-conversations/order-context/{order}` exposes
+  only the owned Order reference, sendability, and an optional existing thread UUID;
+  it creates no thread and does not change Courier payloads. Customer read/reply screens
+  remain deferred. Courier–Seller live Flutter exchange remains unverified.
 - Test additive migration/rollback, old Customer–Seller chat regression,
   concurrent starts/sends, task reassignment, status/affiliation changes,
   SQLite and PostgreSQL, and alert failure. Verify Flutter parser/widget
@@ -226,5 +231,5 @@ backend_contract_version: courier-operational-messaging-v2
   Order, the accepted final-mile task, and that task's current handling organization;
   it cannot broaden the Customer–Logistics Order-chat authority.
 - Copy this API contract and `api-handoff.md` to Flutter. Courier Seller messaging
-  is implemented locally; production enablement still requires its counterpart
-  screen and live exchange verification. Buyer remains read-only in Flutter.
+  and its Seller web counterpart are implemented locally; production enablement still
+  requires live exchange verification. Buyer remains read-only in Flutter.

@@ -300,6 +300,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     });
     Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
         Route::get('/', [SellerCourierConversationController::class, 'index'])->name('index');
+        Route::get('/order-context/{order}', [SellerCourierConversationController::class, 'orderContext'])->whereUuid('order')->name('order-context');
         Route::post('/', [SellerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
         Route::get('/{conversation}', [SellerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
         Route::get('/{conversation}/messages', [SellerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');

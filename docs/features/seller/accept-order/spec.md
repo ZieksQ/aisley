@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implementation-ready draft
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -72,6 +72,7 @@ scope: Seller Web Application and Laravel API
 - Logistics may combine multiple Seller-ready Orders into one first-mile pickup run or manifest. The batch is an operational grouping only: every Order keeps its own status, package identity, pickup evidence, history, and idempotency boundary.
 - Logistics/Courier use the authorized shared waybill reference/QR for parcel verification; scanning alone does not advance custody.
 - Receipt scans, `assigned`, hub processing, transfer, dispatch, final-mile assignment, and delivery belong to Logistics/Courier contracts. Seller retains read-only access to the immutable waybill.
+- Order detail checks `/api/v1/seller/courier-conversations/order-context/{order}` and links to the separate first-mile Courier inbox only for an accepted eligible pickup, or to its existing read-only conversation after handoff. Contact never assigns a Courier, advances pickup/custody, or changes Order approval; [Seller Chat/Messaging](../chat-messaging/spec.md) owns this workflow.
 
 ### Notifications and privacy
 

@@ -3,7 +3,7 @@ feature: dashboard
 title: Seller Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented catalog slice, separate Order queue, and review summary
 role: Seller
 scope: Seller Web Application
@@ -80,7 +80,7 @@ active Seller session
 ### UX and acceptance
 
 - Render responsive light/dark layouts with keyboard focus, text labels, accessible chart summaries, and non-color-only states.
-- Keep Dashboard directly accessible and group the remaining sidebar routes as **Shop** (Products, Inventory, Low-stock alerts, Finance), **Orders** (Monitoring, Approval, Pickup), **Communication** (Product Q&A, Product reviews, Customer/Logistics messages, Support tickets), and **My account** (Account settings, Policy consent).
+- Keep Dashboard directly accessible and group the remaining sidebar routes as **Shop** (Products, Inventory, Low-stock alerts, Finance), **Orders** (Monitoring, Approval, Pickup), **Communication** (Product Q&A, Product reviews, Customer/Logistics/Courier messages, Support tickets), and **My account** (Account settings, Policy consent). Courier messages links to `/courier-messages` and remains separate from Customer and Logistics inboxes; it adds no dashboard aggregate.
 - Show one expanded group at a time. On navigation or reload, automatically open the group containing the current route, including Product Q&A and Order detail/prepare routes. On Dashboard, groups begin collapsed.
 - Group buttons must be keyboard-operable, expose expanded state to assistive technology, and preserve clear active links in both themes and mobile navigation. Navigation grouping does not add new dashboard metrics or move actions between owning features.
 - Support loading, loaded, empty, setup-required, unavailable, partial-error, stale/refetch, session-expired, and retry states.

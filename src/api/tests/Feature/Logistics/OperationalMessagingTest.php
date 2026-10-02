@@ -447,6 +447,15 @@ class OperationalMessagingTest extends TestCase
         ]);
         $input = ['leg' => 'first_mile', 'task_id' => $legacy->id,
             'counterparty_role' => 'seller', 'body' => 'I am heading to your Shop.'];
+        $contextUrl = "/api/v1/seller/courier-conversations/order-context/{$order->id}";
+        $seller = $order->shop->seller;
+        $this->getJson($contextUrl)->assertUnauthorized();
+        $this->actingAs($seller)->getJson($contextUrl)->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.send_allowed', false)->assertJsonPath('data.conversation_id', null);
+        $foreignSeller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
+        $this->actingAs($foreignSeller)->getJson($contextUrl)->assertNotFound();
+        $this->actingAs($order->customer)->getJson($contextUrl)->assertForbidden();
         $this->actingAs($courier)->postJson('/api/v1/courier/operational-conversations', $input,
             ['Idempotency-Key' => (string) Str::uuid()])->assertConflict();
         $this->postJson('/api/v1/courier/operational-conversations', [
@@ -454,11 +463,17 @@ class OperationalMessagingTest extends TestCase
         ], ['Idempotency-Key' => (string) Str::uuid()])->assertUnprocessable();
         $legacy->update(['status' => FirstMileTaskStatus::Accepted]);
         $task->update(['status' => FulfillmentTaskStatus::SellerPickupAccepted]);
+        $this->actingAs($seller)->getJson($contextUrl)->assertOk()
+            ->assertJsonPath('data.send_allowed', true)->assertJsonPath('data.conversation_id', null);
+        $this->assertDatabaseCount('conversations', 0);
+        $this->actingAs($courier);
         $first = $this->postJson('/api/v1/courier/operational-conversations', $input,
             ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()
             ->assertJsonPath('conversation.kind', 'courier_seller');
         $id = $first->json('conversation.id');
         $seller = $order->shop->seller;
+        $this->actingAs($seller)->getJson($contextUrl)->assertOk()
+            ->assertJsonPath('data.send_allowed', true)->assertJsonPath('data.conversation_id', $id);
         $this->actingAs($seller)->postJson('/api/v1/seller/courier-conversations', [
             'context_type' => 'order', 'context_id' => $order->id, 'body' => 'The parcel is ready.',
         ], ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()
@@ -469,6 +484,8 @@ class OperationalMessagingTest extends TestCase
         $this->actingAs($order->customer)->getJson("/api/v1/customer/courier-conversations/{$id}")->assertNotFound();
         $legacy->update(['status' => FirstMileTaskStatus::PickedUp]);
         $task->update(['status' => FulfillmentTaskStatus::PickedUpFromSeller]);
+        $this->actingAs($seller)->getJson($contextUrl)->assertOk()
+            ->assertJsonPath('data.send_allowed', false)->assertJsonPath('data.conversation_id', $id);
         $this->actingAs($seller)->getJson("/api/v1/seller/courier-conversations/{$id}")
             ->assertOk()->assertJsonPath('data.send_allowed', false);
         $this->postJson("/api/v1/seller/courier-conversations/{$id}/messages", ['body' => 'Late'],
