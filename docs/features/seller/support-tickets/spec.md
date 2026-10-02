@@ -7,7 +7,7 @@ role: Seller
 
 # Seller Support Tickets
 
-An active, Admin-approved Seller uses the Seller dashboard's `/support-tickets` page for private Admin support. Tickets do not give Admin access to Shop, Customer–Seller, Courier, or Logistics conversations. The shared lifecycle and privacy rules are in `docs/features/admin/chat-messaging/spec.md`.
+An active, Admin-approved Seller uses the Seller dashboard's `/support-tickets` page for private Admin support. Tickets do not give Admin access to Shop, Customer–Seller, Courier, or Logistics conversations. The shared lifecycle and privacy rules are in `docs/features/admin/support-ticket-system/spec.md`.
 
 - The first-release form contains subject (1–150 characters), category (`general`, `account`, `order`, `delivery`), and plain-text description (1–2,000 characters). Shop, Order, and pickup links are not accepted until a role-specific authorization matrix is approved.
 - The API derives the Seller User identity, enforces active Seller and policy-consent gates, and scopes list/detail/reply/read to that User. A foreign UUID returns `404`, including when an account in another role shares the same email.

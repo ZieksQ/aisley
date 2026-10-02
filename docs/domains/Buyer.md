@@ -2,7 +2,7 @@
 model: Buyer
 type: Domain Context
 purpose: Shared Customer/Buyer workflow and implementation context
-version: 1.3
+version: 1.4
 status: Revised — aligned with the approved Customer order/Logistics flow and implemented storefront foundation
 ---
 
@@ -111,7 +111,7 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 2. Homepage, Search, and Discovery
 
 - **Purpose:** Help guests and Customers find public Products, Shops, categories, campaigns, and deals.
-- **Current state:** Public homepage aggregation, bounded Product/Shop/category search, safe Product cards, responsive storefront sections, and authenticated context are implemented.
+- **Current state:** Public homepage aggregation, bounded Product-name/Shop-name/category-name Product search, a separate name-only Shops result mode, safe Product/Shop cards, responsive storefront sections, and authenticated context are implemented. `/search` preserves query/mode/pagination and defaults to Products; only the selected public result collection is fetched.
 - **Boundary:** Search and homepage are read projections. They do not create Recently Viewed entries, reserve stock, add Wishlist rows, or promise a price/availability that Checkout has not revalidated.
 
 ### 3. Product Detail
@@ -122,8 +122,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 
 ### 4. Browse Shops
 
-- **Purpose:** Let guests and Customers open the public Shop directory and a Shop by slug, then filter that Shop's visible Products by the canonical Product Category taxonomy.
-- **Current state:** Paginated directory, Shop-scoped category filtering, deterministic Product pagination, safe Shop summaries, metadata, and accessible loading/empty/not-found/retry states are implemented.
+- **Purpose:** Let guests and Customers open the public Shop directory and a Shop by slug, then search Product names and filter by the canonical Product Category taxonomy within that Shop.
+- **Current state:** Paginated directory, Shop-scoped keyword/category intersection, stable category options, independent filter clearing, deterministic Product pagination, safe Shop summaries, metadata, and loading/empty/not-found/validation/throttle/deadline/retry states are implemented. The dedicated Shop search stays on `/shops/{slug}`; the marketplace header remains global.
 - **Boundary:** A Shop page can return only Products belonging to the resolved active Shop and never bypasses `storefrontVisible()`.
 
 ### 5. Cart
@@ -182,8 +182,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 13. Product Q&A and Chat/Messaging
 
 - **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
-- **Status:** Product Q&A Phase 1, private Customer–Shop text messaging, and separate Order-scoped Customer–Logistics delivery messaging are implemented in the Customer storefront and Laravel API. Both chat channels use bounded polling; realtime transport, attachments, moderation, and Admin/Courier contact remain deferred.
-- **Boundary:** Shop and Logistics threads have distinct conversation kinds, role-owned inboxes, and unread counts; delivery contact follows the current handler of an owned active Order and becomes read-only after custody or terminal-state changes. Chat is separate from public Product Q&A and general notifications. It does not expose registration evidence, private addresses, payment secrets, or unrelated users, and cannot change an Order or complaint decision.
+- **Status:** Product Q&A Phase 1, Customer–Shop messaging, Order-scoped Customer–Logistics messaging, and accepted-final-mile Customer–Courier inbox/reply are implemented in the storefront and Laravel API. Courier messages is available through AccountMenu and eligible Order detail. All three channels use bounded polling; realtime, attachments, moderation, and general Admin chat remain deferred. The external Flutter Buyer composer/live exchange remains unverified and unchanged.
+- **Boundary:** Shop, Logistics, and Courier threads have distinct conversation kinds, role-owned inboxes, and unread counts. Logistics contact follows the current Order handler; Courier contact requires its accepted final-mile task and current approved assignment, with read-only history after terminal/custody/reassignment changes. Chat remains separate from Q&A/notifications, exposes no private evidence or unrelated users, and cannot change an Order, custody, delivery completion, or complaint decision.
 
 ## Data, privacy, and consistency invariants
 
@@ -208,7 +208,7 @@ Implemented Customer foundation:
 
 Deferred or dependent Customer operations:
 
-- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, QR evidence, and the Customer's high-level delivered projection. The Customer in-app inbox, default-off promotional preference, and private Customer–Shop text messaging are implemented; other notification preferences, Wishlist alerts, realtime/attachment chat, live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds remain deferred. Customer cancellation/address correction, Product Q&A public read/ask with notifications, and verified Product Reviews are implemented.
+- Seller preparation/provider selection, shared waybills, first-mile scheduling/acceptance/confirmation, Courier route manifests, and Seller Q&A queue/answer UI are implemented downstream foundations. The additive shared Shipment/Parcel/DeliveryTask records now support Logistics hub processing, independent final-mile assignment/delivery, task-bound hub confirmation, private photo POD, and the Customer's high-level delivered projection. The Customer in-app inbox, default-off promotional preference, and private Customer–Shop text messaging are implemented; other notification preferences, Wishlist alerts, realtime/attachment chat, live route/ETA display, photo/signature proof presentation, payment gateways, returns/refunds remain deferred. Customer cancellation/address correction, Product Q&A public read/ask with notifications, and verified Product Reviews are implemented.
 
 Future Customer-facing shipment fields must be provider-neutral, safe, and read-only. Future enum-like database fields remain string-backed and API-cast to PHP enums; fulfillment additions must preserve the shared high-level `OrderStatus` contract and explicit Shipment/Delivery Task milestones.
 

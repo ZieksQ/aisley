@@ -3,7 +3,7 @@ feature: order-status
 title: Customer Order Monitoring and Logistics Tracking
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented read-only tracking and scheduled-delivery Courier projection; live map deferred
 role: Customer
 scope: Customer storefront and Laravel API
@@ -36,6 +36,7 @@ Account menu → Orders → paginated Customer-owned list
 - A guest is sent to `/login?next=/orders`. Wrong-role, pending, rejected, suspended, or deactivated sessions receive no Customer Order data.
 - Return `401` for no session, `403` for invalid role/status, and `404` for a non-owned Order without revealing whether another Customer's ID exists.
 - The signed-in AccountMenu exposes **Orders** as a keyboard-accessible link. Public marketplace browsing remains available to guests.
+- AccountMenu also exposes **Courier messages**. Order detail checks its private Courier Order-context projection before presenting **Message delivery Courier**, or **View Courier conversation** for historical contact. This is accepted-final-mile coordination, not tracking/custody authority; [Customer Chat/Messaging](../chat-messaging/spec.md) owns its inbox, read/reply, and eligibility rules.
 
 ### Canonical status and group mapping
 
@@ -101,6 +102,7 @@ Account menu → Orders → paginated Customer-owned list
 - Laravel uses `OrderController`, `OrderTrackingService`, `CustomerOrderStatusMapper`, `ListOrdersRequest`, `ListOrderTrackingRequest`, `OrderSummaryResource`, `OrderResource`, and `OrderTrackingResource`.
 - `OrderTrackingService` scopes by `customer_id`, eager-loads only safe relations, limits embedded timeline rows, and uses deterministic ordering. Controllers set private no-store headers.
 - The Webapp implements `/orders`, `/orders/{order}`, AccountMenu navigation, tab query state, pagination, focus/reconnect refresh, and unavailable-map messaging.
+- `components/orders/delivery-panel.tsx` composes the existing delivery/contact/address projection with the separate Courier contact component. Chat availability comes from `/api/v1/customer/courier-conversations/order-context/{order}`, never from an Order status or displayed Courier name alone.
 
 ### Future operational handoff
 

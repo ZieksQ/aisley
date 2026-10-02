@@ -3,7 +3,7 @@ feature: chat-messaging
 title: Customer Chat with Seller
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 2.1
 status: Customer–Shop text chat verified on SQLite, PostgreSQL, and role browsers; retention policy pending
 role: Customer
 scope: Customer Next.js storefront and shared Laravel messaging domain
@@ -19,8 +19,8 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - AISLEY has Product Q&A, Customer/Seller notifications, Shop/Product pages, Order Detail, one shared conversation/message store, role-scoped chat APIs, and Customer/Seller inbox and thread pages.
 - This Customer spec owns initiation, inbox, thread, composer, unread state, and Customer-facing error behavior. The same shared conversation/message records must serve the Seller's authorized reply UI.
 - **MVP:** one text conversation per Customer and Shop, with optional Product/Order context on a message. Reopening Chat from another Product or Order reuses that thread.
-- Customer ↔ Logistics delivery chat is now a separate Order-scoped feature under the Logistics operational-chat contract and `/delivery-messages`; it never joins this Customer–Shop inbox. Admin and Courier contact still need separate role-owned rules.
-- A separate Courier–Buyer final-mile **API** now exists for an accepted task on the Customer's owned Order. The storefront has no Courier inbox or entry point yet; client implementation remains deferred. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md).
+- Customer ↔ Logistics delivery chat is a separate Order-scoped feature under the Logistics operational-chat contract and `/delivery-messages`; it never joins this Customer–Shop inbox. General support belongs to role-owned support tickets, not a private Admin chat channel.
+- Separate Courier–Buyer final-mile API and storefront screens are implemented for an accepted task on the Customer's owned Order. **Courier messages** in the Account menu opens `/courier-messages`; Order detail checks server eligibility before offering **Message delivery Courier**. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md). The external Flutter Buyer composer remains unimplemented/read-only; no Flutter adoption is claimed by this storefront release.
 - Product Q&A stays public and Product-scoped. Chat is private; it cannot change Orders, Inventory, delivery status, refunds, or complaint decisions.
 - Existing order tracking and seller-help links remain authoritative. A chat statement is not evidence that a delivery, refund, or policy action was committed.
 - No guest chat, file/image attachments, calls, typing indicators, online presence, message edits/deletion, AI replies, or WebSocket dependency in the first release.
@@ -95,6 +95,22 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - [x] A suspended Seller cannot newly receive/send while the Customer can still read the permitted historical thread.
 - [ ] Customer screens handle unavailable contexts, offline/timeout, 401/403/404/409/422/429, keyboard use, and narrow viewports.
 
+### Courier final-mile coordination
+
+- Courier chat uses its own `courier_customer` kind, `/courier-messages` inbox, and persisted participant read markers. It must never join Shop or Logistics inboxes, general notifications, or another Customer's history.
+- All reads/writes require Sanctum, `customer.active`, policy consent, owned Order, and immutable participant scope. The API derives the final-mile task, Courier, current handling organization, and hub; clients never pick a recipient or submit user/organization IDs.
+- Contact opens only after a valid final-mile offer is accepted, while its Courier/affiliation/organization remain active, its Order is nonterminal, and its Shipment has not moved out of the handling context. Accepted, picked-up-from-hub, in-transit, and out-for-delivery tasks remain contactable. An offer alone does not permit messaging.
+- Delivery, cancellation/failure, invalid custody, reassignment, or loss of eligibility disables sends. Original participants retain scoped read-only history; a replacement Courier gets a separate conversation and cannot inherit its predecessor's private text.
+- Order detail uses `GET /api/v1/customer/courier-conversations/order-context/{order}` and shows **Message delivery Courier** only when `send_allowed` is true, or **View Courier conversation** for existing authorized history. This read creates no empty thread and does not change the Order or task. Sends revalidate eligibility under locks.
+- `/courier-messages?order=<owned-uuid>` lazily starts with the first committed message. `?conversation=<uuid>` opens an existing thread. Show the Order and final-mile leg with a generic Courier label; do not add private Courier contact/location fields to chat DTOs.
+- Inbox/history are cursor-paged; merge by server UUID/sequence. Poll every 15 seconds only while visible and online, with focus/reconnect refresh and 15-second request deadlines. A long background pause must leave skipped middle pages reachable through older-history loading. New messages do not steal keyboard focus or force scroll when reading older history.
+- Freeze the pending body and UUID key after an uncertain send; an exact retry confirms persistence without duplicates, including first-send response loss. Polling must not replace a pending start context and discard its key. `422` permits correction, `409` refreshes sendability, and `429` retains the safe retry. Never queue offline writes or show an unconfirmed bubble as sent.
+- Keep private messages/drafts in memory only. Protected routing checks session/consent; auth/account changes unmount role-owned state, and scoped denial clears private history. The storefront remains light-only, mobile-first, keyboard-operable, and separate from Courier Flutter screens.
+- [x] Buyer Courier inbox, eligible Order entry, first send/reply, persisted read markers, foreground refresh, older history, and read-only/uncertain-send states are implemented.
+- [x] Focused SQLite/disposable PostgreSQL regressions verify offered/accepted gating, ownership/role privacy, exact retries, active final-mile stages, terminal states, reassignment, and custody changes (2026-10-02).
+- [x] Mocked-HTTP Chromium verifies empty inbox, offered/accepted Order entry, first-send replay, untrusted text, incoming/read state, older-history gap recovery, 390/768/1280px, focus, light-only styling, offline, validation/throttling, and denied-history clearing (2026-10-02).
+- [ ] Verify Courier–Buyer two-worker PostgreSQL races and live external Flutter sending/receiving before production release; mocked browser contracts are not live mobile integration.
+
 Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passed; PostgreSQL two-worker first-send/send races produced one Customer–Shop thread and monotonic messages; shared chat migrations rolled back and reapplied on PostgreSQL. Chromium covered Customer/Seller login, a 390px thread, plain-text rendering, cross-role reply, focus/reconnect, offline draft retention, and 15-second timeout/retry with the same idempotency key. Broad error-state/accessibility checks and private-message retention/abuse policy remain open; unchecked criteria are not claimed complete.
 
 ## HOW
@@ -121,3 +137,6 @@ Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passe
 - Test Customer and Seller UI entry points, empty/history/unread states, timeout retry, accessibility, and no duplicate messages after focus/refetch. Keep private responses `no-store`.
 - Roll out behind the shared API/Seller reply readiness gate. Decide message retention and abuse-reporting ownership before production release; do not invent a blanket Admin read privilege.
 - Remove or disable the existing storefront `/messages` header link until the real route is available, then route it to the protected inbox rather than a 404.
+- Courier uses the existing `/api/v1/customer/courier-conversations` list/start/detail/history/send/read family plus the additive private Order-context endpoint. Its context DTO is `{ data: { order_id, order_reference, send_allowed, conversation_id } }`; foreign Orders are `404`. The shared service uses the same accepted-task selection for context and transactional start.
+- The Next.js server page passes only URL selectors/public homepage data to focused client components under `components/courier-messages/`; private chat is never fetched into cached server props. `lib/courier-messages.ts` owns typed credentialed calls. Order delivery composition is extracted into `components/orders/delivery-panel.tsx`; no migrations, dependencies, Courier web UI, or Flutter changes are needed.
+- Reusable mocked browser check: start the storefront on port 15173 and ChromeDriver on 19515, then run `node tests/courier-chat-browser.smoke.mjs` inside `src/webapp`. It writes generated profiles/screenshots only under ignored `node_modules/.cache/`, without using seeded accounts or a database.

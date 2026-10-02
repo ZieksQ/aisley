@@ -7,12 +7,15 @@ import type {
   ShopBrowseResponse,
   ShopDetail,
   ShopDirectoryResponse,
+  ShopSearchResponse,
 } from "./types";
 
 export type PublicApiResult<T> =
   | { status: "success"; data: T }
   | { status: "not_found" }
   | { status: "invalid"; message: string }
+  | { status: "throttled"; retryAfter: number; retryAt: number }
+  | { status: "timeout" }
   | { status: "error" };
 
 const apiBaseUrl = (
@@ -45,6 +48,8 @@ async function publicApiRequest<T>(path: string): Promise<T | null> {
         "X-Requested-With": "XMLHttpRequest",
       },
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(15000),
+      credentials: "omit",
     });
 
     if (!response.ok) {
@@ -68,6 +73,8 @@ async function publicApiResult<T>(
         "X-Requested-With": "XMLHttpRequest",
       },
       next: { revalidate },
+      signal: AbortSignal.timeout(15000),
+      credentials: "omit",
     });
 
     if (response.status === 404) {
@@ -89,12 +96,21 @@ async function publicApiResult<T>(
       };
     }
 
+    if (response.status === 429) {
+      const header = response.headers.get("Retry-After");
+      const seconds = header && /^\d+$/.test(header) ? Number(header)
+        : header ? Math.ceil((Date.parse(header) - Date.now()) / 1000) : 60;
+      const retryAfter = Number.isFinite(seconds) ? Math.min(3600, Math.max(1, seconds)) : 60;
+      return { status: "throttled", retryAfter, retryAt: Date.now() + retryAfter * 1000 };
+    }
+
     if (!response.ok) {
       return { status: "error" };
     }
 
     return { status: "success", data: (await response.json()) as T };
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)) return { status: "timeout" };
     return { status: "error" };
   }
 }
@@ -128,9 +144,14 @@ export async function searchPublicProducts(
     limit: String(pageSize),
   });
 
-  return publicApiRequest<ProductSearchResponse>(
+  return publicApiResult<ProductSearchResponse>(
     `/api/v1/customer/products/search?${parameters.toString()}`,
   );
+}
+
+export function searchPublicShops(query: string, page: number, pageSize: number) {
+  const parameters = new URLSearchParams({ q: query, page: String(page), limit: String(pageSize) });
+  return publicApiResult<ShopSearchResponse>(`/api/v1/customer/search/shops?${parameters}`);
 }
 
 export async function getPublicProduct(id: string): Promise<ProductDetail | null> {
@@ -188,12 +209,14 @@ export function getPublicShopProducts(
   category: string | null,
   page: number,
   pageSize: number,
+  query = "",
 ) {
   const parameters = new URLSearchParams({
     page: String(page),
     limit: String(pageSize),
   });
   if (category) parameters.set("category", category);
+  if (query) parameters.set("q", query);
 
   return publicApiResult<ShopBrowseResponse>(
     `/api/v1/customer/shops/${encodeURIComponent(slug)}/products?${parameters.toString()}`,

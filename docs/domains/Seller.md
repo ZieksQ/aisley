@@ -194,7 +194,7 @@ Seller preparation must not assign a Courier, select a hub, simulate transit, or
 ### 11. Chat/Messaging
 
 - **Purpose:** Reply to Customers in one private text conversation per Customer and Shop for product/order support.
-- **Status:** Shared persistence/API and Seller inbox/reply UI are implemented with HTTP polling; realtime, attachments, Seller initiation, archive/mute/report, and other-role chat remain deferred.
+- **Status:** Customer–Shop inbox/reply, separate selected-pickup Seller–Logistics chat, and accepted-first-mile Courier–Seller inbox/reply are implemented with HTTP polling. Courier contact is available from eligible owned Orders and the Communication sidebar; handoff/reassignment preserves read-only history. Realtime, attachments, unsolicited Seller-to-Customer initiation, and archive/mute/report remain deferred. Live external Flutter exchange remains unverified.
 - **Owns:** Shop-authorized message history, Seller read marker, and safe Product/Order context alongside the Customer counterpart.
 - **Rules:** Access is tied to immutable participant and current Shop ownership; unrelated users, private evidence, payment secrets, and direct contact details are not exposed.
 
@@ -266,4 +266,4 @@ Future status-like columns must be stored as strings and cast to PHP enums. Futu
 - `docs/references/seller-shop-catagories.md` — canonical Shop/Product Category taxonomy.
 - `docs/features/seller/*/spec.md` — feature-specific implementation contracts.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; photo/signature proof media, route/location telemetry, and exceptional recovery remain future extensions.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; private final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.

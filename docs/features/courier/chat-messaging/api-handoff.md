@@ -1,6 +1,6 @@
 # Courier task chat API handoff
 
-**Backend contract:** `courier-operational-messaging-v2` (2026-09-24). This file is for the external Flutter client and Seller/Customer app owners. It describes implemented Laravel endpoints, not completed client screens.
+**Backend contract:** `courier-operational-messaging-v2` (2026-09-24; additive Seller/Buyer Order-context read endpoints on 2026-10-02). This file is for the external Flutter client and Seller/Customer app owners. It describes implemented Laravel endpoints; client status is separate below.
 
 ## Eligibility and identity
 
@@ -23,6 +23,8 @@ All requests use `/api/v1`, `Accept: application/json`, role-specific Sanctum au
 | Buyer (`customer` API role) | `/api/v1/customer/courier-conversations` |
 
 Each family has `GET /` (inbox), `POST /` (first message/start), `GET /{conversation}`, `GET /{conversation}/messages`, `POST /{conversation}/messages`, and `POST /{conversation}/read`. Inbox/history accept `cursor` and `limit` (default 20, maximum 50); the Courier inbox also accepts `leg=first_mile|final_mile`.
+
+Seller and Buyer additionally have `GET /api/v1/{seller|customer}/courier-conversations/order-context/{order}` returning `{ "data": { "order_id": "<uuid>", "order_reference": "<safe-reference>", "send_allowed": true, "conversation_id": null } }`. This owned-Order eligibility read creates no conversation; the optional UUID points to existing scoped history. Seller checks accepted first mile and Buyer accepted final mile with current custody/affiliation. Sending always revalidates the task transactionally. There is no new Courier endpoint or Flutter payload requirement.
 
 Courier start:
 
@@ -48,9 +50,10 @@ Other safe thread fields include `last_message_preview` and `last_message_at`. T
 
 `401` means unauthenticated; `403` means account/approval/consent denial; scoped `404` means unavailable or foreign context/thread; `409` means task/relationship ended or idempotency conflict (`TASK_NOT_ACTIVE`, `CONVERSATION_READ_ONLY`, `IDEMPOTENCY_CONFLICT`); `422` means invalid body, leg/counterpart pair, UUID/key, or unsupported fields; `429` means throttled. Never treat a timeout as a saved message until an exact-key retry confirms it.
 
-## Client work not in this repository
+## Client status and remaining work
 
 - Flutter: show Logistics on active offered/accepted tasks, Seller only after first-mile acceptance, Buyer only after final-mile acceptance. Implement inbox/thread, private in-memory message state, foreground polling, read markers, timeout-safe retry, offline/401/403/404/409/422/429 states, and clear data on logout/account switch.
-- Seller dashboard: add a first-mile Courier entry from an eligible owned Order and an inbox/reply screen using the Seller family.
-- Customer storefront: add a final-mile Courier entry from an eligible owned Order and an inbox/reply screen using the Customer family.
-- Verify live cross-role exchange and task reassignment/terminal behavior before enabling any client button. No Courier production web UI is added here.
+- Seller dashboard: implemented `/courier-messages` inbox/reply and an eligible owned-Order first-mile Courier entry. SQLite/disposable PostgreSQL API regressions and mocked HTTP Chromium interactions pass; PostgreSQL concurrency and live external Flutter exchange remain release checks. No Flutter or Courier web UI was changed for this Seller release.
+- Customer storefront: implemented `/courier-messages` inbox/reply, AccountMenu navigation, and an eligible owned-Order final-mile entry. SQLite/disposable PostgreSQL regressions and mocked HTTP Chromium interactions pass. Two-worker Courier–Buyer races and live Flutter exchange remain release checks.
+- Flutter Buyer chat remains read-only/unimplemented for composition in the external client. Enable its composer using the existing `counterparty_role: "customer"` start/send contract; the completed Buyer web screens do not change this mobile adoption status. No Flutter code or tests were changed in either web counterpart release.
+- Verify live cross-role exchange and task reassignment/terminal behavior before production release. No Courier production web UI is added here; mocked browser checks do not establish a live Flutter integration.

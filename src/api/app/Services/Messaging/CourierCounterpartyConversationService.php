@@ -52,6 +52,42 @@ class CourierCounterpartyConversationService
         return $this->scoped($actor, $role)->whereKey($id)->firstOrFail();
     }
 
+    /** Safe, read-only entry point; starting/sending still rechecks eligibility under locks. */
+    public function sellerOrderContext(User $seller, string $orderId): array
+    {
+        return $this->orderContext($seller, 'seller', $orderId);
+    }
+
+    public function customerOrderContext(User $customer, string $orderId): array
+    {
+        return $this->orderContext($customer, 'customer', $orderId);
+    }
+
+    private function orderContext(User $actor, string $role, string $orderId): array
+    {
+        $order = Order::query()->whereKey($orderId)
+            ->when($role === 'seller',
+                fn (Builder $query) => $query->whereHas('shop', fn (Builder $shop) => $shop->where('seller_id', $actor->id)),
+                fn (Builder $query) => $query->where('customer_id', $actor->id))->firstOrFail();
+        $task = $this->acceptedOrderTasks($order, $role)->first();
+        $allowed = false;
+        if ($task) {
+            try {
+                $allowed = $this->eligibility->resolve($task, $role)['counterpart_id'] === $actor->id;
+            } catch (HttpExceptionInterface|FulfillmentException|ModelNotFoundException) {
+                // An ended relationship is not permission to start a new conversation.
+            }
+        }
+        $conversation = $this->scoped($actor, $role)
+            ->whereHas('task.shipment.parcel', fn (Builder $parcel) => $parcel->where('order_id', $order->id))
+            ->when($allowed, fn (Builder $query) => $query->where('delivery_task_id', $task->id)
+                ->where('courier_user_id', $task->courier_id))
+            ->whereNotNull('last_message_at')->orderByDesc('last_message_at')->first();
+
+        return ['order_id' => $order->id, 'order_reference' => $order->reference,
+            'send_allowed' => $allowed, 'conversation_id' => $conversation?->id];
+    }
+
     public function unreadTotal(User $actor, string $role): int
     {
         return (int) DB::table('messages')
@@ -90,16 +126,22 @@ class CourierCounterpartyConversationService
         $order = Order::query()->whereKey($orderId)->firstOrFail();
         abort_unless($role === 'seller'
             ? $order->shop?->seller_id === $actor->id : $order->customer_id === $actor->id, 404);
+        $task = $this->acceptedOrderTasks($order, $role)->firstOrFail();
+
+        return $this->start($actor, $role, $task, $role, $body, $key, $hash);
+    }
+
+    private function acceptedOrderTasks(Order $order, string $role): Builder
+    {
         $leg = $role === 'seller' ? FulfillmentTaskLeg::FirstMile : FulfillmentTaskLeg::FinalMile;
         $states = $role === 'seller'
             ? [FulfillmentTaskStatus::SellerPickupAccepted->value]
             : [FulfillmentTaskStatus::DeliveryAccepted->value, FulfillmentTaskStatus::PickedUpFromHub->value,
                 FulfillmentTaskStatus::InTransit->value, FulfillmentTaskStatus::OutForDelivery->value];
-        $task = DeliveryTask::query()->where('leg', $leg->value)->whereIn('status', $states)
-            ->whereHas('shipment.parcel', fn (Builder $parcel) => $parcel->where('order_id', $order->id))
-            ->orderByDesc('updated_at')->firstOrFail();
 
-        return $this->start($actor, $role, $task, $role, $body, $key, $hash);
+        return DeliveryTask::query()->where('leg', $leg->value)->whereIn('status', $states)
+            ->whereHas('shipment.parcel', fn (Builder $parcel) => $parcel->where('order_id', $order->id))
+            ->orderByDesc('updated_at');
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */

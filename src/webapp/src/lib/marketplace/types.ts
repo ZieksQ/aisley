@@ -142,6 +142,12 @@ export type ShopSummary = {
 
 export type ShopDetail = ShopSummary;
 
+export type ShopSearchResponse = {
+  query: string;
+  items: ShopSummary[];
+  pagination: Pagination;
+};
+
 export type ShopDirectoryResponse = {
   items: ShopSummary[];
   categories: ShopCategorySummary[];

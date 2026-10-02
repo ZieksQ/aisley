@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopCategory;
+use App\Support\LiteralSearchText;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -81,6 +82,7 @@ class ShopBrowseService
         Collection $categories,
         ?string $categorySlug,
         int $perPage,
+        ?string $keyword = null,
     ): LengthAwarePaginator {
         $category = $categorySlug === null
             ? null
@@ -96,6 +98,8 @@ class ShopBrowseService
             ->select('products.*')
             ->storefrontVisible()
             ->where('products.shop_id', $shop->id)
+            ->when($keyword !== null, fn (Builder $query) => $query
+                ->whereRaw("LOWER(products.name) LIKE ? ESCAPE '!'", ['%'.LiteralSearchText::escape($keyword).'%']))
             ->when($category, fn (Builder $query, Category $selected) => $query
                 ->where('products.category_id', $selected->id))
             ->with(['shop:id,name,slug', 'galleryMedia'])

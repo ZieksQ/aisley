@@ -3,7 +3,7 @@ feature: chat-messaging
 title: Seller Chat / Messaging
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 2.1
 status: First-release shared text inbox/reply verified on PostgreSQL and role browsers; retention policy pending
 role: Seller
 scope: Seller React dashboard and shared Laravel messaging domain
@@ -18,7 +18,7 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - The first release is persisted **text** over authenticated HTTP with bounded polling while the inbox/thread is visible. It is not instant realtime. Attachments, broadcasting, Seller-initiated outreach, archive/mute/report, typing, presence, and message deletion are deferred.
 - Product Q&A remains public and Product-scoped. Chat remains private and cannot change an Order, refund, delivery, or complaint decision.
 - Separate Seller–Logistics operational chat is available only for a Seller-owned pickup request selecting that organization. It is not a Customer–Shop conversation and does not appear in the Customer inbox. Its detailed cross-role contract is [Logistics Chat/Messaging](../../logistics/chat-messaging/specs.md).
-- A separate Courier–Seller first-mile **API** now exists for accepted tasks tied to this Seller's Order. The Seller dashboard has no Courier inbox or entry point yet; client implementation remains deferred. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md).
+- Separate Courier–Seller first-mile API and Seller dashboard screens are implemented for accepted tasks tied to this Seller's Order. **Courier messages** in the Communication sidebar opens `/courier-messages`; Order detail checks server eligibility before offering contact. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md). Customer–Courier screens and live external Flutter exchange remain separate release work.
 
 ## MUST
 
@@ -46,6 +46,16 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - Chat unread is separate from the general Seller notification inbox. No email/SMS/push per message is sent by default. A future broadcast or notification must follow committed persistence and must not become chat history's source of truth.
 - Return `401` for no session, `403` for wrong role/status, scoped `404` for foreign/missing thread, `409` for conflicting send state/key, `422` for invalid input, and `429` for rate limits.
 
+### Courier pickup coordination
+
+- Keep Courier history separate from Customer–Shop and Seller–Logistics history. Require the existing role/approval/consent gates and current Shop ownership; the API derives Courier, task, organization, hub, and sender from the owned Order.
+- Start/reply only after first-mile acceptance while the Order is ready for pickup, the accepted Courier has an approved active affiliation, and the scheduled pickup remains active. Seller handoff, reassignment, or an invalid relationship disables new sends. Original participants retain scoped read-only history; a replacement Courier does not inherit the former thread.
+- Order detail uses `GET /api/v1/seller/courier-conversations/order-context/{order}` before presenting **Message pickup Courier**. A committed historical conversation can instead expose **View Courier conversation**. Reading this projection must not create an empty thread; starting/sending rechecks eligibility transactionally.
+- `/courier-messages?order=<owned-uuid>` starts with the first committed message; `?conversation=<uuid>` opens existing history. Labels identify the Order and first-mile leg, without exposing Courier contact details or location.
+- Cursor-page the inbox/history, merge messages by UUID/sequence, and advance only the Seller's committed read marker. Foreground polling is bounded to 15 seconds, paused offline/background, and refreshed on focus/reconnect; requests have a 15-second deadline.
+- Preserve a frozen message body and UUID key after an uncertain send, including a first send whose response is lost. Retry the same request; a poll must not replace that start context and discard its key. Never display an unconfirmed message as sent. `422` allows correction; `409` refetches sendability; `429` retains a safe retry.
+- Private chat text stays in memory, not persistent browser storage. Account/route changes unmount its state; `401` clears the local identity, consent denial redirects, and scoped `403`/`404` clears denied history. Messages never advance custody or change an Order.
+
 ### Acceptance and release gates
 
 - [x] Customer and Seller share a single private, Shop-scoped conversation/message store and can send/reply through role-gated APIs.
@@ -54,6 +64,9 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - [x] Verify PostgreSQL two-worker first-send and concurrent send races, migration rollback, and scoped authorization.
 - [x] Verify Customer/Seller browser interaction, narrow viewport, focus/reconnect, and uncertain timeout retry before production release.
 - [ ] Decide retention and abuse-reporting ownership before a production policy declares how long private message text is kept.
+- [x] Seller Courier inbox, eligible Order contact, first-message/reply, read markers, historical read-only state, and timeout-safe retry use the existing bilateral task channel.
+- [x] Focused SQLite and disposable PostgreSQL API regressions plus mocked-HTTP Chromium interaction verify eligibility/Shop isolation, Order entry, first-send replay, plain text, foreground refresh, read markers, older-history recovery after a long pause, 390/768/1280px, both themes, focus, offline, validation, throttling, and denied-history clearing (2026-10-02).
+- [ ] Verify Courier–Seller PostgreSQL concurrency and live exchange with the external Flutter app before production release; mocked browser contracts do not certify that integration.
 
 ## HOW
 
@@ -63,3 +76,5 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - Database fields are UUID-backed with string-independent message state; all schema changes are additive. SQLite and disposable PostgreSQL feature suites, two-worker races, and chat-migration rollback/reapply passed on 2026-09-24. The Chromium check covered both roles at 390px, reconnect/focus refresh, and bounded send timeout with retained draft/idempotency key.
 - Do not infer permission for Seller-started outreach, attachments, private broadcast channels, archive/mute/report, or Admin private-chat reading from this MVP. These need separate approved contracts and verification.
 - The separate `/api/v1/seller/logistics-conversations` route family and `/logistics-messages` dashboard page support Seller-initiated pickup coordination only; this does not grant Seller-initiated Customer outreach. The pickup page links to its selected organization's thread, while Logistics uses its own operational inbox. The API derives both participants from the immutable request and preserves read-only history after the relationship ends.
+- Courier uses the existing `/api/v1/seller/courier-conversations` list/start/detail/history/send/read family plus the additive read-only Order-context endpoint. Its context DTO is `{ data: { order_id, order_reference, send_allowed, conversation_id } }`; foreign Orders are `404`. Seller screens are composed from focused `components/courier-messages/` components/hooks and the typed credentialed `lib/courierMessages.ts` client; no migration, new dependency, Courier web UI, or Flutter change is required.
+- Reusable mocked browser verification: start Seller on port 15174 and ChromeDriver on 19515, then run `node tests/courier-chat-browser.smoke.mjs` inside `src/seller`. Generated browser profiles/screenshots remain under ignored `node_modules/.cache/`; the check never uses seeded accounts or the database.
