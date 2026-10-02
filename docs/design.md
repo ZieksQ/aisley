@@ -82,6 +82,18 @@ Avoid creating duplicate components when an appropriate shared component already
 - Shared visual components must not carry another role's navigation, authorization, or private data assumptions.
 - Reuse established app typography, spacing, radius, and theme-aware styles. New colors or variants need a clear semantic purpose and must work in the consuming app's supported themes.
 
+## UX and Jakob's Law
+
+Users bring expectations from other applications. Familiar interaction patterns help them understand AISLEY without learning a new interface for each feature.
+
+- Prefer established e-commerce conventions for navigation, search, filters, forms, checkout, messaging, and account settings. Reuse the app's existing patterns and compatible shared components rather than inventing new controls for familiar tasks.
+- Keep terminology, action labels, status meanings, and similar interactions consistent within each app. Share compatible presentation patterns across web apps without mixing role-specific screens, navigation, or authorization.
+- Make the primary action and next step clear. Group secondary actions, use concise labels, and show workflow progress when relevant; do not hide required choices or confirmations to simplify a screen.
+- Give prompt loading, success, validation, and error feedback. Explain how to recover instead of showing generic failures or treating an uncertain mutation as successful; retry according to the owning API contract.
+- Preserve safe form input after recoverable failures and show actionable field-level validation. Never retain passwords, private evidence, or account-scoped drafts beyond their approved lifecycle; clear private state on logout or authorization loss.
+- Make back/cancel behavior predictable. Do not silently discard unsaved changes; confirm destructive actions with their consequences and a clear cancel path. Keep controls keyboard-accessible and feedback understandable without color alone.
+- Introduce an unfamiliar interaction only when it solves a specific user problem; document the reason and verify the affected workflow's usability. Familiarity must never override accessibility, privacy, authorization, or required business rules.
+
 ## General Rules
 
 - Maintain consistent spacing, typography, radius, and component behavior.
