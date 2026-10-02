@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SupportTicket, TicketDetail } from '@aisley/support-tickets'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { SupportTicketDetail } from '../components/support/SupportTicketDetail'
 import { SupportTicketQueue } from '../components/support/SupportTicketQueue'
@@ -10,14 +10,24 @@ import {
   listSupportTickets,
   markSupportTicketRead,
   type SupportAssignee,
-  type SupportTicketFilters,
 } from '../lib/supportTickets'
+import { readSupportTicketFilters, supportTicketFilterSearch } from '../lib/supportTicketFilters'
 
 export function SupportTicketsPage() {
   const { admin } = useAuth()
+  if (!admin?.permissions.includes('support-tickets.view')) {
+    return <p className="text-sm text-slate-600 dark:text-slate-300">You do not have permission to view support tickets.</p>
+  }
+  return <SupportTicketsWorkspace key={`${admin.id}:${[...admin.permissions].sort().join(',')}`} />
+}
+
+function SupportTicketsWorkspace() {
+  const { admin } = useAuth()
   const { ticketId } = useParams()
   const navigate = useNavigate()
-  const [filters, setFilters] = useState<SupportTicketFilters>({ assignee: 'all' })
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = useMemo(() => readSupportTicketFilters(searchParams), [searchParams])
+  const listRevision = useRef(0)
   const [items, setItems] = useState<SupportTicket[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [detail, setDetail] = useState<TicketDetail | null>(null)
@@ -28,15 +38,18 @@ export function SupportTicketsPage() {
   const canManage = admin?.permissions.includes('support-tickets.manage') ?? false
 
   const refreshList = useCallback(async () => {
+    const revision = ++listRevision.current
     try {
       const response = await listSupportTickets(filters)
+      if (revision !== listRevision.current) return
       setItems(response.items)
       setCursor(response.next_cursor)
       setError(null)
     } catch (caught) {
+      if (revision !== listRevision.current) return
       setError(caught instanceof Error ? caught.message : 'The queue could not be loaded.')
     } finally {
-      setLoading(false)
+      if (revision === listRevision.current) setLoading(false)
     }
   }, [filters])
 
@@ -56,7 +69,14 @@ export function SupportTicketsPage() {
     }
   }, [])
 
-  useEffect(() => { void refreshList() }, [refreshList])
+  useEffect(() => {
+    const revisions = listRevision
+    setItems([])
+    setCursor(null)
+    setLoading(true)
+    void refreshList()
+    return () => { ++revisions.current }
+  }, [refreshList])
   useEffect(() => { if (ticketId) { setDetail(null); void refreshDetail(ticketId) } else setDetail(null) }, [ticketId, refreshDetail])
   useEffect(() => {
     if (!canManage) return
@@ -72,11 +92,14 @@ export function SupportTicketsPage() {
 
   async function loadMore() {
     if (!cursor) return
+    const revision = listRevision.current
     try {
       const response = await listSupportTickets({ ...filters, cursor })
+      if (revision !== listRevision.current) return
       setItems((current) => [...current, ...response.items.filter((item) => !current.some((existing) => existing.id === item.id))])
       setCursor(response.next_cursor)
     } catch (caught) {
+      if (revision !== listRevision.current) return
       setError(caught instanceof Error ? caught.message : 'More tickets could not be loaded.')
     }
   }
@@ -117,9 +140,9 @@ export function SupportTicketsPage() {
         filters={filters}
         hasMore={Boolean(cursor)}
         loading={loading}
-        onFilters={(next) => { setLoading(true); setFilters(next) }}
+        onFilters={(next) => setSearchParams(supportTicketFilterSearch(next))}
         onMore={() => void loadMore()}
-        onSelect={(id) => navigate(`/support-tickets/${id}`)}
+        onSelect={(id) => navigate({ pathname: `/support-tickets/${id}`, search: searchParams.toString() })}
         selectedId={ticketId ?? null}
         tickets={items}
       />

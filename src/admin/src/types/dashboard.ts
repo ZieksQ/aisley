@@ -16,8 +16,15 @@ export type DashboardRegistrationOverview = {
 
 export type DashboardData = {
   registrations: DashboardRegistrationOverview | null
+  support_tickets: DashboardQueueSummary | null
+  seller_compliance: DashboardQueueSummary | null
   generated_at: string
 }
+
+export type DashboardQueueSummary = {
+  filter: { status: 'open' }
+  destination: string
+} & ({ state: 'ready'; count: number } | { state: 'unavailable'; count: null })
 
 export type DashboardResponse = {
   data: DashboardData

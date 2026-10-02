@@ -2,7 +2,7 @@
 model: Admin
 type: Domain Context
 purpose: Shared Admin workflow and implementation context
-version: 1.2
+version: 1.3
 status: Revised — aligned with the implemented Admin console and deferred platform operations
 ---
 
@@ -65,7 +65,7 @@ Current protected routes are:
 ### 2. Dashboard
 
 - **Purpose:** Give an authenticated Admin a high-level platform overview, important notifications, and pending actionable work.
-- **Current state:** The Admin Dashboard has a permission-aware registration aggregate and a PII-minimized Registration Action Center, with responsive loading, zero, error, retry, timestamp, and deep-link states. The dashboard shell and notification bell are available.
+- **Current state:** The Admin Dashboard has a permission-aware registration aggregate/Registration Action Center and exact open support-ticket/compliance counts with filtered queue links. Private, read-only sections distinguish zero, unavailable, and forbidden; refresh, stale timestamps, cancellation, and account/permission cleanup are implemented. Mocked Chromium checks cover responsive light/dark states. The shell/notification bell remain separate, and broad analytics are not inferred from these counts.
 - **Rules:** Dashboard cards are read projections. Counts come from Laravel aggregate queries and are scoped by the Admin's permissions. A missing or failed source appears unavailable/error, never as an authoritative zero. Dashboard links navigate to the owning feature; they do not approve accounts, suspend users, resolve cases, or edit policies inline.
 - **Deferred:** Full platform KPIs, commission/revenue trends, technical health telemetry, charts, and broad operational workload metrics require their source domains and definitions.
 
@@ -171,11 +171,11 @@ Implemented Admin foundation:
 
 - Admin role/profile, environment-backed initial bootstrap, Sanctum authentication, permissions, protected React console, and Admin self-service profile/email/password/profile-photo management.
 - Registration review for Customer, Seller, and Logistics applications with private evidence access, atomic approval/rejection, reviewer history, email notification, and Admin in-app notification.
-- Dashboard registration aggregate/action center, Admin notification inbox, consent-gated Customer in-app campaign management, User Account lifecycle management for non-Admin accounts, Seller Compliance cases/restrictions, Platform Settings announcement/policy versioning, and append-only Audit Logs/outbox.
+- Dashboard registration aggregate/action center and permission-scoped open support/compliance counts with filtered queue navigation, Admin support tickets, Admin notification inbox, consent-gated Customer in-app campaign management, User Account lifecycle management for non-Admin accounts, Seller Compliance cases/restrictions, Platform Settings announcement/policy versioning, and append-only Audit Logs/outbox.
 
 Deferred or dependent Admin operations:
 
-- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, Support Tickets, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
+- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, support-ticket linked context/notification fanout, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
 
 Admin does not own Seller catalog, Customer Cart/Checkout, Logistics hub operations, or Courier mobile UI. It may receive safe notifications or review records from those domains only through explicit feature contracts.
 
