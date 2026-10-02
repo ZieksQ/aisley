@@ -176,8 +176,9 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 12. Reviews and Ratings
 
 - **Purpose:** Let a Customer rate and describe a purchased Product after delivery, optionally with approved media.
-- **Status:** The MVP Laravel persistence/API and Customer storefront Order Detail/Product Detail flows are implemented. Moderation, Customer editing/deletion, and Seller response management remain separate deferred work.
-- **Rules:** Only the purchasing Customer may review an eligible delivered line; review media follows `docs/references/file-upload-requirements.md`; public reads require a visible Product; Seller replies and moderation remain separate concerns.
+- **Status:** The MVP Laravel persistence/API and Customer storefront Order Detail/Product Detail flows are implemented, including read-only display of published Seller responses through the public Product review projection.
+- **Rules:** Only the purchasing Customer may review an eligible delivered line; review media follows `docs/references/file-upload-requirements.md`; public reads require a visible Product. Seller Review Management owns the implemented creation of one immutable Shop response per Review and cannot change Customer review content or rating aggregates.
+- **Deferred:** Customer review editing/deletion, Seller response editing/deletion, moderation/reporting, and video reviews remain deferred; initial Seller response creation and public display are not deferred.
 
 ### 13. Product Q&A and Chat/Messaging
 
