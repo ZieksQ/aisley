@@ -661,6 +661,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         });
         Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
             Route::get('/', [CustomerCourierConversationController::class, 'index'])->name('index');
+            Route::get('/order-context/{order}', [CustomerCourierConversationController::class, 'orderContext'])->whereUuid('order')->name('order-context');
             Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
             Route::get('/{conversation}', [CustomerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');

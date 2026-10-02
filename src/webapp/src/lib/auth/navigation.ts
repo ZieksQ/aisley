@@ -5,6 +5,6 @@ export function safeReturnPath(value: string | string[] | undefined | null) {
 }
 
 export function isProtectedCustomerPath(pathname: string) {
-  return ["/account", "/cart", "/checkout", "/orders", "/notifications", "/messages"]
+  return ["/account", "/cart", "/checkout", "/orders", "/notifications", "/messages", "/courier-messages"]
     .some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }

@@ -182,8 +182,8 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 13. Product Q&A and Chat/Messaging
 
 - **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
-- **Status:** Product Q&A Phase 1, private Customer–Shop text messaging, and separate Order-scoped Customer–Logistics delivery messaging are implemented in the Customer storefront and Laravel API. Both chat channels use bounded polling; realtime transport, attachments, moderation, and Admin/Courier contact remain deferred.
-- **Boundary:** Shop and Logistics threads have distinct conversation kinds, role-owned inboxes, and unread counts; delivery contact follows the current handler of an owned active Order and becomes read-only after custody or terminal-state changes. Chat is separate from public Product Q&A and general notifications. It does not expose registration evidence, private addresses, payment secrets, or unrelated users, and cannot change an Order or complaint decision.
+- **Status:** Product Q&A Phase 1, Customer–Shop messaging, Order-scoped Customer–Logistics messaging, and accepted-final-mile Customer–Courier inbox/reply are implemented in the storefront and Laravel API. Courier messages is available through AccountMenu and eligible Order detail. All three channels use bounded polling; realtime, attachments, moderation, and general Admin chat remain deferred. The external Flutter Buyer composer/live exchange remains unverified and unchanged.
+- **Boundary:** Shop, Logistics, and Courier threads have distinct conversation kinds, role-owned inboxes, and unread counts. Logistics contact follows the current Order handler; Courier contact requires its accepted final-mile task and current approved assignment, with read-only history after terminal/custody/reassignment changes. Chat remains separate from Q&A/notifications, exposes no private evidence or unrelated users, and cannot change an Order, custody, delivery completion, or complaint decision.
 
 ## Data, privacy, and consistency invariants
 
