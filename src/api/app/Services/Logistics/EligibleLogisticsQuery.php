@@ -45,6 +45,7 @@ class EligibleLogisticsQuery
                 'recommendation_reason' => match ($tier) {
                     LogisticsMatchTier::SameCity => 'same_city',
                     LogisticsMatchTier::SameProvince => 'same_province',
+                    LogisticsMatchTier::SameRegion => 'same_region',
                     LogisticsMatchTier::SameCountry => 'same_country',
                     LogisticsMatchTier::Other => $distance['distance_km'] !== null ? 'nearest_by_road' : 'eligible_provider',
                 },
@@ -73,6 +74,9 @@ class EligibleLogisticsQuery
         }
         if ($same($source->province, $target->province) && $same($source->country, $target->country)) {
             return LogisticsMatchTier::SameProvince;
+        }
+        if ($same($source->region, $target->region) && $same($source->country, $target->country)) {
+            return LogisticsMatchTier::SameRegion;
         }
         if ($same($source->country, $target->country)) {
             return LogisticsMatchTier::SameCountry;

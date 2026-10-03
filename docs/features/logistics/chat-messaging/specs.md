@@ -53,7 +53,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Buyer may initiate or reply only from an owned Order while the Customer account is active, the
   Order is not terminal, and this Logistics organization is its current authorized handler. An
   active account without a related Order cannot contact arbitrary Logistics organizations.
-- Resolve current handler from authoritative pickup/shipment custody records; a Seller's selected
+- Resolve current handler from authoritative pickup/shipment custody records; the checkout-selected
   origin organization does not automatically retain Buyer-contact rights after an authorized
   linehaul handoff. A later handler gets a distinct thread, not the previous organization's history.
 - On cancellation, delivery, relationship loss, task rejection/completion, or custody transfer,
@@ -100,7 +100,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 
 ### Acceptance criteria
 
-- [x] Seller and Logistics can each initiate/reply for that Seller's selected pickup request; another Seller or Logistics organization cannot read or create the thread.
+- [x] Seller and Logistics can each initiate/reply for the Order's selected pickup request; another Seller or Logistics organization cannot read or create the thread.
 - [ ] An approved affiliated Courier with an active offered/accepted task can contact the owning Logistics organization; affiliation alone, a rejected/completed task, or a forged task cannot start or continue chat.
 - [x] An active Customer with an owned nonterminal Order can contact its current handling Logistics organization; guests, inactive accounts, unrelated Orders, and prior/other organizations cannot.
 - [x] Bilateral operational threads remain separate from each other and from Customer–Shop chat; no role gains a global messaging inbox or access through a guessed UUID.

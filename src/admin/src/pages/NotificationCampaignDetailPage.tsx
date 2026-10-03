@@ -119,15 +119,15 @@ export function NotificationCampaignDetailPage() {
     <div className="mx-auto max-w-5xl space-y-6 px-5 py-8 sm:px-8">
       <Link className="text-sm font-medium text-[#4C1268] dark:text-pink-300" to="/notification-campaigns">← Campaign history</Link>
       {loading ? (
-        <p className="text-sm text-slate-500">Loading campaign…</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Loading campaign…</p>
       ) : !campaign ? (
-        <p className="text-sm text-rose-700" role="alert">{error || 'Campaign not found.'}</p>
+        <p className="text-sm text-rose-700 dark:text-rose-300" role="alert">{error || 'Campaign not found.'}</p>
       ) : (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold">{campaign.title}</h2>
-              <p className="mt-1 text-sm text-slate-500">{campaign.status.replaceAll('_', ' ')} · Revision {campaign.revision}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{campaign.status.replaceAll('_', ' ')} · Revision {campaign.revision}</p>
             </div>
             <button className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-white/20" onClick={() => void refresh().catch((reason) => setError(message(reason)))} type="button">Refresh status</button>
           </div>
@@ -180,7 +180,7 @@ export function NotificationCampaignDetailPage() {
                 <div><dt>Skipped</dt><dd className="font-semibold">{campaign.skipped_count}</dd></div>
                 <div><dt>Failed</dt><dd className="font-semibold">{campaign.failed_count}</dd></div>
               </dl>
-              <p className="mt-4 text-xs text-slate-500">Persisted means saved to the Customer inbox, not read by a Customer.</p>
+              <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">Persisted means saved to the Customer inbox, not read by a Customer.</p>
             </section>
           )}
         </>

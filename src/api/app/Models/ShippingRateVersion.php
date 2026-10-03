@@ -12,6 +12,11 @@ class ShippingRateVersion extends Model
 
     protected $guarded = [];
 
+    protected $hidden = [
+        'base_fee_cents', 'included_weight_grams', 'additional_weight_grams',
+        'additional_fee_cents', 'destination_surcharge_cents',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -28,5 +33,10 @@ class ShippingRateVersion extends Model
     public function acceptances(): HasMany
     {
         return $this->hasMany(LogisticsShippingRateAcceptance::class);
+    }
+
+    public function regionSurcharges(): HasMany
+    {
+        return $this->hasMany(ShippingRateRegionSurcharge::class);
     }
 }

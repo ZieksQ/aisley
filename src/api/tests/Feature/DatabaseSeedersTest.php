@@ -82,18 +82,31 @@ class DatabaseSeedersTest extends TestCase
                 && str_starts_with($product->thumbnail_path, 'https://images.unsplash.com/')
                 && $product->description_markdown !== null
                 && $product->specifications !== null
-                && $product->base_sku !== null,
+                && $product->base_sku !== null
+                && $product->shipping_weight_grams > 0
+                && $product->shipping_length_mm > 0
+                && $product->shipping_width_mm > 0
+                && $product->shipping_height_mm > 0,
         ));
 
         $this->assertDatabaseCount('product_media', 38);
-        $this->assertDatabaseCount('product_option_groups', 3);
-        $this->assertDatabaseCount('product_option_values', 6);
-        $this->assertDatabaseCount('product_variants', 6);
+        $this->assertDatabaseCount('product_option_groups', 6);
+        $this->assertDatabaseCount('product_option_values', 13);
+        $this->assertDatabaseCount('product_variants', 13);
         $this->assertSame(38, ProductMedia::query()->where('path', 'like', 'https://images.unsplash.com/%')->count());
-        $this->assertSame(3, ProductOptionGroup::query()->count());
-        $this->assertSame(6, ProductVariant::query()->count());
-        $this->assertSame(34, InventorySku::query()->count());
+        $this->assertSame(6, ProductOptionGroup::query()->count());
+        $this->assertSame(13, ProductVariant::query()->count());
+        $this->assertSame(38, InventorySku::query()->count());
         $this->assertSame(0, InventorySku::query()->whereNull('shop_id')->count());
+        $this->assertSame(5, ProductVariant::query()->whereNotNull('shipping_weight_grams')->count());
+        $this->assertSame(0, ProductVariant::query()->where(function ($query): void {
+            $query->whereNotNull('shipping_weight_grams')
+                ->where(function ($dimensions): void {
+                    $dimensions->whereNull('shipping_length_mm')
+                        ->orWhereNull('shipping_width_mm')
+                        ->orWhereNull('shipping_height_mm');
+                });
+        })->count());
 
         $seller->update(['status' => UserStatus::Suspended]);
         $this->seed(ProductSeeder::class);
@@ -101,9 +114,9 @@ class DatabaseSeedersTest extends TestCase
         $this->assertSame(UserStatus::Suspended, $seller->fresh()->status);
         $this->assertDatabaseCount('products', 30);
         $this->assertDatabaseCount('product_media', 38);
-        $this->assertDatabaseCount('product_option_groups', 3);
-        $this->assertDatabaseCount('product_option_values', 6);
-        $this->assertDatabaseCount('product_variants', 6);
+        $this->assertDatabaseCount('product_option_groups', 6);
+        $this->assertDatabaseCount('product_option_values', 13);
+        $this->assertDatabaseCount('product_variants', 13);
     }
 
     public function test_initial_seller_seeder_uses_configuration_without_overwriting_an_existing_account(): void

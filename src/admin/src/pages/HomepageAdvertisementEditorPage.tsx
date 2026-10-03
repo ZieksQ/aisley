@@ -106,21 +106,21 @@ export function HomepageAdvertisementEditorPage() {
     }
   }
 
-  if (!canManage) return <div className="mx-auto max-w-3xl px-5 py-10"><p className="text-sm text-slate-500">You do not have permission to manage homepage advertisements.</p></div>
-  if (loading) return <div className="mx-auto max-w-5xl px-5 py-10 text-sm text-slate-500">Loading advertisement layout…</div>
+  if (!canManage) return <div className="mx-auto max-w-3xl px-5 py-10"><p className="text-sm text-slate-500 dark:text-slate-400">You do not have permission to manage homepage advertisements.</p></div>
+  if (loading) return <div className="mx-auto max-w-5xl px-5 py-10 text-sm text-slate-500 dark:text-slate-400">Loading advertisement layout…</div>
 
   return <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
     <Link className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white" to="/platform-settings?section=advertisements"><FaArrowLeft />Back to homepage ads</Link>
-    <div className="mt-5 border-b border-slate-200 pb-5 dark:border-white/10"><h2 className="text-2xl font-semibold tracking-tight">{isNew ? 'New advertisement layout' : 'Edit advertisement layout'}</h2><p className="mt-2 text-sm text-slate-500">Changes remain a draft until you publish them from the homepage ads list.</p></div>
+    <div className="mt-5 border-b border-slate-200 pb-5 dark:border-white/10"><h2 className="text-2xl font-semibold tracking-tight">{isNew ? 'New advertisement layout' : 'Edit advertisement layout'}</h2><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Changes remain a draft until you publish them from the homepage ads list.</p></div>
     {error ? <p className="mt-5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200" role="alert">{error}</p> : null}
     <form className="mt-6 space-y-6" onSubmit={save}>
       <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.035] sm:grid-cols-2">
-        <label className="text-sm font-medium sm:col-span-2">Advertisement title (internal tag)<input className={inputClass} maxLength={120} placeholder="e.g. September homepage promotion" value={form.tag_title} onChange={(event) => setForm({ ...form, tag_title: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500">Used only to identify this advertisement in Admin. It is never shown on the homepage.</span></label>
+        <label className="text-sm font-medium sm:col-span-2">Advertisement title (internal tag)<input className={inputClass} maxLength={120} placeholder="e.g. September homepage promotion" value={form.tag_title} onChange={(event) => setForm({ ...form, tag_title: event.target.value })} /><span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">Used only to identify this advertisement in Admin. It is never shown on the homepage.</span></label>
         <label className="text-sm font-medium">Layout<select className={inputClass} value={form.layout} onChange={(event) => { const layout = event.target.value as HomepageConfiguration['layout']; setForm({ ...form, layout, ads: adsForLayout(layout, form.ads) }) }}><option value="single">Single</option><option value="carousel">Carousel</option><option value="multi_block">Multi block</option><option value="multi_block_carousel">Multi block carousel</option></select></label>
         <label className="text-sm font-medium">Rotation interval (seconds)<input className={inputClass} min="3" max="20" type="number" value={form.rotation_interval_seconds} onChange={(event) => setForm({ ...form, rotation_interval_seconds: Number(event.target.value) })} /></label>
         <label className="text-sm font-medium">Schedule starts (optional)<input className={inputClass} type="datetime-local" value={form.starts_at} onChange={(event) => setForm({ ...form, starts_at: event.target.value })} /></label>
         <label className="text-sm font-medium">Schedule ends (optional)<input className={inputClass} min={form.starts_at || undefined} type="datetime-local" value={form.ends_at} onChange={(event) => setForm({ ...form, ends_at: event.target.value })} /></label>
-        <p className="text-xs leading-5 text-slate-500 sm:col-span-2">Scheduling applies to the complete advertisement layout, including every block and carousel slide.</p>
+        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400 sm:col-span-2">Scheduling applies to the complete advertisement layout, including every block and carousel slide.</p>
       </div>
       {form.ads.map((ad, index) => {
         const primaryCount = form.ads.filter((item) => item.slot === 'primary').length
@@ -133,8 +133,8 @@ export function HomepageAdvertisementEditorPage() {
             <ImageUpload ad={ad} index={index} label="Insert desktop image" loading={uploading === `${index}-desktop`} mobile={false} onUpload={upload} required />
             <ImageUpload ad={ad} index={index} label="Insert mobile image (optional)" loading={uploading === `${index}-mobile`} mobile onUpload={upload} />
           </div>
-          {Object.entries(fieldErrors).filter(([key]) => key.startsWith(`ads.${index}.`)).flatMap(([, messages]) => messages).map((message) => <p className="mt-3 text-sm text-red-600" key={message}>{message}</p>)}
-          {canRemove ? <button className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-red-600" onClick={() => setForm({ ...form, ads: form.ads.filter((_, adIndex) => adIndex !== index) })} type="button"><FaXmark />Remove slide</button> : null}
+          {Object.entries(fieldErrors).filter(([key]) => key.startsWith(`ads.${index}.`)).flatMap(([, messages]) => messages).map((message) => <p className="mt-3 text-sm text-red-600 dark:text-red-300" key={message}>{message}</p>)}
+          {canRemove ? <button className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-red-600 dark:text-red-300" onClick={() => setForm({ ...form, ads: form.ads.filter((_, adIndex) => adIndex !== index) })} type="button"><FaXmark />Remove slide</button> : null}
         </fieldset>
       })}
       {form.layout.includes('carousel') ? <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-semibold hover:bg-slate-50 dark:border-white/15 dark:hover:bg-white/5" onClick={() => setForm({ ...form, ads: [...form.ads, blankAd()] })} type="button"><FaPlus />Add carousel slide</button> : null}
@@ -148,5 +148,5 @@ function ImageUpload({ ad, index, label, loading, mobile, onUpload, required = f
   const filename = mobile ? ad.image_mobile_filename : ad.image_desktop_filename
   const storedName = filename || path.split('/').at(-1)
 
-  return <div className="text-sm font-medium"><span>{label}</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:font-medium`} disabled={loading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; if (file) void onUpload(file, index, mobile) }} required={required && !path} type="file" /><p className="mt-1 text-xs font-normal text-slate-500">{loading ? 'Uploading image…' : storedName ? `Inserted: ${storedName}` : mobile ? 'Optional. The desktop image is used when omitted.' : 'JPEG, PNG, or WebP — 10 MB maximum.'}</p></div>
+  return <div className="text-sm font-medium"><span>{label}</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className={`${inputClass} file:mr-3 file:border-0 file:bg-transparent file:font-medium`} disabled={loading} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; if (file) void onUpload(file, index, mobile) }} required={required && !path} type="file" /><p className="mt-1 text-xs font-normal text-slate-500 dark:text-slate-400">{loading ? 'Uploading image…' : storedName ? `Inserted: ${storedName}` : mobile ? 'Optional. The desktop image is used when omitted.' : 'JPEG, PNG, or WebP — 10 MB maximum.'}</p></div>
 }

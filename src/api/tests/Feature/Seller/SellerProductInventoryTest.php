@@ -78,6 +78,7 @@ class SellerProductInventoryTest extends TestCase
         $created = $this->actingAs($owner)->postJson('/api/v1/seller/products', [
             'name' => 'Private Product', 'category_id' => $category->id, 'sku' => 'PRIVATE-1',
             'price' => 100, 'opening_stock' => 2,
+            ...$this->shipping(),
         ])->assertCreated();
 
         $this->actingAs($other)->getJson('/api/v1/seller/products/'.$created->json('data.id'))->assertNotFound();
@@ -91,6 +92,7 @@ class SellerProductInventoryTest extends TestCase
         $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Small Stock', 'category_id' => $category->id, 'sku' => 'SMALL-1',
             'price' => 50, 'opening_stock' => 1,
+            ...$this->shipping(),
         ])->assertCreated();
 
         $this->postJson('/api/v1/seller/inventory/'.$created->json('data.skus.0.id').'/adjustments', [
@@ -108,6 +110,7 @@ class SellerProductInventoryTest extends TestCase
         $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Restorable Product', 'category_id' => $category->id, 'sku' => 'RESTORE-1',
             'price' => 150, 'opening_stock' => 4,
+            ...$this->shipping(),
         ])->assertCreated();
         $productId = $created->json('data.id');
         $skuId = $created->json('data.skus.0.id');
@@ -141,5 +144,16 @@ class SellerProductInventoryTest extends TestCase
             $name,
             base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true),
         );
+    }
+
+    /** @return array<string, int> */
+    private function shipping(): array
+    {
+        return [
+            'shipping_weight_grams' => 500,
+            'shipping_length_mm' => 200,
+            'shipping_width_mm' => 150,
+            'shipping_height_mm' => 100,
+        ];
     }
 }

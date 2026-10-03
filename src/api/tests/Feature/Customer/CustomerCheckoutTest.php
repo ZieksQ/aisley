@@ -11,16 +11,21 @@ use App\Enums\VoucherBenefitType;
 use App\Enums\VoucherIssuerType;
 use App\Enums\VoucherValueType;
 use App\Models\Address;
+use App\Models\HubServiceArea;
 use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\LogisticsOrganization;
+use App\Models\LogisticsRateCard;
 use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ShippingRateVersion;
 use App\Models\Shop;
+use App\Models\ShopLogisticsProvider;
+use App\Models\SortingLane;
+use App\Models\SortingPlan;
 use App\Models\User;
 use App\Models\Voucher;
 use Database\Seeders\ProductSeeder;
@@ -72,7 +77,7 @@ class CustomerCheckoutTest extends TestCase
         $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)
             ->assertOk()
             ->assertJsonPath('data.summary.orderCount', 1)
-            ->assertJsonPath('data.groups.0.shippingQuote.baseFee', '0.00')
+            ->assertJsonPath('data.groups.0.shippingQuote.shippingFee', '0.00')
             ->assertJsonPath('data.groups.0.totals.payable', '13500.00')
             ->assertJsonPath('data.summary.payable', '13500.00')
             ->json('data');
@@ -218,7 +223,7 @@ class CustomerCheckoutTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_NOT_FOUND');
     }
 
-    public function test_more_specific_zone_rate_and_billable_weight_rounding_determine_cod(): void
+    public function test_unplanned_route_ignores_legacy_platform_base_and_uses_only_region_surcharge_privately(): void
     {
         $customer = $this->customer();
         $address = $this->address($customer);
@@ -226,7 +231,7 @@ class CustomerCheckoutTest extends TestCase
         $organizationId = LogisticsShippingRateAcceptance::query()->value('logistics_organization_id');
         $logisticsUserId = LogisticsOrganization::query()->findOrFail($organizationId)->user_id;
         $rate = ShippingRateVersion::create([
-            'version_number' => 2, 'status' => 'published', 'destination_city_municipality' => 'Makati City',
+            'version_number' => 2, 'status' => 'published',
             'base_fee_cents' => 15000, 'included_weight_grams' => 500, 'additional_weight_grams' => 500,
             'additional_fee_cents' => 2500, 'volumetric_divisor' => 5000, 'max_weight_grams' => 100000,
             'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
@@ -238,12 +243,14 @@ class CustomerCheckoutTest extends TestCase
             'accepted_at' => now()->subHour(), 'accepted_by' => $logisticsUserId,
         ]);
 
+        $rate->regionSurcharges()->create(['destination_region' => 'NCR', 'normalized_region' => 'ncr', 'surcharge_cents' => 700]);
+
         $this->postJson('/api/v1/customer/checkout/quote', $this->buyNowPayload($product, $address, 2))
             ->assertOk()
-            ->assertJsonPath('data.groups.0.shippingQuote.rateVersion', 2)
-            ->assertJsonPath('data.groups.0.shippingQuote.billableWeightGrams', 1200)
-            ->assertJsonPath('data.groups.0.totals.shippingFee', '200.00')
-            ->assertJsonPath('data.groups.0.totals.payable', '13700.00');
+            ->assertJsonMissingPath('data.groups.0.shippingQuote.billableWeightGrams')
+            ->assertJsonMissingPath('data.groups.0.shippingQuote.baseFee')
+            ->assertJsonPath('data.groups.0.totals.shippingFee', '7.00')
+            ->assertJsonPath('data.groups.0.totals.payable', '13507.00');
     }
 
     public function test_rate_revision_after_quote_requires_customer_reconfirmation(): void
@@ -259,6 +266,116 @@ class CustomerCheckoutTest extends TestCase
             ->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quoteId])
             ->assertConflict()->assertJsonPath('code', 'QUOTE_STALE');
         $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_local_route_combines_service_bases_region_and_category_weight_charges_privately(): void
+    {
+        $customer = $this->customer();
+        $address = $this->address($customer);
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $organization = LogisticsOrganization::query()->with('hub')->firstOrFail();
+        $logisticsUserId = $organization->user_id;
+        $rate = ShippingRateVersion::query()->firstOrFail();
+        $rate->update(['base_fee_cents' => 1000]);
+        $rate->regionSurcharges()->create([
+            'destination_region' => 'NCR',
+            'normalized_region' => 'ncr',
+            'surcharge_cents' => 500,
+        ]);
+        HubServiceArea::create([
+            'logistics_hub_id' => $organization->hub->id,
+            'postal_code' => '1203',
+            'is_active' => true,
+            'created_by' => $logisticsUserId,
+        ]);
+        $lane = SortingLane::create([
+            'logistics_organization_id' => $organization->id,
+            'logistics_hub_id' => $organization->hub->id,
+            'created_by_logistics_id' => $logisticsUserId,
+            'code' => 'LOCAL',
+            'name' => 'Local delivery',
+            'type' => 'standard',
+            'is_active' => true,
+            'position' => 1,
+        ]);
+        $plan = SortingPlan::create([
+            'logistics_organization_id' => $organization->id,
+            'logistics_hub_id' => $organization->hub->id,
+            'created_by_logistics_id' => $logisticsUserId,
+            'name' => 'Active local plan',
+            'is_active' => true,
+        ]);
+        $plan->lanes()->create([
+            'sorting_lane_id' => $lane->id,
+            'destination_type' => 'postal_code',
+            'postal_code' => '1203',
+            'position' => 1,
+        ]);
+        $card = LogisticsRateCard::create([
+            'logistics_organization_id' => $organization->id,
+            'version_number' => 1,
+            'status' => 'published',
+            'currency' => 'PHP',
+            'effective_at' => now()->subHour(),
+            'published_at' => now()->subHour(),
+            'published_by' => $logisticsUserId,
+        ]);
+        foreach (['first_mile', 'last_mile'] as $serviceType) {
+            $card->services()->create(['service_type' => $serviceType, 'base_fee_cents' => 200]);
+            $card->rules()->create([
+                'category_id' => $product->category_id,
+                'service_type' => $serviceType,
+                'base_charge_cents' => 200,
+                'included_weight_grams' => 500,
+                'additional_weight_grams' => 500,
+                'additional_fee_cents' => 100,
+                'max_weight_grams' => 100000,
+                'max_length_mm' => 2000,
+                'max_width_mm' => 2000,
+                'max_height_mm' => 2000,
+            ]);
+        }
+        $payload = $this->buyNowPayload($product, $address, 2);
+        $payload['logistics_selections'] = [[
+            'shop_id' => $product->shop_id,
+            'logistics_organization_id' => $organization->id,
+        ]];
+
+        $this->postJson('/api/v1/customer/checkout/logistics-options', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.groups.0.options.0.shippingFee', '13.00')
+            ->assertJsonPath('data.groups.0.options.0.routeStatus', 'local');
+
+        $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.groups.0.shippingQuote.routeStatus', 'local')
+            ->assertJsonPath('data.groups.0.shippingQuote.shippingFee', '13.00')
+            ->assertJsonPath('data.groups.0.totals.shippingFee', '13.00')
+            ->assertJsonMissingPath('data.groups.0.shippingQuote.billableWeightGrams')
+            ->assertJsonMissingPath('data.groups.0.shippingQuote.destinationSurcharge')
+            ->json('data');
+
+        $card->services()->where('service_type', 'first_mile')->update(['base_fee_cents' => 300]);
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quote['quoteId']])
+            ->assertConflict()->assertJsonPath('code', 'QUOTE_STALE');
+        $this->assertDatabaseCount('orders', 0);
+        $card->services()->where('service_type', 'first_mile')->update(['base_fee_cents' => 200]);
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quote['quoteId']])
+            ->assertOk()
+            ->assertJsonPath('data.orders.0.totals.shippingFee', '13.00');
+
+        $snapshot = Order::query()->firstOrFail()->pricingSnapshot;
+        $this->assertSame('local', $snapshot->shipping_route_status->value);
+        $this->assertSame(800, collect($snapshot->logistics_charge_inputs)->sum('quoted_charge_cents'));
+        $this->assertSame(1200, $snapshot->billable_weight_grams);
+        $this->assertSame('logistics_service_base_v1', $snapshot->shipping_pricing_model->value);
+        $this->assertSame(400, $snapshot->base_fee_cents);
+        $this->assertSame(400, $snapshot->additional_weight_fee_cents);
+        $card->services()->update(['base_fee_cents' => 9000]);
+        $this->assertSame(1300, $snapshot->fresh()->quoted_shipping_fee_cents);
     }
 
     private function customer(): User
@@ -290,6 +407,12 @@ class CustomerCheckoutTest extends TestCase
     {
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
         $shop = Shop::create(['seller_id' => $seller->id, 'name' => 'Second Store', 'slug' => 'second-store', 'status' => ShopStatus::Active]);
+        ShopLogisticsProvider::create([
+            'shop_id' => $shop->id,
+            'logistics_organization_id' => LogisticsOrganization::query()->value('id'),
+            'configured_by' => $seller->id,
+            'is_enabled' => true,
+        ]);
         $this->pickupAddress($seller, 'Second Store');
         $product = Product::create(['shop_id' => $shop->id, 'name' => 'Second Product', 'slug' => 'second-product', 'price' => '100.00', 'stock_quantity' => 5, 'status' => ProductStatus::Active, 'published_at' => now()->subMinute(), 'shipping_weight_grams' => 500, 'shipping_length_mm' => 200, 'shipping_width_mm' => 150, 'shipping_height_mm' => 100]);
         $sku = InventorySku::create(['product_id' => $product->id, 'code' => 'SECOND-BASE', 'is_base' => true]);

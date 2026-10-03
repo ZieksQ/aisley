@@ -64,7 +64,7 @@ scope: Seller Web Application and Laravel API
 ### Prepare and Logistics handoff
 
 - After approval, route the Seller to Pickup. Seller may review item snapshots and select up to 50 `seller_processing` Orders for one pickup request when they are physically ready.
-- `POST /api/v1/seller/orders/pickup-requests` groups the selected Orders with one eligible Seller-selected Logistics organization, creates one waybill per Order, transitions each to `ready_for_pickup`, and notifies only that organization after commit. Pickup date/Courier remain null until Logistics schedules them.
+- `POST /api/v1/seller/orders/pickup-requests` groups only Orders with the same checkout-selected Logistics organization, creates one waybill per Order, transitions each to `ready_for_pickup`, and notifies only that organization after commit. Pickup date/Courier remain null until Logistics schedules them.
 - Seller readiness validates immutable item quantities, payment state, current Order state, Order-linked Inventory reservation, and Logistics eligibility before committing. Package measurements remain deferred for this MVP.
 - A committed `ready_for_pickup` transition freezes the selected Logistics organization and waybill snapshots. It must not set a pickup date, assign a Courier, or claim physical custody.
 - Each solo or multi-Order pickup request requires exactly one authenticated-Seller-owned pickup address. That same address applies to every Order in the request, and every waybill freezes its fields and coordinates so later address-book edits cannot rewrite committed pickup instructions.

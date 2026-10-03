@@ -15,6 +15,14 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 
 > **Cross-document decision notice:** This document is the canonical decision and reconciliation record for shared Shipment/Parcel/DeliveryTask concerns; it is not a replacement for the implementation contracts in `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, the domain documents, or owning feature specifications. Use it to answer cross-role concerns and direct revisions to those files. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
 
+## Checkout-selected provider and frozen pricing route — 2026-09-27
+
+- The Seller configures the Shop's allowed Logistics organizations; the Customer selects one provider per Shop Order at checkout. This supersedes the historical Seller-at-pickup selection decision below.
+- Checkout freezes either a complete `local`/`planned` commercial route or an `unplanned` destination-surcharge-only fallback. Planned hops and private leg-charge weights are immutable pricing evidence.
+- Seller pickup must match the Order's selected provider. Planned/local waybills materialize the frozen route; they do not calculate a replacement route from mutable sort plans.
+- A frozen connection/participant becoming unavailable causes an operational hold without repricing. An unplanned fallback may resolve operationally later, while Finance holds payout for audited participant reconciliation.
+- Product/Variant packed measurements are required inputs to checkout pricing; one Order still maps to one Parcel in the current fulfillment model.
+
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
 
 ## Company-truck parcel receipt revision — 2026-09-23
@@ -75,7 +83,7 @@ Customer places Order
 
 In this register, `[x]` records an accepted decision or completed named correction. The sign-off checklist separately verifies propagation. Implementation and rollout require their own evidence. Do not expose an operational capability until its owning contract, migration, authorization checks, and verification evidence are present.
 
-- [x] **Logistics-selection authority:** The Seller selects one eligible Logistics organization when committing the pickup request. Checkout remains provider-neutral; the Customer selects a shipping address, not a Logistics provider. Remove or rewrite the old Customer-selection wording in `docs/requirements.md` and `docs/workspace.md`.
+- [x] **Logistics-selection authority:** The Seller configures allowed Shop providers, the Customer selects one per Shop Order at checkout, and Seller pickup enforces the frozen selection.
 - [x] **High-level status mapping:** `picked_up` is the high-level projection of first-mile `picked_up_from_seller`; `assigned` is the Customer-facing projection of a committed dispatch schedule/final-mile Courier offer. Hub receipt and sorting remain detailed physical milestones, not meanings of either high-level value.
 - [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. The shared physical Shipment/Parcel bridge, hub operations, final-mile tasks, task-confirmation hub evidence, photo POD, and P0 delivery completion are now implemented; signature media, location telemetry, and exceptional recovery remain deferred.
 - [x] **Schema-ledger synchronization:** Reconcile `docs/schema.md` with the migration directory without renaming or editing executed migrations. Add the implemented low-stock-alert, wishlist, and Logistics profile-photo migrations that are missing from the ledger; correct its duplicate sequence numbers for the Courier pickup, Product Q&A, and route-manifest entries; and record the implemented policy-consent protected-action gate.
@@ -86,7 +94,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 ### Cross-document decisions: ownership boundaries
 
 - Customer checkout creates the high-level Order at `placed` for the current COD flow and stores an immutable destination snapshot.
-- Seller owns `placed → seller_processing → ready_for_pickup`, selects one eligible Logistics organization, and commits the shared waybill and readiness transaction.
+- Seller owns `placed → seller_processing → ready_for_pickup`, validates the checkout-selected Logistics organization, and commits the shared waybill and readiness transaction.
 - The selected Logistics organization owns pickup scheduling, first-mile task creation/offer, sole-hub receipt, sorting, transfer, dispatch, and final-mile assignment.
 - A Courier can accept only a task offered by its associated active Logistics organization. Courier assignment authority remains with Logistics.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not grant or require final-mile assignment; the same or a different eligible Courier may perform the later leg.
@@ -98,7 +106,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 - The Seller-created shared waybill is created in the pickup-request transaction at `ready_for_pickup`; it is not replaced by a second Logistics waybill at hub receipt.
 - The shared waybill and its Order/Parcel reference are immutable; later route, assignment, print, and scan activity is append-only history.
 - The shared waybill's human reference is the immutable `tracking_id`; its primary physical barcode is a thin 1D Code 128 encoding of that value, while QR remains a compatibility/fallback identifier.
-- Seller pickup may snapshot the Buyer postal code and the selected Logistics hub's current sort-plan match as a routing hint. Automatic Sorting resolves the tenant-owned tracking ID and rechecks the current active plan server-side; missing plan, postal code, mapping, or lane falls back to the exception lane without changing received custody.
+- Checkout snapshots the Buyer postal code and complete planned/local route when available. Seller pickup materializes that route; unplanned fallback Orders may use the current active plan later and remain financially held until reconciled.
 - For the MVP, one `DeliveryTask` represents one Order/Parcel; a pickup schedule may group Orders operationally but never merges their tasks, waybills, snapshots, or histories.
 - The Logistics registration address represents its one operational hub. Sub-hubs and additional hub records are outside the MVP reference boundary.
 
@@ -165,7 +173,7 @@ awaiting_seller_pickup
 - [x] Current inventory reservation boundary and the existing waybill/schedule/first-mile implementation boundary are recorded.
 - [x] Tracking-ID Code 128 identity, pickup-time sort-plan hints, and server-authoritative scan-time postal-code routing with exception fallback are recorded for the owning waybill, pickup, and sorting specifications.
 - [x] The endpoint-ownership rule is recorded; each eventual endpoint still requires an owning feature specification with method, path, auth, request, response, errors, and retry semantics.
-- [x] Provider-selection wording is consistent: Seller selection at pickup request is stated everywhere, and the stale Customer checkout-selection wording is removed.
+- [x] Provider-selection wording is consistent with the 2026-09-27 flow: Seller allow-list, Customer checkout selection, and Seller pickup enforcement.
 - [x] High-level `picked_up`/`assigned` mapping is consistent everywhere: first-mile confirmation versus committed scheduled final-mile assignment.
 - [x] Seller/Buyer domain summaries and Seller Prepare Orders distinguish the implemented pickup/waybill/scheduling/first-mile foundation and deployed P0 final-mile operations from deferred signature/location/exceptional operations.
 - [x] `docs/schema.md` migration ledger includes every repository migration, uses unique documentation sequence numbers, and records the implemented policy-consent protected-action gate.
@@ -339,5 +347,5 @@ Complete each unchecked question before creating physical operational migrations
 ### Financial completion evidence (2026-09-24)
 
 - Confirmed delivery recognizes revenue and beneficiary liabilities using the immutable Order pricing snapshot; it does not imply remittance or payout.
-- Logistics allocation uses completed service evidence: 25% first mile, 35% final mile, and 40% split by completed linehaul distance among actual truck-owning organizations. Same-hub fulfillment assigns the complete Logistics pool to that organization.
-- Missing carrier or distance evidence creates a financial hold. Completed allocations remain frozen while uncommitted future route segments may be revised. See `docs/features/shared/commission-settlement/spec.md`.
+- Logistics commission applies once. The post-commission pool uses frozen quoted first-mile, linehaul, and last-mile charges as pro-rata weights, then verifies actual service owners before commitment.
+- Missing/contradictory carrier evidence or an unplanned fallback creates a financial hold. Admin reconciliation may assign actual participants and an explicit platform subsidy. See `docs/features/shared/commission-settlement/spec.md`.

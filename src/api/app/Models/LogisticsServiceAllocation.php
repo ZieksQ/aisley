@@ -13,6 +13,6 @@ class LogisticsServiceAllocation extends Model
 
     protected function casts(): array
     {
-        return ['distance_meters' => 'integer', 'amount_cents' => 'integer', 'committed_at' => 'immutable_datetime'];
+        return ['distance_meters' => 'integer', 'quoted_charge_cents' => 'integer', 'amount_cents' => 'integer', 'committed_at' => 'immutable_datetime'];
     }
 }

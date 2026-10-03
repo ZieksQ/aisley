@@ -147,7 +147,7 @@ function SupportTicketsWorkspace() {
         tickets={items}
       />
       <div>
-        {ticketId && !detail && <p className="text-sm text-slate-500">Loading ticket…</p>}
+        {ticketId && !detail && <p className="text-sm text-slate-500 dark:text-slate-400">Loading ticket…</p>}
         {detail && detail.data.id === ticketId && <SupportTicketDetail
           assignees={assignees}
           canManage={canManage}

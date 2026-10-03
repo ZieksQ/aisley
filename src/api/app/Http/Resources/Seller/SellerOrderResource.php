@@ -20,6 +20,10 @@ class SellerOrderResource extends JsonResource
                 'method' => $this->payment_method->value,
                 'status' => $this->payment_status->value,
             ],
+            'shipping_provider' => $this->selectedLogisticsOrganization === null ? null : [
+                'id' => $this->selectedLogisticsOrganization->id,
+                'business_name' => $this->selectedLogisticsOrganization->business_name,
+            ],
             'items' => $this->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,

@@ -3,6 +3,7 @@
 ## WHAT
 
 - Snapshot effective Seller and Logistics commissions at Order placement.
+- Admin commission history derives Active/Scheduled/Inactive/Expired from publication and effective windows. Publication closes only intersecting earlier windows for the same beneficiary, preserves later published schedules, and clamps past/absent effective dates to publication time. Stored draft/published state and existing Order snapshots remain compatible; an expired published policy cannot be republished.
 - Maintain an append-only, balanced integer-centavo ledger for receivables, cash, revenue, expenses, liabilities, refunds, and recoverables.
 - Reconcile full COD remittance before Seller or Logistics settlement.
 - Allocate the Logistics pool from completed service evidence and pay eligible balances through a sandbox simulator.
@@ -13,9 +14,13 @@
 - Customer COD is merchandise subtotal minus merchandise discounts plus quoted shipping minus shipping discounts. Commission never increases COD.
 - Seller commission base is merchandise after Seller-funded merchandise discounts. Seller proceeds subtract Seller commission and Seller-funded shipping discounts.
 - Platform-funded vouchers are platform expenses and preserve beneficiary proceeds.
+- New shipping uses Logistics service bases once per leg, destination surcharge, and one Shop main-category weight/size extra per Parcel/service leg, with no platform base. The extra uses the combined billable weight of all Product Category lines in that Shop Order. Frozen full leg charges (base plus extra) remain the allocation weights. Historical `platform_base_v1` snapshots retain their original totals; new `logistics_service_base_v1` snapshots separate aggregate service bases and extras. Finance drill-downs must label components according to this marker when showing them.
 - Logistics commission applies once to quoted shipping plus an explicitly funded subsidy.
-- Same-hub service assigns the full Logistics pool to one organization. Otherwise first mile earns 25%, final mile 35%, and 40% is divided among completed linehaul legs by snapshotted road distance and actual trip owner.
-- Missing carrier or distance evidence holds allocation. Deterministic largest-remainder allocation reconciles every centavo.
+- Apply Logistics commission exactly once to the complete frozen shipping amount; never apply commission independently to every transfer.
+- Allocate the post-commission Logistics pool across the frozen first-mile, linehaul, and last-mile charges in proportion to each approved quoted leg charge. Do not use fixed 25/35/40 shares.
+- Require actual service evidence to agree with each frozen leg owner: selected pickup organization for first mile, departed/arrived trip owner for linehaul, and current destination organization for last mile.
+- Missing or contradictory carrier evidence holds allocation. Deterministic largest-remainder allocation reconciles every centavo.
+- An unplanned fallback route has no invented leg weights. Hold its pool until Admin records actual provider allocations; Admin may add an explicit platform-funded subsidy and must provide an audited note.
 - Confirmed delivery recognizes revenue. Confirmed collection remains `orders.payment_status = paid`; remittance and payout have independent state.
 
 ## SETTLEMENT
@@ -37,8 +42,8 @@
 ## API
 
 - Shared role prefixes expose `/finance/summary`, `/finance/series`, `/finance/ledger`, `/finance/ledger.csv`, `/finance/orders/{order}`, `/finance/costs`, `/finance/periods/{month}/close`, `/finance/forecast`, and `/finance/payouts`.
-- Admin additionally manages commission policies, remittance clearing, financial holds, and payout callbacks.
+- Admin additionally manages commission policies, remittance clearing, financial holds, route reconciliation through `GET /finance/holds`, `GET /finance/holds/{hold}`, and `POST /finance/holds/{hold}/reconcile-logistics`, and payout callbacks.
 
 ## VERIFICATION
 
-- Cover commission snapshots, voucher funding, zero shipping, actual carrier ownership, remainder reconciliation, partial/full remittance, duplicate receipts/callbacks, 14-day eligibility, atomic reservations, unknown outcomes, reversals, ledger balancing, cost completeness, close rules, forecast reproducibility, tenant isolation, and sandbox separation.
+- Cover commission snapshots, voucher funding, zero shipping, frozen quoted leg weights, actual carrier ownership, pro-rata remainder reconciliation, unplanned-route hold and Admin subsidy reconciliation, partial/full remittance, duplicate receipts/callbacks, 14-day eligibility, atomic reservations, unknown outcomes, reversals, ledger balancing, cost completeness, close rules, forecast reproducibility, tenant isolation, and sandbox separation.

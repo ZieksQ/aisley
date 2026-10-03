@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FaArrowRightFromBracket, FaBars, FaBell, FaChevronUp, FaFileContract, FaGear, FaTruckFast, FaUserGear, FaXmark } from 'react-icons/fa6'
+import { FaArrowRightFromBracket, FaBars, FaBell, FaChevronUp, FaFileContract, FaTruckFast, FaUserGear, FaXmark } from 'react-icons/fa6'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { NotificationBell } from '../components/NotificationBell'
@@ -62,7 +62,6 @@ function AccountMenu({ logistics, onNavigate, onLogout, signingOut }: { logistic
         <Link className={menuItemClass} onClick={closeMenu} role="menuitem" to="/account"><FaUserGear aria-hidden="true" className="text-zinc-500 dark:text-zinc-400" /><span>Account</span></Link>
         <Link className={menuItemClass} onClick={closeMenu} role="menuitem" to="/policy-consent"><FaFileContract aria-hidden="true" className="text-zinc-500 dark:text-zinc-400" /><span>Terms &amp; condition</span></Link>
         <Link className={menuItemClass} onClick={closeMenu} role="menuitem" to="/notifications"><FaBell aria-hidden="true" className="text-zinc-500 dark:text-zinc-400" /><span>Notifications</span></Link>
-        <button aria-disabled="true" className={`${menuItemClass} cursor-not-allowed text-zinc-400 hover:bg-transparent hover:text-zinc-400 dark:text-zinc-500 dark:hover:bg-transparent dark:hover:text-zinc-500`} disabled role="menuitem" title="Settings are coming soon" type="button"><FaGear aria-hidden="true" /><span>Settings</span><span className="ml-auto text-xs font-normal">Soon</span></button>
       </div>
       <div className="border-t border-zinc-200 pt-1 dark:border-white/10"><button className={`${menuItemClass} text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-400/10 dark:hover:text-red-200`} disabled={signingOut} onClick={onLogout} role="menuitem" type="button"><FaArrowRightFromBracket aria-hidden="true" />{signingOut ? 'Signing out…' : 'Log out'}</button></div>
     </div> : null}
@@ -124,6 +123,8 @@ export function LogisticsLayout() {
           ? 'Notifications'
           : location.pathname.startsWith('/account')
             ? 'Account settings'
+          : location.pathname.startsWith('/shipping-rates')
+              ? 'Shipping rates'
               : location.pathname.startsWith('/policy-consent')
               ? 'Terms & condition'
               : location.pathname === '/dashboard'

@@ -55,6 +55,15 @@ verified: 2026-10-02
 - Dashboard reads must not claim tickets, mark messages read, update cases, send notifications, or create audit events.
 - Never accept client-controlled role, organization, owner, or permission fields.
 
+### Sidebar navigation
+
+- Keep Dashboard directly accessible at the top of the Admin sidebar.
+- Group the remaining links by task: **Accounts** (registrations, user accounts, seller compliance), **Communication** (support tickets, notifications, campaigns), **Platform** (finance, pricing & fees, finance holds, audit logs, platform settings, feature controls), and **My account** (account settings, policy consent).
+- Show a group only when at least one of its destinations is visible to the current Admin. Each feature link still follows its existing permission; hiding a link never replaces backend authorization.
+- Keep groups collapsed by default on Dashboard, with one group expanded at a time. Open the group containing the current route, including detail and editor routes, so the active destination remains discoverable after navigation or reload.
+- Group controls must be keyboard-operable and expose expanded state to assistive technology. Keep child links and active states clear in both themes and on the mobile sidebar.
+- Do not add Dashboard widgets or duplicate destination-feature workflows as part of navigation grouping.
+
 ### Exact count and navigation rules
 
 - Registration totals include only `pending` applications of `customer`, `seller`, and `logistics`.
@@ -64,7 +73,7 @@ verified: 2026-10-02
 - Open compliance cases means `SellerComplianceCase.status = open`; exclude `confirmed`, `dismissed`, and `closed`.
 - Do not substitute Product restrictions, suspended Sellers, paginated row counts, or unread notifications for case counts.
 - Registration navigation retains `/registrations?status=pending` and owned permission checks on detail routes.
-- Support navigation targets `/support-tickets?status=open`; the owning page must initialize its allow-listed URL filter when this enhancement is implemented.
+- Support navigation targets `/support-tickets?status=open`; the owning page initializes its allow-listed URL filter.
 - The support page initializes allow-listed status/category/assignee filters from the URL, preserves them when opening a ticket, and resets pagination on filter changes; foreign/invalid values are ignored.
 - Compliance navigation uses the existing `/seller-compliance?status=open` filter.
 - Counts use database aggregates over the same authorized filters as their queues, not fetched-page lengths.

@@ -133,8 +133,20 @@ Current protected routes are:
 ### 12. Reports Overview
 
 - **Purpose:** Show platform commission and financial performance totals with date filtering.
-- **Status:** Deferred. Orders and COD snapshots exist, but platform commission, Logistics per-order fees, payouts, taxes, refunds, and a financial ledger are not yet authoritative enough for an Admin report.
-- **Boundary:** Do not calculate commission from incomplete UI collections or label generic Order totals as profit. Exports, if added, require bounded asynchronous jobs, safe downloads, and an approved financial source of truth.
+- **Status:** The API now persists effective-dated Seller/Logistics commission snapshots, route-based shipping inputs, balanced ledger entries, holds, Logistics allocation/reconciliation, and sandbox payouts. Full Admin frontend reporting remains separate.
+- **Boundary:** Admin publishes destination-region surcharges and commission policies; Logistics owns its rate cards. Do not calculate commission from incomplete UI collections or label generic Order totals as profit.
+
+### 12.1 Pricing and Fees
+
+- **Purpose:** Configure the versioned platform shipping tariff and effective-dated Seller and Logistics commission policies separately from Finance reporting.
+- **Status:** The Admin `Pricing & fees` workspace uses the existing Finance configuration API for PSGC-region surcharges and commissions, with an interactive vector region selector and immutable draft/publish flow. The 2026-10-03 API revision removes base-fee and measurement-policy writes; the existing frontend must remove those inputs and base-fee history columns.
+- **Boundary:** The visual region selector is not a Logistics coverage or route map. Published pricing stays immutable, Logistics rate cards remain Logistics-owned, and checkout snapshots are not editable through settings.
+
+### 12.2 Finance Holds
+
+- **Purpose:** Review unplanned or evidence-incomplete Logistics payout holds and manually reconcile actual first-mile, linehaul, and last-mile provider allocations.
+- **Status:** The Admin Finance Holds queue/detail UI and safe read endpoints are implemented on top of the existing atomic reconciliation workflow.
+- **Boundary:** Reconciliation preserves frozen Customer pricing, requires exact allocation of the Logistics pool plus any explicit platform subsidy, and must not expose Customer contact or street-address details.
 
 ### 13. Support Tickets
 

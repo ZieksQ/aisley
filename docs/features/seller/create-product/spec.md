@@ -30,7 +30,7 @@
 - Require each submitted variant to select exactly one value from every option group; reject duplicates, partial selections, duplicate combinations, and SKUs reused anywhere the API forbids them. Option groups may contain values that do not yet have a Seller-created variant.
 - Each variant has an SKU, active/inactive state, and authoritative inventory SKU. Opening stock may be supplied once while creating each SKU through the Inventory service; persisted stock is read-only in Product UI and is adjusted only through Inventory. Updating a variant or its option selection retains the same variant and inventory SKU; deleting a variant soft-deletes it and deactivates its inventory SKU while retaining its stock ledger and order references.
 - Expose effective variant price/original price as `variant value ?? product value`; the Customer detail contract must show the selected variant's price, SKU, and availability.
-- Prevent publishing when required product data, valid combinations, required media, compliance state, or any later configured shipping/dimension requirement is incomplete.
+- Require positive packed weight (grams) and packed length, width, and height (millimeters) during Product creation, and prevent publishing when catalog, media, compliance, inventory, or shipping measurements are incomplete.
 
 ### Markdown description and images
 
@@ -126,6 +126,8 @@
 
 ### Shipping measurements and cost basis (2026-09-24)
 
-- Sellers record packed weight in grams and packed length, width, and height in millimeters on each Product. Variants inherit these values unless applicable fields are overridden.
+- Sellers record packed weight in grams and packed length, width, and height in millimeters on each Product creation request. Variants inherit these values unless all four fields are overridden together; partial Variant overrides are invalid.
 - Drafts remain editable, but publishing requires complete positive shipping measurements for every active sellable SKU.
 - Sellers may record a PHP unit cost on the Product or Variant. The effective cost is snapshotted on the Order item and remains unknown when omitted; reporting must never coerce a missing cost to zero.
+- The Seller form presents one required packed-package section for Product defaults. Each Variant has an explicit `Use different package` control; enabling it requires all four positive override fields, while disabling it clears the complete override and restores inheritance.
+- Development catalog seeds include positive Product measurements, representative Variant combinations, and several complete Variant measurement overrides so checkout and Seller UI states are testable without hand-editing records.

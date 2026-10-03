@@ -58,7 +58,9 @@ Professional dashboard experience:
 - Keep labels, actions, validation messages, navigation, and dialogs usable without page-wide horizontal scrolling. Long references and user content must wrap or truncate accessibly.
 - Dense tables may use a labeled, contained horizontal scroll region or a readable narrow-screen presentation. Essential actions must remain reachable.
 - Use viewport-bounded dialogs and menus, allowing their content to scroll when needed. Preserve visible controls and focus when a mobile keyboard is open.
+- Admin commission policy creation and publication confirmation use centered, viewport-bounded modals with focus containment, Escape/cancel, focus restoration, and unsaved-input discard confirmation. Policy history actions use visible bordered buttons; sortable headers expose their direction and pagination shows at most ten rows.
 - A desktop layout alone is not completion. Check narrow, intermediate, and wide layouts, including the affected light/dark states for dashboards.
+- Admin Pricing & fees uses a compact Philippine vector selector: limit its map viewport to 300–360px tall and 360px wide, provide zoom/reset and accessible panning, and keep the conventional region dropdown alongside the same surcharge workflow.
 
 ## Components
 

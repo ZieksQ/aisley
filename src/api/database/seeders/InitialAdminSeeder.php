@@ -40,25 +40,7 @@ class InitialAdminSeeder extends Seeder
         ]);
 
         $admin->permissions()->syncWithoutDetaching(
-            Permission::query()
-                ->whereIn('slug', [
-                    'registrations.view',
-                    'registrations.review',
-                    'audit-logs.view',
-                    'platform-settings.view',
-                    'platform-settings.manage',
-                    'notifications.view',
-                    'notification-campaigns.view',
-                    'notification-campaigns.manage',
-                    'users.view',
-                    'users.manage',
-                    'seller_compliance.manage',
-                    'finance.view',
-                    'finance.manage',
-                    'support-tickets.view',
-                    'support-tickets.manage',
-                ])
-                ->pluck('id'),
+            Permission::query()->pluck('id'),
         );
     }
 }

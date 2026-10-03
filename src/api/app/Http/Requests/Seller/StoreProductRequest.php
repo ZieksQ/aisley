@@ -44,10 +44,10 @@ class StoreProductRequest extends FormRequest
             'price' => ['required', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
             'original_price' => ['nullable', 'decimal:0,2', 'gte:price', 'max:99999999.99'],
             'currency' => ['sometimes', Rule::in(['PHP'])],
-            'shipping_weight_grams' => ['nullable', 'integer', 'min:1', 'max:100000000'],
-            'shipping_length_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'shipping_width_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'shipping_height_mm' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'shipping_weight_grams' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'shipping_length_mm' => ['required', 'integer', 'min:1', 'max:100000'],
+            'shipping_width_mm' => ['required', 'integer', 'min:1', 'max:100000'],
+            'shipping_height_mm' => ['required', 'integer', 'min:1', 'max:100000'],
             'unit_cost_cents' => ['nullable', 'integer', 'min:0'],
             'cost_currency' => ['nullable', Rule::in(['PHP'])],
             'opening_stock' => ['required_without:variants', 'nullable', 'integer', 'min:0', 'max:999999999'],
@@ -79,9 +79,21 @@ class StoreProductRequest extends FormRequest
         return [function (Validator $validator): void {
             $this->validateSkuScope($validator);
             $this->validateOptionsAndVariants($validator);
+            $this->validateVariantShippingOverrides($validator);
             $this->validateMarkdown($validator);
             $this->validateDefaultGallery($validator);
         }];
+    }
+
+    private function validateVariantShippingOverrides(Validator $validator): void
+    {
+        $fields = ['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm'];
+        foreach ($this->input('variants', []) as $index => $variant) {
+            $provided = collect($fields)->filter(fn (string $field) => isset($variant[$field]))->count();
+            if ($provided > 0 && $provided < count($fields)) {
+                $validator->errors()->add("variants.{$index}.shipping_weight_grams", 'A variant shipping override must include weight, length, width, and height together.');
+            }
+        }
     }
 
     protected function validateSkuScope(Validator $validator): void

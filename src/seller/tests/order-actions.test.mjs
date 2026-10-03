@@ -5,6 +5,7 @@ import { createServer } from 'vite'
 let server
 let actions
 let logisticsOptions
+let shippingProviders
 let ApiError
 let storage
 let requests
@@ -17,6 +18,7 @@ before(async () => {
   server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' })
   actions = await server.ssrLoadModule('/src/lib/sellerOrderActions.ts')
   logisticsOptions = await server.ssrLoadModule('/src/lib/sellerLogisticsOptions.ts')
+  shippingProviders = await server.ssrLoadModule('/src/lib/sellerShippingProviders.ts')
   ;({ ApiError } = await server.ssrLoadModule('/src/lib/api.ts'))
   globalThis.document = { cookie: 'XSRF-TOKEN=test-csrf' }
   Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: {
@@ -120,4 +122,20 @@ test('logistics options deduplicate concurrent and short-lived repeated reads', 
 
   await logisticsOptions.getSellerLogisticsOptions('seller-options-cache', true)
   assert.equal(requests.length, 2)
+})
+
+test('shipping provider settings send the current revision and only the enabled state', async () => {
+  respond = () => Response.json({ data: { logistics_organization_id: 'provider-one', is_enabled: true, revision: 4 } })
+  const provider = {
+    organization_id: 'provider-one', business_name: 'Provider One', hub: { id: 'hub-one', name: 'Makati Hub' },
+    is_enabled: false, revision: 3,
+  }
+
+  const response = await shippingProviders.updateShippingProvider(provider, true)
+
+  assert.equal(response.data.revision, 4)
+  assert.equal(requests.length, 1)
+  assert.ok(requests[0].url.endsWith('/api/v1/seller/shipping-providers/provider-one'))
+  assert.equal(requests[0].options.method, 'PUT')
+  assert.deepEqual(JSON.parse(requests[0].options.body), { is_enabled: true, expected_revision: 3 })
 })

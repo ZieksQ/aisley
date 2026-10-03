@@ -30,6 +30,7 @@ import { MessageThreadPage } from './pages/MessageThreadPage'
 import { LogisticsMessagesPage } from './pages/LogisticsMessagesPage'
 import { CourierMessagesPage } from './pages/CourierMessagesPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
+import { ShippingProvidersPage } from './pages/ShippingProvidersPage'
 
 function App() {
   return (
@@ -63,6 +64,7 @@ function App() {
           <Route element={<ProductsPage />} path="/products" />
           <Route element={<ProductFormPage />} path="/products/new" />
           <Route element={<ProductFormPage />} path="/products/:productId/edit" />
+          <Route element={<ShippingProvidersPage />} path="/shipping-providers" />
           <Route element={<InventoryPage />} path="/inventory" />
           <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
           <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />

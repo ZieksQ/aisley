@@ -21,7 +21,11 @@ class OrderTrackingService
                 'status',
                 array_map(fn ($status) => $status->value, $this->statuses->statusesFor($selected)),
             ))
-            ->with(['shop:id,name,slug,logo_path', 'items:id,order_id,product_id,product_name,variant_name,quantity'])
+            ->with([
+                'shop:id,name,slug,logo_path',
+                'selectedLogisticsOrganization:id,business_name',
+                'items:id,order_id,product_id,product_name,variant_name,quantity',
+            ])
             ->withMax('statusEvents as latest_tracking_at', 'occurred_at')
             ->orderByDesc('latest_tracking_at')
             ->orderByDesc('placed_at')
@@ -37,6 +41,7 @@ class OrderTrackingService
             ->whereKey($orderId)
             ->with([
                 'shop:id,name,slug,logo_path',
+                'selectedLogisticsOrganization:id,business_name',
                 'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
                 'items.review:id,order_item_id',
                 'address',

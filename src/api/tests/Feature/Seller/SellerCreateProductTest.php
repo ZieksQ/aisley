@@ -40,6 +40,7 @@ class SellerCreateProductTest extends TestCase
         $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Everyday Shirt', 'category_id' => $category->id, 'sku' => 'SHIRT',
             'price' => '500.00', 'original_price' => '600.00', 'upload_token' => $token,
+            ...$this->shipping(),
             'gallery_upload_ids' => [$gallery],
             'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
             'variants' => [
@@ -60,11 +61,13 @@ class SellerCreateProductTest extends TestCase
         $this->actingAs($otherSeller)->postJson('/api/v1/seller/products', [
             'name' => 'Other Shirt', 'category_id' => $otherCategory->id, 'sku' => 'SHIRT-WHT',
             'price' => '300.00', 'opening_stock' => 0,
+            ...$this->shipping(),
         ])->assertCreated();
 
         $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Duplicate', 'category_id' => $category->id, 'sku' => 'SHIRT-WHT',
             'price' => '300.00', 'opening_stock' => 0,
+            ...$this->shipping(),
         ])->assertUnprocessable()->assertJsonValidationErrors('sku');
 
         $this->assertNotNull(Product::find($created->json('data.id')));
@@ -81,6 +84,7 @@ class SellerCreateProductTest extends TestCase
         $product = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Documented Product', 'category_id' => $category->id, 'sku' => 'DOC-1',
             'price' => '120.00', 'opening_stock' => 1, 'upload_token' => $token,
+            ...$this->shipping(),
             'description_markdown' => "![Front view](/api/v1/product-description-assets/{$assetId})",
             'description_asset_ids' => [$assetId],
         ])->assertCreated();
@@ -136,6 +140,7 @@ class SellerCreateProductTest extends TestCase
         $productId = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Gallery Append Product', 'category_id' => $category->id, 'sku' => 'GALLERY-APPEND',
             'price' => '250.00', 'opening_stock' => 5, 'upload_token' => $token,
+            ...$this->shipping(),
             'gallery_upload_ids' => [$firstGallery, $secondGallery],
         ])->assertCreated()->json('data.id');
 
@@ -159,6 +164,7 @@ class SellerCreateProductTest extends TestCase
         $product = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Manual Variant Product', 'category_id' => $category->id, 'sku' => 'MANUAL-VARIANTS',
             'price' => '250.00', 'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White', 'Red']]],
+            ...$this->shipping(),
             'variants' => [['sku' => 'MANUAL-BLACK', 'opening_stock' => 2, 'option_value_indexes' => [0]]],
         ])->assertCreated();
 
@@ -174,6 +180,7 @@ class SellerCreateProductTest extends TestCase
         $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
             'name' => 'Variant History Product', 'category_id' => $category->id, 'sku' => 'VARIANT-HISTORY',
             'price' => '250.00', 'option_groups' => [['name' => 'Color', 'values' => ['Black', 'White']]],
+            ...$this->shipping(),
             'variants' => [
                 ['sku' => 'HISTORY-BLACK', 'opening_stock' => 3, 'option_value_indexes' => [0]],
                 ['sku' => 'HISTORY-WHITE', 'opening_stock' => 5, 'option_value_indexes' => [1]],
@@ -258,5 +265,16 @@ class SellerCreateProductTest extends TestCase
         $category = Category::create(['shop_category_id' => $shopCategory->id, 'name' => "Products {$suffix}", 'slug' => "products-{$suffix}", 'status' => CategoryStatus::Active]);
 
         return [$seller, $shop, $category];
+    }
+
+    /** @return array<string, int> */
+    private function shipping(): array
+    {
+        return [
+            'shipping_weight_grams' => 500,
+            'shipping_length_mm' => 200,
+            'shipping_width_mm' => 150,
+            'shipping_height_mm' => 100,
+        ];
     }
 }

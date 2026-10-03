@@ -53,11 +53,30 @@ export type VoucherSelection = {
   target_shop_id: string;
 };
 
+export type LogisticsSelection = {
+  shop_id: string;
+  logistics_organization_id: string;
+};
+
+export type CheckoutLogisticsOptions = {
+  address: CustomerAddress;
+  groups: Array<{
+    shop: { id: string; name: string };
+    options: Array<{
+      organizationId: string;
+      businessName: string;
+      shippingFee: string;
+      routeStatus: "local" | "planned" | "unplanned";
+    }>;
+  }>;
+};
+
 export type CheckoutRequestPayload = {
   mode: CheckoutMode;
   address_id: string;
   payment_method: "cod";
   vouchers: VoucherSelection[];
+  logistics_selections?: LogisticsSelection[];
   cart_item_ids?: string[];
   buy_now?: {
     product_id: string;
@@ -129,14 +148,10 @@ export type CheckoutQuote = {
       discountAmount: string;
     }>;
     shippingQuote: {
-      serviceable: true;
-      rateVersionId: string;
-      rateVersion: number;
-      billableWeightGrams: number;
-      baseFee: string;
-      additionalWeightFee: string;
-      destinationSurcharge: string;
-      eligibleLogisticsCount: number;
+      logisticsOrganizationId: string;
+      logisticsBusinessName: string;
+      routeStatus: "local" | "planned" | "unplanned";
+      shippingFee: string;
     };
     totals: CheckoutTotals;
   }>;

@@ -1,0 +1,48 @@
+.finance-workspace {
+  --finance-surface: #ffffff;
+  --finance-text: #18181b;
+  --finance-muted: #71717a;
+  --finance-border: #d4d4d8;
+  --finance-hover: #f4f4f5;
+  --finance-accent: #4c1268;
+  --finance-grid: #a1a1aa;
+  color: var(--finance-text);
+}
+
+.dark .finance-workspace {
+  --finance-surface: #18181b;
+  --finance-text: #fafafa;
+  --finance-muted: #a1a1aa;
+  --finance-border: #3f3f46;
+  --finance-hover: #27272a;
+  --finance-accent: #c084fc;
+  --finance-grid: #71717a;
+}
+
+.finance-money-flow {
+  --xy-background-color: var(--finance-surface);
+  --xy-background-pattern-color: var(--finance-grid);
+  --xy-node-background-color: var(--finance-surface);
+  --xy-node-color: var(--finance-text);
+  --xy-node-border: 1px solid var(--finance-border);
+  --xy-edge-stroke: var(--finance-accent);
+  --xy-edge-label-background-color: var(--finance-surface);
+  --xy-edge-label-color: var(--finance-text);
+  --xy-handle-background-color: var(--finance-muted);
+  --xy-handle-border-color: var(--finance-surface);
+  --xy-controls-button-background-color: var(--finance-surface);
+  --xy-controls-button-background-color-hover: var(--finance-hover);
+  --xy-controls-button-color: var(--finance-text);
+  --xy-controls-button-color-hover: var(--finance-text);
+  --xy-controls-button-border-color: var(--finance-border);
+  --xy-attribution-background-color: var(--finance-surface);
+}
+
+.finance-money-flow .react-flow__attribution a {
+  color: var(--finance-muted);
+}
+
+.finance-money-flow .react-flow__controls-button:focus-visible {
+  outline: 2px solid #e6007a;
+  outline-offset: 2px;
+}

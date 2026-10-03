@@ -2,6 +2,7 @@ import { apiRequest, initializeCsrf } from "@/lib/api";
 
 import type {
   CheckoutBatch,
+  CheckoutLogisticsOptions,
   CheckoutQuote,
   CheckoutRequestPayload,
   AddressPayload,
@@ -50,6 +51,18 @@ export async function quoteCheckout(payload: CheckoutRequestPayload) {
   const response = await apiRequest<DataResponse<CheckoutQuote>>(
     "/api/v1/customer/checkout/quote",
     { method: "POST", body: JSON.stringify(payload) },
+  );
+  return response.data;
+}
+
+export async function fetchCheckoutLogisticsOptions(
+  payload: CheckoutRequestPayload,
+  signal?: AbortSignal,
+) {
+  await initializeCsrf();
+  const response = await apiRequest<DataResponse<CheckoutLogisticsOptions>>(
+    "/api/v1/customer/checkout/logistics-options",
+    { method: "POST", body: JSON.stringify(payload), signal },
   );
   return response.data;
 }

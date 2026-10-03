@@ -20,6 +20,12 @@ class CheckoutController extends Controller
             ->header('Cache-Control', 'no-store, private');
     }
 
+    public function logisticsOptions(CheckoutQuoteRequest $request): JsonResponse
+    {
+        return response()->json(['data' => $this->checkout->logisticsOptions($request->user(), $request->validated())])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
     public function place(PlaceCheckoutRequest $request): CheckoutBatchResource
     {
         return new CheckoutBatchResource($this->checkout->place(

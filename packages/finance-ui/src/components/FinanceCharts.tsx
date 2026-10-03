@@ -9,9 +9,10 @@ export type RevenueTrendPoint = {
   projectionRangeCents: [number, number] | null
 }
 
-const gridColor = '#a1a1aa'
-const tick = { fill: '#71717a', fontSize: 11 }
-const tooltipStyle = { backgroundColor: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, color: '#fafafa' }
+const gridColor = 'var(--finance-grid)'
+const tick = { fill: 'var(--finance-muted)', fontSize: 11 }
+const tooltipStyle = { backgroundColor: 'var(--finance-surface)', border: '1px solid var(--finance-border)', borderRadius: 8, color: 'var(--finance-text)' }
+const tooltipTextStyle = { color: 'var(--finance-text)' }
 
 export function RevenueTrendChart({ rows, forecast }: { rows: RevenueTrendPoint[]; forecast: FinanceWorkspaceData['forecast'] }) {
   return (
@@ -19,7 +20,7 @@ export function RevenueTrendChart({ rows, forecast }: { rows: RevenueTrendPoint[
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold" id="revenue-trend-heading">Revenue trend</h3>
-          <p className="mt-1 text-xs text-zinc-500">Daily recognized revenue with a 30-day outlook based on eight complete weeks.</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Daily recognized revenue with a 30-day outlook based on eight complete weeks.</p>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-600 dark:text-zinc-300" aria-hidden="true">
           <span className="flex items-center gap-2"><span className="h-0.5 w-5 bg-[#4C1268] dark:bg-[#c084fc]" />Recorded</span>
@@ -34,16 +35,16 @@ export function RevenueTrendChart({ rows, forecast }: { rows: RevenueTrendPoint[
             <CartesianGrid stroke={gridColor} strokeOpacity={0.18} vertical={false} />
             <XAxis dataKey="date" minTickGap={36} tick={tick} tickFormatter={chartDate} tickLine={false} />
             <YAxis axisLine={false} tick={tick} tickFormatter={compactAmount} tickLine={false} width={58} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatTooltipValue(value)} labelFormatter={(label) => chartDate(String(label))} />
+            <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle} formatter={(value) => formatTooltipValue(value)} labelFormatter={(label) => chartDate(String(label))} />
             <Area dataKey="projectionRangeCents" fill="#E6007A" fillOpacity={0.1} name="Low–high range" stroke="none" type="monotone" />
-            <Line dataKey="recordedRevenueCents" dot={false} name="Recorded revenue" stroke="#4C1268" strokeWidth={2.25} type="monotone" />
+            <Line dataKey="recordedRevenueCents" dot={false} name="Recorded revenue" stroke="var(--finance-accent)" strokeWidth={2.25} type="monotone" />
             <Line dataKey="projectionCents" dot={false} name="30-day projection" stroke="#E6007A" strokeDasharray="5 4" strokeWidth={2.25} type="monotone" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       {forecast.state === 'insufficient_history' ? (
-        <p className="mt-2 border-t border-zinc-100 pt-3 text-xs text-zinc-500 dark:border-white/5">
+        <p className="mt-2 border-t border-zinc-100 pt-3 text-xs text-zinc-500 dark:text-zinc-400 dark:border-white/5">
           The projection will appear after {forecast.requiredWeeks} complete weeks. {forecast.usableWeeks} usable {forecast.usableWeeks === 1 ? 'week is' : 'weeks are'} available.
         </p>
       ) : (
@@ -59,22 +60,22 @@ export function FinancialBridgeChart({ rows }: { rows: FinanceWorkspaceData['wat
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="financial-bridge-heading">
       <h3 className="font-semibold" id="financial-bridge-heading">Revenue and costs</h3>
-      <p className="mt-1 text-xs text-zinc-500">How recorded costs affect operating profit.</p>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">How recorded costs affect operating profit.</p>
       <div className="mt-5 h-56" aria-hidden="true">
         <ResponsiveContainer height="100%" width="100%">
           <BarChart data={rows} margin={{ left: 0, right: 8, top: 4 }}>
             <CartesianGrid stroke={gridColor} strokeOpacity={0.18} vertical={false} />
             <XAxis dataKey="label" tick={tick} tickLine={false} />
             <YAxis axisLine={false} tick={tick} tickFormatter={compactAmount} tickLine={false} width={58} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(value) => amount(Number(value))} />
-            <Bar dataKey="amountCents" fill="#4C1268" name="Amount" radius={[4, 4, 0, 0]} />
+            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--finance-hover)' }} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle} formatter={(value) => amount(Number(value))} />
+            <Bar dataKey="amountCents" fill="var(--finance-accent)" name="Amount" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       <dl className="mt-3 divide-y divide-zinc-100 border-t border-zinc-100 text-sm dark:divide-white/5 dark:border-white/5">
         {rows.map((row) => (
           <div className="flex justify-between gap-3 py-2" key={row.label}>
-            <dt className="text-zinc-500">{row.label}</dt>
+            <dt className="text-zinc-500 dark:text-zinc-400">{row.label}</dt>
             <dd className="font-medium tabular-nums">{amount(row.amountCents)}</dd>
           </div>
         ))}
@@ -90,13 +91,13 @@ function ProjectionSummary({ scenarios, profitSuppressed }: { scenarios: Finance
         <div className={index ? 'mt-3 border-t border-zinc-100 pt-3 dark:border-white/5 sm:mt-0 sm:border-l sm:border-t-0 sm:px-3 sm:pt-0' : 'sm:pr-3'} key={scenario.label}>
           <div className="flex items-center justify-between gap-3">
             <p className="font-medium capitalize">{scenario.label} case</p>
-            <p className="text-xs text-zinc-500">{scenario.activityPercent}% activity</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{scenario.activityPercent}% activity</p>
           </div>
           <p className="mt-1 font-semibold tabular-nums">{amount(scenario.revenueCents)}</p>
-          <p className="text-xs text-zinc-500">30-day revenue</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">30-day revenue</p>
         </div>
       ))}
-      {profitSuppressed ? <p className="mt-3 text-xs text-zinc-500 sm:col-span-3">Profit projection is unavailable until cost coverage is complete.</p> : null}
+      {profitSuppressed ? <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-3">Profit projection is unavailable until cost coverage is complete.</p> : null}
     </div>
   )
 }

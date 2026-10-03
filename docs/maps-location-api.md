@@ -46,7 +46,7 @@ There is no provider request while the user types. Changing a populated textual 
 - Use `mode=drive`. `sources_to_targets[0][n].distance` is authoritative metres and is converted to kilometres for display and persistence.
 - Cache successful results by source and destination coordinate fingerprints. A changed pin produces a new fingerprint and cannot reuse the stale rank.
 - Enforce a short timeout. An unconfigured key, absent coordinates, quota response, timeout, malformed response, or null route returns an unavailable distance and must not fabricate `0 km` or block manual selection of an otherwise eligible provider.
-- Exact PSGC city/province/country matching is evaluated locally before road distance. Distance breaks ties and ranks eligible non-exact options only when authoritative values are available.
+- Exact PSGC city/province/region/country matching is evaluated locally before road distance: city, then province, then region. Distance breaks ties and ranks eligible non-exact options only when authoritative values are available.
 - Keep Geoapify and OpenStreetMap attribution visible wherever calculated distance is presented.
 
 ## Courier final-mile route geometry

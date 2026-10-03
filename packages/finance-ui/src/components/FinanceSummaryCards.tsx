@@ -30,7 +30,7 @@ export function FinanceSummaryCards({ roleLabel, summary }: SummaryProps) {
         <article className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]" key={card.label}>
           <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">{card.label}</p>
           <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{amount(card.value)}</p>
-          <p className="mt-1 text-xs text-zinc-500">{card.note}</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{card.note}</p>
         </article>
       ))}
     </section>

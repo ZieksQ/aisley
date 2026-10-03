@@ -82,7 +82,7 @@ export function LifecycleActionDialog({ action, userName, userEmail, userRole, c
       <div aria-describedby={descriptionId} aria-labelledby={titleId} aria-modal="true" className="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-6 shadow-lg dark:border-white/10 dark:bg-[#17111d]" role="dialog">
         <div className="flex items-start justify-between gap-4">
           <div className="flex gap-3">
-            <FaTriangleExclamation aria-hidden="true" className={action === 'restore' ? 'mt-1 text-emerald-600' : action === 'deactivate' ? 'mt-1 text-rose-600' : 'mt-1 text-amber-600'} />
+            <FaTriangleExclamation aria-hidden="true" className={action === 'restore' ? 'mt-1 text-emerald-600 dark:text-emerald-300' : action === 'deactivate' ? 'mt-1 text-rose-600 dark:text-rose-300' : 'mt-1 text-amber-600 dark:text-amber-300'} />
             <div>
               <h2 className="text-lg font-semibold" id={titleId}>{isDeactivationWarning ? details.title : action === 'deactivate' ? 'Confirm account deactivation' : details.title}</h2>
               <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400" id={descriptionId}>
@@ -111,12 +111,12 @@ export function LifecycleActionDialog({ action, userName, userEmail, userRole, c
         ) : (
           <>
             <label className="mt-5 block text-sm font-medium" htmlFor="lifecycle-reason">
-              Reason {details.requiresReason ? <span className="text-rose-600">*</span> : <span className="font-normal text-slate-400">(optional)</span>}
+              Reason {details.requiresReason ? <span className="text-rose-600 dark:text-rose-300">*</span> : <span className="font-normal text-slate-400">(optional)</span>}
               <textarea ref={reasonRef} className="mt-2 min-h-28 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#E6007A] focus:ring-3 focus:ring-pink-100 dark:border-white/10 dark:bg-white/5 dark:focus:ring-pink-500/10" id="lifecycle-reason" maxLength={1000} onChange={(event) => setReason(event.target.value)} placeholder="Record the account-management reason" value={reason} />
             </label>
 
             {action === 'deactivate' && <label className="mt-5 block text-sm font-medium" htmlFor="lifecycle-confirmation">
-              Type <code className="select-all break-all font-mono text-rose-700 dark:text-rose-300">{confirmationTarget}</code> to confirm <span className="text-rose-600">*</span>
+              Type <code className="select-all break-all font-mono text-rose-700 dark:text-rose-300">{confirmationTarget}</code> to confirm <span className="text-rose-600 dark:text-rose-300">*</span>
               <input autoComplete="off" className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-sm outline-none focus:border-[#E6007A] focus:ring-3 focus:ring-pink-100 dark:border-white/10 dark:bg-white/5 dark:focus:ring-pink-500/10" id="lifecycle-confirmation" onChange={(event) => setConfirmation(event.target.value)} spellCheck={false} value={confirmation} />
             </label>}
 
