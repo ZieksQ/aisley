@@ -179,7 +179,7 @@ Logistics offer
 - Verify secure-token loading, logout invalidation, `401`/`403` mapping, `409` refresh, `422` field errors, throttling, timeout, and offline recovery.
 - Verify explicit acceptance confirmation, disabled duplicate taps, success navigation to Pick Up Order, and stale/rejected/re-offer copy.
 - Verify task IDs and machine statuses are preserved across pagination and refresh; never synthesize identity from labels.
-- Verify screen-reader labels, focus order, large touch targets, text alternatives to route/map context, and non-color-only status feedback.
+- Imported Flutter batch-detail tests cover production light/dark themes at 320/390px and 1×/2× text, contrast/target/label guidelines, parcel context, scrollable acceptance/error states, keyboard confirmation cancellation and focus restoration. Device/screen-reader acceptance remains open.
 
 ### Handoff and rollout
 

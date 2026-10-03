@@ -198,7 +198,7 @@ Idempotency-Key: <UUID header>
 
 - Test role/task/Order/organization isolation, cross-order reuse, invalid photos, upload limits/signatures, storage partial failure, private delivery, duplicate submissions, stale revisions, failed-attempt photo freshness, and actor preservation.
 - Test that Logistics records the Courier performer and Logistics recorder, that access/scan does not satisfy proof, and that notification failure cannot undo evidence.
-- Flutter tests cover capture permissions, file validation feedback, progress/retry, secure storage, offline/timeout/conflict states, and accessibility.
+- Imported Flutter tests cover capture permissions, file validation feedback, progress/retry, secure storage and offline/timeout/conflict. Production-theme 320/390px, 1×/2× light/dark checks cover contrast/target/label guidelines, keyboard camera/file controls, previews, COD confirmation and pending review; device/screen-reader acceptance remains open.
 - Log task/proof/event IDs, performing Courier, recording Logistics account, evidence state, result, revision, and timestamp; never log media bytes, raw paths, or QR tokens.
 - Keep signature controls unavailable until their policy and endpoint are deployed. Photo POD is live with the shared transition service; record Flutter camera/upload adoption separately from physical-device acceptance in progress.
 

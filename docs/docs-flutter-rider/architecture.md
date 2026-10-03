@@ -5,7 +5,7 @@ type: Client Architecture
 platform: Flutter / Dart
 role: Courier / Rider
 status: Flutter inbox, support tickets, dashboard previews, final-mile batch acceptance, photo-POD/COD intent, and Logistics/Seller/Buyer chat implemented; live acceptance remains open
-backend_contract_commit: 4c3f504 (documentation review baseline; imported Flutter adoption remains at d7df220)
+backend_contract_commit: 4c3f504 (supplied documentation baseline; Flutter runtime adoption remains recorded against d7df220)
 ---
 
 # Scope
@@ -15,6 +15,8 @@ This document describes the external Flutter application used by Couriers. Andro
 The Laravel API remains the source of truth for identity, approval, role access, organization and hub ownership, order status, task assignment, and delivery state. The Flutter app renders server responses and submits only fields allowed by the versioned API contract.
 
 Flutter implements the notification inbox, private support-ticket list/create/detail/reply/read flow, separate read-only dashboard task previews, final-mile batch list/detail/atomic acceptance with state reconciliation, Android rear-camera POD/browser file fallback, photo upload and completion intent with COD cash confirmation, and a task-chat inbox with Logistics/Seller/Buyer messaging. Buyer starts revalidate the Courier final-mile task; existing replies require refreshed server sendability. No Seller/Customer Order-context route is called by Flutter. Installed-device/browser acceptance, authenticated support-ticket/batch/API and COD/Logistics validation, and live chat exchange remain unverified. Batch-route rendering, failed-attempt submission, and linehaul trip screens remain unadopted. See `docs/PROGRESS.md` for dated implementation evidence; Laravel remains authoritative for operational state.
+
+Auth v2.6 in the supplied `4c3f504` snapshot defines credential/account/affiliation error precedence, exact duplicate-email handling, and explicit recovery unavailability. Flutter has no forgot-password flow; newer Auth integration remains outstanding. Local truck selection, first-mile schedule filtering, registration/account discard protection, keyboard/error focus, and plain-language recovery have implementation evidence against `d7df220`.
 
 ## Current implementation boundary
 
@@ -136,7 +138,9 @@ test/
 
 The exact state-management, routing, networking, and secure-storage packages are project decisions. Inspect `pubspec.yaml` and reuse existing choices before adding a dependency.
 
-Operational chat is implemented in `lib/features/chat/` using the existing bearer client and the versioned Courier conversation actions in `features/courier/chat-messaging/api-handoff.md`. Logistics/Seller/Buyer sending is reported implemented locally; ended or denied threads remain read-only and live cross-role acceptance remains unverified. Keep message bodies in session-bound memory and recheck task eligibility on the server.
+The imported Flutter project reports that `DeliveryController` keeps task/action state and pending attempts in one library. Its movement, photo-submission, and completion parts each own their workflow's validation, submission, and retry. COD reads, private photo reads, reconciliation, and error handling remain separate parts. The workflow split preserves revision checks, exact pending payloads/idempotency keys after uncertain responses, and Logistics authority over final delivery; repositories continue to own HTTP transport.
+
+Operational chat is implemented in `lib/features/chat/` using the existing bearer client and the versioned Courier conversation actions in `features/courier/chat-messaging/api-handoff.md`. Logistics/Seller/Buyer sending is reported enabled for eligible tasks; ended or denied threads remain read-only and live cross-role acceptance remains unverified. Keep message bodies in session-bound memory and recheck task eligibility on the server.
 
 Courier support tickets are implemented separately in `lib/features/support/` against `courier-support-tickets-v1`. The controller keeps bounded list/history state and uncertain mutation keys only in session memory, polls only the visible support route, and clears private drafts and transcripts when authentication or authorization is lost.
 

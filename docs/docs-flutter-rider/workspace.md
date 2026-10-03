@@ -327,7 +327,7 @@ After the Seller confirms `ready_for_pickup`, the selected Logistics organizatio
 
 The system shall connect the `seller_pickup_assigned`, `seller_pickup_accepted`, and `picked_up_from_seller` task states to the corresponding Order/Parcel.
 
-If the offered Courier rejects the task, the task records `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may be shown as informationally `stale`; it is not automatically cancelled or reassigned in the MVP.
+First-mile rejection/re-offer remains target policy with no deployed Courier endpoint. Implemented final-mile rejection records `rejected`, leaves the Order unchanged, and lets Logistics re-offer the same task. An unfinished task may be shown as informationally `stale`; it is not automatically cancelled or reassigned in the MVP.
 
 8.4 Waybill
 
@@ -362,7 +362,7 @@ Manually entering its tracking ID, QR, or waybill-reference value.
 
 A successful operation shall submit an event to the shared transition service, which validates the current Shipment/Delivery Task state and commits the associated detailed state and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
 
-Same-hub receipt, sorting, and final-mile dispatch require no internal transfer event. Implemented company-truck Linehaul may move parcels between different organizations’ sole hubs through accepted trips, physical departure, and per-parcel receiving; it does not create sub-hubs. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
+Same-hub receipt, sorting, and final-mile dispatch require no internal transfer event. Implemented company-truck Linehaul may move parcels between different organizations’ sole hubs through accepted trips, physical departure, and per-parcel receiving; it does not create sub-hubs. See backend-owned `docs/features/logistics/company-truck-linehaul-dispatch/spec.md` (not included in this Flutter bundle).
 
 8.7 Dispatch
 
@@ -698,7 +698,7 @@ out_for_delivery
 delivered
 ```
 
-Task-level `rejected` records an offered Courier's refusal and is not an `OrderStatus`. `stale` is an informational freshness condition for an unfinished task, derived or persisted only by the future task contract; it is not a new high-level Order status and does not automatically cancel or reassign work.
+Task-level `rejected` records an eligible final-mile Courier's refusal and is not an `OrderStatus`. `stale` is an informational freshness condition for an unfinished task, derived or persisted only by the future task contract; it is not a new high-level Order status and does not automatically cancel or reassign work.
 
 The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, tenant-scoped postal-code sort plans, independent final-mile offers, task-bound hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
 
@@ -720,7 +720,7 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 | `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting resolves the tracking ID and current postal-code sort plan, records standard-lane placement, or assigns an exception hold when routing is unavailable | Implemented with separate Dexie batch receipt/sort sync and tenant-scoped sort-plan routes; same-hub internal transfer unnecessary; company-truck Linehaul is a separate implemented flow |
 | `sorted_at_hub → in_transfer → received_at_hub` | Accepted company-truck trip departs; receiving Logistics records each parcel against its manifest and route hop | Implemented Linehaul between organizations’ sole hubs; receiving/sorting and final-mile dispatch remain distinct |
 | `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
-| `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented task-confirmation evidence transition |
+| `delivery_accepted → picked_up_from_hub` | Logistics validates Courier task-bound hub-handoff evidence | Implemented task-bound handoff; no parcel identifier is submitted |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |
 | `out_for_delivery → delivered` | Courier supplies private photo POD and completion intent; Logistics validates; server commits delivery | Implemented photo-POD completion |
 
@@ -732,7 +732,7 @@ Each deployed P0 transition uses tenant/role checks, locked current state or rev
 - Deployed Logistics re-offer appends a new offer for the same final-mile task and returns it to `delivery_assigned`; the rejected offer remains immutable. First-mile rejection/re-offer (`seller_pickup_assigned`) is a target policy only: no Courier first-mile rejection endpoint is deployed.
 - Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
 - Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
-- `in_transfer` is implemented for company-truck Linehaul between different organizations’ sole hubs. Accepted trip departure records transfer; each authorized destination receipt records custody and `received_at_hub`. A parcel may sort after receipt while other cargo remains in transfer. Same-hub processing uses `received_at_hub → sorted_at_hub → dispatched_from_hub` without a dummy transfer or additional sub-hub. Linehaul mutations remain Logistics-owned under `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
+- `in_transfer` is implemented for company-truck Linehaul between different organizations’ sole hubs. Accepted trip departure records transfer; each authorized destination receipt records custody and `received_at_hub`. A parcel may sort after receipt while other cargo remains in transfer. Same-hub processing uses `received_at_hub → sorted_at_hub → dispatched_from_hub` without a dummy transfer or additional sub-hub. Linehaul mutations remain Logistics-owned under backend-owned `docs/features/logistics/company-truck-linehaul-dispatch/spec.md` (not included in this Flutter bundle).
 
 11.3 Status History
 

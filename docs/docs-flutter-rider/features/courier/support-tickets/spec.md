@@ -197,7 +197,7 @@ Mutation responses contain `data` with the full safe summary and `event` with th
 - Retain SQLite tests for Courier ownership, cross-role/cross-user IDOR, validation, create/reply retries, stale revision, reopen behavior, and read markers.
 - Verify PostgreSQL locking and exact-retry behavior before production release.
 - Add Flutter repository fixtures for all envelopes and nullable summary/event fields.
-- Add controller/widget tests for cursor continuation, unknown safe fields, conflicts, throttling, timeout reconciliation, offline blocking, and session cleanup.
+- Imported Flutter controller/widget tests cover cursor continuation, unknown safe fields, conflicts, throttling, timeout reconciliation, offline blocking and cleanup. Production-theme 320/390px, 1×/2× light/dark tests cover contrast/target/label guidelines, list/create/detail/reply, keyboard menus/focus and loading/stale/retry/draft states; device/screen-reader acceptance remains open.
 - Record the adopted Laravel commit/API version in Flutter `docs/PROGRESS.md`.
 - Flutter dashboard navigation exposes the implemented screens; live API availability and authenticated acceptance still require separate verification.
 - Retention, attachments, ticket notifications, linked business records, and ineligible-account appeals require separate approved revisions.

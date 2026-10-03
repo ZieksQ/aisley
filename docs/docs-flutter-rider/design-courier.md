@@ -11,6 +11,8 @@ status: Active inbox/dashboard previews; photo/COD intent, private POD review, a
 
 ## Scope
 
+The supplied documentation baseline is `4c3f504` (Auth v2.6); Flutter implementation evidence remains recorded against `d7df220`, with newer Auth integration outstanding.
+
 This guide applies to the external Flutter Courier application on Android and to local browser testing of that same app through Flutter `web-server`. It does not define the separate webapp's Customer storefront or React Admin, Seller, or Logistics dashboards. Laravel remains authoritative for identity, approval, ownership, and operational state.
 
 The current API supports Logistics discovery, Courier registration, approval-gated login, `me`, logout, an explicit password-recovery unavailability response, account management, policy consent, notifications, support tickets, first-mile identifier pickup, task-bound final-mile hub handoff, batch routes, final-mile movement, private photo POD, Logistics-reviewed completion, delivered history, and task-scoped chat with Logistics, Seller, and Buyer. Flutter implements the notification inbox, private support-ticket flow, separate read-only first-/final-mile dashboard task previews, atomic final-mile batch acceptance, Android/web QR/Code 128 candidates, Android rear-camera POD plus browser file fallback, photo upload and completion intent with COD cash confirmation, authenticated in-memory POD review for active/rejected/history detail, and Logistics/Seller/Buyer task chat. Batch-route rendering, failed-attempt submission, and linehaul trip screens remain unadopted. Authenticated support-ticket/batch API and COD/Logistics validation, live chat exchange, and installed-device/browser acceptance remain unverified. The Laravel dashboard aggregate remains unavailable. Background push, live route telemetry, signature proof, earnings, and offline mutations remain deferred.
@@ -49,9 +51,9 @@ Apply Jakob's Law by retaining recognizable platform interactions and consistent
 
 ### Brand colors
 
-- Primary accent: `#E6007A`.
-- Secondary/deep purple: `#4C1268`.
-- Error: `#FF3B30`.
+- Brand accent: `#E6007A`. Readable semantic primary uses `#C00065` in light mode and `#FF85BD` in dark mode, with white/black foregrounds respectively.
+- Secondary/deep purple: `#4C1268` in light mode; `#DCB0F1` in dark mode, with white/black foregrounds respectively.
+- Error family: `#FF3B30`; readable semantic error uses `#B3261E` in light mode and `#FFB4AB` in dark mode, with white/black foregrounds respectively.
 - Warning: `#FF8800`.
 - Use a neutral background and readable foreground for the majority of the screen; accents should guide attention, not fill every surface.
 - Use neutral surfaces with restrained accents. Any 60/30/10 color balance is optional guidance; readable contrast, status meaning, and clear action priority take precedence.
@@ -109,7 +111,7 @@ Apply Jakob's Law by retaining recognizable platform interactions and consistent
 - Login requires email, password, and a device name. Never display role, ability, hub, or reviewer fields as editable inputs.
 - Use explicit states for checking session, signed out, authenticated, pending, rejected, suspended/deactivated, invalid affiliation, and recoverable network failure.
 - The current `/me` endpoint is protected and succeeds only for an approved active Courier. Do not use it as a pending-status endpoint; cross-device approval refresh requires a future backend contract.
-- The current forgot-password API returns HTTP 200 with `{"message":"Courier password recovery is not available yet."}` for every valid email; it sends no reset instructions and does not complete a reset flow. Mobile adoption of this newer Auth v2.6 behavior remains unverified. Do not present a reset form until the backend endpoint and notification contract exist.
+- The current forgot-password API returns HTTP 200 with `{"message":"Courier password recovery is not available yet."}` for every valid email; it sends no reset instructions and does not complete a reset flow. Flutter has no forgot-password flow; integration of this newer Auth v2.6 behavior remains outstanding. Do not present a reset form until the backend endpoint and notification contract exist.
 
 ### Account management
 
@@ -177,6 +179,9 @@ Apply Jakob's Law by retaining recognizable platform interactions and consistent
 - Announce validation results, loading completion, authentication changes, and retry outcomes to assistive technology without stealing focus unexpectedly.
 - Keep focus order logical, labels associated with fields, and errors adjacent to the field or action they explain.
 - Do not communicate state through animation, color, or icons alone; include readable text.
+
+- Reported automated registration, account, batch-detail, POD/camera and support tests use the production themes at 320×640/390×844, 1×/2× text and light/dark. Scroll through complete screens and check Android/iOS touch targets, labels and text contrast; test keyboard actions, menus/dialogs, draft preservation, loading/recovery and pending review. These widget checks do not establish installed-device, browser or TalkBack/VoiceOver acceptance.
+- Keep interactive card paragraphs and actions independently readable in the semantics tree; allow evidence actions and selector options to wrap, and keep confirmations, camera controls and recovery messages scrollable at large text sizes.
 
 ## Testing and implementation notes
 

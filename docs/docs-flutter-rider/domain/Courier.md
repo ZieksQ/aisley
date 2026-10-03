@@ -64,7 +64,7 @@ pending_payment
 → delivered
 ```
 
-Task-level `rejected` records an offered Courier's refusal and is not an `OrderStatus`; Logistics may re-offer the same task to another eligible Courier without changing the Order. `stale` is an informational freshness condition for unfinished work, not a new high-level Order status, and it does not automatically cancel or reassign a task.
+Task-level `rejected` records an eligible final-mile Courier's refusal and is not an `OrderStatus`; Logistics may re-offer the same task to another eligible Courier without changing the Order. `stale` is an informational freshness condition for unfinished work, not a new high-level Order status, and it does not automatically cancel or reassign a task.
 
 Courier actions must use the detailed Shipment/Delivery Task contract rather than treating a generic order status as proof of a physical handoff:
 
@@ -89,9 +89,9 @@ Courier-performed task actions and transitions are:
 - **First mile:** `seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`.
 - **Final mile:** `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → `in_transit` → `out_for_delivery` → `delivered`.
 
-`received_at_hub`, `sorted_at_hub`, and `dispatched_from_hub` are Logistics-side milestones. First-mile explicit confirmation commits custody and Inventory through its compatibility writer and shared-record bridge. Final-mile hub handoff submits task-confirmation evidence; only Logistics validation lets the shared transition service commit hub pickup. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history. Internal `in_transfer` execution remains deferred in the MVP.
+`received_at_hub`, `sorted_at_hub`, and `dispatched_from_hub` are Logistics-side milestones. First-mile explicit confirmation commits custody and Inventory through its compatibility writer and shared-record bridge. Final-mile hub handoff submits only `expected_revision` with a UUID `Idempotency-Key` as task-bound evidence, without a parcel identifier; only Logistics validation lets the shared transition service commit hub pickup. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history. Company-truck Linehaul implements `in_transfer` between different organizations’ sole hubs through Logistics-owned accepted-trip departure and per-parcel receipt. Same-hub processing requires no transfer event or sub-hub; the backend-owned `docs/features/logistics/company-truck-linehaul-dispatch/spec.md` is not included in this Flutter bundle.
 
-Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; payment state remains read-only to Couriers. For COD final-mile completion, the Courier must acknowledge collection and the API records the Order-derived payable amount/currency/time for Logistics review. Logistics alone approves collection and the delivery transaction marks COD paid. The Seller-selected Logistics organization owns both task legs, and a Courier may operate only assigned/offered tasks within that organization.
+Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; payment state remains read-only to Couriers. For COD final-mile completion, the Courier must acknowledge collection and the API records the Order-derived payable amount/currency/time for Logistics review. Logistics alone approves collection and the delivery transaction marks COD paid. The Seller-selected origin provider remains immutable; Linehaul may authorize custody at a destination organization’s sole hub. Each task belongs to its current authorized organization/hub, and a Courier may operate only its own assigned/offered tasks within its approved affiliation. COD delivery also invokes existing Finance recognition without fulfilling Inventory again.
 
 For the high-level projection, explicit first-mile confirmation advances `ready_for_pickup → picked_up`; later Logistics dispatch scheduling advances `picked_up → assigned` after creating the final-mile offer. Pickup scheduling does not write that final-mile projection.
 
@@ -130,7 +130,7 @@ If a Courier rejects an eligible final-mile offer, the task records `rejected`, 
 
 - **Purpose:** Let the Courier review task type, pickup and destination details, route/distance context, and package requirements before accepting an eligible task.
 - **Owns:** Server-side revalidation at commit time, assignment to the authenticated Courier, and the `seller_pickup_accepted` or `delivery_accepted` transition.
-- **Rules:** A client cannot choose another `courier_id`, accept an unavailable task, or accept a task outside its Logistics organization/hub. The Courier only accepts an offer created by Logistics; acceptance does not create a task or grant assignment authority. A Courier may reject an offered task; rejection records task-level `rejected`, leaves the Order unchanged, and allows Logistics to re-offer the same task to another eligible Courier. Concurrent or retried accepts/rejections are idempotent and cannot double-assign or overwrite task history. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
+- **Rules:** A client cannot choose another `courier_id`, accept an unavailable task, or accept a task outside its Logistics organization/hub. The Courier only accepts an offer created by Logistics; acceptance does not create a task or grant assignment authority. A Courier may reject an eligible final-mile offer; first-mile rejection/re-offer has no deployed endpoint. Rejection records task-level `rejected`, leaves the Order unchanged, and allows Logistics to re-offer the same task to another eligible Courier. Concurrent or retried accepts/rejections are idempotent and cannot double-assign or overwrite task history. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
 
 ### 3. Pick Up Order
 
@@ -222,7 +222,7 @@ If a Courier rejects an eligible final-mile offer, the task records `rejected`, 
 - Every task, assignment, parcel, waybill, scan, incident, conversation, cache entry, and event is resolved server-side to the authenticated Courier and its authorized Logistics organization/hub.
 - `delivery_assigned` is not `delivery_accepted`; neither means `picked_up_from_hub`. First-mile and final-mile pickup states remain distinct.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; Logistics may assign the same or a different eligible Courier for the second leg.
-- A Courier may reject an offered task. The task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned.
+- A Courier may reject an eligible final-mile offer; first-mile rejection/re-offer remains planned with no deployed Courier endpoint. The task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned.
 - One shared waybill/tracking ID is created and frozen in the Seller pickup transaction at `ready_for_pickup`; Seller and selected Logistics have role-scoped access, while an assigned Courier may resolve its opaque QR or submit the authorized tracking ID/reference. Route/assignment/scan changes are append-only events.
 - First-mile identifier verification and explicit confirmation retain the compatibility writer and Inventory bridge. Final-mile hub confirmation uses the accepted task/revision without identifiers; Logistics validates it and photo POD/completion intent, recording immutable custody history with Courier performer and Logistics recorder. A scan or waybill access event alone never advances custody.
 - Implemented Courier operational writes use the deployed shared Shipment/Delivery Task schema and owning endpoint contracts. Unavailable extensions remain blocked until approved, migrated, and verified.
@@ -231,14 +231,14 @@ If a Courier rejects an eligible final-mile offer, the task records `rejected`, 
 
 ## Current and deferred data boundary
 
+Flutter implements all four personal-vehicle types including `truck`, Buyer composition for eligible accepted final-mile tasks, and a bounded first-mile schedule filter from the latest authorized task page. Local evidence is recorded against `d7df220`; the supplied backend documentation baseline is `4c3f504`. These features do not grant company-truck eligibility or a new dashboard aggregate, and live/device acceptance remains unverified.
+
 Implemented foundation:
 
 - `users` Courier role and `CourierProfile` with server-derived age.
 - One initial `Vehicle` per registration, with string-backed `VehicleType` and `VehicleStatus` casts. An additive migration enforces one vehicle per Courier after a duplicate preflight; service operations still fail closed if cardinality is ambiguous. See `docs/schema.md`.
 - One current `CourierLogisticsAffiliation` linking the Courier to the selected organization and derived sole hub, with Logistics reviewer, decision, reason, and timestamp.
 - Registration applications, private evidence documents, addresses, Sanctum tokens, Courier auth endpoints, and Logistics approval endpoints.
-
-External Flutter adoption (imported log, 2026-10-02): personal-vehicle registration/editing exposes all four backend types, including `truck`; accepted final-mile tasks expose Buyer messaging through Courier-only routes; first-mile work supports a bounded schedule filter using IDs from the latest authorized task page. Backend ownership, task eligibility, and API contracts are unchanged. These are locally reported client implementations, not authenticated live/device verification or a new dashboard aggregate.
 
 Deferred or dependent Courier operations:
 

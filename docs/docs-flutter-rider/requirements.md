@@ -110,7 +110,7 @@ MVP responsibilities:
 - Transfer parcels by scanning or entering tracking IDs, waybill references, or QR compatibility values.
 - Show only `sorted_at_hub` parcels in a dedicated **Ready to dispatch** queue. Create one future delivery schedule for one approved affiliated Courier and at most 15 parcels; dispatch and all per-parcel final-mile offers commit atomically.
 - Filter ready parcels by physical standard lane with counts and receipt-time pagination. Default to one lane per batch; combining lanes requires explicit opt-in and the same hub. Persist dispatch source-lane snapshots, reject stale parcel/lane assignments, and allow audited lane moves only before dispatch. An open sorting session does not block its ready parcels; exceptions remain held.
-- Show a rejected Courier offer in the Logistics queue and re-offer the same task to another eligible Courier without changing the Order. An unfinished task may be shown as informationally `stale`; it is not automatically cancelled or reassigned in the MVP.
+- Show a rejected final-mile Courier offer in the Logistics queue and re-offer the same task to another eligible Courier without changing the Order. An unfinished task may be shown as informationally `stale`; it is not automatically cancelled or reassigned in the MVP.
 - View available couriers.
 - Assign a final-mile Courier through the dispatch schedule. The Customer sees **Scheduled for delivery** plus that Courier's name and contact number; Courier acceptance and later delivery execution remain separate.
 - Update shipment/order status.
@@ -134,10 +134,10 @@ MVP responsibilities:
 - Review pickup and delivery details.
 - View the operational Order, parcel, waybill, pickup, destination, item, and delivery-instruction data required for an offered or accepted task, plus server-provided provider-neutral distance and estimated duration. Secrets, private evidence, raw storage paths, and unrelated personal data remain excluded.
 - Accept an eligible pickup or delivery request.
-- Reject an offered request. Rejection marks the task `rejected`, leaves the Order unchanged, and allows Logistics to offer the same task to another eligible Courier.
+- Reject an eligible final-mile offer. Rejection marks the task `rejected`, leaves the Order unchanged, and allows Logistics to re-offer the same task. First-mile rejection/re-offer remains planned with no deployed Courier endpoint.
 - Navigate to the Seller for first-mile pickup or the Logistics hub for final-mile pickup.
 - Verify parcel/order information.
-- Scan the parcel/order waybill QR/reference identifier and submit the scan/evidence to Logistics for validation and authoritative recording.
+- Verify the first-mile parcel using the waybill QR/tracking-ID/Order reference and explicitly confirm Seller pickup through the compatibility writer. Final-mile hub handoff submits only task revision and awaits Logistics validation; destination delivery uses private photo POD plus completion intent.
 - Confirm `picked_up_from_seller` or `picked_up_from_hub`, depending on the task leg.
 - Deliver the order to the buyer.
 - Complete delivery.

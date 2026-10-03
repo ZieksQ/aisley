@@ -200,8 +200,8 @@ Example:
 - Send multipart/form-data field photo, retain no Base64/blob URL as server identity, and refresh the private image only after 200.
 - For local Flutter web-server, send the selected photo as browser-readable bytes through the shared multipart client; never submit its browser path through `fromPath`. Preserve the Android upload path, bearer-authenticated private reads, and uncertain-result reconciliation. Follow `docs/flutter-file-uploads.md`; browser acceptance remains unverified.
 - Keep local edits/previews separate from authoritative account state and never bypass server approval or revalidation.
-- The imported Flutter log (2026-10-03) records a discard confirmation for user-initiated Back/system Back when profile/password drafts or a selected photo would be lost; unchanged, reverted, and saved profiles leave without a prompt. Mutations/pickers block exit until their owning workflow resolves; reads remain navigable.
-- The same record reports profile/password validation that scrolls to the first affected field. Password change retains one consequence confirmation and required field clearing; account-scope loss clears local drafts/previews and dismisses discard prompts immediately, without waiting for consent to leave.
+- The imported Flutter log reports confirmation of user-initiated Back/system Back when profile/password drafts or a selected photo would be lost; unchanged, reverted, and saved profiles leave without a prompt. Mutations/pickers block exit until their owning workflow resolves; reads remain navigable.
+- Reported production-theme widget tests cover 320/390px, 1×/2× text, light/dark, contrast/target/label guidelines, keyboard controls, photo drafts, scrollable confirmations and loading/offline recovery. Device/screen-reader acceptance remains open. Profile/password validation scrolls to the first affected field. Password change retains one consequence confirmation and required field clearing; account-scope loss clears local drafts/previews and dismisses discard prompts immediately, without waiting for consent to leave.
 
 ### Tests and rollout
 

@@ -124,7 +124,7 @@ out_for_delivery
 - Show “Awaiting Logistics validation” for accepted intent that is not finalized.
 - A successful submission acknowledgment must not show “Delivered.”
 - Disable duplicate taps during a request; retain its idempotency key after timeout.
-- Refetch completion status after an uncertain result before starting another action. The imported Flutter log (2026-10-03) records plain-language unconfirmed-update recovery and a secondary Refresh task read; retries retain the same pending action/key and response-field names stay internal.
+- Refetch completion status after an uncertain result before starting another action. Flutter recovery wording explains that the update is unconfirmed and provides a secondary **Refresh task** read before retrying the same pending action/key; response field names remain internal.
 - Do not optimistically remove a task before server-confirmed delivered state.
 - Offline completion queues are deferred; connectivity is required for submission.
 - Camera, signature, and file permissions belong to Proof of Delivery.

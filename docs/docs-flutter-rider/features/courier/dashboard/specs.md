@@ -74,7 +74,7 @@ approved Courier session
 
 ### Partial preview contract and future aggregate
 
-- Each source renders at most five read-only previews, as reported in the imported Flutter progress; a partial page is not a complete queue. Each preview row must retain the server's opaque task ID, explicit leg, and machine status. Do not synthesize identity or group separate parcel tasks into a fictitious batch.
+- Each source renders at most five read-only previews; a partial page is not a complete queue. Each preview row must retain the server's opaque task ID, explicit leg, and machine status. Do not synthesize identity or group separate parcel tasks into a fictitious batch.
 - Show only fields returned for that task's current authorization: safe Order/waybill reference, Seller or sole-hub origin, destination area, package summary, and server-provided distance/ETA when present. Do not reveal exact address/contact before the owning endpoint permits it.
 - Never copy private evidence, raw storage paths, payment credentials, reviewer notes, or unnecessary Buyer/Seller PII into dashboard state. Parcel merchandise price is not a COD payable-total declaration.
 - First-mile list uses its own `data[]` plus pagination `meta`; a preview of one page is not the entire queue. Final-mile task list has `data[]` but no pagination metadata; cap visible rows without inventing a total.
@@ -157,7 +157,7 @@ approved Courier session
 ### Flutter screen contract
 
 - The initial screen restores an approved session and calls the scaffold endpoint through `lib/features/dashboard/data/dashboard_repository.dart`; a token alone never unlocks operational data.
-- Render scaffold `sections.*` as unavailable; place task-list previews in distinct, source-labelled UI sections. A task preview is not a dashboard aggregate result or an enabled mutation button. The imported October 3 Flutter log records grouping of the three confirmed unavailable summaries into one plain-language notice, retaining independent preview/loading/error states and last-successful-refresh context.
+- Render scaffold `sections.*` as unavailable; place task-list previews in distinct, source-labelled UI sections. A task preview is not a dashboard aggregate result or an enabled mutation button. Flutter groups the three confirmed unavailable summaries into one plain-language notice, retaining independent preview/loading/error states and last-successful-refresh context.
 - Render the independent inbox badge from `lib/features/notification/`, not from scaffold `sections.notifications`. A notification failure must not hide dashboard navigation or become a false empty queue.
 - Show separate first-mile and final-mile loading/empty/failure states; one source's failure cannot erase another's successful preview. Offered final-mile rows must not expose a normal per-task Accept action.
 - Keep preview taps read-only: open the owning work screen and refetch its current task list/detail. Pass a task ID only when a verified in-app target route accepts it; the existing navigation may open the list instead.
@@ -223,6 +223,6 @@ approved Courier session
 - Record the backend commit/API version beside every generated Flutter fixture.
 - Recheck all endpoint, status, ownership, and privacy wording when the shared operational schema is revised.
 - Keep Dashboard acceptance checks separate from Accept, Pickup, Deliver, and Complete feature checks.
-- Append material changes to the owning project’s progress log. Record this repository’s documentation reconciliation separately from Flutter runtime implementation or live acceptance.
+- Append material changes to the owning project's progress log; record this bundle's documentation synchronization separately from reported Flutter implementation and live acceptance.
 
-**References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Courier.md`, `docs/domains/Logistics.md`, `docs/features/courier/notification/specs.md`, `docs/features/courier/chat-messaging/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/delivery-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.
+**References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, `docs/features/courier/notification/specs.md`, `docs/features/courier/chat-messaging/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/delivery-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.
