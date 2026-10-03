@@ -218,3 +218,16 @@ These references informed client organization and target limits; they do not app
 - [XFile API](https://pub.dev/documentation/cross_file/latest/cross_file/XFile-class.html): portable selected-file length/read behavior.
 
 Do not use source hashes as runtime verification. Tests in this manifest document existing coverage only; future Android/browser/live acceptance is separately unchecked.
+
+
+## Standalone authoring inspection — 2026-10-03
+
+Captured checkout **57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50** on active feature/sync-courier-flutter-docs with a clean tree before creating feature/standalone-buyer-flutter-docs. The preceding baseline manifest/history is preserved verbatim; its historical location/ignore statements describe that earlier task. This bundle is now tracked at docs/docs-mobile-buyer.
+
+[Current source hash record](source-inspection.json) identifies newly consumed Request/Resource/controller/service/middleware and framework-cursor source. [Restricted route snapshot](routes-inspected.json) records95 Customer/public/shared/auxiliary routes; no other-role operational route authority is imported. [Package metadata](package-baseline.json) identifies official SDK/version constraints, not executed resolution. [PSGC manifest](../assets/psgc/manifest.json) identifies all nineteen unchanged reference files and source bytes.
+
+Local [typed models](../api/field-index.md), [operations](../api/operations.md), [synthetic fixtures](../api/examples/README.md), specs and setup now supply implementation authority. Upstream locators are optional audit provenance, not required mounted files. Revalidate actual deployed-contract differences during live acceptance and append new evidence without rewriting these baselines.
+
+New source details include Account account envelope; nullable stored specifications; FlashDeals nullable object rather than Product list; Quote Address label/no coordinates; support recorded201 replay and Customer reply reopening; Laravel request-bound cursor resolution; NCR/direct-city required-text compatibility and registration path-field discard. These observations do not claim backend fixes or Flutter adoption.
+
+No Flutter tests/builds, authenticated API exchanges, physical devices, provider requests, migrations, seeds or application database changes ran. See [documentation validation](documentation-validation.md) for completed handoff checks and [verification](../verification.md) for unexecuted release gates.

@@ -1,74 +1,75 @@
 # Buyer Flutter architecture
 
-Status: proposed Flutter organization; implementation pending. Laravel API baseline is recorded in [provenance](references/source-provenance.md).
+This is the selected fresh-project blueprint, not a completed Flutter implementation. Android is the delivery target; browser support is for local testing at localhost:8766. Existing repositories must merge these choices with their own instructions and record material differences before implementation. Backend contracts were inspected at checkout `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; the historical baseline remains in provenance.
 
-Organize by feature with presentation and data boundaries. Widgets render state and forward actions; controllers/view models own loading, validation, retries and navigation effects; repositories own typed API access, parsing adapters and scoped cache lifecycle. Introduce domain/use-case classes when logic spans repositories or is reused. This follows Flutter's guidance on separating views, view models, repositories and services. [Flutter app architecture](https://docs.flutter.dev/app-architecture/guide)
+## Composition and dependencies
+
+Use Flutter Material, `go_router`, Dio and immutable hand-written null-safe DTOs. A feature repository owns API access and coherent cached projections. A `ChangeNotifier` view model owns state transitions; `ListenableBuilder` renders that state. Constructor injection supplies repositories, configuration, clock, UUID factory and platform adapters from one `AppDependencies` composition root. No service locator, inherited Courier implementation, code generation or additional state library is required.
+
+Flutter recommends separate data/UI responsibilities, repositories, immutable models and injectable dependencies, and lists ChangeNotifier/Listenable as an architecture option. Here constructor injection and hand-written DTOs are deliberate project choices. [Flutter architecture recommendations](https://docs.flutter.dev/app-architecture/recommendations)
 
 ```text
 lib/
-  app/                     # composition, theme, routes, session/consent boundary
+  main.dart                         # initialize bindings, config, composition
+  app/                              # AppDependencies, router, light ThemeData
   core/
-    config/                # validated environment and API origin
-    networking/            # JSON/multipart transport, errors, timeouts
-    security/              # secure storage, redaction, session cleanup
-    platform/              # conditional native/web file and location adapters
-    address/               # typed PSGC asset reader
-    presentation/          # proven shared Buyer controls
-  features/
-    auth/                  # register/login/recovery/session
-    policy/                # public versions and authenticated consent
-    home/                  # public aggregation and scoped refresh
-    search/                # separate Products/Shops result state
-    shops/                 # directory and scoped catalogue
-    product/               # detail/gallery/configuration
-    account/               # profile/password/photo/preferences
-    addresses/             # CRUD/defaults/pin workflow
-    wishlist/
-    recently_viewed/
-    cart/
-    checkout/              # quote/vouchers/placement/result
-    orders/                # history/detail/tracking/mutations
-    shop_messages/
-    logistics_messages/
-    courier_messages/
-    notifications/
-    questions/
-    reviews/
-    support/
-test/                      # mirrors focused feature/core responsibilities
-integration_test/          # target and live-contract acceptance
+    config/                         # validated public runtime inputs
+    networking/                     # Dio services, failure mapping, deadlines
+    security/                       # TokenStore, redaction, SessionController
+    platform/                       # XFile/location/launcher adapters
+    address/                        # AssetBundle PSGC loader + typed nodes
+    ui/                             # shared buttons, feedback, money labels
+  features/<feature>/
+    data/                           # DTOs, abstract repository + API implementation
+    presentation/                   # view model, screen, focused widgets
+  features/checkout/domain/         # frozen intent/reconciliation across repositories
+assets/psgc/                        # index + eighteen unchanged regional files
+test/                              # mirror core/features
+integration_test/                   # Android + fixed-origin browser acceptance
 ```
 
-Within a feature use `data/` for DTOs/repository and `presentation/` for controller/screens/components, adding `domain/` only when useful. Select state management, routing, HTTP, secure storage and file/location integrations from the destination project. This bundle does not preapprove a new package set or prescribe inherited Courier dependencies.
+Feature directories cover auth, policies, home, search, shops, product, account, addresses, wishlist, recently_viewed, cart, checkout, orders, shop_messages, logistics_messages, courier_messages, notifications, questions, reviews and support. Navigation verification is part of app/session composition; vouchers belong to checkout. A domain/use-case class is justified for a workflow spanning repositories, not required for each endpoint.
 
-## Configuration and transport
+Repository methods return typed successes or failures; widgets never index raw JSON. DTO parsers explicitly map wire casing and validate required nested structures using [wire tables](api/field-index.md). Implement `copyWith` only where state changes need it; expose unmodifiable lists/maps. Inject a clock for quote expiry, throttling and guest-history timestamps. Inject a UUID factory using Dart `Random.secure()` for 16 bytes with RFC4122 v4 version/variant bits; no additional UUID package is required.
 
-Define environment-specific `API_BASE_URL` ending in `/api/v1`, a separate storefront URL for current reset links, and approved public-map configuration. Validate origins before requests. HTTPS is required outside isolated development. Flutter build-time configuration is public: never bundle backend/storage credentials or `GEOAPIFY_SERVER_API_KEY`.
+## HTTP and credential boundary
 
-Use one transport with `Accept: application/json`, bounded deadlines (start with a 15-second JSON deadline), response-body validation, safe error mapping and cancellation. Upload deadlines are separately configurable and show honest progress. Send bearer authorization only to the configured trusted API origin; follow no redirect to another origin with credentials. Resolve returned relative media paths against the API origin, preserving their `/api/...` path rather than duplicating the `/api/v1` prefix. [DTO contracts](api/contracts.md) retain endpoint-specific envelopes and casing.
+`API_BASE_URL` includes `/api/v1`; `API_ORIGIN` is derived and validated. A relative returned `/api/v1/...` URL resolves against the origin, never against the already-prefixed base. Use a credential-free Dio client for public catalog/provider reads and a trusted-origin client for private calls. Both set `Accept: application/json`; JSON mutations set JSON Content-Type and multipart owns its boundary.
 
-Browser code must compile without `dart:io`; keep native file/socket APIs behind conditional adapters. The local browser uses bearer authentication, omits credentialed cookie behavior and uses its dedicated non-stateful origin. Android emulator API loopback usually needs `10.0.2.2` for the host; device runs need a reachable approved development host. Restrict any Android cleartext exception to the local development target and verify the actual network policy; do not weaken release HTTPS.
+Configure 15-second overall JSON deadlines as well as Dio connect/send/receive timeouts. An overall deadline includes the entire exchange. Uploads use a separate bounded deadline and progress state. A timeout cancels the transport but does not prove rollback. Disable credentialed redirect following and authorize only exact API-origin requests; public storage/provider origins receive no bearer. Web uses BrowserHttpClientAdapter with credentials disabled and no CookieJar.
 
-Use `http://localhost:8766` as the stable Buyer browser origin. Courier already uses `8765`. Proposed local command, to run later in the Flutter repo:
+Failure includes transport/decode category, HTTP status, optional code/message, field errors and readable Retry-After. No global automatic write retry. GET/resolve read retries use bounded backoff and query generation checks. [Operation contracts](api/operations.md) own mutation replay; [errors](api/errors.md) own global handling. Do not require a code when Laravel only returns a message.
 
-```sh
-flutter run -d web-server --web-hostname localhost --web-port 8766
-```
+## Session and consent state machine
 
-The current Laravel CORS default omits `8766`. Backend owner must add the exact origin through `CORS_ALLOWED_ORIGINS` before live browser integration; keep existing origins. Allow required methods/preflights and `Authorization`, `Content-Type`, `Idempotency-Key`. Expose `Retry-After` if the browser needs to read it: `exposed_headers` is currently empty. Do not add Buyer to `SANCTUM_STATEFUL_DOMAINS` for the token-only browser test flow. Test for cookie contamination: Sanctum tries the web guard before bearer fallback. Configuration/allow-lists and actual deployment behavior need live verification.
+SessionController states: checkingStorage → checkingIdentity → checkingConsent → active; alternative signedOut, accountDenied, storageUnavailable, identityUnavailable, consentRequired. Load token once per bootstrap. `/me` establishes Customer UUID/role/status; login result alone does not unlock private screens. `/policy-consent/status` determines current required consent. Consent failure is recoverable without deleting a valid token; explicit consent denial preserves identity and hides protected content.
 
-## State ownership
+Maintain a monotonically increasing session generation and verified Customer UUID. Every private request snapshots both; stale successes and errors are discarded after logout/account switch/authorization loss. Cancel requests and dispose listeners/timers before clearing repositories. A router refresh listener reads only SessionController state and creates no HTTP calls.
 
-One session controller restores identity and policy status. Use a monotonically increasing session generation and Customer UUID for all private requests/caches. Cancel old reads and reject every stale completion, including errors, after identity changes. New-account requests must not reuse another account's pagination, quote, pending key, form or private image.
+Secure storage holds the token only. Read/write/delete failure fails closed for protected screens and exposes Retry. A newly minted token must be stored successfully before opening private routes; if storage fails, best-effort current-token logout and truthful feedback are needed. No ordinary-preferences fallback. Android uses platform-backed storage; localhost web uses the package's origin-bound WebCrypto implementation. Browser acceptance is separate from Android storage acceptance.
 
-Public Product/Shop caches may be short-lived and keyed by endpoint/query/page. Homepage with bearer identity is private even when personalization is unavailable; use an explicit credential-free public read for guest fallback. Keep Customer enrichment, owned history, cart, orders, account, policies' acceptance and conversations outside shared persistence/cache. Private state is memory-only by default; secure storage holds the token, not transcripts or prices. Guest recency holds only bounded ID/time hints through a storage adapter.
+Private caches/drafts/quotes/keys/photos are memory-only. Logout/account loss clears all of them and guest/private history separation. If secure deletion fails, clear memory and prevent restoration until deletion succeeds; never show successful durable sign-out while a token remains restorable. Offline local sign-out cannot guarantee server revocation. Password change keeps current bearer and revokes others; reset revokes all personal access tokens. No refresh-token endpoint or token expiry timer is supplied.
 
-Controllers own form drafts and pending actions; repositories manage cursor deduplication and visibility refresh. Commerce money remains a server decision: display numeric Product/Cart values without deriving payable totals; parse returned fixed-precision checkout/order strings safely. Do not recalculate discounts, shipping or COD locally.
+## Navigation and identity-dependent reads
 
-## Errors and writes
+`go_router` owns Home/Shops/Cart/Account bottom branches; detail/forms stack within their origin branch. Validate allow-listed internal return routes and UUID/slug parameters. Auth and consent redirects preserve safe read destinations, never executable mutation intent. Native deep-link reset adoption remains unavailable; trusted storefront recovery opens intentionally through url_launcher.
 
-Use typed failures with HTTP status, optional stable `code`, message, field errors and readable Retry-After when available. JSON error bodies are not uniform; some validation/abort responses lack `code`. Handle network/CORS/decode failures independently from HTTP validation. `401` clears invalid credentials; role/account-state `403` clears unauthorized identity; resource denial clears the affected record; consent denial keeps authentication and opens consent. `404` cannot disclose whether a foreign resource exists. `409` refreshes authoritative state; `422` retains safe input; `429` respects retry timing; `5xx`/timeout does not certify a write failed.
+Public Product/Shop reads may use a bounded public memory cache keyed by normalized endpoint/query/page. Optional-auth Home is always private when a token was supplied, even when its viewer projection looks anonymous. Guest fallback must make an explicit credential-free request. Guest recency persists bounded public Product ID/time hints using shared_preferences; private account history never becomes guest data. Default private repository state is cleared before changing identity.
 
-Replay only documented idempotent operations with the same frozen payload/key. Cart add increments quantity and image upload may create another asset; neither becomes safe through an invented header. No offline mutation queue is authorized. Cold-start recovery of uncertain placement after process death needs an approved recovery design; this baseline's memory-only pending keys cannot solve that gap.
+Pagination state stores query signature, cursor/page, deduplicated items, loading and separate page failure. A refresh atomically replaces first-page state after success; a failed refresh can keep permitted stale rows with visible feedback. Append only if base query/session still matches. Missing cursors mean exhausted, not uninitialized. Chat history retains the last reachable older cursor after foreground page gaps.
 
-Security and target-specific storage behavior are defined in [authentication](api/authentication.md); uploads in [Flutter transport](flutter-file-uploads.md); outstanding integration decisions in the [gap register](references/integration-gaps.md).
+## Financial and mutation authority
+
+Catalog/Cart numeric prices are display hints. Quote/Order monetary strings are authoritative, parsed to integer minor units without floating-point totals. Quote ID/expiry and exact intent determine placement. Changing address, quantities, variant or vouchers invalidates quote. Display new prices and require deliberate review/Place; never silently repeat a blocked/expired write.
+
+Store uncertain supported operations as immutable `PendingMutation(key, payload, sessionGeneration, context)`. Disable competing edits until exact retry or authoritative reconciliation. Checkout has no GET-by-key endpoint and keys are memory-only: process-death recovery remains G12. Cart add and image uploads have no durable replay guarantee. No offline write queue.
+
+## Native, web and provider adapters
+
+image_picker supplies XFile bytes/stream abstractions. Keep dart:io confined to conditional native adapters; web cannot use a native path. `retrieveLostData` must not attach a recovered file to a changed account/parent. Private images use authenticated byte fetch and in-memory display; only public review images use returned public URLs.
+
+PSGC assets ship in this bundle; the typed reader preserves actual hierarchy and manual fallback. Optional pinning uses flutter_map/latlong2 with an isolated Geoapify client; geolocator runs only after explicit user action/permission. Provider/GPS failure keeps text addresses usable. No background GPS or live Courier tracking. See [addresses/maps](maps-location-api.md).
+
+## Setup and verification
+
+[Fresh project setup](setup.md) contains exact SDK/package pins, asset declarations, environment and Android/web commands. Top-level package metadata compatibility was inspected; transitive resolution and all builds/tests remain unexecuted. [Verification](verification.md) defines the tests needed to graduate each pending feature. Deployment/CORS/map credentials are external inputs, not bundled server settings.

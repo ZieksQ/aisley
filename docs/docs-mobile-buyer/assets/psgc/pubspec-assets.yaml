@@ -1,0 +1,21 @@
+flutter:
+  assets:
+    - assets/psgc/list-of-all-regions.json
+    - assets/psgc/0100000000-region-i-ilocos-region/
+    - assets/psgc/0200000000-region-ii-cagayan-valley/
+    - assets/psgc/0300000000-region-iii-central-luzon/
+    - assets/psgc/0400000000-region-iv-a-calabarzon/
+    - assets/psgc/0500000000-region-v-bicol-region/
+    - assets/psgc/0600000000-region-vi-western-visayas/
+    - assets/psgc/0700000000-region-vii-central-visayas/
+    - assets/psgc/0800000000-region-viii-eastern-visayas/
+    - assets/psgc/0900000000-region-ix-zamboanga-peninsula/
+    - assets/psgc/1000000000-region-x-northern-mindanao/
+    - assets/psgc/1100000000-region-xi-davao-region/
+    - assets/psgc/1200000000-region-xii-soccsksargen/
+    - assets/psgc/1300000000-national-capital-region-ncr/
+    - assets/psgc/1400000000-cordillera-administrative-region-car/
+    - assets/psgc/1600000000-region-xiii-caraga/
+    - assets/psgc/1700000000-mimaropa-region/
+    - assets/psgc/1800000000-negros-island-region-nir/
+    - assets/psgc/1900000000-bangsamoro-autonomous-region-in-muslim-mindanao-barmm/

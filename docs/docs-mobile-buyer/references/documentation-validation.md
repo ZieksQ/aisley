@@ -21,3 +21,17 @@ No Flutter repository/scaffold was created, and no application/API tests, builds
 - Confirmed relocation/tracking at `docs/docs-mobile-buyer/`, preserved original progress history and the existing docs/cabigan ignore policy, and checked the documentation diff for whitespace/conflict markers and unrelated changes.
 
 These revision checks do not rerun the original route enumeration or source-hash audit. Existing Customer auth routes/controller were inspected to cross-check bearer login and revocation wording; no application tests, Flutter builds, device/browser acceptance or live API checks ran.
+
+## Standalone handoff revision — 2026-10-03
+
+New inspection checkout: `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`, captured before editing. The original baseline and its provenance manifest remain unchanged; [current inspection hashes](source-inspection.json) record 131 separately inspected source files.
+
+- All 22 Customer specs contain WHAT/MUST/HOW and 210–217 physical lines. The validator preserved each pre-existing unchecked acceptance requirement and verified canonical feature coverage; shared consent has equivalent contract detail without the line limit.
+- Copied the complete bundle into an isolated repository-local Flutter-style docs/ layout and copied its agent instructions to root. Checked local Markdown destinations/anchors and every concrete root-instruction docs path with no monorepo files in the simulated destination.
+- Validated 95 distinct operation methods/paths against the captured 95-route inventory, with no other-role route consumption. Parsed all JSON documents; checked 107 named model references and nested successful response fixtures, and ensured each operation's fixture agrees with the machine-readable inventory.
+- Compared all 19 bundled PSGC files byte for byte with their source and checked SHA-256/size manifests, eighteen index targets, ten-digit string codes and recursively nested children. All assets resolve after standalone copying.
+- Reviewed exact request casing, ownership/consent, status/envelopes, nullable/omitted fields, channel-specific paging/read fields and replay boundaries against current Laravel source. Support cursor traversal uses the framework request resolver; no unavailable-cursor API claim remains.
+- Inspected official Flutter release/package metadata for the concrete SDK and ten package pins; recorded constraints and checksums in [package baseline](package-baseline.json). Direct constraints accept the selected SDK; transitive resolution and target builds were not executed.
+- Preserved historical provenance, documentation-validation and progress prefixes and all existing archive bytes. Reviewed synthetic fixture identifiers/contact/text/secret placeholders, conflict markers, completion states and documentation-only scope; whitespace checks passed.
+
+The final machine-readable [check summary](standalone-validation.json) records the actual link/file counts and zero validation errors. These checks cover document portability and fixture consistency, not executable Dart DTOs or a live API. No Flutter scaffold, dependency installation/resolution, analyzer, unit/widget/integration tests, Android/web builds, backend tests, migrations, seeds, live exchange or installed-device acceptance ran. Open integration gates and all Flutter completion criteria remain pending.

@@ -29,3 +29,16 @@ For each phase record backend commit/configuration, target/origin, Flutter SDK/a
 - [ ] Open policy/privacy/backend gates in [integration gaps](references/integration-gaps.md) are reviewed, including message retention, upload hardening, rate/address correction and native map credentials. No mocked test or build is reported as live production certification.
 
 Backend test references are in [source provenance](references/source-provenance.md). Running migrations/seeds, provisioning databases or changing backend/deployment configuration requires the owning authorized backend task; these are not automatic Flutter build steps.
+
+## Standalone implementation verification inputs
+
+Use the pinned SDK/packages and target commands in [setup](setup.md). The local [operation inventory](api/operation-index.json), [DTO schema](api/dto-schema.json), [synthetic examples](api/examples/README.md) and [failure contracts](api/errors.md) supply test inputs without an upstream checkout. Synthetic fixtures establish expected parsing cases; they do not certify a deployed API.
+
+- [ ] Resolve the pinned dependencies and record pubspec.lock; execute formatter/analyzer, meaningful repository/view-model/widget tests, debug/release Android builds and local-web compilation separately. Official metadata compatibility is not dependency resolution.
+- [ ] Traverse Shop, operational and Support cursors with multiple pages; Support uses Laravel's request-bound cursor resolver. Detect repeated cursors and preserve session/query guards.
+- [ ] Verify every PSGC source checksum after asset copying and all eighteen regional loaders, including direct cities/NCR; confirm reviewed Province text against the deployed shipping-coverage data.
+- [ ] Discard registration profile_photo_path and unknown private fields; verify the client never derives a public media URL from that path.
+- [ ] Exercise optional intentional geocoding, reviewed pin edits, foreground GPS denial/permanent denial, attribution and text-only fallback with deployment-approved public credentials.
+- [ ] Verify nullable Home flashDeals, arbitrary nullable Product specifications, legacy nullable checkoutBatchId and tracking's empty-array location compatibility with typed fixture tests.
+
+Completed documentation-only checks are recorded in [documentation validation](references/documentation-validation.md); all application criteria above remain unchecked until actual evidence is recorded.

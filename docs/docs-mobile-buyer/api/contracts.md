@@ -1,6 +1,6 @@
 # Typed API requests and DTOs
 
-Backend inspected at the [recorded baseline](../references/source-provenance.md); all Dart models/parsers pending. [Endpoint inventory](endpoints.md) defines methods and gates; [request/Resource field index](field-index.md) records upstream field names.
+Backend inspected at the [recorded baseline](../references/source-provenance.md); all Dart models/parsers pending. [Endpoint inventory](endpoints.md) defines methods and gates; [typed wire tables](field-index.md) define fields, nesting, nullability and omission. [Exact operations](operations.md) and [synthetic examples](examples/README.md) supply request/response fixtures.
 
 Use immutable typed models with explicit JSON-key mapping. UUIDs and opaque cursors are strings; timestamps are ISO-8601 parsed as UTC then displayed locally; birth dates are date-only. Distinguish absent, null, empty and false. Validate required structures and tolerate additive optional fields; unknown statuses render safe text and disable unsupported actions. A malformed success body is a decode failure, never an empty success.
 
@@ -11,7 +11,7 @@ There is no universal casing/envelope. Account, catalog, Address and Order Resou
 | Contract | Fields and semantics |
 | --- | --- |
 | Navigation | `customer: {id, displayName?, avatarUrl?, role, status}`; optional private avatar URL requires authenticated bytes |
-| Account | `data: {id,email,role,status,profile:{firstName,middleName,lastName,contactNumber,sex,birthDate,age,profilePhotoUrl},security:{emailEditable,passwordChangeRequiresCurrentPassword}}` |
+| Account | `account: {id,email,role,status,profile:{firstName,middleName,lastName,contactNumber,sex,birthDate,age,profilePhotoUrl},security:{emailEditable,passwordChangeRequiresCurrentPassword}}` |
 | Home | Top-level `{viewer,advertisementLayer,campaigns,quickActions,categories,flashDeals,topProducts,recentlyViewed,recommendations}`; recommendations read returns `{recommendations:{items,nextCursor,pageSize}}`; no universal `data` wrapper |
 | Product card | `id,slug,title,thumbnailUrl,price,originalPrice,minPrice,maxPrice,discountPercent,averageRating,reviewCount,soldCount,stockStatus,shop,badges`; numeric display prices; nullable original/range/rating |
 | Product Detail | `data` Resource with `shortDescription`, `descriptionMarkdown`, `specifications`, numeric prices, `availability`, `media`, ordered `optionGroups`, `variants`, safe `shop`; variant `optionValueIds` defines combinations |
@@ -64,4 +64,4 @@ Profile PATCH requires first_name, last_name, contact_number, sex and birth_date
 
 Quote shippingQuote exposes serviceable, rateVersionId, rateVersion, billableWeightGrams, baseFee, additionalWeightFee, destinationSurcharge and eligibleLogisticsCount; it exposes a count rather than organization IDs. Keep provider selection outside Buyer checkout.
 
-The field index is a source inventory, not a replacement for validators/services: dynamic rules, inherited validation, semantic ownership, upload inspection and server capabilities must also be applied. Before implementation refresh contract fixtures from a controlled development API and record changes. Existing source tests are references, not rerun evidence from this documentation task.
+The typed tables and operation contracts include inherited validation and current semantic ownership/replay boundaries. Implement from this local bundle; controlled live API fixture refresh is a later integration check, not required upstream reading. Source tests were inspected, not rerun. Quote Address excludes coordinates and includes nullable label; Batch Address includes coordinates. Support writes replay their recorded201 status; Customer replies reopen waiting/resolved tickets. Support detail cursor traversal uses Laravel’s request-bound resolver and remains a target verification requirement.

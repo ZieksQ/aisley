@@ -48,3 +48,34 @@ Shop/Product/owned Order → Shop composer → first committed message creates/r
 Polling while visible/online, ordered cursor history and monotonic reads provide foreground messaging. Freeze uncertain text/key for exact retry; no offline-send queue. Support-ticket create/reply uses its own keys and revision rules. Notifications link to allowed screens but cannot advance any business status.
 
 Delivered owned Order Item → server review capability → rating/plain-text review → canonical Review result → up to configured photo limit via separate uploads. Review creation replays identical content by Order Item; image uploads have no replay guarantee. Reconcile each uncertain image response before uploading another copy. Seller official review response is read-only. Q&A remains public Product knowledge and does not require a delivered purchase.
+
+
+## Concrete app routes and safe entry rules
+
+These are **Flutter navigation paths**, not new APIs. Use go_router branches for /, /shops, /cart and /account. Compose detail stacks for /shops/:slug, /products/:id, /checkout, /checkout/result/:batch, /orders/:order, /account/profile, /account/addresses, /wishlist, /recently-viewed, /notifications/:id, /messages/shops/:id, /messages/logistics/:id, /messages/courier/:id and /support-tickets/:id. Separate /login, /register, /approval and /policies/:type reader/consent routes avoid private-data flashes. Detail IDs are UUIDs except Shop slug; root list paths exist independently from detail paths.
+
+| Entry | Required behavior |
+| --- | --- |
+| Guest opens private destination | sign-in with allow-listed read return; cancelling returns safely |
+| Restoring token | one /me, then consent; no private widgets before identity verified |
+| Required policy publication | preserve identity; reader confirms exact version; status refresh unlocks safe read |
+| Product Add Cart | complete variant/quantity, active Customer/consent; additive mutation has no durable replay |
+| Product Buy Now | creates intent without changing Cart; owned address/COD quote/review before Place |
+| Selected Cart checkout | only distinct owned selected available lines; one current quote intent |
+| Notification destination | map known Order/Product/Shop/Q&A/review routes; unknown falls back to detail |
+| Delivery Courier contact | private order-context read first; eligible start vs authorized readonly history |
+| Logout/account switch | cancel/reject old requests and erase all private state before new identity |
+
+Account links remain separate from role operational navigation. Unsaved forms ask before discarding; back/cancel never silently repeats a write. Native reset links stay with trusted storefront until link deployment is approved.
+
+## Recovery journeys
+
+A stale quote asks for reviewed refresh, not automatic Place. A lost placement response retains the exact in-session key/intent and offers exact retry; only a known Batch UUID can be reread. Process-death uncertainty remains unresolved without approved durable recovery, and no GET-by-key exists. Cart add/image upload uncertainty first rereads authoritative state; another click is a deliberate new action, not automatic network recovery.
+
+Scoped Order denial clears the Order and its contact context; account-wide denial clears every private repository. Consent denial retains authentication while protected actions stop. Secure-storage failure is a retry state that fails closed, not a valid signed-in flag. Offline logout can clear local state but must explain remote revocation is unconfirmed.
+
+Visible online chats poll at15s and on focus/reconnect, preserving pending first-send intent and reachable older history. Background/offline pauses timers. Reassignment/ended custody replaces contact eligibility and makes original authorized history readonly; transcripts are never copied between participants. Support detail uses Laravel’s request-bound cursor resolver. Preserve returned older cursors and verify traversal beyond the first history page.
+
+## Feature implementation sequence
+
+Implement root configuration/token/session/error/router composition and shared consent first. Then public discovery/Shop/Product DTOs and navigation; account/PSGC addresses/wishlist/guest history; Cart/quote/vouchers/place and owned Order projections; independent channels/notifications/Q&A/reviews/support. Each phase uses its own repositories/controllers and tests without importing another role’s screens. Reuse focused presentation widgets only when wire/permission/state ownership stays separate. See [architecture](architecture.md) and [setup](setup.md).

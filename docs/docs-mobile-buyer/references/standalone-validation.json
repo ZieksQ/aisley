@@ -1,0 +1,15 @@
+{
+  "checks": {
+    "portable_markdown_links": 550,
+    "markdown_files": 50,
+    "customer_specs": 22,
+    "spec_min_lines": 210,
+    "spec_max_lines": 217,
+    "psgc_files": 19,
+    "typed_operations": 95,
+    "typed_models": 107,
+    "new_source_hashes": 131,
+    "standalone_layout": "Copied whole bundle into isolated repository-local docs/ and copied root AGENTS.md; no monorepo files in simulated destination."
+  },
+  "errors": []
+}

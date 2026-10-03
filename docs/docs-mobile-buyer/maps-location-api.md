@@ -1,25 +1,48 @@
-# Buyer addresses, PSGC and optional maps
+# Buyer addresses, PSGC and optional pinning
 
-Flutter implementation pending. Upstream authority: `docs/maps-location-api.md`, Customer Address Book spec, `StoreAddressRequest`, Address Resource/Service and `packages/psgc-address-data`. A map is assistance; Laravel owns saved address validation, shipping serviceability and Order snapshots.
+The bundle supplies all address reference data and a selected optional Flutter adapter. Android/browser implementation remains pending. Text addresses and Laravel shipping decisions are authoritative; coordinates assist and never prove deliverability. This preserves the platform Geoapify/privacy boundary while adapting its web Leaflet renderer to Flutter.
 
-## Dart-compatible PSGC plan
+## Exact assets and typed loading
 
-The existing workspace package contains PSA PSGC Q2 2026 JSON, with `data/list-of-all-regions.json` referring to each region's `addresses.json`. Flutter cannot import `@aisley/psgc-address-data` or JavaScript selectors directly.
+Use [assets/psgc/list-of-all-regions.json](assets/psgc/list-of-all-regions.json), the eighteen referenced regional JSON files, [attribution/checksum manifest](assets/psgc/manifest.json) and [asset registration](assets/psgc/pubspec-assets.yaml). All nineteen data files match the existing workspace source bytes; no converted hierarchy is needed. Dataset provenance is PSA PSGC Q2 2026 per the source package; original-publication accuracy was not independently audited.
 
-Before implementing addresses, copy/export the approved JSON index and referenced files into the standalone app's `assets/psgc/`, preserve hierarchy/codes/names and source attribution, and declare those assets in `pubspec.yaml`. Record source commit, dataset revision, file manifest/checksums and export date in the Flutter progress log. No data assets or export tool are shipped by this documentation bundle. Index entries contain psgc_code, name and relative file. Use a typed Dart reader, lazy region loading and deterministic fixtures to verify each region hierarchy rather than assuming an unobserved converted schema.
+| Type | Exact fields |
+| --- | --- |
+| RegionIndexEntry | psgc_code:string, name:string, file:string (relative regional path) |
+| RegionPayload | source:string, region:PsgcNode |
+| PsgcNode | psgc_code:string, name:string, correspondence_code:string, geographic_level:string, children:PsgcNode[] |
+| Supplemental metadata | urban_rural:string?, population_2024:int?, and other descriptive source fields; ignore for address selection |
 
-Cascade searchable **Region → Province → City/Municipality → Barangay**. Parent changes clear invalid descendants. Preserve NCR/independent-city structures as supplied; do not fabricate a Province. Follow the existing package's reviewed names and manual fallback for missing/incomplete data. Postal code and house/street/address lines are manual, not inferred from a PSGC code. Save reviewed names through the existing Address fields; lookup codes/provider IDs do not become replacement API fields.
+Codes retain leading zeroes and are never integers. Decode AssetBundle.loadString through jsonDecode into immutable models; validate the index as a list and each payload.region.psgc_code matches its requested entry. Require safe index-relative paths from the nineteen-file allow-list; never accept user-supplied asset paths. Lazy-load/cache one region at a time by code; evict failed load futures so Retry can recover. Sorting options by natural/case-insensitive name never rewrites source bytes. Account switches can retain this public administrative cache, but clear form selections.
 
-The generic `/api/v1/address-options/*` routes exist, but current Customer dropdowns use bundled local data. Their presence is not a requirement to call them at each selection or silently replace offline assets. A mobile adapter/data-schema decision and parity tests remain open.
+## Hierarchy and cascade
 
-## Pinning and provider boundaries
+Regions contain provinces and may contain direct cities/municipalities. Provinces contain cities/municipalities; city/municipality children lead to Barangays. Traverse descendants under the selected city to find geographic_level barangay rather than assume every parent depth is uniform. Preserve the actual geographic_level strings and extra children; reject invalid parent/code combinations.
 
-Manual address → intentional **Pin location** → one Philippines-scoped Geoapify forward-geocode request → display a result and allow reviewed adjustment/GPS with permission → persist only valid coordinate pair. No geocoding while typing or selecting administrative fields. Changing populated location text clears stale coordinates. Provider failure never rewrites/erases text or blocks manual saving.
+Select Region → Province where a real province exists → City/Municipality → Barangay. A parent change clears descendants and stale coordinates. Do not attach a direct city to an invented Province node. Offer region-direct cities separately from province-owned cities where both occur. Postal code, street, unit/house and address_line_2 remain manual.
 
-Current web policy uses Leaflet with Geoapify raster tiles and visible Geoapify/OpenStreetMap/OpenMapTiles attribution; Mapbox is excluded. Leaflet is JavaScript and has no direct Dart import. A native renderer/hosted Leaflet bridge, its dependency, attribution, privacy, key restrictions and Android/browser parity require approval before pin rendering is implemented. Do not claim a Flutter map package is already chosen. Ship the permitted text-only fallback while that integration is unresolved.
+NCR's region node has direct cities and **no Province nodes**. Hide an empty Province selector, retain a reviewed required Province text field because the API requires province, and offer `National Capital Region (NCR)` as a clearly labeled compatibility suggestion. This is a selected Flutter form convention, not a claim that NCR is a province or an upstream validation exception. For other direct cities, require reviewed manual province-compatible text when no real parent province exists. Backend serviceability uses saved text; verify NCR/direct-city coverage live before release, and never claim geocoding overrides it.
 
-An approved public client key may assist intentional geocoding/tiles with target-appropriate restrictions; an origin-restricted browser key is not automatically a protected Android credential. Review mobile credential exposure and provider policy. The Laravel-only `GEOAPIFY_SERVER_API_KEY` for Route Matrix/Routing must never enter Flutter. Backend-only ranking/routing does not grant Buyer provider-selection or live tracking endpoints.
+Store lookup codes in local form state only. Requests save canonical/reviewed names through existing snake_case fields; no PSGC code, provider_place_id or replacement address API field is invented. Existing-address names may not exactly match the dataset: offer canonicalization only after review and never silently discard manual text. A corrupt/missing/incomplete asset offers fully manual text editing and Save. No network is required for normal selectors.
 
-Coordinates are optional complete pairs: latitude −90..90 and longitude −180..180. Device location requires an explicit user action/OS permission and denial/manual adjustment fallback. Never send names, phone numbers, Order contents or account IDs to map APIs; avoid provider calls/logs beyond approved address-geocoding need. Show attribution and accessible text controls when dragging is unavailable.
+Auxiliary public address-options APIs return `{options:[{code:string,name:string}]}`: regions has no input; provinces requires reg; municipalities requires reg and optional prv; barangays requires reg, optional prv and mun. Each code is a ten-digit string. They return503 ADDRESS_DATA_UNAVAILABLE on missing/invalid data and422 on invalid filters. The current storefront helper actually loads the same local JSON despite its fetchPsgcOptions name. Flutter uses bundled assets; these APIs are optional fallback diagnostics, not mandatory per-selection calls.
 
-Address Book editing/deleting never rewrites placed Orders. Checkout snapshots the owned shipping/both row and optional coordinates; approved pre-processing correction is an Order mutation with separate rules. Tracking currently declares map unavailable; pinning an address does not make Courier location/route/ETA available.
+## Intentional pin assistance
+
+Manual reviewed address → **Pin location** → one Geoapify forward-geocode → review result/map → optional move/GPS → confirm pair → Save. No autocomplete/geocode request while typing or changing selectors. Keep provider/network traffic off until intentional action and configured credentials exist.
+
+Use a separate credential-free provider client for `GET https://api.geoapify.com/v1/geocode/search` with URL-encoded `text` made only from address fields, `filter=countrycode:ph`, `limit=1`, `format=json`, and public `apiKey`. Read `{results:[{lat:number,lon:number,formatted:string?,country_code:string?,rank:object?}]}`; reject empty/malformed/nonfinite/out-of-range results and non-Philippine country indication. Review the candidate before assigning coordinates; do not copy formatted provider text over manual fields. [Official geocoding API](https://apidocs.geoapify.com/docs/geocoding/)
+
+Do not send recipient names, phones, account IDs, tokens, Order contents or private notes to the provider. Forward geocoding necessarily sends the confirmed address location; explain this at the Pin action. No address/credential/query-string logging. Never call server Route Matrix or Routing from Buyer; GEOAPIFY_SERVER_API_KEY stays server-side. No Mapbox, live Courier GPS/ETA or automatic route calculation.
+
+Optional flutter_map/latlong2 shows Geoapify raster tiles only after a valid result or explicit GPS/pin operation. Configure the provider's raster URL such as `https://maps.geoapify.com/v1/tile/osm-carto/{z}/{x}/{y}.png?apiKey=<public-key>`, TileLayer userAgentPackageName for native identification and a persistent attribution control. Keep visible Geoapify, OpenStreetMap contributors and applicable OpenMapTiles attribution with accessible links; verify attribution for the selected style. Tile failures retain a coordinate summary/text-only address. [Official tile API/attribution](https://apidocs.geoapify.com/docs/maps/map-tiles/), [flutter_map provider guidance](https://docs.fleaflet.dev/layers/tile-layer/tile-providers)
+
+Allow tap/drag pin plus accessible numeric latitude/longitude adjustment and explicit Confirm/Cancel. GPS uses geolocator only on **Use current location**, checks service availability and permission, handles denied/deniedForever/approximate/timeouts, and offers Settings or manual fallback. No background permission/listener. Never prompt GPS at startup, hide text Save on denial, or treat approximate location as verified delivery evidence.
+
+Latitude and longitude are optional, but paired and range-validated: latitude−90…90, longitude−180…180. Provider GeoJSON arrays use longitude first; latlong2/Address adapters use named latitude/longitude. Editing any populated location field clears old pair; recipient-only edits need not discard the address pin. A failed provider request does not erase text or retain a mismatched pair.
+
+## Credentials and deployment gates
+
+Use suitable **public** Geoapify credentials with exact browser origin restrictions, quotas and provider-supported native restrictions. Bundled mobile keys are extractable; browser referrer restrictions do not by themselves secure Android use. If suitable credential/provider deployment cannot be approved, keep MAPS_ENABLED false and deliver text-only addresses. No server proxy/new endpoint is authorized by this handoff.
+
+Check every regional hierarchy, direct-city/NCR/manual compatibility, parent resets, malformed assets, coordinate order, denied GPS, provider timeout/quota/empty result, attribution and unchanged Order snapshots. Documentation checksum checks are completed; Flutter loading, physical GPS, live provider and shipping coverage acceptance remain pending. [Setup](setup.md), [Address spec](features/customer/address-book/spec.md), [release gaps](references/integration-gaps.md).

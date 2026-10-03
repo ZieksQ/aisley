@@ -1,0 +1,899 @@
+{
+  "provenance": "Source-derived documentation schema; not a live API capture",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "notation": "? nullable; ~ may be absent; [] list. Named types reference definitions. Unknown additive keys tolerated.",
+  "definitions": {
+    "Navigation": {
+      "id": "UUID",
+      "displayName": "string?",
+      "avatarUrl": "URL?",
+      "role": "string",
+      "status": "string"
+    },
+    "RegistrationCustomer": {
+      "id": "UUID",
+      "email": "string",
+      "role": "string",
+      "status": "string",
+      "profile": "RegistrationProfile"
+    },
+    "RegistrationProfile": {
+      "first_name": "string?",
+      "last_name": "string?",
+      "middle_name": "string?",
+      "contact_number": "string?",
+      "sex": "string?",
+      "birth_date": "date?",
+      "profile_photo_path": "string?"
+    },
+    "Account": {
+      "id": "UUID",
+      "email": "string",
+      "role": "string",
+      "status": "string",
+      "profile": "Profile",
+      "security": "Security"
+    },
+    "Profile": {
+      "firstName": "string?",
+      "middleName": "string?",
+      "lastName": "string?",
+      "contactNumber": "string?",
+      "sex": "string?",
+      "birthDate": "date?",
+      "age": "int?",
+      "profilePhotoUrl": "URL?"
+    },
+    "Security": {
+      "emailEditable": "bool",
+      "passwordChangeRequiresCurrentPassword": "bool"
+    },
+    "Preference": {
+      "promotional_in_app_opted_in": "bool",
+      "promotional_in_app_opted_in_at": "timestamp?"
+    },
+    "ShopIdentity": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string"
+    },
+    "OrderShop": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string",
+      "logoUrl": "URL?"
+    },
+    "QuoteShop": {
+      "id": "UUID",
+      "name": "string"
+    },
+    "Category": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string"
+    },
+    "Shop": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string",
+      "description": "string?",
+      "logoUrl": "URL?",
+      "bannerUrl": "URL?",
+      "category": "Category?"
+    },
+    "Product": {
+      "id": "UUID",
+      "slug": "string",
+      "title": "string",
+      "thumbnailUrl": "URL?",
+      "price": "number",
+      "originalPrice": "number?",
+      "minPrice": "number?",
+      "maxPrice": "number?",
+      "discountPercent": "int?",
+      "averageRating": "number?",
+      "reviewCount": "int",
+      "soldCount": "int",
+      "stockStatus": "string",
+      "shop": "ShopIdentity",
+      "badges": "string[]",
+      "deal": "Deal~"
+    },
+    "Deal": {
+      "stock": "int",
+      "soldCount": "int",
+      "remainingStock": "int",
+      "progressPercent": "int"
+    },
+    "WishlistProduct": {
+      "id": "UUID",
+      "slug": "string",
+      "title": "string",
+      "thumbnailUrl": "URL?",
+      "price": "number",
+      "originalPrice": "number?",
+      "minPrice": "number?",
+      "maxPrice": "number?",
+      "discountPercent": "int?",
+      "averageRating": "number?",
+      "reviewCount": "int",
+      "soldCount": "int",
+      "stockStatus": "string",
+      "shop": "ShopIdentity",
+      "badges": "string[]",
+      "requiresVariantSelection": "bool"
+    },
+    "ProductDetail": {
+      "id": "UUID",
+      "slug": "string",
+      "title": "string",
+      "shortDescription": "string?",
+      "descriptionMarkdown": "string?",
+      "specifications": "json?",
+      "price": "number",
+      "originalPrice": "number?",
+      "discountPercent": "int?",
+      "badges": "string[]",
+      "averageRating": "number?",
+      "reviewCount": "int",
+      "soldCount": "int",
+      "availability": "ProductAvailability",
+      "media": "ProductMedia[]",
+      "optionGroups": "OptionGroup[]",
+      "variants": "Variant[]",
+      "shop": "ProductShop"
+    },
+    "Specification": {
+      "name": "string",
+      "value": "string"
+    },
+    "ProductAvailability": {
+      "inStock": "bool",
+      "stockQuantity": "int?",
+      "requiresVariantSelection": "bool"
+    },
+    "ProductMedia": {
+      "id": "UUID?",
+      "url": "URL",
+      "altText": "string",
+      "position": "int",
+      "variantId": "UUID?"
+    },
+    "OptionGroup": {
+      "id": "UUID",
+      "name": "string",
+      "position": "int",
+      "values": "OptionValue[]"
+    },
+    "OptionValue": {
+      "id": "UUID",
+      "value": "string",
+      "position": "int",
+      "swatch": "Swatch"
+    },
+    "Swatch": {
+      "color": "string?",
+      "imageUrl": "URL?"
+    },
+    "Variant": {
+      "id": "UUID",
+      "sku": "string?",
+      "optionValueIds": "UUID[]",
+      "price": "number",
+      "originalPrice": "number?",
+      "discountPercent": "int?",
+      "stockQuantity": "int",
+      "inStock": "bool",
+      "primaryMediaId": "UUID?"
+    },
+    "ProductShop": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string",
+      "logoUrl": "URL?",
+      "isOnVacation": "bool",
+      "vacationMessage": "string?",
+      "storefrontUrl": "URL"
+    },
+    "Address": {
+      "id": "UUID",
+      "type": "string",
+      "label": "string?",
+      "recipientName": "string",
+      "contactNumber": "string",
+      "addressLine1": "string",
+      "addressLine2": "string?",
+      "barangay": "string",
+      "cityMunicipality": "string",
+      "province": "string",
+      "region": "string",
+      "postalCode": "string",
+      "country": "string",
+      "latitude": "coordinate?",
+      "longitude": "coordinate?",
+      "isDefault": "bool"
+    },
+    "AddressSnapshot": {
+      "recipientName": "string",
+      "contactNumber": "string",
+      "addressLine1": "string",
+      "addressLine2": "string?",
+      "barangay": "string",
+      "cityMunicipality": "string",
+      "province": "string",
+      "region": "string",
+      "postalCode": "string",
+      "country": "string",
+      "latitude": "coordinate?",
+      "longitude": "coordinate?"
+    },
+    "DeliveryAddress": {
+      "version": "int",
+      "recipientName": "string",
+      "contactNumber": "string",
+      "addressLine1": "string",
+      "addressLine2": "string?",
+      "barangay": "string",
+      "cityMunicipality": "string",
+      "province": "string",
+      "region": "string",
+      "postalCode": "string",
+      "country": "string"
+    },
+    "Cart": {
+      "id": "UUID",
+      "itemCount": "int",
+      "distinctItemCount": "int",
+      "subtotal": "number",
+      "availableSubtotal": "number",
+      "items": "CartItem[]"
+    },
+    "CartItem": {
+      "id": "UUID",
+      "quantity": "int",
+      "unitPrice": "number",
+      "lineSubtotal": "number",
+      "product": "CartProduct",
+      "variant": "CartVariant?",
+      "selectedOptions": "SelectedOption[]",
+      "media": "CartMedia",
+      "availability": "CartAvailability"
+    },
+    "CartProduct": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string",
+      "url": "URL"
+    },
+    "CartVariant": {
+      "id": "UUID",
+      "sku": "string?"
+    },
+    "SelectedOption": {
+      "group": "string",
+      "value": "string"
+    },
+    "CartMedia": {
+      "url": "URL?",
+      "altText": "string"
+    },
+    "CartAvailability": {
+      "isAvailable": "bool",
+      "reason": "string?",
+      "availableQuantity": "int"
+    },
+    "WishlistItem": {
+      "id": "UUID",
+      "savedAt": "timestamp",
+      "product": "WishlistProduct"
+    },
+    "RecentItem": {
+      "id": "UUID",
+      "lastViewedAt": "timestamp",
+      "product": "Product"
+    },
+    "Pagination": {
+      "currentPage": "int",
+      "lastPage": "int",
+      "perPage": "int",
+      "total": "int"
+    },
+    "PageLinks": {
+      "first": "URL",
+      "last": "URL",
+      "prev": "URL?",
+      "next": "URL?"
+    },
+    "PageMeta": {
+      "current_page": "int",
+      "from": "int?",
+      "last_page": "int",
+      "links": "PageLink[]",
+      "path": "URL",
+      "per_page": "int",
+      "to": "int?",
+      "total": "int"
+    },
+    "PageLink": {
+      "url": "URL?",
+      "label": "string",
+      "active": "bool"
+    },
+    "CursorLinks": {
+      "first": "URL?",
+      "last": "URL?",
+      "prev": "URL?",
+      "next": "URL?"
+    },
+    "CursorMeta": {
+      "path": "URL",
+      "per_page": "int",
+      "next_cursor": "string?",
+      "prev_cursor": "string?"
+    },
+    "Quote": {
+      "quoteId": "UUID",
+      "expiresAt": "timestamp",
+      "mode": "string",
+      "paymentMethod": "string",
+      "address": "QuoteAddress",
+      "groups": "QuoteGroup[]",
+      "summary": "QuoteSummary"
+    },
+    "QuoteAddress": {
+      "id": "UUID",
+      "recipientName": "string",
+      "contactNumber": "string",
+      "addressLine1": "string",
+      "addressLine2": "string?",
+      "barangay": "string",
+      "cityMunicipality": "string",
+      "province": "string",
+      "region": "string",
+      "postalCode": "string",
+      "country": "string",
+      "label": "string?"
+    },
+    "QuoteGroup": {
+      "shop": "QuoteShop",
+      "items": "QuoteItem[]",
+      "availableVouchers": "Voucher[]",
+      "appliedVouchers": "AppliedVoucher[]",
+      "shippingQuote": "ShippingQuote",
+      "totals": "Totals"
+    },
+    "QuoteItem": {
+      "cartItemId": "UUID?",
+      "productId": "UUID",
+      "variantId": "UUID?",
+      "productName": "string",
+      "sku": "string?",
+      "selectedOptions": "SelectedOption[]",
+      "unitPrice": "money",
+      "quantity": "int",
+      "lineSubtotal": "money"
+    },
+    "Voucher": {
+      "id": "UUID",
+      "code": "string",
+      "issuerType": "string",
+      "benefitType": "string",
+      "valueType": "string",
+      "value": "money",
+      "maximumDiscount": "money?",
+      "minimumSpend": "money",
+      "termsSummary": "string",
+      "validFrom": "timestamp",
+      "validUntil": "timestamp",
+      "paymentMethod": "string?",
+      "stackableWith": "string[]",
+      "scope": "VoucherScope",
+      "eligible": "bool",
+      "reason": "string?",
+      "saving": "money"
+    },
+    "VoucherScope": {
+      "productIds": "UUID[]",
+      "categoryIds": "UUID[]",
+      "excludedProductIds": "UUID[]",
+      "excludedCategoryIds": "UUID[]"
+    },
+    "AppliedVoucher": {
+      "id": "UUID",
+      "code": "string",
+      "issuerType": "string",
+      "benefitType": "string",
+      "qualifyingBasis": "money",
+      "discountAmount": "money"
+    },
+    "ShippingQuote": {
+      "serviceable": "bool",
+      "rateVersionId": "UUID",
+      "rateVersion": "int",
+      "billableWeightGrams": "int",
+      "baseFee": "money",
+      "additionalWeightFee": "money",
+      "destinationSurcharge": "money",
+      "eligibleLogisticsCount": "int"
+    },
+    "Totals": {
+      "merchandiseSubtotal": "money",
+      "shippingFee": "money",
+      "discount": "money",
+      "shippingDiscount": "money",
+      "payable": "money",
+      "currency": "string"
+    },
+    "QuoteSummary": {
+      "orderCount": "int",
+      "merchandiseSubtotal": "money",
+      "shippingFee": "money",
+      "discount": "money",
+      "shippingDiscount": "money",
+      "payable": "money",
+      "currency": "string"
+    },
+    "Batch": {
+      "id": "UUID",
+      "currency": "string",
+      "placedAt": "timestamp",
+      "orders": "BatchOrder[]"
+    },
+    "BatchOrder": {
+      "id": "UUID",
+      "reference": "string",
+      "status": "string",
+      "paymentMethod": "string",
+      "paymentStatus": "string",
+      "shop": "QuoteShop",
+      "items": "SnapshotItem[]",
+      "address": "AddressSnapshot",
+      "vouchers": "BatchVoucher[]",
+      "shippingQuote": "BatchShipping?",
+      "totals": "Totals",
+      "detailUrl": "URL"
+    },
+    "SnapshotItem": {
+      "id": "UUID",
+      "productId": "UUID?",
+      "variantId": "UUID?",
+      "productName": "string",
+      "variantName": "string?",
+      "sku": "string?",
+      "selectedOptions": "SelectedOption[]",
+      "unitPrice": "money",
+      "quantity": "int",
+      "lineSubtotal": "money",
+      "currency": "string"
+    },
+    "ReviewableItem": {
+      "id": "UUID",
+      "productId": "UUID?",
+      "variantId": "UUID?",
+      "productName": "string",
+      "variantName": "string?",
+      "sku": "string?",
+      "selectedOptions": "SelectedOption[]",
+      "unitPrice": "money",
+      "quantity": "int",
+      "lineSubtotal": "money",
+      "currency": "string",
+      "canReview": "bool",
+      "reviewId": "UUID?"
+    },
+    "BatchVoucher": {
+      "id": "UUID?",
+      "code": "string",
+      "issuerType": "string",
+      "benefitType": "string",
+      "qualifyingBasis": "money",
+      "discountAmount": "money",
+      "termsSummary": "string"
+    },
+    "OrderVoucher": {
+      "id": "UUID?",
+      "code": "string",
+      "issuerType": "string",
+      "benefitType": "string",
+      "discountAmount": "money",
+      "currency": "string",
+      "termsSummary": "string"
+    },
+    "BatchShipping": {
+      "rateVersionId": "UUID",
+      "rateVersion": "int",
+      "billableWeightGrams": "int",
+      "eligibleLogisticsCount": "int"
+    },
+    "Order": {
+      "id": "UUID",
+      "reference": "string",
+      "checkoutBatchId": "UUID?",
+      "placedAt": "timestamp",
+      "latestTrackingAt": "timestamp",
+      "status": "string",
+      "statusLabel": "string",
+      "group": "string",
+      "groupLabel": "string",
+      "shop": "OrderShop",
+      "items": "ReviewableItem[]",
+      "deliveryAddress": "DeliveryAddress",
+      "payment": "Payment",
+      "vouchers": "OrderVoucher[]",
+      "totals": "Totals",
+      "timeline": "Tracking[]",
+      "timelineCount": "int",
+      "timelineHasMore": "bool",
+      "trackingUrl": "URL",
+      "delivery": "Delivery?",
+      "map": "UnavailableMap",
+      "actions": "OrderActions"
+    },
+    "Payment": {
+      "method": "string",
+      "status": "string"
+    },
+    "Delivery": {
+      "status": "string",
+      "courier": "DeliveryCourier?"
+    },
+    "DeliveryCourier": {
+      "name": "string",
+      "contactNumber": "string?"
+    },
+    "UnavailableMap": {
+      "available": "bool",
+      "state": "string",
+      "message": "string",
+      "currentPosition": "null",
+      "route": "null",
+      "capturedAt": "null"
+    },
+    "OrderActions": {
+      "canCancel": "bool",
+      "canModify": "bool",
+      "canReview": "bool",
+      "modifiableFields": "string[]"
+    },
+    "OrderSummary": {
+      "id": "UUID",
+      "reference": "string",
+      "shop": "OrderShop",
+      "itemPreview": "ItemPreview?",
+      "lineCount": "int",
+      "itemCount": "int",
+      "status": "string",
+      "statusLabel": "string",
+      "group": "string",
+      "groupLabel": "string",
+      "latestTrackingAt": "timestamp",
+      "totals": "Totals",
+      "actions": "OrderActions",
+      "detailUrl": "URL"
+    },
+    "ItemPreview": {
+      "productId": "UUID?",
+      "productName": "string",
+      "variantName": "string?",
+      "quantity": "int"
+    },
+    "Tracking": {
+      "id": "UUID",
+      "status": "string",
+      "label": "string",
+      "eventType": "string?",
+      "location": "TrackingLocation",
+      "occurredAt": "timestamp"
+    },
+    "TrackingLocation": {
+      "hub": "string~",
+      "city": "string~"
+    },
+    "OrderFilters": {
+      "selected": "string?",
+      "tabs": "OrderTab[]"
+    },
+    "OrderTab": {
+      "value": "string?",
+      "label": "string"
+    },
+    "Question": {
+      "id": "UUID",
+      "question": "string",
+      "askedAt": "timestamp?",
+      "answer": "string?",
+      "answeredAt": "timestamp?",
+      "sellerLabel": "string?"
+    },
+    "Review": {
+      "id": "UUID",
+      "rating": "int",
+      "body": "string",
+      "verifiedPurchase": "bool",
+      "authorLabel": "string",
+      "createdAt": "timestamp?",
+      "photos": "ReviewPhoto[]",
+      "sellerResponse": "SellerResponse?"
+    },
+    "ReviewPhoto": {
+      "id": "UUID",
+      "url": "URL",
+      "mimeType": "string",
+      "width": "int",
+      "height": "int"
+    },
+    "SellerResponse": {
+      "id": "UUID",
+      "shopName": "string",
+      "body": "string",
+      "publishedAt": "timestamp?"
+    },
+    "Notification": {
+      "id": "UUID",
+      "type": "string",
+      "title": "string",
+      "summary": "string",
+      "order_id": "UUID?",
+      "order_reference": "string?",
+      "status": "string?",
+      "read_at": "timestamp?",
+      "created_at": "timestamp?",
+      "resource_type": "string?",
+      "resource_id": "string?",
+      "product_id": "UUID?",
+      "destination": "URL"
+    },
+    "ShopConversation": {
+      "id": "UUID",
+      "shop": "ChatShop",
+      "customer_name": "null",
+      "last_message_preview": "string?",
+      "last_message_at": "timestamp?",
+      "last_sequence": "int",
+      "last_read_sequence": "int",
+      "unread_count": "int",
+      "send_allowed": "bool"
+    },
+    "ChatShop": {
+      "id": "UUID",
+      "name": "string",
+      "slug": "string?"
+    },
+    "ShopMessage": {
+      "id": "UUID",
+      "sequence": "int",
+      "body": "string",
+      "mine": "bool",
+      "sender_role": "string",
+      "context": "MessageContext?",
+      "created_at": "timestamp?"
+    },
+    "MessageContext": {
+      "type": "string",
+      "id": "UUID?",
+      "label": "string",
+      "url": "URL?"
+    },
+    "LogisticsConversation": {
+      "id": "UUID",
+      "kind": "string",
+      "order_id": "UUID?",
+      "order_reference": "string?",
+      "counterparty_role": "string",
+      "counterparty_label": "string",
+      "last_message_preview": "string?",
+      "last_message_at": "timestamp?",
+      "last_sequence": "int",
+      "last_read_sequence": "int",
+      "unread_count": "int",
+      "send_allowed": "bool",
+      "read_only_reason": "string?"
+    },
+    "CourierConversation": {
+      "id": "UUID",
+      "kind": "string",
+      "leg": "string?",
+      "task_id": "UUID?",
+      "task_reference": "string?",
+      "order_id": "UUID?",
+      "order_reference": "string?",
+      "counterparty_role": "string",
+      "counterparty_label": "string",
+      "last_message_preview": "string?",
+      "last_message_at": "timestamp?",
+      "last_sequence": "int",
+      "last_read_sequence": "int",
+      "unread_count": "int",
+      "send_allowed": "bool",
+      "read_only_reason": "string?"
+    },
+    "OperationalMessage": {
+      "id": "UUID",
+      "conversation_id": "UUID",
+      "sequence": "int",
+      "sender_role": "string",
+      "mine": "bool",
+      "body": "string",
+      "created_at": "timestamp?"
+    },
+    "CourierOrderContext": {
+      "order_id": "UUID",
+      "order_reference": "string",
+      "send_allowed": "bool",
+      "conversation_id": "UUID?"
+    },
+    "Ticket": {
+      "id": "UUID",
+      "reference": "string",
+      "subject": "string",
+      "category": "string",
+      "status": "string",
+      "revision": "int",
+      "requester_role": "string",
+      "requester_name": "null",
+      "assignee_name": "string?",
+      "assignee_id": "null",
+      "unread_count": "int",
+      "last_activity_at": "timestamp?",
+      "created_at": "timestamp?",
+      "resolved_at": "timestamp?"
+    },
+    "TicketEvent": {
+      "id": "UUID",
+      "sequence": "int",
+      "type": "string",
+      "actor_role": "string",
+      "is_mine": "bool",
+      "body": "string?",
+      "from_status": "string?",
+      "to_status": "string?",
+      "assignment_changed": "bool",
+      "created_at": "timestamp?"
+    },
+    "PolicyVersion": {
+      "id": "UUID",
+      "version": "int",
+      "title": "string",
+      "content": "string",
+      "status": "string",
+      "change_summary": "string?",
+      "requires_reconsent": "bool",
+      "published_at": "timestamp?"
+    },
+    "PolicyVersionSummary": {
+      "id": "UUID",
+      "version": "int",
+      "title": "string",
+      "change_summary": "string?",
+      "requires_reconsent": "bool",
+      "published_at": "timestamp?"
+    },
+    "PolicyHistoryVersion": {
+      "id": "UUID",
+      "version": "int",
+      "title": "string",
+      "status": "string",
+      "change_summary": "string?",
+      "published_at": "timestamp?"
+    },
+    "AcceptedVersion": {
+      "id": "UUID",
+      "version": "int",
+      "accepted_at": "timestamp?"
+    },
+    "PolicyStatus": {
+      "type": "string",
+      "label": "string",
+      "required": "bool",
+      "accepted": "bool",
+      "accepted_at": "timestamp?",
+      "current_version": "PolicyVersionSummary?",
+      "accepted_version": "AcceptedVersion?"
+    },
+    "Consent": {
+      "policies": "PolicyStatus[]",
+      "all_required_accepted": "bool"
+    },
+    "PublicPolicy": {
+      "type": "string",
+      "label": "string",
+      "version": "PolicyVersion"
+    },
+    "PolicyAcceptance": {
+      "type": "string",
+      "label": "string",
+      "version": "PolicyVersion",
+      "accepted_at": "timestamp?"
+    },
+    "PolicyHistory": {
+      "type": "string",
+      "label": "string",
+      "versions": "PolicyHistoryVersion[]"
+    },
+    "Announcement": {
+      "id": "UUID",
+      "title": "string",
+      "body": "string",
+      "published_at": "timestamp?",
+      "expires_at": "timestamp?"
+    },
+    "Home": {
+      "viewer": "Viewer",
+      "advertisementLayer": "Advertisement?",
+      "campaigns": "CampaignGroups",
+      "quickActions": "QuickAction[]",
+      "categories": "HomeCategory[]",
+      "flashDeals": "FlashDeals?",
+      "topProducts": "Product[]",
+      "recentlyViewed": "Product[]",
+      "recommendations": "Recommendations"
+    },
+    "Viewer": {
+      "isAuthenticated": "bool",
+      "displayName": "string?",
+      "email": "string?",
+      "deliveryLocation": "DeliveryLocation?",
+      "cartItemCount": "int"
+    },
+    "DeliveryLocation": {
+      "id": "UUID",
+      "label": "string?",
+      "cityMunicipality": "string",
+      "province": "string"
+    },
+    "Advertisement": {
+      "layout": "string",
+      "rotationIntervalSeconds": "int",
+      "primary": "Campaign[]",
+      "secondaryTop": "Campaign?",
+      "secondaryBottom": "Campaign?"
+    },
+    "CampaignGroups": {
+      "hero": "Campaign[]",
+      "side": "Campaign[]"
+    },
+    "Campaign": {
+      "id": "string",
+      "placement": "string~",
+      "title": "string",
+      "description": "string?",
+      "slot": "string?",
+      "position": "int",
+      "imageDesktopUrl": "URL?",
+      "imageMobileUrl": "URL?",
+      "altText": "string",
+      "destinationUrl": "URL",
+      "startsAt": "timestamp?~",
+      "endsAt": "timestamp?~",
+      "priority": "int~",
+      "isActive": "bool"
+    },
+    "QuickAction": {
+      "key": "string",
+      "label": "string",
+      "destinationUrl": "URL"
+    },
+    "HomeCategory": {
+      "id": "UUID",
+      "slug": "string",
+      "name": "string",
+      "imageUrl": "URL?"
+    },
+    "Recommendations": {
+      "items": "Product[]",
+      "nextCursor": "string?",
+      "pageSize": "int"
+    },
+    "FlashDeals": {
+      "id": "UUID",
+      "title": "string",
+      "startsAt": "timestamp",
+      "endsAt": "timestamp",
+      "products": "Product[]"
+    },
+    "AddressOption": {
+      "code": "string",
+      "name": "string"
+    }
+  }
+}

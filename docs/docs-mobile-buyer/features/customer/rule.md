@@ -17,11 +17,11 @@ After copying this bundle into a Flutter repository's `docs/`, this file is `doc
 
 - Read [progress](../../PROGRESS.md) first; identify actual Buyer implementation and the recorded backend baseline.
 - Use [requirements](../../requirements.md), [workflows](../../workspace.md), [architecture](../../architecture.md), the matching spec and shared contracts for intended Customer behavior.
-- Use current Laravel routes, validation, Resources, services, models and tests as implementation evidence. Locate upstream sources through [provenance](../../references/source-provenance.md); Laravel source is not included in the copied Flutter bundle.
+- Local typed contracts/specs/examples/assets supply implementation authority. Current Laravel source was inspected for authoring; future source reading is optional provenance via [provenance](../../references/source-provenance.md); Laravel source is not included in the copied Flutter bundle.
 - Reconcile conflicting intent/implementation explicitly. Record missing or contradictory behavior in [integration gaps](../../references/integration-gaps.md) before enabling affected actions.
 - Flutter notes cannot change server ownership, permissions, fields, approval authority, prices or transitions.
 - `customer` is the persisted role and token ability. Buyer consumes Customer and permitted shared/public APIs; Seller/Admin/Logistics/Courier endpoint permissions remain separate.
-- These rules govern documentation/client handoff. They do not authorize backend changes, dependencies, migrations, seeds or a Flutter scaffold.
+- These rules govern documentation/client handoff. They do not authorize backend changes, migrations or seeds. The user-approved standalone handoff includes the fresh-project stack in [setup](../../setup.md); this documentation task does not implement a Flutter scaffold.
 
 ## Before adding or revising a spec
 
@@ -103,8 +103,8 @@ Label future routes conceptual and unavailable. Optional public personalization 
 - Buyer uses `http://localhost:8766`, separate from Courier `8765`. Document exact-origin CORS/method/header requirements through the backend owner; keep stateful cookies separate from token testing.
 - Use native/web conditional adapters: selected browser files use bytes/streams; OS paths stay native. Specify multipart/nested keys, type/size limits, cancellation and partial/uncertain upload outcomes.
 - Private media requires authenticated delivery and account-scoped cleanup. Never construct storage URLs or put tokens in URLs.
-- Export approved PSGC JSON with revision/manifest into Dart assets. Preserve Region → Province → City/Municipality → Barangay cascading and fallback; Flutter cannot import workspace JavaScript data/selectors.
-- Apply Geoapify/map requirements, attribution, approved key boundaries and explicit GPS permission. Native rendering remains a dependency decision; failed optional pins preserve manual address saving.
+- Copy the nineteen bundled source-identical PSGC JSON files with their revision/manifest into Dart assets. Preserve Region → Province → City/Municipality → Barangay cascading and fallback; Flutter cannot import workspace JavaScript data/selectors.
+- Apply Geoapify/map requirements, attribution, approved key boundaries and explicit GPS permission. Optional flutter_map/latlong2/geolocator rendering is selected in setup; public credential suitability remains a deployment gate; failed optional pins preserve manual address saving.
 - Specify loading, empty, unavailable, forbidden, stale, partial, retry, success and offline states without fake records/success.
 - Apply light-only [Buyer design](../../design-buyer.md), 48×48 logical-pixel targets, labels/text scaling, keyboard focus/insets and predictable Android/browser back/cancel.
 
@@ -135,7 +135,7 @@ Label future routes conceptual and unavailable. Optional public personalization 
 - Use meaningful examples, state/error behavior, privacy, acceptance and handoff details. Do not pad, duplicate prose or compress lines to evade the requirement.
 - If necessary, split genuinely independent contracts and link them; each resulting Customer feature spec follows the range. Obtain authorization before unrelated restructuring.
 - The range excludes this rule, `AGENTS.md`, reference/API guides, shared-policy specs and Dart code. Dart modularity remains governed by agent instructions.
-- Existing short specs remain baselines until individually revised. They are not certified implementation-ready by adding this rule; no bulk rewrite is required.
+- All 22 Customer specs were revised for the standalone handoff. Length compliance alone does not certify Flutter implementation or live integration.
 - Correct an out-of-range revision before calling it ready. Valid length alone cannot establish complete contracts or mobile acceptance.
 
 ## Final checklist before handoff

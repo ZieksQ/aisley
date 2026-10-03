@@ -14,7 +14,7 @@ For each base: `GET` inbox, `POST` first message/start, `GET /{conversation}` su
 
 Shop list accepts opaque cursor and uses 20 threads; history uses 30 messages. Operational list/history accept cursor (≤2,048 chars) and limit 1–50, default 20. Pages arrive with newest-first cursor selection but messages in each page are returned ascending. Merge by UUID/sequence, maintain reachable older pages after foreground gaps and do not fabricate cursors. Summary is `{data:...}`; start/send is `{conversation,message}`. Shop starts/sends return 201, including replay under its current facade; operational writes return 201 new/200 replay. Both are successful results.
 
-Shop messages include safe `context` and use the Shop public identity. Operational summaries include their Order/task/leg context, `last_read_sequence`, `unread_count`, `send_allowed`, `read_only_reason`; participant identifiers differ from Shop DTOs. Preserve `mine` and sequence/time from server messages. Consult the [field index](field-index.md) for actual serializer keys, and never guess Seller/Courier contact fields.
+Shop messages include safe `context` and use the Shop public identity. Operational summaries include their Order/task/leg context, `last_read_sequence`, `unread_count`, `send_allowed`, `read_only_reason`; participant identifiers differ from Shop DTOs. Preserve `mine` and sequence/time from server messages. Consult the [typed wire tables](field-index.md) for nested keys/types/nullability, and never guess Seller/Courier contact fields.
 
 ## Shop relationship
 
@@ -41,3 +41,7 @@ Disable duplicate sends. Freeze the pending body/context/key after uncertain net
 No offline queue, attachments, calls, typing/presence, edits, deletes or blanket Admin transcript access is implemented. Message retention/abuse policy and task-chat two-worker races/live external exchange remain release gaps. Clear drafts/transcripts and stop timers on logout, identity change or scoped denial. New text must not steal focus or force scroll while reading older history.
 
 Sources at baseline: `ConversationApi`, `ConversationService`, `CustomerLogisticsConversationService`, `CourierCounterpartyConversationService`, `CourierCounterpartyEligibility`, Messaging Requests, Customer controllers, `CustomerChatMessagingTest`, `CustomerCourierMessagingTest`, and `OperationalMessagingTest`. Their upstream paths are indexed in [provenance](../references/source-provenance.md).
+
+## Newly inspected portable fixtures
+
+Checkout57e9eb2 reinspection confirmed current Customer-only routes, actor-scoped participants/replay/read state, exact envelopes and Courier order-context. [Operation contracts](operations.md), [wire types](field-index.md), [error codes](error-codes.json) and per-channel [synthetic examples](examples/README.md) are local implementation inputs. No upstream reader or live capture is required for initial authoring; live counterpart/device and two-worker race gates remain pending. Shop read sequence≥1 and operational last_read_sequence≥1 differ from support last_read_sequence≥0. Private cache/transcript cleanup rejects delayed errors as well as successes.

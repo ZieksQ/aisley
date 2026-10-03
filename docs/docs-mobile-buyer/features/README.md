@@ -2,7 +2,7 @@
 
 All Flutter implementation and acceptance criteria are pending. Backend status describes inspected Laravel availability; upstream checkboxes are not imported as mobile completion. Read shared API/design/security guides first.
 
-Before creating, revising or implementing a Customer feature, read [Customer specification rules](customer/rule.md) and [agent instructions](../AGENTS.md). New or revised Customer specs use WHAT/MUST/HOW and 200–230 physical lines, overriding the feature-spec skill's shorter preference. Existing short specs remain baselines until revised; shared policy consent has its own contract and is outside this Customer length rule.
+Before creating, revising or implementing a Customer feature, read [Customer specification rules](customer/rule.md) and [agent instructions](../AGENTS.md). New or revised Customer specs use WHAT/MUST/HOW and 200–230 physical lines, overriding the feature-spec skill's shorter preference. All 22 Customer specs now meet that rule; shared policy consent has its own complete contract outside the Customer length range.
 
 | Feature | Phase | Backend boundary | Flutter |
 | --- | --- | --- | --- |

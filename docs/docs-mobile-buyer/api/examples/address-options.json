@@ -1,0 +1,157 @@
+{
+  "provenance": "Synthetic source-derived examples, not live captures. Public administrative names are reference data; no personal identity.",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "failure_examples": [
+    {
+      "status": 503,
+      "body": {
+        "code": "ADDRESS_DATA_UNAVAILABLE",
+        "message": "Address options are temporarily unavailable. Enter the address manually or try again later."
+      }
+    }
+  ],
+  "operations": [
+    {
+      "id": "op-092",
+      "feature": "address-options",
+      "method": "GET",
+      "path": "/api/v1/address-options/regions",
+      "request_contract": "No query.",
+      "response_contract": "{options:AddressOption[]}",
+      "status": 200,
+      "retry": "Read retry; bundled/manual fallback on503.",
+      "access": "Public",
+      "notes": "Auxiliary API; primary Flutter address selectors use bundled assets.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "options": [
+          {
+            "code": "1300000000",
+            "name": "National Capital Region (NCR)"
+          }
+        ]
+      },
+      "errors": [],
+      "response_variants": [
+        {
+          "name": "empty_options",
+          "status": 200,
+          "body": {
+            "options": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "op-093",
+      "feature": "address-options",
+      "method": "GET",
+      "path": "/api/v1/address-options/provinces",
+      "request_contract": "reg required ten-digit string; validate exact parent hierarchy.",
+      "response_contract": "{options:AddressOption[]}",
+      "status": 200,
+      "retry": "Read retry; bundled/manual fallback on503.",
+      "access": "Public",
+      "notes": "Auxiliary API; primary Flutter address selectors use bundled assets.",
+      "request_example": {
+        "query": {
+          "reg": "1300000000"
+        },
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "options": []
+      },
+      "errors": [],
+      "response_variants": [
+        {
+          "name": "empty_options",
+          "status": 200,
+          "body": {
+            "options": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "op-094",
+      "feature": "address-options",
+      "method": "GET",
+      "path": "/api/v1/address-options/municipalities",
+      "request_contract": "reg required ten-digit string; prv optional nullable ten-digit string; validate exact parent hierarchy.",
+      "response_contract": "{options:AddressOption[]}",
+      "status": 200,
+      "retry": "Read retry; bundled/manual fallback on503.",
+      "access": "Public",
+      "notes": "Auxiliary API; primary Flutter address selectors use bundled assets.",
+      "request_example": {
+        "query": {
+          "reg": "1300000000"
+        },
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "options": [
+          {
+            "code": "1380100000",
+            "name": "City of Caloocan"
+          }
+        ]
+      },
+      "errors": [],
+      "response_variants": [
+        {
+          "name": "empty_options",
+          "status": 200,
+          "body": {
+            "options": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "op-095",
+      "feature": "address-options",
+      "method": "GET",
+      "path": "/api/v1/address-options/barangays",
+      "request_contract": "reg required ten-digit string; mun required ten-digit string; prv optional nullable ten-digit string; validate exact parent hierarchy.",
+      "response_contract": "{options:AddressOption[]}",
+      "status": 200,
+      "retry": "Read retry; bundled/manual fallback on503.",
+      "access": "Public",
+      "notes": "Auxiliary API; primary Flutter address selectors use bundled assets.",
+      "request_example": {
+        "query": {
+          "reg": "1300000000",
+          "mun": "1380100000"
+        },
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "options": [
+          {
+            "code": "1380100001",
+            "name": "Barangay 1"
+          }
+        ]
+      },
+      "errors": [],
+      "response_variants": [
+        {
+          "name": "empty_options",
+          "status": 200,
+          "body": {
+            "options": []
+          }
+        }
+      ]
+    }
+  ]
+}

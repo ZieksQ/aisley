@@ -1,0 +1,406 @@
+{
+  "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "operations": [
+    {
+      "feature": "product-review-ratings",
+      "method": "GET",
+      "path": "/api/v1/products/{product}/reviews",
+      "request_contract": "page1\u201310000; limit1\u201350 default10.",
+      "response_contract": "{data:Review[],links:PageLinks,meta:PageMeta,summary:{averageRating:number?,reviewCount:int,distribution:Map<string,int>}}",
+      "status": 200,
+      "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
+      "access": "Public",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "data": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "rating": 5,
+            "body": "Synthetic review",
+            "verifiedPurchase": true,
+            "authorLabel": "Verified Customer",
+            "createdAt": null,
+            "photos": [],
+            "sellerResponse": null
+          }
+        ],
+        "links": {
+          "first": "/synthetic-placeholder",
+          "last": "/synthetic-placeholder",
+          "prev": null,
+          "next": null
+        },
+        "meta": {
+          "current_page": 1,
+          "from": null,
+          "last_page": 1,
+          "links": [
+            {
+              "url": null,
+              "label": "Synthetic example",
+              "active": false
+            }
+          ],
+          "path": "/synthetic-placeholder",
+          "per_page": 1,
+          "to": null,
+          "total": 1
+        },
+        "summary": {
+          "averageRating": 5,
+          "reviewCount": 1,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 1
+          }
+        }
+      },
+      "id": "op-051",
+      "errors": [
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_ALREADY_SUBMITTED",
+          "message": "This Order item already has a different review.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_NOT_ELIGIBLE",
+          "message": "A Product review can be submitted only after the Order is delivered.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+          "message": "This Order item no longer references a reviewable Product.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+          "message": "This Product is no longer available for review.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_IMAGE_LIMIT_REACHED",
+          "message": "A Product review may contain at most ",
+          "field": null
+        }
+      ],
+      "response_variants": [
+        {
+          "name": "empty_collection",
+          "status": 200,
+          "body": {
+            "data": [],
+            "links": {
+              "first": "/synthetic-placeholder",
+              "last": "/synthetic-placeholder",
+              "prev": null,
+              "next": null
+            },
+            "meta": {
+              "current_page": 1,
+              "from": null,
+              "last_page": 1,
+              "links": [
+                {
+                  "url": null,
+                  "label": "Synthetic example",
+                  "active": false
+                }
+              ],
+              "path": "/synthetic-placeholder",
+              "per_page": 1,
+              "to": null,
+              "total": 0
+            },
+            "summary": {
+              "averageRating": null,
+              "reviewCount": 0,
+              "distribution": {
+                "1": 0,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "feature": "product-review-ratings",
+      "method": "POST",
+      "path": "/api/v1/customer/order-items/{orderItem}/review",
+      "request_contract": "rating int1\u20135; body required trimmed plain text\u22642000; unsafe markup/control characters and extra fields rejected; delivered owned Order Item.",
+      "response_contract": "{data:Review}",
+      "status": 201,
+      "retry": "Same normalized rating/body for same Order Item returns same Review (200 replay/201 created); changed content conflicts. No header key required.",
+      "access": "Active Customer + consent",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "rating": 5,
+          "body": "Synthetic review"
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "rating": 5,
+          "body": "Synthetic review",
+          "verifiedPurchase": true,
+          "authorLabel": "Verified Customer",
+          "createdAt": null,
+          "photos": [],
+          "sellerResponse": null
+        }
+      },
+      "id": "op-052",
+      "errors": [
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_ALREADY_SUBMITTED",
+          "message": "This Order item already has a different review.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_NOT_ELIGIBLE",
+          "message": "A Product review can be submitted only after the Order is delivered.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+          "message": "This Order item no longer references a reviewable Product.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+          "message": "This Product is no longer available for review.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_IMAGE_LIMIT_REACHED",
+          "message": "A Product review may contain at most ",
+          "field": null
+        }
+      ],
+      "response_variants": [
+        {
+          "name": "exact_replay",
+          "status": 200,
+          "body": {
+            "data": {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "rating": 5,
+              "body": "Synthetic review",
+              "verifiedPurchase": true,
+              "authorLabel": "Verified Customer",
+              "createdAt": null,
+              "photos": [],
+              "sellerResponse": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "feature": "product-review-ratings",
+      "method": "POST",
+      "path": "/api/v1/customer/reviews/{review}/images",
+      "request_contract": "multipart image JPEG/PNG/WebP strictly<10MiB; one matching extension; \u22648000 edge/40M pixels; maximum5 photos; owned Review.",
+      "response_contract": "{data:ReviewPhoto}",
+      "status": 201,
+      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "access": "Active Customer + consent",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "multipart": {
+            "image": "SYNTHETIC_FILE_BYTES"
+          }
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "url": "/api/v1/product-review-images/11111111-1111-4111-8111-111111111111",
+          "mimeType": "image/png",
+          "width": 1,
+          "height": 1
+        }
+      },
+      "id": "op-053",
+      "errors": [
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_ALREADY_SUBMITTED",
+          "message": "This Order item already has a different review.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_NOT_ELIGIBLE",
+          "message": "A Product review can be submitted only after the Order is delivered.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+          "message": "This Order item no longer references a reviewable Product.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+          "message": "This Product is no longer available for review.",
+          "field": null
+        },
+        {
+          "feature": "product-review-ratings",
+          "status": 409,
+          "code": "PRODUCT_REVIEW_IMAGE_LIMIT_REACHED",
+          "message": "A Product review may contain at most ",
+          "field": null
+        }
+      ],
+      "response_variants": []
+    }
+  ],
+  "failure_examples": [
+    {
+      "status": 422,
+      "body": {
+        "message": "Representative validation failure.",
+        "errors": {
+          "rating": [
+            "Synthetic validation message for rating."
+          ]
+        }
+      }
+    },
+    {
+      "status": 401,
+      "body": {
+        "message": "Unauthenticated."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "ACCOUNT_SUSPENDED",
+        "message": "Your account is suspended."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "FORBIDDEN_ROLE",
+        "message": "This area is restricted to customers."
+      }
+    },
+    {
+      "status": 404,
+      "body": {
+        "message": "Not Found."
+      }
+    },
+    {
+      "status": 429,
+      "headers": {
+        "Retry-After": "60"
+      },
+      "body": {
+        "message": "Too Many Attempts."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_REVIEW_ALREADY_SUBMITTED",
+        "message": "This Order item already has a different review."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_REVIEW_NOT_ELIGIBLE",
+        "message": "A Product review can be submitted only after the Order is delivered."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+        "message": "This Order item no longer references a reviewable Product."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+        "message": "This Product is no longer available for review."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_REVIEW_IMAGE_LIMIT_REACHED",
+        "message": "A Product review may contain at most "
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "POLICY_CONSENT_REQUIRED",
+        "message": "Accept the current Terms of Service and Privacy Policy before continuing.",
+        "data": {
+          "required_policies": [
+            {
+              "type": "terms_of_service",
+              "label": "Terms of Service",
+              "version": 1,
+              "read_url": "/api/v1/platform/policies/terms_of_service",
+              "accept_url": "/api/v1/policy-consent/terms_of_service/versions/1/accept"
+            }
+          ],
+          "status_url": "/api/v1/policy-consent/status"
+        }
+      }
+    }
+  ]
+}

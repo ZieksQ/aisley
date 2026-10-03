@@ -8,7 +8,7 @@ backend: External Laravel API
 # AGENTS.md — Buyer Flutter
 
 > Portable rules for the standalone Customer/Buyer Flutter project. Copy the
-> complete bundle into its `docs/` and copy this file to its root as `AGENTS.md`.
+> complete bundle into its `docs/`. If root `AGENTS.md` is absent, copy this file there. If one exists, selectively merge these Buyer rules and preserve project-specific instructions.
 > Paths written as `docs/...` resolve against that Flutter repository. When
 > reading the bundle in place, omit the `docs/` prefix and resolve from the
 > bundle root. Upstream paths are evidence locators, not bundled files.
@@ -35,7 +35,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 
 1. Read `docs/PROGRESS.md` first. Identify actual Buyer work, the backend baseline and remaining acceptance gates.
 2. Read `docs/features/customer/rule.md` and every matching feature spec completely before implementing or revising a Customer feature. Read the shared policy spec when consent is affected.
-3. Follow existing Flutter/Dart architecture, null safety, state management, routing, networking and theme. Inspect `pubspec.yaml` and tools; obtain explicit approval before introducing libraries or replacing the stack.
+3. Follow existing Flutter/Dart architecture, null safety, state management, routing, networking and theme. For a fresh repository use the selected stack and pins in `docs/setup.md`; these are authorized by this handoff. Inspect an existing repository before adapting it; obtain approval for additional libraries or replacing its established stack.
 4. Keep one Flutter app for Android and local web testing. Laravel remains external. JavaScript workspace packages, React, Next.js, Tailwind and browser-session code cannot be imported as Flutter implementations.
 5. Consume Customer and permitted shared/public APIs only. Keep Seller, Admin, Logistics and Courier screens, authentication and operational powers outside Buyer. Messaging a Courier grants no Courier endpoint access.
 6. Send `device_name` at Customer login to select scoped Sanctum bearer authentication. Use approved platform secure storage, verify its browser behavior, and provide no plaintext fallback.
@@ -56,13 +56,13 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 
 ## Read before changing code
 
-- Read `docs/PROGRESS.md`, `docs/README.md`, `docs/requirements.md`, `docs/workspace.md` and `docs/architecture.md`.
+- Read `docs/PROGRESS.md`, `docs/README.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/architecture.md` and `docs/setup.md`.
 - Read `docs/features/customer/rule.md`, the exact matching `spec.md` or `specs.md` and prerequisite specs. Preserve existing feature paths and filenames.
 - Read `docs/design-buyer.md` for layout, interaction, styling or accessibility. Feature contracts own behavior; design owns Flutter presentation conventions.
 - Read `docs/api/authentication.md`, `docs/api/endpoints.md`, `docs/api/contracts.md`, `docs/api/field-index.md` and `docs/api/messaging.md` as applicable.
 - Read `docs/references/user-registration-requirements.md` for registration/approval and both `docs/references/file-upload-requirements.md` and `docs/flutter-file-uploads.md` for uploads.
 - Read `docs/maps-location-api.md` for PSGC/location and `docs/references/integration-gaps.md`, `docs/references/source-provenance.md` and `docs/verification.md` before handoff.
-- Follow upstream evidence when its checkout is available. Report missing contract details when unavailable; do not assume upstream files exist in the portable bundle.
+- Local specs, typed operation/wire tables, synthetic examples and assets supply implementation authority. Upstream evidence is optional provenance; its absence does not block implementing documented behavior. Record actual contract conflicts in the gap register.
 
 ## Specification and contract rules
 
@@ -70,7 +70,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 - Distinguish implemented, scaffold-only, planned and unavailable backend behavior separately from pending or verified Buyer Flutter implementation.
 - Follow WHAT/MUST/HOW and **200–230 physical lines** in `docs/features/customer/rule.md` for new or revised Customer specs, including authentication.
 - This local rule overrides the `feature-spec` skill's 120–160-line preference and its instruction to prefer fewer lines for simple features. Dart source modularity thresholds remain separate.
-- Existing short Customer specs remain baseline documents until revised; they are not certified ready under the new rule. Shared-policy specs, instructions and guides are outside this range.
+- All 22 Customer specs have been revised to the required range. Shared-policy specs, instructions and guides are outside this range. Every Flutter implementation criterion remains unchecked.
 - Preserve useful acceptance criteria, provenance and open decisions. Record material contract revisions and backend versions; mark completion only from actual implementation and verification evidence.
 - Never invent server fields, roles, approval paths, refresh tokens, native push or conceptual routes as usable APIs.
 

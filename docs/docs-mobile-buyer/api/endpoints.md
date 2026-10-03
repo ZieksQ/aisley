@@ -1,6 +1,6 @@
 # Verified Buyer endpoint inventory
 
-Enumerated using `php src/api/artisan route:list --path=api/v1 --json` at backend `7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0` on 2026-10-03. This was read-only route inspection, not authenticated API execution. Every endpoint below is implemented in this Laravel checkout; every Buyer Flutter integration remains pending.
+Historical enumeration was at `7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`. Re-enumerated before editing on 2026-10-03 at `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` using `php src/api/artisan route:list --path=api/v1 --json`; all 95 relevant method/path records remain available. [Restricted route snapshot](../references/routes-inspected.json) preserves current role/middleware evidence. This was read-only route inspection, not authenticated API execution. Every endpoint below is implemented in this Laravel checkout; every Buyer Flutter integration remains pending.
 
 **Public** needs no token. **Public/optional identity** personalizes only an active Customer, with any authenticated Home response private/no-store. **Active Customer** composes Sanctum and persisted role/status gate. **Active Customer + consent** adds the server policy gate and resource ownership. **Active policy actor** uses shared Sanctum/active-role policy authorization and remains exempt from consent blocking. Route/controller authorization and business rules still apply beyond middleware. GET routes also accept framework HEAD; the table shows the intended GET consumer method.
 
@@ -245,3 +245,5 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 - Platform policies expose only public Terms/Privacy and published/superseded history; Internal Rules are scoped unavailable.
 - There is no Buyer push-device registration, notification unread-count/read-all, voucher wallet/claim/code-entry, native-reset-link, applicant-status, live-location, delivery-POD, online-payment, returns/refunds or arbitrary-user messaging API promised by this inventory.
 - Customer methods differ from other roles: account password is PATCH, avatar part is photo, review part image, Q&A part question, support description part body, Shop read sequence versus operational read last_read_sequence.
+
+The current [95 typed operation records](operation-index.json) cover all inventory methods with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
