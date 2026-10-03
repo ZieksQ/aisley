@@ -3,7 +3,7 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.5
+version: 2.6
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
 implementation_status: Auth foundation implemented; supplied Flutter progress records registration, bearer session, and protected scaffold UI; live cross-repository verification remains separate
 canonical: true
@@ -76,7 +76,7 @@ GET active Logistics options
 - Store generated private object keys and document metadata. Never return bytes, raw paths, credentials, or predictable URLs in the Courier resource.
 - Create User, CourierProfile, address, pending RegistrationApplication, pending affiliation, Vehicle, and Document rows in one logical transaction.
 - Delete any stored evidence objects when persistence fails. Registration never issues a token or activates the account.
-- A duplicate same-role email returns `EMAIL_ALREADY_REGISTERED` with a field-addressable `email` error; concurrent duplicate handling must be covered before this contract is called complete.
+- A duplicate same-role email returns HTTP `422` with exactly `{ "code": "EMAIL_ALREADY_REGISTERED", "message": "A Courier account with this email already exists.", "errors": { "email": ["A Courier account with this email already exists."] } }`. This applies both to an existing Courier found by the precheck and to a concurrent users `(email, role)` uniqueness violation. The losing transaction rolls back before error translation and cleans up any stored evidence; unrelated uniqueness, database, or storage failures are not translated into duplicate-email errors.
 
 ### Logistics approval and lifecycle
 
@@ -140,14 +140,14 @@ GET active Logistics options
 - [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; external Flutter integration remains unverified.
 - [ ] Complete password-recovery delivery and reset; the implemented entry point does not provide recovery.
 - [ ] Implement affiliation history and revocation workflows.
-- [ ] Verify concurrent duplicate registration; existing foundation tests do not establish this guarantee.
+- [x] Concurrent duplicate registration is verified with synchronized PostgreSQL endpoint workers after both negative prechecks, for the same and different Logistics organizations: one `201`, one exact duplicate `422`, one complete pending registration, two evidence files, no access token, and only the winning application notification. Deterministic SQLite collision and unrelated-failure cleanup tests also pass; external Flutter integration remains unverified.
 - [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
 ## HOW
 
 ### Implemented API contract
 
-The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.5` supersedes its account/affiliation denial mapping and recovery availability messaging. Focused SQLite authentication verification does not certify external Flutter or PostgreSQL release tests.
+The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.6` supersedes its account/affiliation denial mapping, recovery availability messaging, and concurrent duplicate-registration handling. Focused SQLite regressions and disposable PostgreSQL registration-race verification do not certify external Flutter integration or unrelated PostgreSQL release gates.
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
@@ -162,7 +162,7 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 - Public `multipart/form-data` endpoint with `throttle:10,1`. Send nested keys such as `address[address_line_1]` and the two named image fields.
 - Request fields are the registration rules above. Prohibited fields include `role`, `status`, `hub_id`, and `reviewer_id`; extra authority fields must not be forwarded.
 - `201`: `{ "message": "Registration submitted for Logistics approval.", "courier": <safe Courier resource> }`; no token is returned.
-- `422`: validation, duplicate Courier email, unavailable selected organization, or invalid file. The Flutter app maps `errors` by field and can retry after correction.
+- `422`: validation, duplicate Courier email (including concurrent submissions), unavailable selected organization, or invalid file. The exact duplicate response is defined above and has a field-addressable `errors.email` array. The Flutter app maps `errors` by field and can retry after correction.
 
 #### `POST /api/v1/courier/auth/login` — implemented
 

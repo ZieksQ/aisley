@@ -20,6 +20,7 @@ use App\Models\LogisticsOrganization;
 use App\Models\User;
 use App\Services\Courier\CourierAccessService;
 use App\Services\Logistics\LogisticsNotificationService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +76,11 @@ class AuthController extends Controller
         } catch (Throwable $e) {
             foreach ($stored as [$disk,$path]) {
                 Storage::disk($disk)->delete($path);
-            }throw $e;
+            }
+            if ($this->isDuplicateEmail($e)) {
+                return $this->duplicate();
+            }
+            throw $e;
         }
 
         return response()->json(['message' => 'Registration submitted for Logistics approval.', 'courier' => new CourierUserResource($this->load($user))], 201);
@@ -126,6 +131,17 @@ class AuthController extends Controller
     private function duplicate(): JsonResponse
     {
         return response()->json(['code' => 'EMAIL_ALREADY_REGISTERED', 'message' => 'A Courier account with this email already exists.', 'errors' => ['email' => ['A Courier account with this email already exists.']]], 422);
+    }
+
+    private function isDuplicateEmail(Throwable $exception): bool
+    {
+        if (! $exception instanceof UniqueConstraintViolationException
+            || ! str_starts_with($exception->getSql(), 'insert into "users" ')) {
+            return false;
+        }
+
+        return $exception->index === 'users_email_role_unique'
+            || ($exception->index === null && $exception->columns === ['email', 'role']);
     }
 
     private function limited(string $key): JsonResponse
