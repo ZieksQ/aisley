@@ -1,0 +1,258 @@
+---
+model: Courier
+type: Domain Context
+purpose: Shared Courier workflow and implementation context
+version: 1.3
+status: Revised — aligned with the approved order/Logistics flow and implemented API foundation
+---
+
+# Courier Model Context
+
+## Final-mile revision (2026-09-20)
+
+The Courier accepts a destination-hub dispatch schedule as one bulk final-mile offer; its 1–15 parcel tasks still retain separate custody and delivery history. At drop-off, the Courier uploads a private photo POD, then explicitly sends **Delivered** intent to Logistics. Logistics confirms the photo before any Order/Shipment/task becomes `delivered`. A failed attempt records reason and time, leaves `out_for_delivery`, and permits a later retry. The accepted schedule can return advisory Geoapify Matrix/Routing stops and a road `LineString`; the development-only Courier mockup draws it with MapLibre. Linehaul transfers are a separate Logistics workflow. Historical reference-based delivery proof and route-deferred wording below is superseded for final-mile work.
+
+As of 2026-09-21, the accepted final-mile task itself identifies the parcel for hub handoff; the Courier enters no parcel identifier. Logistics still validates hub pickup. The Courier sees the parcel's merchandise price and currency in the task, and the mockup uses `osm-bright` with a visible Logistics start, numbered delivery stops, and route line. Photo POD remains the only Courier-entered delivery proof.
+
+## Overview
+
+Courier (rider) is Aisley's delivery operator. Courier operations are exposed through Laravel API endpoints and consumed by an external Flutter/mobile application. This repository must not build a Courier web dashboard or other Courier UI under `src/`.
+
+The Courier works under one selected Logistics organization. The organization operates exactly one hub/sorting center in the MVP, and the Courier's hub affiliation is derived by the server. Courier access is therefore both account-scoped and Logistics-relationship-scoped.
+
+## Registration, affiliation, and access boundary
+
+- Registration collects the required personal fields, Philippine address, vehicle type, plate number, OR/CR, and ID/driver's-license evidence from `docs/references/user-registration-requirements.md`.
+- MVP: exactly one vehicle per Courier, with required type/plate and private OR/CR for associated Logistics review. Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred. The vehicle registry API now supports post-approval detail edits and independent OR/CR replacement; registration/operational audit history remains intact.
+- Age is calculated from `birth_date` by the API; a client-supplied age is never authoritative.
+- Address selectors use the bundled PSGC Region → Province → City/Municipality → Barangay flow with manual street/house details and a complete manual fallback. If an exact pin is required, reuse the Customer Address Book flow: optional Geoapify suggestions/coordinates after **Pin location** and a Leaflet map rendered with Geoapify tiles. Mapbox is not used.
+- The applicant selects an eligible active Logistics organization. The API derives that organization's sole hub; the client cannot submit or select a hub/sub-hub ID.
+- The selected Logistics organization is the sole Courier affiliation reviewer and approver for the MVP. Admin account suspension, restoration, and deactivation remain separate lifecycle actions; Admin does not approve a pending Courier affiliation.
+- A pending, rejected, or revoked affiliation cannot issue a token or access Courier operations. Protected access also requires an active Courier account, an active Logistics organization, and a valid current hub.
+
+The implemented authentication foundation includes the `courier` role, `CourierProfile`, one initial `Vehicle`, `CourierLogisticsAffiliation`, registration applications, private registration documents, addresses, Sanctum bearer-token login/logout, current-Courier identity, password-recovery entry point, and Logistics approval endpoints. Courier first-mile and final-mile task APIs, shared shipment records, task-bound hub handoff, and private photo POD/completion are implemented. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred.
+
+## Courier lifecycle and status contract
+
+Persisted and API status values use lowercase `snake_case`. PHP enum case names may use `PascalCase`, and UI labels are human-readable. Legacy/source terms such as `ACCEPTED`, `IN_TRANSIT`, `COMPLETED`, or `DELIVERED` are not canonical persisted values.
+
+### Registration and affiliation lifecycle
+
+```text
+select active Logistics organization
+→ submit pending Courier account and affiliation
+→ Logistics review
+   ↘ rejected/revoked → no Courier access
+   ↘ approved + active → mobile sign in
+active → suspended/deactivated or affiliation revoked → API access denied
+```
+
+Account status (`users.status`) and affiliation status (`courier_logistics_affiliations.status`) are separate facts. A Courier is operational only when both are valid.
+
+### Delivery task lifecycle
+
+The existing high-level `OrderStatus` remains the Customer-facing order contract:
+
+```text
+pending_payment
+→ placed
+→ seller_processing
+→ ready_for_pickup
+→ picked_up
+→ in_transit
+→ out_for_delivery
+→ delivered
+```
+
+Task-level `rejected` records an offered Courier's refusal and is not an `OrderStatus`; Logistics may re-offer the same task to another eligible Courier without changing the Order. `stale` is an informational freshness condition for unfinished work, not a new high-level Order status, and it does not automatically cancel or reassign a task.
+
+Courier actions must use the detailed Shipment/Delivery Task contract rather than treating a generic order status as proof of a physical handoff:
+
+```text
+awaiting_seller_pickup
+→ seller_pickup_assigned
+→ seller_pickup_accepted
+→ picked_up_from_seller
+→ received_at_hub
+→ sorted_at_hub
+→ dispatched_from_hub
+→ delivery_assigned
+→ delivery_accepted
+→ picked_up_from_hub
+→ in_transit
+→ out_for_delivery
+→ delivered
+```
+
+Courier-performed task actions and transitions are:
+
+- **First mile:** `seller_pickup_assigned` → `seller_pickup_accepted` → `picked_up_from_seller`.
+- **Final mile:** `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → `in_transit` → `out_for_delivery` → `delivered`.
+
+`received_at_hub`, `sorted_at_hub`, and `dispatched_from_hub` are Logistics-side milestones. First-mile explicit confirmation commits custody and Inventory through its compatibility writer and shared-record bridge. Final-mile hub handoff submits task-confirmation evidence; only Logistics validation lets the shared transition service commit hub pickup. First-mile and final-mile assignments are independent: accepting or completing a first-mile pickup does not require or automatically grant the same Courier the final-mile assignment. Logistics may assign the same or a different eligible Courier for final-mile delivery; the second task must be separately offered, accepted, and authorized. Each leg requires its own task, assignment, actor, timestamp, location, and scan/event history. Internal `in_transfer` execution remains deferred in the MVP.
+
+Current COD placement skips `pending_payment` and starts the Order at `placed` with `payment_status = pending`; payment state remains read-only to Couriers. For COD final-mile completion, the Courier must acknowledge collection and the API records the Order-derived payable amount/currency/time for Logistics review. Logistics alone approves collection and the delivery transaction marks COD paid. The Seller-selected Logistics organization owns both task legs, and a Courier may operate only assigned/offered tasks within that organization.
+
+For the high-level projection, explicit first-mile confirmation advances `ready_for_pickup → picked_up`; later Logistics dispatch scheduling advances `picked_up → assigned` after creating the final-mile offer. Pickup scheduling does not write that final-mile projection.
+
+## Physical delivery flow
+
+```text
+Seller prepares the Order and confirms `ready_for_pickup`
+→ selected Logistics organization creates and offers a first-mile Seller pickup task
+→ first-mile Courier receives and accepts the task
+→ Courier uses the shared waybill QR/tracking ID/reference to verify the parcel
+→ Courier verifies and scans the parcel at the Seller
+→ Courier confirms `picked_up_from_seller`
+→ Courier transfers the parcel to the Logistics organization's sole hub
+→ Logistics receives the parcel (`received_at_hub`) using the same shared waybill/tracking ID
+→ Logistics sorts, transfers, and dispatches it
+→ Logistics schedules the sorted parcel with a final-mile Courier (`delivery_assigned`)
+→ final-mile Courier accepts (`delivery_accepted`)
+→ Courier submits task-bound hub confirmation without parcel identifier input
+→ Logistics validates evidence and records `picked_up_from_hub`
+→ Courier travels and delivers (`in_transit` → `out_for_delivery`)
+→ Courier submits private photo POD plus Delivered intent; Logistics validates both and records `delivered`
+```
+
+If a Courier rejects an eligible final-mile offer, the task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task. First-mile rejection/re-offer is target policy only; no Courier first-mile rejection route is deployed. An unfinished task may become informationally `stale`; it is not automatically cancelled or reassigned. The Courier does not assign itself, change Logistics hub state, or complete a task belonging to another Courier. Final-mile task-confirmation evidence and photo POD are validated by Logistics, preserving performing and recording actors. First-mile explicit confirmation retains its Courier-authored compatibility history without inventing a Logistics validator. Scans, access events, and manual actions are append-only history; a scan alone never advances custody.
+
+## Courier capabilities and boundaries
+
+### 1. Dashboard
+
+- **Purpose:** Show delivery notifications, available first-mile pickup requests, available final-mile delivery requests, and the Courier's active jobs.
+- **Owns:** Mobile read/aggregation, the dedicated notification inbox client, freshness indicators, task-detail navigation, and retry/empty/offline states. The Laravel notification API is implemented; the external Flutter client remains separate from this repository.
+- **Does not own:** Assignment authority, parcel state transitions, or a second source of truth for task data. Each row is scoped to the authenticated Courier and its approved Logistics relationship.
+- **Data shown:** The operational Order, parcel, waybill, pickup, destination, item, and delivery-instruction fields required for the offered or accepted task, plus server-provided provider-neutral `distance_km` and `estimated_duration_minutes` when available. Secrets, private evidence, raw storage paths, and unrelated personal data are excluded.
+
+### 2. Accept Delivery Requests
+
+- **Purpose:** Let the Courier review task type, pickup and destination details, route/distance context, and package requirements before accepting an eligible task.
+- **Owns:** Server-side revalidation at commit time, assignment to the authenticated Courier, and the `seller_pickup_accepted` or `delivery_accepted` transition.
+- **Rules:** A client cannot choose another `courier_id`, accept an unavailable task, or accept a task outside its Logistics organization/hub. The Courier only accepts an offer created by Logistics; acceptance does not create a task or grant assignment authority. A Courier may reject an offered task; rejection records task-level `rejected`, leaves the Order unchanged, and allows Logistics to re-offer the same task to another eligible Courier. Concurrent or retried accepts/rejections are idempotent and cannot double-assign or overwrite task history. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
+
+### 3. Pick Up Order
+
+- **Purpose:** Record physical possession after the Courier reaches the correct origin: the Seller for first mile or the Logistics hub for final mile.
+- **Owns:** First-mile QR/tracking-ID/Order-reference verification and explicit compatibility pickup confirmation; final-mile task-bound hub confirmation with `expected_revision` and a UUID `Idempotency-Key`, without identifier input. Logistics validates final-mile evidence before the shared service records `picked_up_from_hub`.
+- **Rules:** A generic `picked_up` OrderStatus is not proof of either physical handoff. Pickup cannot be confirmed for an unaccepted task, an incorrect parcel, or an unauthorized origin. First-mile events retain the actual Courier actor; validated final-mile events retain both Courier performer and Logistics recorder, timestamp, and safe evidence metadata; the scan/access event alone never advances custody.
+
+### 4. Deliver Order
+
+- **Purpose:** Support final-mile transit to the Buyer with destination details and navigation context.
+- **Owns:** The active delivery view, provider-neutral route context, and optional current-location updates while the task is assigned to the Courier.
+- **Rules:** A separately approved, provider-neutral mapping service may supply `distance_km` and `estimated_duration_minutes` or route suggestions, but Aisley remains authoritative for task eligibility, organization/hub scope, and state. Distance/ETA is advisory and does not grant assignment or status authority. The Customer checkout destination snapshot is the delivery destination; the Courier cannot edit it. Location collection is minimized and access-controlled. Mapbox is not a required provider.
+
+### 5. Complete Delivery
+
+- **Purpose:** Finalize a successful Buyer handoff after delivery requirements are satisfied.
+- **Owns:** Completion eligibility checks, the final `delivered` task transition, the corresponding high-level Order projection, immutable completion history, and post-commit notification events.
+- **Rules:** Completion is transactional and idempotent. It cannot bypass required proof, finalize another Courier's task, or be rolled back because a notification provider failed.
+
+### 6. Proof of Delivery (e-POD)
+
+- **Purpose:** Capture basic evidence that the parcel was handed over or placed at the approved destination.
+- **Owns:** Mobile capture of the approved evidence type, validation, secure storage, and linkage to the authorized Delivery Task/Order.
+- **Rules:** Image evidence follows `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, with signature/MIME/decode validation. Courier-submitted handoff evidence is validated and recorded authoritatively by Logistics, with performing-Courier and recording-Logistics actors preserved. Final-mile photo POD is implemented, private, delivered only through authorized no-store reads, and never returned as a raw storage path; signature proof remains deferred.
+
+### 7. Incident Reporting
+
+- **Purpose:** Report breakdowns, accidents, inaccessible addresses, damaged parcels, or other delivery blockers to Logistics.
+- **Owns:** A task-scoped incident record, safe description/evidence, severity, and notification handoff to the owning Logistics organization.
+- **Rules:** Creating an incident does not silently mutate the Order or invent a new route. Logistics or an approved transition policy decides reassignment, pause, return, or recovery.
+
+### 8. Chat/Messaging
+
+- **Purpose:** Communicate with the relevant Buyer, Seller, or Logistics operator for an active task.
+- **Owns:** Authorized task-linked threads, message delivery/read state, and operational access expiry.
+- **Rules:** Conversations are temporary and participant-scoped. Phone numbers, private registration evidence, payment secrets, and unrelated users are not exposed.
+
+### 9. Account Management
+
+- **Purpose:** Maintain the authenticated Courier's personal profile, security credentials, and current vehicle information.
+- **Owns:** Allow-listed self-service changes, password/session controls, and vehicle detail updates when permitted.
+- **Rules:** Every mutation uses the authenticated `user_id`; email alone, another role's record, arbitrary profile IDs, or a client-selected affiliation cannot authorize an update. Approved vehicle endpoints permit editing type/plate/make/model and independent OR/CR replacement without reapproval, with associated Logistics notified after commit. License and payout changes retain their separate policy boundaries.
+
+### 10. Delivery History
+
+- **Purpose:** Provide a read-only archive of the authenticated Courier's completed delivery tasks.
+- **Owns:** Bounded pagination, filters, detail navigation, and historical task summaries.
+- **Rules:** History is Courier-scoped and uses the canonical `delivered` state or the approved completion state of the task contract. It does not expose another Courier's routes, Buyer private data, or raw evidence paths.
+
+### 11. Profit Dashboard
+
+- **Purpose:** Show earnings derived from the Courier's completed delivery work.
+- **Owns:** Read-only period totals and bounded delivery-linked summaries once an authoritative earnings ledger exists.
+- **Rules:** It must not infer payable earnings from Order totals or expose another Courier's financial data. The earnings ledger and payout policy are deferred.
+
+### 12. Performance Metrics
+
+- **Purpose:** Summarize personal completion rate, ratings, timing, and other approved quality measures.
+- **Owns:** Derived, read-only metrics from authoritative completed tasks and eligible reviews.
+- **Rules:** Metrics never rewrite task history or automatically impose incentives, suspension, or penalties without a separately approved policy.
+
+### 13. Offline Mode
+
+- **Purpose:** Keep essential task details and queued scans usable in temporary mobile dead zones.
+- **Owns:** The external Flutter app's bounded encrypted local cache and retry queue.
+- **Rules:** Offline events carry idempotency keys and are revalidated on replay. The server remains authoritative; stale, conflicting, or unauthorized events are rejected or reconciled explicitly. No Courier web/offline UI belongs in this repository.
+
+### 14. Digital Tipping and Feedback
+
+- **Purpose:** Display Buyer tips or Courier feedback when those platform contracts exist.
+- **Owns:** Read-only presentation of authorized tip/review records.
+- **Rules:** Payment settlement, tip eligibility, and review moderation are separate features. Courier access cannot edit a Buyer review or manufacture a tip.
+
+### 15. SOS/Emergency Button
+
+- **Purpose:** Send a high-priority safety alert to the owning Logistics organization during an incident.
+- **Owns:** Authenticated alert creation, active task context, severity, and the least location information needed for response.
+- **Rules:** Last-known coordinates are protected and retained only under an approved policy. The feature does not promise direct local-authority integration or expose a Courier's unrestricted location history.
+
+### 16. Earnings and Goal Tracker
+
+- **Purpose:** Let a Courier view progress toward optional personal earning goals.
+- **Owns:** Goal preferences and read-only progress presentation after the earnings contract exists.
+- **Rules:** Goals do not alter assignment, payout, Order status, or Logistics capacity. This remains separate from authoritative earnings settlement.
+
+## Operational invariants
+
+- Every protected endpoint rechecks Sanctum authentication, `courier` role, active account status, approved affiliation, active Logistics organization, and valid sole hub.
+- Every task, assignment, parcel, waybill, scan, incident, conversation, cache entry, and event is resolved server-side to the authenticated Courier and its authorized Logistics organization/hub.
+- `delivery_assigned` is not `delivery_accepted`; neither means `picked_up_from_hub`. First-mile and final-mile pickup states remain distinct.
+- First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; Logistics may assign the same or a different eligible Courier for the second leg.
+- A Courier may reject an offered task. The task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned.
+- One shared waybill/tracking ID is created and frozen in the Seller pickup transaction at `ready_for_pickup`; Seller and selected Logistics have role-scoped access, while an assigned Courier may resolve its opaque QR or submit the authorized tracking ID/reference. Route/assignment/scan changes are append-only events.
+- First-mile identifier verification and explicit confirmation retain the compatibility writer and Inventory bridge. Final-mile hub confirmation uses the accepted task/revision without identifiers; Logistics validates it and photo POD/completion intent, recording immutable custody history with Courier performer and Logistics recorder. A scan or waybill access event alone never advances custody.
+- Implemented Courier operational writes use the deployed shared Shipment/Delivery Task schema and owning endpoint contracts. Unavailable extensions remain blocked until approved, migrated, and verified.
+- State transitions are validated against the current task state, transactional, idempotent, and append immutable history. Notification, mapping, upload, or synchronization failure must not undo a committed decision.
+- A Courier can read only its own operational data and the minimum authorized Buyer/Seller/Logistics details needed for the active task. Payment credentials, private registration/POD evidence, raw storage paths, and unrestricted location history are excluded from normal DTOs.
+
+## Current and deferred data boundary
+
+Implemented foundation:
+
+- `users` Courier role and `CourierProfile` with server-derived age.
+- One initial `Vehicle` per registration, with string-backed `VehicleType` and `VehicleStatus` casts. An additive migration enforces one vehicle per Courier after a duplicate preflight; service operations still fail closed if cardinality is ambiguous. See `docs/schema.md`.
+- One current `CourierLogisticsAffiliation` linking the Courier to the selected organization and derived sole hub, with Logistics reviewer, decision, reason, and timestamp.
+- Registration applications, private evidence documents, addresses, Sanctum tokens, Courier auth endpoints, and Logistics approval endpoints.
+
+External Flutter adoption (imported log, 2026-10-02): personal-vehicle registration/editing exposes all four backend types, including `truck`; accepted final-mile tasks expose Buyer messaging through Courier-only routes; first-mile work supports a bounded schedule filter using IDs from the latest authorized task page. Backend ownership, task eligibility, and API contracts are unchanged. These are locally reported client implementations, not authenticated live/device verification or a new dashboard aggregate.
+
+Deferred or dependent Courier operations:
+
+- Signature proof, incidents, Courier availability/capacity, earnings, tips, metrics, live location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/tracking-ID/manual verification and pickup confirmation, Inventory fulfillment, schedule route manifests, private final-mile photo POD, final-mile task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history are implemented. Advanced recovery remains deferred.
+
+Status-like database columns are stored as strings and cast to PHP enums. Operational records preserve the one-Logistics-organization/one-hub boundary and never place detailed physical milestones directly in `orders.status`.
+
+## Shared contracts
+
+- `docs/requirements.md` — Courier responsibilities and registration boundary.
+- `docs/workspace.md` — external mobile boundary, approval flow, physical delivery flow, and canonical status vocabulary.
+- `docs/schema.md` — implemented Courier foundation, deployed P0 operational entities, and deferred extensions.
+- `docs/references/user-registration-requirements.md` — Courier registration fields and approval note.
+- `docs/references/file-upload-requirements.md` — evidence and proof upload policy.
+- `docs/features/courier/*/specs.md` — feature-specific implementation contracts.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile transitions use the Logistics-authoritative `FulfillmentTransitionService`; final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.
