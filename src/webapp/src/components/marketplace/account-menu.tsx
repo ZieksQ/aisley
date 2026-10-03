@@ -7,6 +7,7 @@ import {
   FiHeart,
   FiLogOut,
   FiMapPin,
+  FiMessageSquare,
   FiPackage,
   FiSettings,
   FiUser,
@@ -108,6 +109,9 @@ export function AccountMenu() {
           </Link>
           <Link role="menuitem" href="/orders" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
             <FiPackage aria-hidden="true" className="size-4" /> Orders
+          </Link>
+          <Link role="menuitem" href="/courier-messages" onClick={() => setIsOpen(false)} className="flex min-h-11 items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
+            <FiMessageSquare aria-hidden="true" className="size-4" /> Courier messages
           </Link>
           <Link role="menuitem" href="/account/wishlist" onClick={() => setIsOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#3E3242] hover:bg-[#F7F1F8] focus:bg-[#F7F1F8] focus:outline-none">
             <FiHeart aria-hidden="true" className="size-4" /> Wishlist

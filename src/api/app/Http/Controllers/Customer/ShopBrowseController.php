@@ -44,6 +44,7 @@ class ShopBrowseController extends Controller
             $categories,
             $request->categorySlug(),
             $request->pageSize(),
+            $request->queryText(),
         );
 
         return $this->publicResponse([

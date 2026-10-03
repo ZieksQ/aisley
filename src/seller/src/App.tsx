@@ -28,6 +28,7 @@ import { FinancePage } from './pages/FinancePage'
 import { MessagesPage } from './pages/MessagesPage'
 import { MessageThreadPage } from './pages/MessageThreadPage'
 import { LogisticsMessagesPage } from './pages/LogisticsMessagesPage'
+import { CourierMessagesPage } from './pages/CourierMessagesPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
 import { ShippingProvidersPage } from './pages/ShippingProvidersPage'
 
@@ -46,6 +47,7 @@ function App() {
           <Route element={<MessagesPage />} path="/messages" />
           <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
           <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />
+          <Route element={<CourierMessagesPage />} path="/courier-messages" />
           <Route element={<SupportTicketsPage />} path="/support-tickets" />
           <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
           <Route element={<OrdersPage />} path="/orders/monitoring" />

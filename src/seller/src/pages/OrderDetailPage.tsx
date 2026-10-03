@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { OrderButton, OrderError, orderLink, orderPanel } from '../components/orders/OrderUi'
+import { CourierOrderContact } from '../components/courier-messages/CourierOrderContact'
 import { ApiError } from '../lib/api'
 import { createOrderApproval, createOrderRejection, markOrderNotificationRead } from '../lib/sellerOrderActions'
 import { useOrderAccessError, useSellerOrders } from '../lib/useSellerOrders'
@@ -119,7 +120,9 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
           {!order.items.length && <p className="p-5 text-sm">Purchased item details are unavailable.</p>}
         </section>
         <div className="space-y-5">
+          <CourierOrderContact key={order.id} orderId={order.id} />
           <section className={`${orderPanel} p-5`} aria-labelledby="shipping-provider"><h3 className="font-semibold" id="shipping-provider">Shipping provider</h3>{order.shipping_provider ? <><p className="mt-3 text-sm font-medium">{order.shipping_provider.business_name}</p><p className="mt-1 text-xs leading-5 text-zinc-500">Selected by the Customer at checkout and locked for this Order.</p></> : <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">No checkout provider is attached to this Order.</p>}</section>
+          <CourierOrderContact key={order.id} orderId={order.id} />
           <section className={`${orderPanel} p-5`} aria-labelledby="delivery-address"><h3 className="font-semibold" id="delivery-address">Delivery address</h3>{order.delivery_address ? <address className="mt-3 space-y-1 text-sm not-italic leading-6"><p className="font-medium">{order.delivery_address.recipient_name}</p><p>{order.delivery_address.contact_number}</p><p>{[order.delivery_address.address_line_1, order.delivery_address.address_line_2].filter(Boolean).join(', ')}</p><p>{[order.delivery_address.barangay, order.delivery_address.city_municipality, order.delivery_address.province, order.delivery_address.region, order.delivery_address.postal_code, order.delivery_address.country].filter(Boolean).join(', ')}</p></address> : <p className="mt-3 text-sm">Address snapshot unavailable.</p>}</section>
           <section className={`${orderPanel} p-5`} aria-labelledby="order-total"><h3 className="font-semibold" id="order-total">Order total</h3><dl className="mt-3 space-y-3 text-sm">{([
             ['Items', order.totals.merchandise_subtotal], ['Shipping', order.totals.shipping_fee],

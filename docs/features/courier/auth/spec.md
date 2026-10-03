@@ -5,7 +5,7 @@ system: AISLEY
 type: Feature Specification
 version: 2.3
 status: Implemented foundation; dedicated coverage and recovery completion deferred
-implementation_status: Auth foundation implemented; first- and final-mile APIs exist under their owning specs; external Flutter implementation unverified
+implementation_status: Auth foundation implemented; supplied Flutter progress records registration, bearer session, and protected scaffold UI; live cross-repository verification remains separate
 canonical: true
 role: Courier / Rider
 scope: Laravel API consumed by an external Flutter mobile client
@@ -22,7 +22,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 - **Client boundary:** Courier screens belong to the separate Flutter project. This repository provides API behavior only; do not add a Courier React page, browser-cookie flow, or web dashboard under `src/`.
 - **MVP cardinality:** one Courier has one current Logistics affiliation. The selected organization owns exactly one operational hub; the server derives that hub and the client cannot select a sub-hub.
 - **Approval authority:** The associated active Logistics organization approves or rejects the Courier affiliation. Admin may suspend, restore, or deactivate an account through the separate lifecycle feature, but Admin does not approve the affiliation.
-- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile QR evidence, movement, completion, and history APIs exist under their owning specs; signature proof, live location telemetry, earnings, and offline mutations remain deferred; private photo POD and final-mile batch routing are available.
+- **Boundary:** recovery completion, email verification, MFA, affiliation history/revocation, and session-device policy remain deferred. First-mile pickup/routing and final-mile movement, completion, history, and private POD reads exist under their owning specs; Flutter has adopted private photo POD and atomic final-mile batch acceptance locally, while authenticated/device acceptance remains unverified. Signature proof, live location telemetry, earnings, and offline mutations remain deferred.
 
 ```text
 GET active Logistics options
@@ -51,7 +51,7 @@ GET active Logistics options
 - Accept one `logistics_organization_id` UUID. Re-resolve an active Logistics organization with a hub inside the transaction; ignore any client `hub_id` or sub-hub field.
 - Accept nested `address` fields: `address_line_1`, optional `address_line_2`, `barangay`, `city_municipality`, `province`, `region`, and `postal_code` (maximum 10). Set country to `Philippines` server-side.
 - Use bundled PSGC Region → Province → City/Municipality → Barangay data and a manual fallback in Flutter. Current Courier registration stores labels/text only; it does not persist PSGC codes, coordinates, or provider IDs.
-- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration now enforces uniqueness after duplicate preflight. This personal record cannot satisfy a company-truck linehaul assignment.
+- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration enforces uniqueness after duplicate preflight. This personal vehicle cannot satisfy a company-truck Linehaul assignment. The supplied Flutter snapshot does not verify that its registration selector exposes `truck`.
 - Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred under the Logistics Vehicle Fleet Management spec. This does not remove existing registration/operational history or add a map-pin contract.
 
 ### Flutter registration field map
@@ -198,6 +198,7 @@ The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3703
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.
 - Registration upload UI must show accepted formats and the under-10-MiB limit, progress/cancel/retry, and server field errors. Client checks are convenience only.
+- Flutter registration must retain both selected `XFile` contents until multipart submission on local web-server; browser paths cannot be passed to `MultipartFile.fromPath`. Keep Android's native upload behavior and the exact `government_id`/`vehicle_registration` parts; follow the copied `docs/flutter-file-uploads.md` and verify both targets before claiming web upload support.
 - Do not reproduce Eloquent, SQL, enum implementation, or authorization logic in Dart. The API response is authoritative and all mutations need online revalidation.
 - Add API tests for role/status/affiliation/hub scope, prohibited fields, duplicate races, file spoofing/boundaries, transaction cleanup, token issuance/logout, throttling, DTO privacy, and Logistics organization isolation.
 - Add Flutter contract fixtures/tests for JSON parsing, multipart names, secure-storage failure, `401/403/409/422/429`, timeout/offline states, and redacted DTOs. Mocks supplement but do not replace backend verification.

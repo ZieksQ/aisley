@@ -57,6 +57,7 @@ const groups: NavGroup[] = [
       { label: 'Product reviews', path: '/reviews', icon: FaStar },
       { label: 'Messages', path: '/messages', icon: FaComments },
       { label: 'Logistics messages', path: '/logistics-messages', icon: FaComments },
+      { label: 'Courier messages', path: '/courier-messages', icon: FaComments },
       { label: 'Support tickets', path: '/support-tickets', icon: FaComments },
     ],
   },

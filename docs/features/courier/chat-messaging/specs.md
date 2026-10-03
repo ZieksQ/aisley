@@ -3,9 +3,9 @@ feature: courier-chat-messaging
 title: Courier Operational Messaging
 system: AISLEY
 type: Feature Specification
-version: 2.1
-status: Logistics, Seller, and Buyer task-scoped API channels implemented; Flutter Logistics client implemented locally, live exchange pending
-implementation_status: Courier Flutter Logistics task chat and inbox implemented locally; live cross-role exchange and Seller/Customer reply screens unverified
+version: 2.3
+status: Logistics, Seller, and Buyer task-scoped API channels implemented; Flutter Logistics/Seller clients implemented locally, live exchange pending
+implementation_status: Courier Flutter Logistics/Seller task chat and inbox implemented locally; Seller and Customer web counterparts implemented; Flutter Buyer composer remains read-only/unimplemented and live exchange unverified
 canonical: true
 role: Courier
 scope: Laravel API and external Flutter client
@@ -26,8 +26,9 @@ backend_contract_version: courier-operational-messaging-v2
   final-mile task, and its owning Logistics organization for an active offered/accepted task.
   Logistics may initiate its Courier thread under the same task/organization relationship.
 - The Laravel API has separate Logistics–Courier, Courier–Seller, and Courier–Buyer task
-  channels using shared conversation, participant, and message records. Seller/Customer
-  counterpart screens remain deferred; Flutter Logistics chat awaits live verification.
+  channels using shared conversation, participant, and message records. Seller and Customer
+  counterpart web screens are implemented. Flutter Logistics/Seller chat awaits live
+  verification; Flutter Buyer composition remains unimplemented/read-only.
 - Chat coordinates pickup, access instructions, and delays. It cannot accept/reject a task,
   confirm a scan or delivery, change an address/route, create an Incident or SOS alert, or
   approve a Logistics action. Those features remain authoritative.
@@ -131,7 +132,7 @@ backend_contract_version: courier-operational-messaging-v2
 - [ ] Read markers never regress, private history is cursor-bounded, and a new Courier never receives a predecessor's thread or cached text.
 - [ ] Chat text cannot mutate Order, task, custody, address, Incident, SOS, or POD;
   private phone, evidence, secrets, and raw paths stay out of DTOs/logs.
-- [ ] Flutter handles bearer auth, read-only history, timeout retry, offline,
+- [ ] Flutter handles bearer auth, Logistics/Seller sends, read-only Buyer history, timeout retry, offline,
   accessibility, and logout/cache clearing against implemented API behavior.
 - [ ] SQLite/PostgreSQL and Flutter contract tests cover IDOR, task races,
   first/final-mile separation, retries, pagination, read state, and alert failure.
@@ -187,7 +188,8 @@ backend_contract_version: courier-operational-messaging-v2
 - `/api/v1/seller/courier-conversations` and
   `/api/v1/customer/courier-conversations` each provide the same six
   list/start/detail/history/send/read actions. All require their role's Sanctum,
-  active-account, and policy-consent gates. No counterpart web UI is shipped yet.
+  active-account, and policy-consent gates. Seller and Customer web inboxes, replies, and
+  eligible owned-Order contact are implemented in their separate apps.
 - Seller or Buyer starts with JSON
   `{"context_type":"order","context_id":"<owned-order-uuid>","body":"..."}`
   and a UUID `Idempotency-Key` header. Laravel resolves the currently accepted
@@ -213,8 +215,12 @@ backend_contract_version: courier-operational-messaging-v2
   Do not create a parallel Courier-only message store or use email as identity.
 - A focused Laravel messaging service owns relationship checks, row locks, idempotency, sequence/read state, safe DTOs, and after-commit alerts;
   controllers stay thin and enum-like DB fields remain strings.
-- Seller and Customer role owners must still add authorized read/reply screens
-  before enabling the channels in a user-facing app; do not launch a one-sided composer.
+- Seller and Buyer authorized inbox/read/reply screens and eligible owned-Order contact
+  are implemented. Each counterpart family provides `GET /order-context/{order}` with
+  `{data:{order_id,order_reference,send_allowed,conversation_id}}`; it creates no empty
+  thread, reveals no contact details, and changes no Courier endpoint/payload. Seller
+  uses accepted first mile; Buyer uses accepted final mile. Both reuse transactional
+  send eligibility. Courier–Seller/Buyer live Flutter exchange remains unverified.
 - Test additive migration/rollback, old Customer–Seller chat regression,
   concurrent starts/sends, task reassignment, status/affiliation changes,
   SQLite and PostgreSQL, and alert failure. Verify Flutter parser/widget
@@ -225,6 +231,8 @@ backend_contract_version: courier-operational-messaging-v2
 - Courier–Buyer contact requires an active Buyer account, its owned nonterminal
   Order, the accepted final-mile task, and that task's current handling organization;
   it cannot broaden the Customer–Logistics Order-chat authority.
-- Copy this API contract and `api-handoff.md` to Flutter. Enable Seller/Buyer
-  buttons only after Flutter and counterpart apps implement and verify their
-  screens; backend availability alone does not complete the end-to-end feature.
+- Copy this API contract and `api-handoff.md` to Flutter. Courier Seller messaging
+  and both web counterparts are implemented locally; production enablement still
+  requires live exchange verification. Buyer remains read-only in Flutter: its mobile
+  composer must consume the existing `counterparty_role=customer` start/send API in the
+  external workspace. No Flutter changes or Flutter tests are part of the web releases.

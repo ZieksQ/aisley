@@ -95,7 +95,7 @@
 - Snapshot source lane ID/code/name/revision, session ID, and pre-dispatch Shipment revision.
 - Preserve snapshots when a lane is subsequently renamed or deactivated.
 - Preserve per-task Courier acceptance/rejection and existing re-offer history.
-- Require existing QR evidence validation for physical Courier hub pickup.
+- Require Logistics validation of task-bound hub-pickup confirmation evidence; the Courier supplies the accepted task revision and UUID `Idempotency-Key`, not a parcel identifier.
 - Clear the live lane at validated hub pickup; retain session/history/snapshots.
 - Reuse a dispatch idempotency key when retrying an unchanged submitted payload.
 

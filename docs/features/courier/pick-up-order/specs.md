@@ -7,7 +7,7 @@ type: Feature Specification
 version: 2.9
 status: Implemented first-mile identifier pickup and task-bound final-mile hub handoff
 implementation_status: First-mile Courier API and route-manifest API retain QR/tracking-ID/Order-reference verification; final-mile hub handoff uses an accepted task and revision without identifier entry; Flutter remains external
-flutter_status: Supplied Flutter progress records first-mile pickup and partial task-bound final-mile handoff adoption; Logistics validation and installed-device verification remain open
+flutter_status: First-mile pickup and task-bound final-mile handoff implemented locally; live Logistics validation and installed-device verification remain open
 canonical: true
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
 backend_contract_commit: d5c160d4a5a21272e487b6f46a82de35e81395cb
@@ -28,8 +28,8 @@ The final-mile hub pickup endpoint now accepts only `{"expected_revision": <curr
 - **Actors:** Seller prepares Orders; Logistics selects one approved Courier and a pickup window; Courier performs the mobile pickup; the API remains authoritative for ownership and state.
 - **Scope:** Courier task receipt, schedule/address/order details, route-manifest consumption, QR/tracking-ID/Order-reference verification, first-mile pickup confirmation, and final-mile hub-handoff evidence submission.
 - **Mobile boundary:** Production Courier screens, secure token storage, offline decoding, and device accessibility belong to the external Flutter app. `src/couriermockup` is a development-only React harness for verifying the same bearer-token API, camera/manual input states, and handoff behavior in a browser; it is not a deployable Courier web application.
-- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. The Courier can list and accept tasks, resolve an assigned waybill QR, and explicitly confirm pickup with the QR payload, printed tracking ID, or legacy printed Order reference. Confirmation resolves the identifier to its matching parcel in the open schedule, records immutable idempotency/history data, sets the task to `picked_up_from_seller`, advances the Order to `picked_up`, and fulfills the Order's Inventory reservation atomically. Each committed schedule revision also creates a queued route manifest: the server groups parcels sharing one immutable pickup address, resolves exact or maintained address-default coordinates, calls the bounded Geoapify Matrix API, applies the deterministic nearest-next-stop heuristic, obtains bounded Routing API road geometry through Logistics → pickups → Logistics, stores the result, and serves sanitized GeoJSON to the authorized Courier. The additive fulfillment bridge creates one shared Parcel/Shipment and links the legacy first-mile task without replaying Inventory; Logistics can then receive, sort, and dispatch the parcel, offer an independent final-mile task, and validate final-mile QR/tracking-ID handoff and delivery completion through the owning operational APIs.
-- **Flutter handoff (2026-09-13):** Both-leg pickup screens, keyboard/pasted QR, tracking-ID, or manual references, and ordered first-mile manifests are reported implemented. Camera decoding, Flutter map/navigation, media proof, and telemetry remain deferred; Logistics operations UI now exists.
+- **Current implementation:** Logistics scheduling creates one `first_mile_task` per selected Order, in `assigned`, for the chosen Courier. First-mile pickup resolves an assigned waybill QR, printed tracking ID, or legacy Order reference, commits `picked_up_from_seller`, projects the Order to `picked_up`, fulfills Inventory once, and bridges one shared Parcel/Shipment. Logistics then receives, sorts, and dispatches the parcel. Final-mile acceptance is an independent batch action; hub handoff uses only the accepted task revision and stores pending `task_confirmation` evidence without an identifier. Destination delivery uses private photo POD under its owning spec.
+- **Flutter handoff:** First-mile QR/Code 128 scanning and manual fallback, ordered manifests, atomic final-mile batch acceptance, and task-bound final-mile handoff are implemented locally. Live authenticated/device acceptance remains separate; final-mile photo proof is not owned by this feature.
 
 ### Scheduled bulk-pickup flow
 
@@ -78,21 +78,20 @@ Seller packs Orders and requests one Logistics provider
 - A copied QR, guessed tracking ID/Order ID, or task UUID cannot authorize pickup. A wrong or unknown identifier causes no mutation.
 
 ### Final-mile hub pickup — implemented API
-- The development-only Courier API mockup may submit the documented final-mile evidence request and display its pending Logistics validation state; it must refetch before claiming hub custody.
+- Flutter may submit the documented final-mile handoff request and display its pending Logistics validation state; it must refetch before claiming hub custody.
 - Logistics dispatches independent final-mile tasks in one schedule; the Courier accepts the whole assigned schedule through Accept Delivery Requests.
 - `GET /api/v1/courier/final-mile-tasks` returns `{data:[]}`; `GET /api/v1/courier/final-mile-tasks/{task}` returns `{data:{...}}`. Do not reuse first-mile pagination or schedule filtering.
 - Task projection includes `task_id`, `leg`, `status`, `revision`, nullable `picked_up_at`, Order/waybill/Parcel references, and area-safe summaries.
 - `GET /api/v1/courier/tasks/{task}/delivery` provides authorized hub/address/contact context after acceptance; Deliver Order owns that read contract.
 - `POST /api/v1/courier/final-mile-tasks/{task}/pickup` is implemented and owned here; send JSON and a UUID `Idempotency-Key`.
-- Exact body: `{"identifier_type":"qr","identifier":"AISLEY:WB:1:WB-EXAMPLE","expected_revision":1}`; use the actual server revision, not this example constant.
-- `identifier_type` accepts `qr`, `tracking_id`, or `order_id`; identifier is required, at most 128 characters; revision is an integer ≥1. Unknown fields are rejected.
-- The accepted task must be `delivery_accepted`; the QR, tracking ID, or printed Order reference must match that task's immutable waybill. Do not use the first-mile resolver as a final-mile authorization endpoint.
+- Exact body: `{"expected_revision":1}`; use the actual server revision, not this example constant. `identifier_type`, `identifier`, Courier, organization, hub, parcel, status, and other unknown fields are rejected.
+- The server derives the Parcel, waybill, Courier, organization, and sole hub from the accepted `delivery_accepted` task. Do not call the first-mile resolver or scan a parcel identifier for this action.
 - Success is HTTP `202`: `{data:{task_id,evidence_id,evidence_status,custody_state,submitted_at}}`, with `evidence_status = awaiting_validation`.
 - Submission records evidence only. Show “Awaiting Logistics validation,” never “Picked up” merely because the request succeeded.
 - Logistics Update Status validates evidence and records `picked_up_from_hub`; this does not fulfill Inventory again.
 - Refetch task detail to observe `status = picked_up_from_hub` and `picked_up_at`. Its general `evidence_status` describes delivery proof, not hub-pickup review.
 - Matching retries return the same evidence identity with freshly loaded state; the response is not guaranteed byte-for-byte identical. Changed input/key reuse returns `409 IDEMPOTENCY_KEY_REUSED`.
-- Revision/state mismatch returns `409 TASK_STATE_CONFLICT`; wrong parcel returns `404 PARCEL_NOT_FOUND`; malformed input/header returns `422`. Preserve the same request/key after timeout.
+- Revision/state mismatch returns `409 TASK_STATE_CONFLICT`; an unknown/foreign task is scoped as `404`; malformed input/header returns `422`. Preserve the same request/key after timeout.
 - Both legs require active approved Courier bearer access and policy consent. Handle `403 POLICY_CONSENT_REQUIRED` without clearing a valid session or automatically replaying pickup.
 - No offline mutation is supported. The accepted final-mile schedule has its own advisory route and ETA; the first-mile pickup manifest must not be presented as a Buyer delivery route.
 - [x] Final-mile submission returns pending evidence; only Logistics validation records hub custody.
@@ -227,7 +226,4 @@ Example GeoJSON geometry (first-mile manifest only):
 - Open: schedule early/late pickup grace; native Flutter map versus list-only; turn-by-turn navigation; offline mutation queue; Courier push transport. Logistics receipt is implemented under Update Status, not a Courier action.
 
 ### Sources
-
-- [Geoapify Route Matrix API](https://apidocs.geoapify.com/docs/route-matrix/), [Geoapify Routing API](https://apidocs.geoapify.com/docs/routing/), [Geoapify pricing](https://www.geoapify.com/pricing/), [Geoapify map tiles](https://apidocs.geoapify.com/docs/maps/), and [Geoapify Static Maps API](https://apidocs.geoapify.com/docs/maps/static/).
-- [MapLibre GeoJSON source](https://maplibre.org/maplibre-gl-js/docs/API/classes/GeoJSONSource/) and [MapLibre GL JS license](https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt).
-- [mobile_scanner](https://pub.dev/packages/mobile_scanner), [flutter_zxing](https://pub.dev/packages/flutter_zxing), [qr_code_dart_scan](https://pub.dev/packages/qr_code_dart_scan), and [Google ML Kit barcode scanning](https://developers.google.com/ml-kit/vision/barcode-scanning).
+- [Geoapify Route Matrix](https://apidocs.geoapify.com/docs/route-matrix/), [Routing](https://apidocs.geoapify.com/docs/routing/), and [map tiles](https://apidocs.geoapify.com/docs/maps/); [MapLibre GeoJSON](https://maplibre.org/maplibre-gl-js/docs/API/classes/GeoJSONSource/); and [mobile_scanner](https://pub.dev/packages/mobile_scanner).

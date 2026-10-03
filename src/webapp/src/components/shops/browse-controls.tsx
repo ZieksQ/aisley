@@ -3,13 +3,13 @@
 import { useEffect, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FiChevronLeft, FiChevronRight, FiRefreshCw } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 import type { Pagination, ShopCategorySummary } from "@/lib/marketplace/types";
 
 const focusFlag = "aisley-shop-browse-focus";
 
-function focusAfterNavigation() {
+export function focusAfterBrowseNavigation() {
   sessionStorage.setItem(focusFlag, "true");
 }
 
@@ -54,11 +54,11 @@ export function CategoryFilter({
           if (value) parameters.set(parameter, value);
           else parameters.delete(parameter);
           parameters.delete("page");
-          focusAfterNavigation();
+          focusAfterBrowseNavigation();
           const query = parameters.toString();
           startTransition(() => router.push(query ? `${pathname}?${query}` : pathname));
         }}
-        className="min-h-10 w-full rounded-md border border-[#CFC4D2] bg-white px-3 text-sm text-[#342638] outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-[#E6007A]/20 disabled:cursor-wait disabled:opacity-60 sm:w-64"
+        className="min-h-11 w-full rounded-md border border-[#CFC4D2] bg-white px-3 text-sm text-[#342638] outline-none focus:border-[#E6007A] focus:ring-2 focus:ring-[#E6007A]/20 disabled:cursor-wait disabled:opacity-60 sm:w-64"
       >
         <option value="">All categories</option>
         {categories.map((category) => (
@@ -105,12 +105,12 @@ export function BrowsePagination({
   if (pagination.lastPage <= 1) return null;
 
   return (
-    <nav aria-label={label} className="mt-8 flex items-center justify-center gap-3">
+    <nav aria-label={label} className="mt-8 flex flex-wrap items-center justify-center gap-3">
       {pagination.currentPage > 1 ? (
         <Link
           href={pageHref(pagination.currentPage - 1)}
-          onClick={focusAfterNavigation}
-          className="flex min-h-10 items-center gap-1 rounded-md border border-[#CFC4D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+          onClick={focusAfterBrowseNavigation}
+          className="flex min-h-11 items-center gap-1 rounded-md border border-[#CFC4D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
         >
           <FiChevronLeft aria-hidden="true" />
           Previous
@@ -122,30 +122,13 @@ export function BrowsePagination({
       {pagination.currentPage < pagination.lastPage ? (
         <Link
           href={pageHref(pagination.currentPage + 1)}
-          onClick={focusAfterNavigation}
-          className="flex min-h-10 items-center gap-1 rounded-md border border-[#CFC4D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+          onClick={focusAfterBrowseNavigation}
+          className="flex min-h-11 items-center gap-1 rounded-md border border-[#CFC4D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
         >
           Next
           <FiChevronRight aria-hidden="true" />
         </Link>
       ) : null}
     </nav>
-  );
-}
-
-export function RetryButton() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  return (
-    <button
-      type="button"
-      disabled={isPending}
-      onClick={() => startTransition(() => router.refresh())}
-      className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:opacity-60"
-    >
-      <FiRefreshCw aria-hidden="true" />
-      {isPending ? "Trying again…" : "Try again"}
-    </button>
   );
 }

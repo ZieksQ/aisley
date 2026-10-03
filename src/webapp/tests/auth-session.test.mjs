@@ -146,10 +146,10 @@ test("shared API reports expiry, distinguishes CSRF and ignores stale/public aut
 });
 
 test("protected routes are segment-aware and login return URLs stay local", () => {
-  for (const path of ["/account/profile", "/cart", "/checkout/result/1", "/orders/1", "/notifications/1", "/messages"]) {
+  for (const path of ["/account/profile", "/cart", "/checkout/result/1", "/orders/1", "/notifications/1", "/messages", "/courier-messages"]) {
     assert.equal(isProtectedCustomerPath(path), true);
   }
-  for (const path of ["/", "/bazaar", "/products/1", "/accounting", "/shops"]) {
+  for (const path of ["/", "/bazaar", "/products/1", "/accounting", "/shops", "/courier-messages-extra"]) {
     assert.equal(isProtectedCustomerPath(path), false);
   }
   for (const path of ["https://example.com", "//example.com", "/\\example.com", "/\n/example.com"]) {

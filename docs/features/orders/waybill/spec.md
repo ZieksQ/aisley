@@ -19,7 +19,7 @@ Receive at hub also accepts a selected company-truck trip (`/receive-at-hub?trip
 ## WHAT
 
 - **Purpose:** Create one printable, scannable waybill for each Order when the Seller commits **Request pickup** with a selected Logistics organization.
-- **Actors:** Seller creates, views, downloads, and prints; selected Logistics views/downloads; assigned Courier scans through the external mobile API and submits the scan/evidence to Logistics for validation.
+- **Actors:** Seller creates, views, downloads, and prints; selected Logistics views/downloads; assigned Courier verifies first-mile pickup identifiers through the mobile API. Final-mile hub handoff uses the accepted task without scanning; Logistics validates that separate task-confirmation evidence.
 - **Ownership change:** This is one shared waybill, created by Aisley from Seller-authorized immutable data; it replaces the earlier split between Seller package label and Logistics-created hub waybill.
 - **Lifecycle:**
   ```text
@@ -27,11 +27,11 @@ Receive at hub also accepts a selected company-truck trip (`/receive-at-hub?trip
   → waybill identity/snapshot/QR created atomically
   → Seller prints and attaches it
   → Logistics views/resolves it in Pickups
-  → assigned Courier scans it at physical handoff
-  → Courier submission is validated and recorded by Logistics
+  → first-mile Courier verifies it and explicitly confirms Seller pickup
+  → Logistics receives/sorts; final-mile task confirmation awaits Logistics validation
   ```
 - Creating, viewing, downloading, printing, or scanning a waybill does not itself change Order or custody status.
-- A Courier QR/reference scan is an ingress/access event, not a custody transition. Only the shared transition service may advance physical state after Logistics validates the submitted event/evidence.
+- Courier QR/reference resolution is an access event, not custody. Explicit first-mile confirmation separately commits custody/Inventory through the compatibility service; final-mile task confirmation awaits Logistics validation before the shared service advances custody.
 - Current explicit Courier pickup confirmation commits first-mile custody and Inventory after QR/manual verification. Logistics hub receiving scans the 1D Code 128 barcode first, accepts the waybill QR if the bars cannot be read, or accepts a manual reference into a device-local outbox. The dedicated bulk endpoint commits `received_at_hub` without replaying Inventory effects.
 - The immutable waybill `reference` is the explicit human `tracking_id` for the MVP. Every A6 portrait PDF contains a 1D Code 128 barcode that encodes that tracking ID, with a white side margin and taller bars for camera capture, plus the existing QR as a compatibility/fallback identifier; a bulk download may combine up to 30 one-page A6 labels for one pickup request or schedule.
 - **Non-goals:** thermal-printer drivers, external carrier labels, parcel weight/dimensions, multiple parcels per Order, route mutation, status mutation by document generation, or public unauthenticated tracking.
@@ -75,19 +75,19 @@ Receive at hub also accepts a selected company-truck trip (`/receive-at-hub?trip
 
 - Seller can read only waybills for Orders in its server-derived Shop.
 - Logistics can read only waybills whose immutable selected organization equals its authenticated organization.
-- Courier can resolve/scan only a waybill connected to its active approved affiliation and assigned first-mile/final-mile task; Courier receives no web UI in this repository.
+- Courier waybill resolution is first-mile-task scoped under active approved affiliation. Final-mile detail reads expose only the authorized task's references; hub confirmation does not call the first-mile resolver. Courier receives no web UI in this repository.
 - Customer, unrelated Seller/Logistics/Courier, inactive accounts, and guessed references receive no document or existence disclosure.
-- A scan resolves the waybill and returns a minimal authorized parcel/task match; the Courier submits the scan/evidence to the owning Logistics organization through a separate, versioned task-transition API.
-- Logistics validates the waybill/Order/Parcel link, task leg, current state, Courier authorization, and idempotency before recording the authoritative event. The event preserves the performing Courier, recording Logistics account, timestamp, and safe reference/evidence metadata.
+- First-mile resolution returns a minimal authorized parcel/task match for explicit pickup confirmation. Final-mile hub handoff does not use this resolver: it submits only the accepted task revision and UUID `Idempotency-Key` through Pick Up Order's separate endpoint.
+- Logistics validates final-mile task-confirmation evidence against the waybill/Order/Parcel link, task leg, state, Courier authorization, and idempotency. Its custody event preserves the Courier performer and Logistics recorder; first-mile compatibility confirmation records its actual Courier actor without fabricating a Logistics validator.
 - A scan or waybill-access event alone never advances custody or `OrderStatus`; a validated event must pass the shared transition service.
 - Logistics Receiving and Sorting scan the same parcel tracking ID/waybill into separate device-local outboxes. A Sorting lane label is an internal location selector and never creates or replaces the parcel's immutable waybill. Automatic Sorting resolves the tracking ID server-side and rechecks the current postal-code sort plan.
 - A copied QR code is not proof of possession, delivery, identity, or permission and cannot bypass task assignment.
 
 ### Courier scan and custody boundary
 
-- The external Courier app scans the opaque QR/reference and submits the payload, task leg, expected revision, and permitted evidence metadata; it does not submit a new status or actor identity as authority.
+- First-mile pickup sends the verified QR/tracking-ID/Order-reference under its owning confirmation contract. Final-mile hub pickup sends only `expected_revision` with a UUID `Idempotency-Key`; task leg, Parcel/waybill, Courier, and organization are server-derived. Neither client may supply status or actor identity as authority.
 - The backend records the Courier's resolve/access event separately from the physical handoff event. `waybill_access_events` therefore remain audit records, not custody history.
-- Logistics is the authoritative recorder for accepted physical scan/evidence. Failed validation records a safe rejection state where allowed and leaves custody unchanged; retrying an identical submission is idempotent.
+- Logistics records validated final-mile handoff evidence; failed validation leaves custody unchanged. Explicit first-mile confirmation retains its compatibility writer and idempotent shared-record bridge. Matching retries preserve the owning endpoint's committed result.
 - Physical pickup and hub milestones use the approved detailed `snake_case` Shipment/DeliveryTask states. No source-only uppercase status is created by scanning.
 
 ### PDF and QR dependencies
@@ -133,7 +133,7 @@ Receive at hub also accepts a selected company-truck trip (`/receive-at-hub?trip
 
 - Seller: `GET /api/v1/seller/orders/{order}/waybill` and `GET /pickup-requests/{pickup}/waybills.pdf`.
 - Logistics: `GET /api/v1/logistics/pickups/{pickup}/waybills` and `GET /waybills/{waybill}.pdf`.
-- Courier API: `POST /api/v1/courier/waybills/resolve` remains access-only; implemented task-scan endpoints submit QR/reference evidence. Logistics uses `POST /api/v1/logistics/receiving/batches` for idempotent hub receipts and `/api/v1/logistics/sorting/sessions/{session}/batches` for idempotent standard/exception lane captures. These mutations still pass the shared Shipment/DeliveryTask transition rules.
+- Courier API: `POST /api/v1/courier/waybills/resolve` remains access-only; first-mile confirmation retains identifier verification, while final-mile pickup/scan-events submit task-bound confirmation without identifier fields. Logistics uses `POST /api/v1/logistics/receiving/batches` for idempotent hub receipts and `/api/v1/logistics/sorting/sessions/{session}/batches` for idempotent standard/exception lane captures. These mutations still pass the shared Shipment/DeliveryTask transition rules.
 - JSON metadata exposes both `tracking_id` and the backwards-compatible `reference`, created time, printable capability, and authorized links; PDF bytes use dedicated streamed responses.
 - Seller UI follows `docs/design.md` and shared `@aisley/ui`; Logistics shows waybill actions within its role-isolated Pickups screens.
 - Preview must use the same backend-rendered PDF as Download/Print so browser HTML cannot diverge from the physical label.

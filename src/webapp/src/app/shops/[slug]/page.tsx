@@ -5,31 +5,17 @@ import { HiChevronRight } from "react-icons/hi2";
 
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
-import { ProductCard } from "@/components/marketplace/product-card";
-import { BrowsePagination, CategoryFilter, RetryButton } from "@/components/shops/browse-controls";
+import { PublicReadFailure } from "@/components/search/public-read-failure";
+import { ShopProductsContent } from "@/components/shops/shop-products-content";
 import { ShopHeader } from "@/components/shops/shop-header";
 import { marketplaceConfig } from "@/lib/marketplace/config";
+import { parseShopParameters } from "@/lib/marketplace/discovery-url";
 import { getPublicHomepage, getPublicShop, getPublicShopProducts } from "@/lib/marketplace/server";
 
 type ShopPageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function singleParameter(value: string | string[] | undefined) {
-  return typeof value === "string" ? value : null;
-}
-
-function pageParameter(value: string | string[] | undefined) {
-  if (value === undefined) return { page: 1, invalid: false };
-  if (typeof value !== "string") return { page: 1, invalid: true };
-  const page = Number(value);
-
-  return {
-    page: Number.isSafeInteger(page) && page >= 1 && page <= 10_000 ? page : 1,
-    invalid: !Number.isSafeInteger(page) || page < 1 || page > 10_000,
-  };
-}
 
 export async function generateMetadata({ params }: ShopPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -63,15 +49,13 @@ export async function generateMetadata({ params }: ShopPageProps): Promise<Metad
 
 export default async function ShopPage({ params, searchParams }: ShopPageProps) {
   const [{ slug }, parameters] = await Promise.all([params, searchParams]);
-  const category = singleParameter(parameters.category);
-  const requestedPage = pageParameter(parameters.page);
-  const hasUnknownParameter = Object.keys(parameters).some((key) => !["category", "page"].includes(key));
+  const { query, category, page, error } = parseShopParameters(parameters);
   const [homepage, shopResult, productsResult] = await Promise.all([
     getPublicHomepage(marketplaceConfig.discoveryPageSize),
     getPublicShop(slug),
-    requestedPage.invalid || hasUnknownParameter
-      ? Promise.resolve({ status: "invalid" as const, message: "The shop URL contains an unsupported product filter." })
-      : getPublicShopProducts(slug, category, requestedPage.page, 20),
+    error
+      ? Promise.resolve({ status: "invalid" as const, message: error })
+      : getPublicShopProducts(slug, category, page, 20, query),
   ]);
 
   if (shopResult.status === "not_found" || productsResult.status === "not_found") notFound();
@@ -82,9 +66,8 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
         <UtilityBar />
         <MarketplaceHeader />
         <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-10 text-center sm:px-5 lg:px-8">
-          <h1 className="text-2xl font-bold text-[#2A1C2E]">Shop temporarily unavailable</h1>
-          <p className="mt-2 text-sm text-[#726776]">Please try again in a moment.</p>
-          <RetryButton />
+          <h1 className="text-2xl font-bold text-[#2A1C2E]">Shop unavailable</h1>
+          <PublicReadFailure key={JSON.stringify(shopResult)} result={shopResult} subject="Shop" />
         </main>
       </HomeDataProvider>
     );
@@ -108,62 +91,7 @@ export default async function ShopPage({ params, searchParams }: ShopPageProps) 
 
         <ShopHeader shop={shop} />
 
-        <section className="mt-7" aria-labelledby="shop-products-heading">
-          <div className="mb-5 flex flex-col gap-4 border-b border-[#DED7E1] pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 id="shop-products-heading" tabIndex={-1} className="text-xl font-bold text-[#2A1C2E] outline-none sm:text-2xl">Products</h2>
-              {productsResult.status === "success" ? (
-                <p className="mt-1 text-sm text-[#6B5F6F]">
-                  {productsResult.data.pagination.total.toLocaleString("en-PH")} product{productsResult.data.pagination.total === 1 ? "" : "s"}
-                </p>
-              ) : null}
-            </div>
-            {productsResult.status === "success" && productsResult.data.categories.length > 0 ? (
-              <CategoryFilter
-                categories={productsResult.data.categories}
-                label="Product category"
-                parameter="category"
-                selected={category}
-                targetId="shop-products-heading"
-              />
-            ) : null}
-          </div>
-
-          {productsResult.status === "success" ? (
-            productsResult.data.items.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                  {productsResult.data.items.map((product, index) => (
-                    <ProductCard key={product.id} product={product} position={index + 1} section="shop_storefront" priority={index < 5} />
-                  ))}
-                </div>
-                <BrowsePagination pagination={productsResult.data.pagination} label={`${shop.name} product pages`} targetId="shop-products-heading" />
-              </>
-            ) : (
-              <div className="border border-[#E2DCE4] bg-white px-6 py-10 text-center">
-                <h3 className="font-semibold text-[#3E3242]">No products to show</h3>
-                <p className="mt-2 text-sm text-[#726776]">
-                  {category ? "This category has no available products right now." : "This shop has not published any products yet."}
-                </p>
-                {category ? (
-                  <Link href={`/shops/${encodeURIComponent(shop.slug)}`} className="mt-4 inline-flex min-h-10 items-center rounded-md border border-[#CFC4D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">View all products</Link>
-                ) : null}
-              </div>
-            )
-          ) : productsResult.status === "invalid" ? (
-            <div className="border border-[#E2DCE4] bg-white px-6 py-10 text-center">
-              <h3 className="font-semibold text-[#3E3242]">This product filter is not available</h3>
-              <p className="mt-2 text-sm text-[#726776]">{productsResult.message}</p>
-              <Link href={`/shops/${encodeURIComponent(shop.slug)}`} className="mt-4 inline-flex min-h-10 items-center rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Clear filters</Link>
-            </div>
-          ) : (
-            <div className="border border-[#E2DCE4] bg-white px-6 py-10 text-center">
-              <h3 className="font-semibold text-[#3E3242]">Products are temporarily unavailable</h3>
-              <p className="mt-2 text-sm text-[#726776]">Please try again in a moment.</p>
-              <RetryButton />
-            </div>
-          )}
-        </section>
+        <ShopProductsContent slug={shop.slug} name={shop.name} query={query} category={category} result={productsResult} />
       </main>
     </HomeDataProvider>
   );

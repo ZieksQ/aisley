@@ -3,79 +3,57 @@ feature: admin-dashboard
 title: Admin Dashboard
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft
+version: 2.1
+status: Implemented read-only MVP
+implementation_status: Permission-scoped registration, open support-ticket, and open compliance summaries implemented
+canonical: true
 role: Admin
-scope: Admin Web Application
+scope: Admin Web Application and read-only Laravel API
+reviewed: 2026-10-02
+verified: 2026-10-02
 ---
 
 # Admin Dashboard
 
 ## WHAT
 
-- **Feature:** Admin Dashboard for the AISLEY Admin web application.
-- **Purpose:** Give an authenticated Admin a high-level view of platform activity, key performance indicators (KPIs), pending actionable work, and important notifications immediately after login.
-- **Primary actor:** Authenticated `ADMIN`.
-- **Source-defined role:**
-  - primary Admin entry point after authentication
-  - overview of the platform
-  - display platform-wide telemetry/KPIs
-  - surface pending actionable items
-  - display important notifications
-  - provide a high-level indication of platform/system health
-- **Architecture:**
-  - The `src/admin` React/Vite SPA renders dashboard cards, lists, charts, loading/error states, and real-time updates.
-  - Laravel owns KPI calculations, authorization, aggregation queries, notification state, and dashboard DTOs.
-  - Eloquent/database values returned by Laravel are authoritative.
-- **Dashboard is read-oriented.**
-  - It summarizes other Admin domains.
-  - Mutating business actions remain owned by their feature specs.
-  - Dashboard actions should normally navigate to the owning feature instead of reimplementing its workflow.
-- **Source-backed candidate widgets:**
-  - pending account registrations
-  - user/account status summary
-  - seller-compliance items requiring review
-  - open complaints/disputes
-  - platform commission/revenue summary from Reports Overview
-  - unread/important Admin notifications
-- These widgets are **recommended composition from existing Admin features**, not a new mandatory KPI contract where the source does not define exact metrics.
-- **Recommended route:**
+### Purpose and current implementation
 
-```text
-/dashboard
-```
+- Give an active Admin a permission-scoped operational overview and links to the owning work queues.
+- The implemented `GET /api/v1/admin/dashboard` returns a registration overview, open support-ticket/compliance summaries, and `generated_at`.
+- Registration counts cover pending Customer, Seller, and Logistics applications; Courier approval remains with Logistics.
+- Existing registration action items show at most five oldest pending applications.
+- Support tickets, Seller compliance, Finance, and notifications already have their own features; their existence does not imply Dashboard summaries exist.
+- The read-only **Open support tickets** and **Open compliance cases** cards link to their owning filtered queues.
 
-- **Relationship to Admin Authentication:**
-  - successful Admin login enters `/dashboard`
-  - Dashboard independently enforces Admin authentication and permissions
-- **Admin console navigation:** The shared `src/admin` React sidebar is the entry point to Dashboard and the other authorized Admin features. Grouping changes navigation only; it does not move feature ownership or change API authorization.
-- **Non-goals:**
-  - approving/rejecting accounts inside the Dashboard
-  - suspending users/sellers inside the Dashboard
-  - resolving complaints inside the Dashboard
-  - editing platform settings
-  - generating full financial reports
-  - sending push/SMS campaigns
-  - infrastructure monitoring such as CPU/RAM/uptime unless a later system-health requirement explicitly defines it
-  - inventing analytics not supported by the real schema
+### Scope and boundaries
+
+- Preserve the implemented registration contract; add permission-scoped counts, filtered queue navigation, and independent loading/error states.
+- Keep ticket replies/assignment, compliance decisions, registration approval, and notification read state in their owning features.
+- Exclude Finance charts, revenue calculations, infrastructure health, campaign management, new notification feeds, and mandatory realtime transport.
+- Do not change Order, Shipment, Courier assignment, inventory, or policy-consent state.
+- No new library, analytics table, migration, or Flutter change was added.
+
+### Admin flow
+
+- Authenticate, satisfy active-Admin and applicable policy-consent checks, then open the Dashboard.
+- Read only authorized sections; distinguish a genuine zero from a failed or unavailable query.
+- Open a filtered owning queue to perform work there; returning or refreshing retrieves current server counts.
 
 ## MUST
 
-### Access control
+### Authorization and read-only behavior
 
-- Dashboard requires:
-  - authenticated session
-  - persisted role = `ADMIN`
-  - Dashboard permission when custom permissions are configured
-- Laravel is authoritative for access.
-- Frontend route guards are UX only.
-- Dashboard data must respect feature-level permissions.
-- An Admin who lacks permission for a source feature must not receive restricted data from that feature merely because it appears on Dashboard.
-- Do not return hidden KPI values and rely on React to conceal them.
-- Use project-standard responses:
-  - `401` unauthenticated
-  - `403` forbidden
-  - `422` invalid dashboard filter/request when applicable
+- Use Sanctum authentication and the persisted `admin` role; enforce active status and the existing policy-consent middleware.
+- The Dashboard route has no separate `dashboard.view` permission today; do not invent one as existing behavior.
+- Authorize each section on the server before querying or returning its data:
+  - Registrations: `registrations.view`.
+  - Support tickets: `support-tickets.view`.
+  - Seller compliance: `seller_compliance.manage`, matching its existing queue permission.
+- A forbidden section is `null`; omit its count and navigation from the UI. Hiding a card is not authorization.
+- An Admin without these permissions may receive a safe empty Dashboard, not applicant data or a sign-in loop.
+- Dashboard reads must not claim tickets, mark messages read, update cases, send notifications, or create audit events.
+- Never accept client-controlled role, organization, owner, or permission fields.
 
 ### Sidebar navigation
 
@@ -86,399 +64,105 @@ scope: Admin Web Application
 - Group controls must be keyboard-operable and expose expanded state to assistive technology. Keep child links and active states clear in both themes and on the mobile sidebar.
 - Do not add Dashboard widgets or duplicate destination-feature workflows as part of navigation grouping.
 
-### Initial dashboard snapshot
+### Exact count and navigation rules
 
-- On entry, Dashboard must request a server-authoritative snapshot.
-- The response should group data by dashboard concern instead of exposing raw database records.
-- Conceptual response:
+- Registration totals include only `pending` applications of `customer`, `seller`, and `logistics`.
+- Keep registration action ordering by ascending `submitted_at`, then `id`, with a limit of five.
+- Open support tickets means `SupportTicket.status = open`, across the records visible to the Admin queue and all assignees.
+- Do not include `in_progress`, `waiting_for_requester`, or `resolved`, or label this count unread/all unresolved.
+- Open compliance cases means `SellerComplianceCase.status = open`; exclude `confirmed`, `dismissed`, and `closed`.
+- Do not substitute Product restrictions, suspended Sellers, paginated row counts, or unread notifications for case counts.
+- Registration navigation retains `/registrations?status=pending` and owned permission checks on detail routes.
+- Support navigation targets `/support-tickets?status=open`; the owning page must initialize its allow-listed URL filter when this enhancement is implemented.
+- The support page initializes allow-listed status/category/assignee filters from the URL, preserves them when opening a ticket, and resets pagination on filter changes; foreign/invalid values are ignored.
+- Compliance navigation uses the existing `/seller-compliance?status=open` filter.
+- Counts use database aggregates over the same authorized filters as their queues, not fetched-page lengths.
+- Counts are current at query time; subsequent queue changes may differ. Do not claim an atomic cross-feature snapshot.
 
-```json
-{
-  "kpis": {},
-  "actionItems": [],
-  "notifications": [],
-  "generatedAt": "ISO-8601 timestamp"
-}
-```
+### Privacy, failures, and refresh
 
-- Exact field names follow repository response conventions.
-- Include only data required to render the authorized dashboard.
-- `generatedAt` or equivalent freshness metadata is recommended when metrics may be cached.
-- Dashboard must not directly query the database from the React SPA.
+- New cards return counts and safe queue metadata, not ticket bodies, applicant details, Seller evidence, payment data, or raw storage paths.
+- A successful authorized count is a nonnegative integer; zero is a real result, not an error fallback.
+- For each new authorized section, `state = ready` carries a count; `state = unavailable` carries `count = null`.
+- A section-local failure must not erase other successful sections. Authentication/authorization or shared database failures must fail closed.
+- Responses use `Cache-Control: private, no-store` and client reads use `cache: no-store` with a 15-second deadline.
+- Do not share-cache personalized Dashboard data or reuse it across accounts or changed permissions.
+- Show a loading state on first fetch, visible retry on failure, and a clearly stale timestamp if retaining a previous result.
+- Refresh on entry and explicit refresh; foreground/focus recovery may coalesce requests without overlapping fetch loops.
+- Use explicit read retries and coalesced foreground recovery; abort obsolete reads. A throttled response pauses automatic focus/reconnect retries until an explicit later retry. No offline mutations or new websocket infrastructure.
+- A 401 follows existing session cleanup/sign-in behavior; distinguish forbidden/inactive access and policy-consent gating from network failure.
+- Abort obsolete reads and clear private data on logout, denied access, or account changes.
 
-### KPI rules
+### Web presentation and navigation
 
-- KPI calculations must be performed by Laravel/database queries.
-- Do not calculate authoritative money, counts, or status totals from partially loaded frontend collections.
-- Metrics must have documented definitions.
-- A displayed count must map to a reproducible backend query.
-- Money must follow the project's fixed-precision money representation.
-- KPI queries must respect:
-  - role/permission visibility
-  - valid domain statuses
-  - soft-delete/archive rules
-  - tenant/platform scope where applicable
-  - timezone/date boundaries when time filtering is added
-- Avoid mixing different business meanings under one label.
-- Example: `Pending Accounts` must define which account statuses count as pending.
-- Exact KPI set is an Open Question until the relevant feature schemas are confirmed.
-
-### Recommended MVP KPI composition
-
-- If supported by the actual schema and current Admin permissions, prefer a small operational set such as:
-  - pending registration count
-  - open complaint/dispute count
-  - unresolved seller-compliance count
-  - user-account summary
-  - platform commission/revenue summary
-- Do not require all five if the corresponding feature/schema is not yet implemented.
-- Do not add vanity metrics solely to fill Dashboard space.
-- Full financial breakdowns belong to Reports Overview.
-- Full account lists belong to Manage Account Registrations / Manage User Accounts.
-
-### Pending actionable items
-
-- Dashboard must be able to surface work requiring Admin attention.
-- Action items should reference the owning feature rather than duplicate its mutation logic.
-- Conceptual examples:
-  - registration awaiting review
-  - unresolved complaint
-  - seller-compliance item requiring action
-- Each action item should include only safe summary fields needed to understand and navigate to the work item.
-- Recommended fields:
-
-```text
-type
-resource_id
-title/summary
-priority or age when defined
-created_at
-destination
-```
-
-- Destination must be an internal authorized Admin route.
-- Do not expose evidence files, full complaint contents, sensitive profile data, or other heavy detail in the Dashboard summary unless explicitly required.
-- Clicking an item must still pass authorization in the destination feature.
-
-### Notifications
-
-- Dashboard must display Admin notifications relevant to the authenticated Admin.
-- Notification state must be backend-owned.
-- Recommended notification fields:
-  - ID
-  - type
-  - safe title/message
-  - created timestamp
-  - read/unread state
-  - optional internal destination
-- If the project uses Laravel database notifications, reuse them rather than introducing a second Dashboard-only notification store.
-- Unread state must be persisted, not only kept in browser memory.
-- Notification links must use validated internal Admin destinations.
-- Dashboard notification display is separate from **Push Notification Management**, which sends notifications to user segments.
-- Normal Dashboard rendering must not mark every notification read automatically unless the product explicitly chooses that behavior.
-- Exact read interaction is an Open Question.
-
-### Real-time updates
-
-- The source requires real-time or polling behavior for incoming notifications.
-- The project architecture supports Laravel broadcasting consumed by React.
-- Prefer the repository's shared notification/broadcast infrastructure.
-- Real-time updates may refresh:
-  - notification list/unread count
-  - pending-action counts
-  - selected KPI values when relevant events occur
-- Real-time events must represent committed backend state.
-- A broadcast failure must not affect the underlying business transaction.
-- If broadcasting is unavailable, polling is an acceptable fallback.
-- Dashboard must recover authoritative state through API refetch after reconnect/reload.
-
-### System/platform health interpretation
-
-- Source wording includes high-level "system health."
-- Current project sources do not define technical infrastructure telemetry.
-- For MVP, interpret health as **platform operational workload/status visible through existing domain data**, such as pending work or unresolved issues.
-- Do not invent CPU, memory, queue latency, database health, or uptime monitors without a separate observability requirement.
-- If technical health monitoring is later defined, integrate it as a separate authorized dashboard source.
-
-### Charts
-
-- Charts are optional unless a concrete source metric requires trend visualization.
-- Any chart must:
-  - use server-authoritative data
-  - label units and time range
-  - handle empty data
-  - not imply precision the source data does not support
-- Do not choose a chart library in the spec unless the repository already has one.
-- Do not create a chart just because a Dashboard exists.
-
-### Date ranges
-
-- The Admin Dashboard source does not define a dashboard-wide date filter.
-- If KPI trends or financial widgets use a date range:
-  - Laravel must validate the range
-  - use ISO 8601/timezone-aware boundaries
-  - keep definitions consistent with Reports Overview
-- Do not invent a default daily/weekly/monthly range as a MUST.
-- Exact default period is an Open Question.
-
-### Performance
-
-- Dashboard aggregates may touch multiple tables.
-- Avoid loading entire record collections to count/sum them in PHP or React.
-- Use database aggregate queries such as `count`, `sum`, `avg`, or equivalent Eloquent aggregate methods.
-- Avoid N+1 queries.
-- Index fields commonly used for:
-  - status counts
-  - timestamps/date ranges
-  - role filters
-  - unresolved/open-state filters
-- Expensive, stable aggregates may use Laravel cache.
-- Cache only where freshness requirements allow it.
-- Authorization decisions must never be cached in a way that grants stale access.
-- Highly actionable counts should remain fresh enough for Admin operations.
-- Exact cache TTL is an implementation decision based on measured query cost/freshness requirements.
-
-### Loading and partial failure
-
-- Dashboard must show explicit:
-  - loading state
-  - loaded state
-  - empty state where applicable
-  - forbidden state
-  - error state
-- One optional widget failing should not necessarily make the entire Dashboard unusable.
-- Prefer a server response strategy that clearly identifies unavailable sections if partial responses are supported.
-- Do not fabricate `0` when a query failed.
-- A failed KPI should appear unavailable/error, not as a legitimate zero.
-
-### Freshness and consistency
-
-- A Dashboard is a summary and may not be transactionally consistent across every independent aggregate.
-- Do not imply all cards were calculated at the exact same database instant unless the backend guarantees it.
-- For cached or asynchronously updated metrics, expose freshness where useful.
-- Navigating to the owning feature must fetch its current authoritative data before mutation.
-
-### Security and privacy
-
-- Dashboard DTOs must minimize sensitive information.
-- Do not include:
-  - password/security data
-  - full identity documents
-  - complaint evidence files
-  - full payment credentials
-  - private message bodies
-  - internal secrets
-- Mask PII according to shared project rules.
-- Dashboard read requests normally do not create Admin audit entries merely for viewing aggregate cards unless audit policy explicitly requires view tracking.
-- Any mutation triggered from a destination feature follows that feature's audit rules.
-
-### Accessibility
-
-- KPI cards must use meaningful text labels.
-- Do not communicate status using color alone.
-- Charts, if used, need textual/accessible equivalents for important values.
-- Notifications and action-item lists must be keyboard navigable.
-- Auto-updating regions must avoid disruptive focus changes.
-- Real-time updates should use restrained accessible announcements.
+- Follow `docs/design.md`: mobile-first layouts, existing typography/spacing, compatible shared primitives, and Admin light/dark themes.
+- The page must fetch permitted support/compliance sections even when `registrations.view` is absent.
+- Preserve registration cards and action links; replace misleading placeholder copy rather than declaring existing Finance features unimplemented.
+- Use clear card titles, textual counts, loading/zero/unavailable/forbidden states, and keyboard-accessible links and retry controls.
+- Preserve direct Dashboard navigation and existing Accounts, Communication, Platform, and My account groups.
+- Show only authorized links; keep current-route groups open, detail-route highlighting, one expanded group, and responsive navigation.
+- The notification bell retains its own API/read-state contract; Dashboard counts must not silently mark notifications read.
+- Verification below distinguishes mocked browser interaction and focused database tests from broader production acceptance.
 
 ### Acceptance criteria
 
-- [ ] Guest cannot access Dashboard API/page.
-- [ ] Authenticated non-Admin cannot access Admin Dashboard.
-- [ ] Admin without Dashboard permission receives no Dashboard data when custom permissions apply.
-- [ ] Dashboard opens after successful Admin login.
-- [ ] Dashboard data comes from Laravel, not direct frontend database access.
-- [ ] KPI values are produced from reproducible backend aggregate queries.
-- [ ] Dashboard does not expose data from features the Admin is not authorized to view.
-- [ ] Pending action items link to their owning Admin feature.
-- [ ] Dashboard does not duplicate approval/compliance/dispute mutation workflows.
-- [ ] Admin notifications are returned from authoritative backend state.
-- [ ] Unread state is not browser-only.
-- [ ] Notification real-time/polling updates can be recovered by API refetch.
-- [ ] Failed optional widget is not silently rendered as zero.
-- [ ] Money uses project-approved fixed precision.
-- [ ] Sensitive PII/evidence/security fields are absent from Dashboard DTOs.
-- [ ] Cached metrics, when used, have a defined freshness strategy.
-- [ ] UI supports loading, empty, forbidden, error, and loaded states.
-- [ ] Dashboard remains usable when no notifications/action items exist.
-- [ ] Accessibility does not depend on color or pointer interaction alone.
-- [ ] Sidebar groups expose only authorized feature links, expand the current route's group, and work with keyboard and mobile navigation.
+Existing baseline and enhancement verified on 2026-10-02:
+
+- [x] Guests and non-Admins cannot read the Dashboard; absent registration permission returns no registration overview.
+- [x] Registration counts exclude approved/rejected applications and Courier applications.
+- [x] Registration action items are bounded and ordered; the read excludes private applicant contact fields and writes no audit events.
+
+- [x] Every permission combination returns only authorized sections, including support/compliance access without registration access.
+- [x] Open counts match queue filters and distinguish ready zero, unavailable null, and forbidden null.
+- [x] Support queue URL initialization and existing compliance filters make card navigation reproduce the counted set.
+- [x] Section failure preserves other successful sections; session/permission changes clear denied cached data.
+- [x] DTOs remain minimal and private/no-store; Dashboard reads have no domain, notification, or read-marker side effects.
+- [x] Registration response compatibility, bounded action ordering, and middleware behavior remain intact.
+- [x] Mocked-HTTP Chromium verifies loading, empty, unavailable, retry, stale, and consent/forbidden states at 390/768/1280px in both themes.
+- [x] Keyboard/focus checks, focused Dashboard API tests, TypeScript, changed-file lint, and Admin build pass.
+
+Production acceptance is not implied by mocked browser contracts. The separate PostgreSQL compliance case-creation audit assertion fails even when run alone; it does not exercise Dashboard reads and remains an owning-feature verification issue.
 
 ## HOW
 
-### Project findings
+### API contract and owning queues
 
-- `Admin.md` defines Dashboard as the primary Admin command interface for platform overview, KPIs, pending actions, and notifications.
-- It explicitly calls for aggregate queries across users, transactions, and reports plus real-time or polling notification updates.
-- Admin Authentication routes successful login to `/dashboard`.
-- Other Admin features provide natural Dashboard sources:
-  - Manage Account Registrations
-  - Manage User Accounts
-  - Seller Compliance
-  - Complaints & Disputes
-  - Reports Overview
-- `README.md` requires:
-  - Next.js/React presentation
-  - Laravel-owned business data and authorization
-  - Eloquent persistence
-  - Laravel broadcasting for live dashboard changes
-  - shared API client
-  - explicit loading/error/forbidden states
-- Exact application models, table names, dashboard routes, and KPI definitions were not available during research.
+- Existing route: `GET /api/v1/admin/dashboard`; no body or feature-selection query is required.
+- Authorization: `auth:sanctum`, active Admin, applicable policy consent; section permissions are server-derived.
+- 200 envelope: `{data: {registrations: overview | null, support_tickets: summary | null, seller_compliance: summary | null, generated_at: ISO8601}}`.
+- Existing overview: `{pending: {total, by_role: {customer, seller, logistics}}, action_items: [{id, role, submitted_at}]}`.
+- Additive fields inside `data`: `support_tickets` and `seller_compliance`; each is `null` when unauthorized.
+- Ready support example: `{state: "ready", count: 3, filter: {status: "open"}, destination: "/support-tickets?status=open"}`.
+- Compliance uses the same shape with its own destination; unavailable sections retain the filter/destination and return `state: "unavailable", count: null`.
+- Existing owning reads: `GET /api/v1/admin/support-tickets?status=open&assignee=all` and `GET /api/v1/admin/seller-compliance/cases?status=open`.
+- Owning queues retain their independent pagination and response envelopes; do not treat their list endpoints as Dashboard aggregates.
+- Existing denial behavior includes 401/403; respect `POLICY_CONSENT_REQUIRED` where returned. Unavailable request infrastructure is an error, not a successful zero.
+- GET retries have no mutation or idempotency-header requirement; they return newly read authorized data.
 
-### Laravel API
+### Implementation and verification approach
 
-- Prefer a dedicated read model/service, e.g. `AdminDashboardService` or `GetAdminDashboard`.
-- Conceptual endpoint:
+- Extend the existing Admin Dashboard controller through focused query/service and DTO/resource responsibilities.
+- Reuse the Support ticket reader's Admin scope and the compliance queue filters; permission checks precede aggregate queries.
+- Keep aggregates bounded in query count; do not hydrate ticket bodies or case relationships to count records.
+- Extend Dashboard client types and extract card/state components within the Admin structure instead of mixing independent workflows into one page.
+- Coordinate support URL-filter initialization with its owning feature; no ticket or compliance mutations are added here.
+- Extend `AdminDashboardTest` for permission combinations, exact status counts, partial failures, privacy, and read-only behavior.
+- Verify queue-filter parity, logout/permission-loss cleanup, both themes, responsive states, keyboard focus, type checks, lint, and build.
+- Deploy compatible additive response fields before enabling their cards; document actual verification in `docs/PROGRESS.md`.
 
-```http
-GET /api/admin/dashboard
-```
+### Implementation record
 
-- The action/service should:
-  1. authenticate Admin
-  2. resolve feature permissions
-  3. run only authorized aggregate queries
-  4. gather authorized action-item summaries
-  5. gather recent/unread Admin notifications
-  6. map to a compact Dashboard Resource/DTO
-- Keep controller logic thin.
-- Avoid exposing raw Eloquent models.
-- Separate expensive KPI query methods so they can be measured/cached independently.
-- Use query-builder/Eloquent aggregate methods rather than hydrating full collections.
-- Reuse domain query scopes/status definitions from owning features.
+- `DashboardController` delegates to `DashboardService`, `DashboardQueueCounts`, and `DashboardResource`. Permissions are read before aggregates; Support uses `SupportTicketReader::scoped`, and compliance uses the owning queue's global Admin/status scope.
+- Each new count uses a transaction/savepoint so a missing table/column can return section-local unavailable without leaving PostgreSQL's transaction aborted. Connection/database-permission and unexpected query failures propagate as request errors, never successful zeros. Registration compatibility is unchanged.
+- Focused Dashboard components and `useDashboard` replace the decorative scaffold/obsolete Finance placeholder. Account/permission-keyed state, cancellation, no-store reads, explicit retry, stale timestamps, consent redirect, and 401 cleanup are implemented. The sidebar and notification bell contracts are unchanged.
+- `node tests/dashboard-browser.smoke.mjs` in `src/admin` uses real Chromium against mocked HTTP; start Admin Vite on 15175 and ChromeDriver on 19515. Generated artifacts remain in ignored `node_modules/.cache/`.
+- Verification on 2026-10-02: SQLite Dashboard/support/compliance/consent regressions pass (32 tests/369 assertions); disposable PostgreSQL Dashboard/support/consent regressions pass (24 tests/305 assertions), including savepoint recovery after real missing-table/column errors. The broader PostgreSQL compliance audit assertion failure is separately reproduced above. URL-filter tests, Admin TypeScript/changed-file oxlint/Vite build, PHP Pint, and mocked browser checks pass; the existing large-chunk build warning remains. No migration was needed and the application database was not modified.
 
-### Suggested response shape
+### Sources and deferred expansion
 
-```json
-{
-  "kpis": {
-    "pendingRegistrations": 0,
-    "openDisputes": 0
-  },
-  "actionItems": [],
-  "notifications": [],
-  "generatedAt": "2026-08-29T00:00:00Z"
-}
-```
-
-- This shape is conceptual.
-- Omit unauthorized/unimplemented widgets instead of returning misleading values.
-- Exact metric names must match approved domain definitions.
-
-### Notifications and broadcasting
-
-- If the shared `User`/Admin model uses Laravel `Notifiable`, database notifications can provide persisted notification history/read state.
-- Broadcast notifications can update the React Dashboard in real time.
-- Use private authorized channels.
-- Queue/broadcast after source transactions commit.
-- On React reconnect, refetch Dashboard/notification state to reconcile missed events.
-
-### Caching
-
-- First measure aggregate query cost.
-- Use no cache for inexpensive/action-critical counts when fresh queries are acceptable.
-- For expensive/stable aggregates, use Laravel Cache `remember` or the repository's cache abstraction.
-- Cache keys must include any scope/permission dimension that affects the value.
-- Invalidate/expire based on source-domain changes.
-- Never use stale cache to authorize access.
-- Do not prematurely create precomputed analytics tables unless real query performance requires them.
-
-### React SPA
-
-- Implement `/dashboard` using the repository's router.
-- Fetch through the shared Laravel API client.
-- Render Dashboard sections based on the returned authorized DTO.
-- Do not hard-code hidden KPI data in frontend configuration.
-- Use client components only for:
-  - real-time subscription
-  - interactive chart/filter state
-  - notification read actions
-- Recommended UI hierarchy:
-  1. KPI summary
-  2. pending actions
-  3. notifications
-  4. optional trends/charts
-- Cards/action rows link to owning feature routes.
-- On real-time event:
-  - update a safe local value when event payload is sufficient
-  - otherwise invalidate/refetch affected Dashboard data
-- Refetch on reconnect to recover missed state.
-
-### Testing
-
-- **Laravel tests:**
-  - guest rejected
-  - non-Admin rejected
-  - custom Dashboard permission enforced
-  - per-widget source permission enforced
-  - aggregate definitions return expected counts/totals
-  - archived/invalid statuses excluded correctly
-  - money precision preserved
-  - action items contain safe summary fields
-  - notification read/unread data correct
-  - sensitive fields absent
-  - cached metric behavior when enabled
-  - widget query failure is not represented as valid zero
-- **Frontend tests:**
-  - Dashboard loading/loaded/error/forbidden states
-  - empty action/notification states
-  - authorized KPI cards render
-  - unauthorized widgets absent
-  - action links navigate correctly
-  - notification event updates/refetches
-  - reconnect recovers state
-  - no direct mutation workflow is duplicated
-  - accessible card/list/chart behavior
-
-### Research-backed recommendations
-
-- Use Laravel query-builder/Eloquent aggregate methods for counts/sums instead of loading full datasets.
-- Use Laravel database notifications for persisted Admin notification state when compatible with the existing model.
-- Use broadcast notifications/events for real-time React updates when the broadcasting stack is configured.
-- Cache only expensive aggregates whose freshness tolerance is defined.
-- Keep the Dashboard a read model/composition layer; domain mutations stay in their owning feature.
-
-### Risks
-
-- **Undefined KPI semantics:** vague labels can produce misleading numbers.
-- **Permission leakage:** aggregated counts can reveal restricted feature information.
-- **Slow aggregate fan-out:** many independent full-table scans can make Dashboard load expensive.
-- **Stale action counts:** excessive caching can mislead Admins about pending work.
-- **False zero:** swallowing backend errors as `0` hides operational problems.
-- **Feature duplication:** adding approval/dispute/compliance mutations to Dashboard creates competing workflows.
-- **Notification duplication:** a Dashboard-only notification table would fragment the shared notification system.
-- **Over-monitoring:** interpreting "system health" as infrastructure telemetry would invent scope not defined by current sources.
-
-### Open questions
-
-- Final MVP KPI list.
-- Exact definitions for each KPI.
-- Whether user totals should be split by role/status.
-- Whether commission/revenue appears directly on Dashboard or only Reports Overview.
-- Whether charts are required for MVP.
-- Dashboard date-range/default period.
-- Action-item priority/ordering rules.
-- Number of recent action items/notifications shown.
-- Notification mark-read interaction.
-- Selected real-time broadcasting driver.
-- Polling fallback interval.
-- Whether Dashboard cards are individually permissioned.
-- Cache TTL/invalidation strategy for expensive metrics.
-- Whether technical infrastructure health will ever be in Dashboard.
-- Exact Dashboard endpoint/DTO naming.
-
-### Sources
-
-- Project feature-spec rules: `SKILL.md`
-- AISLEY architecture/system-flow contract: `README.md`
-- Admin feature model: `Admin.md`
-- Admin Authentication spec: `admin/auth/spec.md`
-- Laravel Query Builder aggregates:
-  - https://api.laravel.com/docs/12.x/Illuminate/Database/Query/Builder.html
-- Laravel Eloquent relationship aggregates:
-  - https://api.laravel.com/docs/12.x/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.html
-- Laravel Notifications:
-  - https://laravel.com/docs/12.x/notifications
-- Laravel Cache:
-  - https://laravel.com/docs/12.x/cache
+- Current implementation: `src/api/app/Http/Controllers/Admin/DashboardController.php`, `src/api/routes/api.php`, `src/api/tests/Feature/Admin/AdminDashboardTest.php`.
+- Current UI: `src/admin/src/pages/DashboardPage.tsx`, `src/admin/src/types/dashboard.ts`, and the existing support/compliance queue pages.
+- Project authority: `docs/requirements.md`, `docs/workspace.md`, `docs/domains/Admin.md`, and `docs/design.md`.
+- Owning specs: `docs/features/admin/support-ticket-system/spec.md` and `docs/features/admin/monitor-seller-compliance/spec.md`.
+- Server-side authorization and aggregate approach: [Laravel authorization](https://laravel.com/framework/docs/13.x/authorization) and [query aggregates](https://laravel.com/framework/docs/13.x/queries#aggregates).
+- Broader analytics, Finance summaries, multi-status workloads, health monitoring, and realtime Dashboard events need a separate approved scope before implementation.

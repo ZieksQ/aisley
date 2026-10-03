@@ -14,15 +14,15 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## Final-mile photo confirmation revision (2026-09-20)
 
-For `delivered`, Logistics selects the matching Courier photo POD and completion intent, opens its private image through the scoped `GET /api/v1/logistics/delivery-proofs/{proof}/photo` route, then explicitly validates delivery through the existing revision-checked transition. Logistics can reject a bad photo with a reason and current task revision through `POST /api/v1/logistics/delivery-proofs/{proof}/reject`; its pending intent is rejected too, while custody stays `out_for_delivery`. The service checks that the image object still exists before accepting intent or finalization. A waybill QR, tracking ID, or Order reference cannot substitute for delivery proof. Hub pickup scan evidence remains a separate transition. Failed doorstep attempts keep the Shipment `out_for_delivery` and permit later Courier retry. Older QR-gated delivery wording below describes the superseded proof method.
+For `delivered`, Logistics selects the matching Courier photo POD and completion intent, opens its private image through the scoped `GET /api/v1/logistics/delivery-proofs/{proof}/photo` route, then explicitly validates delivery through the existing revision-checked transition. Logistics can reject a bad photo with a reason and current task revision through `POST /api/v1/logistics/delivery-proofs/{proof}/reject`; its pending intent is rejected too, while custody stays `out_for_delivery`. The service checks that the image object still exists before accepting intent or finalization. A waybill QR, tracking ID, or Order reference cannot substitute for delivery proof. Hub pickup uses separate task-bound `task_confirmation` evidence without identifier input; Logistics validation commits its custody transition. Failed doorstep attempts keep the Shipment `out_for_delivery` and permit later Courier retry. Older QR-gated delivery wording below describes the superseded proof method.
 
 ## WHAT
 
 - **Purpose:** Let an authorized Logistics account validate operational evidence and commit an allowed Shipment/Delivery Task transition when scan automation needs recovery.
 - **Current implementation:** The additive fulfillment migrations and `FulfillmentTransitionService` provide organization/sole-hub scoped record lookup, hub receipt/sort, final-mile hub-pickup evidence validation, transit/out-for-delivery recovery, and photo-POD-gated delivery finalization. `/receive-at-hub` owns receipt capture, `/sorting` owns normal lane/session sortation, and both use Dexie outboxes with partial-result bulk sync. `/operations` retains evidence review and exceptional recovery compatibility, and now decodes barcode/QR parcel fields locally before attempting authoritative online lookup. Scheduled dispatch is owned by Deploy Rider on `/dispatch`.
 - **Compatibility:** Existing explicit Courier first-mile confirmation still commits Seller pickup and Inventory fulfillment on its legacy contract, then idempotently bridges the result into shared physical records. New hub/final-mile custody transitions use Logistics validation and never replay that Inventory effect.
-- **Authority:** Logistics validates and records the authoritative event. A Courier performs a physical scan/handoff and submits it; the shared transition service commits state only after validation.
-- **Flow:** Courier submits QR/reference/evidence → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
+- **Authority:** Logistics validates final-mile hub-handoff evidence and photo POD before the shared service commits custody. First-mile explicit Courier confirmation retains its separate compatibility writer and idempotent bridge.
+- **Flow:** Courier submits task-bound hub confirmation or private photo POD/completion intent → Logistics validates → transition service commits detailed state and permitted Order projection → immutable history and after-commit notifications.
 - **Non-goals:** free-form status editing, assignment, Courier acceptance, waybill generation, address changes, proof-of-delivery bypass, returns/refunds, partial fulfillment, payment changes, subscription gating, and map-provider integration.
 
 ## MUST
@@ -43,7 +43,7 @@ For `delivered`, Logistics selects the matching Courier photo POD and completion
 
 ### Transition ownership
 
-- Seller owns `ready_for_pickup`; Courier actions submit first-mile `picked_up_from_seller` or final-mile `picked_up_from_hub` evidence.
+- Seller owns `ready_for_pickup`. Explicit first-mile Courier confirmation commits `picked_up_from_seller` through the compatibility service; final-mile task confirmation stays pending until Logistics commits `picked_up_from_hub`.
 - A generic hub sort cannot bypass an unresolved Sorting exception. Validated final-mile hub pickup clears the live staging lane; immutable dispatch source snapshots remain intact.
 - Logistics owns validated hub milestones. Dedicated Receiving commits `received_at_hub`; dedicated Sorting commits `sorted_at_hub`; Deploy Rider atomically commits scheduled `dispatched_from_hub` plus the final-mile Courier offer for up to 15 sorted parcels. Parcel search retains only authorized evidence/recovery transitions. Internal `in_transfer` execution is deferred.
 - Customer-facing `picked_up` is backed by the first-mile confirmation; hub receipt and final-mile pickup require their own detailed Shipment/DeliveryTask events.
@@ -53,9 +53,9 @@ For `delivered`, Logistics selects the matching Courier photo POD and completion
 
 - Final delivery requires a Courier intent for the selected delivery proof and current task revision. The shared service accepts awaiting-validation or validated proof, validates it inside the transaction, then atomically records task/Shipment/Order `delivered`; there is no required separate pre-intent proof approval.
 
-- A Courier scans the shared waybill QR/reference for hub pickup and submits private photo POD plus Delivered intent for destination delivery. The Courier does not directly write authoritative custody state.
+- Final-mile hub pickup submits only `expected_revision` with a UUID `Idempotency-Key` for the accepted task. The server derives Parcel/waybill ownership and stores `task_confirmation` evidence with no identifier hash; identifier fields return `422`. Destination delivery submits separate private photo POD plus Delivered intent. Neither submission directly writes final-mile custody.
 - Logistics validates the parcel/waybill link, task leg, current state, sole-hub scope, Courier authorization, evidence requirements, and idempotency key before recording the event.
-- The authoritative event preserves the performing Courier, recording Logistics account, event timestamp, location/context required by the transition, and safe evidence metadata. QR/reference applies to hub handoff; private photo POD applies to delivery.
+- The authoritative event preserves the performing Courier, recording Logistics account, event timestamp, location/context required by the transition, and safe evidence metadata. Task confirmation applies to final-mile hub handoff; private photo POD applies to delivery. First-mile and Logistics parcel scans retain separate identifier rules.
 - `waybill_access_events` remain view/download/resolve audit records. A scan or access event alone never advances custody; a validated event plus an allowed transition does.
 - Evidence status is distinct from custody: `submitted`, `awaiting_validation`, `validated`, `rejected`, or `unavailable`. Private evidence is authorized and never returned as a raw storage path.
 

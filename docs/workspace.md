@@ -494,7 +494,7 @@ E-signature.
 
 QR scan.
 
-For P0, at least one method must be implemented. QR/parcel verification plus delivery confirmation is sufficient for the core workflow; photo proof is recommended if implementation capacity permits. Courier-submitted QR/tracking-ID/Order-reference scans and evidence are validated and recorded authoritatively by Logistics, preserving both the performing Courier and recording Logistics account. Image/signature evidence remains subject to the shared upload policy and the approved operational schema.
+For the deployed P0 flow, destination delivery requires one private photo POD plus explicit Courier completion intent and Logistics validation. QR/tracking-ID/Order-reference verification remains limited to first-mile and Logistics parcel handling; final-mile hub handoff is task-bound and accepts no identifier. Signature and proof combinations remain deferred under the shared upload policy.
 
 9.8 Delivery History
 
@@ -700,7 +700,7 @@ delivered
 
 Task-level `rejected` records an offered Courier's refusal and is not an `OrderStatus`. `stale` is an informational freshness condition for an unfinished task, derived or persisted only by the future task contract; it is not a new high-level Order status and does not automatically cancel or reassign work.
 
-The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, tenant-scoped postal-code sort plans, independent final-mile offers, QR handoff evidence, and Logistics-validated delivery completion. Photo/signature proof, route/location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
+The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, tenant-scoped postal-code sort plans, independent final-mile offers, task-bound hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
 
 Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. A Courier submits a QR/tracking-ID/reference scan or handoff evidence, and Logistics validates and records the authoritative event, preserving the performing Courier, recording Logistics account, and timestamp. The shared transition service—not the scan/access event—commits physical state. The pickup transaction creates one immutable shared waybill/tracking ID snapshot per Order at `ready_for_pickup`; the primary barcode is a thin 1D Code 128 encoding of that tracking ID and QR remains a compatibility fallback. Pickup may store a sort-plan routing hint, but automatic sorting resolves the current plan and exact Buyer postal mapping at scan time; missing routing data/configuration goes to the exception lane. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules; task-level `rejected` is distinct from Order-level `rejected`.
 
@@ -719,11 +719,11 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 | `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Implemented P0 transition |
 | `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting resolves the tracking ID and current postal-code sort plan, records standard-lane placement, or assigns an exception hold when routing is unavailable | Implemented with separate Dexie batch receipt/sort sync and tenant-scoped sort-plan routes; internal transfer deferred |
 | `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
-| `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented QR P0 evidence transition |
+| `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented task-confirmation evidence transition |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |
-| `out_for_delivery → delivered` | Courier supplies proof and completion intent; Logistics validates; server commits delivery | Implemented QR P0 completion |
+| `out_for_delivery → delivered` | Courier supplies private photo POD and completion intent; Logistics validates; server commits delivery | Implemented photo-POD completion |
 
-Each deployed P0 transition uses tenant/role checks, locked current state or revisions, immutable events, idempotent result replay, and a conflict on incompatible concurrent changes. Notifications follow commit. Owning endpoint specs define the exact request/response/evidence and transaction effects. Returns, refunds, partial fulfillment, post-pickup cancellation, photo/signature proof, route/location telemetry, and exceptional recovery remain deferred; unfinished tasks may be informationally stale without automatic reassignment.
+Each deployed P0 transition uses tenant/role checks, locked current state or revisions, immutable events, idempotent result replay, and a conflict on incompatible concurrent changes. Notifications follow commit. Owning endpoint specs define the exact request/response/evidence and transaction effects. Private final-mile photo POD is implemented; returns, refunds, partial fulfillment, post-pickup cancellation, signature proof, live location telemetry, and exceptional recovery remain deferred. Unfinished tasks may be informationally stale without automatic reassignment.
 
 ### MVP re-offer, expiry, and internal transfer rules
 
@@ -775,7 +775,7 @@ Updating the detailed Shipment/Delivery Task state and any permitted high-level 
 
 Preventing duplicate or invalid transitions.
 
-The implemented first-mile confirmation resolves a QR/tracking-ID/manual reference, requires explicit Courier confirmation, records `picked_up_from_seller`, projects the Order to `picked_up`, fulfills Inventory once, and idempotently bridges shared physical records. Logistics hub receipt/sort/dispatch, final-mile task assignment/acceptance, QR/tracking-ID hub pickup, movement, proof submission, and Logistics-validated delivery completion use the additive operational schema and shared transition service. Photo/signature media, route/location telemetry, returns, and exceptional recovery remain unavailable.
+The implemented first-mile confirmation resolves a QR/tracking-ID/manual reference, requires explicit Courier confirmation, records `picked_up_from_seller`, projects the Order to `picked_up`, fulfills Inventory once, and idempotently bridges shared physical records. Logistics hub receipt/sort/dispatch, final-mile task assignment/acceptance, task-bound hub pickup, movement, private photo POD, and Logistics-validated delivery completion use the additive operational schema and shared transition service. Signature proof, live location telemetry, returns, and exceptional recovery remain unavailable.
 
 Do not infer either physical pickup from the generic high-level Order value `picked_up`; the detailed task/scan event is authoritative for the handoff.
 
@@ -839,4 +839,4 @@ Admin ↔ users through requester-owned support tickets, not unrestricted live c
 
 Advanced chat functionality such as real-time typing indicators or complex media messaging is not required for P0.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; photo/signature proof media, route/location telemetry, and exceptional recovery remain future extensions.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.

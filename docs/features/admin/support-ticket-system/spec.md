@@ -3,8 +3,8 @@ feature: admin-support-tickets
 title: Admin Support Ticket System
 system: AISLEY
 type: Feature Specification
-version: 2.1
-status: Ticket schema/API and Admin, Customer, Seller, Logistics web screens implemented; Courier Flutter and production release checks pending
+version: 2.2
+status: Ticket schema/API, role web screens, and Courier Flutter requester flow implemented; live mobile and production release checks pending
 role: Admin
 scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 ---
@@ -102,6 +102,10 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 - Admin UI offers a paginated queue with status/category/assignee filters, unread/updated time,
   a detail timeline, claim/reassign, reply, wait, resolve, and reopen controls. It distinguishes
   saved replies from pending drafts and shows the immutable event history.
+- Queue filters initialize from allow-listed URL values and persist when opening ticket detail;
+  filter changes reset pagination and obsolete list responses cannot overwrite the new filter.
+  Dashboard **Open support tickets** links to `/support-tickets?status=open`, across all assignees;
+  entering this queue alone does not mark tickets read or claim them.
 - Role apps offer **Support tickets** entry, submit form, own-ticket list/detail, and public reply.
   Existing chat inboxes stay separate. Courier uses the same API contract through Flutter; no
   Courier web screen is added here.
@@ -154,9 +158,9 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
   Responses return ticket/reference/status/revision, role-safe replies/events, unread count,
   and pagination cursor, never raw Eloquent models.
 - Admin `/support-tickets` queue/detail and Customer, Seller, and Logistics requester web entry
-  points are implemented. Courier's `/api/v1/courier/support-tickets` routes are available to
-  the external Flutter app; no Courier web screen was added here. See the role-owned requester
-  specs for their current UI boundary.
+  points are implemented. The external Flutter app implements Courier list/create/detail/reply/read
+  against `/api/v1/courier/support-tickets`; authenticated live acceptance remains pending and no
+  Courier web screen was added here. See the role-owned requester specs for each UI boundary.
 - Use HTTP/polling first. Optional notifications, if added later, must dispatch
   [after commit](https://laravel.com/docs/12.x/queues#jobs-and-database-transactions).
   Realtime transport and email ingestion remain separate future choices.
