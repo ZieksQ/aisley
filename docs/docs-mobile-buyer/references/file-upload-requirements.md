@@ -1,0 +1,14 @@
+# Buyer image upload policy
+
+Portable Buyer adaptation of upstream `docs/references/file-upload-requirements.md`. The backend and owning feature retain enforcement authority. Flutter adoption/acceptance pending; [transport guidance](../flutter-file-uploads.md) documents actual fields and targets.
+
+- Every source image must be **strictly under 10 MiB (10,485,760 bytes)**. UI may say “10 MB maximum”; reject the exact limit and above. JPEG/JPG (`image/jpeg`), PNG (`image/png`) and WebP (`image/webp`) only.
+- Reject GIF, SVG, AVIF, HEIC/HEIF, TIFF, BMP, PDF, archives and all unlisted types. Filename, extension, picker MIME and size are hints; Laravel inspects MIME/signature, validates matching extension and decodes. Double/multiple extensions and corrupt images are rejected.
+- The feature authorizes its owning Customer and parent resource. No client owner/path may attach media to another account/Review. Public registration evidence is currently unavailable, so no general upload exception is implied.
+- Store bytes on the configured filesystem/blob disk, generated UUID/key and validated metadata in owning records, never Base64 database content or original filename as object identity. API returns safe delivery URLs/IDs without raw paths/credentials.
+- Profile and future registration evidence stay private. Public Product/Shop/review media need currently eligible owning content and authorized delivery. Hidden/draft/private assets must not leak. Buyer receives no automatic delivery-POD or dispute-evidence access.
+- Validate before permanent storage, bound decoding/dimensions and reject processing failures. Rewrite/strip EXIF for public delivery under the policy. Client resizing/preview is not server validation. Malware/quarantine handling may be claimed only when a scanner/lifecycle exists; current Buyer contract does not promise one.
+- Replacement/removal enforce ownership and transaction/cleanup boundaries. A cancelled request may have committed. [Transport](../flutter-file-uploads.md) handles reconciliation without invented upload replay.
+- Use field-addressable `422`, auth/role/resource denial and `429` feedback; show formats/limit before selection, progress while sending and committed success only after persistence. Keep safe IDs/outcomes in operational logs, excluding bytes/private URLs/evidence.
+
+Current feature-specific config: review limit 5 images, edge limit 8,000 pixels and total 40,000,000; profile validation lacks the same explicit numeric dimension enforcement and its metadata inspection does not demonstrate bounded full decoding/rewrite. Treat that as a backend gap, not proof that a shared maximum is deployed. Scanning, per-purpose size changes, responsive derivatives, moderation, evidence retention and cleanup windows need owning decisions before release claims.

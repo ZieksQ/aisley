@@ -1,0 +1,29 @@
+# Backend and Buyer integration gaps
+
+Baseline reviewed 2026-10-03. All Buyer Flutter implementation is pending even where APIs exist. This register identifies unavailable platform behavior, source contradictions and integration/release decisions; it does not authorize backend changes.
+
+| ID | Gap and evidence | Buyer delivery treatment | Owner / phase |
+| --- | --- | --- | --- |
+| G01 | Customer RegisterRequest/controller omit reference-required address/ID evidence | Profile/credentials-only pending registration; explain limitation; no copied Courier upload parts | Customer API/Admin review; 1 follow-up |
+| G02 | No pending-applicant read, rejection resubmission, appeal exception or email-verification policy | Informational pending/rejected state and later login; no protected applicant support | Customer Auth; 1 |
+| G03 | Reset mail URL targets configured storefront; native links not configured | Use trusted storefront recovery; approve native app-link/reset handoff separately | Auth/deployment; 1 |
+| G04 | Buyer `localhost:8766` absent from default CORS; exposed headers empty | Backend owner allow-lists exact origin, keeps non-stateful token path and exposes Retry-After as needed | API/deployment; 1/5 |
+| G05 | No Buyer SDK/pubspec or approved dependencies exist in this bundle | Inspect destination project and approve choices; secure-storage failures and localhost web security require tests | Flutter; 1 |
+| G06 | JS PSGC package is not a Dart asset; bundle includes no dataset | Export approved JSON with manifest/source revision; offline cascading/manual fallback parity | Flutter/data; 2 |
+| G07 | Current map policy is Geoapify + Leaflet; native renderer/mobile key handling undecided | Manual Address Book works; pin rendering deferred until approved adapter/dependency/provider contract | Maps/Flutter; 2 |
+| G08 | View Cart spec still says no API/tables; View Product retains unchecked baseline and obsolete placeholder wording | Current routes, CartService/Resources and tests establish implemented backend; use verified guide, preserve platform/client distinction | Contract synchronization; 3 |
+| G09 | Checkout and some domain text retain deferred downstream Logistics wording despite current implementation | Provider-neutral checkout; Seller chooses Logistics later; owned tracking reads actual projections | Contract synchronization; 3 |
+| G10 | Homepage configured shortcuts include unavailable vouchers/listings; Bazaar/MoneyFest deferred | Omit enabled destinations without approved implemented result; Category cards are keyword search, not exact global Category filter | Discovery/product; 2 |
+| G11 | Quote/voucher rules exist but voucher-specific concurrency and full UX cases remain open | No wallet/claim/code-entry/authoring API promises; verify stacking, zero savings, stale choices and limited capacity | Checkout/API/Flutter; 3/5 |
+| G12 | Pending mutation keys/payloads are session memory; no GET placement-by-key | Same-key in-session reconciliation; process-death uncertainty needs approved recovery/storage design before unattended recovery claims | Checkout/security; 3/5 |
+| G13 | General notification list/detail/read exists; unread-count/read-all and push device registration absent | Per-page unread is not an exact global badge; no invented unread-count, native push/background guarantee | Notifications; 4 |
+| G14 | Wishlist alerts, voucher wallet/authoring, online payments, returns/refunds, live GPS/ETA and broader account controls deferred | Clear unavailable state or omit action; source enum value alone is not implemented workflow | Owning platform features; later |
+| G15 | Profile/review multipart lacks durable image replay; profile metadata inspection has no explicit numeric dimension cap or demonstrated bounded full decode/rewrite | Reconcile uncertainty, retain partial review progress; backend upload hardening/retention requires owner decision | Upload/security; 2/4/5 |
+| G16 | Three channels implemented; retention/abuse policy, operational two-worker races/live exchanges remain release gates | Foreground HTTP polling, scoped read-only state; no attachments/Admin blanket transcript access | Messaging/API/Flutter; 4/5 |
+| G17 | Support ticket notifications/linked records/attachments deferred; requester UI says description but API uses body | Only subject/category/body create, revision-checked reply; pending/inactive Customers have no exception | Support; 4 |
+| G18 | Sanctum token expiration currently null; no refresh/revoke-all/session registry API | Secure restore and /me revalidation; current-token logout, documented password token effects; no invented refresh schedule | Security/Auth; 1/5 |
+| G19 | Some canonical specs mix inspected implementation with historical plans (Cart, Q&A Seller UI, Wishlist notification wording) | Use current source for actual API and feature intent for requirements; record contradictions without changing unrelated docs | Documentation maintainer; each phase |
+| G20 | Native Android and real-browser Buyer integration never run; source tests were inspected only | Record actual analyze/tests/build/device/browser/live results later; preserve all unchecked mobile criteria | Flutter/release; 5 |
+| G21 | Address correction implementation does not fully demonstrate current published-rate/coverage revalidation | It checks owned shipping-address completeness and Order eligibility but does not recalculate the saved shipping quote; review material-location changes with the backend owner before release | Order/Finance/API; 3/5 |
+
+Unavailable APIs must not be mocked into production success. Test fixtures may model future/denied states clearly, but future endpoint proposals need separate backend authorization and acceptance.
