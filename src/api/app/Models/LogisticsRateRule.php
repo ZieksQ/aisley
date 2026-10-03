@@ -39,4 +39,9 @@ class LogisticsRateRule extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function shopCategory(): BelongsTo
+    {
+        return $this->belongsTo(ShopCategory::class);
+    }
 }

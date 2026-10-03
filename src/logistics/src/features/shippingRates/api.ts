@@ -1,9 +1,9 @@
 import { csrf, requestWithTimeout } from '../../lib/api'
-import type { ProductCategoryOption, RateCard, RateCardDraft, RuleDraft, ServiceDraft, TariffAcceptance } from './types'
+import type { RateCard, RateCardDraft, RuleDraft, ServiceDraft, ShopCategoryOption, TariffAcceptance } from './types'
 
 type RateCardsResponse = {
   data: RateCard[]
-  meta: { categories: ProductCategoryOption[] }
+  meta: { shop_categories: ShopCategoryOption[] }
 }
 
 const positiveNumber = (value: string) => Number(value)
@@ -21,7 +21,7 @@ export async function loadShippingRates() {
     requestWithTimeout<RateCardsResponse>('/api/v1/logistics/rate-cards'),
   ])
 
-  return { tariffs: tariffs.data, cards: cards.data, categories: cards.meta.categories }
+  return { tariffs: tariffs.data, cards: cards.data, shopCategories: cards.meta.shop_categories }
 }
 
 export async function acceptTariff(id: string) {
@@ -36,7 +36,7 @@ export async function publishRateCard(id: string) {
 
 function rulePayload(rule: RuleDraft) {
   return {
-    category_id: rule.categoryId,
+    shop_category_id: rule.shopCategoryId,
     service_type: rule.serviceType,
     included_weight_grams: grams(rule.includedWeightKg),
     additional_weight_grams: grams(rule.additionalWeightKg),
@@ -54,7 +54,7 @@ export async function createRateCard(draft: RateCardDraft) {
     method: 'POST',
     body: JSON.stringify({
       currency: 'PHP',
-      effective_at: new Date(draft.effectiveAt).toISOString(),
+      effective_at: new Date(draft.effectiveAt.replace(' ', 'T')).toISOString(),
       services: draft.services.map(servicePayload),
       rules: draft.rules.map(rulePayload),
     }),

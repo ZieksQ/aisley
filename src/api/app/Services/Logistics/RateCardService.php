@@ -24,9 +24,13 @@ class RateCardService
                 'effective_at' => $data['effective_at'],
             ]);
             $card->services()->createMany($data['services']);
-            $card->rules()->createMany(array_map(fn (array $rule) => [...$rule, 'base_charge_cents' => 0], $data['rules']));
+            $card->rules()->createMany(array_map(fn (array $rule) => [
+                ...$rule,
+                'category_id' => null,
+                'base_charge_cents' => 0,
+            ], $data['rules']));
 
-            return $card->load(['rules.category:id,name', 'services']);
+            return $card->load(['rules.shopCategory:id,name', 'rules.category:id,name', 'services']);
         });
     }
 
@@ -52,7 +56,7 @@ class RateCardService
                 'revision' => $card->revision + 1,
             ]);
 
-            return $card->fresh(['rules.category:id,name', 'services']);
+            return $card->fresh(['rules.shopCategory:id,name', 'rules.category:id,name', 'services']);
         });
     }
 }

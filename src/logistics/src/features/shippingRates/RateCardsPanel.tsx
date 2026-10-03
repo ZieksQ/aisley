@@ -3,11 +3,11 @@ import { FaPlus } from 'react-icons/fa6'
 import { ActionButton, PrimaryButton, panel } from '../../components/PickupUi'
 import { centimeters, kilograms, manilaDate, peso, serviceLabels } from './formatters'
 import { RateCardForm } from './RateCardForm'
-import type { ProductCategoryOption, RateCard, RateCardDraft } from './types'
+import type { RateCard, RateCardDraft, ShopCategoryOption } from './types'
 
 type Props = {
   cards: RateCard[]
-  categories: ProductCategoryOption[]
+  shopCategories: ShopCategoryOption[]
   publishingId: string | null
   onCreate: (draft: RateCardDraft) => Promise<void>
   onPublish: (id: string) => Promise<void>
@@ -18,7 +18,13 @@ function Status({ status }: { status: RateCard['status'] }) {
   return <span className={'text-sm font-medium capitalize ' + tone}>{status}</span>
 }
 
-export function RateCardsPanel({ cards, categories, onCreate, onPublish, publishingId }: Props) {
+function ruleName(rule: RateCard['rules'][number]): string {
+  if (rule.shop_category_id) return rule.shop_category?.name ?? 'Archived Shop Category'
+  if (rule.category_id) return rule.category?.name ?? 'Archived Product Category'
+  return 'Category unavailable'
+}
+
+export function RateCardsPanel({ cards, onCreate, onPublish, publishingId, shopCategories }: Props) {
   const [creating, setCreating] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(cards[0]?.id ?? null)
   const selected = cards.find((card) => card.id === selectedId) ?? null
@@ -31,9 +37,9 @@ export function RateCardsPanel({ cards, categories, onCreate, onPublish, publish
     return <div>
       <div className="mb-4">
         <h3 className="font-semibold">Create rate card</h3>
-        <p className="mt-1 text-sm text-zinc-500">Set one service base and at least one category extra for every offered service.</p>
+        <p className="mt-1 text-sm text-zinc-500">Set one service base and a main Shop Category extra for every offered service.</p>
       </div>
-      <RateCardForm categories={categories} onCancel={() => setCreating(false)} onCreate={async (draft) => { await onCreate(draft); setCreating(false) }} />
+      <RateCardForm shopCategories={shopCategories} onCancel={() => setCreating(false)} onCreate={async (draft) => { await onCreate(draft); setCreating(false) }} />
     </div>
   }
 
@@ -41,27 +47,27 @@ export function RateCardsPanel({ cards, categories, onCreate, onPublish, publish
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h3 className="font-semibold">Rate cards</h3>
-        <p className="mt-1 text-sm text-zinc-500">A service base is charged once per route leg, including once for each linehaul hop. Published versions do not change placed-order prices.</p>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-500">A service base is charged once per route leg, including each linehaul hop. Main Shop Category weight extras use all item weight in a parcel and are charged once for that category on the service leg.</p>
       </div>
-      <PrimaryButton disabled={!categories.length} onClick={() => setCreating(true)}><FaPlus aria-hidden="true" />Create rate card</PrimaryButton>
+      <PrimaryButton disabled={!shopCategories.length} onClick={() => setCreating(true)}><FaPlus aria-hidden="true" />Create rate card</PrimaryButton>
     </div>
-    {!categories.length ? <p className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">No active product categories are available, so a rate card cannot be created.</p> : null}
+    {!shopCategories.length ? <p className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-100">No active Shop Categories are available, so a rate card cannot be created.</p> : null}
     <section className={panel + ' overflow-hidden'}>
       {cards.length ? <div aria-label="Rate card versions" className="overflow-x-auto" tabIndex={0}>
         <table className="w-full min-w-[48rem] text-left text-sm">
           <thead className="bg-zinc-50 text-xs text-zinc-500 dark:bg-white/[0.03]">
-            <tr><th className="px-4 py-3 font-medium sm:px-5">Version</th><th className="px-4 py-3 font-medium">Effective</th><th className="px-4 py-3 font-medium">Services</th><th className="px-4 py-3 font-medium">Category rules</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 text-right font-medium">Actions</th></tr>
+            <tr><th className="px-4 py-3 font-medium sm:px-5">Version</th><th className="px-4 py-3 font-medium">Effective</th><th className="px-4 py-3 font-medium">Services</th><th className="px-4 py-3 font-medium">Main category rules</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 text-right font-medium">Actions</th></tr>
           </thead>
           <tbody>
             {cards.map((card) => <tr className={'border-t border-zinc-200 dark:border-white/10 ' + (selectedId === card.id ? 'bg-purple-50/50 dark:bg-purple-400/[0.06]' : '')} key={card.id}>
               <td className="px-4 py-3 font-medium sm:px-5">Version {card.version_number}</td>
               <td className="px-4 py-3">{manilaDate(card.effective_at)}</td>
               <td className="px-4 py-3">{card.services.length}</td>
-              <td className="px-4 py-3">{card.rules.length}</td>
+              <td className="px-4 py-3">{card.rules.filter((rule) => rule.shop_category_id).length}</td>
               <td className="px-4 py-3"><Status status={card.status} /></td>
               <td className="px-4 py-3"><div className="flex justify-end gap-2">
-                <ActionButton aria-pressed={selectedId === card.id} onClick={() => setSelectedId(card.id)}>View</ActionButton>
-                {card.status === 'draft' ? <ActionButton busy={publishingId === card.id} onClick={() => { if (window.confirm('Publish rate card version ' + card.version_number + '? The current published version will be archived and placed-order prices will remain unchanged.')) void onPublish(card.id) }}>Publish</ActionButton> : null}
+                <ActionButton aria-pressed={selectedId === card.id} onClick={() => setSelectedId(card.id)} type="button">View</ActionButton>
+                {card.status === 'draft' ? <ActionButton busy={publishingId === card.id} onClick={() => { if (window.confirm('Publish rate card version ' + card.version_number + '? The current published version will be archived and placed-order prices will remain unchanged.')) void onPublish(card.id) }} type="button">Publish</ActionButton> : null}
               </div></td>
             </tr>)}
           </tbody>
@@ -87,11 +93,11 @@ export function RateCardsPanel({ cards, categories, onCreate, onPublish, publish
         </dl> : <p className="mt-3 text-sm text-zinc-500">No services are offered on this card.</p>}
       </div>
       <div className="p-4 sm:p-5">
-        <h5 className="font-semibold">Category weight and size extras</h5>
+        <h5 className="font-semibold">Main Shop Category weight and size extras</h5>
         {selected.rules.length ? <ul className="mt-3 divide-y divide-zinc-200 dark:divide-white/10">
           {selected.rules.map((rule) => <li className="py-4 first:pt-0 last:pb-0" key={rule.id}>
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div><p className="font-medium">{rule.category?.name ?? 'Archived category'}</p><p className="mt-0.5 text-sm text-zinc-500">{serviceLabels[rule.service_type]}</p></div>
+              <div><p className="font-medium">{ruleName(rule)}</p><p className="mt-0.5 text-sm text-zinc-500">{rule.shop_category_id ? 'Main Shop Category' : 'Legacy Product Category'} · {serviceLabels[rule.service_type]}</p></div>
               <p className="text-sm font-semibold">{peso(rule.additional_fee_cents)} per {kilograms(rule.additional_weight_grams)}</p>
             </div>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -100,7 +106,7 @@ export function RateCardsPanel({ cards, categories, onCreate, onPublish, publish
               <div><dt className="text-xs text-zinc-500">Maximum dimensions</dt><dd className="mt-0.5">{centimeters(rule.max_length_mm)} × {centimeters(rule.max_width_mm)} × {centimeters(rule.max_height_mm)}</dd></div>
             </dl>
           </li>)}
-        </ul> : <p className="mt-3 text-sm text-zinc-500">This draft has no category rules and cannot be published.</p>}
+        </ul> : <p className="mt-3 text-sm text-zinc-500">This draft has no main Shop Category rules and cannot be published.</p>}
       </div>
     </section> : null}
   </div>

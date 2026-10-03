@@ -26,7 +26,7 @@ The MVP shall prove that Aisley can operate the complete marketplace and logisti
 
 The Seller enables the Logistics organizations offered for its Shop. At checkout the Customer selects one enabled provider per Shop Order from server-priced options. The Order freezes that provider; Seller pickup must use it and no role may silently replace it or increase Customer COD.
 
-For new checkout quotes, Logistics sets one base fee per offered service and category-based weight/size charges. Shipping equals first-mile base plus every linehaul-hop base plus last-mile base plus destination surcharge plus weight/size extras; a service base applies once per leg regardless of category count. Admin controls only destination-region surcharges in shipping configuration. Parcel measurement policy remains read-only there. An unplanned route quotes only the destination surcharge and retains the existing later reconciliation workflow; existing Order totals remain frozen.
+For new checkout quotes, Logistics sets one base fee per offered service and one Shop main-category weight/size rule per category/service leg. Products in the same Shop Order may use different Product Categories; their billable weights are combined and the main-category extra is charged once per Parcel/service leg. Shipping equals first-mile base plus every linehaul-hop base plus last-mile base plus destination surcharge plus weight/size extras; a service base applies once per leg. Admin controls only destination-region surcharges in shipping configuration. Parcel measurement policy remains read-only there. An unplanned route quotes only the destination surcharge and retains the existing later reconciliation workflow; existing Order totals remain frozen.
 
 # Roles
 

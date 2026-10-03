@@ -8,7 +8,7 @@ import { CoveragePanel } from '../features/shippingRates/CoveragePanel'
 import { RateCardsPanel } from '../features/shippingRates/RateCardsPanel'
 import { ShippingRateSections, useShippingRateSection } from '../features/shippingRates/ShippingRateSections'
 import { TariffPanel } from '../features/shippingRates/TariffPanel'
-import type { ProductCategoryOption, RateCard, RateCardDraft, TariffAcceptance } from '../features/shippingRates/types'
+import type { RateCard, RateCardDraft, ShopCategoryOption, TariffAcceptance } from '../features/shippingRates/types'
 import { ApiError } from '../lib/api'
 
 export function ShippingRatesPage() {
@@ -17,7 +17,7 @@ export function ShippingRatesPage() {
   const [activeTab, setActiveTab] = useShippingRateSection()
   const [tariffs, setTariffs] = useState<TariffAcceptance[]>([])
   const [cards, setCards] = useState<RateCard[]>([])
-  const [categories, setCategories] = useState<ProductCategoryOption[]>([])
+  const [shopCategories, setShopCategories] = useState<ShopCategoryOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -31,7 +31,7 @@ export function ShippingRatesPage() {
       const data = await loadShippingRates()
       setTariffs(data.tariffs)
       setCards(data.cards)
-      setCategories(data.categories)
+      setShopCategories(data.shopCategories)
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) {
         await logout().catch(() => undefined)
@@ -77,6 +77,6 @@ export function ShippingRatesPage() {
     <div className="mt-5"><ShippingRateSections active={activeTab} onChange={setActiveTab} /></div>
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
     {error ? <div className="mt-4"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
-    {loading && !tariffs.length && !cards.length ? <div aria-label="Loading shipping rates" className="mt-4 space-y-3" role="status"><div className="h-24 animate-pulse border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /><div className="h-52 animate-pulse border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div> : <div aria-labelledby={`shipping-rates-tab-${activeTab}`} className="mt-4" id={`shipping-rates-panel-${activeTab}`} role="tabpanel">{activeTab === 'tariff' ? <TariffPanel acceptingId={acceptingId} onAccept={accept} tariffs={tariffs} /> : activeTab === 'coverage' ? <CoveragePanel cards={cards} categories={categories} /> : <RateCardsPanel cards={cards} categories={categories} onCreate={create} onPublish={publish} publishingId={publishingId} />}</div>}
+    {loading && !tariffs.length && !cards.length ? <div aria-label="Loading shipping rates" className="mt-4 space-y-3" role="status"><div className="h-24 animate-pulse border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /><div className="h-52 animate-pulse border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div> : <div aria-labelledby={`shipping-rates-tab-${activeTab}`} className="mt-4" id={`shipping-rates-panel-${activeTab}`} role="tabpanel">{activeTab === 'tariff' ? <TariffPanel acceptingId={acceptingId} onAccept={accept} tariffs={tariffs} /> : activeTab === 'coverage' ? <CoveragePanel cards={cards} shopCategories={shopCategories} /> : <RateCardsPanel cards={cards} shopCategories={shopCategories} onCreate={create} onPublish={publish} publishingId={publishingId} />}</div>}
   </div>
 }

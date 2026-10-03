@@ -1,9 +1,8 @@
 export type ServiceType = 'first_mile' | 'linehaul' | 'last_mile'
 
-export type ProductCategoryOption = {
+export type ShopCategoryOption = {
   id: string
   name: string
-  group_name: string | null
 }
 
 export type RegionSurcharge = {
@@ -35,7 +34,8 @@ export type TariffAcceptance = {
 
 export type RateRule = {
   id: string
-  category_id: string
+  category_id: string | null
+  shop_category_id: string | null
   service_type: ServiceType
   included_weight_grams: number
   additional_weight_grams: number
@@ -45,6 +45,7 @@ export type RateRule = {
   max_width_mm: number
   max_height_mm: number
   category: { id: string; name: string } | null
+  shop_category: { id: string; name: string } | null
 }
 
 export type ServiceRate = {
@@ -72,7 +73,7 @@ export type ServiceDraft = {
 
 export type RuleDraft = {
   key: string
-  categoryId: string
+  shopCategoryId: string
   serviceType: ServiceType
   includedWeightKg: string
   additionalWeightKg: string

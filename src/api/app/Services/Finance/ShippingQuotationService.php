@@ -81,7 +81,7 @@ class ShippingQuotationService
         $charges = [];
         if ($route['status'] !== ShippingRoutePricingStatus::Unplanned->value) {
             try {
-                $charges = $this->routeCharges($route, $rate->id, $inputs);
+                $charges = $this->routeCharges($route, $rate->id, $inputs, $shop->shop_category_id);
             } catch (CheckoutException $exception) {
                 if ($exception->errorCode === 'ROUTE_RATE_LIMIT_EXCEEDED') {
                     throw $exception;
@@ -115,8 +115,9 @@ class ShippingQuotationService
                 'rate_revision' => $rate->revision,
                 'pricing_model' => ShippingPricingModel::LogisticsServiceBase->value,
                 'selected_organization_id' => $organization->id,
+                'shop_category_id' => $shop->shop_category_id,
                 'route' => [$route['status'], $route['failure_code'], $route['graph_revision'], $route['sort_plans']],
-                'charges' => collect($charges)->map(fn (array $charge) => [$charge['rate_card_id'], $charge['rate_card_revision'], $charge['rate_rule_ids'], $charge['quoted_charge_cents']])->all(),
+                'charges' => collect($charges)->map(fn (array $charge) => [$charge['rate_card_id'], $charge['rate_card_revision'], $charge['shop_category_id'], $charge['rate_rule_ids'], $charge['quoted_charge_cents']])->all(),
                 'origin' => [$origin->id, $origin->updated_at?->getTimestamp()],
                 'billable_weight_grams' => $billable,
             ],
@@ -168,7 +169,7 @@ class ShippingQuotationService
     }
 
     /** @param array<string, mixed> $route @param list<array<string, mixed>> $inputs @return list<array<string, mixed>> */
-    private function routeCharges(array $route, string $rateId, array $inputs): array
+    private function routeCharges(array $route, string $rateId, array $inputs, ?string $shopCategoryId): array
     {
         $legs = [[
             'organization_id' => $route['origin_organization_id'],
@@ -194,7 +195,7 @@ class ShippingQuotationService
             'to_hub_id' => null,
         ];
 
-        return collect($legs)->map(function (array $leg) use ($rateId, $inputs): array {
+        return collect($legs)->map(function (array $leg) use ($rateId, $inputs, $shopCategoryId): array {
             if (! $this->accepted($rateId, $leg['organization_id'])) {
                 throw CheckoutException::conflict('ROUTE_PARTICIPANT_TARIFF_NOT_ACCEPTED', 'A route participant has not accepted the platform tariff.');
             }
@@ -210,23 +211,24 @@ class ShippingQuotationService
             }
             $weightCharges = 0;
             $ruleIds = [];
-            foreach (collect($inputs)->groupBy('category_id') as $categoryId => $categoryInputs) {
-                $rule = $card->rules->first(fn ($candidate) => $candidate->category_id === $categoryId && $candidate->service_type === $leg['service_type']);
-                if ($rule === null) {
-                    throw CheckoutException::conflict('ROUTE_CATEGORY_RATE_UNAVAILABLE', 'A route participant has no rate for an ordered category.');
-                }
-                $weight = $categoryInputs->sum('line_billable_weight_grams');
-                if ($weight > $rule->max_weight_grams || $categoryInputs->contains(fn (array $item) => $item['length_mm'] > $rule->max_length_mm || $item['width_mm'] > $rule->max_width_mm || $item['height_mm'] > $rule->max_height_mm)) {
-                    throw CheckoutException::conflict('ROUTE_RATE_LIMIT_EXCEEDED', 'A parcel exceeds a route participant rate limit.');
-                }
-                $excess = max(0, $weight - $rule->included_weight_grams);
-                $steps = $excess === 0 ? 0 : (int) ceil($excess / $rule->additional_weight_grams);
-                $weightCharges += $steps * $rule->additional_fee_cents;
-                $ruleIds[] = $rule->id;
+            $rule = $shopCategoryId === null ? null : $card->rules->first(
+                fn ($candidate) => $candidate->shop_category_id === $shopCategoryId && $candidate->service_type === $leg['service_type'],
+            );
+            if ($rule === null) {
+                throw CheckoutException::conflict('ROUTE_CATEGORY_RATE_UNAVAILABLE', 'A route participant has no rate for the Shop main category.');
             }
+            $weight = collect($inputs)->sum('line_billable_weight_grams');
+            if ($weight > $rule->max_weight_grams || collect($inputs)->contains(fn (array $item) => $item['length_mm'] > $rule->max_length_mm || $item['width_mm'] > $rule->max_width_mm || $item['height_mm'] > $rule->max_height_mm)) {
+                throw CheckoutException::conflict('ROUTE_RATE_LIMIT_EXCEEDED', 'A parcel exceeds a route participant rate limit.');
+            }
+            $excess = max(0, $weight - $rule->included_weight_grams);
+            $steps = $excess === 0 ? 0 : (int) ceil($excess / $rule->additional_weight_grams);
+            $weightCharges = $steps * $rule->additional_fee_cents;
+            $ruleIds[] = $rule->id;
 
             return [
                 ...$leg,
+                'shop_category_id' => $shopCategoryId,
                 'service_type' => $leg['service_type']->value,
                 'rate_card_id' => $card->id,
                 'rate_card_revision' => $card->revision,

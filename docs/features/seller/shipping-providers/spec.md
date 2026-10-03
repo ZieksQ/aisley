@@ -42,4 +42,4 @@
 
 ### Pricing ownership revision — 2026-10-03
 
-Logistics now owns service base fees and category weight/size extras; Admin owns only destination surcharges. Seller provider configuration and frozen pickup selection keep the same contracts. No Seller fee editor is required; verify checkout options and existing provider/Order-preparation enforcement against the revised pricing API.
+Logistics now owns service base fees and one main Shop Category weight/size extra per Parcel/service leg; Admin owns only destination surcharges. Seller provider configuration and frozen pickup selection keep the same contracts. No Seller fee editor is required; verify checkout options and existing provider/Order-preparation enforcement against the revised pricing API.

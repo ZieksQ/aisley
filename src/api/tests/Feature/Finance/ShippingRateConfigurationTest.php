@@ -49,13 +49,13 @@ class ShippingRateConfigurationTest extends TestCase
         Sanctum::actingAs($logistics);
         $this->postJson('/api/v1/logistics/shipping-rates/'.$tariff['id'].'/accept')->assertOk();
 
-        [$seller, $shop, $category] = $this->seller();
+        [$seller, $shop, $shopCategory] = $this->seller();
         Sanctum::actingAs($logistics);
         $card = $this->postJson('/api/v1/logistics/rate-cards', [
             'effective_at' => now()->subMinute()->toISOString(),
             'services' => [['service_type' => 'first_mile', 'base_fee_cents' => 1200]],
             'rules' => [[
-                'category_id' => $category->id,
+                'shop_category_id' => $shopCategory->id,
                 'service_type' => 'first_mile',
                 'included_weight_grams' => 1000,
                 'additional_weight_grams' => 500,
@@ -74,9 +74,8 @@ class ShippingRateConfigurationTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('data.0.id', $card['id'])
-            ->assertJsonPath('meta.categories.0.id', $category->id)
-            ->assertJsonPath('meta.categories.0.name', 'Products')
-            ->assertJsonPath('meta.categories.0.group_name', 'General');
+            ->assertJsonPath('meta.shop_categories.0.id', $shopCategory->id)
+            ->assertJsonPath('meta.shop_categories.0.name', 'General');
 
         [$otherLogistics] = $this->logistics('Provider Two');
         Sanctum::actingAs($otherLogistics);
@@ -127,10 +126,10 @@ class ShippingRateConfigurationTest extends TestCase
     public function test_service_base_fees_require_matching_category_rules_and_valid_unique_services(): void
     {
         [$logistics] = $this->logistics('Provider');
-        [, , $category] = $this->seller();
+        [, , $shopCategory] = $this->seller();
         Sanctum::actingAs($logistics);
         $rule = [
-            'category_id' => $category->id, 'service_type' => 'first_mile',
+            'shop_category_id' => $shopCategory->id, 'service_type' => 'first_mile',
             'included_weight_grams' => 1000, 'additional_weight_grams' => 500, 'additional_fee_cents' => 250,
             'max_weight_grams' => 50000, 'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
         ];
@@ -168,7 +167,7 @@ class ShippingRateConfigurationTest extends TestCase
         return [$user, $organization];
     }
 
-    /** @return array{User, Shop, Category} */
+    /** @return array{User, Shop, ShopCategory} */
     private function seller(): array
     {
         $user = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
@@ -177,7 +176,7 @@ class ShippingRateConfigurationTest extends TestCase
         $category = Category::create(['shop_category_id' => $shopCategory->id, 'name' => 'Products', 'slug' => 'products', 'status' => CategoryStatus::Active]);
         $this->address($user, 'Seller Shop');
 
-        return [$user, $shop, $category];
+        return [$user, $shop, $shopCategory];
     }
 
     private function address(User $user, string $name): Address

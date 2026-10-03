@@ -1,11 +1,15 @@
-import { useState } from 'react'
-import { FaPlus, FaTrash } from 'react-icons/fa6'
+import { useRef, useState } from 'react'
+import type { FormEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { FlatpickrInput } from '../../components/FlatpickrInput'
 import { ActionButton, PrimaryButton, field, panel } from '../../components/PickupUi'
 import { serviceLabels, serviceTypes } from './formatters'
-import type { ProductCategoryOption, RateCardDraft, RuleDraft, ServiceType } from './types'
+import { RateRuleModal } from './RateRuleModal'
+import { RateRuleTable } from './RateRuleTable'
+import type { RateCardDraft, RuleDraft, ServiceType, ShopCategoryOption } from './types'
 
 type Props = {
-  categories: ProductCategoryOption[]
+  shopCategories: ShopCategoryOption[]
   onCancel: () => void
   onCreate: (draft: RateCardDraft) => Promise<void>
 }
@@ -13,7 +17,7 @@ type Props = {
 function newRule(serviceType: ServiceType = 'first_mile'): RuleDraft {
   return {
     key: crypto.randomUUID(),
-    categoryId: '',
+    shopCategoryId: '',
     serviceType,
     includedWeightKg: '1',
     additionalWeightKg: '0.5',
@@ -28,7 +32,7 @@ function newRule(serviceType: ServiceType = 'first_mile'): RuleDraft {
 function localDateTime(): string {
   const now = new Date(Date.now() + 5 * 60 * 1000)
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
-  return local.toISOString().slice(0, 16)
+  return local.toISOString().slice(0, 16).replace('T', ' ')
 }
 
 function invalidNumber(value: string, allowZero: boolean): boolean {
@@ -38,45 +42,77 @@ function invalidNumber(value: string, allowZero: boolean): boolean {
 }
 
 function validate(draft: RateCardDraft): string | null {
-  if (!draft.effectiveAt || Number.isNaN(new Date(draft.effectiveAt).getTime())) return 'Choose a valid effective date and time.'
+  const effectiveAt = new Date(draft.effectiveAt.replace(' ', 'T'))
+  if (!draft.effectiveAt || Number.isNaN(effectiveAt.getTime())) return 'Choose a valid effective date and time.'
   if (!draft.services.length) return 'Choose at least one service and enter its base fee.'
   if (draft.services.some((service) => invalidNumber(service.baseFee, true))) return 'Enter a zero or positive base fee for every selected service.'
-  if (!draft.rules.length) return 'Add at least one category rate rule.'
+  if (!draft.rules.length) return 'Add at least one main Shop Category rate rule.'
 
   const offeredServices = new Set(draft.services.map((service) => service.serviceType))
   const usedServices = new Set<ServiceType>()
   const pairs = new Set<string>()
 
   for (const rule of draft.rules) {
-    if (!rule.categoryId) return 'Select a product category for every rule.'
-    if (!offeredServices.has(rule.serviceType)) return 'Every category rule must use an offered service. Select the service above or reassign the rule.'
-    const pair = [rule.categoryId, rule.serviceType].join(':')
-    if (pairs.has(pair)) return 'Each product category and service type can appear only once.'
+    if (!rule.shopCategoryId) return 'Select a main Shop Category for every rule.'
+    if (!offeredServices.has(rule.serviceType)) return 'Every Shop Category rule must use an offered service. Add the service and its base fee or reassign the rule.'
+    const pair = [rule.shopCategoryId, rule.serviceType].join(':')
+    if (pairs.has(pair)) return 'Each main Shop Category and service leg can appear only once.'
     pairs.add(pair)
     usedServices.add(rule.serviceType)
-    if (invalidNumber(rule.additionalFee, true)) return 'Enter a zero or positive category extra for every rule.'
+    if (invalidNumber(rule.additionalFee, true)) return 'Enter a zero or positive extra fee for every rule.'
     if ([rule.includedWeightKg, rule.additionalWeightKg, rule.maxWeightKg, rule.maxLengthCm, rule.maxWidthCm, rule.maxHeightCm].some((value) => invalidNumber(value, false))) return 'Weight and dimension limits must be greater than zero.'
   }
 
-  if (draft.services.some((service) => !usedServices.has(service.serviceType))) return 'Add at least one category rate rule for every selected service.'
+  if (draft.services.some((service) => !usedServices.has(service.serviceType))) return 'Add at least one main Shop Category rate rule for every selected service.'
   return null
 }
 
-function NumericField({ id, label, onChange, step = '0.01', value }: { id: string; label: string; onChange: (value: string) => void; step?: string; value: string }) {
-  return <label className="block text-sm font-medium" htmlFor={id}>{label}<input className={field + ' mt-1.5'} id={id} inputMode="decimal" min="0" onChange={(event) => onChange(event.target.value)} required step={step} type="number" value={value} /></label>
-}
-
-export function RateCardForm({ categories, onCancel, onCreate }: Props) {
+export function RateCardForm({ onCancel, onCreate, shopCategories }: Props) {
   const [draft, setDraft] = useState<RateCardDraft>({
     effectiveAt: localDateTime(),
     services: [{ serviceType: 'first_mile', baseFee: '' }],
-    rules: [newRule()],
+    rules: [],
   })
+  const [ruleBeingEdited, setRuleBeingEdited] = useState<RuleDraft | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const modalReturnTarget = useRef<HTMLElement | null>(null)
 
-  function updateRule(key: string, updates: Partial<RuleDraft>) {
-    setDraft((current) => ({ ...current, rules: current.rules.map((rule) => rule.key === key ? { ...rule, ...updates } : rule) }))
+  function closeRuleModal() {
+    setRuleBeingEdited(null)
+    requestAnimationFrame(() => {
+      modalReturnTarget.current?.focus()
+      modalReturnTarget.current = null
+    })
+  }
+
+  function openAddRule(trigger: HTMLButtonElement) {
+    modalReturnTarget.current = trigger
+    setRuleBeingEdited(newRule(draft.services[0]?.serviceType ?? 'first_mile'))
+  }
+
+  function openEditRule(rule: RuleDraft, trigger: HTMLButtonElement) {
+    modalReturnTarget.current = trigger
+    setRuleBeingEdited(rule)
+  }
+
+  function saveRule(rule: RuleDraft): string | null {
+    if (!draft.services.some((service) => service.serviceType === rule.serviceType)) {
+      return 'Add this service and its base fee before using it in a rate rule.'
+    }
+    const duplicate = draft.rules.some((existing) => existing.key !== rule.key
+      && existing.shopCategoryId === rule.shopCategoryId
+      && existing.serviceType === rule.serviceType)
+    if (duplicate) return 'A rule already exists for this Shop Category and service leg.'
+
+    setDraft((current) => ({
+      ...current,
+      rules: current.rules.some((existing) => existing.key === rule.key)
+        ? current.rules.map((existing) => existing.key === rule.key ? rule : existing)
+        : [...current.rules, rule],
+    }))
+    closeRuleModal()
+    return null
   }
 
   function updateService(serviceType: ServiceType, checked: boolean) {
@@ -95,7 +131,7 @@ export function RateCardForm({ categories, onCancel, onCreate }: Props) {
     }))
   }
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const validation = validate(draft)
     if (validation) { setError(validation); return }
@@ -110,53 +146,58 @@ export function RateCardForm({ categories, onCancel, onCreate }: Props) {
     }
   }
 
-  return <form className="space-y-4" onSubmit={(event) => void submit(event)}>
-    <section className={panel + ' p-4 sm:p-5'}>
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,22rem)_1fr] sm:items-end">
-        <label className="block text-sm font-medium" htmlFor="rate-card-effective">Effective date and time<input className={field + ' mt-1.5'} id="rate-card-effective" onChange={(event) => setDraft((current) => ({ ...current, effectiveAt: event.target.value }))} required type="datetime-local" value={draft.effectiveAt} /></label>
-        <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">Currency is fixed to PHP. Each service base is charged once per route leg, including once per linehaul hop.</p>
-      </div>
-    </section>
-
-    <fieldset className={panel + ' p-4 sm:p-5'}>
-      <legend className="px-1 font-semibold">Service base fees</legend>
-      <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Choose the services this card offers and set one base fee for each. Category extras are configured separately below.</p>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {serviceTypes.map((serviceType) => {
-          const selected = draft.services.find((service) => service.serviceType === serviceType)
-          const inputId = 'service-base-' + serviceType
-          return <div className="border border-zinc-200 p-3 dark:border-white/10" key={serviceType}>
-            <label className="flex min-h-8 items-center gap-2 text-sm font-medium" htmlFor={inputId + '-enabled'}>
-              <input checked={Boolean(selected)} className="size-4 accent-[#4C1268]" id={inputId + '-enabled'} onChange={(event) => updateService(serviceType, event.target.checked)} type="checkbox" />
-              {serviceLabels[serviceType]}
-            </label>
-            {selected ? <label className="mt-3 block text-sm font-medium" htmlFor={inputId}>Base fee (PHP)<input className={field + ' mt-1.5'} id={inputId} inputMode="decimal" min="0" onChange={(event) => updateServiceBase(serviceType, event.target.value)} required step="0.01" type="number" value={selected.baseFee} /></label> : <p className="mt-3 text-sm text-zinc-500">Not offered on this card.</p>}
-          </div>
-        })}
-      </div>
-    </fieldset>
-
-    <div className="space-y-3">
-      {draft.rules.map((rule, index) => <fieldset className={panel + ' p-4 sm:p-5'} key={rule.key}>
-        <legend className="sr-only">Category rate rule {index + 1}</legend>
-        <div className="flex items-center justify-between gap-3"><h4 className="font-semibold">Category rate rule {index + 1}</h4><button aria-label={'Remove category rate rule ' + (index + 1)} className="inline-flex h-9 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-300 dark:hover:bg-red-400/10" disabled={draft.rules.length === 1 || busy} onClick={() => setDraft((current) => ({ ...current, rules: current.rules.filter((item) => item.key !== rule.key) }))} type="button"><FaTrash aria-hidden="true" />Remove</button></div>
-        <p className="mt-1 text-sm text-zinc-500">Set the category's weight extra and parcel limits for one service.</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block text-sm font-medium" htmlFor={'category-' + rule.key}>Product category<select className={field + ' mt-1.5'} id={'category-' + rule.key} onChange={(event) => updateRule(rule.key, { categoryId: event.target.value })} required value={rule.categoryId}><option value="">Select category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.group_name ? category.group_name + ' · ' : ''}{category.name}</option>)}</select></label>
-          <label className="block text-sm font-medium" htmlFor={'service-' + rule.key}>Service leg<select className={field + ' mt-1.5'} id={'service-' + rule.key} onChange={(event) => updateRule(rule.key, { serviceType: event.target.value as ServiceType })} value={rule.serviceType}>{serviceTypes.map((service) => <option key={service} value={service}>{serviceLabels[service]}</option>)}</select></label>
-          <NumericField id={'included-' + rule.key} label="Included weight (kg)" onChange={(value) => updateRule(rule.key, { includedWeightKg: value })} step="0.001" value={rule.includedWeightKg} />
-          <NumericField id={'increment-' + rule.key} label="Additional weight step (kg)" onChange={(value) => updateRule(rule.key, { additionalWeightKg: value })} step="0.001" value={rule.additionalWeightKg} />
-          <NumericField id={'fee-' + rule.key} label="Extra per weight step (PHP)" onChange={(value) => updateRule(rule.key, { additionalFee: value })} value={rule.additionalFee} />
-          <NumericField id={'max-weight-' + rule.key} label="Maximum weight (kg)" onChange={(value) => updateRule(rule.key, { maxWeightKg: value })} step="0.001" value={rule.maxWeightKg} />
-          <div className="grid grid-cols-3 gap-2 sm:col-span-2 lg:col-span-1"><NumericField id={'length-' + rule.key} label="Length (cm)" onChange={(value) => updateRule(rule.key, { maxLengthCm: value })} step="0.1" value={rule.maxLengthCm} /><NumericField id={'width-' + rule.key} label="Width (cm)" onChange={(value) => updateRule(rule.key, { maxWidthCm: value })} step="0.1" value={rule.maxWidthCm} /><NumericField id={'height-' + rule.key} label="Height (cm)" onChange={(value) => updateRule(rule.key, { maxHeightCm: value })} step="0.1" value={rule.maxHeightCm} /></div>
+  return <>
+    <form className="space-y-4" onSubmit={(event) => void submit(event)}>
+      <section className={panel + ' p-4 sm:p-5'}>
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,22rem)_1fr] sm:items-end">
+          <label className="block text-sm font-medium" htmlFor="rate-card-effective">Effective date and time
+            <FlatpickrInput className={field + ' mt-1.5'} id="rate-card-effective" onChange={(value) => setDraft((current) => ({ ...current, effectiveAt: value }))} options={{ dateFormat: 'Y-m-d H:i', enableTime: true, minDate: 'today', minuteIncrement: 15, time_24hr: true }} placeholder="Select date and time" required value={draft.effectiveAt} />
+          </label>
+          <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">Choose the date and time this immutable rate card starts. Each service base is charged once per leg, including once per linehaul hop.</p>
         </div>
-      </fieldset>)}
-    </div>
+      </section>
 
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <ActionButton disabled={busy || !categories.length} onClick={() => setDraft((current) => ({ ...current, rules: [...current.rules, newRule(current.services[0]?.serviceType ?? 'first_mile')] }))} type="button"><FaPlus aria-hidden="true" />Add category rule</ActionButton>
-      <div className="flex items-center gap-2"><ActionButton disabled={busy} onClick={onCancel} type="button">Cancel</ActionButton><PrimaryButton busy={busy} disabled={!categories.length} type="submit">Create draft</PrimaryButton></div>
-    </div>
-    {error ? <p className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
-  </form>
+      <fieldset className={panel + ' p-4 sm:p-5'}>
+        <legend className="px-1 font-semibold">Service base fees</legend>
+        <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Choose the services this card offers and set one base fee for each. Main Shop Category extras are configured in the rate-rule table below.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {serviceTypes.map((serviceType) => {
+            const selected = draft.services.find((service) => service.serviceType === serviceType)
+            const inputId = 'service-base-' + serviceType
+            return <div className="border border-zinc-200 p-3 dark:border-white/10" key={serviceType}>
+              <label className="flex min-h-8 items-center gap-2 text-sm font-medium" htmlFor={inputId + '-enabled'}>
+                <input checked={Boolean(selected)} className="size-4 accent-[#4C1268]" id={inputId + '-enabled'} onChange={(event) => updateService(serviceType, event.target.checked)} type="checkbox" />
+                {serviceLabels[serviceType]}
+              </label>
+              {selected ? <label className="mt-3 block text-sm font-medium" htmlFor={inputId}>Base fee (PHP)<input className={field + ' mt-1.5'} id={inputId} inputMode="decimal" min="0" onChange={(event) => updateServiceBase(serviceType, event.target.value)} required step="0.01" type="number" value={selected.baseFee} /></label> : <p className="mt-3 text-sm text-zinc-500">Not offered on this card.</p>}
+            </div>
+          })}
+        </div>
+      </fieldset>
+
+      <RateRuleTable
+        disabled={busy}
+        onAdd={openAddRule}
+        onEdit={openEditRule}
+        onRemove={(key) => {
+          if (window.confirm('Remove this unsaved rate rule?')) {
+            setDraft((current) => ({ ...current, rules: current.rules.filter((rule) => rule.key !== key) }))
+          }
+        }}
+        rules={draft.rules}
+        shopCategories={shopCategories}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ActionButton disabled={busy} onClick={onCancel} type="button">Cancel</ActionButton>
+        <PrimaryButton busy={busy} disabled={!shopCategories.length} type="submit">Create draft</PrimaryButton>
+      </div>
+      {error ? <p className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
+    </form>
+
+    {ruleBeingEdited && typeof document !== 'undefined' ? createPortal(
+      <RateRuleModal key={ruleBeingEdited.key} onCancel={closeRuleModal} onSave={saveRule} rule={ruleBeingEdited} services={draft.services} shopCategories={shopCategories} />,
+      document.body,
+    ) : null}
+  </>
 }

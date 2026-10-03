@@ -43,15 +43,15 @@ class ShippingServiceQuotationTest extends TestCase
         $this->destination = $this->origin->hub->address;
     }
 
-    public function test_two_linehaul_hops_charge_service_base_once_per_leg_across_categories(): void
+    public function test_two_linehaul_hops_charge_one_main_category_extra_for_mixed_product_categories(): void
     {
         [, $middle] = $this->logistics();
         [, $last] = $this->logistics();
-        $other = Product::where('category_id', '!=', $this->product->category_id)->firstOrFail();
-        $categoryIds = [$this->product->category_id, $other->category_id];
-        $this->card($this->origin, ['first_mile' => 100, 'linehaul' => 200], $categoryIds);
-        $this->card($middle, ['linehaul' => 300], $categoryIds);
-        $this->card($last, ['last_mile' => 400], $categoryIds);
+        $other = Product::where('shop_id', $this->product->shop_id)->where('category_id', '!=', $this->product->category_id)->firstOrFail();
+        $shopCategoryIds = [$this->product->shop->shop_category_id];
+        $this->card($this->origin, ['first_mile' => 100, 'linehaul' => 200], $shopCategoryIds);
+        $this->card($middle, ['linehaul' => 300], $shopCategoryIds);
+        $this->card($last, ['last_mile' => 400], $shopCategoryIds);
         $route = $this->route($middle, $last);
         $this->mock(CheckoutRoutePlanner::class)->shouldReceive('plan')->andReturn($route);
 
@@ -60,7 +60,7 @@ class ShippingServiceQuotationTest extends TestCase
             ['product' => $other, 'variant' => null, 'quantity' => 1],
         ]);
 
-        // Each 600g category has one 100-cent weight step on every leg.
+        // The two 600g Product Categories combine to one 1,200g Shop Category weight on every leg.
         $this->assertSame(2300, $quote['shipping_cents']);
         $this->assertSame(1000, $quote['base_fee_cents']);
         $this->assertSame(800, $quote['additional_weight_fee_cents']);
@@ -71,14 +71,14 @@ class ShippingServiceQuotationTest extends TestCase
         $this->assertSame([300, 400, 500, 600], array_column($charges, 'quoted_charge_cents'));
         $this->assertSame([null, 1, 2, null], array_column($charges, 'hop_sequence'));
         foreach ($charges as $charge) {
-            $this->assertCount(2, $charge['rate_rule_ids']);
+            $this->assertCount(1, $charge['rate_rule_ids']);
             $this->assertNotEmpty($charge['service_rate_id']);
         }
     }
 
     public function test_missing_service_base_discards_all_leg_charges_in_unplanned_fallback(): void
     {
-        $card = $this->card($this->origin, ['first_mile' => 100, 'last_mile' => 200], [$this->product->category_id]);
+        $card = $this->card($this->origin, ['first_mile' => 100, 'last_mile' => 200], [$this->product->shop->shop_category_id]);
         $card->services()->where('service_type', 'last_mile')->delete();
         $this->mock(CheckoutRoutePlanner::class)->shouldReceive('plan')->andReturn($this->route());
         $quote = $this->quote();
@@ -93,7 +93,7 @@ class ShippingServiceQuotationTest extends TestCase
     #[DataProvider('parcelLimits')]
     public function test_weight_and_dimension_limits_still_reject_instead_of_using_fallback(string $field, int $limit): void
     {
-        $card = $this->card($this->origin, ['first_mile' => 100, 'last_mile' => 200], [$this->product->category_id]);
+        $card = $this->card($this->origin, ['first_mile' => 100, 'last_mile' => 200], [$this->product->shop->shop_category_id]);
         $card->rules()->update([$field => $limit]);
         $this->mock(CheckoutRoutePlanner::class)->shouldReceive('plan')->andReturn($this->route());
         try {
@@ -106,7 +106,7 @@ class ShippingServiceQuotationTest extends TestCase
 
     public function test_zero_service_base_and_weight_fees_are_valid_and_rate_changes_affect_quote_state(): void
     {
-        $card = $this->card($this->origin, ['first_mile' => 0, 'last_mile' => 0], [$this->product->category_id]);
+        $card = $this->card($this->origin, ['first_mile' => 0, 'last_mile' => 0], [$this->product->shop->shop_category_id]);
         $card->rules()->update(['additional_fee_cents' => 0]);
         $this->mock(CheckoutRoutePlanner::class)->shouldReceive('plan')->andReturn($this->route());
         $before = $this->quote();
@@ -120,8 +120,16 @@ class ShippingServiceQuotationTest extends TestCase
 
     public function test_additive_migration_backfills_highest_legacy_base_per_service_without_rewriting_rules(): void
     {
-        $other = Product::where('category_id', '!=', $this->product->category_id)->firstOrFail();
-        $card = $this->card($this->origin, ['first_mile' => 100], [$this->product->category_id, $other->category_id]);
+        $other = Product::where('shop_id', $this->product->shop_id)->where('category_id', '!=', $this->product->category_id)->firstOrFail();
+        $card = $this->card($this->origin, ['first_mile' => 100], []);
+        foreach ([$this->product->category_id, $other->category_id] as $categoryId) {
+            $card->rules()->create([
+                'service_type' => 'first_mile', 'category_id' => $categoryId, 'shop_category_id' => null,
+                'base_charge_cents' => 99999, 'included_weight_grams' => 500, 'additional_weight_grams' => 500,
+                'additional_fee_cents' => 100, 'max_weight_grams' => 100000,
+                'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
+            ]);
+        }
         $card->rules()->where('category_id', $this->product->category_id)->update(['base_charge_cents' => 200]);
         $card->rules()->where('category_id', $other->category_id)->update(['base_charge_cents' => 300]);
         $migration = require database_path('migrations/2026_10_03_000001_add_logistics_service_base_fees.php');
@@ -148,7 +156,7 @@ class ShippingServiceQuotationTest extends TestCase
             $lines ?? [['product' => $this->product, 'variant' => null, 'quantity' => 1]], $this->origin->id);
     }
 
-    private function card(LogisticsOrganization $organization, array $services, array $categoryIds): LogisticsRateCard
+    private function card(LogisticsOrganization $organization, array $services, array $shopCategoryIds): LogisticsRateCard
     {
         LogisticsShippingRateAcceptance::firstOrCreate([
             'shipping_rate_version_id' => $this->tariff->id, 'logistics_organization_id' => $organization->id,
@@ -159,9 +167,9 @@ class ShippingServiceQuotationTest extends TestCase
         ]);
         foreach ($services as $type => $base) {
             $card->services()->create(['service_type' => $type, 'base_fee_cents' => $base]);
-            foreach ($categoryIds as $categoryId) {
+            foreach ($shopCategoryIds as $shopCategoryId) {
                 $card->rules()->create([
-                    'service_type' => $type, 'category_id' => $categoryId, 'base_charge_cents' => 99999,
+                    'service_type' => $type, 'shop_category_id' => $shopCategoryId, 'category_id' => null, 'base_charge_cents' => 99999,
                     'included_weight_grams' => 500, 'additional_weight_grams' => 500, 'additional_fee_cents' => 100,
                     'max_weight_grams' => 100000, 'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
                 ]);

@@ -787,9 +787,9 @@ Subscription billing, the base subscription, and the ₱10 per-order Logistics S
 
 13.2 Shipping Fee
 
-Admin publishes versioned optional surcharges per Buyer destination region. Each Logistics organization accepts that tariff and publishes base fees per first-mile, linehaul, and last-mile service plus category-specific extra-charge rules using packed weight and dimensions. Each Seller enables providers for its Shop, and the Customer chooses one per Shop Order.
+Admin publishes versioned optional surcharges per Buyer destination region. Each Logistics organization accepts that tariff and publishes base fees per first-mile, linehaul, and last-mile service plus one main Shop Category extra-charge rule per service. A Shop Order's Products may have different Product Categories; their billable weights are combined under their Shop's one main category. Each Seller enables providers for its Shop, and the Customer chooses one per Shop Order.
 
-For a complete active sort-plan route, Customer shipping equals first-mile base fee plus each linehaul-hop base fee plus last-mile base fee plus destination-region surcharge plus category weight/size charges on those legs. Each service base is charged once per leg, regardless of category count. When no complete route can be planned, checkout charges only the regional surcharge, marks the route unplanned, and keeps the later payout on hold for Admin reconciliation.
+For a complete active sort-plan route, Customer shipping equals first-mile base fee plus each linehaul-hop base fee plus last-mile base fee plus destination-region surcharge plus one main Shop Category weight/size extra per Parcel/service leg. Each service base is charged once per leg. When no complete route can be planned, checkout charges only the regional surcharge, marks the route unplanned, and keeps the later payout on hold for Admin reconciliation.
 
 Logistics commission applies once to the frozen shipping amount. The remaining pool is allocated pro rata by approved frozen leg charges and actual service evidence; there is no fixed first/linehaul/last-mile percentage. Admin reconciliation may record actual allocations and an explicit platform subsidy without changing Customer COD.
 
