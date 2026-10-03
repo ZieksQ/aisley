@@ -24,7 +24,8 @@ source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/
 - Shipping configuration includes the platform base fee, a surcharge for each selected Philippine destination region, volumetric divisor, maximum parcel weight and dimensions, effective time, version status, and active Logistics acceptance count.
 - Source the selectable region names from `@aisley/psgc-address-data`. Store the exact PSGC display name sent by the Admin API and never accept two entries for the same region in one tariff.
 - Present a keyboard-operable two-dimensional Philippine region overview plus a conventional region selector. Selecting either control shows that region's surcharge and permits adding, changing, or clearing it in the pending draft form.
-- Describe the region visual as schematic. It assists selection but is not a routing, coverage, or legal-boundary map.
+- Render locally bundled, simplified vector boundaries derived from `faeldon/philippines-json-maps` (2023), grouped to the current bundled PSGC inventory including Negros Island and Sulu's membership. Preserve upstream attribution/license. It assists selection but is not a routing, coverage, or legal-boundary map.
+- Keep the map compact (300–360px viewport height, at most 360px wide), responsive in both themes, and selectable by pointer, touch, Enter, and Space. Provide bounded zoom, reset, and drag/arrow-key panning when zoomed; retain the conventional selector for small regions. Map and selector share the existing surcharge state and mutations.
 - Commission configuration has separate Seller and Logistics policies, expressed as percentages in the UI and integer basis points at the API boundary.
 - Creating a draft never changes checkout pricing. Publishing requires confirmation and uses the existing immutable-version API.
 - Loading, empty, validation, permission, conflict, success, and request-failure states must remain legible in light and dark themes and at narrow widths.

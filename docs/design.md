@@ -59,6 +59,7 @@ Professional dashboard experience:
 - Dense tables may use a labeled, contained horizontal scroll region or a readable narrow-screen presentation. Essential actions must remain reachable.
 - Use viewport-bounded dialogs and menus, allowing their content to scroll when needed. Preserve visible controls and focus when a mobile keyboard is open.
 - A desktop layout alone is not completion. Check narrow, intermediate, and wide layouts, including the affected light/dark states for dashboards.
+- Admin Pricing & fees uses a compact Philippine vector selector: limit its map viewport to 300–360px tall and 360px wide, provide zoom/reset and accessible panning, and keep the conventional region dropdown alongside the same surcharge workflow.
 
 ## Components
 

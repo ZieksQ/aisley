@@ -29,9 +29,9 @@ export function RegionSurchargeEditor({ readOnly = false, selectedCode, values, 
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[minmax(220px,0.75fr)_minmax(260px,1fr)] md:items-center">
+    <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)] md:items-center">
       <PhilippinesRegionMap onSelect={onSelect} regions={philippineRegions} selectedCode={selected.code} surchargeRegionNames={configuredNames} />
-      <div>
+      <div className="min-w-0">
         <label className="block text-sm font-semibold" htmlFor="pricing-region">Destination region</label>
         <select className={`${inputClass} mt-2`} id="pricing-region" onChange={(event) => onSelect(event.target.value)} value={selected.code}>
           {philippineRegions.map((region) => <option key={region.code} value={region.code}>{regionShortNames[region.code]} — {region.name}</option>)}
