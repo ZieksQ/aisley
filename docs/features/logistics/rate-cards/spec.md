@@ -1,13 +1,13 @@
 # Logistics shipping rate cards
 
-API/spec revision: 2026-10-03. The existing frontend requires the service-base and surcharge-only updates listed below.
+API and frontend revision: 2026-10-03.
 
 ## WHAT
 
 - Let each active Logistics organization publish its own base fee for first mile, linehaul, and last mile, plus category-based weight/size extra charges.
 - Key charges by Product category and measured parcel constraints without requiring origin/destination area matrices.
 - Keep platform tariff acceptance separate from the Logistics organization's own commercial rate card.
-- Provide one Logistics shipping-settings workspace for platform-tariff acceptance, commercial service coverage, and immutable rate-card management.
+- Provide a dedicated Logistics Shipping rates workspace for platform-tariff acceptance, commercial service coverage, and immutable rate-card management.
 
 ## MUST
 
@@ -23,8 +23,8 @@ API/spec revision: 2026-10-03. The existing frontend requires the service-base a
 - Every ordered Product category must have a matching rule for the participant's service type.
 - Missing service bases or category rates make the route commercially unplanned and invoke the destination-surcharge-only fallback; discard all partial leg charges. Exceeded weight/dimension limits reject the quote instead of using fallback. Do not invent a Logistics charge.
 - Rate-card changes after quote make placement stale. Changes after placement do not alter frozen Customer price or quoted leg weights.
-- The protected `/settings` dashboard route separates platform tariff, service coverage, and rate-card history into keyboard-operable tabs whose selected view is URL-addressable.
-- Service coverage means commercial category × service-leg coverage with a configured service base fee from the currently published rate card. Geographic postal coverage and hub connections remain owned by Sort plan and Linehaul; Settings must not invent an origin/destination matrix.
+- The protected `/shipping-rates` route appears in its own **Pricing & rates** sidebar group, separate from Settings and the account menu. Its platform tariff, service coverage, and rate-card views are keyboard-operable tabs whose selected view is URL-addressable.
+- Service coverage means commercial category × service-leg coverage with a configured service base fee from the currently published rate card. Show service bases separately from category weight/size extras. Geographic postal coverage and hub connections remain owned by Sort plan and Linehaul; this workspace must not invent an origin/destination matrix.
 - Show loading, authoritative empty, retryable failure, validation, success, accepted/unaccepted tariff, draft/published/archived card, and future-effective coverage states in both supported themes.
 - Convert operator-facing PHP, kilogram, and centimeter values to integer cents, grams, and millimeters before submission. Reject duplicate category/service pairs before sending and preserve server validation as authority.
 - Publishing remains explicit. Drafts are immutable, a future-effective published card must be labeled as not currently effective, and historical cards remain readable.
@@ -37,10 +37,10 @@ API/spec revision: 2026-10-03. The existing frontend requires the service-base a
 - `ShippingQuotationService` charges the service base once per leg, groups measured Order lines by category, and adds each matching category’s weight/size increment charge.
 - Freeze rate-card revision, service-rate ID/base, category rule IDs, incremental charges, leg owner, service type, hub endpoints, and full quoted charge in the Order pricing snapshot.
 - Test organization isolation, duplicate rules, publish transitions, effective-date selection, category coverage, weight increments, dimensional ceilings, and stale checkout behavior.
-- The existing Logistics SPA implements the route in `pages/SettingsPage.tsx` with focused tariff, coverage, rate-card, and draft-form components under `features/shippingSettings/`.
+- The Logistics SPA implements the route in `pages/ShippingRatesPage.tsx` with focused tariff, coverage, rate-card, and draft-form components under `features/shippingRates/`.
 
 ### API and frontend revision — 2026-10-03
 
 - Read the [shipping frontend handoff](../../shared/shipping-quotation/spec.md#frontend-handoff) for the exact `services[]` payload and all affected screens.
-- Remove platform-base displays from tariff acceptance/history, replace per-category base inputs with service base inputs, and update card history and coverage to render `services[]` separately from category extras. These frontend changes are pending; the API and specs are revised.
+- The frontend removes platform-base displays from tariff acceptance/history, replaces per-category base inputs with one service base per offered service, and renders card history and coverage with `services[]` separately from category extras.
 - Existing card/service bases are backfilled from the highest legacy category base per service. No published card or placed Order is rewritten. An organization changes these amounts by publishing a successor card.

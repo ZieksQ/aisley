@@ -11,6 +11,7 @@ import {
   FaGaugeHigh,
   FaMagnifyingGlass,
   FaRoute,
+  FaTags,
   FaTruckFast,
   FaUserCheck,
 } from 'react-icons/fa6'
@@ -51,6 +52,13 @@ const groups: NavGroup[] = [
       { label: 'Inbound linehaul', path: '/inbound-linehaul', icon: FaTruckFast, beta: true },
       { label: 'Last-mile dispatch', path: '/dispatch', icon: FaTruckFast },
       { label: 'Delivery confirmations', path: '/delivery-confirmations', icon: FaClipboardCheck },
+    ],
+  },
+  {
+    id: 'pricing',
+    label: 'Pricing & rates',
+    items: [
+      { label: 'Shipping rates', path: '/shipping-rates', icon: FaTags },
     ],
   },
   {

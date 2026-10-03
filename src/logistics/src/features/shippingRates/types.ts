@@ -17,7 +17,6 @@ export type PlatformTariff = {
   version_number: number
   status: string
   currency: 'PHP'
-  base_fee_cents: number
   volumetric_divisor: number
   max_weight_grams: number
   max_length_mm: number
@@ -38,7 +37,6 @@ export type RateRule = {
   id: string
   category_id: string
   service_type: ServiceType
-  base_charge_cents: number
   included_weight_grams: number
   additional_weight_grams: number
   additional_fee_cents: number
@@ -49,6 +47,12 @@ export type RateRule = {
   category: { id: string; name: string } | null
 }
 
+export type ServiceRate = {
+  id: string
+  service_type: ServiceType
+  base_fee_cents: number
+}
+
 export type RateCard = {
   id: string
   version_number: number
@@ -57,14 +61,19 @@ export type RateCard = {
   effective_at: string
   published_at: string | null
   revision: number
+  services: ServiceRate[]
   rules: RateRule[]
+}
+
+export type ServiceDraft = {
+  serviceType: ServiceType
+  baseFee: string
 }
 
 export type RuleDraft = {
   key: string
   categoryId: string
   serviceType: ServiceType
-  baseCharge: string
   includedWeightKg: string
   additionalWeightKg: string
   additionalFee: string
@@ -76,6 +85,6 @@ export type RuleDraft = {
 
 export type RateCardDraft = {
   effectiveAt: string
+  services: ServiceDraft[]
   rules: RuleDraft[]
 }
-

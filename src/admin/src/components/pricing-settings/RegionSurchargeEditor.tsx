@@ -39,7 +39,7 @@ export function RegionSurchargeEditor({ readOnly = false, selectedCode, values, 
 
         <div className="mt-5 border-l-2 border-[#4C1268] pl-4 dark:border-[#d597ed]">
           <p className="font-semibold">{selected.name}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Added to the platform base fee for orders delivered to this region.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Applied to the Customer shipping total for deliveries to this region.</p>
           <label className="mt-4 block text-sm font-semibold" htmlFor="region-surcharge">Surcharge (PHP)</label>
           <div className="mt-2 flex items-start gap-2">
             <div className="relative min-w-0 flex-1">

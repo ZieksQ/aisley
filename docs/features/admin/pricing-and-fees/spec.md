@@ -4,7 +4,7 @@ title: Admin Pricing and Fees
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: API revised 2026-10-03; existing frontend requires surcharge-only update
+status: Implemented; surcharge-only frontend adopted 2026-10-03
 role: Admin
 scope: Admin Web Application and existing Finance configuration API
 source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/shared/commission-settlement/spec.md, docs/design.md
@@ -43,7 +43,7 @@ source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/
 - `POST /api/v1/admin/shipping-rates/{rate}/publish`
 - `GET/POST /api/v1/admin/commission-policies`
 - `POST /api/v1/admin/commission-policies/{policy}/publish`
-- Shipping creation requires `region_surcharges` (an empty array clears all), `effective_at`, and optional `currency = PHP`. Base-fee, increment-charge, divisor, and parcel-limit write fields are prohibited; legacy base/weight-charge fields are omitted from tariff responses. Technical measurement policy is read-only. The existing frontend must adopt this contract before creating shipping drafts.
+- Shipping creation requires `region_surcharges` (an empty array clears all), `effective_at`, and optional `currency = PHP`. Base-fee, increment-charge, divisor, and parcel-limit write fields are prohibited; legacy base/weight-charge fields are omitted from tariff responses. Technical measurement policy is read-only. The frontend submits only regional surcharges and version metadata; displayed parcel policy is read-only.
 - Commission creation accepts nullable/omitted `effective_at`. Commission responses expose lifecycle `status`, `can_publish`, and nullable effective/end times; the history read is private and not cached.
 
 ## VERIFICATION

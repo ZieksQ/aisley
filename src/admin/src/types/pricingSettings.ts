@@ -12,7 +12,6 @@ export type ShippingRateVersion = {
   version_number: number
   status: PricingStatus
   currency: 'PHP'
-  base_fee_cents: number
   volumetric_divisor: number
   max_weight_grams: number
   max_length_mm: number
@@ -44,12 +43,6 @@ export type CommissionPolicy = {
 
 export type ShippingRatePayload = {
   currency: 'PHP'
-  base_fee_cents: number
-  volumetric_divisor: number
-  max_weight_grams: number
-  max_length_mm: number
-  max_width_mm: number
-  max_height_mm: number
   effective_at: string
   region_surcharges: Array<{ region: string; surcharge_cents: number }>
 }

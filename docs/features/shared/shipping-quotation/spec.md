@@ -63,20 +63,19 @@
 - New Order snapshots store `shipping_pricing_model = logistics_service_base_v1`; pre-existing snapshots are marked `platform_base_v1`. On new snapshots, `base_fee_cents` is the sum of service bases and `additional_weight_fee_cents` is the sum of category extras. Historical field meanings and totals stay unchanged.
 - Each new private leg input records `service_rate_id`, `base_fee_cents`, `additional_weight_fee_cents`, and their sum in `quoted_charge_cents`, alongside existing card/rule IDs, owner, service, and endpoints. Allocation continues to use the complete frozen leg charge; commission is applied once to the overall shipping budget. Quotes created before this pricing-model change must be refreshed before placement.
 - A route with missing commercial rates or routing configuration still follows the existing `unplanned` workflow: only destination surcharge is quoted (possibly zero), all partial leg charges are discarded, and later nonzero allocation requires Finance reconciliation. Parcel limit violations still reject quotation. This fallback does not imply free quoted Logistics services.
-- This revision implements API, migration, and documentation changes only. Existing Admin and Logistics frontends require the following update before using the revised write contracts.
+- Admin and Logistics frontends now use the revised write contracts. Customer and Seller checkout/provider/pickup contracts remain unchanged.
 
-### Frontend handoff
+### Frontend adoption — 2026-10-03
 
-| Feature | Required follow-up |
+| Feature | Adopted behavior |
 | --- | --- |
-| Admin Pricing & fees — shipping draft/history | Remove platform base input/column and editable measurement-policy inputs; submit only regional surcharges and version metadata. Keep the region map, publication, acceptance count, and commission editor. |
-| Logistics Settings — platform tariff | Remove platform-base displays from current/history views; describe destination surcharges and read-only parcel policy. Preserve exact-version acceptance. |
-| Logistics Settings — rate-card draft/history | Add one base input per offered first-mile/linehaul/last-mile service; send `services[]`; remove category `base_charge_cents` inputs/displays. Show bases separately from category extras and explain once per leg / per linehaul hop. Preserve PHP/kg/cm conversion and versioning. |
-| Logistics Settings — service coverage | Require both a configured service base and category rule; show service base once and category weight/size extras separately. Preserve effective-version and geographic-coverage boundaries. |
-| Admin Finance holds | Consume `pricing.pricing_model` and `additional_weight_fee_cents`; label new aggregate base as Logistics service bases and historical base as platform base. Keep reconciliation and subsidy math unchanged. |
-| Shared Admin/Seller/Logistics Finance Order drill-down | If displaying internal pricing components, use snapshot `shipping_pricing_model` to label historical/new bases correctly; reconcile leg base plus extras to full leg charges. No allocation or commission formula change. |
-| Customer Checkout/provider options and Order totals | Regression verification: consume final server fee, refresh stale quotes, and retain hidden internals. No request/response shape or new fee-breakdown UI is required. |
-| Seller Shipping providers and Order preparation/pickup | Regression verification: provider enablement and frozen provider enforcement remain unchanged; no new fee editor or API shape is required. |
+| Admin Pricing & fees — shipping draft/history | Removes platform base and editable parcel-policy inputs; submits regional surcharges and version metadata. The region selector, publication, acceptance count, and commission editor remain. |
+| Logistics Shipping rates — tariff | Removes platform-base displays and shows destination surcharges with read-only parcel policy. Exact-version acceptance remains. The route is a dedicated sidebar destination, separate from Settings. |
+| Logistics Shipping rates — rate cards and coverage | Sends one base per offered service in `services[]`; category rules contain only weight/size extras. History and coverage display service bases separately from category rules and describe one base per leg / linehaul hop. PHP/kg/cm conversion and versioning remain. |
+| Admin Finance holds | Reads `pricing.pricing_model` and `additional_weight_fee_cents`; labels new aggregate bases as Logistics service bases and historical bases as platform base. Reconciliation and subsidy math are unchanged. |
+| Shared Finance workspaces | The shared Finance summary package contains no Order-pricing drill-down. Admin Finance holds is the current UI exposing these snapshot components and now labels them by pricing model. |
+| Customer Checkout/provider options and Order totals | Continue consuming final server fees, refreshing stale quotes, and hiding internal pricing inputs. No request/response shape or fee-breakdown UI was added. |
+| Seller Shipping providers and Order preparation/pickup | Provider enablement and frozen provider enforcement remain unchanged. No fee editor or API shape was added. |
 
 Example Logistics draft (UUID and numeric limits are illustrative):
 

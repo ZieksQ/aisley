@@ -48,7 +48,8 @@ export function FinanceHoldDetail({ canManage, holdId }: { canManage: boolean; h
           <Detail label="Route status" value={pricing?.route_status?.replaceAll('_', ' ') ?? 'Unavailable'} />
           <Detail label="Destination" value={[pricing?.destination.city_municipality, pricing?.destination.province, pricing?.destination.region].filter(Boolean).join(', ') || 'Unavailable'} />
           <Detail label="Billable weight" value={pricing ? `${(pricing.billable_weight_grams / 1000).toFixed(3)} kg` : 'Unavailable'} />
-          <Detail label="Base fee" value={formatMoney(pricing?.base_fee_cents ?? 0, currency)} />
+          <Detail label={pricing?.pricing_model === 'logistics_service_base_v1' ? 'Logistics service bases' : 'Historical platform base'} value={formatMoney(pricing?.base_fee_cents ?? 0, currency)} />
+          <Detail label="Category weight/size extras" value={formatMoney(pricing?.additional_weight_fee_cents ?? 0, currency)} />
           <Detail label="Region surcharge" value={formatMoney(pricing?.destination_surcharge_cents ?? 0, currency)} />
         </dl>
         {hold.notes ? <div className="border-t border-slate-200 p-5 text-sm leading-6 dark:border-white/10 sm:p-6"><p className="font-semibold">Hold note</p><p className="mt-1 whitespace-pre-wrap text-slate-600 dark:text-slate-300">{hold.notes}</p></div> : null}

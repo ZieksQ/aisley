@@ -1,5 +1,5 @@
 import { csrf, requestWithTimeout } from '../../lib/api'
-import type { ProductCategoryOption, RateCard, RateCardDraft, RuleDraft, TariffAcceptance } from './types'
+import type { ProductCategoryOption, RateCard, RateCardDraft, RuleDraft, ServiceDraft, TariffAcceptance } from './types'
 
 type RateCardsResponse = {
   data: RateCard[]
@@ -10,8 +10,12 @@ const positiveNumber = (value: string) => Number(value)
 const cents = (value: string) => Math.round(positiveNumber(value) * 100)
 const grams = (value: string) => Math.round(positiveNumber(value) * 1000)
 const millimeters = (value: string) => Math.round(positiveNumber(value) * 10)
+const servicePayload = (service: ServiceDraft) => ({
+  service_type: service.serviceType,
+  base_fee_cents: cents(service.baseFee),
+})
 
-export async function loadShippingSettings() {
+export async function loadShippingRates() {
   const [tariffs, cards] = await Promise.all([
     requestWithTimeout<{ data: TariffAcceptance[] }>('/api/v1/logistics/shipping-rates'),
     requestWithTimeout<RateCardsResponse>('/api/v1/logistics/rate-cards'),
@@ -34,7 +38,6 @@ function rulePayload(rule: RuleDraft) {
   return {
     category_id: rule.categoryId,
     service_type: rule.serviceType,
-    base_charge_cents: cents(rule.baseCharge),
     included_weight_grams: grams(rule.includedWeightKg),
     additional_weight_grams: grams(rule.additionalWeightKg),
     additional_fee_cents: cents(rule.additionalFee),
@@ -52,8 +55,8 @@ export async function createRateCard(draft: RateCardDraft) {
     body: JSON.stringify({
       currency: 'PHP',
       effective_at: new Date(draft.effectiveAt).toISOString(),
+      services: draft.services.map(servicePayload),
       rules: draft.rules.map(rulePayload),
     }),
   })
 }
-

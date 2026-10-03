@@ -116,7 +116,7 @@ Implemented hub-location capability: Logistics may confirm its actual sole-hub p
 - **System context:** Read-only aggregation over authoritative Order/Shipment/Delivery Task records. Counts, rows, filters, caches, and events must never cross Logistics organizations or imply that assignment is physical pickup.
 - Final-mile task-confirmation handoff evidence and private photo POD/completion intent are validated and recorded by an authorized Logistics account. Hub handoff accepts no Courier parcel identifier; first-mile confirmation retains its separate compatibility writer. The event preserves the Courier who performed the physical action, the Logistics account that recorded it, and the event timestamp; a scan or waybill access event alone never advances custody.
 - The protected authentication and hub scaffold remain available at `/dashboard`; the deployed `/dashboard/queue` projection and `/operations` Hub operations page consume the additive Shipment/Parcel/DeliveryTask schema. Advanced ranking, realtime, and stale-threshold policy remain deferred.
-- The Logistics sidebar keeps Dashboard directly accessible and groups the existing routes into Hub operations, Transport & delivery, Organization, and Communication. The active route's group opens automatically, while the separate account menu retains profile, Shipping settings, policy, and notification access; grouping never changes operational authority.
+- The Logistics sidebar keeps Dashboard directly accessible and groups the routes into Hub operations, Transport & delivery, Pricing & rates, Organization, and Communication. Shipping rates has a dedicated Pricing & rates destination; the account menu retains profile, policy, and notification access. The active route's group opens automatically, and grouping never changes operational authority.
 
 Subscription status is not a dashboard or operational gate in the MVP. Billing, provider, subscription records, and enforcement remain deferred; an approved active Logistics account with its sole hub is sufficient for current access.
 
@@ -145,7 +145,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 - **Core value:** Maintain Logistics account and organization information.
 - **Definition:** Manage the authenticated Logistics profile and the single organization's operational-hub details, subject to account and approval rules.
 - **System context:** The server resolves `user → organization → sole hub`; clients cannot create or select another hub. Logistics access requires an active approved account and existing hub.
-- **Shipping settings:** `/settings` lets the organization accept the exact published platform tariff, review commercial category/service coverage, create immutable PHP rate-card drafts with service bases and category extras, and publish a reviewed version. The API contract changed on 2026-10-03; the existing settings frontend still needs its new payload/editor and surcharge-only tariff presentation. Sort plan and Linehaul continue to own geographic and connection coverage.
+- **Shipping rates:** `/shipping-rates` is a dedicated sidebar workspace where the organization accepts the exact published platform tariff, reviews commercial category/service coverage, creates immutable PHP rate-card drafts with service bases and category extras, and publishes a reviewed version. Service bases and category extras are shown separately. Sort plan and Linehaul continue to own geographic and connection coverage.
 
 ### 6. Vehicle Fleet Management
 

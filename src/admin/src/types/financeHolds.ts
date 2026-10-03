@@ -23,10 +23,12 @@ export type FinanceHold = {
     selected_logistics_organization: { id: string; business_name: string } | null
   } | null
   pricing: {
+    pricing_model: 'platform_base_v1' | 'logistics_service_base_v1'
     route_status: string
     logistics_pool_cents: number
     quoted_shipping_fee_cents: number
     base_fee_cents: number
+    additional_weight_fee_cents: number
     destination_surcharge_cents: number
     billable_weight_grams: number
     destination: {

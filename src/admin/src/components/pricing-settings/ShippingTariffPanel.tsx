@@ -6,7 +6,7 @@ import { philippineRegions } from '../../lib/philippineRegions'
 import type { ShippingRateVersion } from '../../types/pricingSettings'
 import { RegionSurchargeEditor } from './RegionSurchargeEditor'
 import { ShippingTariffForm } from './ShippingTariffForm'
-import { formatDate, formatMoney, panelClass, primaryButtonClass, secondaryButtonClass, statusClass } from './ui'
+import { formatDate, panelClass, primaryButtonClass, secondaryButtonClass, statusClass } from './ui'
 
 function activeRate(rates: ShippingRateVersion[]) {
   const now = Date.now()
@@ -75,7 +75,7 @@ export function ShippingTariffPanel({ canManage }: { canManage: boolean }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="font-semibold" id="shipping-tariff-heading">Shipping pricing</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Set the platform charge added to Logistics route rates at checkout.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Set destination-region surcharges used with Logistics service rates.</p>
         </div>
         {canManage ? <button className={primaryButtonClass} onClick={() => { setMessage(''); setShowForm(true) }} type="button"><FaPlus aria-hidden="true" />New tariff version</button> : null}
       </div>
@@ -96,8 +96,8 @@ export function ShippingTariffPanel({ canManage }: { canManage: boolean }) {
             {!current ? <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-400/10 dark:text-amber-200">Not active yet</span> : null}
           </div>
 
-          <dl className="grid border-b border-slate-200 dark:border-white/10 sm:grid-cols-2 lg:grid-cols-4">
-            <Summary label="Base fee" value={formatMoney(displayed.base_fee_cents)} />
+          <dl aria-label="Read-only parcel policy" className="grid border-b border-slate-200 dark:border-white/10 sm:grid-cols-2 lg:grid-cols-4">
+            <Summary label="Volumetric divisor" value={displayed.volumetric_divisor.toLocaleString('en-PH')} />
             <Summary label="Regional surcharges" value={`${displayed.region_surcharges.length} of ${philippineRegions.length} regions`} />
             <Summary label="Maximum parcel weight" value={`${displayed.max_weight_grams / 1000} kg`} />
             <Summary label="Maximum dimensions" value={`${displayed.max_length_mm / 10} × ${displayed.max_width_mm / 10} × ${displayed.max_height_mm / 10} cm`} />
@@ -112,7 +112,7 @@ export function ShippingTariffPanel({ canManage }: { canManage: boolean }) {
           </div>
         </div>
       ) : (
-        <div className={`${panelClass} mt-5 p-8 text-center`}><FaCircleInfo aria-hidden="true" className="mx-auto text-lg text-slate-400" /><h4 className="mt-3 font-semibold">No shipping tariff exists</h4><p className="mx-auto mt-1 max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">Create a draft with a base fee, region surcharges, and parcel limits, then publish it before checkout can quote shipping.</p></div>
+        <div className={`${panelClass} mt-5 p-8 text-center`}><FaCircleInfo aria-hidden="true" className="mx-auto text-lg text-slate-400" /><h4 className="mt-3 font-semibold">No shipping tariff exists</h4><p className="mx-auto mt-1 max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">Create a draft with destination-region surcharges, then publish it before checkout can quote shipping.</p></div>
       )}
 
       {!loading && rates.length > 0 ? (
@@ -120,8 +120,8 @@ export function ShippingTariffPanel({ canManage }: { canManage: boolean }) {
           <div className="flex items-center justify-between gap-4"><h4 className="font-semibold">Version history</h4><button aria-label="Refresh shipping tariff versions" className={secondaryButtonClass} onClick={() => setReloadKey((value) => value + 1)} type="button"><FaRotate aria-hidden="true" />Refresh</button></div>
           <div className={`${panelClass} mt-3 overflow-x-auto`} role="region" aria-label="Shipping tariff version history" tabIndex={0}>
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.025] dark:text-slate-400"><tr><th className="px-4 py-3 font-semibold">Version</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-4 py-3 font-semibold">Base fee</th><th className="px-4 py-3 font-semibold">Regions</th><th className="px-4 py-3 font-semibold">Effective</th><th className="px-4 py-3 text-right font-semibold">Action</th></tr></thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-white/10">{rates.map((rate) => <tr key={rate.id}><td className="px-4 py-3 font-semibold">v{rate.version_number}</td><td className="px-4 py-3"><span className={`rounded-md px-2 py-1 text-xs font-semibold capitalize ${statusClass(rate.status)}`}>{rate.status}</span></td><td className="px-4 py-3">{formatMoney(rate.base_fee_cents)}</td><td className="px-4 py-3">{rate.region_surcharges.length}</td><td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(rate.effective_at)}</td><td className="px-4 py-3 text-right">{canManage && rate.status === 'draft' ? <button className="font-semibold text-[#4C1268] hover:underline disabled:opacity-50 dark:text-pink-300" disabled={busyId !== null} onClick={() => void publish(rate)} type="button">{busyId === rate.id ? 'Publishing…' : 'Publish'}</button> : <span className="text-slate-400">—</span>}</td></tr>)}</tbody>
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.025] dark:text-slate-400"><tr><th className="px-4 py-3 font-semibold">Version</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-4 py-3 font-semibold">Regions</th><th className="px-4 py-3 font-semibold">Effective</th><th className="px-4 py-3 text-right font-semibold">Action</th></tr></thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10">{rates.map((rate) => <tr key={rate.id}><td className="px-4 py-3 font-semibold">v{rate.version_number}</td><td className="px-4 py-3"><span className={`rounded-md px-2 py-1 text-xs font-semibold capitalize ${statusClass(rate.status)}`}>{rate.status}</span></td><td className="px-4 py-3">{rate.region_surcharges.length}</td><td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(rate.effective_at)}</td><td className="px-4 py-3 text-right">{canManage && rate.status === 'draft' ? <button className="font-semibold text-[#4C1268] hover:underline disabled:opacity-50 dark:text-pink-300" disabled={busyId !== null} onClick={() => void publish(rate)} type="button">{busyId === rate.id ? 'Publishing…' : 'Publish'}</button> : <span className="text-slate-400">—</span>}</td></tr>)}</tbody>
             </table>
           </div>
         </div>
