@@ -10,11 +10,11 @@ export function SettlementPanel({ data }: { data: FinanceWorkspaceData }) {
       <h3 className="font-semibold">Remittance and payouts</h3>
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="border-l-2 border-amber-500 pl-3">
-          <dt className="text-xs text-zinc-500">Submitted COD</dt>
+          <dt className="text-xs text-zinc-500 dark:text-zinc-400">Submitted COD</dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums">{amount(data.remittanceAging.submittedCents)}</dd>
         </div>
         <div className="border-l-2 border-emerald-600 pl-3">
-          <dt className="text-xs text-zinc-500">Cleared COD</dt>
+          <dt className="text-xs text-zinc-500 dark:text-zinc-400">Cleared COD</dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums">{amount(data.remittanceAging.clearedCents)}</dd>
         </div>
       </dl>
@@ -23,11 +23,11 @@ export function SettlementPanel({ data }: { data: FinanceWorkspaceData }) {
           <div className="flex items-center justify-between gap-3 py-2.5" key={payout.id}>
             <div>
               <p className="font-medium tabular-nums">{amount(payout.amountCents)}</p>
-              <p className="text-xs capitalize text-zinc-500">{payout.status.replaceAll('_', ' ')}</p>
+              <p className="text-xs capitalize text-zinc-500 dark:text-zinc-400">{payout.status.replaceAll('_', ' ')}</p>
             </div>
-            <p className="text-xs text-zinc-500">{payout.isSandbox ? 'Sandbox' : new Date(payout.eligibleThrough).toLocaleDateString('en-PH')}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{payout.isSandbox ? 'Sandbox' : new Date(payout.eligibleThrough).toLocaleDateString('en-PH')}</p>
           </div>
-        )) : <p className="py-4 text-zinc-500">No payouts scheduled.</p>}
+        )) : <p className="py-4 text-zinc-500 dark:text-zinc-400">No payouts scheduled.</p>}
       </div>
     </section>
   )
@@ -39,7 +39,7 @@ export function RevenueBreakdownPanel({ rows }: { rows: FinanceWorkspaceData['re
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]">
       <h3 className="font-semibold">Revenue breakdown</h3>
-      <p className="mt-1 text-xs text-zinc-500">Recognized credits grouped by ledger account.</p>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Recognized credits grouped by ledger account.</p>
       <div className="mt-4 space-y-4">
         {rows.length ? rows.map((row) => (
           <div key={row.label}>
@@ -51,7 +51,7 @@ export function RevenueBreakdownPanel({ rows }: { rows: FinanceWorkspaceData['re
               <div className="h-full bg-[#4C1268] dark:bg-[#a855f7]" style={{ width: `${Math.max(2, (Math.abs(row.amountCents) / largest) * 100)}%` }} />
             </div>
           </div>
-        )) : <p className="py-4 text-sm text-zinc-500">No recognized revenue yet.</p>}
+        )) : <p className="py-4 text-sm text-zinc-500 dark:text-zinc-400">No recognized revenue yet.</p>}
       </div>
     </section>
   )
@@ -70,21 +70,20 @@ export function MoneyFlowPanel({ data }: { data: FinanceWorkspaceData['moneyFlow
     position: positions[node.id] ?? { x: 0, y: 0 },
     data: { label: node.label },
     draggable: false,
-    style: { borderRadius: 6, border: '1px solid #a1a1aa', padding: 10, fontSize: 12 },
+    style: { borderRadius: 6, padding: 10, fontSize: 12 },
   })), [data.nodes])
   const edges: Edge[] = useMemo(() => data.edges.map((edge) => ({
     ...edge,
     label: edge.label,
     animated: false,
-    style: { stroke: '#4C1268' },
   })), [data.edges])
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]">
       <h3 className="font-semibold">Money flow</h3>
-      <p className="mt-1 text-xs text-zinc-500">Read-only {data.scope} view. Beneficiary details remain tenant-scoped.</p>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Read-only {data.scope} view. Beneficiary details remain tenant-scoped.</p>
       <div className="mt-3 h-64" aria-label="Customer COD flows to Aisley clearing, then to Seller, Logistics, and platform commission">
-        <ReactFlow edges={edges} elementsSelectable={false} fitView nodes={nodes} nodesConnectable={false} nodesDraggable={false} panOnDrag={false} zoomOnScroll={false}>
+        <ReactFlow className="finance-money-flow" edges={edges} elementsSelectable={false} fitView nodes={nodes} nodesConnectable={false} nodesDraggable={false} panOnDrag={false} zoomOnScroll={false}>
           <Background gap={20} size={1} />
           <Controls showInteractive={false} />
         </ReactFlow>
@@ -107,20 +106,20 @@ export function LedgerPanel({ csvUrl, ledger, onSearch, search, setSearch }: Led
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200 p-4 dark:border-white/10">
         <div>
           <h3 className="font-semibold" id="ledger-heading">Transaction ledger</h3>
-          <p className="mt-1 text-xs text-zinc-500">Append-only journal entries in integer centavos.</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Append-only journal entries in integer centavos.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void onSearch(search) }}>
+          <form className="flex min-w-0 flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void onSearch(search) }}>
             <label className="sr-only" htmlFor="finance-search">Search ledger</label>
-            <input className="h-9 w-48 rounded-md border border-zinc-300 bg-transparent px-3 text-sm dark:border-white/15" id="finance-search" onChange={(event) => setSearch(event.target.value)} placeholder="Order or event" value={search} />
-            <button className="h-9 rounded-md border border-zinc-300 px-3 text-sm font-medium dark:border-white/15" type="submit">Search</button>
+            <input className="h-9 w-48 max-w-full rounded-md border border-zinc-300 bg-transparent px-3 text-sm placeholder:text-zinc-500 focus-visible:outline-2 focus-visible:outline-[#E6007A] dark:border-white/15 dark:placeholder:text-zinc-400" id="finance-search" onChange={(event) => setSearch(event.target.value)} placeholder="Order or event" value={search} />
+            <button className="h-9 rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-[#E6007A] dark:border-white/15 dark:hover:bg-white/5" type="submit">Search</button>
           </form>
-          <a className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-3 text-sm font-medium dark:border-white/15" href={csvUrl}>Export CSV</a>
+          <a className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-[#E6007A] dark:border-white/15 dark:hover:bg-white/5" href={csvUrl}>Export CSV</a>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="border-b border-zinc-200 text-xs text-zinc-500 dark:border-white/10"><tr><th className="px-4 py-2">Date</th><th>Event</th><th>Order</th><th>Account</th><th className="text-right">Debit</th><th className="pr-4 text-right">Credit</th></tr></thead>
+          <thead className="border-b border-zinc-200 text-xs text-zinc-500 dark:text-zinc-400 dark:border-white/10"><tr><th className="px-4 py-2">Date</th><th>Event</th><th>Order</th><th>Account</th><th className="text-right">Debit</th><th className="pr-4 text-right">Credit</th></tr></thead>
           <tbody>{ledger?.data.flatMap((journal) => journal.lines.map((line) => (
             <tr className="border-b border-zinc-100 dark:border-white/5" key={line.id}>
               <td className="whitespace-nowrap px-4 py-2">{new Date(journal.effective_at).toLocaleDateString('en-PH')}</td>
@@ -132,7 +131,7 @@ export function LedgerPanel({ csvUrl, ledger, onSearch, search, setSearch }: Led
             </tr>
           )))}</tbody>
         </table>
-        {!ledger?.data.length ? <p className="p-6 text-center text-sm text-zinc-500">No ledger entries match this view.</p> : null}
+        {!ledger?.data.length ? <p className="p-6 text-center text-sm text-zinc-500 dark:text-zinc-400">No ledger entries match this view.</p> : null}
       </div>
     </section>
   )

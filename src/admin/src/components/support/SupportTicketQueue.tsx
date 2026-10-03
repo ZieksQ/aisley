@@ -36,13 +36,13 @@ export function SupportTicketQueue({ tickets, selectedId, filters, loading, hasM
         </label>
       </div>
     </div>
-    {loading && <p className="p-4 text-sm text-slate-500">Loading tickets…</p>}
-    {!loading && tickets.length === 0 && <p className="p-4 text-sm text-slate-500">No tickets match these filters.</p>}
+    {loading && <p className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading tickets…</p>}
+    {!loading && tickets.length === 0 && <p className="p-4 text-sm text-slate-500 dark:text-slate-400">No tickets match these filters.</p>}
     <ul>
       {tickets.map((ticket) => <li className="border-b border-slate-200 last:border-0 dark:border-white/10" key={ticket.id}>
         <button
           aria-current={selectedId === ticket.id ? 'true' : undefined}
-          className="w-full px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#4C1268] aria-[current=true]:bg-purple-50 dark:hover:bg-white/5 dark:aria-[current=true]:bg-white/10"
+          className="w-full px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#4C1268] aria-[current=true]:bg-purple-50 dark:focus-visible:outline-[#E6007A] dark:hover:bg-white/5 dark:aria-[current=true]:bg-white/10"
           onClick={() => onSelect(ticket.id)}
           type="button"
         >

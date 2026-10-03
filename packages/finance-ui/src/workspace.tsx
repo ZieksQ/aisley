@@ -4,6 +4,7 @@ import { FinanceSummaryCards } from './components/FinanceSummaryCards'
 import { FinancialBridgeChart, RevenueTrendChart, type RevenueTrendPoint } from './components/FinanceCharts'
 import { LedgerPanel, MoneyFlowPanel, RevenueBreakdownPanel, SettlementPanel } from './components/FinancePanels'
 import type { FinanceWorkspaceData, FinanceWorkspaceProps, LedgerPage } from './types'
+import './theme.css'
 
 export function FinanceWorkspace({ roleLabel, endpointPrefix, csvUrl, request }: FinanceWorkspaceProps) {
   const [workspace, setWorkspace] = useState<FinanceWorkspaceData | null>(null)
@@ -64,15 +65,15 @@ export function FinanceWorkspace({ roleLabel, endpointPrefix, csvUrl, request }:
   }, [workspace])
 
   if (loading && !workspace) {
-    return <main className="p-4 sm:p-6 lg:p-8"><p className="text-sm text-zinc-500" role="status">Loading finance workspace…</p></main>
+    return <main className="finance-workspace p-4 sm:p-6 lg:p-8"><p className="text-sm text-zinc-500 dark:text-zinc-400" role="status">Loading finance workspace…</p></main>
   }
 
   if (error && !workspace) {
     return (
-      <main className="p-4 sm:p-6 lg:p-8">
+      <main className="finance-workspace p-4 sm:p-6 lg:p-8">
         <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200" role="alert">
           {error}
-          <Button className="ml-3 min-h-9 rounded-md px-3 shadow-none" onClick={() => void load()} variant="outline">Retry</Button>
+          <Button className="ml-3 min-h-9 rounded-md px-3 shadow-none dark:border-white/20 dark:bg-transparent dark:text-red-200 dark:hover:bg-white/5" onClick={() => void load()} variant="outline">Retry</Button>
         </div>
       </main>
     )
@@ -81,13 +82,13 @@ export function FinanceWorkspace({ roleLabel, endpointPrefix, csvUrl, request }:
   if (!workspace) return null
 
   return (
-    <main className="mx-auto max-w-[1440px] space-y-5 p-4 sm:p-6 lg:p-8">
+    <main className="finance-workspace mx-auto max-w-[1440px] space-y-5 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-white/10">
         <div>
           <h2 className="text-xl font-semibold">Finance</h2>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{roleLabel} revenue, costs, settlements, and 30-day outlook in PHP.</p>
         </div>
-        <p className="text-xs text-zinc-500">Updated {new Date(workspace.generatedAt).toLocaleString('en-PH', { timeZone: workspace.timezone })}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">Updated {new Date(workspace.generatedAt).toLocaleString('en-PH', { timeZone: workspace.timezone })}</p>
       </header>
 
       {error ? <p className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100" role="alert">{error}</p> : null}

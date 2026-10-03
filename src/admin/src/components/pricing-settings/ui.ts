@@ -1,6 +1,6 @@
 export const panelClass = 'rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]'
 
-export const inputClass = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-[#4C1268] focus:ring-2 focus:ring-[#E6007A]/20 disabled:bg-slate-100 disabled:text-slate-500 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:disabled:bg-white/[0.03]'
+export const inputClass = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-[#4C1268] focus:ring-2 focus:ring-[#E6007A]/20 disabled:bg-slate-100 disabled:text-slate-500 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-[#E6007A] dark:disabled:bg-white/[0.03] dark:disabled:text-slate-400'
 
 export const primaryButtonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6007A] focus-visible:ring-offset-2 disabled:opacity-50 dark:focus-visible:ring-offset-[#0b0d13]'
 

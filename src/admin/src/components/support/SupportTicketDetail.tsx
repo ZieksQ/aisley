@@ -19,7 +19,7 @@ type Attempt = {
 }
 
 const actionClass = 'min-h-9 rounded-md border border-slate-300 px-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5'
-const inputClass = 'min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 focus-visible:outline-2 focus-visible:outline-[#4C1268] dark:border-white/20 dark:bg-[#211c25] dark:text-white'
+const inputClass = 'min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 focus-visible:outline-2 focus-visible:outline-[#4C1268] dark:border-white/20 dark:bg-[#211c25] dark:text-white dark:focus-visible:outline-[#E6007A]'
 
 export function SupportTicketDetail({ detail, assignees, canManage, onChanged, onLoadOlder, loadingOlder }: {
   detail: TicketDetail

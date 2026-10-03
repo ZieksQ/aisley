@@ -74,11 +74,11 @@ export function NotificationCampaignsPage() {
       <section>
         <h3 className="mb-3 font-semibold">Campaign history</h3>
         <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#180f20]">
-          {loading ? <p className="p-5 text-sm text-slate-500">Loading campaigns…</p> : campaigns.length === 0 ? <p className="p-5 text-sm text-slate-500">No campaigns yet.</p> : campaigns.map((campaign) => (
+          {loading ? <p className="p-5 text-sm text-slate-500 dark:text-slate-400">Loading campaigns…</p> : campaigns.length === 0 ? <p className="p-5 text-sm text-slate-500 dark:text-slate-400">No campaigns yet.</p> : campaigns.map((campaign) => (
             <Link className="flex flex-wrap items-center justify-between gap-3 p-4 hover:bg-slate-50 dark:hover:bg-white/5" key={campaign.id} to={`/notification-campaigns/${campaign.id}`}>
               <span className="min-w-0">
                 <span className="block truncate font-medium">{campaign.title}</span>
-                <span className="text-xs text-slate-500">{new Date(campaign.created_at).toLocaleString()} · {campaign.audience_label}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(campaign.created_at).toLocaleString()} · {campaign.audience_label}</span>
               </span>
               <span className="text-sm text-slate-600 dark:text-slate-300">{campaign.status.replaceAll('_', ' ')} · {campaign.delivered_count}/{campaign.snapshot_count} persisted</span>
             </Link>
