@@ -3,7 +3,7 @@ feature: manage-platform-settings
 title: Admin Manage Platform Settings
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implemented (Phase 4) — shared policy-consent enforcement and audited Admin feature controls are implemented
 role: Admin
 scope: Admin Web Application and public policy API
@@ -15,7 +15,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ## WHAT
 
 - Authorized Admins manage platform announcements and the allow-listed policies: Terms of Service, Privacy Policy, and Internal Platform Rules.
-- The Admin React dashboard owns the editor, preview, confirmation, history, and error states. Laravel owns authorization, validation, versioning, persistence, cache invalidation, and audit records.
+- The Admin React + TypeScript dashboard (Vite and React Router) owns the editor, preview, confirmation, history, and error states. Laravel owns authorization, validation, versioning, persistence, cache invalidation, and audit records.
 - Policy content is versioned. A published version is immutable; Admins may still choose Edit, which creates a copied successor Draft rather than changing the published record.
 - Ordinary user policy views show only the current published version. A separate history view lets an authorized user read prior published/superseded versions.
 - **Current state:** Admin announcement/policy CRUD, successor drafts, publication/history, public Terms/Privacy reads, cache invalidation, audit records, and declared platform feature controls are implemented. The shared Policy Viewing and Consent feature owns private status/acceptance endpoints and role-owned consent screens; this feature owns policy records, publication metadata, and the Admin control that governs protected-action enforcement.
@@ -27,7 +27,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Access and boundaries
 
-- Every Admin endpoint requires `auth:sanctum`, persisted `ADMIN` role, and `platform-settings.manage` permission where custom permissions apply.
+- Every Admin endpoint requires `auth:sanctum`, persisted `admin` role, and `platform-settings.manage` permission where custom permissions apply.
 - Laravel is authoritative; hiding an Admin control in React is never authorization.
 - Return `401`, `403`, `404`, `409`, or `422` consistently for authentication, permission, missing resource, stale state, and validation failures.
 - Platform Settings may modify only supported domain records; no API may expose arbitrary runtime configuration or secrets.

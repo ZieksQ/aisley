@@ -3,7 +3,7 @@ feature: system-audit-logs
 title: Admin System Audit Logs
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -12,7 +12,7 @@ scope: Admin Web Application
 # Admin System Audit Logs
 ## WHAT
 - **Purpose:** Provide an immutable, timestamped ledger of administrative actions for security, accountability, and post-incident investigation.
-- **Primary actor:** Authorized authenticated `ADMIN` viewing audit history.
+- **Primary actor:** Authorized authenticated `admin` viewing audit history.
 - **Primary producers:** Administrative mutations performed across AISLEY Admin features.
 - **Source-defined requirements:**
   - record administrative operations
@@ -23,7 +23,7 @@ scope: Admin Web Application
   - write audit events without causing the primary Admin action to fail
   - use a dedicated `AuditLogs` table or external logging service
 - **Architecture:**
-  - Next.js/React owns the read-only audit-log viewer, filters, pagination, detail drawer/page, and UI states.
+  - React + TypeScript (Vite and React Router) owns the read-only audit-log viewer, filters, pagination, detail drawer/page, and UI states.
   - Laravel owns audit-event creation, normalization, authorization, persistence/dispatch, redaction, and query APIs.
   - Database/external audit storage is authoritative.
 - **Core flow:**
@@ -69,7 +69,7 @@ WHERE/through which request did it occur? (optional)
 ### Access control
 - Every audit-log endpoint requires:
   - authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
   - System Audit Logs permission when custom Admin permissions exist
 - Reading audit logs is highly sensitive and requires explicit backend authorization.
 - React route visibility is not authorization.
@@ -309,7 +309,7 @@ or repository-equivalent fields.
   - action
   - subject type + ID
   - source feature
-- Do not load the entire audit ledger into Next.js.
+- Do not load the entire audit ledger into the Admin React application.
 - Large metadata blobs should be avoided.
 ### Audit-log failure observability
 - Queue/audit-sink failures must be observable to system operators.
@@ -370,7 +370,7 @@ or repository-equivalent fields.
 - It explicitly permits a dedicated `AuditLogs` table or external logging service and requires asynchronous writes that do not fail the primary request. fileciteturn21file0
 - The project architecture requires security-sensitive/admin mutations to be written to an audit trail and asynchronous follow-up work to run after commit. fileciteturn21file10turn21file15
 - Admin Auth explicitly leaves login/logout/failed-login inclusion in this immutable ledger unresolved. fileciteturn21file2turn21file13
-- Exact audit schema, retention period, external logging service, failure guarantees, and permissions for viewing logs are not defined by current project sources.
+- Current audit implementation is available in `src/api/app/Models/AuditLog.php`, `src/api/app/Models/AuditOutbox.php`, `src/api/app/Services/Audit/AuditService.php`, and `src/api/app/Services/Audit/AuditWriter.php`. Viewer validation and safe DTOs are defined by `src/api/app/Http/Requests/Admin/ListAuditLogsRequest.php`, `src/api/app/Http/Resources/Admin/AuditLogSummaryResource.php`, and `src/api/app/Http/Resources/Admin/AuditLogDetailResource.php`; `src/api/app/Http/Controllers/Admin/AuditLogController.php` and `src/api/routes/api.php` define the read APIs and `audit-logs.view` permission. Retention duration and any external logging service remain separate policy choices.
 ### Recommended Laravel model
 Conceptual table:
 ```text
@@ -437,7 +437,7 @@ GET /api/admin/audit-logs/{auditLog}
 - Use query validator/Form Request for filters.
 - Use dedicated API Resource for safe output.
 - Paginate collection.
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 - Build:
   - filterable audit-log table/list
   - actor/action/resource/date filters

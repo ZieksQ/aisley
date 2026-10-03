@@ -3,7 +3,7 @@ feature: admin-account-management
 title: Admin Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -15,7 +15,7 @@ scope: Admin Web Application
 
 - **Feature:** Admin Account Management for the AISLEY Admin web application.
 - **Purpose:** Let the currently authenticated Admin manage their own account information, login credentials, preferences, and security settings without exposing another user's account-management controls.
-- **Primary actor:** The currently authenticated AISLEY `ADMIN` role-account.
+- **Primary actor:** The currently authenticated AISLEY `admin` role-account.
 - **Source-defined scope:**
   - update Admin information
   - manage login credentials
@@ -24,11 +24,11 @@ scope: Admin Web Application
   - manage security settings such as Two-Factor Authentication (2FA)
   - require authentication middleware around the feature
 - **Project boundary:**
-  - Next.js/React owns the account-settings page, forms, loading/error/success states, and calls to Laravel.
+  - React + TypeScript (Vite and React Router) owns the account-settings page, forms, loading/error/success states, and calls to Laravel.
   - Laravel owns authenticated identity, authorization, validation, sensitive-change verification, persistence, session effects, events, and audit records.
   - The frontend edits only the current Admin account; it does not select an arbitrary Admin ID.
 - **Relationship to Admin Authentication:**
-  - Admin Authentication establishes the authenticated `ADMIN` session.
+  - Admin Authentication establishes the authenticated `admin` session.
   - Admin Account Management consumes that session.
   - Password changes belong to this feature.
   - 2FA configuration belongs to this feature, but the exact 2FA mechanism is not defined by current project sources.
@@ -65,7 +65,7 @@ or the repository's established Admin settings route.
 
 - Every account-management read or mutation must require:
   - an authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
   - authorization for the current Admin account
 - The API must derive the target Admin from the authenticated session.
 - The client must not be allowed to submit another `user_id` / `admin_id` to edit another account through this feature.
@@ -93,7 +93,7 @@ or the repository's established Admin settings route.
 ### Profile information
 
 - The feature must allow the Admin to update the profile/personal-identification fields that the real AISLEY account schema marks as Admin-editable.
-- Current sources do **not** define the exact editable field list.
+- Use `src/api/app/Http/Requests/Admin/UpdateOwnProfileRequest.php` for the editable profile allow-list and validation, and `src/api/app/Http/Resources/Admin/AdminAccountResource.php` for the safe account/profile response.
 - Do not invent additional profile columns solely for this feature.
 - Server-side validation is required for every editable field.
 - Client-side validation may improve UX but must not replace Laravel validation.
@@ -113,8 +113,8 @@ unique(email, role)
   - treat the change as a sensitive account action
   - require recent re-authentication/current-password verification
   - validate the new email server-side
-  - preserve the `email + ADMIN` uniqueness rule
-  - reject collisions with another `ADMIN` role-account
+  - preserve the `email + admin` uniqueness rule
+  - reject collisions with another `admin` role-account
   - do not allow the client to change the account role as part of the email update
 - A same email used by a different role does not automatically violate the project's role-aware identity rule.
 - Whether a changed Admin email must be verified before becoming the login identity is an **Open Question**; current project sources do not define it.
@@ -274,7 +274,7 @@ unique(email, role)
 - [ ] Password/hash values are never returned by the API.
 - [ ] Password changes are recorded safely in the audit/security trail.
 - [ ] Email change, if supported, requires re-authentication.
-- [ ] Email change, if supported, preserves `email + ADMIN` uniqueness.
+- [ ] Email change, if supported, preserves `email + admin` uniqueness.
 - [ ] A same-email account under a non-Admin role does not automatically block an Admin email under the role-aware identity model.
 - [ ] 2FA secret material is not included in normal account DTOs.
 - [ ] 2FA changes, when implemented, require re-authentication.
@@ -289,16 +289,16 @@ unique(email, role)
 
 ### Project findings
 
-- Available project material contains architecture/specification documents, not the Laravel/Next.js application source or package manifests.
+- Application source and manifests are available: `src/admin/package.json`, `src/admin/src/App.tsx`, and `src/api/composer.json` define the Admin frontend/router and Laravel authentication dependencies.
 - `Admin.md` defines Account Management as self-service updates to Admin information, login credentials, personal identification details, preferences, and 2FA/security settings.
 - The Admin Authentication spec explicitly assigns password changes and 2FA configuration to Admin Account Management.
 - The system-flow contract requires:
-  - Next.js for UI/presentation
+  - React + TypeScript with Vite and React Router for Admin UI/presentation
   - Laravel for validation, authorization, persistence, events, and security-sensitive behavior
   - Form Requests / Policies / Gates
   - API Resources or equivalent response conventions
   - audit trails for administrative/security-sensitive mutations
-- Exact Eloquent fields, existing settings routes, auth packages, preference schema, and 2FA package are not available in the current workspace.
+- Inspect `src/api/app/Models/AdminProfile.php`, `src/api/app/Http/Controllers/Admin/AccountController.php`, `src/api/app/Services/Admin/AdminAccountService.php`, and `src/api/routes/api.php` for existing fields, account operations, and routing. MFA/2FA and persisted preference APIs remain deferred; `src/api/composer.json` does not declare Fortify.
 
 ### Laravel API
 
@@ -329,7 +329,7 @@ GET   /api/admin/account/security
 - Record successful security-sensitive/admin mutations through the project's audit mechanism.
 - Dispatch any non-critical notifications only after successful persistence/commit.
 
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 
 - Add an Admin account-settings route using the repository's routing convention.
 - Keep requests in the shared API client.
@@ -383,7 +383,7 @@ GET   /api/admin/account/security
 - First inspect the real authentication stack.
 - If Fortify/TOTP already exists:
   - reuse its backend 2FA lifecycle
-  - integrate the Next.js UI with the configured endpoints
+  - integrate the Admin React UI with the configured endpoints
   - require password confirmation for security-setting changes
   - protect recovery codes as secrets
 - If another MFA provider exists:
@@ -425,7 +425,7 @@ where that remains the project's account identity rule.
   - password is hashed after successful change
   - safe audit event/log produced
   - no password/security secret in response/log
-  - email uniqueness by `email + ADMIN` if email editing exists
+  - email uniqueness by `email + admin` if email editing exists
   - sensitive email/security changes require re-authentication
   - 2FA endpoints require re-authentication when implemented
   - preference keys are allow-listed
@@ -458,7 +458,7 @@ where that remains the project's account identity rule.
 - **Auth drift:** adding 2FA here without updating Admin Authentication would create settings that login does not enforce.
 - **Role-aware email collision:** applying global email uniqueness instead of `email + role` would conflict with the current AISLEY identity model.
 - **Secret leakage:** generic account DTOs, logs, or audit records must never serialize password or 2FA secret material.
-- **Spec/code gap:** exact fields and packages cannot be finalized until the real Laravel/Next.js repository is inspected.
+- **Spec/code drift:** editable fields, dependencies, and account operations can be inspected in the current source; broader route, workflow, and open-question reconciliation requires a separate review.
 
 ### Open questions
 

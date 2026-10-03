@@ -3,7 +3,7 @@ feature: global-ban
 title: Admin Global Ban / Blocklist Management
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -14,7 +14,7 @@ scope: Admin Web Application
 ## WHAT
 
 - **Purpose:** Maintain and enforce a centralized security blocklist for known malicious or fraudulent users, IP addresses, and payment methods.
-- **Primary actor:** Authenticated `ADMIN`.
+- **Primary actor:** Authenticated `admin`.
 - **Source-defined targets:**
   - banned users
   - fraudulent IP addresses
@@ -24,7 +24,7 @@ scope: Admin Web Application
   - Matching targets are blocked from applicable access or transactions.
   - Checks must be efficient because IP/user checks may run on frequent request paths.
 - **Architecture:**
-  - Next.js/React owns list/detail/forms, filters, confirmations, and result presentation.
+  - React + TypeScript (Vite and React Router) owns list/detail/forms, filters, confirmations, and result presentation.
   - Laravel owns validation, authorization, normalization, persistence, enforcement, caching, and audit records.
   - Laravel/database state is authoritative.
 - **Recommended enforcement split:**
@@ -57,7 +57,7 @@ checkout/payment
 
 ### Access control
 
-- Require authenticated `ADMIN` and Global Ban/Blocklist permission where custom permissions exist.
+- Require authenticated `admin` and Global Ban/Blocklist permission where custom permissions exist.
 - Laravel authorization is authoritative; direct API calls cannot bypass it.
 - Use project-standard `401`, `403`, `404`, `422`, and `409` responses.
 
@@ -298,7 +298,7 @@ isPaymentMethodBlocked(provider, reference)
 - `Admin.md` defines a centralized blocklist for fraudulent IPs, flagged payment methods, and banned users, with proactive access/transaction blocking and high-performance checks. fileciteturn7file0
 - Admin Authentication already identifies Global Ban as shared middleware integration and leaves Admin/IP-ban applicability open. fileciteturn7file2
 - `README.md` requires Laravel-owned authorization/validation, transactions, audit trails, pagination, and safe serialization. fileciteturn7file9
-- Exact repository models, payment gateway, cache driver, proxy topology, and account-status schema were not available during research.
+- Current account and configuration source is available in `src/api/app/Models/User.php`, `src/api/app/Enums/UserStatus.php`, `src/api/config/cache.php`, and `src/api/bootstrap/app.php`. Global Ban has no implemented blocklist model, service, Admin screen, or routes in `src/api/routes/api.php` or `src/admin/src/App.tsx`; the schema and APIs below remain proposed. Payment-provider matching and deployment proxy/cache choices require separate decisions.
 
 ### Laravel data model
 
@@ -387,7 +387,7 @@ block:payment:{provider}:{reference}
 - Invalidate immediately after create/revoke.
 - Never use cached state to authorize Admin management actions.
 
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 
 - Build:
   - blocklist table
@@ -427,7 +427,7 @@ block:payment:{provider}:{reference}
 
 ### Open questions
 
-- Can `ADMIN` accounts be globally banned?
+- Can `admin` accounts be globally banned?
 - Do IP bans apply to Admin routes?
 - Which routes are exempt?
 - What can blocked users still access for support/refund/history?

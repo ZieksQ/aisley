@@ -3,7 +3,7 @@ feature: admin-auth
 title: Admin Auth
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -14,21 +14,21 @@ scope: Admin Web Application
 ## WHAT
 
 - **Feature:** Admin Authentication for the AISLEY Admin web application.
-- **Purpose:** Establish and maintain a secure authenticated `ADMIN` session before any protected Admin feature can be used.
-- **Primary actor:** A user account whose persisted role is `ADMIN`.
+- **Purpose:** Establish and maintain a secure authenticated `admin` session before any protected Admin feature can be used.
+- **Primary actor:** A user account whose persisted role is `admin`.
 - **Application boundary:**
-  - Next.js + React owns the login UI, auth-loading state, redirects, and calls to the Laravel API.
+  - React + TypeScript (Vite and React Router) owns the login UI, auth-loading state, redirects, and calls to the Laravel API.
   - Laravel is the source of truth for credentials, sessions, roles, permissions, and protected-route authorization.
   - Admin web authentication uses Laravel Sanctum's stateful SPA/session authentication.
 - **Identity model:**
   - AISLEY accounts are role-aware.
   - Account identity is resolved using `email + role`.
-  - Admin login must resolve `email + ADMIN`, not email alone.
+  - Admin login must resolve `email + admin`, not email alone.
   - A Buyer, Seller, Courier, or Logistics account sharing the same email must not authenticate as Admin.
   - The role is read from persisted server data; the client must not choose or prove its own role.
 - **Admin bootstrap:**
   - The initial Admin is created from configured `.env` email/password credentials.
-  - Bootstrap exists only to ensure the initial `ADMIN` account is available.
+  - Bootstrap exists only to ensure the initial `admin` account is available.
   - Admin deployment secrets are never exposed in the Admin UI.
 - **Auth lifecycle:**
 
@@ -39,7 +39,7 @@ Admin opens web app
    → /login
    → GET /sanctum/csrf-cookie
    → POST /login
-   → resolve email + ADMIN
+   → resolve email + admin
    → verify password
    → create Laravel session
    → browser receives HttpOnly session cookie
@@ -48,7 +48,7 @@ Admin opens web app
 authenticated request
 → browser sends session cookie
 → Laravel authenticates account
-→ enforce role = ADMIN
+→ enforce role = admin
 → hand off to feature permission/authorization
 → allow protected action
 
@@ -68,7 +68,7 @@ logout
   - session creation
   - current Admin/session restoration
   - authentication guard for Admin routes
-  - `ADMIN` role enforcement
+  - `admin` role enforcement
   - authorization handoff
   - post-login Dashboard redirect
   - session-expiration handling
@@ -90,13 +90,13 @@ logout
 
 ### Authentication and identity
 
-- The backend must authenticate the specific `ADMIN` role-account.
+- The backend must authenticate the specific `admin` role-account.
 - Admin lookup must use the equivalent of:
 
 ```text
 email = submitted email
 AND
-role = ADMIN
+role = admin
 ```
 
 - The login request must not accept `role`, `permissions`, or `is_admin` as proof of Admin access.
@@ -109,8 +109,8 @@ role = ADMIN
 ### Initial Admin bootstrap
 
 - Bootstrap must read the configured Admin email/password from deployment configuration.
-- Bootstrap must search by `email + ADMIN`.
-- Bootstrap must create the Admin only when the `ADMIN` role-account is missing.
+- Bootstrap must search by `email + admin`.
+- Bootstrap must create the Admin only when the `admin` role-account is missing.
 - Bootstrap must hash the configured password before persistence.
 - Bootstrap must be idempotent.
 - A same-email non-Admin account must not satisfy the bootstrap lookup.
@@ -192,7 +192,7 @@ GET /api/admin/me
 
 - Every protected Admin API must require:
   - authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
 - After those checks, protected Admin APIs also require current shared Terms of Service and Privacy Policy consent. `GET /me`, logout, policy status, and policy acceptance remain reachable so an Admin can complete consent.
 - Backend authorization is authoritative.
 - Hiding a page, button, menu item, or React component is not sufficient authorization.
@@ -200,7 +200,7 @@ GET /api/admin/me
 
 ```text
 authentication
-→ identify current account and verify ADMIN role
+→ identify current account and verify admin role
 
 authorization
 → verify this Admin may use the requested feature/action
@@ -277,14 +277,14 @@ POST /logout
 
 ### Acceptance criteria
 
-- [ ] Initial Admin bootstrap creates an `ADMIN` account when missing.
+- [ ] Initial Admin bootstrap creates an `admin` account when missing.
 - [ ] Re-running bootstrap does not create a duplicate Admin.
 - [ ] Same-email non-Admin accounts do not satisfy Admin bootstrap.
 - [ ] Bootstrap password is stored hashed.
 - [ ] Frontend requests `/sanctum/csrf-cookie` before login.
-- [ ] Valid `email + ADMIN` credentials create an authenticated session.
+- [ ] Valid `email + admin` credentials create an authenticated session.
 - [ ] Wrong password does not create a session.
-- [ ] Email without an `ADMIN` role-account does not authenticate.
+- [ ] Email without an `admin` role-account does not authenticate.
 - [ ] Same-email Buyer/Seller/Courier/Logistics credentials cannot enter Admin.
 - [ ] Successful login uses the configured stateful session cookie.
 - [ ] Admin web auth does not require a Bearer token in JavaScript storage.
@@ -308,7 +308,7 @@ POST /logout
 
 - Use the Laravel authentication/session mechanism already configured for the project and Sanctum's stateful SPA mode.
 - Configure Sanctum stateful API middleware and deployment domains according to the Laravel version and repository conventions.
-- Keep business authority in Laravel; do not create a separate Next.js authentication implementation that bypasses Laravel.
+- Keep business authority in Laravel; do not create a separate browser-side authentication implementation that bypasses Laravel.
 - Provide or reuse:
   - CSRF cookie endpoint: `GET /sanctum/csrf-cookie`
   - Admin login endpoint: `POST /login`
@@ -317,7 +317,7 @@ POST /logout
 - Login orchestration should:
   1. validate `email` and `password`
   2. normalize the email according to project convention
-  3. query the account using `email + ADMIN`
+  3. query the account using `email + admin`
   4. verify the password
   5. reject failure with a generic credential error
   6. authenticate the resolved Admin through Laravel's session guard
@@ -340,13 +340,13 @@ POST /logout
 
 ```text
 where email = configured email
-and role = ADMIN
+and role = admin
 ```
 
 - Hash the password using Laravel's password hashing API.
 - Do not update an existing Admin password from `.env` unless re-sync is explicitly chosen later.
 
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 
 - Create or reuse the Admin login route at `/login`.
 - Keep authentication requests in the shared API client.
@@ -368,7 +368,7 @@ submit
 ```text
 CHECKING
 → fetch current Admin
-→ success + ADMIN
+→ success + admin
    → AUTHENTICATED
 → 401/invalid session
    → UNAUTHENTICATED
@@ -451,7 +451,7 @@ unique(email, role)
 ### Source alignment
 
 - Project feature-spec rule: keep the feature concise, implementation-ready, below 500 lines, and organized as `WHAT`, `MUST`, and `HOW`.
-- AISLEY system-flow contract: Next.js/React handles presentation; Laravel owns authentication, authorization, validation, persistence, and security-sensitive behavior.
+- Admin implementation: `src/admin/package.json`, `src/admin/src/main.tsx`, and `src/admin/src/App.tsx` establish React + TypeScript, Vite, and React Router; Laravel owns authentication, authorization, validation, persistence, and security-sensitive behavior.
 - Admin model: Admin features require authenticated/authorized access, with Dashboard as the primary entry point.
-- Supplied Admin Authentication draft: defines role-aware `email + ADMIN` identity, initial Admin bootstrap, Sanctum CSRF/session flow, current-session restoration, protected Admin access, and logout.
+- Current Auth source: `src/api/app/Enums/UserRole.php` maps `UserRole::Admin` to `admin`; `src/api/app/Http/Controllers/Admin/AuthController.php`, `src/api/database/seeders/InitialAdminSeeder.php`, and `src/api/routes/api.php` are available for inspection. The supplied Admin Authentication draft defines role-aware `email + admin` identity, initial Admin bootstrap, Sanctum CSRF/session flow, current-session restoration, protected Admin access, and logout.
 - Laravel Sanctum SPA authentication documentation: https://laravel.com/docs/sanctum#spa-authentication
