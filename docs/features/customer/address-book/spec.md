@@ -3,8 +3,8 @@ feature: address-book
 title: Customer Address Book
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented foundation; order mutation integration deferred
+version: 1.3
+status: Implemented Address Book and checkout integration; pre-Seller-processing Order address correction implemented through Customer Order Modification
 role: Customer
 scope: Customer storefront and Laravel API
 ---
