@@ -6,7 +6,7 @@ This portable bundle defines a new standalone Flutter/Dart Customer app targetin
 
 Read in this order:
 
-1. [Progress](PROGRESS.md) and [agent instructions](AGENTS.md).
+1. [Progress](PROGRESS.md), [agent instructions](AGENTS.md), and [Customer specification rules](features/customer/rule.md).
 2. [Requirements](requirements.md), [shopping workflows](workspace.md), and [feature index](features/README.md).
 3. [Architecture](architecture.md) and [Buyer design](design-buyer.md).
 4. [Authentication](api/authentication.md), [endpoint inventory](api/endpoints.md), [DTOs and requests](api/contracts.md), and [messaging contracts](api/messaging.md).
@@ -35,4 +35,8 @@ The bundle contains documentation only: no Flutter scaffold, SDK pins, package i
 
 Recheck current Laravel contracts before implementing a phase. Record the new source commit and any changes in the destination `docs/PROGRESS.md`. Preserve this baseline's provenance and historical entries; imported Courier progress is not Buyer evidence.
 
-Within the originating monorepo, `.gitignore` excludes `docs/cabigan/*`. This bundle remains local and ignored. The feature commit records the app-wide progress entry; it does not contain these files. Copy or back up the complete bundle explicitly when handing it off.
+The bundle is now tracked at `docs/docs-mobile-buyer/`, following its relocation in commit `c5ce0cc`. Its original location under `docs/cabigan/` was ignored; that directory's existing ignore policy remains unchanged. Copy the complete tracked bundle when handing it off.
+
+## Customer specification maintenance
+
+Read [Customer rules](features/customer/rule.md) before creating or revising a Customer spec, including authentication. New or revised specs use WHAT/MUST/HOW and contain 200–230 physical lines; this local rule overrides the feature-spec skill's shorter length preference. Existing short specs remain baseline documents until individually revised. This update does not certify them implementation-ready or change pending Flutter acceptance.

@@ -2,6 +2,8 @@
 
 All Flutter implementation and acceptance criteria are pending. Backend status describes inspected Laravel availability; upstream checkboxes are not imported as mobile completion. Read shared API/design/security guides first.
 
+Before creating, revising or implementing a Customer feature, read [Customer specification rules](customer/rule.md) and [agent instructions](../AGENTS.md). New or revised Customer specs use WHAT/MUST/HOW and 200–230 physical lines, overriding the feature-spec skill's shorter preference. Existing short specs remain baselines until revised; shared policy consent has its own contract and is outside this Customer length rule.
+
 | Feature | Phase | Backend boundary | Flutter |
 | --- | --- | --- | --- |
 | [Customer authentication](customer/customer-auth/spec.md) | 1 | Auth/approval-aware registration, login and recovery implemented; address/ID registration and native reset links deferred. | Pending |
