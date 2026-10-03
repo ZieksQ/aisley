@@ -362,7 +362,7 @@ Manually entering its tracking ID, QR, or waybill-reference value.
 
 A successful operation shall submit an event to the shared transition service, which validates the current Shipment/Delivery Task state and commits the associated detailed state and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
 
-Internal transfer execution is deferred in the one-hub MVP. The operational path requires receipt, sorting, and dispatch without an `in_transfer` event; no inter-hub movement is authorized.
+Same-hub receipt, sorting, and final-mile dispatch require no internal transfer event. Implemented company-truck Linehaul may move parcels between different organizations’ sole hubs through accepted trips, physical departure, and per-parcel receiving; it does not create sub-hubs. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
 
 8.7 Dispatch
 
@@ -380,7 +380,7 @@ The ready queue groups/filters parcels by physical standard lane and pages by hu
 
 8.8 Deploy Rider
 
-Logistics shall be able to create/offer the first-mile task after `ready_for_pickup` and select an eligible Courier for the first-mile or final-mile task based on operational suitability and distance. A Courier rejection records task-level `rejected` without changing the Order; Logistics may re-offer the same task to another eligible Courier. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
+Logistics shall be able to create/offer the first-mile task after `ready_for_pickup` and select an eligible Courier for the first-mile or final-mile task based on operational suitability and distance. Implemented final-mile rejection records task-level `rejected` without changing the Order; Logistics may re-offer the same task to another eligible Courier. First-mile rejection/re-offer remains target policy with no deployed Courier rejection route. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
 
 Successful first-mile assignment records `seller_pickup_assigned`. Successful final-mile assignment records `delivery_assigned`; both are distinct from `delivery_accepted` and `picked_up_from_hub`.
 
@@ -646,9 +646,9 @@ Courier submits completion intent/proof; Logistics validates and the shared serv
 ↓
 Buyer may rate/review
 
-All Logistics processing in this MVP is performed within the owning Logistics organization's single hub/sorting center. There is no alternate sub-hub or multi-hub branch in this flow.
+Each Logistics organization processes parcels at its sole hub/sorting center. Company-truck Linehaul may transfer custody between different organizations’ sole hubs before destination-hub final-mile dispatch; no organization gains an alternate sub-hub.
 
-If a Courier rejects an offered first-mile or final-mile task, the task records `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task is informationally `stale` only; no automatic cancellation or reassignment occurs in the MVP. First-mile and final-mile assignments remain independent.
+The deployed exceptional final-mile rejection records `rejected` without changing the Order, and Logistics may re-offer the same task. First-mile rejection/re-offer remains a target policy; there is no deployed Courier first-mile rejection route. An unfinished task is informationally `stale` only; no automatic cancellation or reassignment occurs in the MVP. First-mile and final-mile assignments remain independent.
 
 Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders operationally, but it does not merge their tasks, waybills, snapshots, or histories.
 
@@ -702,7 +702,7 @@ Task-level `rejected` records an offered Courier's refusal and is not an `OrderS
 
 The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, tenant-scoped postal-code sort plans, independent final-mile offers, task-bound hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
 
-Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. A Courier submits a QR/tracking-ID/reference scan or handoff evidence, and Logistics validates and records the authoritative event, preserving the performing Courier, recording Logistics account, and timestamp. The shared transition service—not the scan/access event—commits physical state. The pickup transaction creates one immutable shared waybill/tracking ID snapshot per Order at `ready_for_pickup`; the primary barcode is a thin 1D Code 128 encoding of that tracking ID and QR remains a compatibility fallback. Pickup may store a sort-plan routing hint, but automatic sorting resolves the current plan and exact Buyer postal mapping at scan time; missing routing data/configuration goes to the exception lane. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules; task-level `rejected` is distinct from Order-level `rejected`.
+Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. First-mile pickup verifies QR/tracking-ID/Order-reference input and explicitly confirms handoff through its compatibility writer. Final-mile Courier hub handoff submits only task revision with a UUID `Idempotency-Key`; destination delivery submits private photo POD plus matching completion intent. Logistics validates final-mile evidence and records the authoritative event, preserving the performing Courier, recording Logistics account, and timestamp. The shared transition service—not the scan/access event—commits physical state. The pickup transaction creates one immutable shared waybill/tracking ID snapshot per Order at `ready_for_pickup`; the primary barcode is a thin 1D Code 128 encoding of that tracking ID and QR remains a compatibility fallback. Pickup may store a sort-plan routing hint, but automatic sorting resolves the current plan and exact Buyer postal mapping at scan time; missing routing data/configuration goes to the exception lane. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules; task-level `rejected` is distinct from Order-level `rejected`.
 
 Inventory reservations follow the same boundary: placement reserves the requested SKU quantity; an accepted cancellation or rejection before `picked_up_from_seller` releases that quantity once and transactionally; first-mile pickup commits it once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
@@ -714,10 +714,11 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 | --- | --- | --- |
 | `awaiting_seller_pickup → seller_pickup_assigned` | Owning Logistics offers a task after readiness and provider/hub checks | Existing first-mile scheduling foundation |
 | `seller_pickup_assigned → seller_pickup_accepted` | Affiliated Courier accepts its own offer | Existing first-mile acceptance foundation |
-| Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Final-mile rejection/re-offer implemented; first-mile rejection remains legacy scope |
+| Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Final-mile rejection/re-offer implemented; first-mile rejection endpoint unavailable |
 | `seller_pickup_accepted → picked_up_from_seller` | Compatibility first-mile confirmation commits handoff/Inventory once and bridges shared records | Implemented on legacy confirmation contract |
 | `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Implemented P0 transition |
-| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting resolves the tracking ID and current postal-code sort plan, records standard-lane placement, or assigns an exception hold when routing is unavailable | Implemented with separate Dexie batch receipt/sort sync and tenant-scoped sort-plan routes; internal transfer deferred |
+| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting resolves the tracking ID and current postal-code sort plan, records standard-lane placement, or assigns an exception hold when routing is unavailable | Implemented with separate Dexie batch receipt/sort sync and tenant-scoped sort-plan routes; same-hub internal transfer unnecessary; company-truck Linehaul is a separate implemented flow |
+| `sorted_at_hub → in_transfer → received_at_hub` | Accepted company-truck trip departs; receiving Logistics records each parcel against its manifest and route hop | Implemented Linehaul between organizations’ sole hubs; receiving/sorting and final-mile dispatch remain distinct |
 | `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
 | `delivery_accepted → picked_up_from_hub` | Logistics validates Courier hub-handoff evidence | Implemented task-confirmation evidence transition |
 | `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |
@@ -725,13 +726,13 @@ These transitions describe the deployed P0 operational contract. Today's legacy 
 
 Each deployed P0 transition uses tenant/role checks, locked current state or revisions, immutable events, idempotent result replay, and a conflict on incompatible concurrent changes. Notifications follow commit. Owning endpoint specs define the exact request/response/evidence and transaction effects. Private final-mile photo POD is implemented; returns, refunds, partial fulfillment, post-pickup cancellation, signature proof, live location telemetry, and exceptional recovery remain deferred. Unfinished tasks may be informationally stale without automatic reassignment.
 
-### MVP re-offer, expiry, and internal transfer rules
+### MVP re-offer, expiry, and hub transfer rules
 
-- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
-- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- A Courier rejects only its currently offered, unaccepted final-mile assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Deployed Logistics re-offer appends a new offer for the same final-mile task and returns it to `delivery_assigned`; the rejected offer remains immutable. First-mile rejection/re-offer (`seller_pickup_assigned`) is a target policy only: no Courier first-mile rejection endpoint is deployed.
 - Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
 - Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
-- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
+- `in_transfer` is implemented for company-truck Linehaul between different organizations’ sole hubs. Accepted trip departure records transfer; each authorized destination receipt records custody and `received_at_hub`. A parcel may sort after receipt while other cargo remains in transfer. Same-hub processing uses `received_at_hub → sorted_at_hub → dispatched_from_hub` without a dummy transfer or additional sub-hub. Linehaul mutations remain Logistics-owned under `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
 
 11.3 Status History
 

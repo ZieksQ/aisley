@@ -49,7 +49,7 @@ pending_payment
 
 Its Logistics-facing meanings are deliberately broad: `ready_for_pickup` is Seller preparation complete, `picked_up` projects explicit first-mile confirmation, and `assigned` projects a committed dispatch schedule/final-mile Courier offer. Detailed task events remain authoritative proof of custody.
 
-Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. At final-mile delivery, Logistics reviews the Courier's server-derived COD declaration in the hub-scoped Delivery confirmations queue and confirms collection before approval; delivery and COD `payment_status = paid` commit atomically. The Seller's selected eligible Logistics organization is retained in the fulfillment context; Logistics may operate only Orders selected for its organization and may not silently replace the provider.
+Current COD placement skips `pending_payment`: the Order starts at `placed` with `payment_status = pending`. At final-mile delivery, Logistics reviews the Courier's server-derived COD declaration in the hub-scoped Delivery confirmations queue and confirms collection before approval; delivery and COD `payment_status = paid` commit atomically. The Seller's selected origin provider remains in the fulfillment context. Destination organizations gain only route/trip/custody-authorized access through the Linehaul contract and may not silently replace that selection.
 
 Detailed physical milestones belong to a separate Shipment/Delivery Task contract and must not be added to `orders.status` without an approved migration:
 
@@ -69,11 +69,11 @@ awaiting_seller_pickup
 → delivered
 ```
 
-Task-level `rejected` records an offered Courier's refusal and is not an `OrderStatus`; the same task may be re-offered to another eligible Courier without changing the Order. `stale` is an informational freshness condition for unfinished work, not a new high-level Order status, and it does not automatically cancel or reassign a task.
+Task-level `rejected` records an eligible final-mile Courier's refusal and is not an `OrderStatus`; the same task may be re-offered to another eligible Courier without changing the Order. `stale` is an informational freshness condition for unfinished work, not a new high-level Order status, and it does not automatically cancel or reassign a task.
 
 ## Physical delivery flow
 
-Internal `in_transfer` execution and automatic offer expiry are deferred. Sorting is required before dispatch; no synthetic transfer event or extra hub is introduced.
+Company-truck Linehaul implements `in_transfer` between different organizations’ sole hubs; trip acceptance, physical departure, and per-parcel receiving are Logistics-owned. Same-hub processing requires no synthetic transfer event or sub-hub. Sorting remains required before dispatch; automatic offer expiry is deferred.
 
 ```text
 Customer places the Order
@@ -95,7 +95,7 @@ Customer places the Order
 → Courier submits completion intent/proof; Logistics validates and the shared service commits `delivered`
 ```
 
-The first-mile and final-mile movements are separate task legs, even if the same Courier performs both. Each deployed Delivery Task represents one Order/Parcel for one leg; a pickup schedule may group Orders but never merge their tasks, waybills, snapshots, or histories. Each handoff requires its own assignment, actor, timestamp, location, and scan/event record. If an offered Courier rejects either leg, the task records task-level `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned in the MVP. The MVP has no alternate hub or sub-hub branch.
+The first-mile and final-mile movements are separate task legs, even if the same Courier performs both. Each deployed Delivery Task represents one Order/Parcel for one leg; a pickup schedule may group Orders but never merge their tasks, waybills, snapshots, or histories. Each handoff requires its own assignment, actor, timestamp, location, and scan/event record. Implemented rejection/re-offer applies to eligible final-mile offers and leaves the Order unchanged; first-mile rejection/re-offer remains planned with no deployed Courier endpoint. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned in the MVP. Each organization retains one hub; optional company-truck Linehaul may connect different organizations before destination-hub final-mile dispatch.
 
 ## Core features
 
@@ -115,13 +115,13 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 ### 2. Deploy Rider
 
 - **Core value:** Create and offer first-mile pickup work and select eligible Couriers for first-mile or final-mile delivery.
-- **Definition:** After Seller `ready_for_pickup`, an authorized account in the selected Logistics organization creates at most one active first-mile task when none exists and offers/assigns it to an eligible Courier. Retried requests return the existing task. After hub dispatch, Logistics owns final-mile eligibility and idempotent `delivery_assigned` creation. A Courier rejection records task-level `rejected` without changing the Order, and Logistics may re-offer the same task to another eligible Courier.
+- **Definition:** After Seller `ready_for_pickup`, an authorized account in the selected Logistics organization creates at most one active first-mile task when none exists and offers/assigns it to an eligible Courier. Retried requests return the existing task. After hub dispatch, Logistics owns final-mile eligibility and idempotent `delivery_assigned` creation. A final-mile Courier rejection records task-level `rejected` without changing the Order, and Logistics may re-offer the same task to another eligible Courier. First-mile rejection/re-offer has no deployed Courier endpoint.
 - **System context:** Use the authoritative Customer checkout destination snapshot and Courier availability/capacity data. A separately approved, provider-neutral route/distance service may provide suggestions; authorized Courier task projections may include `distance_km` and `estimated_duration_minutes` as advisory context. Aisley remains authoritative for eligibility, organization/hub scope, and assignment. A Courier's acceptance never grants assignment authority. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
 
 ### 3. Update Status
 
 - **Core value:** Recover a valid parcel state when scanning automation fails.
-- **Definition:** Allow authorized Logistics personnel to validate Courier-submitted scans/evidence or perform validated manual transitions such as `received_at_hub`, `sorted_at_hub`, or `dispatched_from_hub` when operational evidence exists. Internal `in_transfer` execution remains deferred in the MVP.
+- **Definition:** Allow authorized Logistics personnel to validate Courier-submitted scans/evidence or perform validated manual transitions such as `received_at_hub`, `sorted_at_hub`, or `dispatched_from_hub` when operational evidence exists. Company-truck transfer uses its own accepted-trip departure and per-parcel receipt contract; `in_transfer` is not a free-form manual same-hub status.
 - **System context:** A shared backend transition service validates current state, sole-hub ownership, actor authority, idempotency, and immutable history. Logistics is the authoritative recorder of the event while preserving the Courier who performed the physical action, when applicable. This is not free-form editing and must not fabricate a Courier pickup or proof of delivery.
 - **Sorting boundary:** Normal hub sorting uses the dedicated offline-first **Sorting** workspace. The separate **Sort plan** page lets the tenant create one active plan, standard/exception lanes, printable lane labels, and exact four-digit Buyer postal-code mappings. One open sole-hub session snapshots up to 100 oldest received parcels; automatic scan sync resolves the tracking ID and current plan server-side, commits `sorted_at_hub` for a matched standard lane, and records a reviewable exception hold when the plan or routing data is missing. Hub operations retains evidence and recovery responsibilities rather than the normal sorting control.
 - **Lane/dispatch boundary:** A lane identifies physical staging inside the sole hub. Shipment retains its standard lane/session independently of session closure; ready parcels dispatch by lane with immutable provenance and stale-assignment checks. Combining standard lanes requires explicit opt-in. Audited online moves are allowed before dispatch; exceptions remain held and do not block other ready session parcels. Hub pickup clears the live lane assignment while dispatch history remains intact.
@@ -174,7 +174,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 - `delivery_assigned` is not `delivery_accepted`, and neither means `picked_up_from_hub`.
 - First-mile pickup is `picked_up_from_seller`; final-mile hub pickup is `picked_up_from_hub`.
 - First-mile and final-mile assignments are independent. Completing first-mile pickup does not require or automatically grant final-mile assignment; the same or a different eligible Courier may be selected by Logistics for the second leg.
-- A Courier may reject an offered first-mile or final-mile task. The task records `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned.
+- A Courier may reject an eligible final-mile offer through its deployed endpoint. The task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task. First-mile rejection/re-offer is target policy only; no Courier first-mile rejection endpoint is deployed. An unfinished task may be informationally `stale`; it is not automatically cancelled or reassigned.
 - Reservation conversion/release is owned by the shared fulfillment contract: an accepted cancellation/rejection before `picked_up_from_seller` releases the exact reservation once, while first-mile pickup commits it once. Post-pickup return/refund/partial-fulfillment behavior is deferred.
 - Subscription status does not gate MVP access or parcel operations; subscription enforcement requires a separate approved policy.
 - Status transitions and evidence records are validated, transactional, idempotent, and append immutable history; notification, mapping, or communication failure must not roll back a committed Logistics decision.

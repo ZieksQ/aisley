@@ -58,7 +58,7 @@ GET active Logistics options
 
 - Text controls submit the exact snake-case keys shown in the API contract; display labels may use normal human-readable wording.
 - `middle_name` is optional and limited to one character; an empty value should be omitted or sent as `null`.
-- `birth_date` is a date value, not a client-calculated age; show age only after the server resource returns it.
+- `birth_date` is the submitted date value. Flutter may display a read-only age derived from the entered birth date; it never submits age or overrides the server-derived resource value.
 - `logistics_organization_id` is the selected organization UUID; do not derive or submit a hub ID.
 - `address[address_line_1]` is the required street/house detail; `address[address_line_2]` is optional.
 - `address[barangay]`, `address[city_municipality]`, `address[province]`, and `address[region]` are PSGC/manual labels.
@@ -117,7 +117,7 @@ GET active Logistics options
 
 - Before a request, show `checking_session`, `submitting`, or `authenticating` without treating a local token as proof of approval.
 - A successful registration enters `pending_approval`; the response contains no token and cannot open operational screens.
-- `ACCOUNT_PENDING_APPROVAL` maps to a pending screen with a retryable status check, not to a login loop.
+- `ACCOUNT_PENDING_APPROVAL` maps to a local informational pending screen. No pending-status endpoint or token is issued; the Courier may retry login after Logistics approval.
 - `ACCOUNT_REJECTED` maps to a rejection screen; do not invent resubmission or appeal controls.
 - `ACCOUNT_SUSPENDED`, `ACCOUNT_INACTIVE`, and `LOGISTICS_ASSOCIATION_INVALID` clear operational session state and explain that access is blocked.
 - A successful login stores the returned token once, then calls `/me` only to restore identity on later launches.
@@ -213,6 +213,8 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.
 - Registration upload UI must show accepted formats and the under-10-MiB limit, progress/cancel/retry, and server field errors. Client checks are convenience only.
+- The imported Flutter log (2026-10-03) records protection of unsaved registration text, selections, and evidence on Back, Sign in, and Android system Back; untouched, reverted, and successfully submitted forms leave without a discard prompt, and in-flight submission retains its explicit cancel action.
+- The same imported record reports registration using independent password visibility controls, logical Next/Done and keyboard traversal, and ordered scroll/focus for local/server field errors, including PSGC selectors and evidence controls. Passwords clear after server attempts and upload cancellation; browser/device acceptance remains separate.
 - Flutter registration must retain both selected `XFile` contents until multipart submission on local web-server; browser paths cannot be passed to `MultipartFile.fromPath`. Keep Android's native upload behavior and the exact `government_id`/`vehicle_registration` parts; follow the copied `docs/flutter-file-uploads.md` and verify both targets before claiming web upload support.
 - Do not reproduce Eloquent, SQL, enum implementation, or authorization logic in Dart. The API response is authoritative and all mutations need online revalidation.
 - Add API tests for role/status/affiliation/hub scope, prohibited fields, duplicate races, file spoofing/boundaries, transaction cleanup, token issuance/logout, throttling, DTO privacy, and Logistics organization isolation.

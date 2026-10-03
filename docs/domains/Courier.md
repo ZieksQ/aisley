@@ -115,7 +115,7 @@ Seller prepares the Order and confirms `ready_for_pickup`
 → Courier submits private photo POD plus Delivered intent; Logistics validates both and records `delivered`
 ```
 
-If a Courier rejects an offered first-mile or final-mile task, the task records `rejected`, the Order remains unchanged, and Logistics may offer the same task to another eligible Courier. An unfinished task may become informationally `stale`; it is not automatically cancelled or reassigned. The Courier does not assign itself, change Logistics hub state, or complete a task belonging to another Courier. Final-mile task-confirmation evidence and photo POD are validated by Logistics, preserving performing and recording actors. First-mile explicit confirmation retains its Courier-authored compatibility history without inventing a Logistics validator. Scans, access events, and manual actions are append-only history; a scan alone never advances custody.
+If a Courier rejects an eligible final-mile offer, the task records `rejected`, the Order remains unchanged, and Logistics may re-offer the same task. First-mile rejection/re-offer is target policy only; no Courier first-mile rejection route is deployed. An unfinished task may become informationally `stale`; it is not automatically cancelled or reassigned. The Courier does not assign itself, change Logistics hub state, or complete a task belonging to another Courier. Final-mile task-confirmation evidence and photo POD are validated by Logistics, preserving performing and recording actors. First-mile explicit confirmation retains its Courier-authored compatibility history without inventing a Logistics validator. Scans, access events, and manual actions are append-only history; a scan alone never advances custody.
 
 ## Courier capabilities and boundaries
 
@@ -242,7 +242,7 @@ External Flutter adoption (imported log, 2026-10-02): personal-vehicle registrat
 
 Deferred or dependent Courier operations:
 
-- Signature proof, incidents, Courier availability/capacity, earnings, tips, metrics, live location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/tracking-ID/manual verification and pickup confirmation, Inventory fulfillment, schedule route manifests, private final-mile photo POD, task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history are implemented. Advanced recovery remains deferred.
+- Signature proof, incidents, Courier availability/capacity, earnings, tips, metrics, live location telemetry, and offline synchronization remain deferred. Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit first-mile QR/tracking-ID/manual verification and pickup confirmation, Inventory fulfillment, schedule route manifests, private final-mile photo POD, final-mile task rejection/re-offer, final-mile assignment/acceptance, movement, completion intent, and delivery history are implemented. Advanced recovery remains deferred.
 
 Status-like database columns are stored as strings and cast to PHP enums. Operational records preserve the one-Logistics-organization/one-hub boundary and never place detailed physical milestones directly in `orders.status`.
 

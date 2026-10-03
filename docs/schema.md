@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-10-02 (Flutter truck selection, Buyer chat, and first-mile schedule-filter adoption; no schema change)
+> **Last synchronized:** 2026-10-03 (Courier/Flutter contracts, company-truck transfer, and COD delivery wording; no schema change)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -1515,16 +1515,16 @@ All operational application records use UUID primary/foreign keys, UTC timestamp
 - Matching idempotent requests replay their stored status/body after authorization; changed payloads or stale/conflicting revisions return `409` without duplicate effects. External network delivery occurs only after commit.
 - The additive tables and transition routes are deployed together. Existing first-mile confirmations are bridged lazily and idempotently; no historical Order status or Inventory movement is replayed. Run SQLite and PostgreSQL verification before production rollout. A schema-health check must verify required tables, columns, and constraints, not just database connectivity.
 - Final-mile route availability is controlled by the deployed API contract and migration state. Controllers derive tenant/hub ownership and fail with a safe conflict/not-found response rather than accepting client-supplied status or ownership fields.
-- New final-mile delivery atomically commits task/Shipment/Order `delivered`, one event, and notification work after Logistics validates proof and Courier intent. It performs no additional Inventory fulfillment or payment mutation.
+- New final-mile delivery atomically commits task/Shipment/Order `delivered`, one event, and notification work after Logistics validates proof and Courier intent. It performs no additional Inventory fulfillment. For COD, the same transaction marks `payment_status = paid` after confirming the server-derived cash declaration and invokes existing Finance recognition.
 - Record deployment/migration identities, bridge counts, stock reconciliation, and test results before production readiness. The implementation currently has SQLite migration/end-to-end coverage; PostgreSQL verification remains pending the local container credential fix.
 
 ### MVP re-offer, expiry, and internal transfer rules
 
-- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
-- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- A Courier rejects only its currently offered, unaccepted final-mile assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Deployed Logistics re-offer appends a new offer for the same final-mile task and returns it to `delivery_assigned`; the rejected offer remains immutable. First-mile rejection/re-offer (`seller_pickup_assigned`) is a target policy only: no Courier first-mile rejection endpoint is deployed.
 - Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
 - Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
-- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
+- `in_transfer` is implemented for company-truck Linehaul between different organizations’ sole hubs. Accepted trip departure records transfer; each authorized destination receipt records custody and `received_at_hub`. A parcel may sort after receipt while other cargo remains in transfer. Same-hub processing uses `received_at_hub → sorted_at_hub → dispatched_from_hub` without a dummy transfer or additional sub-hub. Linehaul mutations remain Logistics-owned under `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
 
 ### First-mile migration bridge (implemented compatibility behavior)
 

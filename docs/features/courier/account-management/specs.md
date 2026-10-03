@@ -96,7 +96,7 @@ Non-goals:
 - Never return or log password values, hashes, reset values, bearer tokens, or token hashes.
 - A successful change rotates remember_token and revokes every Courier personal access token, including the request token.
 - Flutter clears secure storage and requires fresh login after password success; do not automatically retry after a timeout.
-- Courier forgot-password remains a generic recovery acknowledgement, not an Account Management reset endpoint.
+- Courier forgot-password returns the explicit unavailability response defined by Auth v2.6; reset delivery/completion remains deferred and is not an Account Management endpoint.
 
 ### Existing authentication dependencies
 
@@ -201,6 +201,8 @@ Example:
 - Send multipart/form-data field photo, retain no Base64/blob URL as server identity, and refresh the private image only after 200.
 - For local Flutter `web-server`, send selected photo bytes through the shared multipart client; a browser file path cannot be passed to `MultipartFile.fromPath`. Preserve Android uploads and bearer-authenticated private reads. Follow the copied Flutter bundle's `docs/flutter-file-uploads.md`; browser acceptance remains unverified.
 - Keep local edits/previews separate from authoritative account state and never bypass server approval or revalidation.
+- The imported Flutter log (2026-10-03) records a discard confirmation for user-initiated Back/system Back when profile/password drafts or a selected photo would be lost; unchanged, reverted, and saved profiles leave without a prompt. Mutations/pickers block exit until their owning workflow resolves; reads remain navigable.
+- The same record reports profile/password validation that scrolls to the first affected field. Password change retains one consequence confirmation and required field clearing; account-scope loss clears local drafts/previews and dismisses discard prompts immediately, without waiting for consent to leave.
 
 ### Tests and rollout
 

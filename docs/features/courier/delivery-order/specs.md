@@ -189,7 +189,7 @@ accepted final-mile task
 
 ### Flutter states and UX
 
-- States include session check, loading, accepted, route available, route unavailable, stale metrics, GPS permission denied, offline, conflict/reassigned, retry, destination reached, and handoff to proof.
+- States include session check, loading, accepted, route available, route unavailable, stale metrics, GPS permission denied, offline, conflict/reassigned, retry, destination reached, and handoff to proof. The imported Flutter log (2026-10-03) records visible corrections/recovery, internal response-field names, and distinct failed-read versus unconfirmed-write wording; live/device acceptance remains separate.
 - Show textual distance/ETA with calculation time and an explicit “unavailable” label when missing; never show `0 km` as fallback.
 - Allow external navigation only from an authorized task response. Returning from navigation must refetch the task.
 - Use accessible map alternatives, semantic labels, large touch targets, and non-color-only route/state indicators.
