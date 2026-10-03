@@ -58,6 +58,7 @@ app load → one credentialed Customer /me check
 - Use same-origin `BroadcastChannel("aisley-customer-session")` when available for `signed-out` and `session-changed`; close it on unmount and tolerate unsupported browsers.
 - Do not poll `/me` on every page change, focus, or render. Explicit retry, CSRF failure, startup network recovery, and another-tab session signals are the only revalidation triggers.
 - Private personalized data must use `cache: "no-store"`/private responses and be fetched from its owning API. A frontend redirect is never the data-security boundary.
+- Homepage subscribes through this shared Auth context and session revision: it clears old personalized snapshots/feed restoration and rejects obsolete reads after local or supported cross-tab session changes. Its owning Homepage spec defines those consumer-level checks; Auth startup remains deduplicated.
 - [x] Guests see public shopping and no personal AccountMenu data.
 - [x] Active Customers restore through one deduplicated `/me` check and keep identity across client navigation.
 - [x] Protected paths preserve a safe login return and reject guest access at the UI while APIs enforce role/status/ownership.

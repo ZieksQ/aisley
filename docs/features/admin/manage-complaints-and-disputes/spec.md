@@ -3,7 +3,7 @@ feature: manage-complaints-and-disputes
 title: Admin Manage Complaints and Disputes
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -14,7 +14,7 @@ scope: Admin Web Application
 ## WHAT
 
 - **Purpose:** Centralized Admin resolution center for reviewing user-submitted complaints/reports, examining evidence, recording investigation activity, and issuing binding dispute decisions.
-- **Primary actor:** Authenticated `ADMIN`.
+- **Primary actor:** Authenticated `admin`.
 - **Source-defined behavior:**
   - review reports/complaints
   - inspect text, image, and document evidence
@@ -22,7 +22,7 @@ scope: Admin Web Application
   - make binding decisions
   - preserve an audit trail of Admin messages/actions
 - **Architecture:**
-  - Next.js/React owns queue, case detail, evidence viewer, timeline, resolution forms, and UI states.
+  - React + TypeScript (Vite and React Router) owns queue, case detail, evidence viewer, timeline, resolution forms, and UI states.
   - Laravel owns authentication, authorization, validation, evidence access, state transitions, persistence, audit history, and notifications.
   - Laravel/Eloquent state is authoritative.
 - **Cross-feature relationships:**
@@ -64,7 +64,7 @@ OPEN
 
 - Require:
   - authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
   - Manage Complaints and Disputes permission when custom permissions exist
 - Laravel authorization is authoritative.
 - Direct API calls must not bypass case/evidence permissions.
@@ -343,7 +343,7 @@ OPEN
 - Future Admin Support Tickets may link to a complaint only through an approved, authorized reference; they do not replace the complaint decision, evidence, or audit history. No Admin chat archive is implemented.
 - Courier sources identify Delivery History and Proof of Delivery as dispute-relevant evidence.
 - `README.md` requires Laravel-owned authorization, validated transitions, transactions, audit trails, private evidence URLs, pagination, and after-commit async work.
-- Exact complaint-submission flows, state enum, remedy taxonomy, SLAs, and persistence schema are not defined.
+- Application source is available, including `src/api/app/Http/Controllers/Admin/SupportTicketController.php` and `src/api/app/Services/Admin/SellerComplianceService.php` for adjacent workflows. Complaint/dispute adjudication has no dedicated implemented models, controller, or routes in `src/api/routes/api.php` or `src/admin/src/App.tsx`; its schema, endpoints, case states, remedy taxonomy, and SLAs below remain proposed or undecided.
 
 ### Laravel data model
 
@@ -435,7 +435,7 @@ GET  /api/admin/disputes/{case}/evidence/{evidence}
 - Use Laravel Notifications when resolution notifications are required.
 - Queue them after commit.
 - Laravel supports `afterCommit()` for queued notifications so workers do not observe uncommitted case state.
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 - Build:
   - dispute queue
   - filters

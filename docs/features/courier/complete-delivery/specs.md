@@ -23,7 +23,7 @@ The Courier's **Delivered** action sends an intent linked to the current photo P
 
 ## COD confirmation revision (2026-09-23)
 
-For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; use the failed-attempt flow instead. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Future prepaid methods require an approved contract.
+For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; refetch the task. The failed-attempt API exists, but its Flutter submission UI remains unadopted. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Future prepaid methods require an approved contract.
 
 ## WHAT
 
@@ -124,7 +124,7 @@ out_for_delivery
 - Show “Awaiting Logistics validation” for accepted intent that is not finalized.
 - A successful submission acknowledgment must not show “Delivered.”
 - Disable duplicate taps during a request; retain its idempotency key after timeout.
-- Refetch completion status after an uncertain result before starting another action.
+- Refetch completion status after an uncertain result before starting another action. The imported Flutter log (2026-10-03) records plain-language unconfirmed-update recovery and a secondary Refresh task read; retries retain the same pending action/key and response-field names stay internal.
 - Do not optimistically remove a task before server-confirmed delivered state.
 - Offline completion queues are deferred; connectivity is required for submission.
 - Camera, signature, and file permissions belong to Proof of Delivery.

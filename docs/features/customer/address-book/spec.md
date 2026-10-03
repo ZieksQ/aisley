@@ -3,8 +3,8 @@ feature: address-book
 title: Customer Address Book
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented foundation; order mutation integration deferred
+version: 1.4
+status: Implemented Address Book and checkout integration; pre-Seller-processing Order address correction implemented through Customer Order Modification
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -99,4 +99,4 @@ Customer opens /account/addresses
 - Pin: validate completed fields locally → one `filter=countrycode:ph`/`limit=1` Geoapify request → save only coordinates after Customer review/refinement.
 - Checkout: resolve `address_id` through Customer scope → revalidate → copy required fields into `order_addresses` before commit.
 - API tests cover ownership, role/status gates, fields/coordinates, default races, CRUD, checkout selection, and snapshot independence. Storefront checks cover combobox keyboard behavior, map fallback, pin invalidation, retry, and accessible errors.
-- Follow `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, and [`docs/references/user-registration-requirements.md`](../../../references/user-registration-requirements.md). The repository has no separate `docs/maps-location-api.md`; the shared workspace/schema provider contract is authoritative.
+- Follow `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, and [`docs/references/user-registration-requirements.md`](../../../references/user-registration-requirements.md). Follow [docs/maps-location-api.md](../../../maps-location-api.md) for the authoritative provider, privacy, fallback, and cost boundaries for address and location behavior.

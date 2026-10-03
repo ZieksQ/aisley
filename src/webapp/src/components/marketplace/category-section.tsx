@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { FiArrowRight, FiGrid } from "react-icons/fi";
+import { FiGrid } from "react-icons/fi";
 
+import { searchHref } from "@/lib/marketplace/discovery-url";
 import type { HomepageCategory } from "@/lib/marketplace/types";
 
 import { ProductImage } from "./product-image";
@@ -19,20 +20,13 @@ export function CategorySection({ categories }: { categories: HomepageCategory[]
         >
           Categories
         </h2>
-        <Link
-          href="/categories"
-          className="flex items-center gap-1 text-sm font-semibold text-[#4C1268] hover:text-[#E6007A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-        >
-          See all
-          <FiArrowRight aria-hidden="true" className="size-4" />
-        </Link>
       </div>
 
       <div className="marketplace-scroll grid snap-x snap-mandatory grid-flow-col auto-cols-[96px] gap-2 overflow-x-auto pb-2 sm:auto-cols-[112px] lg:grid-flow-row lg:grid-cols-10 lg:overflow-visible">
         {categories.slice(0, 20).map((category, index) => (
           <Link
             key={category.id}
-            href={`/search?q=${encodeURIComponent(category.name)}&category=${encodeURIComponent(category.slug)}`}
+            href={searchHref(category.name, "products")}
             data-analytics-event="homepage_category_click"
             data-analytics-category-id={category.id}
             data-analytics-position={index + 1}

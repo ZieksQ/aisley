@@ -57,6 +57,40 @@ async function checkWidths(label) {
 }
 
 try {
+  await cdp('Network.enable');
+  await cdp('Network.setCacheDisabled', { cacheDisabled: true });
+  await cdp('Network.setExtraHTTPHeaders', { headers: { 'Cache-Control': 'no-cache' } });
+  await configure({ failure: null, delay: 0, reset: true, homeSections: true });
+  await go('/');
+  await until('return document.querySelectorAll("#categories a").length === 2 && Boolean(document.querySelector("#flash-deals time"))', 'Homepage categories and active deal');
+  assert.equal(await js('return document.querySelectorAll(\'a[href="/categories"], a[href="/flash-deals"]\').length'), 0, 'Unavailable See all destinations remain');
+  const categoryLink = '#categories a[data-analytics-category-id="living"]';
+  const categoryUrl = new URL(await js(`return document.querySelector('${categoryLink}').href`));
+  assert.equal(categoryUrl.searchParams.get('q'), 'Home & Living / Café?');
+  assert.equal(categoryUrl.searchParams.get('type'), 'products');
+  assert.equal(categoryUrl.searchParams.has('category'), false);
+  await checkWidths('Homepage categories and deals');
+  await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  assert.equal(await js(`return getComputedStyle(document.querySelector('${categoryLink}')).backgroundColor`), 'rgb(255, 255, 255)', 'Homepage stays light-only');
+  await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await cdp('Emulation.setDeviceMetricsOverride', { width: 1280, height: 850, deviceScaleFactor: 1, mobile: false });
+  for (const anchor of ['categories', 'flash-deals']) {
+    await click(`a[href="/#${anchor}"]`);
+    await until(`return location.hash === '#${anchor}'`, `Homepage ${anchor} anchor`);
+    assert.equal(await js(`return Boolean(document.getElementById('${anchor}'))`), true);
+  }
+  await writeFile(`${artifacts}/homepage-navigation.png`, Buffer.from(await command('GET', `${path}/screenshot`), 'base64'));
+  await js(`document.querySelector('${categoryLink}').focus()`);
+  assert.equal(await js(`return document.activeElement === document.querySelector('${categoryLink}')`), true);
+  await command('POST', `${await element(categoryLink)}/value`, { text: '\uE007' });
+  await until('return location.pathname === "/search" && new URLSearchParams(location.search).get("q") === "Home & Living / Café?" && document.body.innerText.includes("Canvas Shirt 0")', 'keyboard category navigation reaches Product results');
+  assert.equal(await js('return document.body.innerText.includes("Check your search")'), false);
+  assert.equal(await js('return new URLSearchParams(location.search).get("q")'), 'Home & Living / Café?');
+  assert.ok((await (await fetch(`${fixture}/__state`)).json()).requests.some((item) => item.path.endsWith('/products/search') && item.query.q === 'Home & Living / Café?'));
+  await command('POST', `${path}/back`, {});
+  await until('return Boolean(document.querySelector("#categories"))', 'back returns to Homepage');
+  await configure({ homeSections: false });
+
   await configure({ failure: null, delay: 0, reset: true });
   const html = await (await fetch(`${origin}/search?type=shops&q=Canvas`)).text();
   assert.match(html, /Canvas Shop 1-0/);
@@ -189,8 +223,8 @@ try {
   await configure({ delay: 0 });
   await click('section[aria-label="Search feedback"] button');
   await until(contains('Canvas Shop 1-0'), 'timeout retry');
-  console.log('Discovery browser smoke passed: SSR/privacy, modes, URL/back/forward/refresh, scoped filtering/clears, empty/malformed states, widths/light/focus, offline, 422/429/500 retry, and timeout.');
+  console.log('Discovery browser smoke passed: Homepage category/anchor navigation and absent dead links, SSR/privacy, modes, URL/back/forward/refresh, scoped filtering/clears, empty/malformed states, widths/light/focus, offline, 422/429/500 retry, and timeout.');
 } finally {
-  await configure({ failure: null, delay: 0 });
+  await configure({ failure: null, delay: 0, homeSections: false });
   await command('DELETE', path);
 }

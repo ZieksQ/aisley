@@ -2,7 +2,7 @@
 // Run from src/webapp: node tests/discovery-api.fixture.mjs
 import { createServer } from 'node:http';
 
-const state = { requests: [], failure: null, delay: 0 };
+const state = { requests: [], failure: null, delay: 0, homeSections: false };
 const category = { id: 'category', slug: 'clothing', name: 'Clothing', imageUrl: null };
 const shop = { id: 'shop', slug: 'canvas', name: 'Canvas Shop', description: 'Plain <script> text', logoUrl: null, bannerUrl: null, category };
 const home = {
@@ -20,7 +20,8 @@ createServer(async (request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1:18080');
   const json = (body, status = 200, extra = {}) => {
     response.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': request.headers.origin ?? '*',
-      'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': '*', ...extra });
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': request.headers['access-control-request-headers'] ?? 'Content-Type, X-Requested-With', ...extra });
     response.end(JSON.stringify(body));
   };
   if (request.method === 'OPTIONS') return json({});
@@ -32,11 +33,19 @@ createServer(async (request, response) => {
     if (input.reset) state.requests = [];
     if ('failure' in input) state.failure = input.failure;
     if ('delay' in input) state.delay = input.delay;
+    if ('homeSections' in input) state.homeSections = input.homeSections;
     return json({ ok: true });
   }
   state.requests.push({ path: url.pathname, query: Object.fromEntries(url.searchParams), cookie: request.headers.cookie ?? null, authorization: request.headers.authorization ?? null });
   if (url.pathname.endsWith('/auth/me')) return json({ message: 'Unauthenticated' }, 401);
-  if (url.pathname === '/api/v1/customer/home') return json(home);
+  if (url.pathname === '/api/v1/customer/home') return json(state.homeSections ? {
+    ...home,
+    categories: [category, { id: 'living', slug: 'home-living', name: 'Home & Living / Café?', imageUrl: null }],
+    flashDeals: {
+      id: 'deal', title: 'Flash Deals', startsAt: new Date(Date.now() - 3600000).toISOString(), endsAt: new Date(Date.now() + 3600000).toISOString(),
+      products: Array.from({ length: 3 }, (_, index) => product(index)),
+    },
+  } : home);
   if (url.pathname === '/api/v1/customer/shops/canvas') return json({ data: { ...shop, productCount: 21, isVerified: true, rating: null, reviewCount: 0, location: null, joinedAt: '2026-01-01' } });
   if (url.pathname === '/api/v1/customer/shops/missing' || url.pathname.includes('/missing/products')) return json({}, 404);
   const search = ['/api/v1/customer/search/shops', '/api/v1/customer/products/search', '/api/v1/customer/shops/canvas/products', '/api/v1/customer/shops'].includes(url.pathname);

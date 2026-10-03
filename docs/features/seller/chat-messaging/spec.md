@@ -18,7 +18,7 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - The first release is persisted **text** over authenticated HTTP with bounded polling while the inbox/thread is visible. It is not instant realtime. Attachments, broadcasting, Seller-initiated outreach, archive/mute/report, typing, presence, and message deletion are deferred.
 - Product Q&A remains public and Product-scoped. Chat remains private and cannot change an Order, refund, delivery, or complaint decision.
 - Separate Seller–Logistics operational chat is available only for a Seller-owned pickup request selecting that organization. It is not a Customer–Shop conversation and does not appear in the Customer inbox. Its detailed cross-role contract is [Logistics Chat/Messaging](../../logistics/chat-messaging/specs.md).
-- Separate Courier–Seller first-mile API and Seller dashboard screens are implemented for accepted tasks tied to this Seller's Order. **Courier messages** in the Communication sidebar opens `/courier-messages`; Order detail checks server eligibility before offering contact. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md). Customer–Courier screens and live external Flutter exchange remain separate release work.
+- Separate Courier–Seller first-mile API and Seller dashboard screens are implemented for accepted tasks tied to this Seller's Order. **Courier messages** in the Communication sidebar opens `/courier-messages`; Order detail checks server eligibility before offering contact. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md). Customer–Courier web screens and Flutter Logistics/Seller/Buyer composers are also implemented locally; live external Flutter exchange remains separate release work.
 
 ## MUST
 

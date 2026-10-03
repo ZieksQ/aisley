@@ -3,7 +3,7 @@ feature: admin-notification
 title: Admin Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -14,7 +14,7 @@ scope: Admin Web Application
 ## WHAT
 
 - **Purpose:** Provide authenticated Admins with a persistent notification inbox/center for important platform events and pending Admin attention.
-- **Primary actor:** Authenticated `ADMIN`.
+- **Primary actor:** Authenticated `admin`.
 - **Source support:**
   - Admin Dashboard must display important notifications requiring attention.
   - Admin Authentication lists Admin Notifications as a protected Admin feature.
@@ -30,7 +30,7 @@ scope: Admin Web Application
   - other future Admin-action-required events
 - These examples are integrations with existing features, not a mandatory exhaustive event list.
 - **Architecture:**
-  - Next.js/React owns notification list/bell UI, unread badges, navigation, loading/error states, and real-time subscriptions.
+  - React + TypeScript (Vite and React Router) owns notification list/bell UI, unread badges, navigation, loading/error states, and real-time subscriptions.
   - Laravel owns notification creation, recipient selection, persistence, read state, authorization, queuing, broadcasting, and safe destination metadata.
   - Database notification state is authoritative.
 - **Recommended surfaces:**
@@ -71,7 +71,7 @@ domain event commits
 ### Access control
 - Every Admin notification endpoint requires:
   - authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
   - Admin Notifications permission if custom permissions are configured
 - Laravel authorization is authoritative.
 - Admin can access only notifications addressed to that Admin or an explicitly authorized Admin audience.
@@ -105,7 +105,7 @@ domain event commits
 - Source feature/business logic determines recipients.
 - Custom Admin permissions should influence notification recipients where applicable.
 - Example:
-  - an Admin lacking Seller Compliance permission should not receive sensitive Seller Compliance notifications merely because they have the `ADMIN` role.
+  - an Admin lacking Seller Compliance permission should not receive sensitive Seller Compliance notifications merely because they have the `admin` role.
 - Exact recipient-routing rules per domain event are Open Questions.
 
 ### Notification payload
@@ -340,7 +340,7 @@ CRITICAL
 - Admin Authentication explicitly lists **Admin Notifications** as a protected Admin feature and states normal login errors do not generate Admin Notifications. fileciteturn14file1turn14file4
 - `README.md` defines Laravel queues/notifications for asynchronous work and Laravel broadcasting consumed by React for notifications/live dashboard changes. fileciteturn14file9
 - It also requires notifications to be queued after the source transaction commits. fileciteturn14file6
-- Current sources do not define a complete Admin notification event catalog, severity taxonomy, retention period, or per-event recipient rules.
+- Current inbox implementation is available in `src/api/app/Http/Controllers/Admin/NotificationController.php`, `src/api/app/Http/Requests/Admin/ListNotificationsRequest.php`, and `src/api/app/Http/Resources/Admin/AdminNotificationResource.php`, using the notifiable `src/api/app/Models/User.php`. `src/api/app/Services/Notifications/AdminNotificationService.php` defines pending-registration recipients; `src/api/routes/api.php`, `src/admin/src/pages/NotificationsPage.tsx`, and `src/admin/src/components/AdminNotificationBell.tsx` expose the existing API/UI. A broader event catalog, severity taxonomy, retention policy, and additional producer rules remain undecided.
 
 ### Laravel notification model
 - Prefer Laravel's built-in database notification system if compatible with the shared `User` model.
@@ -402,14 +402,14 @@ domain transaction
 - Real-time payload should contain only the information needed to update the badge/list.
 - Refetch the persisted notification when full detail is needed.
 
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 - Build:
   - notification bell/badge
   - recent-notification popover
   - full notification center
   - read/unread presentation
 - Keep API calls in the shared request client.
-- Use a client component for Echo/live subscription.
+- Use a React component/effect for Echo/live subscription when broadcasting is configured.
 - Initial load:
   1. fetch unread count/recent notifications
   2. render server-backed state

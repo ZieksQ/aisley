@@ -26,13 +26,14 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   → Logistics combines one or more Seller handoffs (up to 30 parcels)
   → Logistics assigns one affiliated Courier and pickup window
   → Seller and Courier are notified
-  → Courier explicitly accepts or rejects the first-mile task
-  → accepted Courier later submits handoff scan/evidence to Logistics
+  → Courier explicitly accepts the first-mile task
+  → accepted Courier verifies identifier and explicitly confirms Seller pickup
+  → Logistics later records hub receipt
   ```
 - One request belongs to one Shop and one Logistics organization; a Seller request may contain up to 50 Orders, while one pickup schedule may combine Orders from multiple Shops/requests addressed to that Logistics tenant and may contain at most 30 Orders for one Courier.
 - Logistics must split a request over 30 Orders into multiple schedules; Orders, waybills, custody, status, and idempotency remain independent.
 - Courier acceptance is required before physical handoff. Assignment creates an offered/assigned task; it does not mean `seller_pickup_accepted` or `picked_up_from_seller`.
-- A Courier rejection is a task-level `rejected` outcome. Preserve the Courier, reason, and time; leave the Order unchanged and let Logistics re-offer the same task to another eligible Courier. Re-offer cannot create a new Order, waybill, or merged task.
+- First-mile rejection/re-offer remains target policy; no Courier first-mile rejection endpoint is deployed. Do not expose a working Reject control. The implemented final-mile rejection/re-offer contract is owned by Accept Delivery Requests and does not change the Order.
 - An unfinished task may be displayed as informationally `stale`; the MVP does not automatically cancel or reassign it.
 - **Non-goals:** parcel weight/dimension capacity, route optimization across stops, automatic Courier assignment, fixed Courier shifts, hub receipt/sorting, final-mile assignment, delivery completion, or Courier web UI.
 
@@ -78,8 +79,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Store `starts_at` and `ends_at` in UTC, require `starts_at < ends_at`, reject past windows, and display in Asia/Manila unless the account later gains a timezone setting.
 - Lock selected Orders/request links and recheck schedule capacity and Courier conflicts before commit; return `409` for stale or competing assignment.
 - Create a first-mile task per Order under one schedule; assignment does not imply `seller_pickup_accepted` or `picked_up_from_seller`.
-- The assigned Courier must explicitly accept before physical pickup. A rejection records task-level `rejected`, preserves append-only offer history, and leaves the Order unchanged.
-- Logistics may re-offer the same rejected task to another eligible Courier. Re-offer is idempotent, does not erase the rejection, and does not create a second task, waybill, or Order.
+- The assigned Courier must explicitly accept before physical pickup. First-mile acceptance does not imply Seller handoff or hub receipt.
+- Future first-mile rejection/re-offer requires an approved endpoint and append-only decision history without changing the Order or duplicating its task/waybill; it is unavailable in this scheduling foundation.
 - Informational `stale` is a display/freshness outcome for unfinished work only; it is not an Order status and does not trigger automatic cancellation or reassignment.
 - Retrying the same Logistics idempotency key returns the committed schedule; it must not duplicate tasks or notifications.
 - Editing or cancelling a future schedule requires an expected revision, reason, append-only history, and fresh notifications; it cannot silently overwrite custody history.
