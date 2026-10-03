@@ -4,7 +4,7 @@ title: Admin Pricing and Fees
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: Implemented
+status: API revised 2026-10-03; existing frontend requires surcharge-only update
 role: Admin
 scope: Admin Web Application and existing Finance configuration API
 source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/shared/commission-settlement/spec.md, docs/design.md
@@ -21,7 +21,7 @@ source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/
 ## MUST
 
 - Require the existing `finance.view` permission to enter and read the workspace. Hide mutations without `finance.manage`; Laravel remains authoritative for every request.
-- Shipping configuration includes the platform base fee, a surcharge for each selected Philippine destination region, volumetric divisor, maximum parcel weight and dimensions, effective time, version status, and active Logistics acceptance count.
+- Shipping configuration permits changing only a surcharge for each selected Philippine destination region, with effective time, version status, and active Logistics acceptance count. Remove the platform base-fee field and history column. Measurement policy (volumetric divisor and platform parcel ceilings) remains server-owned/read-only; remove its draft inputs. Logistics owns service base fees and category extras. Commission configuration remains separately editable.
 - Source the selectable region names from `@aisley/psgc-address-data`. Store the exact PSGC display name sent by the Admin API and never accept two entries for the same region in one tariff.
 - Present a keyboard-operable two-dimensional Philippine region overview plus a conventional region selector. Selecting either control shows that region's surcharge and permits adding, changing, or clearing it in the pending draft form.
 - Render locally bundled, simplified vector boundaries derived from `faeldon/philippines-json-maps` (2023), grouped to the current bundled PSGC inventory including Negros Island and Sulu's membership. Preserve upstream attribution/license. It assists selection but is not a routing, coverage, or legal-boundary map.
@@ -43,11 +43,12 @@ source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/
 - `POST /api/v1/admin/shipping-rates/{rate}/publish`
 - `GET/POST /api/v1/admin/commission-policies`
 - `POST /api/v1/admin/commission-policies/{policy}/publish`
+- Shipping creation requires `region_surcharges` (an empty array clears all), `effective_at`, and optional `currency = PHP`. Base-fee, increment-charge, divisor, and parcel-limit write fields are prohibited; legacy base/weight-charge fields are omitted from tariff responses. Technical measurement policy is read-only. The existing frontend must adopt this contract before creating shipping drafts.
 - Commission creation accepts nullable/omitted `effective_at`. Commission responses expose lifecycle `status`, `can_publish`, and nullable effective/end times; the history read is private and not cached.
 
 ## VERIFICATION
 
-- Verify route/permission visibility, PSGC region selection from map and selector, surcharge add/change/clear behavior, money/measurement conversion, draft creation, publish confirmation, both commission beneficiaries, API errors, keyboard focus, responsive layout, and light/dark presentation.
+- Verify route/permission visibility, PSGC region selection from map and selector, surcharge add/change/clear behavior, surcharge money conversion, absence of base/measurement editing, draft creation, publish confirmation, both commission beneficiaries, API errors, keyboard focus, responsive layout, and light/dark presentation.
 
 ## DESIGN REFERENCES
 

@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCommissionPolicyRequest;
+use App\Http\Requests\Admin\StoreShippingRateRequest;
 use App\Http\Resources\Admin\CommissionPolicyResource;
 use App\Models\CommissionPolicy;
 use App\Models\ShippingRateVersion;
 use App\Services\Finance\CommissionPolicyService;
+use App\Services\Finance\ShippingTariffService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class FinanceConfigurationController extends Controller
 {
@@ -23,44 +24,9 @@ class FinanceConfigurationController extends Controller
             ->latest('version_number')->get()]);
     }
 
-    public function storeRate(Request $request): JsonResponse
+    public function storeRate(StoreShippingRateRequest $request, ShippingTariffService $service): JsonResponse
     {
-        $data = $request->validate([
-            'currency' => ['sometimes', Rule::in(['PHP'])],
-            'base_fee_cents' => ['required', 'integer', 'min:0'],
-            'volumetric_divisor' => ['required', 'integer', 'min:1'], 'max_weight_grams' => ['required', 'integer', 'min:1'],
-            'max_length_mm' => ['required', 'integer', 'min:1'], 'max_width_mm' => ['required', 'integer', 'min:1'],
-            'max_height_mm' => ['required', 'integer', 'min:1'],
-            'region_surcharges' => ['sometimes', 'array', 'max:50'],
-            'region_surcharges.*.region' => ['required', 'string', 'max:255'],
-            'region_surcharges.*.surcharge_cents' => ['required', 'integer', 'min:0'],
-            'effective_at' => ['required', 'date'],
-        ]);
-        $rate = DB::transaction(function () use ($data): ShippingRateVersion {
-            $version = ((int) ShippingRateVersion::query()->lockForUpdate()->max('version_number')) + 1;
-            $regions = collect($data['region_surcharges'] ?? []);
-            if ($regions->map(fn (array $item) => mb_strtolower(trim($item['region'])))->unique()->count() !== $regions->count()) {
-                abort(422, 'Each destination region may appear only once.');
-            }
-            unset($data['region_surcharges']);
-            $rate = ShippingRateVersion::create([
-                ...$data,
-                'included_weight_grams' => 1,
-                'additional_weight_grams' => 1,
-                'additional_fee_cents' => 0,
-                'destination_surcharge_cents' => 0,
-                'version_number' => $version,
-                'status' => 'draft',
-                'currency' => $data['currency'] ?? 'PHP',
-            ]);
-            $rate->regionSurcharges()->createMany($regions->map(fn (array $item) => [
-                'destination_region' => trim($item['region']),
-                'normalized_region' => mb_strtolower(trim($item['region'])),
-                'surcharge_cents' => $item['surcharge_cents'],
-            ])->all());
-
-            return $rate->load('regionSurcharges');
-        });
+        $rate = $service->create($request->validated());
 
         return response()->json(['data' => $rate], 201);
     }

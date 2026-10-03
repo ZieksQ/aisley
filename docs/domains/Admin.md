@@ -134,12 +134,12 @@ Current protected routes are:
 
 - **Purpose:** Show platform commission and financial performance totals with date filtering.
 - **Status:** The API now persists effective-dated Seller/Logistics commission snapshots, route-based shipping inputs, balanced ledger entries, holds, Logistics allocation/reconciliation, and sandbox payouts. Full Admin frontend reporting remains separate.
-- **Boundary:** Admin publishes platform base/region tariffs and commission policies; Logistics owns its rate cards. Do not calculate commission from incomplete UI collections or label generic Order totals as profit.
+- **Boundary:** Admin publishes destination-region surcharges and commission policies; Logistics owns its rate cards. Do not calculate commission from incomplete UI collections or label generic Order totals as profit.
 
 ### 12.1 Pricing and Fees
 
 - **Purpose:** Configure the versioned platform shipping tariff and effective-dated Seller and Logistics commission policies separately from Finance reporting.
-- **Status:** The Admin `Pricing & fees` workspace uses the existing Finance configuration API for base fee, PSGC-region surcharges, parcel limits, and commissions, with an interactive schematic region selector and immutable draft/publish flow.
+- **Status:** The Admin `Pricing & fees` workspace uses the existing Finance configuration API for PSGC-region surcharges and commissions, with an interactive vector region selector and immutable draft/publish flow. The 2026-10-03 API revision removes base-fee and measurement-policy writes; the existing frontend must remove those inputs and base-fee history columns.
 - **Boundary:** The visual region selector is not a Logistics coverage or route map. Published pricing stays immutable, Logistics rate cards remain Logistics-owned, and checkout snapshots are not editable through settings.
 
 ### 12.2 Finance Holds

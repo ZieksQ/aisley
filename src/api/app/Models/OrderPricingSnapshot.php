@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ShippingPricingModel;
 use App\Enums\ShippingRoutePricingStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ class OrderPricingSnapshot extends Model
     protected function casts(): array
     {
         return [
+            'shipping_pricing_model' => ShippingPricingModel::class,
             'billable_weight_grams' => 'integer', 'base_fee_cents' => 'integer',
             'additional_weight_fee_cents' => 'integer', 'destination_surcharge_cents' => 'integer',
             'quoted_shipping_fee_cents' => 'integer', 'shipping_subsidy_cents' => 'integer',

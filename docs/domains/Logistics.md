@@ -24,11 +24,11 @@ The Logistics web dashboard is separate from the Customer and Seller application
 
 ## Shipping rates and route compensation
 
-- Logistics accepts an exact Admin platform base/region tariff before participating in new quotes under that version.
-- Each organization publishes category-specific `first_mile`, `linehaul`, and `last_mile` rate rules with packed-weight and dimension limits.
+- Logistics accepts an exact Admin destination-surcharge tariff before participating in new quotes under that version.
+- Each organization publishes one base fee per offered `first_mile`, `linehaul`, and `last_mile` service plus category-specific weight/size rules and limits. Charge the base once per route leg; each linehaul hop is a separate leg.
 - A Seller enables the organization for its Shop; the Customer selects it at checkout. Logistics cannot replace the frozen first-mile provider.
 - A complete active sort-plan route freezes one quoted charge per service leg. After the single platform Logistics commission, the pool is distributed pro rata by those quoted charges and verified actual ownership.
-- An unplanned base/region fallback is operationally valid but payout-held until Admin reconciles actual participants and any platform subsidy.
+- An unplanned destination-surcharge-only fallback is operationally valid but payout-held until Admin reconciles actual participants and any platform subsidy.
 
 ## MVP organization and hub boundary
 
@@ -145,7 +145,7 @@ Subscription status is not a dashboard or operational gate in the MVP. Billing, 
 - **Core value:** Maintain Logistics account and organization information.
 - **Definition:** Manage the authenticated Logistics profile and the single organization's operational-hub details, subject to account and approval rules.
 - **System context:** The server resolves `user → organization → sole hub`; clients cannot create or select another hub. Logistics access requires an active approved account and existing hub.
-- **Shipping settings:** `/settings` lets the organization accept the exact published platform tariff, review commercial category/service coverage, create immutable PHP rate-card drafts, and publish a reviewed version. Sort plan and Linehaul continue to own geographic and connection coverage.
+- **Shipping settings:** `/settings` lets the organization accept the exact published platform tariff, review commercial category/service coverage, create immutable PHP rate-card drafts with service bases and category extras, and publish a reviewed version. The API contract changed on 2026-10-03; the existing settings frontend still needs its new payload/editor and surcharge-only tariff presentation. Sort plan and Linehaul continue to own geographic and connection coverage.
 
 ### 6. Vehicle Fleet Management
 

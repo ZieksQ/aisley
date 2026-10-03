@@ -4,6 +4,7 @@ namespace App\Services\Finance;
 
 use App\Enums\LogisticsRateCardStatus;
 use App\Enums\LogisticsServiceType;
+use App\Enums\ShippingPricingModel;
 use App\Enums\ShippingRoutePricingStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Customer\CheckoutException;
@@ -90,26 +91,29 @@ class ShippingQuotationService
                 $charges = [];
             }
         }
-        $logisticsExtras = collect($charges)->sum('quoted_charge_cents');
+        $serviceBaseFees = collect($charges)->sum('base_fee_cents');
+        $weightCharges = collect($charges)->sum('additional_weight_fee_cents');
 
         return [
             'rate' => $rate,
+            'pricing_model' => ShippingPricingModel::LogisticsServiceBase->value,
             'selected_logistics_organization_id' => $organization->id,
             'selected_logistics_business_name' => $organization->business_name,
             'origin' => $this->address($origin),
             'destination' => $this->address($destination),
             'line_inputs' => $inputs,
             'billable_weight_grams' => $billable,
-            'base_fee_cents' => $rate->base_fee_cents,
-            'additional_weight_fee_cents' => $logisticsExtras,
+            'base_fee_cents' => $serviceBaseFees,
+            'additional_weight_fee_cents' => $weightCharges,
             'destination_surcharge_cents' => $regionSurcharge,
-            'shipping_cents' => $rate->base_fee_cents + $regionSurcharge + $logisticsExtras,
+            'shipping_cents' => $serviceBaseFees + $regionSurcharge + $weightCharges,
             'eligible_logistics_organization_ids' => collect($charges)->pluck('organization_id')->push($organization->id)->unique()->values()->all(),
             'route_snapshot' => $route,
             'logistics_charge_inputs' => $charges,
             'state' => [
                 'rate_id' => $rate->id,
                 'rate_revision' => $rate->revision,
+                'pricing_model' => ShippingPricingModel::LogisticsServiceBase->value,
                 'selected_organization_id' => $organization->id,
                 'route' => [$route['status'], $route['failure_code'], $route['graph_revision'], $route['sort_plans']],
                 'charges' => collect($charges)->map(fn (array $charge) => [$charge['rate_card_id'], $charge['rate_card_revision'], $charge['rate_rule_ids'], $charge['quoted_charge_cents']])->all(),
@@ -196,11 +200,15 @@ class ShippingQuotationService
             }
             $card = LogisticsRateCard::query()->where('logistics_organization_id', $leg['organization_id'])
                 ->where('status', LogisticsRateCardStatus::Published->value)->where('effective_at', '<=', now())
-                ->with('rules')->orderByDesc('effective_at')->orderByDesc('version_number')->first();
+                ->with(['rules', 'services'])->orderByDesc('effective_at')->orderByDesc('version_number')->first();
             if ($card === null) {
                 throw CheckoutException::conflict('ROUTE_PARTICIPANT_RATE_UNAVAILABLE', 'A route participant has no active rate card.');
             }
-            $total = 0;
+            $service = $card->services->first(fn ($candidate) => $candidate->service_type === $leg['service_type']);
+            if ($service === null) {
+                throw CheckoutException::conflict('ROUTE_SERVICE_RATE_UNAVAILABLE', 'A route participant has no base fee for the required service.');
+            }
+            $weightCharges = 0;
             $ruleIds = [];
             foreach (collect($inputs)->groupBy('category_id') as $categoryId => $categoryInputs) {
                 $rule = $card->rules->first(fn ($candidate) => $candidate->category_id === $categoryId && $candidate->service_type === $leg['service_type']);
@@ -213,7 +221,7 @@ class ShippingQuotationService
                 }
                 $excess = max(0, $weight - $rule->included_weight_grams);
                 $steps = $excess === 0 ? 0 : (int) ceil($excess / $rule->additional_weight_grams);
-                $total += $rule->base_charge_cents + ($steps * $rule->additional_fee_cents);
+                $weightCharges += $steps * $rule->additional_fee_cents;
                 $ruleIds[] = $rule->id;
             }
 
@@ -223,7 +231,10 @@ class ShippingQuotationService
                 'rate_card_id' => $card->id,
                 'rate_card_revision' => $card->revision,
                 'rate_rule_ids' => $ruleIds,
-                'quoted_charge_cents' => $total,
+                'service_rate_id' => $service->id,
+                'base_fee_cents' => $service->base_fee_cents,
+                'additional_weight_fee_cents' => $weightCharges,
+                'quoted_charge_cents' => $service->base_fee_cents + $weightCharges,
             ];
         })->values()->all();
     }

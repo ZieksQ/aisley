@@ -18,7 +18,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Checkout freezes the chosen hubs, accepted connection revisions, road metrics, sort-plan identifiers/revisions, and ordered hops in the Order pricing snapshot.
 - Waybill creation materializes a planned/local route from that snapshot. Later plan edits do not reprice or replace committed hops.
 - A connection or participant that becomes operationally unavailable before pickup creates a hold; Customer COD remains unchanged.
-- If no complete route exists at quote time, checkout uses the platform base plus buyer-region surcharge and marks pricing `unplanned`. Operational retry may later find a route, but Finance must reconcile actual participants because no leg weights were quoted.
+- If no complete route exists at quote time, checkout uses only the buyer-region surcharge and marks pricing `unplanned`. Operational retry may later find a route, but Finance must reconcile actual participants because no leg weights were quoted.
 - Logistics linehaul commission is not selected by the first- or last-mile organization alone. The post-commission pool is divided pro rata using frozen quoted charges for every evidenced service leg.
 - This revision supersedes references below that calculate a new route only at waybill creation or identify the Seller as provider-selection authority.
 

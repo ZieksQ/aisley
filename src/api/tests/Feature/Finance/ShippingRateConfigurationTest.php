@@ -32,19 +32,14 @@ class ShippingRateConfigurationTest extends TestCase
         Sanctum::actingAs($admin);
 
         $tariff = $this->postJson('/api/v1/admin/shipping-rates', [
-            'base_fee_cents' => 4500,
-            'volumetric_divisor' => 5000,
-            'max_weight_grams' => 50000,
-            'max_length_mm' => 2000,
-            'max_width_mm' => 2000,
-            'max_height_mm' => 2000,
             'effective_at' => now()->subMinute()->toISOString(),
             'region_surcharges' => [
                 ['region' => 'NCR', 'surcharge_cents' => 1000],
                 ['region' => 'Region IV-A', 'surcharge_cents' => 1500],
             ],
         ])->assertCreated()
-            ->assertJsonPath('data.base_fee_cents', 4500)
+            ->assertJsonMissingPath('data.base_fee_cents')
+            ->assertJsonPath('data.volumetric_divisor', 5000)
             ->assertJsonCount(2, 'data.region_surcharges')
             ->json('data');
         $this->postJson('/api/v1/admin/shipping-rates/'.$tariff['id'].'/publish')
@@ -58,10 +53,10 @@ class ShippingRateConfigurationTest extends TestCase
         Sanctum::actingAs($logistics);
         $card = $this->postJson('/api/v1/logistics/rate-cards', [
             'effective_at' => now()->subMinute()->toISOString(),
+            'services' => [['service_type' => 'first_mile', 'base_fee_cents' => 1200]],
             'rules' => [[
                 'category_id' => $category->id,
                 'service_type' => 'first_mile',
-                'base_charge_cents' => 1200,
                 'included_weight_grams' => 1000,
                 'additional_weight_grams' => 500,
                 'additional_fee_cents' => 250,
@@ -70,7 +65,9 @@ class ShippingRateConfigurationTest extends TestCase
                 'max_width_mm' => 2000,
                 'max_height_mm' => 2000,
             ]],
-        ])->assertCreated()->assertJsonPath('data.status', 'draft')->json('data');
+        ])->assertCreated()->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.services.0.base_fee_cents', 1200)
+            ->assertJsonMissingPath('data.rules.0.base_charge_cents')->json('data');
         $this->postJson('/api/v1/logistics/rate-cards/'.$card['id'].'/publish')
             ->assertOk()->assertJsonPath('data.status', 'published');
         $this->getJson('/api/v1/logistics/rate-cards')
@@ -99,6 +96,65 @@ class ShippingRateConfigurationTest extends TestCase
             'logistics_organization_id' => $organization->id,
             'is_enabled' => true,
         ]);
+    }
+
+    public function test_admin_can_change_only_surcharges_and_duplicate_regions_are_rejected(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $permission = Permission::create(['slug' => 'finance.manage', 'name' => 'Manage finance']);
+        AdminPermission::create(['admin_id' => $admin->id, 'permission_id' => $permission->id]);
+        Sanctum::actingAs($admin);
+        $payload = ['effective_at' => now()->toISOString(), 'region_surcharges' => []];
+        foreach (['base_fee_cents', 'volumetric_divisor', 'max_weight_grams', 'max_length_mm', 'max_width_mm', 'max_height_mm', 'additional_fee_cents', 'destination_surcharge_cents'] as $field) {
+            $this->postJson('/api/v1/admin/shipping-rates', [...$payload, $field => 100])
+                ->assertUnprocessable()->assertJsonValidationErrors($field);
+        }
+        $this->postJson('/api/v1/admin/shipping-rates', [...$payload, 'region_surcharges' => [
+            ['region' => ' NCR ', 'surcharge_cents' => 100],
+            ['region' => 'ncr', 'surcharge_cents' => 200],
+        ]])->assertUnprocessable()->assertJsonValidationErrors('region_surcharges');
+        $first = $this->postJson('/api/v1/admin/shipping-rates', $payload)->assertCreated()->json('data');
+        $this->assertDatabaseHas('shipping_rate_versions', ['id' => $first['id'], 'base_fee_cents' => 0]);
+        $this->postJson('/api/v1/admin/shipping-rates', $payload)->assertCreated()
+            ->assertJsonPath('data.version_number', 2)->assertJsonPath('data.max_weight_grams', $first['max_weight_grams']);
+        $this->assertDatabaseCount('shipping_rate_versions', 2);
+
+        [$logistics] = $this->logistics('No Admin access');
+        Sanctum::actingAs($logistics);
+        $this->postJson('/api/v1/admin/shipping-rates', $payload)->assertForbidden();
+    }
+
+    public function test_service_base_fees_require_matching_category_rules_and_valid_unique_services(): void
+    {
+        [$logistics] = $this->logistics('Provider');
+        [, , $category] = $this->seller();
+        Sanctum::actingAs($logistics);
+        $rule = [
+            'category_id' => $category->id, 'service_type' => 'first_mile',
+            'included_weight_grams' => 1000, 'additional_weight_grams' => 500, 'additional_fee_cents' => 250,
+            'max_weight_grams' => 50000, 'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
+        ];
+        $payload = ['effective_at' => now()->toISOString(), 'rules' => [$rule]];
+        foreach ([
+            [],
+            [['service_type' => 'first_mile', 'base_fee_cents' => -1]],
+            [['service_type' => 'unknown', 'base_fee_cents' => 100]],
+            [['service_type' => 'last_mile', 'base_fee_cents' => 100]],
+            [['service_type' => 'first_mile', 'base_fee_cents' => 100], ['service_type' => 'first_mile', 'base_fee_cents' => 200]],
+            [['service_type' => 'first_mile', 'base_fee_cents' => 100], ['service_type' => 'linehaul', 'base_fee_cents' => 200]],
+        ] as $services) {
+            $this->postJson('/api/v1/logistics/rate-cards', [...$payload, 'services' => $services])->assertUnprocessable();
+        }
+        $services = [['service_type' => 'first_mile', 'base_fee_cents' => 0]];
+        $this->postJson('/api/v1/logistics/rate-cards', [...$payload, 'services' => $services, 'rules' => [[...$rule, 'base_charge_cents' => 100]]])
+            ->assertUnprocessable()->assertJsonValidationErrors('rules.0.base_charge_cents');
+        $this->postJson('/api/v1/logistics/rate-cards', [...$payload, 'services' => $services, 'rules' => [$rule, $rule]])
+            ->assertUnprocessable()->assertJsonValidationErrors('rules');
+        $card = $this->postJson('/api/v1/logistics/rate-cards', [...$payload, 'services' => $services])->assertCreated()->json('data');
+        $this->assertDatabaseCount('logistics_rate_cards', 1);
+        $this->assertDatabaseHas('logistics_rate_rules', ['logistics_rate_card_id' => $card['id'], 'base_charge_cents' => 0]);
+        $this->postJson('/api/v1/logistics/rate-cards/'.$card['id'].'/publish')->assertOk();
+        $this->postJson('/api/v1/logistics/rate-cards/'.$card['id'].'/publish')->assertConflict();
     }
 
     /** @return array{User, LogisticsOrganization} */

@@ -223,7 +223,7 @@ class CustomerCheckoutTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_NOT_FOUND');
     }
 
-    public function test_latest_platform_base_rate_is_used_without_exposing_internal_weight_calculation(): void
+    public function test_unplanned_route_ignores_legacy_platform_base_and_uses_only_region_surcharge_privately(): void
     {
         $customer = $this->customer();
         $address = $this->address($customer);
@@ -243,12 +243,14 @@ class CustomerCheckoutTest extends TestCase
             'accepted_at' => now()->subHour(), 'accepted_by' => $logisticsUserId,
         ]);
 
+        $rate->regionSurcharges()->create(['destination_region' => 'NCR', 'normalized_region' => 'ncr', 'surcharge_cents' => 700]);
+
         $this->postJson('/api/v1/customer/checkout/quote', $this->buyNowPayload($product, $address, 2))
             ->assertOk()
             ->assertJsonMissingPath('data.groups.0.shippingQuote.billableWeightGrams')
             ->assertJsonMissingPath('data.groups.0.shippingQuote.baseFee')
-            ->assertJsonPath('data.groups.0.totals.shippingFee', '150.00')
-            ->assertJsonPath('data.groups.0.totals.payable', '13650.00');
+            ->assertJsonPath('data.groups.0.totals.shippingFee', '7.00')
+            ->assertJsonPath('data.groups.0.totals.payable', '13507.00');
     }
 
     public function test_rate_revision_after_quote_requires_customer_reconfirmation(): void
@@ -266,7 +268,7 @@ class CustomerCheckoutTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
     }
 
-    public function test_local_route_combines_platform_region_and_logistics_category_weight_charges_privately(): void
+    public function test_local_route_combines_service_bases_region_and_category_weight_charges_privately(): void
     {
         $customer = $this->customer();
         $address = $this->address($customer);
@@ -319,6 +321,7 @@ class CustomerCheckoutTest extends TestCase
             'published_by' => $logisticsUserId,
         ]);
         foreach (['first_mile', 'last_mile'] as $serviceType) {
+            $card->services()->create(['service_type' => $serviceType, 'base_fee_cents' => 200]);
             $card->rules()->create([
                 'category_id' => $product->category_id,
                 'service_type' => $serviceType,
@@ -340,27 +343,39 @@ class CustomerCheckoutTest extends TestCase
 
         $this->postJson('/api/v1/customer/checkout/logistics-options', $payload)
             ->assertOk()
-            ->assertJsonPath('data.groups.0.options.0.shippingFee', '23.00')
+            ->assertJsonPath('data.groups.0.options.0.shippingFee', '13.00')
             ->assertJsonPath('data.groups.0.options.0.routeStatus', 'local');
 
         $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)
             ->assertOk()
             ->assertJsonPath('data.groups.0.shippingQuote.routeStatus', 'local')
-            ->assertJsonPath('data.groups.0.shippingQuote.shippingFee', '23.00')
-            ->assertJsonPath('data.groups.0.totals.shippingFee', '23.00')
+            ->assertJsonPath('data.groups.0.shippingQuote.shippingFee', '13.00')
+            ->assertJsonPath('data.groups.0.totals.shippingFee', '13.00')
             ->assertJsonMissingPath('data.groups.0.shippingQuote.billableWeightGrams')
             ->assertJsonMissingPath('data.groups.0.shippingQuote.destinationSurcharge')
             ->json('data');
 
+        $card->services()->where('service_type', 'first_mile')->update(['base_fee_cents' => 300]);
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quote['quoteId']])
+            ->assertConflict()->assertJsonPath('code', 'QUOTE_STALE');
+        $this->assertDatabaseCount('orders', 0);
+        $card->services()->where('service_type', 'first_mile')->update(['base_fee_cents' => 200]);
+
         $this->withHeader('Idempotency-Key', (string) Str::uuid())
             ->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quote['quoteId']])
             ->assertOk()
-            ->assertJsonPath('data.orders.0.totals.shippingFee', '23.00');
+            ->assertJsonPath('data.orders.0.totals.shippingFee', '13.00');
 
         $snapshot = Order::query()->firstOrFail()->pricingSnapshot;
         $this->assertSame('local', $snapshot->shipping_route_status->value);
         $this->assertSame(800, collect($snapshot->logistics_charge_inputs)->sum('quoted_charge_cents'));
         $this->assertSame(1200, $snapshot->billable_weight_grams);
+        $this->assertSame('logistics_service_base_v1', $snapshot->shipping_pricing_model->value);
+        $this->assertSame(400, $snapshot->base_fee_cents);
+        $this->assertSame(400, $snapshot->additional_weight_fee_cents);
+        $card->services()->update(['base_fee_cents' => 9000]);
+        $this->assertSame(1300, $snapshot->fresh()->quoted_shipping_fee_cents);
     }
 
     private function customer(): User

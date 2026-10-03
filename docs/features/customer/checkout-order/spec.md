@@ -118,7 +118,13 @@ Buy Now or selected Cart lines
 
 ### Route-based shipping quotation and COD extension (2026-09-27)
 
-- `docs/features/shared/shipping-quotation/spec.md` is authoritative for platform base/region fees, item-based billable weight, Seller-enabled providers, Logistics rate cards, route fallback, quote expiry, and immutable rate inputs.
+- `docs/features/shared/shipping-quotation/spec.md` is authoritative for Logistics service base fees and Admin region surcharges, item-based billable weight, Seller-enabled providers, Logistics rate cards, route fallback, quote expiry, and immutable rate inputs.
 - Checkout returns an exact shipping fee and COD amount for every Shop Order and for the complete checkout before placement. Platform commissions never increase Customer COD.
 - Placement revalidates the address, contents, selected provider, rate revisions, acceptance, route, coverage, vouchers, and commission policies. A material change requires a refreshed quote and Customer confirmation.
 - Each placed Order stores its selected provider, platform tariff, frozen route/fallback status, private leg charges, discount funding, commissions, shipping fee, and collectible total. Rerouting and later rate changes cannot alter that total.
+
+
+### Service base-fee revision — 2026-10-03
+
+- The server now sums first-mile, each linehaul-hop, and last-mile Logistics service bases plus destination surcharge and category weight/size extras. No platform base applies to new quotations; local routes omit linehaul.
+- Customer payloads and final-fee projections are unchanged. Refresh pre-revision/stale quotes, verify provider switching and final totals, and keep internal components private. Existing Orders retain their original COD.

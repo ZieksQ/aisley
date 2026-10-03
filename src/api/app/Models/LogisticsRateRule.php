@@ -13,6 +13,8 @@ class LogisticsRateRule extends Model
 
     protected $guarded = [];
 
+    protected $hidden = ['base_charge_cents'];
+
     protected function casts(): array
     {
         return [

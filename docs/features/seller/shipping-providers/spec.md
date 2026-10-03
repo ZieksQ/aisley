@@ -38,3 +38,8 @@
 
 - [Shopify shipping zones and rates](https://help.shopify.com/en/manual/shipping/setting-up-shipping-zones) — keeps shipping configuration in a dedicated settings area and explains that weight, dimensions, origin, and destination affect carrier rates.
 - [Shippo carrier account settings](https://support.goshippo.com/hc/en-us/articles/360024209911-How-to-Connect-Your-Own-Carrier-Account) — uses a direct carrier list with an active control instead of a decorative dashboard composition.
+
+
+### Pricing ownership revision — 2026-10-03
+
+Logistics now owns service base fees and category weight/size extras; Admin owns only destination surcharges. Seller provider configuration and frozen pickup selection keep the same contracts. No Seller fee editor is required; verify checkout options and existing provider/Order-preparation enforcement against the revised pricing API.

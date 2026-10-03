@@ -60,6 +60,9 @@ class FinanceHoldReviewTest extends TestCase
         $this->getJson('/api/v1/admin/finance/holds/'.$hold->id)
             ->assertOk()
             ->assertJsonPath('data.pricing.logistics_pool_cents', 9000)
+            ->assertJsonPath('data.pricing.pricing_model', 'platform_base_v1')
+            ->assertJsonPath('data.pricing.base_fee_cents', 5000)
+            ->assertJsonPath('data.pricing.additional_weight_fee_cents', 4000)
             ->assertJsonPath('organizations.0.business_name', 'First Carrier')
             ->assertJsonPath('organizations.1.business_name', 'Second Carrier');
 
@@ -82,6 +85,22 @@ class FinanceHoldReviewTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.reconciliation.total_allocation_cents', 10000);
+    }
+
+    public function test_service_fee_migration_preserves_existing_order_and_pricing_snapshot_values(): void
+    {
+        $order = $this->order($this->logistics('Historical Carrier'));
+        $migration = require database_path('migrations/2026_10_03_000001_add_logistics_service_base_fees.php');
+        $migration->down();
+        $before = $order->pricingSnapshot->fresh()->getAttributes();
+        $migration->up();
+        $snapshot = $order->pricingSnapshot->fresh();
+        $this->assertSame('platform_base_v1', $snapshot->shipping_pricing_model->value);
+        $after = $snapshot->getAttributes();
+        unset($after['shipping_pricing_model']);
+        $this->assertSame($before, $after);
+        $this->assertSame('100.00', $order->fresh()->shipping_fee);
+        $this->assertSame('600.00', $order->fresh()->payable_total);
     }
 
     private function logistics(string $name): LogisticsOrganization

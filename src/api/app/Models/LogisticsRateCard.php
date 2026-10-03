@@ -34,4 +34,9 @@ class LogisticsRateCard extends Model
     {
         return $this->hasMany(LogisticsRateRule::class);
     }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(LogisticsServiceRate::class);
+    }
 }

@@ -18,7 +18,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 ## Checkout-selected provider and frozen pricing route — 2026-09-27
 
 - The Seller configures the Shop's allowed Logistics organizations; the Customer selects one provider per Shop Order at checkout. This supersedes the historical Seller-at-pickup selection decision below.
-- Checkout freezes either a complete `local`/`planned` commercial route or an `unplanned` base/region fallback. Planned hops and private leg-charge weights are immutable pricing evidence.
+- Checkout freezes either a complete `local`/`planned` commercial route or an `unplanned` destination-surcharge-only fallback. Planned hops and private leg-charge weights are immutable pricing evidence.
 - Seller pickup must match the Order's selected provider. Planned/local waybills materialize the frozen route; they do not calculate a replacement route from mutable sort plans.
 - A frozen connection/participant becoming unavailable causes an operational hold without repricing. An unplanned fallback may resolve operationally later, while Finance holds payout for audited participant reconciliation.
 - Product/Variant packed measurements are required inputs to checkout pricing; one Order still maps to one Parcel in the current fulfillment model.

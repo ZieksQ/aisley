@@ -36,10 +36,12 @@ class FinanceHoldResource extends JsonResource
                 ],
             ],
             'pricing' => $snapshot === null ? null : [
+                'pricing_model' => self::enumValue($snapshot->shipping_pricing_model),
                 'route_status' => self::enumValue($routeStatus),
                 'logistics_pool_cents' => $snapshot->logistics_pool_cents,
                 'quoted_shipping_fee_cents' => $snapshot->quoted_shipping_fee_cents,
                 'base_fee_cents' => $snapshot->base_fee_cents,
+                'additional_weight_fee_cents' => $snapshot->additional_weight_fee_cents,
                 'destination_surcharge_cents' => $snapshot->destination_surcharge_cents,
                 'billable_weight_grams' => $snapshot->billable_weight_grams,
                 'destination' => [

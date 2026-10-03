@@ -46,6 +46,7 @@ class OrderPricingService
 
         return OrderPricingSnapshot::create([
             'order_id' => $order->id, 'shipping_rate_version_id' => $shipping['rate']->id,
+            'shipping_pricing_model' => $shipping['pricing_model'],
             'selected_logistics_organization_id' => $shipping['selected_logistics_organization_id'],
             'shipping_route_status' => $shipping['route_snapshot']['status'],
             'shipping_route_snapshot' => $shipping['route_snapshot'],

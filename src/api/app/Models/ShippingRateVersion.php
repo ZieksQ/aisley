@@ -12,6 +12,11 @@ class ShippingRateVersion extends Model
 
     protected $guarded = [];
 
+    protected $hidden = [
+        'base_fee_cents', 'included_weight_grams', 'additional_weight_grams',
+        'additional_fee_cents', 'destination_surcharge_cents',
+    ];
+
     protected function casts(): array
     {
         return [
