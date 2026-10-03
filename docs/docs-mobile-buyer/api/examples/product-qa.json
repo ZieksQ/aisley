@@ -1,0 +1,253 @@
+{
+  "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "operations": [
+    {
+      "feature": "product-qa",
+      "method": "GET",
+      "path": "/api/v1/products/{product}/questions",
+      "request_contract": "page1\u201310000; limit1\u201350 default10.",
+      "response_contract": "{data:Question[],links:PageLinks,meta:PageMeta}",
+      "status": 200,
+      "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
+      "access": "Public",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "data": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "question": "Synthetic product question",
+            "askedAt": null,
+            "answer": null,
+            "answeredAt": null,
+            "sellerLabel": null
+          }
+        ],
+        "links": {
+          "first": "/synthetic-placeholder",
+          "last": "/synthetic-placeholder",
+          "prev": null,
+          "next": null
+        },
+        "meta": {
+          "current_page": 1,
+          "from": null,
+          "last_page": 1,
+          "links": [
+            {
+              "url": null,
+              "label": "Synthetic example",
+              "active": false
+            }
+          ],
+          "path": "/synthetic-placeholder",
+          "per_page": 1,
+          "to": null,
+          "total": 1
+        }
+      },
+      "id": "op-049",
+      "errors": [
+        {
+          "feature": "product-qa",
+          "status": 409,
+          "code": "PRODUCT_QA_ALREADY_ANSWERED",
+          "message": "This Product question already has an official answer.",
+          "field": null
+        },
+        {
+          "feature": "product-qa",
+          "status": 409,
+          "code": "IDEMPOTENCY_KEY_REUSED",
+          "message": "This Idempotency-Key was already used for different Product Q&A details.",
+          "field": "idempotency_key"
+        }
+      ],
+      "response_variants": [
+        {
+          "name": "empty_collection",
+          "status": 200,
+          "body": {
+            "data": [],
+            "links": {
+              "first": "/synthetic-placeholder",
+              "last": "/synthetic-placeholder",
+              "prev": null,
+              "next": null
+            },
+            "meta": {
+              "current_page": 1,
+              "from": null,
+              "last_page": 1,
+              "links": [
+                {
+                  "url": null,
+                  "label": "Synthetic example",
+                  "active": false
+                }
+              ],
+              "path": "/synthetic-placeholder",
+              "per_page": 1,
+              "to": null,
+              "total": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "feature": "product-qa",
+      "method": "POST",
+      "path": "/api/v1/products/{product}/questions",
+      "request_contract": "question required trimmed plain text\u22641000; rejects unsafe HTML/Markdown/control characters and extra fields; UUID header.",
+      "response_contract": "{data:Question}",
+      "status": 201,
+      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
+      "access": "Active Customer + consent",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {
+          "Idempotency-Key": "11111111-1111-4111-8111-111111111111"
+        },
+        "body": {
+          "question": "Synthetic product question"
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "question": "Synthetic product question",
+          "askedAt": null,
+          "answer": null,
+          "answeredAt": null,
+          "sellerLabel": null
+        }
+      },
+      "id": "op-050",
+      "errors": [
+        {
+          "feature": "product-qa",
+          "status": 409,
+          "code": "PRODUCT_QA_ALREADY_ANSWERED",
+          "message": "This Product question already has an official answer.",
+          "field": null
+        },
+        {
+          "feature": "product-qa",
+          "status": 409,
+          "code": "IDEMPOTENCY_KEY_REUSED",
+          "message": "This Idempotency-Key was already used for different Product Q&A details.",
+          "field": "idempotency_key"
+        }
+      ],
+      "response_variants": [
+        {
+          "name": "exact_replay",
+          "status": 201,
+          "body": {
+            "data": {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "question": "Synthetic product question",
+              "askedAt": null,
+              "answer": null,
+              "answeredAt": null,
+              "sellerLabel": null
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "failure_examples": [
+    {
+      "status": 422,
+      "body": {
+        "message": "Representative validation failure.",
+        "errors": {
+          "question": [
+            "Synthetic validation message for question."
+          ]
+        }
+      }
+    },
+    {
+      "status": 401,
+      "body": {
+        "message": "Unauthenticated."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "ACCOUNT_SUSPENDED",
+        "message": "Your account is suspended."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "FORBIDDEN_ROLE",
+        "message": "This area is restricted to customers."
+      }
+    },
+    {
+      "status": 404,
+      "body": {
+        "message": "Not Found."
+      }
+    },
+    {
+      "status": 429,
+      "headers": {
+        "Retry-After": "60"
+      },
+      "body": {
+        "message": "Too Many Attempts."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_QA_ALREADY_ANSWERED",
+        "message": "This Product question already has an official answer."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "IDEMPOTENCY_KEY_REUSED",
+        "message": "This Idempotency-Key was already used for different Product Q&A details.",
+        "errors": {
+          "idempotency_key": [
+            "This Idempotency-Key was already used for different Product Q&A details."
+          ]
+        }
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "POLICY_CONSENT_REQUIRED",
+        "message": "Accept the current Terms of Service and Privacy Policy before continuing.",
+        "data": {
+          "required_policies": [
+            {
+              "type": "terms_of_service",
+              "label": "Terms of Service",
+              "version": 1,
+              "read_url": "/api/v1/platform/policies/terms_of_service",
+              "accept_url": "/api/v1/policy-consent/terms_of_service/versions/1/accept"
+            }
+          ],
+          "status_url": "/api/v1/policy-consent/status"
+        }
+      }
+    }
+  ]
+}

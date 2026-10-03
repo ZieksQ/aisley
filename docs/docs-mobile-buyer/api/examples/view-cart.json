@@ -1,0 +1,635 @@
+{
+  "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "operations": [
+    {
+      "feature": "view-cart",
+      "method": "GET",
+      "path": "/api/v1/customer/cart",
+      "request_contract": "No input.",
+      "response_contract": "{data:Cart}",
+      "status": 200,
+      "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
+      "access": "Active Customer + consent",
+      "notes": "POST increments an existing configuration; PATCH may merge lines and change line IDs. Response status 200 for all four operations.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "itemCount": 1,
+          "distinctItemCount": 1,
+          "subtotal": 100,
+          "availableSubtotal": 100,
+          "items": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "quantity": 1,
+              "unitPrice": 100,
+              "lineSubtotal": 100,
+              "product": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "slug": "Synthetic example",
+                "name": "Synthetic example",
+                "url": "/synthetic-placeholder"
+              },
+              "variant": null,
+              "selectedOptions": [
+                {
+                  "group": "Synthetic example",
+                  "value": "Synthetic example"
+                }
+              ],
+              "media": {
+                "url": "/api/v1/product-media/11111111-1111-4111-8111-111111111111",
+                "altText": "Synthetic example"
+              },
+              "availability": {
+                "isAvailable": true,
+                "reason": null,
+                "availableQuantity": 1
+              }
+            }
+          ]
+        }
+      },
+      "id": "op-025",
+      "errors": [
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "PRODUCT_NOT_FOUND",
+          "message": "The selected product does not exist.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "This product is no longer available to purchase.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_REQUIRED",
+          "message": "Select a complete product variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_NOT_ALLOWED",
+          "message": "This product does not accept a variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT",
+          "message": "The selected variation does not belong to this product.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT_COMBINATION",
+          "message": "The selected variation is incomplete or invalid.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "VARIANT_UNAVAILABLE",
+          "message": "The selected variation is no longer available.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "OUT_OF_STOCK",
+          "message": "The selected configuration is out of stock.",
+          "field": "quantity"
+        }
+      ],
+      "response_variants": []
+    },
+    {
+      "feature": "view-cart",
+      "method": "POST",
+      "path": "/api/v1/customer/cart/items",
+      "request_contract": "product_id UUID; variant_id present nullable UUID; quantity int1\u20132147483647; server enforces visibility/complete variant/stock.",
+      "response_contract": "{data:Cart}",
+      "status": 200,
+      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "access": "Active Customer + consent",
+      "notes": "POST increments an existing configuration; PATCH may merge lines and change line IDs. Response status 200 for all four operations.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "product_id": "11111111-1111-4111-8111-111111111111",
+          "variant_id": null,
+          "quantity": 1
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "itemCount": 1,
+          "distinctItemCount": 1,
+          "subtotal": 100,
+          "availableSubtotal": 100,
+          "items": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "quantity": 1,
+              "unitPrice": 100,
+              "lineSubtotal": 100,
+              "product": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "slug": "Synthetic example",
+                "name": "Synthetic example",
+                "url": "/synthetic-placeholder"
+              },
+              "variant": null,
+              "selectedOptions": [
+                {
+                  "group": "Synthetic example",
+                  "value": "Synthetic example"
+                }
+              ],
+              "media": {
+                "url": "/api/v1/product-media/11111111-1111-4111-8111-111111111111",
+                "altText": "Synthetic example"
+              },
+              "availability": {
+                "isAvailable": true,
+                "reason": null,
+                "availableQuantity": 1
+              }
+            }
+          ]
+        }
+      },
+      "id": "op-026",
+      "errors": [
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "PRODUCT_NOT_FOUND",
+          "message": "The selected product does not exist.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "This product is no longer available to purchase.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_REQUIRED",
+          "message": "Select a complete product variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_NOT_ALLOWED",
+          "message": "This product does not accept a variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT",
+          "message": "The selected variation does not belong to this product.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT_COMBINATION",
+          "message": "The selected variation is incomplete or invalid.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "VARIANT_UNAVAILABLE",
+          "message": "The selected variation is no longer available.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "OUT_OF_STOCK",
+          "message": "The selected configuration is out of stock.",
+          "field": "quantity"
+        }
+      ],
+      "response_variants": []
+    },
+    {
+      "feature": "view-cart",
+      "method": "PATCH",
+      "path": "/api/v1/customer/cart/items/{item}",
+      "request_contract": "quantity int1\u20132147483647 and/or variant_id nullable UUID; at least one supported field; variant must belong to Product.",
+      "response_contract": "{data:Cart}",
+      "status": 200,
+      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "access": "Active Customer + consent",
+      "notes": "POST increments an existing configuration; PATCH may merge lines and change line IDs. Response status 200 for all four operations.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "quantity": 1
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "itemCount": 1,
+          "distinctItemCount": 1,
+          "subtotal": 100,
+          "availableSubtotal": 100,
+          "items": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "quantity": 1,
+              "unitPrice": 100,
+              "lineSubtotal": 100,
+              "product": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "slug": "Synthetic example",
+                "name": "Synthetic example",
+                "url": "/synthetic-placeholder"
+              },
+              "variant": null,
+              "selectedOptions": [
+                {
+                  "group": "Synthetic example",
+                  "value": "Synthetic example"
+                }
+              ],
+              "media": {
+                "url": "/api/v1/product-media/11111111-1111-4111-8111-111111111111",
+                "altText": "Synthetic example"
+              },
+              "availability": {
+                "isAvailable": true,
+                "reason": null,
+                "availableQuantity": 1
+              }
+            }
+          ]
+        }
+      },
+      "id": "op-027",
+      "errors": [
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "PRODUCT_NOT_FOUND",
+          "message": "The selected product does not exist.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "This product is no longer available to purchase.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_REQUIRED",
+          "message": "Select a complete product variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_NOT_ALLOWED",
+          "message": "This product does not accept a variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT",
+          "message": "The selected variation does not belong to this product.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT_COMBINATION",
+          "message": "The selected variation is incomplete or invalid.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "VARIANT_UNAVAILABLE",
+          "message": "The selected variation is no longer available.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "OUT_OF_STOCK",
+          "message": "The selected configuration is out of stock.",
+          "field": "quantity"
+        }
+      ],
+      "response_variants": []
+    },
+    {
+      "feature": "view-cart",
+      "method": "DELETE",
+      "path": "/api/v1/customer/cart/items/{item}",
+      "request_contract": "Owned Cart Item UUID; no body.",
+      "response_contract": "{data:Cart}",
+      "status": 200,
+      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "access": "Active Customer + consent",
+      "notes": "POST increments an existing configuration; PATCH may merge lines and change line IDs. Response status 200 for all four operations.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "itemCount": 1,
+          "distinctItemCount": 1,
+          "subtotal": 100,
+          "availableSubtotal": 100,
+          "items": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "quantity": 1,
+              "unitPrice": 100,
+              "lineSubtotal": 100,
+              "product": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "slug": "Synthetic example",
+                "name": "Synthetic example",
+                "url": "/synthetic-placeholder"
+              },
+              "variant": null,
+              "selectedOptions": [
+                {
+                  "group": "Synthetic example",
+                  "value": "Synthetic example"
+                }
+              ],
+              "media": {
+                "url": "/api/v1/product-media/11111111-1111-4111-8111-111111111111",
+                "altText": "Synthetic example"
+              },
+              "availability": {
+                "isAvailable": true,
+                "reason": null,
+                "availableQuantity": 1
+              }
+            }
+          ]
+        }
+      },
+      "id": "op-028",
+      "errors": [
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "PRODUCT_NOT_FOUND",
+          "message": "The selected product does not exist.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "This product is no longer available to purchase.",
+          "field": "product_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_REQUIRED",
+          "message": "Select a complete product variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "VARIANT_NOT_ALLOWED",
+          "message": "This product does not accept a variation.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT",
+          "message": "The selected variation does not belong to this product.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 422,
+          "code": "INVALID_VARIANT_COMBINATION",
+          "message": "The selected variation is incomplete or invalid.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "VARIANT_UNAVAILABLE",
+          "message": "The selected variation is no longer available.",
+          "field": "variant_id"
+        },
+        {
+          "feature": "view-cart",
+          "status": 409,
+          "code": "OUT_OF_STOCK",
+          "message": "The selected configuration is out of stock.",
+          "field": "quantity"
+        }
+      ],
+      "response_variants": []
+    }
+  ],
+  "failure_examples": [
+    {
+      "status": 422,
+      "body": {
+        "message": "Representative validation failure.",
+        "errors": {
+          "quantity": [
+            "Synthetic validation message for quantity."
+          ]
+        }
+      }
+    },
+    {
+      "status": 401,
+      "body": {
+        "message": "Unauthenticated."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "ACCOUNT_SUSPENDED",
+        "message": "Your account is suspended."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "FORBIDDEN_ROLE",
+        "message": "This area is restricted to customers."
+      }
+    },
+    {
+      "status": 404,
+      "body": {
+        "message": "Not Found."
+      }
+    },
+    {
+      "status": 429,
+      "headers": {
+        "Retry-After": "60"
+      },
+      "body": {
+        "message": "Too Many Attempts."
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "PRODUCT_NOT_FOUND",
+        "message": "The selected product does not exist.",
+        "errors": {
+          "product_id": [
+            "The selected product does not exist."
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PRODUCT_UNAVAILABLE",
+        "message": "This product is no longer available to purchase.",
+        "errors": {
+          "product_id": [
+            "This product is no longer available to purchase."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "VARIANT_REQUIRED",
+        "message": "Select a complete product variation.",
+        "errors": {
+          "variant_id": [
+            "Select a complete product variation."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "VARIANT_NOT_ALLOWED",
+        "message": "This product does not accept a variation.",
+        "errors": {
+          "variant_id": [
+            "This product does not accept a variation."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "INVALID_VARIANT",
+        "message": "The selected variation does not belong to this product.",
+        "errors": {
+          "variant_id": [
+            "The selected variation does not belong to this product."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "INVALID_VARIANT_COMBINATION",
+        "message": "The selected variation is incomplete or invalid.",
+        "errors": {
+          "variant_id": [
+            "The selected variation is incomplete or invalid."
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "VARIANT_UNAVAILABLE",
+        "message": "The selected variation is no longer available.",
+        "errors": {
+          "variant_id": [
+            "The selected variation is no longer available."
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "OUT_OF_STOCK",
+        "message": "The selected configuration is out of stock.",
+        "errors": {
+          "quantity": [
+            "The selected configuration is out of stock."
+          ]
+        }
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "POLICY_CONSENT_REQUIRED",
+        "message": "Accept the current Terms of Service and Privacy Policy before continuing.",
+        "data": {
+          "required_policies": [
+            {
+              "type": "terms_of_service",
+              "label": "Terms of Service",
+              "version": 1,
+              "read_url": "/api/v1/platform/policies/terms_of_service",
+              "accept_url": "/api/v1/policy-consent/terms_of_service/versions/1/accept"
+            }
+          ],
+          "status_url": "/api/v1/policy-consent/status"
+        }
+      }
+    }
+  ]
+}

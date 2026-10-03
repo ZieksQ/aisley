@@ -1,0 +1,105 @@
+{
+  "source_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "source_package": "@aisley/psgc-address-data",
+  "dataset": "PSA PSGC Q2 2026",
+  "source_publication": "PSGC-2Q-2026-Publication-Datafile.xlsx",
+  "copied_on": "2026-10-03",
+  "transformation": "none; exact source bytes",
+  "files": [
+    {
+      "file": "0100000000-region-i-ilocos-region/addresses.json",
+      "bytes": 1101156,
+      "sha256": "f09d62d70d1d4b018ad08e870709326b3ec58c677904ea090e3d10656f961ac7"
+    },
+    {
+      "file": "0200000000-region-ii-cagayan-valley/addresses.json",
+      "bytes": 783723,
+      "sha256": "1930cfe9915d28fd875f9086fedbf95f05e35fc8a22f0c61ea0149f6bea01d53"
+    },
+    {
+      "file": "0300000000-region-iii-central-luzon/addresses.json",
+      "bytes": 1054349,
+      "sha256": "d6fc6b1e13e9d366503f43698c3e66e0fa9c2dd9f306c7e20cb0a7397a92b794"
+    },
+    {
+      "file": "0400000000-region-iv-a-calabarzon/addresses.json",
+      "bytes": 1355401,
+      "sha256": "9c5f50449257c9b585618f3e6868c168381721a02b81fcecae588dc0dcc146d7"
+    },
+    {
+      "file": "0500000000-region-v-bicol-region/addresses.json",
+      "bytes": 1171928,
+      "sha256": "4d7a3474b6ef1e681151db9d66ad9111623c1e71bc36351f378f120fb6c4b7f9"
+    },
+    {
+      "file": "0600000000-region-vi-western-visayas/addresses.json",
+      "bytes": 1126567,
+      "sha256": "b72874b1d7c30d6319c7ad54162f5e32dbb7b5e3631365f84504f992372e2cf8"
+    },
+    {
+      "file": "0700000000-region-vii-central-visayas/addresses.json",
+      "bytes": 776377,
+      "sha256": "390c08758c09a98229eff1aec4aac29179128f21fec18bc95479142cd16594c2"
+    },
+    {
+      "file": "0800000000-region-viii-eastern-visayas/addresses.json",
+      "bytes": 1465378,
+      "sha256": "e65f46401f7621af811e2cebe2edbb1d1d63309d283485362f11c0da5d5d4976"
+    },
+    {
+      "file": "0900000000-region-ix-zamboanga-peninsula/addresses.json",
+      "bytes": 776963,
+      "sha256": "7c90b833618161a27897dd0a15f6b00e2093259225e78573e36e0a2493e788cd"
+    },
+    {
+      "file": "1000000000-region-x-northern-mindanao/addresses.json",
+      "bytes": 685638,
+      "sha256": "8f2602d35aa56aa3f96a38dd29bdf496baf75098c1296bd32254fae6044a724f"
+    },
+    {
+      "file": "1100000000-region-xi-davao-region/addresses.json",
+      "bytes": 394500,
+      "sha256": "9e012db9db3a3d8535de0d4c96ef3766cd0d5b48a2d40168b863981f57dfecab"
+    },
+    {
+      "file": "1200000000-region-xii-soccsksargen/addresses.json",
+      "bytes": 371204,
+      "sha256": "b3a748d29e58f4a00e661f62330dfb9b5c10f694815cd30edac49574357bcc17"
+    },
+    {
+      "file": "1300000000-national-capital-region-ncr/addresses.json",
+      "bytes": 535403,
+      "sha256": "3946ec0724f525146957dd3df6070fff3aa329b00e3d0bc4625b0050d5f15d65"
+    },
+    {
+      "file": "1400000000-cordillera-administrative-region-car/addresses.json",
+      "bytes": 406681,
+      "sha256": "6b5feffcd1f1265532569bae0e42e2e2181064a49a64501fecf8db26edb3e481"
+    },
+    {
+      "file": "1600000000-region-xiii-caraga/addresses.json",
+      "bytes": 450488,
+      "sha256": "40379cf14016cc697fbc7e539627d5521e255d4f2ffad25cd6fd324ebd0e075d"
+    },
+    {
+      "file": "1700000000-mimaropa-region/addresses.json",
+      "bytes": 499638,
+      "sha256": "a6433cb43fd2de88f2a73526627771d3fcf915f881e7abfd797a498be65caa66"
+    },
+    {
+      "file": "1800000000-negros-island-region-nir/addresses.json",
+      "bytes": 463104,
+      "sha256": "5e26416a482dbaea4e9999a2cc48beee3904d519418db0709b18b4f8c4c1c07e"
+    },
+    {
+      "file": "1900000000-bangsamoro-autonomous-region-in-muslim-mindanao-barmm/addresses.json",
+      "bytes": 742050,
+      "sha256": "0447ed101bca494fe0d9498ebbb432c541c39515307aa09d89bbca49c7e92bd6"
+    },
+    {
+      "file": "list-of-all-regions.json",
+      "bytes": 2711,
+      "sha256": "b723e3fff95a9feee59c33f2c227d0c12f3ba72aa3d94427a3be61389b00c07a"
+    }
+  ]
+}

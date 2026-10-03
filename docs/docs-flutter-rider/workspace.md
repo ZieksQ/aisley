@@ -1,0 +1,845 @@
+# Workflows
+
+Defines **HOW** the system behaves: step-by-step flows and state transitions per role.
+
+# Authentication and Account Rules
+
+## Shared Users Table
+
+All roles live in the same logical users table.
+
+Email addresses may be reused across different roles but not within the same role.
+
+Required uniqueness rule:
+
+unique(email, role)
+
+`customer` is the canonical persisted/API role name. “Buyer” is the customer-facing marketplace term for that role; it must not be used as a second role value in routes, permissions, enums, or DTOs.
+
+5.2 Registration and Approval Flow
+
+Buyer
+
+register → admin approval → email notification → sign in
+
+Seller
+
+register → admin approval → email notification → sign in
+
+Logistics
+
+register → admin approval → email notification → sign in → MVP access (subscription billing/enforcement deferred)
+
+Courier
+
+search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
+
+Admin
+
+initial admin from environment credentials → create partners/admins → assign custom permissions
+
+5.3 Web Authentication
+
+React/Next.js web applications shall use stateful Laravel authentication with HttpOnly session cookies.
+
+Flow:
+
+Request /sanctum/csrf-cookie.
+
+Submit credentials to /login.
+
+Laravel returns an encrypted session cookie.
+
+Browser sends the cookie automatically on authenticated requests.
+
+5.4 Mobile Authentication
+
+Flutter mobile applications shall use stateless bearer tokens.
+
+Flow:
+
+Submit credentials and device_name.
+
+Backend creates a personal access token.
+
+Mobile app stores the token using secure device storage.
+
+Subsequent API requests send:
+
+Authorization: Bearer <token>
+
+5.5 Authorization
+
+All protected functionality must validate:
+
+Authenticated user.
+
+Correct role.
+
+Resource ownership.
+
+Current workflow/status.
+
+Logistics-to-courier relationship when applicable.
+
+A Seller must not access another Seller's shop, products, inventory, or seller-scoped orders.
+
+A Logistics account must not manage another Logistics company's couriers.
+
+A Courier must only operate jobs that are available or assigned within their authorized Logistics relationship.
+
+## 5.6 Logistics Organization and Hub Scope
+
+For the MVP, each Logistics organization/company owns exactly one operational hub/sorting center. This is a deliberate scale-down of the real-world model, where a Logistics company may operate multiple hubs and sub-hubs.
+
+- Sub-hubs, additional hubs, and multi-hub operations are out of scope for the MVP.
+- For the MVP, the Logistics registration address represents the address of the organization's sole operational hub/sorting center. The Logistics account operates this hub through the Logistics dashboard. No separate hub address or sub-hub address is collected.
+- Implemented hub pin flow: complete PSGC/manual operational address → choose **Pin hub location** → intentional Geoapify lookup, device location, or manual coordinates → adjust the Leaflet pin to the actual hub → explicitly confirm → server validates/saves latitude and longitude together on the sole hub Address. During provider failure, preserve manual registration and display unpinned; Account Settings corrects the same-premises pin with a reason and optimistic revision. No Mapbox or new approval/dispatch gate is introduced. Pin corrections preserve committed waybill/address/manifest history and change only future coordinate fingerprints; relocation remains separately controlled.
+- Courier registration selects the Logistics company; its sole hub is associated automatically. A separate hub/sub-hub selector is not needed.
+- Courier registration supplies exactly one vehicle, required type/plate, and private OR/CR for associated Logistics review. No spare/shared vehicles are supported. Maintenance, vehicle history, and capacity values/units/matching are deferred; they do not create dispatch gates. Existing task/custody history and multi-Order schedule rules remain intact.
+- Current registration creates one Vehicle, and the additive fleet migration enforces database-wide one-vehicle-per-Courier uniqueness only after a duplicate preflight. It never reseeds, deletes duplicates, or silently selects a winner.
+- Implemented self-service flow: active Courier edits type/plate/optional make/model or replaces OR or CR → server validates/locks the sole Vehicle and commits changed fields/document pointer plus notification intent → associated Logistics receives an informational alert, not a reapproval request. Omission preserves the other image; failure preserves existing data. Initial approval/evidence and task snapshots remain unchanged. Separate-document endpoints are available for post-approval completion; registration rollout remains the coordinated legacy/new-field boundary owned by Logistics Vehicle Fleet Management.
+- Parcels, waybills, sorting, transfer, dispatch, Couriers, fleet records, zones, and capacity views are scoped to that Logistics organization's single hub.
+- The transfer step does not represent movement between multiple hubs owned by the same Logistics organization. Any future multi-hub or inter-organization handoff requires a separate approved workflow.
+- The MVP has one Logistics operating account per organization. Staff, dispatcher, and sub-account credentials are deferred to a later authorization decision and must not be implied by this workflow.
+
+6. Buyer MVP Requirements
+
+6.1 Guest Browsing
+
+The system shall allow unauthenticated users to browse available products.
+
+Authentication is required before placing an order.
+
+6.2 Product Search and Selection
+
+Buyer shall be able to:
+
+Search products.
+
+View product summary information.
+
+Open a product detail page.
+
+Select quantity.
+
+Select available variations such as color or size.
+
+Add the configured product to cart.
+
+Buy the configured product immediately.
+
+The system shall validate stock availability before accepting a purchase.
+
+6.3 Browse Seller Shop
+
+Buyer shall be able to:
+
+Open a Seller's shop.
+
+View products belonging to that Seller.
+
+Filter the shop catalog using the Seller's available categories.
+
+6.4 Cart and Checkout
+
+Buyer shall be able to:
+
+View cart contents.
+
+Select items for checkout.
+
+Review quantity and selected variants.
+
+Apply eligible vouchers and discounts.
+
+Select a shipping address.
+
+Checkout remains provider-neutral. The Seller selects one eligible Logistics organization when requesting pickup.
+
+Use the current COD payment flow. Future online payment methods require a separate payment contract.
+
+Review final order details.
+
+Place the order.
+
+The system must protect inventory from overselling when an order is finalized.
+
+Successful COD placement skips `pending_payment`, creates the Order at `placed` with `payment_status = pending`, and reserves the requested inventory atomically. `pending_payment` remains available for a future online-payment flow.
+
+The checkout schema does not persist a Logistics provider directly. The implemented Seller pickup-request transaction stores one server-validated eligible Logistics organization with its derived sole hub on the pickup/fulfillment records and must not silently replace it after commitment.
+
+6.5 Address Book
+
+Buyer shall be able to save and manage multiple shipping and billing addresses.
+
+The address experience shall use the Customer Address Book flow: bundled PSGC Region → Province → City/Municipality → Barangay options, manual street/house/postal entry, optional Geoapify autocomplete or forward geocoding after **Pin location**, and a Leaflet map rendered with Geoapify tiles for click, drag, or GPS pin placement. Manual entry remains available when lookup or map services are unavailable. No Mapbox dependency, geocoding, or map rendering is used.
+
+6.6 Order Status
+
+Buyer shall be able to view the lifecycle of an order through a server-owned status mapper. Persisted/API values use lowercase `snake_case`; display labels are separate from machine values.
+
+The current high-level `OrderStatus` values are:
+
+`pending_payment` → `placed` → `seller_processing` → `ready_for_pickup` → `picked_up` → `in_transit` → `out_for_delivery` → `delivered`.
+
+The exceptional values are `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned`.
+
+`picked_up` means the assigned first-mile Courier explicitly confirmed physical possession from the Seller. `assigned` means Logistics committed a dispatch schedule and final-mile Courier offer; pickup scheduling does not write it. Detailed first-mile, hub, and assignment milestones belong to the Shipment/Delivery Task state described in section 11.2.
+
+Only the owning domain may advance a status, and every transition must be validated and recorded in status history. A Customer can read these states but cannot mutate them.
+
+6.7 Order Modification and Cancellation
+
+Buyer shall be able to cancel or change eligible order details only before the Seller processes the order.
+
+The MVP shall at minimum enforce this using canonical order status, allowing changes only while the Order remains `placed` and before Seller processing begins.
+
+When an eligible cancellation or rejection is committed before `picked_up_from_seller`, the Inventory service releases only that Order's reserved SKU quantities once and transactionally. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred.
+
+6.8 Reviews and Ratings
+
+After delivery, Buyer shall be able to:
+
+Rate a purchased product.
+
+Leave text feedback.
+
+Submit review media if media upload is included in the MVP build.
+
+Reviews must be restricted to verified purchases.
+
+6.9 Buyer Account
+
+Buyer shall be able to update basic profile/account information.
+
+7. Seller MVP Requirements
+
+7.1 One Seller, One Shop
+
+The system shall enforce a 1:1 relationship:
+
+Seller Account ↔ Shop
+
+A Seller cannot own multiple shops in the MVP.
+
+Seller registration creates the one Shop in `pending` state. Admin approval activates that existing Shop atomically with the Seller account and accepted registration evidence; missing or invalid required evidence prevents approval. After approval, `SHOP_SETUP_REQUIRED` is used only when storefront setup is incomplete. Publishing requires an active approved Seller and Shop, a valid business/shop name, one active Shop Category, a valid business address, and the server-generated unique slug. No second Shop is created.
+
+7.2 Product and Inventory Management
+
+Seller shall be able to:
+
+Add products.
+
+Update products.
+
+Archive products.
+
+Set prices.
+
+Configure product variations.
+
+Set discounts where applicable.
+
+Set seller vouchers where applicable.
+
+Monitor stock levels.
+
+Out-of-stock or unavailable variants shall not be purchasable.
+
+7.3 Order Notifications
+
+Seller shall be able to:
+
+See new orders.
+
+Review order details.
+
+Receive an important-order notification.
+
+7.4 Order Processing
+
+Seller shall be able to process/approve an order and prepare it for fulfillment.
+
+Core flow:
+
+Customer places the Order → Seller processes and packs → Seller selects an eligible Logistics organization and confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
+
+Seller order processing does not assign a Courier; the later pickup-request transaction creates the shared waybill.
+
+7.5 Prepare Order, Select Logistics, and Create Waybill
+
+Seller shall pack each parcel, select an eligible Logistics organization, request pickup, and print the resulting shared waybill needed for first-mile pickup.
+
+The shared-waybill identifier and QR must resolve the immutable Order/Parcel reference. Its server-owned snapshot uses the Shop pickup address and destination copied from Customer checkout; Seller cannot rewrite those facts.
+
+The Seller's pickup transaction creates one immutable waybill snapshot per Order as `ready_for_pickup` is confirmed. Reprints reuse the same identity and snapshot.
+
+The selected Logistics organization views and scans the same Seller-created waybill; it does not create a second hub waybill at `received_at_hub`.
+
+7.6 Delivery Confirmation
+
+Seller shall receive notification when the Buyer has received the order.
+
+7.7 Seller Reporting
+
+Seller shall have a basic report containing:
+
+Sales.
+
+Financial/profit information.
+
+Performance totals.
+
+From/to date filtering.
+
+Advanced analytics and large exports are not required for P0 MVP.
+
+7.8 Review Management
+
+Seller shall be able to read and reply to reviews/ratings on Seller products.
+
+7.9 Seller Account
+
+Seller shall be able to update basic account information.
+
+8. Logistics MVP Requirements
+
+### Logistics organization and hub scope
+
+The MVP uses one operational hub/sorting center per Logistics organization. The single-hub rule is intentional for project scale and does not claim that real-world Logistics companies are limited to one hub. Logistics features must not expose creation or selection of sub-hubs or additional hubs.
+
+8.1 Logistics Dashboard
+
+Logistics shall be able to view Seller-confirmed orders that are ready to enter logistics processing.
+
+8.2 Subscription
+
+Subscription billing, provider integration, subscription records, and subscription enforcement are deferred from the MVP. Admin approval and an active Logistics account are sufficient for currently approved Logistics access; subscription must not gate the current authentication/dashboard foundation or future operations until a separate Subscription policy is approved.
+
+The previously described base subscription and ₱10 per-order charge remain future business rules and are not implemented by this workflow.
+
+8.3 Door-to-Door Seller Pickup
+
+A first-mile Courier shall pick up prepared parcels from Sellers as part of the first-party logistics flow.
+
+After the Seller confirms `ready_for_pickup`, the selected Logistics organization creates at most one active first-mile task when none exists and offers or assigns it to an eligible Courier. Retried requests must return the existing task rather than create a duplicate. The Seller does not select the Courier.
+
+The system shall connect the `seller_pickup_assigned`, `seller_pickup_accepted`, and `picked_up_from_seller` task states to the corresponding Order/Parcel.
+
+First-mile rejection/re-offer remains target policy with no deployed Courier endpoint. Implemented final-mile rejection records `rejected`, leaves the Order unchanged, and lets Logistics re-offer the same task. An unfinished task may be shown as informationally `stale`; it is not automatically cancelled or reassigned in the MVP.
+
+8.4 Waybill
+
+Logistics shall be able to view, download, print, and scan the shared waybill created by the Seller pickup transaction.
+
+The Seller-created shared waybill shall include a stable, system-generated, scannable or enterable tracking ID, with:
+
+Thin 1D Code 128 barcode containing the tracking ID, and
+
+QR compatibility identifier and printed tracking ID/reference.
+
+The shared tracking ID, snapshot, selected Logistics organization, and Order/Parcel link are immutable from the Seller pickup-request transaction at `ready_for_pickup`. Routing and Courier assignments may change before physical handoff only through append-only events; after pickup, assignment and custody history cannot be overwritten. A Courier may submit a waybill QR/tracking-ID/Order-reference scan or handoff evidence through its assigned task; Logistics validates and records the authoritative event while preserving the performing Courier, recording Logistics account, and timestamp. Printing, reprinting, access, or scan submission does not independently advance an Order status.
+
+8.5 Receiving and Sorting
+
+Company-truck inbound flow (2026-09-23): Inbound linehaul starts receiving online and records truck arrival/unloading → Receive at hub scans against the selected manifest (offline captures remain provisional) → each successful parcel receipt changes custody/hop and may enter a separate Sorting session → receiving Logistics reviews damage/unexpected records and acknowledges any shortage with a reason → closes unloading and releases the truck for cargo/empty return. Missing parcels stay in transfer; valid late receipts resolve shortages without reopening the truck visit. Damaged parcels cannot sort or dispatch until a documented release. This supersedes whole-manifest receipt and historical deferred-transfer wording for company-truck cargo.
+
+
+The logistics workflow shall support:
+
+receive order → waybill → sort
+
+The system shall persist the parcel's current Shipment/Delivery Task state, including `received_at_hub` and `sorted_at_hub`, through the shared transition service after Logistics validates the supporting scan/evidence. Dedicated **Sorting** snapshots up to 100 oldest received parcels into one open sole-hub session, while the separate **Sort plan** page lets each Logistics organization create plans, standard/exception lanes, printable Code 128 lane labels, and exact four-digit Buyer postal-code mappings. Sorting retains tracking-ID Code 128/QR/manual captures in a device-local Dexie outbox until batch sync. Automatic sync resolves the tracking ID and current plan server-side; a missing plan, postal code, mapping, or usable lane goes to the exception lane with a reason. Standard-lane sync records session/lane/capture metadata and commits `sorted_at_hub`; exception-lane sync records an operational hold while custody remains `received_at_hub`. The event must retain the Courier who performed a handoff when applicable and the Logistics account that recorded it.
+
+8.6 Transfer
+
+Logistics shall be able to move a parcel through transfer by:
+
+Scanning its tracking ID/waybill identifier, or
+
+Manually entering its tracking ID, QR, or waybill-reference value.
+
+A successful operation shall submit an event to the shared transition service, which validates the current Shipment/Delivery Task state and commits the associated detailed state and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
+
+Same-hub receipt, sorting, and final-mile dispatch require no internal transfer event. Implemented company-truck Linehaul may move parcels between different organizations’ sole hubs through accepted trips, physical departure, and per-parcel receiving; it does not create sub-hubs. See backend-owned `docs/features/logistics/company-truck-linehaul-dispatch/spec.md` (not included in this Flutter bundle).
+
+8.7 Dispatch
+
+Logistics shall be able to dispatch a parcel by:
+
+Scanning its tracking ID/waybill identifier, or
+
+Manually entering its tracking ID, QR, or waybill-reference value.
+
+A successful dispatch shall submit an event to the shared transition service, which validates and commits `dispatched_from_hub` and any permitted high-level Order projection. Scanning or manual entry alone is not an authoritative state change.
+
+The canonical dispatched state is `dispatched_from_hub`; it must not be confused with Courier acceptance or physical pickup.
+
+The ready queue groups/filters parcels by physical standard lane and pages by hub receipt time. A batch uses one source lane by default; combining lanes requires explicit opt-in within the sole hub. Shipment/lane revisions are checked at commit and each dispatch membership freezes its source lane and sorting session. A sorted parcel can move lanes online before dispatch with an audited reason. Session closure reconciles the snapshot and does not block individual ready parcels; exceptions remain held until standard-lane resolution. Validated Courier hub pickup clears the live staging lane. Sort-plan changes affect later automatic scans; existing scan results and dispatch provenance remain historical.
+
+8.8 Deploy Rider
+
+Logistics shall be able to create/offer the first-mile task after `ready_for_pickup` and select an eligible Courier for the first-mile or final-mile task based on operational suitability and distance. Implemented final-mile rejection records task-level `rejected` without changing the Order; Logistics may re-offer the same task to another eligible Courier. First-mile rejection/re-offer remains target policy with no deployed Courier rejection route. An unfinished task may be informationally `stale` and is not automatically cancelled or reassigned in the MVP.
+
+Successful first-mile assignment records `seller_pickup_assigned`. Successful final-mile assignment records `delivery_assigned`; both are distinct from `delivery_accepted` and `picked_up_from_hub`.
+
+Route and distance assistance must use a separately approved provider-neutral Logistics/map contract. Authorized Courier projections may include `distance_km` and `estimated_duration_minutes`; these are advisory values, not client authority over assignment or status. The Customer address flow's PSGC, Geoapify, and Leaflet responsibilities must not be replaced by a routing provider, and no Mapbox dependency is used for address or map rendering.
+
+The P0 MVP may use route-assisted/manual rider selection rather than a fully autonomous optimization engine.
+
+8.9 Update Status
+
+Logistics shall be able to update an allowed Shipment/Delivery Task state after validating a Courier-submitted scan/evidence or an operational recovery action. Logistics is the authoritative recorder of the event; the record preserves the Courier who performed the physical action, when applicable.
+
+Scanning should request the applicable transition where possible, but the shared transition service—not the scan or access event itself—owns the state update.
+
+Manual status update shall remain available as an operational fallback.
+
+8.10 Courier Availability and Capacity
+
+Courier availability shall use a flexible online/available model rather than fixed shift scheduling.
+
+Logistics shall be able to see:
+
+Online/available riders.
+
+Pending order demand.
+
+Basic active courier capacity.
+
+8.11 Logistics Account
+
+Logistics shall be able to update basic account information.
+
+9. Courier MVP Requirements
+
+9.1 Courier Registration
+
+Courier registration shall follow:
+
+search/select Logistics company → automatically associate its sole hub → register under logistics → logistics approval → sign in
+
+Courier screens are delivered by the external mobile/Flutter application; this repository provides only the Laravel API consumed by that client.
+
+9.2 Courier Dashboard
+
+Courier shall be able to:
+
+View delivery notifications.
+
+View first-mile pickup and final-mile delivery requests created or offered by Logistics.
+
+View active delivery jobs.
+
+View the operational Order, parcel, waybill, pickup, destination, item, and delivery-instruction data required for an offered or accepted task, plus server-provided provider-neutral `distance_km` and `estimated_duration_minutes`. Secrets, private evidence, raw storage paths, and unrelated personal data remain excluded.
+
+9.3 Accept Delivery Request
+
+Courier shall be able to:
+
+Review the task type and pickup details.
+
+Review delivery details.
+
+Accept an eligible request.
+
+Reject an offered request. Rejection records task-level `rejected`, leaves the Order unchanged, and allows Logistics to offer the same task to another eligible Courier.
+
+Acceptance shall associate the task with the Courier.
+
+Courier acceptance does not grant assignment authority. Logistics remains responsible for creating and assigning/offering tasks.
+
+An unfinished task may become informationally `stale`; it is not automatically cancelled or reassigned in the MVP.
+
+9.4 Pick Up Order
+
+Courier shall be able to:
+
+Proceed to the Seller for a first-mile pickup or the Logistics hub for a final-mile pickup.
+
+Verify order/parcel information.
+
+Scan the parcel/order waybill QR/tracking-ID/Order-reference identifier and submit the scan/evidence to Logistics for validation and authoritative recording.
+
+Confirm pickup.
+
+Pickup confirmation shall update the Shipment/Delivery Task to `picked_up_from_seller` or `picked_up_from_hub`, depending on the task leg.
+
+9.5 Deliver Order
+
+Courier shall be able to:
+
+View destination information.
+
+Access route/navigation context, including server-provided provider-neutral distance and estimated duration when available. These values are advisory and do not authorize assignment or status changes.
+
+Deliver the parcel to the Buyer.
+
+9.6 Complete Delivery
+
+Courier shall be able to mark a delivery complete.
+
+Completion shall update the Order to `delivered` and notify the Buyer and Seller.
+
+9.7 Proof of Delivery
+
+The MVP shall include a basic proof-of-delivery mechanism.
+
+Supported source options include:
+
+Photo.
+
+E-signature.
+
+QR scan.
+
+For the deployed P0 flow, destination delivery requires one private photo POD plus explicit Courier completion intent and Logistics validation. QR/tracking-ID/Order-reference verification remains limited to first-mile and Logistics parcel handling; final-mile hub handoff is task-bound and accepts no identifier. Signature and proof combinations remain deferred under the shared upload policy.
+
+9.8 Delivery History
+
+Courier shall be able to view completed delivery requests.
+
+9.9 Profit / Earnings
+
+Courier shall be able to view basic earnings/profit derived from completed deliveries.
+
+9.10 Courier Account
+
+Courier shall be able to update basic account information.
+
+10. Admin MVP Requirements
+
+10.1 Dashboard
+
+Admin shall have a platform overview with important notifications and pending actionable items.
+
+10.2 Manage Account Registrations
+
+Admin shall be able to:
+
+View pending Buyer registrations.
+
+View pending Seller registrations.
+
+View pending Logistics registrations.
+
+Approve an account.
+
+Reject an account.
+
+Approval/rejection shall update account status and trigger the corresponding email notification.
+
+Courier approval belongs to the associated Logistics company.
+
+10.3 Manage User Accounts
+
+Admin shall be able to:
+
+Search users.
+
+View user profiles.
+
+Update account status.
+
+Suspend/deactivate an account.
+
+Restore an eligible account.
+
+10.4 Seller Compliance
+
+Admin shall be able to:
+
+Review Seller/product compliance.
+
+Issue warnings.
+
+Suspend violating Sellers.
+
+Hide/remove violating products.
+
+10.5 Complaints and Disputes
+
+Admin shall be able to:
+
+View complaints/reports.
+
+Review relevant supporting evidence.
+
+Record an administrative action or resolution.
+
+10.6 Reports Overview
+
+Admin shall be able to view basic commission reporting with date-based filtering.
+
+The report shall account for the platform's defined Logistics per-order fee and other implemented platform commissions.
+
+10.7 Platform-Wide Vouchers
+
+As defined in `docs/requirements.md`, Admin owns platform-wide voucher management applicable at Customer checkout.
+
+10.8 Platform Settings
+
+Admin shall be able to:
+
+Post announcements.
+
+Add/update platform policies.
+
+10.9 Customer Service / Messaging
+
+Admin shall have a communication mechanism for user support.
+
+10.10 Admin Account Management
+
+Admin shall be able to update own account information.
+
+The initial Admin shall be created from environment configuration.
+
+Additional Admins may be created with custom permissions.
+
+10.11 Audit Logs
+
+The system shall log important administrative actions, including:
+
+Actor.
+
+Action.
+
+Target/resource.
+
+Timestamp.
+
+11. Order and Logistics Workflow
+
+11.1 Core Order Flow
+
+Buyer places order
+↓
+Seller begins processing and prepares the order
+↓
+Seller selects an eligible Logistics organization, requests pickup, creates each waybill, and confirms `ready_for_pickup`
+↓
+First-mile Courier accepts the Seller pickup task
+↓
+Courier picks up the parcel from the Seller (`picked_up_from_seller`)
+↓
+Courier transfers the parcel to the Logistics organization's sole hub
+↓
+Logistics receives and validates the parcel (`received_at_hub`)
+↓
+Logistics resolves the Seller-created tracking ID/waybill through its immutable Order/Parcel reference
+↓
+Logistics scans the tracking ID; the current postal-code sort plan selects a standard lane or the exception lane, then synchronizes the parcel (`sorted_at_hub` or an exception hold)
+↓
+The parcel enters the Logistics **Ready to dispatch** queue
+↓
+Logistics chooses one Courier and schedule for up to 15 parcels; dispatch and each final-mile offer commit atomically (`dispatched_from_hub` → `delivery_assigned`)
+↓
+Final-mile Courier accepts the task (`delivery_accepted`)
+↓
+Courier picks the parcel up from the hub (`picked_up_from_hub`)
+↓
+Courier transports and delivers the parcel (`in_transit` → `out_for_delivery`)
+↓
+Courier submits completion intent/proof; Logistics validates and the shared service commits `delivered`
+↓
+Buyer may rate/review
+
+Each Logistics organization processes parcels at its sole hub/sorting center. Company-truck Linehaul may transfer custody between different organizations’ sole hubs before destination-hub final-mile dispatch; no organization gains an alternate sub-hub.
+
+The deployed exceptional final-mile rejection records `rejected` without changing the Order, and Logistics may re-offer the same task. First-mile rejection/re-offer remains a target policy; there is no deployed Courier first-mile rejection route. An unfinished task is informationally `stale` only; no automatic cancellation or reassignment occurs in the MVP. First-mile and final-mile assignments remain independent.
+
+Each deployed Delivery Task represents exactly one Order/Parcel for one leg. A pickup schedule may group Orders operationally, but it does not merge their tasks, waybills, snapshots, or histories.
+
+**Canonical first-mile PickupSchedule lifecycle:** A schedule starts as `scheduled`. Its `remaining_parcel_count` counts linked first-mile tasks still `assigned` or `accepted`. Partial schedules remain `scheduled` while any such task remains; once every linked task reaches `picked_up_from_seller`, the still-scheduled parent becomes `completed`. This is completion of Seller collection, not hub receipt or final-mile Buyer delivery.
+
+Completed schedules are historical: exclude them from Courier overlap/availability checks, reject revision/cancellation, and suppress pending reminders. Reminder dispatch/retry must recheck eligibility so completed work does not generate new pickup reminders. Completion must be transactional and retry-safe without repeating pickup, Inventory, or final-mile effects.
+
+`PickupScheduleLifecycleService` now completes the parent from the final first-mile pickup transaction, records one append-only completion history row, and suppresses pending or claimed reminders without replaying pickup, Inventory, or final-mile effects. Existing `scheduled` rows with zero remaining parcels can be reconciled safely by the bounded, rerunnable `pickups:reconcile-schedules` command: it locks and rechecks membership, completes only all-picked task sets, and reports empty/missing/cancelled/inconsistent candidates instead of guessing. Fresh migration or database reseeding is not a remedy; PostgreSQL execution remains a release gate. See the Pickup Scheduling spec and schema completion section for verification requirements.
+
+11.2 Canonical Order and Shipment State Model
+
+Use lowercase `snake_case` for persisted and API values, PascalCase for PHP enum cases, and human-readable labels only in the UI. Do not persist source-only uppercase labels such as `READY_FOR_PICKUP` or `AT_SORTING_CENTER`.
+
+`OrderStatus` is the current high-level Order lifecycle and remains the Customer-facing source of truth:
+
+```text
+pending_payment
+→ placed
+→ seller_processing
+→ ready_for_pickup
+→ picked_up
+→ assigned
+→ in_transit
+→ out_for_delivery
+→ delivered
+```
+
+Current COD placement skips `pending_payment`: it creates `placed` with `payment_status = pending` and reserves inventory. `pending_payment` remains a future online-payment state.
+
+The current Courier first-mile confirmation projects `ready_for_pickup → picked_up` while recording `picked_up_from_seller` as the authoritative detailed handoff. Creating a dispatch schedule projects `picked_up → assigned` and exposes only the assigned Courier's safe name/contact to that Customer. Customer labels map `placed`, `seller_processing`, and `ready_for_pickup` to **To Prepare**; `picked_up`, `assigned`, and `in_transit` to **To Ship**; `out_for_delivery` to **Out for Delivery**; and `delivered` to **Completed**.
+
+The deployed `ShipmentStatus` / Delivery Task vocabulary uses explicit physical states:
+
+```text
+awaiting_seller_pickup
+seller_pickup_assigned
+seller_pickup_accepted
+picked_up_from_seller
+received_at_hub
+sorted_at_hub
+dispatched_from_hub
+delivery_assigned
+delivery_accepted
+picked_up_from_hub
+in_transit
+out_for_delivery
+delivered
+```
+
+Task-level `rejected` records an eligible final-mile Courier's refusal and is not an `OrderStatus`. `stale` is an informational freshness condition for an unfinished task, derived or persisted only by the future task contract; it is not a new high-level Order status and does not automatically cancel or reassign work.
+
+The additive shared physical schema and transition service are now deployed for the P0 flow. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, explicit pickup confirmation, and route manifests remain the implemented foundation; the deployed records add Logistics hub receipt/sorting/dispatch, tenant-scoped postal-code sort plans, independent final-mile offers, task-bound hub handoff evidence, private photo POD, and Logistics-validated delivery completion. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred. Detailed physical states must not be added to `orders.status` by an individual feature.
+
+Waybill creation, scan, and reprint are document or event operations; they do not independently advance the OrderStatus. First-mile pickup verifies QR/tracking-ID/Order-reference input and explicitly confirms handoff through its compatibility writer. Final-mile Courier hub handoff submits only task revision with a UUID `Idempotency-Key`; destination delivery submits private photo POD plus matching completion intent. Logistics validates final-mile evidence and records the authoritative event, preserving the performing Courier, recording Logistics account, and timestamp. The shared transition service—not the scan/access event—commits physical state. The pickup transaction creates one immutable shared waybill/tracking ID snapshot per Order at `ready_for_pickup`; the primary barcode is a thin 1D Code 128 encoding of that tracking ID and QR remains a compatibility fallback. Pickup may store a sort-plan routing hint, but automatic sorting resolves the current plan and exact Buyer postal mapping at scan time; missing routing data/configuration goes to the exception lane. Routing and Courier assignments may change before physical handoff only through append-only events. `cancelled`, `rejected`, `delivery_failed`, `return_requested`, and `returned` remain exceptional Order outcomes and require their own transition rules; task-level `rejected` is distinct from Order-level `rejected`.
+
+Inventory reservations follow the same boundary: placement reserves the requested SKU quantity; an accepted cancellation or rejection before `picked_up_from_seller` releases that quantity once and transactionally; first-mile pickup commits it once. Post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
+
+### Accepted transition ownership
+
+These transitions describe the deployed P0 operational contract. Today's legacy first-mile task enum uses `assigned`, `accepted`, and `picked_up_from_seller`; the shared physical records use the detailed names below without renaming the legacy values.
+
+| Transition | Authority and precondition | Availability |
+| --- | --- | --- |
+| `awaiting_seller_pickup → seller_pickup_assigned` | Owning Logistics offers a task after readiness and provider/hub checks | Existing first-mile scheduling foundation |
+| `seller_pickup_assigned → seller_pickup_accepted` | Affiliated Courier accepts its own offer | Existing first-mile acceptance foundation |
+| Offered task → `rejected` → new offer | Courier rejects; Logistics re-offers the same task to another eligible Courier; Order unchanged | Final-mile rejection/re-offer implemented; first-mile rejection endpoint unavailable |
+| `seller_pickup_accepted → picked_up_from_seller` | Compatibility first-mile confirmation commits handoff/Inventory once and bridges shared records | Implemented on legacy confirmation contract |
+| `picked_up_from_seller → received_at_hub` | Owning Logistics validates sole-hub receipt | Implemented P0 transition |
+| `picked_up_from_seller → received_at_hub → sorted_at_hub` | Dedicated offline Receiving records receipt; dedicated offline-first Sorting resolves the tracking ID and current postal-code sort plan, records standard-lane placement, or assigns an exception hold when routing is unavailable | Implemented with separate Dexie batch receipt/sort sync and tenant-scoped sort-plan routes; same-hub internal transfer unnecessary; company-truck Linehaul is a separate implemented flow |
+| `sorted_at_hub → in_transfer → received_at_hub` | Accepted company-truck trip departs; receiving Logistics records each parcel against its manifest and route hop | Implemented Linehaul between organizations’ sole hubs; receiving/sorting and final-mile dispatch remain distinct |
+| `sorted_at_hub → dispatched_from_hub → delivery_assigned → delivery_accepted` | Logistics schedules 1–15 parcels with one Courier; per-parcel offers commit atomically; Courier accepts | Implemented dispatch scheduling/task/offer/acceptance |
+| `delivery_accepted → picked_up_from_hub` | Logistics validates Courier task-bound hub-handoff evidence | Implemented task-bound handoff; no parcel identifier is submitted |
+| `picked_up_from_hub → in_transit → out_for_delivery` | Courier performs movement through the shared transition contract | Implemented with task revision checks |
+| `out_for_delivery → delivered` | Courier supplies private photo POD and completion intent; Logistics validates; server commits delivery | Implemented photo-POD completion |
+
+Each deployed P0 transition uses tenant/role checks, locked current state or revisions, immutable events, idempotent result replay, and a conflict on incompatible concurrent changes. Notifications follow commit. Owning endpoint specs define the exact request/response/evidence and transaction effects. Private final-mile photo POD is implemented; returns, refunds, partial fulfillment, post-pickup cancellation, signature proof, live location telemetry, and exceptional recovery remain deferred. Unfinished tasks may be informationally stale without automatic reassignment.
+
+### MVP re-offer, expiry, and hub transfer rules
+
+- A Courier rejects only its currently offered, unaccepted final-mile assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Deployed Logistics re-offer appends a new offer for the same final-mile task and returns it to `delivery_assigned`; the rejected offer remains immutable. First-mile rejection/re-offer (`seller_pickup_assigned`) is a target policy only: no Courier first-mile rejection endpoint is deployed.
+- Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
+- Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
+- `in_transfer` is implemented for company-truck Linehaul between different organizations’ sole hubs. Accepted trip departure records transfer; each authorized destination receipt records custody and `received_at_hub`. A parcel may sort after receipt while other cargo remains in transfer. Same-hub processing uses `received_at_hub → sorted_at_hub → dispatched_from_hub` without a dummy transfer or additional sub-hub. Linehaul mutations remain Logistics-owned under backend-owned `docs/features/logistics/company-truck-linehaul-dispatch/spec.md` (not included in this Flutter bundle).
+
+11.3 Status History
+
+Every important Order or Shipment/Delivery Task transition should record:
+
+Previous status.
+
+New status.
+
+Actor.
+
+Timestamp.
+
+Optional waybill/scan reference.
+
+For physical events, the Courier who performed the action (when applicable), the Logistics account that validated/recorded it, the evidence reference or QR/tracking-ID/Order-reference value, timestamp, and location/context required by the transition.
+
+Order history records customer-visible high-level `OrderStatus` changes. Shipment/Delivery Task history records first-mile, hub, and final-mile states such as `picked_up_from_seller`, `received_at_hub`, `delivery_assigned`, and `picked_up_from_hub`, plus task-level `rejected` or informational `stale` where supported. A scan, waybill print, or notification must not silently overwrite either history; each accepted event appends immutable history.
+
+12. Waybill and Scanning Requirements
+
+Waybill processing is a core operational capability.
+
+The MVP shall support:
+
+Generation/display of a system-owned Order/Parcel tracking ID/reference.
+
+Seller and selected-Logistics printing of the same shared waybill.
+
+Thin 1D Code 128 tracking-ID and QR scanning where supported by the client device.
+
+Manual tracking ID/waybill-reference entry as a fallback.
+
+Validation that the parcel exists.
+
+Validation that the requested transition is allowed.
+
+Submitting and recording the scan/transfer/dispatch event after Logistics validation, with performing-Courier and recording-Logistics actors preserved where applicable.
+
+Updating the detailed Shipment/Delivery Task state and any permitted high-level Order projection through the shared transition service.
+
+Preventing duplicate or invalid transitions.
+
+The implemented first-mile confirmation resolves a QR/tracking-ID/manual reference, requires explicit Courier confirmation, records `picked_up_from_seller`, projects the Order to `picked_up`, fulfills Inventory once, and idempotently bridges shared physical records. Logistics hub receipt/sort/dispatch, final-mile task assignment/acceptance, task-bound hub pickup, movement, private photo POD, and Logistics-validated delivery completion use the additive operational schema and shared transition service. Signature proof, live location telemetry, returns, and exceptional recovery remain unavailable.
+
+Do not infer either physical pickup from the generic high-level Order value `picked_up`; the detailed task/scan event is authoritative for the handoff.
+
+13. Fees and Commission Rules
+
+13.1 Logistics SaaS
+
+Subscription billing, the base subscription, and the ₱10 per-order Logistics SaaS charge are deferred. No subscription provider, subscription record, active-status check, or operational gate is part of the current MVP workflow. Revisit this section through a separate approved Subscription feature before charging or restricting Logistics operations.
+
+13.2 Shipping Fee
+
+Default shipping fee:
+
+₱50
+
+The source identifies this as the component where Logistics receives its commission.
+
+The MVP may use these as default values. Future configurability is recommended but is not required to prove the workflow.
+
+14. Notifications
+
+Brevo is the specified email provider.
+
+P0 transactional notification events shall include:
+
+Account approved.
+
+Account rejected.
+
+New Seller order.
+
+Important Seller order-status changes.
+
+Parcel pickup/status changes where operationally necessary.
+
+Out for delivery.
+
+Delivery completed.
+
+Seller delivery confirmation.
+
+Relevant Admin/compliance/support notifications.
+
+Real-time notification transport is not mandated by the source. Polling is acceptable for MVP dashboards if real-time infrastructure is not yet required.
+
+15. Messaging and Support Tickets
+
+Role documents include communication capabilities for Admin, Buyer, Seller, Logistics, and Courier.
+
+For the MVP, messaging may be implemented as a basic persisted conversation/thread system supporting operational communication.
+
+Primary useful relationships include:
+
+Buyer ↔ Seller.
+
+Courier ↔ Buyer for delivery clarification.
+
+Courier ↔ Logistics.
+
+Seller ↔ Logistics.
+
+Admin ↔ users through requester-owned support tickets, not unrestricted live chat.
+
+Advanced chat functionality such as real-time typing indicators or complex media messaging is not required for P0.
+
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.

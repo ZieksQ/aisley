@@ -1,0 +1,160 @@
+{
+  "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "operations": [
+    {
+      "feature": "search",
+      "method": "GET",
+      "path": "/api/v1/customer/products/search",
+      "request_contract": "q required trimmed scalar string 1\u2013100; page optional int 1\u201310000; limit optional int 8\u201350 default20; repeated/array query rejected.",
+      "response_contract": "{items:Product[],pagination:Pagination}",
+      "status": 200,
+      "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
+      "access": "Public",
+      "notes": "",
+      "request_example": {
+        "query": {
+          "q": "synthetic",
+          "page": 1,
+          "limit": 20
+        },
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "items": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "slug": "Synthetic example",
+            "title": "Synthetic example",
+            "thumbnailUrl": null,
+            "price": 100,
+            "originalPrice": null,
+            "minPrice": null,
+            "maxPrice": null,
+            "discountPercent": null,
+            "averageRating": null,
+            "reviewCount": 0,
+            "soldCount": 1,
+            "stockStatus": "Synthetic example",
+            "shop": {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "slug": "Synthetic example",
+              "name": "Synthetic example"
+            },
+            "badges": [
+              "Synthetic example"
+            ]
+          }
+        ],
+        "pagination": {
+          "currentPage": 1,
+          "lastPage": 1,
+          "perPage": 20,
+          "total": 1
+        }
+      },
+      "id": "op-019",
+      "errors": [],
+      "response_variants": [
+        {
+          "name": "empty_collection",
+          "status": 200,
+          "body": {
+            "items": [],
+            "pagination": {
+              "currentPage": 1,
+              "lastPage": 1,
+              "perPage": 20,
+              "total": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "feature": "search",
+      "method": "GET",
+      "path": "/api/v1/customer/search/shops",
+      "request_contract": "q required trimmed scalar string 1\u2013100; page optional int 1\u201310000; limit optional int 8\u201350 default20; repeated/array query rejected.",
+      "response_contract": "{items:Shop[],pagination:Pagination}",
+      "status": 200,
+      "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
+      "access": "Public",
+      "notes": "",
+      "request_example": {
+        "query": {
+          "q": "synthetic",
+          "page": 1,
+          "limit": 20
+        },
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "items": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "slug": "Synthetic example",
+            "name": "Synthetic example",
+            "description": null,
+            "logoUrl": null,
+            "bannerUrl": null,
+            "category": null
+          }
+        ],
+        "pagination": {
+          "currentPage": 1,
+          "lastPage": 1,
+          "perPage": 20,
+          "total": 1
+        }
+      },
+      "id": "op-020",
+      "errors": [],
+      "response_variants": [
+        {
+          "name": "empty_collection",
+          "status": 200,
+          "body": {
+            "items": [],
+            "pagination": {
+              "currentPage": 1,
+              "lastPage": 1,
+              "perPage": 20,
+              "total": 0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "failure_examples": [
+    {
+      "status": 422,
+      "body": {
+        "message": "Representative validation failure.",
+        "errors": {
+          "q": [
+            "Synthetic validation message for q."
+          ]
+        }
+      }
+    },
+    {
+      "status": 404,
+      "body": {
+        "message": "Not Found."
+      }
+    },
+    {
+      "status": 429,
+      "headers": {
+        "Retry-After": "60"
+      },
+      "body": {
+        "message": "Too Many Attempts."
+      }
+    }
+  ]
+}

@@ -1,0 +1,514 @@
+{
+  "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "operations": [
+    {
+      "feature": "order-modification-cancellation",
+      "method": "POST",
+      "path": "/api/v1/customer/orders/{order}/cancel",
+      "request_contract": "reason optional nullable string\u2264500; UUID header; placed COD only.",
+      "response_contract": "{data:Order}",
+      "status": 200,
+      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
+      "access": "Active Customer + consent",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {
+          "Idempotency-Key": "11111111-1111-4111-8111-111111111111"
+        },
+        "body": {
+          "reason": null
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "reference": "ASL-SYNTHETIC",
+          "checkoutBatchId": "11111111-1111-4111-8111-111111111111",
+          "placedAt": "2026-10-03T00:00:00.000000Z",
+          "latestTrackingAt": "2026-10-03T00:00:00.000000Z",
+          "status": "placed",
+          "statusLabel": "Order placed",
+          "group": "to_prepare",
+          "groupLabel": "To Prepare",
+          "shop": {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "slug": "Synthetic example",
+            "name": "Synthetic example",
+            "logoUrl": null
+          },
+          "items": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "productId": null,
+              "variantId": null,
+              "productName": "Synthetic example",
+              "variantName": null,
+              "sku": null,
+              "selectedOptions": [
+                {
+                  "group": "Synthetic example",
+                  "value": "Synthetic example"
+                }
+              ],
+              "unitPrice": "100.00",
+              "quantity": 1,
+              "lineSubtotal": "100.00",
+              "currency": "PHP",
+              "canReview": false,
+              "reviewId": null
+            }
+          ],
+          "deliveryAddress": {
+            "version": 1,
+            "recipientName": "Synthetic example",
+            "contactNumber": "Synthetic example",
+            "addressLine1": "Synthetic example",
+            "addressLine2": null,
+            "barangay": "Synthetic example",
+            "cityMunicipality": "Synthetic example",
+            "province": "Synthetic example",
+            "region": "Synthetic example",
+            "postalCode": "Synthetic example",
+            "country": "Synthetic example"
+          },
+          "payment": {
+            "method": "cod",
+            "status": "pending"
+          },
+          "vouchers": [],
+          "totals": {
+            "merchandiseSubtotal": "100.00",
+            "shippingFee": "100.00",
+            "discount": "0.00",
+            "shippingDiscount": "0.00",
+            "payable": "200.00",
+            "currency": "PHP"
+          },
+          "timeline": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "status": "placed",
+              "label": "Synthetic example",
+              "eventType": null,
+              "location": {},
+              "occurredAt": "2026-10-03T00:00:00.000000Z"
+            }
+          ],
+          "timelineCount": 1,
+          "timelineHasMore": false,
+          "trackingUrl": "/synthetic-placeholder",
+          "delivery": null,
+          "map": {
+            "available": false,
+            "state": "unavailable",
+            "message": "Location is not available yet",
+            "currentPosition": null,
+            "route": null,
+            "capturedAt": null
+          },
+          "actions": {
+            "canCancel": true,
+            "canModify": true,
+            "canReview": false,
+            "modifiableFields": [
+              "delivery_address"
+            ]
+          }
+        }
+      },
+      "id": "op-035",
+      "errors": [
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ORDER_ADDRESS_UNAVAILABLE",
+          "message": "This Order does not have a delivery address snapshot.",
+          "field": null
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ORDER_REVISION_STALE",
+          "message": "This Order changed before your address update was submitted. Refresh and try again.",
+          "field": "expected_revision"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_NOT_FOUND",
+          "message": "Select an address from your Address Book.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_NOT_SHIPPING",
+          "message": "The selected address is not available for shipping.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ADDRESS_UNCHANGED",
+          "message": "Select a different delivery address.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ORDER_TRANSITION_CONFLICT",
+          "message": "This Order is no longer available for that action.",
+          "field": null
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "IDEMPOTENCY_KEY_REUSED",
+          "message": "This Idempotency-Key was already used for different Order details.",
+          "field": "idempotency_key"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_INCOMPLETE",
+          "message": "The selected address is incomplete.",
+          "field": "address_id"
+        }
+      ],
+      "response_variants": []
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "method": "PATCH",
+      "path": "/api/v1/customer/orders/{order}/modification",
+      "request_contract": "address_id owned shipping UUID; expected_revision optional nullable int\u22651 (send deliveryAddress.version); UUID header; placed COD only.",
+      "response_contract": "{data:Order}",
+      "status": 200,
+      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
+      "access": "Active Customer + consent",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {
+          "Idempotency-Key": "11111111-1111-4111-8111-111111111111"
+        },
+        "body": {
+          "address_id": "11111111-1111-4111-8111-111111111111",
+          "expected_revision": 1
+        }
+      },
+      "response_example": {
+        "data": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "reference": "ASL-SYNTHETIC",
+          "checkoutBatchId": "11111111-1111-4111-8111-111111111111",
+          "placedAt": "2026-10-03T00:00:00.000000Z",
+          "latestTrackingAt": "2026-10-03T00:00:00.000000Z",
+          "status": "placed",
+          "statusLabel": "Order placed",
+          "group": "to_prepare",
+          "groupLabel": "To Prepare",
+          "shop": {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "slug": "Synthetic example",
+            "name": "Synthetic example",
+            "logoUrl": null
+          },
+          "items": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "productId": null,
+              "variantId": null,
+              "productName": "Synthetic example",
+              "variantName": null,
+              "sku": null,
+              "selectedOptions": [
+                {
+                  "group": "Synthetic example",
+                  "value": "Synthetic example"
+                }
+              ],
+              "unitPrice": "100.00",
+              "quantity": 1,
+              "lineSubtotal": "100.00",
+              "currency": "PHP",
+              "canReview": false,
+              "reviewId": null
+            }
+          ],
+          "deliveryAddress": {
+            "version": 1,
+            "recipientName": "Synthetic example",
+            "contactNumber": "Synthetic example",
+            "addressLine1": "Synthetic example",
+            "addressLine2": null,
+            "barangay": "Synthetic example",
+            "cityMunicipality": "Synthetic example",
+            "province": "Synthetic example",
+            "region": "Synthetic example",
+            "postalCode": "Synthetic example",
+            "country": "Synthetic example"
+          },
+          "payment": {
+            "method": "cod",
+            "status": "pending"
+          },
+          "vouchers": [],
+          "totals": {
+            "merchandiseSubtotal": "100.00",
+            "shippingFee": "100.00",
+            "discount": "0.00",
+            "shippingDiscount": "0.00",
+            "payable": "200.00",
+            "currency": "PHP"
+          },
+          "timeline": [
+            {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "status": "placed",
+              "label": "Synthetic example",
+              "eventType": null,
+              "location": {},
+              "occurredAt": "2026-10-03T00:00:00.000000Z"
+            }
+          ],
+          "timelineCount": 1,
+          "timelineHasMore": false,
+          "trackingUrl": "/synthetic-placeholder",
+          "delivery": null,
+          "map": {
+            "available": false,
+            "state": "unavailable",
+            "message": "Location is not available yet",
+            "currentPosition": null,
+            "route": null,
+            "capturedAt": null
+          },
+          "actions": {
+            "canCancel": true,
+            "canModify": true,
+            "canReview": false,
+            "modifiableFields": [
+              "delivery_address"
+            ]
+          }
+        }
+      },
+      "id": "op-036",
+      "errors": [
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ORDER_ADDRESS_UNAVAILABLE",
+          "message": "This Order does not have a delivery address snapshot.",
+          "field": null
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ORDER_REVISION_STALE",
+          "message": "This Order changed before your address update was submitted. Refresh and try again.",
+          "field": "expected_revision"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_NOT_FOUND",
+          "message": "Select an address from your Address Book.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_NOT_SHIPPING",
+          "message": "The selected address is not available for shipping.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ADDRESS_UNCHANGED",
+          "message": "Select a different delivery address.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "ORDER_TRANSITION_CONFLICT",
+          "message": "This Order is no longer available for that action.",
+          "field": null
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 409,
+          "code": "IDEMPOTENCY_KEY_REUSED",
+          "message": "This Idempotency-Key was already used for different Order details.",
+          "field": "idempotency_key"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_INCOMPLETE",
+          "message": "The selected address is incomplete.",
+          "field": "address_id"
+        }
+      ],
+      "response_variants": []
+    }
+  ],
+  "failure_examples": [
+    {
+      "status": 422,
+      "body": {
+        "message": "Representative validation failure.",
+        "errors": {
+          "page": [
+            "Synthetic validation message for page."
+          ]
+        }
+      }
+    },
+    {
+      "status": 401,
+      "body": {
+        "message": "Unauthenticated."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "ACCOUNT_SUSPENDED",
+        "message": "Your account is suspended."
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "FORBIDDEN_ROLE",
+        "message": "This area is restricted to customers."
+      }
+    },
+    {
+      "status": 404,
+      "body": {
+        "message": "Not Found."
+      }
+    },
+    {
+      "status": 429,
+      "headers": {
+        "Retry-After": "60"
+      },
+      "body": {
+        "message": "Too Many Attempts."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "ORDER_ADDRESS_UNAVAILABLE",
+        "message": "This Order does not have a delivery address snapshot."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "ORDER_REVISION_STALE",
+        "message": "This Order changed before your address update was submitted. Refresh and try again.",
+        "errors": {
+          "expected_revision": [
+            "This Order changed before your address update was submitted. Refresh and try again."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "ADDRESS_NOT_FOUND",
+        "message": "Select an address from your Address Book.",
+        "errors": {
+          "address_id": [
+            "Select an address from your Address Book."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "ADDRESS_NOT_SHIPPING",
+        "message": "The selected address is not available for shipping.",
+        "errors": {
+          "address_id": [
+            "The selected address is not available for shipping."
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "ADDRESS_UNCHANGED",
+        "message": "Select a different delivery address.",
+        "errors": {
+          "address_id": [
+            "Select a different delivery address."
+          ]
+        }
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "ORDER_TRANSITION_CONFLICT",
+        "message": "This Order is no longer available for that action."
+      }
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "IDEMPOTENCY_KEY_REUSED",
+        "message": "This Idempotency-Key was already used for different Order details.",
+        "errors": {
+          "idempotency_key": [
+            "This Idempotency-Key was already used for different Order details."
+          ]
+        }
+      }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "ADDRESS_INCOMPLETE",
+        "message": "The selected address is incomplete.",
+        "errors": {
+          "address_id": [
+            "The selected address is incomplete."
+          ]
+        }
+      }
+    },
+    {
+      "status": 403,
+      "body": {
+        "code": "POLICY_CONSENT_REQUIRED",
+        "message": "Accept the current Terms of Service and Privacy Policy before continuing.",
+        "data": {
+          "required_policies": [
+            {
+              "type": "terms_of_service",
+              "label": "Terms of Service",
+              "version": 1,
+              "read_url": "/api/v1/platform/policies/terms_of_service",
+              "accept_url": "/api/v1/policy-consent/terms_of_service/versions/1/accept"
+            }
+          ],
+          "status_url": "/api/v1/policy-consent/status"
+        }
+      }
+    }
+  ]
+}

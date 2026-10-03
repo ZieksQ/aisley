@@ -1,0 +1,364 @@
+{
+  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "source_derived": true,
+  "live_capture": false,
+  "cases": [
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "QUOTE_NOT_FOUND",
+      "message": "The checkout quote does not exist.",
+      "field": "quote_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "QUOTE_ALREADY_PLACED",
+      "message": "This checkout quote has already been placed.",
+      "field": "quote_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "QUOTE_EXPIRED",
+      "message": "The checkout quote has expired. Request a new quote.",
+      "field": "quote_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "QUOTE_INPUT_CHANGED",
+      "message": "Checkout details changed. Request a new quote.",
+      "field": "quote_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "QUOTE_STALE",
+      "message": "Price, stock, address, shipping, or voucher details changed. Request a new quote.",
+      "field": "quote_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "ADDRESS_NOT_FOUND",
+      "message": "Select an address from your Address Book.",
+      "field": "address_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "ADDRESS_NOT_SHIPPING",
+      "message": "The selected address is not available for shipping.",
+      "field": "address_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "INVENTORY_UNAVAILABLE",
+      "message": "Inventory is unavailable for a selected item.",
+      "field": null
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "CART_ITEM_NOT_FOUND",
+      "message": "One or more Cart items do not belong to this Customer.",
+      "field": "cart_item_ids"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "PRODUCT_NOT_FOUND",
+      "message": "A selected product does not exist.",
+      "field": "product_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "PRODUCT_UNAVAILABLE",
+      "message": "A selected product is no longer available.",
+      "field": "product_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "VARIANT_NOT_ALLOWED",
+      "message": "A selected product does not accept a variation.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "VARIANT_REQUIRED",
+      "message": "Select a complete product variation.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "VARIANT_UNAVAILABLE",
+      "message": "A selected variation is no longer available.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "INVALID_QUANTITY",
+      "message": "Quantity must be at least one.",
+      "field": "quantity"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "VOUCHER_TARGET_INVALID",
+      "message": "The selected voucher target is invalid.",
+      "field": null
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "VOUCHER_SHOP_MISMATCH",
+      "message": "A Shop voucher can only apply to its issuing Shop.",
+      "field": null
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "APP_VOUCHER_LIMIT",
+      "message": "Only one App voucher may be used per checkout batch.",
+      "field": "vouchers"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "VOUCHER_BENEFIT_LIMIT",
+      "message": "Only one voucher of each benefit type may apply to a Shop order.",
+      "field": "vouchers"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "VOUCHERS_NOT_STACKABLE",
+      "message": "The selected vouchers cannot be combined.",
+      "field": "vouchers"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "ADDRESS_INCOMPLETE",
+      "message": "The selected address is incomplete.",
+      "field": "address_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "message": "This idempotency key was used for different checkout details.",
+      "field": "idempotency_key"
+    },
+    {
+      "feature": "view-cart",
+      "status": 422,
+      "code": "PRODUCT_NOT_FOUND",
+      "message": "The selected product does not exist.",
+      "field": "product_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 409,
+      "code": "PRODUCT_UNAVAILABLE",
+      "message": "This product is no longer available to purchase.",
+      "field": "product_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 422,
+      "code": "VARIANT_REQUIRED",
+      "message": "Select a complete product variation.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 422,
+      "code": "VARIANT_NOT_ALLOWED",
+      "message": "This product does not accept a variation.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 422,
+      "code": "INVALID_VARIANT",
+      "message": "The selected variation does not belong to this product.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 422,
+      "code": "INVALID_VARIANT_COMBINATION",
+      "message": "The selected variation is incomplete or invalid.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 409,
+      "code": "VARIANT_UNAVAILABLE",
+      "message": "The selected variation is no longer available.",
+      "field": "variant_id"
+    },
+    {
+      "feature": "view-cart",
+      "status": 409,
+      "code": "OUT_OF_STOCK",
+      "message": "The selected configuration is out of stock.",
+      "field": "quantity"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "ORDER_ADDRESS_UNAVAILABLE",
+      "message": "This Order does not have a delivery address snapshot.",
+      "field": null
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "ORDER_REVISION_STALE",
+      "message": "This Order changed before your address update was submitted. Refresh and try again.",
+      "field": "expected_revision"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 422,
+      "code": "ADDRESS_NOT_FOUND",
+      "message": "Select an address from your Address Book.",
+      "field": "address_id"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 422,
+      "code": "ADDRESS_NOT_SHIPPING",
+      "message": "The selected address is not available for shipping.",
+      "field": "address_id"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "ADDRESS_UNCHANGED",
+      "message": "Select a different delivery address.",
+      "field": "address_id"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "ORDER_TRANSITION_CONFLICT",
+      "message": "This Order is no longer available for that action.",
+      "field": null
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "message": "This Idempotency-Key was already used for different Order details.",
+      "field": "idempotency_key"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 422,
+      "code": "ADDRESS_INCOMPLETE",
+      "message": "The selected address is incomplete.",
+      "field": "address_id"
+    },
+    {
+      "feature": "product-qa",
+      "status": 409,
+      "code": "PRODUCT_QA_ALREADY_ANSWERED",
+      "message": "This Product question already has an official answer.",
+      "field": null
+    },
+    {
+      "feature": "product-qa",
+      "status": 409,
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "message": "This Idempotency-Key was already used for different Product Q&A details.",
+      "field": "idempotency_key"
+    },
+    {
+      "feature": "product-review-ratings",
+      "status": 409,
+      "code": "PRODUCT_REVIEW_ALREADY_SUBMITTED",
+      "message": "This Order item already has a different review.",
+      "field": null
+    },
+    {
+      "feature": "product-review-ratings",
+      "status": 409,
+      "code": "PRODUCT_REVIEW_NOT_ELIGIBLE",
+      "message": "A Product review can be submitted only after the Order is delivered.",
+      "field": null
+    },
+    {
+      "feature": "product-review-ratings",
+      "status": 409,
+      "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+      "message": "This Order item no longer references a reviewable Product.",
+      "field": null
+    },
+    {
+      "feature": "product-review-ratings",
+      "status": 409,
+      "code": "PRODUCT_REVIEW_PRODUCT_UNAVAILABLE",
+      "message": "This Product is no longer available for review.",
+      "field": null
+    },
+    {
+      "feature": "product-review-ratings",
+      "status": 409,
+      "code": "PRODUCT_REVIEW_IMAGE_LIMIT_REACHED",
+      "message": "A Product review may contain at most ",
+      "field": null
+    },
+    {
+      "feature": "logistics-messaging",
+      "status": 409,
+      "code": "CONVERSATION_READ_ONLY",
+      "message": "This conversation is read-only.",
+      "field": null
+    },
+    {
+      "feature": "logistics-messaging",
+      "status": 422,
+      "code": "UNKNOWN_MESSAGE_SEQUENCE",
+      "message": "Unknown message sequence.",
+      "field": "last_read_sequence"
+    },
+    {
+      "feature": "logistics-messaging",
+      "status": 409,
+      "code": "IDEMPOTENCY_CONFLICT",
+      "message": "This send key was already used for a different message.",
+      "field": null
+    },
+    {
+      "feature": "courier-messaging",
+      "status": 409,
+      "code": "CONVERSATION_READ_ONLY",
+      "message": "This conversation is read-only.",
+      "field": null
+    },
+    {
+      "feature": "courier-messaging",
+      "status": 422,
+      "code": "UNKNOWN_MESSAGE_SEQUENCE",
+      "message": "Unknown message sequence.",
+      "field": "last_read_sequence"
+    },
+    {
+      "feature": "courier-messaging",
+      "status": 409,
+      "code": "IDEMPOTENCY_CONFLICT",
+      "message": "This send key was already used for a different message.",
+      "field": null
+    }
+  ]
+}
