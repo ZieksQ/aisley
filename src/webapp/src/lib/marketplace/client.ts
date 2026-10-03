@@ -14,7 +14,7 @@ import type {
 export function fetchHomepage(signal?: AbortSignal) {
   return apiRequest<HomepageData>(
     `/api/v1/customer/home?limit=${marketplaceConfig.discoveryPageSize}`,
-    { signal },
+    { signal, cache: "no-store" },
   );
 }
 
@@ -26,7 +26,7 @@ export function fetchRecommendations(cursor: string, signal?: AbortSignal) {
 
   return apiRequest<{ recommendations: HomepageRecommendations }>(
     `/api/v1/customer/home/recommendations?${parameters.toString()}`,
-    { signal },
+    { signal, cache: "no-store" },
   );
 }
 

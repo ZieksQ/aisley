@@ -3,9 +3,9 @@ feature: customer-homepage
 title: Customer Homepage
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 2.2
 status: Implemented baseline; scoped integration and verification gaps remain
-implementation_status: Public aggregation, SSR storefront sections, credentialed refresh, and bounded discovery implemented
+implementation_status: Public aggregation, SSR sections, session-scoped credentialed refresh and cleanup, and bounded discovery implemented
 canonical: true
 role: Customer
 scope: Customer Next.js storefront and Laravel read APIs
@@ -97,9 +97,13 @@ The current page renders these sections in order; optional empty rails are omitt
 - Laravel caches Categories, legacy campaigns, and the published ad configuration for configurable 300 seconds by default; Product/history queries are not stored in those public caches.
 - Category/campaign model saves/deletes invalidate their caches; advertisement publication clears the layer cache. Time-window expiry is checked after cache retrieval.
 - These are distinct cache layers, not instant global invalidation; already-rendered cards/artwork may remain stale until refresh or cache expiry.
-- Browser discovery restoration uses bounded `sessionStorage` with feed signature, authentication boolean, limits, cursor, and scroll position; storage failure is non-blocking.
+- Browser discovery restoration uses bounded `sessionStorage` under `aisley:homepage-discovery:v3:{encoded owner}` with `guest` or `customer:{Customer UUID}` ownership, feed signature, limits, cursor, and scroll position; storage failure is non-blocking. The unscoped v2 cache and other accounts' caches are removed once identity is resolved or a known session is invalidated.
 - Customer-private state must never enter shared cache or analytics. Logout, account switch, and authorization loss must discard obsolete private data and pending results.
-- The current restore check is not Customer-ID-scoped; complete session-switch/race protection remains an integration gap, not a certified guarantee.
+- `HomeDataProvider` consumes the shared Auth identity and session revision, masks previous personalized data immediately during render, clears the old snapshot, and reloads only once identity is resolved. Public SSR content remains usable during session checks; no second Homepage-level `/me` request is introduced.
+- Both Homepage refresh and discovery pagination use abortable, revision/sequence-checked reads. Stale successes, failures, and completion callbacks cannot update a new session or release its active request; overlapping refreshes apply only the latest response.
+- Discovery resets its local feed on session-key changes and restores only after the current session's Homepage response establishes its base signature. Matching Product IDs/cursors alone never authorize another Customer's saved feed; null exhausted cursors remain null.
+- Own-session navigation/reload may restore bounded Product cards and scroll, but logout/account switching clears old-account restoration. Never copy authenticated Recently Viewed history into guest storage. Browser reads use `cache: "no-store"`; Laravel still resolves identity/ownership and controls private responses.
+- Same-origin cross-tab cleanup follows AuthProvider's existing `signed-out` and `session-changed` BroadcastChannel signals when supported; signals never contain Customer data or credentials.
 
 ### Experience and remaining integration gaps
 
@@ -125,7 +129,7 @@ Checked items describe inspected implementation/source coverage, not a new runti
 - [x] Guest/public versus authenticated/private cache headers and credential-free initial rendering match the current implementation.
 - [x] Category cards use approved Products keyword-search URLs; nonexistent Category/deal “See all” links are omitted while existing section anchors remain available.
 - [ ] Other configured shortcut destinations resolve through approved, implemented result pages.
-- [ ] Account switch, logout, cross-tab invalidation, and delayed responses cannot retain/restore another Customer's personalized state.
+- [x] Account switch, logout, supported cross-tab invalidation, and delayed refresh/load-more responses cannot retain/restore another Customer's personalized Homepage state.
 - [ ] Initial failure, stale content, offline/timeout, and repeated throttling are distinct from valid empty results and preserve usable navigation/retry.
 - [ ] Expired/unpublished ads and changed Product visibility are tested across Laravel, HTTP, ISR, restored browser state, and rendered sections.
 - [ ] Homepage-specific responsive, keyboard/carousel motion, focus, SEO/hydration, build, and live browser checks are recorded separately.
@@ -144,7 +148,7 @@ Checked items describe inspected implementation/source coverage, not a new runti
 - `HomepageController`, Homepage Requests, and `HomepageService` own aggregation; Customer Resources serialize cards, campaigns, and Categories.
 - `src/webapp/src/app/page.tsx` owns section composition, public metadata/canonical/Open Graph/Twitter, and Organization/WebSite/SearchAction JSON-LD.
 - `lib/marketplace/server.ts` supplies public SSR data; `client.ts` uses the established credentialed Sanctum session client; `types.ts/config.ts` define DTOs/bounds.
-- `HomeDataProvider` performs browser refresh; marketplace components own hero/deal/rail/feed rendering; existing global providers own account interactions.
+- `HomeDataProvider` performs session-scoped browser refresh; `homepage-session.ts` owns request-revision guards, `discovery-storage.ts` owns bounded account-keyed restoration, and `use-discovery-feed.ts` owns paging/restoration state. Marketplace components retain rendering; existing global providers own account interactions.
 - `GET /api/v1/homepage-advertisement-images/{campaign}/{variant}` serves published artwork; `variant` is `desktop|mobile`. Admin Content Customization owns its lifecycle.
 - Existing browser analytics emit view/search/category/shortcut/Product/campaign events; they do not implement backend recency or persistent analytics. Exclude viewer PII/history.
 
@@ -162,4 +166,12 @@ Checked items describe inspected implementation/source coverage, not a new runti
 - Category cards reuse `searchHref(name, "products")`; URL regression coverage includes spaces, punctuation, accented names, and rejection of the former unsupported `category` key. All four Discovery URL tests and eleven auth-session tests pass.
 - Customer TypeScript, changed-component ESLint, and the Next.js Webpack production build pass; no API, migration, dependency, or new listing route was needed.
 - Local Chromium against mock HTTP data verifies the rendered Category URL, keyboard activation into Products results, absence of both dead “See all” links, preserved section anchors/back navigation, 390/768/1280px containment, and light-only styling. The fixture uses explicit credentialed-CORS headers and fresh responses rather than relying on stale test data.
-- This is scoped navigation verification, not live production or full Homepage certification. Other shortcuts, session races, carousel accessibility, read failures, and cache-expiry gates remain as listed above.
+- This was scoped navigation verification, not live production or full Homepage certification; it did not certify session races. See the subsequent session checks below. Other shortcuts, carousel accessibility, read failures, and cache-expiry gates remain as listed above.
+
+### Session-isolation verification (2026-10-03)
+
+- Nine Homepage session/storage tests plus eleven auth-session and four Discovery URL regressions pass. Guards cover old-session responses before effect cleanup, A → B → A, overlapping reads, cancellation/Strict Mode restart, null exhausted cursors, wrong-owner/corrupt/bounded storage, legacy-cache removal, and blocked storage.
+- Customer TypeScript, changed-source ESLint, and the Next.js Webpack production build pass. Public server rendering and the existing visual layout remain unchanged.
+- Local Chromium with an isolated mock API and a real second tab verifies keyboard logout, account switching, supported BroadcastChannel logout, immediate old-history/feed removal, delayed Homepage/page completion, same-base-signature account separation, reload/restoration, loading/page failure/retry, blocked storage, 390/768/1280px containment, light-only styling, and search focus. This is not live authenticated production certification.
+- SQLite `CustomerHomepageTest` passes (5 tests/99 assertions). The combined Homepage/Recently Viewed regression has 9 passing and 2 failing tests (159 assertions): two unchanged Recently Viewed tests create Products using today's publication date before moving their clock back to September 3, causing correct visibility `404`s. Both pass individually when the clock is set before fixture creation (9 and 23 assertions); no backend/test fix was included in this frontend task.
+- No API contract, migration, seed, dependency, or application database changed; PostgreSQL was not rerun for this frontend-only change. Remaining Homepage integration gates stay unchecked.
