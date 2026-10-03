@@ -115,7 +115,7 @@ class AuthController extends Controller
     {
         RateLimiter::hit($request->throttleKey(), 60);
 
-        return response()->json(['message' => 'If a Courier account exists for that email, we will send password reset instructions.']);
+        return response()->json(['message' => 'Courier password recovery is not available yet.']);
     }
 
     private function load(User $u): User

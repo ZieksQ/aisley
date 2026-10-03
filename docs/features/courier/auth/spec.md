@@ -3,7 +3,7 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.4
+version: 2.5
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
 implementation_status: Auth foundation implemented; supplied Flutter progress records registration, bearer session, and protected scaffold UI; live cross-repository verification remains separate
 canonical: true
@@ -18,7 +18,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 ## WHAT
 
 - **Purpose:** Let a Courier select one eligible Logistics organization, submit a pending application, wait for Logistics approval, and obtain mobile API access.
-- **Current foundation:** Registration, organization discovery, profile/address/vehicle creation, private evidence persistence, affiliation approval, bearer login, identity, logout, status gating, and a generic password-recovery entry point exist in Laravel.
+- **Current foundation:** Registration, organization discovery, profile/address/vehicle creation, private evidence persistence, affiliation approval, bearer login, identity, logout, status gating, and a password-recovery entry point reporting unavailability exist in Laravel.
 - **Client boundary:** Courier screens belong to the separate Flutter project. This repository provides API behavior only; do not add a Courier React page, browser-cookie flow, or web dashboard under `src/`.
 - **MVP cardinality:** one Courier has one current Logistics affiliation. The selected organization owns exactly one operational hub; the server derives that hub and the client cannot select a sub-hub.
 - **Approval authority:** The associated active Logistics organization approves or rejects the Courier affiliation. Admin may suspend, restore, or deactivate an account through the separate lifecycle feature, but Admin does not approve the affiliation.
@@ -135,16 +135,19 @@ GET active Logistics options
 - [x] Organization and sole hub are server-derived; role/status/reviewer/hub injection is prohibited.
 - [x] Accepted image types and the strict under-10-MiB boundary are enforced server-side.
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
-- [x] Bearer login, `/me`, current-token logout, generic recovery response, and DTO redaction exist.
+- [x] Bearer login, `/me`, current-token logout, and DTO redaction exist.
+- [x] The recovery entry point returns the same explicit unavailability response for every valid email; it creates no reset/access token, sends no mail or notification, and leaves passwords unchanged. Email validation, normalization, and the existing limiter hit are preserved.
 - [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; external Flutter integration remains unverified.
-- [x] Complete recovery delivery/reset and affiliation-history/revocation, and verify concurrent duplicate registration; existing foundation tests do not establish these extensions.
+- [ ] Complete password-recovery delivery and reset; the implemented entry point does not provide recovery.
+- [ ] Implement affiliation history and revocation workflows.
+- [ ] Verify concurrent duplicate registration; existing foundation tests do not establish this guarantee.
 - [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
 ## HOW
 
 ### Implemented API contract
 
-The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.4` supersedes its account/affiliation denial mapping. Focused SQLite authentication verification does not certify external Flutter or PostgreSQL release tests.
+The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.5` supersedes its account/affiliation denial mapping and recovery availability messaging. Focused SQLite authentication verification does not certify external Flutter or PostgreSQL release tests.
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
@@ -179,10 +182,11 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 
 #### `POST /api/v1/courier/auth/forgot-password` — recovery entry point only
 
-- The development-only mockup may exercise this entry point, but must present its generic response without promising an actual reset email.
+- The development-only mockup may exercise this entry point, but must present its unavailability response without promising an actual reset email.
 
-- Public request `{ "email" }`; current controller records a limiter hit and always returns a generic `200` message.
-- No reset token or notification is currently created. Flutter must show a generic result and must not promise an email or fabricate a reset route.
+- Public request `{ "email" }`; email is required, trimmed, lowercased, validated as an email, and limited to 255 characters. Missing or malformed emails return `422` validation errors.
+- Every valid email receives HTTP `200` with exactly `{ "message": "Courier password recovery is not available yet." }`, whether it belongs to a Courier, another role, or no account. The controller preserves the existing normalized-email/IP limiter hit with a 60-second decay.
+- No reset token or access token is created, no mail or notification is sent, and passwords remain unchanged. Recovery delivery/reset remains deferred. Flutter must show the unavailability message and must not promise an email or fabricate a reset route.
 
 #### Logistics-owned approval routes — implemented, not Courier actions
 

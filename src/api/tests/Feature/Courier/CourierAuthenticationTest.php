@@ -12,6 +12,9 @@ use App\Models\PlatformPolicy;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -223,6 +226,63 @@ class CourierAuthenticationTest extends TestCase
             ->assertForbidden()->assertJsonPath('code', 'POLICY_CONSENT_REQUIRED');
         $this->app['auth']->forgetGuards();
         $this->withToken($token)->postJson('/api/v1/courier/auth/logout')->assertOk();
+    }
+
+    #[DataProvider('recoveryEmails')]
+    public function test_recovery_reports_unavailability_without_account_disclosure_or_side_effects(string $email): void
+    {
+        Mail::fake();
+        Notification::fake();
+
+        $this->courier()->update(['email' => 'courier@example.com']);
+        foreach ([UserRole::Customer, UserRole::Seller, UserRole::Admin, UserRole::Logistics] as $role) {
+            User::factory()->create(['email' => $role->value.'@example.com', 'role' => $role]);
+        }
+        $passwords = User::query()->orderBy('id')->pluck('password', 'id')->all();
+        $key = 'courier-reset|'.$email.'|127.0.0.1';
+        $this->assertSame(0, RateLimiter::attempts($key));
+
+        foreach (['  '.strtoupper($email).'  ', $email] as $input) {
+            $this->postJson('/api/v1/courier/auth/forgot-password', ['email' => $input])
+                ->assertOk()->assertExactJson(['message' => 'Courier password recovery is not available yet.']);
+        }
+
+        $this->assertSame(2, RateLimiter::attempts($key));
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
+        Notification::assertNothingSent();
+        $this->assertSame($passwords, User::query()->orderBy('id')->pluck('password', 'id')->all());
+    }
+
+    public static function recoveryEmails(): iterable
+    {
+        yield 'known Courier' => ['courier@example.com'];
+        yield 'unknown email' => ['unknown@example.com'];
+        foreach ([UserRole::Customer, UserRole::Seller, UserRole::Admin, UserRole::Logistics] as $role) {
+            yield $role->value.' email' => [$role->value.'@example.com'];
+        }
+    }
+
+    #[DataProvider('invalidRecoveryEmails')]
+    public function test_recovery_still_validates_email_before_recording_a_limiter_hit(array $payload): void
+    {
+        $this->postJson('/api/v1/courier/auth/forgot-password', $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors('email');
+
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $this->assertSame(0, RateLimiter::attempts('courier-reset|'.$email.'|127.0.0.1'));
+    }
+
+    public static function invalidRecoveryEmails(): iterable
+    {
+        yield 'missing' => [[]];
+        yield 'malformed' => [['email' => 'not-an-email']];
+        yield 'empty' => [['email' => '']];
+        yield 'whitespace' => [['email' => '   ']];
+        yield 'null' => [['email' => null]];
+        yield 'overlong' => [['email' => str_repeat('a', 64).'@'.str_repeat('b', 63).'.'.str_repeat('c', 63).'.'.str_repeat('d', 63).'.com']];
     }
 
     private function assertInvalidAssociation(User $courier, string $token): void
