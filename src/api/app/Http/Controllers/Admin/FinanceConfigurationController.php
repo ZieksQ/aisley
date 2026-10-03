@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreCommissionPolicyRequest;
+use App\Http\Resources\Admin\CommissionPolicyResource;
 use App\Models\CommissionPolicy;
 use App\Models\ShippingRateVersion;
+use App\Services\Finance\CommissionPolicyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -77,33 +80,22 @@ class FinanceConfigurationController extends Controller
 
     public function policies(): JsonResponse
     {
-        return response()->json(['data' => CommissionPolicy::query()->latest('effective_at')->latest('revision')->get()]);
+        return response()->json(['data' => CommissionPolicyResource::collection(
+            CommissionPolicy::query()->latest('created_at')->orderByDesc('id')->get()
+        )])->header('Cache-Control', 'no-store, private');
     }
 
-    public function storePolicy(Request $request): JsonResponse
+    public function storePolicy(StoreCommissionPolicyRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'beneficiary_type' => ['required', Rule::in(['seller', 'logistics'])],
-            'rate_basis_points' => ['required', 'integer', 'between:0,10000'],
-            'effective_at' => ['required', 'date'],
-        ]);
-        $policy = CommissionPolicy::create([...$data, 'status' => 'draft']);
+        $policy = CommissionPolicy::create([...$request->validated(), 'status' => 'draft']);
 
-        return response()->json(['data' => $policy], 201);
+        return response()->json(['data' => new CommissionPolicyResource($policy)], 201);
     }
 
-    public function publishPolicy(Request $request, string $policy): JsonResponse
+    public function publishPolicy(Request $request, string $policy, CommissionPolicyService $service): JsonResponse
     {
-        $record = DB::transaction(function () use ($request, $policy): CommissionPolicy {
-            $record = CommissionPolicy::query()->whereKey($policy)->lockForUpdate()->firstOrFail();
-            abort_if($record->status !== 'draft', 409, 'Only draft commission policies can be published.');
-            CommissionPolicy::query()->where('beneficiary_type', $record->beneficiary_type)->where('status', 'published')
-                ->whereNull('ends_at')->update(['ends_at' => $record->effective_at]);
-            $record->update(['status' => 'published', 'published_by_admin_id' => $request->user()->id, 'revision' => $record->revision + 1]);
+        $record = $service->publish($policy, $request->user()->id);
 
-            return $record->refresh();
-        });
-
-        return response()->json(['data' => $record]);
+        return response()->json(['data' => new CommissionPolicyResource($record)]);
     }
 }

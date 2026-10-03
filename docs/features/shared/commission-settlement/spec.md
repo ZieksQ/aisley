@@ -3,6 +3,7 @@
 ## WHAT
 
 - Snapshot effective Seller and Logistics commissions at Order placement.
+- Admin commission history derives Active/Scheduled/Inactive/Expired from publication and effective windows. Publication closes only intersecting earlier windows for the same beneficiary, preserves later published schedules, and clamps past/absent effective dates to publication time. Stored draft/published state and existing Order snapshots remain compatible; an expired published policy cannot be republished.
 - Maintain an append-only, balanced integer-centavo ledger for receivables, cash, revenue, expenses, liabilities, refunds, and recoverables.
 - Reconcile full COD remittance before Seller or Logistics settlement.
 - Allocate the Logistics pool from completed service evidence and pay eligible balances through a sandbox simulator.

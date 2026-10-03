@@ -28,6 +28,12 @@ source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/
 - Keep the map compact (300–360px viewport height, at most 360px wide), responsive in both themes, and selectable by pointer, touch, Enter, and Space. Provide bounded zoom, reset, and drag/arrow-key panning when zoomed; retain the conventional selector for small regions. Map and selector share the existing surcharge state and mutations.
 - Commission configuration has separate Seller and Logistics policies, expressed as percentages in the UI and integer basis points at the API boundary.
 - Creating a draft never changes checkout pricing. Publishing requires confirmation and uses the existing immutable-version API.
+- Create commission policies in a viewport-bounded modal with an optional future effective date. Without a schedule, a saved policy is **Inactive** and publishing applies it immediately. Confirm discarding unsaved form input.
+- Policy history uses **Active** for a published policy currently in effect, **Scheduled** for a future effective date (including an unpublished policy awaiting publication), **Inactive** for an unpublished policy without a future schedule, and **Expired** for a published policy whose effective window has ended. A scheduled unpublished policy must still be published; its Publish button remains available.
+- The API derives these time-dependent statuses from immutable publication state and effective windows, and exposes `can_publish` separately. Keep persisted `draft`/`published` publication state compatible with checkout; expired published policies cannot be republished.
+- Replacing a Seller policy expires only the affected Seller window; Logistics is independent, and vice versa. Future publication leaves the current policy active until the scheduled boundary. Publishing a policy between existing scheduled versions must preserve later schedules and end the inserted version at the next published effective date. Past or absent effective dates become the publication time, without rewriting existing Order snapshots.
+- Provide sortable Beneficiary, Rate, Status, Effective, and Ends columns with accessible direction indicators. Status order is Active → Scheduled → Inactive → Expired, reversible; sorting resets to the first page. Show at most ten policies per page with Previous/Next controls and row/page counts.
+- Use visible bordered buttons for policy actions and a modal publication confirmation showing beneficiary, percentage, effective time, and replacement consequences. Dialogs trap focus, support Escape/cancel, restore focus, block duplicate submission, and preserve input on validation failure. Refresh history after publication and at effective/expiry boundaries.
 - Loading, empty, validation, permission, conflict, success, and request-failure states must remain legible in light and dark themes and at narrow widths.
 - Do not expose internal checkout snapshots, Logistics-owned rate cards, payout allocations, secrets, or arbitrary configuration keys.
 
@@ -37,6 +43,7 @@ source_coverage: docs/features/shared/shipping-quotation/spec.md, docs/features/
 - `POST /api/v1/admin/shipping-rates/{rate}/publish`
 - `GET/POST /api/v1/admin/commission-policies`
 - `POST /api/v1/admin/commission-policies/{policy}/publish`
+- Commission creation accepts nullable/omitted `effective_at`. Commission responses expose lifecycle `status`, `can_publish`, and nullable effective/end times; the history read is private and not cached.
 
 ## VERIFICATION
 

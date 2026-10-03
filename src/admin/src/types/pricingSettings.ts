@@ -27,13 +27,15 @@ export type ShippingRateVersion = {
 }
 
 export type CommissionBeneficiary = 'seller' | 'logistics'
+export type CommissionPolicyStatus = 'active' | 'scheduled' | 'inactive' | 'expired'
 
 export type CommissionPolicy = {
   id: string
   beneficiary_type: CommissionBeneficiary
   rate_basis_points: number
-  status: PricingStatus
-  effective_at: string
+  status: CommissionPolicyStatus
+  can_publish: boolean
+  effective_at: string | null
   ends_at: string | null
   published_at?: string | null
   revision: number
@@ -55,5 +57,5 @@ export type ShippingRatePayload = {
 export type CommissionPolicyPayload = {
   beneficiary_type: CommissionBeneficiary
   rate_basis_points: number
-  effective_at: string
+  effective_at: string | null
 }

@@ -27,13 +27,16 @@ export function publishShippingRate(rateId: string) {
 }
 
 export function fetchCommissionPolicies(signal?: AbortSignal) {
-  return apiRequest<DataResponse<CommissionPolicy[]>>('/api/v1/admin/commission-policies', { signal })
+  return apiRequest<DataResponse<CommissionPolicy[]>>('/api/v1/admin/commission-policies', {
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
+  })
 }
 
 export function createCommissionPolicy(payload: CommissionPolicyPayload) {
   return apiRequest<DataResponse<CommissionPolicy>>('/api/v1/admin/commission-policies', {
     method: 'POST',
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15_000),
   })
 }
 
@@ -41,5 +44,6 @@ export function publishCommissionPolicy(policyId: string) {
   return apiRequest<DataResponse<CommissionPolicy>>(`/api/v1/admin/commission-policies/${policyId}/publish`, {
     method: 'POST',
     body: JSON.stringify({}),
+    signal: AbortSignal.timeout(15_000),
   })
 }
