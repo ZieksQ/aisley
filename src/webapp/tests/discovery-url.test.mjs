@@ -16,6 +16,18 @@ test('search URLs default to Products and preserve the selected mode without sil
   assert.equal(searchHref('Canvas', 'shops'), '/search?type=shops&q=Canvas');
 });
 
+test('Homepage category names open valid Product keyword searches, not category filters', () => {
+  for (const name of ['Clothing', 'Home & Living', '100% + Café / Bags?']) {
+    const url = new URL(searchHref(name, 'products'), 'http://localhost');
+    assert.equal(url.pathname, '/search');
+    assert.equal(url.searchParams.has('category'), false);
+    assert.deepEqual(parseSearchParameters(Object.fromEntries(url.searchParams)), {
+      query: name, mode: 'products', page: 1, error: null,
+    });
+  }
+  assert.ok(parseSearchParameters({ q: 'Clothing', category: 'clothing' }).error);
+});
+
 test('Shop URLs combine keyword/category, omit page one and reject malformed scalar filters', () => {
   assert.deepEqual(parseShopParameters({ q: ' shirt ', category: 'clothing', page: '2' }), { query: 'shirt', category: 'clothing', page: 2, error: null });
   assert.equal(parseShopParameters({ q: '  ' }).query, '');

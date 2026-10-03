@@ -3,7 +3,7 @@ feature: customer-homepage
 title: Customer Homepage
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 2.1
 status: Implemented baseline; scoped integration and verification gaps remain
 implementation_status: Public aggregation, SSR storefront sections, credentialed refresh, and bounded discovery implemented
 canonical: true
@@ -43,7 +43,7 @@ The current page renders these sections in order; optional empty rails are omitt
 | Utility bar and marketplace header | Existing search, navigation, messages, notifications, Cart, account/login controls; account widgets use their owning providers. |
 | Hero advertisements | `advertisementLayer` when present, otherwise legacy `campaigns.hero/side`; generic discovery artwork/copy when no campaign exists. |
 | Quick actions | Configured Vouchers, Flash Deals, Free Shipping, Top Products, New Arrivals, Shops, and Categories shortcuts; UI displays at most eight. |
-| Categories | Up to 20 active root Categories, name ascending; no requirement that each Category already has visible Products. |
+| Categories | Up to 20 active root Categories, name ascending; cards open Products keyword search using the Category name, not an exact Category filter. No requirement that each Category already has visible Products. |
 | Flash deals | One active in-window deal, earliest ending first, with up to 12 eligible discounted Products; omitted when no eligible deal Products exist. |
 | Top products | Up to 12 purchasable Products ranked by sold count, review count, average rating, then publication time, all descending. |
 | Recently viewed | Up to 12 current visible Products from Customer-owned history or resolved guest-local history, newest first. |
@@ -107,8 +107,9 @@ The current page renders these sections in order; optional empty rails are omitt
 - Discovery implements loading skeletons, valid empty/end/cap states, and visible refresh/load-more retry; guest history has separate storage/error/merge states.
 - Server fetch has a 15-second deadline but currently collapses failure into empty public data. Browser Homepage reads lack a dedicated deadline and throttle-specific UI.
 - Credentialed refresh updates context-driven sections; Categories, quick actions, Top products, and legacy hero props currently retain server-provided snapshots.
-- Category cards currently add `category` to `/search`; Search's strict URL parser rejects that extra key. Use Search's approved query navigation before claiming functional category handoff.
-- Dedicated `/categories`, `/flash-deals`, `/vouchers`, and `/products?sort=...` listing pages are absent; their shortcuts/“See all” links are not completed result flows.
+- Category cards use the shared Search URL builder with `type=products` and the encoded Category name as `q`; they never add the unsupported global `category` parameter. Keyword matching can also match Product or Shop names, so this is not an exact Category filter.
+- Categories and Flash Deals omit “See all” links because dedicated `/categories` and `/flash-deals` listing pages do not exist. Keep the valid `/#categories` and `/#flash-deals` section anchors; do not substitute an unfiltered search labeled as a complete Category/deal listing.
+- Dedicated `/vouchers` and `/products?sort=...` listing pages are also absent; their other configured shortcuts remain incomplete result flows and are outside the Category/Flash Deals navigation repair.
 - Existing carousels rotate with arrows/indicators/swipe and no pause control; motion, focus, and shared-design accessibility require verification/reconciliation.
 - Do not label an uncertain read as authoritative empty or silently retain another account's context; these shortcomings require scoped code work, not this documentation revision.
 
@@ -122,7 +123,8 @@ Checked items describe inspected implementation/source coverage, not a new runti
 - [x] Existing ranking, affinity, cursor validation, bounded pages, and Product-ID deduplication are documented without inventing new algorithms.
 - [x] Safe card DTOs retain numeric prices; viewer fields belong to the authenticated Customer; Cart/Wishlist/history use their owning features.
 - [x] Guest/public versus authenticated/private cache headers and credential-free initial rendering match the current implementation.
-- [ ] Category and shortcut destinations resolve through approved, implemented result pages without unsupported Search parameters.
+- [x] Category cards use approved Products keyword-search URLs; nonexistent Category/deal “See all” links are omitted while existing section anchors remain available.
+- [ ] Other configured shortcut destinations resolve through approved, implemented result pages.
 - [ ] Account switch, logout, cross-tab invalidation, and delayed responses cannot retain/restore another Customer's personalized state.
 - [ ] Initial failure, stale content, offline/timeout, and repeated throttling are distinct from valid empty results and preserve usable navigation/retry.
 - [ ] Expired/unpublished ads and changed Product visibility are tested across Laravel, HTTP, ISR, restored browser state, and rendered sections.
@@ -150,7 +152,14 @@ Checked items describe inspected implementation/source coverage, not a new runti
 
 - Evidence: `CustomerHomepageTest`, `CustomerRecentlyViewedTest`, `HomepageAdvertisementTest`, current controllers/services/Resources, and Homepage components.
 - Existing Homepage tests cover guest eligibility/deals, active-Customer context/affinity, non-Customer/inactive fallback, cursor bounds, and malformed cursors.
-- Historical progress records API/build checks; no application tests or browser checks are rerun by this revision. Source inspection does not close unchecked integration gates.
+- Historical progress records API/build checks; the navigation repair below verifies only its scoped storefront changes. Source inspection does not close unchecked integration gates.
 - Future scoped fixes must run focused SQLite/PostgreSQL regressions, auth/cache isolation, campaign timing, visibility changes, cursor traversal, and query-count checks.
 - Verify 390/768/1280px layouts, keyboard/motion/focus, network failures, session races, guest-storage failure, and SSR metadata/hydration alongside type/lint/build checks.
 - Canonical context: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, architecture/design, and the owning Customer/Admin specs.
+
+### Navigation repair verification (2026-10-03)
+
+- Category cards reuse `searchHref(name, "products")`; URL regression coverage includes spaces, punctuation, accented names, and rejection of the former unsupported `category` key. All four Discovery URL tests and eleven auth-session tests pass.
+- Customer TypeScript, changed-component ESLint, and the Next.js Webpack production build pass; no API, migration, dependency, or new listing route was needed.
+- Local Chromium against mock HTTP data verifies the rendered Category URL, keyboard activation into Products results, absence of both dead “See all” links, preserved section anchors/back navigation, 390/768/1280px containment, and light-only styling. The fixture uses explicit credentialed-CORS headers and fresh responses rather than relying on stale test data.
+- This is scoped navigation verification, not live production or full Homepage certification. Other shortcuts, session races, carousel accessibility, read failures, and cache-expiry gates remain as listed above.
