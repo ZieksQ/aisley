@@ -73,7 +73,7 @@ verified: 2026-10-02
 - Open compliance cases means `SellerComplianceCase.status = open`; exclude `confirmed`, `dismissed`, and `closed`.
 - Do not substitute Product restrictions, suspended Sellers, paginated row counts, or unread notifications for case counts.
 - Registration navigation retains `/registrations?status=pending` and owned permission checks on detail routes.
-- Support navigation targets `/support-tickets?status=open`; the owning page must initialize its allow-listed URL filter when this enhancement is implemented.
+- Support navigation targets `/support-tickets?status=open`; the owning page initializes its allow-listed URL filter.
 - The support page initializes allow-listed status/category/assignee filters from the URL, preserves them when opening a ticket, and resets pagination on filter changes; foreign/invalid values are ignored.
 - Compliance navigation uses the existing `/seller-compliance?status=open` filter.
 - Counts use database aggregates over the same authorized filters as their queues, not fetched-page lengths.

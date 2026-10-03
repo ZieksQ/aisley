@@ -80,3 +80,7 @@ Format:
 - Added explicit UX/Jakob's Law guidance to `docs/design.md` and matching root `AGENTS.md` rules: familiar e-commerce patterns, consistent terminology/actions, clear next steps and feedback, safe form recovery, predictable back/cancel behavior, destructive-action confirmation, and justified usability-tested deviations. Preserved role/privacy/business boundaries and the Courier mockup/Flutter exclusion. Documentation checks only; no frontend code or browser verification changed or ran. Left changes uncommitted.
 
 - Resolved the `docs/UX` pull/rebase conflicts against `origin/main` (`65400ef`). Verified the final local feature snapshot and upstream squash have identical Git trees, skipped already-integrated replay commits, and preserved the separate UX/Jakob's Law guidance. The completed rebase matches the original branch's files exactly before this log entry; no feature behavior, application code, migration, or dependency changed. Git tree/diff/conflict checks only; application tests were not rerun.
+
+## 2026-10-03
+
+- Resolved merge conflicts while preserving this branch's shipping-provider workflows and combining compatible Courier messaging and Admin Dashboard contracts from `origin/main`. Kept progress entries from both sides under their recorded dates. No tests were run for conflict resolution.

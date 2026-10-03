@@ -200,4 +200,4 @@ The current schema implements Logistics identity, organization, sole hub, Courie
 - `docs/schema.md` — implemented foundation, deployed Shipment/Delivery Task records, and deferred extensions.
 - `docs/features/logistics/*/specs.md` — feature-specific implementation contracts.
 
-**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; advanced proof media, route/location telemetry, and exceptional recovery remain future extensions.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; advanced route/location telemetry and exceptional recovery remain future extensions.
