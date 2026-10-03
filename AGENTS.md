@@ -40,6 +40,7 @@ Database: Postgres (containerized)
 16. **Database Migrations**: Never modify existing or previously executed migration files. Always create a new migration file to apply schema changes, table updates, or data alterations.
 17. **Shared frontend packages.** Declare workspace packages explicitly and reuse `@aisley/ui` components when compatible; avoid duplicate UI primitives.
 18. **PSGC addresses.** For Philippine address fields, use `@aisley/psgc-address-data` and follow the webapp's cascading Region → Province → City/Municipality → Barangay flow.
+19. **Flutter documentation boundaries.** `docs/docs-flutter-rider/` and `docs/docs-mobile-buyer/` document are separate external Flutter apps. Do not consult or edit them unless explicitly requested or a change affects an API or shared feature contract consumed by the respective app. Update only affected sections and bundles alongside canonical API/feature docs. Internal changes preserving those contracts require no bundle updates. Backend/web completion does not prove Flutter completion; preserve Flutter status unless client implementation evidence supports changing it. See **Where to look** for references.
 
 ## Web frontend design rules
 
@@ -80,15 +81,17 @@ Database: Postgres (containerized)
 
 ## Where to look
 
-| If the task involves...                                                           | Read                                                |
-| --------------------------------------------------------------------------------- | --------------------------------------------------- |
-| What a feature/role is supposed to do, scope, acceptance criteria                 | `docs/requirements.md`                              |
-| Folder structure, tech stack, DB, auth, environment setup, how components connect | `docs/architecture.md`                              |
-| Step-by-step user flows, state transitions, approval logic, order lifecycle       | `docs/workspace.md` and the applicable shared/role feature specifications |
-| What's already built, to avoid re-doing or conflicting work                       | `docs/PROGRESS.md`                                  |
-| domain design, context about users role                                           | `docs/domains/*`                                    |
-| Customer/Admin/Seller/Logistics UI, styling, layout, accessibility, or client behavior | `docs/design.md` (mandatory web design contract) |
-| Role feature implementation or change                                             | Matching `docs/features/<role>/<feature>/spec.md` or `specs.md` |
-| Address, location, geocoding, GPS, coordinates, maps, or map pins                 | `docs/maps-location-api.md`                         |
-| File or image upload                                                              | `docs/references/file-upload-requirements.md`       |
-| Customer, Seller, or Courier registration/approval                                | `docs/references/user-registration-requirements.md` |
+| If the task involves...                                                                | Read                                                                      |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| What a feature/role is supposed to do, scope, acceptance criteria                      | `docs/requirements.md`                                                    |
+| Folder structure, tech stack, DB, auth, environment setup, how components connect      | `docs/architecture.md`                                                    |
+| Step-by-step user flows, state transitions, approval logic, order lifecycle            | `docs/workspace.md` and the applicable shared/role feature specifications |
+| What's already built, to avoid re-doing or conflicting work                            | `docs/PROGRESS.md`                                                        |
+| domain design, context about users role                                                | `docs/domains/*`                                                          |
+| Customer/Admin/Seller/Logistics UI, styling, layout, accessibility, or client behavior | `docs/design.md` (mandatory web design contract)                          |
+| Role feature implementation or change                                                  | Matching `docs/features/<role>/<feature>/spec.md` or `specs.md`           |
+| Address, location, geocoding, GPS, coordinates, maps, or map pins                      | `docs/maps-location-api.md`                                               |
+| File or image upload                                                                   | `docs/references/file-upload-requirements.md`                             |
+| Customer, Seller, or Courier registration/approval                                     | `docs/references/user-registration-requirements.md`                       |
+| Explicit Courier Flutter docs work or changes affecting its consumed contracts         | `docs/docs-flutter-rider/README.md`                                       |
+| Explicit Buyer Flutter docs work or changes affecting its consumed contracts           | `docs/docs-mobile-buyer/README.md`                                        |
