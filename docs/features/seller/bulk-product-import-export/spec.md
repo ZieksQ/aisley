@@ -3,446 +3,151 @@ feature: bulk-product-import-export
 title: Seller Bulk Product Import / Export
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Draft
+version: 2.0
+status: Draft; bounded CSV-first target contract; not implemented
 role: Seller
-scope: Seller Web Application
+scope: Seller React dashboard and Laravel catalog API
+last_reconciled: 2026-10-03
 ---
 
 # Seller Bulk Product Import / Export
+
 ## WHAT
-- **Purpose:** Let Sellers download their catalog to CSV/XLSX, edit it offline, then safely create/update many Products through a validated bulk import.
-- **Canonical role:** `SELLER`.
-- `Seller.md` defines this as a high-volume catalog tool for downloading the Seller's current catalog, editing it in CSV/Excel, and synchronizing the changes back through resilient parsing and row-level validation. fileciteturn67file0
-- **Source-defined flow:**
-```text
-EXPORT
-Seller chooses scope/format
-→ Laravel generates Seller-only rows
-→ stable Product/SKU identifiers
-→ current template version
-→ CSV/XLSX download
 
-IMPORT
-Seller uploads CSV/XLSX
-→ validate file + template
-→ normalize/validate rows
-→ DRY RUN
-→ creates / updates / unchanged / warnings / errors
-→ Seller confirms
-→ queued controlled batches
-→ result file with every row outcome
-→ ordinary Product/Inventory events
-```
-- **Core boundary:** Bulk Import/Export is an orchestration tool, not a second Product or Inventory domain.
-  - Product/catalog fields reuse Order Management/Product Management rules.
-  - Stock changes reuse Seller Inventory movements and invariants.
-  - Promotions reuse Promotion rules if supported in the template.
-- **Recommended routes:**
-```text
-/seller/products/bulk
-/seller/products/bulk/imports/{import}
-```
-- **Architecture:**
-  - Next.js/React: template download, upload UI, dry-run preview, confirmation, progress, result download.
-  - Laravel: Seller scoping, upload validation, parser, template/version validation, row normalization, dry-run classification, import jobs, Product/Inventory domain calls, result generation.
-  - Queues: large import/export processing and progress.
-  - Object/file storage: private uploaded source files and generated result/export files.
-- **Supported source-required formats:** `CSV`, `XLSX`.
-- **Non-goals:**
-  - bypassing normal Product validation
-  - directly writing Inventory balances
-  - changing another Seller's Product using supplied IDs
-  - rewriting historical Order snapshots
-  - importing arbitrary workbook macros/formulas as business logic
-  - inventing extra spreadsheet formats unless explicitly added
+- Let an approved active Seller export an editable catalog CSV, preview proposed changes, and explicitly confirm a bounded import.
+- Persisted/API role is `seller`; derive exactly one Shop from the authenticated account.
+- Product CRUD, categories, SKU-backed Inventory, media/Markdown, and Finance already exist; bulk catalog routes, jobs, tables, and Seller screens do not.
+- Reuse Seller Product/Catalog ownership in `docs/features/seller/order-management/spec.md`; purchased-order fulfillment belongs to Prepare Orders.
+- MVP supports CSV only, one simple Product/base SKU per row (no option groups or variants), and separate file-level `create` or `update` mode; no upsert.
+- Create new Products as `draft` with a base SKU and zero opening stock. Update only existing simple, non-archived, unrestricted owned Products.
+- Defer XLSX/Excel workbooks, variant/option matrices, Markdown/image changes, stock adjustments, thresholds, promotions, publication/archive/delete, cancellation, and large asynchronous exports.
+- Broader CSV/XLSX domain wording describes later scope, not a requirement to implement XLSX in this MVP.
+- Proposed Seller SPA routes are `/products/bulk` and `/products/bulk/imports/:importId`; keep access under the Shop/catalog navigation group.
+- This revision defines reviewable MVP limits and behavior for later implementation; it does not deploy endpoints or certify acceptance criteria.
+
 ## MUST
-### Authentication and Seller scope
-- Import/export requires authenticated `SELLER`.
-- Every exported/imported Product/SKU belongs to the authenticated Seller/shop.
-- Never trust client-supplied `seller_id`.
-- A Seller-supplied Product/SKU ID must resolve inside that Seller's scope.
-- An ID belonging to another Seller must never update that record.
-- Use `401`, `403`, `404`, `422`, and `409` according to shared AISLEY rules. fileciteturn69file6
-### Export
-- Seller can export only their own catalog.
-- Export may support:
-  - all Seller Products
-  - allow-listed current filters/scope
-- Exact export scope options are Open.
-- Export rows should contain stable immutable Product/SKU identifiers for safe later updates.
-- Do not use product names as the only update key.
-- Export must include a template/schema version.
-- Exact placement of the template version is Open:
-  - dedicated column
-  - metadata sheet for XLSX
-  - documented header/metadata row
-### Exported fields
-- Export only fields the Seller is allowed to view/edit through this feature.
-- Likely Product-domain fields include:
-  - Product ID
-  - SKU/variant ID
-  - name/title
-  - description
-  - category reference
-  - variant attributes
-  - price
-  - publish/archive-related editable state where allowed
-  - stock-adjustment intent when supported
-- Exact columns must match the actual Product/Inventory schema.
-- Never export:
-  - another Seller's data
-  - Buyer/order PII
-  - internal compliance notes
-  - secrets
-  - payout data
-  - password/auth/session fields
-### Historical Order integrity
-- Exported/imported Product edits apply to current catalog state.
-- They must not rewrite historical Order Item snapshots:
-  - historical unit price
-  - Product/variant description snapshot
-  - quantity
-  - discount/totals
-- Archiving/updating a Product preserves historical references.
-### CSV/XLSX generation
-- Small exports may run synchronously; large exports should queue.
-- Laravel supports background jobs/batches and streamed downloads. citeturn399998search1turn399998search0
-- Queue threshold is Open.
-### Spreadsheet export safety
-- Product/store text is Seller-controlled and may begin with spreadsheet formula characters.
-- CSV/XLSX export must prevent untrusted cells from becoming executable formulas when opened in spreadsheet software.
-- OWASP documents CSV/formula injection risk for cells beginning with characters such as `=`, `+`, `-`, and `@`. citeturn568315search0
-- Use a documented spreadsheet-safe escaping/typing strategy.
-- For XLSX, write untrusted text cells explicitly as text where the chosen writer supports it.
-- Formula behavior must never be used to calculate authoritative imported Product values.
-### Import file upload
-- Import accepts only configured CSV/XLSX files.
-- Validate:
-  - successful upload
-  - allowed file type/content
-  - maximum file size
-  - maximum row count
-  - expected worksheet when applicable
-- Exact size/row limits are Open.
-- Laravel file validation can inspect content-derived MIME/type and enforce size. citeturn542209search2turn542209search5
-- Shared AISLEY rules additionally require malware scanning and private object/file storage for uploads. fileciteturn69file6
-### Private file storage
-- Import/result files are private artifacts stored through configured file/object storage.
-- Store asset references, not server paths; downloads require authorization/signed access. fileciteturn69file6
-- Retention is Open.
-### Parser
-- Parser must support CSV and XLSX.
-- Exact library is Open.
-- **Recommendation:** use PhpSpreadsheet or a maintained Laravel-compatible wrapper when one dependency is desired for both CSV/XLSX.
-- PhpSpreadsheet officially supports CSV and XLSX readers/writers. citeturn399998search3turn399998search4
-- Do not manually parse XLSX ZIP/XML structures.
-### Large-file memory
-- Do not assume a whole large workbook safely fits in PHP memory.
-- PhpSpreadsheet holds spreadsheet data in memory and provides `setReadDataOnly()` and read filters for loading selected ranges/cells. citeturn542209search0turn542209search1
-- Large imports should process bounded chunks/ranges rather than loading unnecessary styling/formulas/data.
-- CSV may be streamed/iterated row-by-row when parser architecture allows.
-- Exact chunk size is Open and must be configurable/profilable.
-### CSV encoding
-- Normalize CSV text to UTF-8; handle BOM/non-UTF-8 input explicitly.
-- PhpSpreadsheet supports configurable/guessed CSV encoding. citeturn399998search3
-- Encoding failure must report an error rather than corrupt text.
-### Template version
-- Import requires the current supported versioned template.
-- Validate headers and version before row processing.
-- Unknown/obsolete versions must not be silently interpreted as the latest schema.
-- Exact backward-compatibility window is Open.
-- Recommended:
-  - reject unsupported major versions
-  - provide a current template download link
-- Template version should be stored on the import job for reproducibility.
-### Headers
-- Required headers must match the template contract; duplicate headers are invalid.
-- Unknown columns may warn or reject according to policy.
-- Prefer stable header names over positional mapping.
-### Import modes
-- Source flow requires Seller to choose create/update mode.
-- Recommended explicit modes:
-```text
-CREATE
-UPDATE
-```
-- Optional combined `UPSERT` is **not** source-required and remains Open.
-- `CREATE` must not unexpectedly overwrite existing stable IDs.
-- `UPDATE` requires Seller-owned stable Product/SKU identifiers.
-- Exact handling of blank IDs in each mode must be documented.
-### Dry run
-- Import is a two-phase workflow:
-```text
-UPLOAD / VALIDATE
-→ DRY RUN
-→ CONFIRM
-→ COMMIT
-```
-- Dry run must not mutate Product, Inventory, Promotion, search index, or Buyer-visible data.
-- Dry-run result reports:
-  - creates
-  - updates
-  - unchanged
-  - warnings
-  - errors
-- Include row/line references.
-- Seller must be able to review errors before confirming.
-### Dry-run stability
-- Confirmation must refer to the exact file/version that was dry-run.
-- Recommended:
-  - immutable stored upload
-  - file hash/fingerprint
-  - import job ID
-- Seller cannot replace the file contents behind an existing dry-run result.
-- If authoritative Product/Inventory data changed between dry run and commit, commit must revalidate and may produce conflicts.
-### Row normalization
-- Normalize text/nulls, fixed-precision money, allow-listed booleans/enums, and SKU/category identifiers.
-- Do not silently coerce malformed values.
-- Preserve original row number.
-### Product validation
-- Reuse Product Management validation for ownership, required fields, category, Product/variant relations, SKU uniqueness, price, and publish/archive constraints.
-- Bulk import must not create a weaker validation path.
-### Fixed-precision price
-- Parse prices as fixed-precision decimal/minor-unit representation.
-- Never use binary floating-point for authoritative money.
-- Invalid numeric formats produce row errors.
-- Imported price changes do not rewrite historical Order prices. fileciteturn69file6
-### Product/SKU ownership
-- UPDATE mode must resolve IDs through Seller scope:
-```text
-authenticated seller
-→ seller-owned Product
-→ seller-owned SKU
-```
-- A valid global ID belonging to another Seller is still forbidden.
-- Do not leak whether another Seller owns the supplied ID beyond safe error semantics.
-### Inventory integration
-- Stock changes in an import must use the Seller Inventory domain.
-- Never bulk-write:
-```text
-inventory_balances.on_hand = spreadsheet_value
-```
-outside Inventory rules.
-- If spreadsheet represents an absolute physical count:
-```text
-desired_on_hand - current_on_hand = CORRECTION delta
-```
-and Inventory records a movement.
-- Preserve `on_hand >= reserved` and other Inventory invariants.
-- Every accepted stock change has an import/batch reference for audit/idempotency.
-### Inventory concurrency
-- Commit must re-load/lock current Inventory because stock may change after export/dry run.
-- Reservation conflicts fail that row/group; exported stock is never current authority.
-### Variants spanning rows
-- If one Product has multiple SKU rows, validation must treat their relationship consistently.
-- Avoid committing a Product into a partially invalid variant structure accidentally.
-- Recommended transaction unit is a **Product aggregate** (Product + its related variant rows), not necessarily one spreadsheet row.
-- Exact grouping depends on template structure.
-### Atomicity
-- Source explicitly says malformed rows should not necessarily fail unrelated valid rows and that atomicity mode must be explicit.
-- Recommended MVP:
-```text
-partial success by Product aggregate
-```
-- Meaning:
-  - invalid Product aggregate → no changes for that aggregate
-  - unrelated valid aggregates may commit
-- Whole-file all-or-nothing mode is optional/Open.
-- Result file must make partial success obvious.
-### Transactions
-- Each chosen atomic unit commits/rolls back together.
-- Inventory adjustments reuse Inventory locking/movement rules.
-- Do not wrap a large entire import in one long transaction by default.
-### Idempotency
-- Confirmed imports require a stable import job/idempotency key.
-- Reprocessing the same confirmed job must not duplicate:
-  - Products
-  - variants
-  - Inventory movements
-  - promotion effects
-  - downstream events
-- Row/Product operations should include import job + logical row/aggregate identity as appropriate.
-- Duplicate queue retries must resolve to the same committed outcome.
-### Queue processing
-- Large confirmed imports run asynchronously; Laravel explicitly uses CSV parsing as a queue example and supports job-batch progress. citeturn399998search1
-```text
-parent import
-→ partition
-→ batched chunk jobs
-→ final result/status
-```
-- Preserve source-row identity because batch jobs may complete out of order.
-### Import job states
-- Recommended:
-```text
-UPLOADED
-VALIDATING
-DRY_RUN_READY
-READY_TO_CONFIRM
-PROCESSING
-COMPLETED
-COMPLETED_WITH_ERRORS
-FAILED
-CANCELLED optional
-```
-- Exact names are implementation choices.
-- Do not report `COMPLETED` while queue chunks are still running.
-### Progress
-- Seller can read/poll progress: total, processed, successful, failed, warnings.
-- Laravel batches expose progress metadata. citeturn399998search1
-- Final result file remains authoritative for row outcomes.
-### Result file
-- Every confirmed import produces a final result artifact when practical.
-- Result columns should include:
-  - original row number
-  - Product/SKU identifier
-  - requested action
-  - outcome
-  - warning/error code
-  - human-readable message
-  - created/updated identifier where safe
-- Never include another Seller's data or secrets.
-- Result download requires Seller ownership authorization.
-### Row errors
-- Errors must be line-specific/actionable, e.g. missing field, invalid category, duplicate SKU, wrong ownership, invalid price, stock conflict, unsupported template.
-- Preserve row detail instead of only returning "Import failed".
-### Warnings
-- Warnings may allow commit; exact policy is Open.
-- Warnings must never conceal validation failures.
-### Unchanged rows
-- Rows whose normalized values equal current authoritative state should be classified `UNCHANGED`.
-- Do not issue unnecessary Product/Inventory updates/events for unchanged values.
-- This reduces duplicate indexing and Inventory movements.
-### Search/index/events
-- Successful Product changes trigger the ordinary Product-domain events.
-- Successful Inventory changes trigger ordinary Inventory events.
-- Do not create special weaker synchronization just for bulk import.
-- Downstream indexing/cache/alerts execute after the source transaction commits. fileciteturn69file6
-### Export/import and Vacation Mode
-- Vacation Mode does not prevent Seller from editing catalog offline/importing unless policy says otherwise.
-- It still controls Buyer discovery/checkout.
-- An import must not bypass Vacation Mode or compliance state when publishing Products.
-### File security
-- Treat spreadsheet contents as untrusted.
-- Do not execute spreadsheet formulas/macros.
-- Read values as data for the import contract.
-- Reject/ignore unsupported workbook constructs according to parser policy.
-- Do not expose local temporary file paths in API responses.
-### Auditability
-- Import job should record:
-  - Seller
-  - source file asset/reference
-  - template version
-  - mode
-  - timestamps
-  - file hash
-  - dry-run summary
-  - confirmed-by Seller
-  - final counts/status
-- Stock movements reference the import job.
-- Exact retention is Open.
-### Frontend states
-- Export: idle/generating/ready/failed.
-- Upload: idle/uploading/parsing/invalid.
-- Dry run: loading/ready/warnings/errors/no-valid-rows.
-- Import: queued/processing/progress/completed/completed-with-errors/failed.
-- Result: ready/download-failure; confirmation requires a valid dry run.
-### Accessibility
-- Label upload/format/mode/confirm/progress/result controls.
-- Dry-run/error tables must be keyboard readable; errors and progress need textual equivalents.
-### Acceptance criteria
-- [ ] Seller exports only their own catalog.
-- [ ] Export includes stable Product/SKU identifiers and template version.
-- [ ] CSV/XLSX are the supported source-required formats.
-- [ ] Import validates file, headers, version, ownership, Product fields, price, Inventory, category, and variants.
-- [ ] Dry run mutates nothing and reports creates/updates/unchanged/warnings/errors by row.
-- [ ] Confirmation is bound to the exact dry-run file/import.
-- [ ] Another Seller's ID cannot be updated.
-- [ ] Invalid rows do not silently change data.
-- [ ] Valid unrelated Product aggregates may succeed under the selected partial-success mode.
-- [ ] Inventory updates reuse Inventory movements/invariants.
-- [ ] Historical Order snapshots never change.
-- [ ] Large confirmed jobs run asynchronously with progress/final status.
-- [ ] Retrying the same confirmed job does not duplicate Product/Inventory effects.
-- [ ] Final result artifact explains every row outcome.
-- [ ] Successful changes trigger ordinary Product/Inventory after-commit events.
-- [ ] Spreadsheet export handles formula-injection risk.
-## HOW
-### Project findings
-- `Seller.md` requires bulk CSV/Excel upload/download, offline edits, synchronization back to the catalog, resilient parsing, strict validation, and malformed-row reporting without necessarily failing the whole batch. fileciteturn67file0
-- The Seller system flow adds stable Product/SKU IDs, template versions, create/update mode, dry run, Seller confirmation, controlled batches, row result files, idempotency, and asynchronous progress.
-- Shared AISLEY architecture requires Seller scoping, Laravel-authoritative mutations, private file storage, transactions, idempotency, after-commit events, and signed/authorized private exports. fileciteturn69file6turn69file9
-### Recommended data model
-```text
-product_import_jobs
-- id, seller_id, source_asset_id, source_hash
-- template_version, mode, status
-- dry_run_summary, queue_batch_id, result_asset_id
-- total/processed/succeeded/failed/warnings counts
-- confirmed_at, created_at, updated_at
 
-product_import_rows
-- import_job_id, source_row, aggregate_key
-- action, status, product_id, sku_id
-- error_code, message
-```
-- Persist row records or materialize them into a result artifact according to scale/retention.
-### Recommended API
-```http
-GET  /api/seller/product-bulk/template
-POST /api/seller/product-bulk/exports
-POST /api/seller/product-bulk/imports
-GET  /api/seller/product-bulk/imports/{import}
-POST /api/seller/product-bulk/imports/{import}/confirm
-GET  /api/seller/product-bulk/imports/{import}/result
-```
-- Use Seller-scoped Policies/relations, upload Form Requests, and safe Resources.
-### Recommended actions/jobs
-```text
-ExportSellerCatalog
-CreateProductImport
-ValidateProductImport
-BuildImportDryRun
-ConfirmProductImport
-ProcessProductImportChunk
-FinalizeProductImport
-GenerateProductImportResult
-```
-- Product mutations call existing Product domain actions.
-- Inventory columns call `AdjustSellerInventory`/equivalent.
-### Parsing recommendation
-- For this school-project stack, one maintained parser supporting both required formats is simpler than two unrelated implementations.
-- PhpSpreadsheet supports CSV/XLSX, read-data-only mode, encoding controls, readers/writers, and read filters. citeturn399998search3turn542209search0
-- Exact dependency remains an implementation decision.
-### Async recommendation
-- Laravel's Queue documentation specifically uses CSV importing as a background-job example and provides job batching with progress callbacks/metadata. citeturn399998search1
-- Use batching only when file/job size warrants it; small dry runs can still execute synchronously if bounded.
-### Tests
-- **Laravel:** Seller isolation; CSV/XLSX/template errors; CREATE/UPDATE; cross-Seller IDs; dry-run no mutation; Product/variant/price/Inventory validation; partial success; idempotent retry; progress/result ownership; Order-history preservation.
-- **Security:** formula-like exports are neutralized/typed as text; imported formulas are never executed.
-- **Frontend:** upload/mode/dry-run/confirm/progress/result/errors/accessibility.
-### Risks
-- **Tenant/partial corruption:** weak ownership or row grouping can overwrite other Sellers or leave invalid Product variants.
-- **Inventory/duplicate drift:** direct stock writes or non-idempotent retries can corrupt balances.
-- **Resource/security:** whole-workbook loading can exhaust memory; spreadsheet exports can trigger formula injection.
-- **Staleness/template drift:** data may change after dry run and old templates may map incorrectly.
-### Open questions
-- Exact columns/template version and Product/variant row grouping.
-- File/row/chunk limits.
-- CREATE/UPDATE vs optional UPSERT.
-- Product-aggregate partial success vs optional whole-file atomicity.
-- Bulk-editable Product states/fields and Promotions inclusion.
-- Absolute stock vs delta design.
-- File/result retention, queued-export threshold, parser/package.
-- Cancellation/retry UX and older-template compatibility.
-### Sources
-- Project rules: `SKILL.md`
-- AISLEY architecture: `README.md`
-- Seller source: `Seller.md`
-- Seller flow: `feature-system-flows/seller/bulk-product-import-export.md`
-- Laravel Queues / Job Batching: https://laravel.com/docs/12.x/queues
-- Laravel Responses / Streamed Downloads: https://laravel.com/docs/12.x/responses
-- Laravel File Validation: https://laravel.com/docs/12.x/validation
-- PhpSpreadsheet Reading/Writing: https://phpspreadsheet.readthedocs.io/en/master/topics/reading-and-writing-to-file/
-- OWASP CSV Injection: https://owasp.org/www-community/attacks/CSV_Injection
+### Ownership and domain boundaries
+
+- Require `auth:sanctum`, `seller.active`, and current policy consent for template, export, upload, preview, confirmation, status, retry, and result reads; use existing web session/CSRF handling.
+- Reauthorize the Seller/Shop when queued validation and each commit run; lost approval/access stops remaining writes without undoing committed rows.
+- Resolve Product and base Inventory SKU UUIDs through the owning Shop; unknown and foreign IDs produce the same safe row error.
+- Never accept ownership, publication, compliance, storage paths, Buyer PII, Order identifiers, or shipment/task fields from the CSV.
+- Do not mutate `on_hand,reserved,available`, legacy stock quantities, low-stock thresholds, existing SKU codes, media, or Markdown descriptions.
+- Zero-stock SKU initialization uses `InventoryService`; no opening-stock movement is created. Later replenishment uses the ordinary Inventory workflow.
+- Preserve historical Order item/pricing/cost/address snapshots, Finance recognition, and fulfillment state; catalog changes affect only future/current catalog behavior.
+
+### CSV policy and limits
+
+- `docs/references/file-upload-requirements.md` covers images only; this section defines the feature-specific proposed CSV policy, not an exception to that image policy.
+- Accept one successful `.csv` upload, at most 2 MiB (`2,097,152` bytes), containing 1–1,000 data records plus one header.
+- Accept UTF-8 with optional leading BOM, comma delimiter, double-quoted fields with doubled quotes, and LF/CRLF record endings; quoted newlines are valid data.
+- Reject XLS/XLSX, ZIP, PDF, executables, binary/NUL data, invalid UTF-8, malformed quoting, unsupported delimiters, and mismatched column counts.
+- MIME/filename are hints; inspect bytes and grammar. Enforce at most 8 KiB per logical record and 4 KiB per decoded cell before application validation.
+- Require every declared header exactly once, in any order; reject missing, duplicate, or unknown headers and mixed/unsupported template versions.
+- Ignore entirely blank records while retaining their original record numbers; reject a file with no remaining data records.
+- Parse incrementally and process at most 50 rows per queued chunk; never load an unbounded file or split quoted records on physical newlines.
+- Limit uploads to 5/hour, confirmations/retries to 5/minute, and template/export reads to 30/minute per Seller; cap status/row polling at 60/minute.
+- Allow at most one queued/processing import per Shop, enforced transactionally; another confirmation returns `409 BULK_IMPORT_BUSY`.
+
+### Versioned template columns
+
+All headers below are required. Blank-cell behavior is explicit; these are the only importable fields.
+
+| Header(s) | Version 1 meaning and validation |
+| --- | --- |
+| `template_version` | Literal `1` in every data record; unrelated to this specification's version. |
+| `product_id,inventory_sku_id,expected_revision` | Empty for create; owned Product/base-SKU UUIDs and opaque exported catalog fingerprint required for update. |
+| `text_encoding` | `raw` for manually entered template data; `apostrophe_v1` for generated spreadsheet-safe text. |
+| `name` | Required trimmed Product name, 1–160 characters. |
+| `category_id` | Required active Category UUID belonging to the Shop's canonical Shop Category; resolve through Product options. |
+| `sku` | Create: uppercase trimmed alpha-dash code, 1–80 characters, Shop-unique; update: must match the existing base SKU, never rename. |
+| `short_description` | Optional text, at most 500 characters; blank clears it on update. |
+| `price,original_price` | PHP decimal strings with at most two places; price `0.01–99999999.99`; blank original price clears it, otherwise at least price. |
+| `currency` | Required `PHP`; no currency conversion or client-calculated money. |
+| `shipping_weight_grams` | Nullable integer `1–100000000`; blank clears it. |
+| `shipping_length_mm,shipping_width_mm,shipping_height_mm` | Nullable integers `1–100000` each; blank clears the corresponding field. |
+| `unit_cost_cents,cost_currency` | Nullable integer centavos `0–9999999999`; known cost requires `PHP`; unknown cost requires both cells blank, never assumed zero. |
+
+- Create/update use the same headers; update is a complete replacement of these editable values, not an ambiguous blank-means-unchanged patch.
+- Missing shipping/cost data may remain on a draft; reject an active-Product update that removes shipping data required by current publication/Checkout rules.
+- Do not import category names as identifiers, localized currency separators, scientific notation, formulas as numeric values, or silently rounded prices.
+- Export uses the same columns, `product_id ASC`, and update-mode identifiers/fingerprint; exclude option-group/variant Products and soft-deleted/archived Products.
+- Export accepts `status=all|draft|active` (`all` means draft plus active), or 1–1,000 explicit owned `product_ids`, never both; reject unsupported filters.
+- Export must fit the same byte/record ceilings; reject an oversized selection before download rather than silently truncating it.
+
+### Spreadsheet safety and private artifacts
+
+- Treat imported cells as literal data; never evaluate formulas, execute macros, follow file paths, or fetch URLs.
+- Generated catalog CSV prefixes every nonempty `name,sku,short_description` cell with one apostrophe and sets `text_encoding=apostrophe_v1`; ordinary CSV quoting also applies.
+- Import removes exactly one required prefix from those fields only in `apostrophe_v1`; `raw` does not strip prefixes. This preserves a genuine leading apostrophe on round-trip.
+- Spreadsheet applications can rewrite protections; reject missing encoded prefixes and verify supported-client save/reopen behavior before release, not universal formula safety. [OWASP CSV Injection](https://community.owasp.org/attacks/CSV_Injection).
+- Apply spreadsheet-safe output to result/error CSV too; never echo an untrusted cell as an executable formula or include another Shop's identifiers.
+- Store immutable source/result bytes privately on the configured disk using generated UUID keys and SHA-256; download through owner-authorized no-store attachment endpoints.
+- Delete source/result artifacts 7 days after terminal completion or preview expiry; retain safe job/row outcome metadata for 30 days, then prune. Never purge active work.
+- Expire unconfirmed previews 24 hours after validation. Expired records cannot confirm; artifact cleanup never deletes Products or Inventory/history.
+
+### Dry run, row outcomes, and retries
+
+- Upload/validation may persist private import records, but dry run must not create or change Products, SKUs, balances, media, counters, events, or Buyer visibility.
+- Structural/header/size/encoding errors reject the entire file; semantic errors belong to rows. Duplicate Product IDs or normalized create SKUs invalidate all conflicting rows.
+- Record logical `record_number` (header is 1), field, stable code, safe message, proposed action, normalized values, differences, and current catalog fingerprint.
+- Preview totals report `total,creates,updates,unchanged,invalid,warnings`; paginate rows at 50, maximum 100. Warnings are informational, not suppressed validation failures.
+- Row codes include `REQUIRED_FIELD,INVALID_VALUE,INVALID_CATEGORY,DUPLICATE_SKU,DUPLICATE_PRODUCT,PRODUCT_NOT_FOUND,UNSUPPORTED_PRODUCT,STALE_PRODUCT`.
+- Bind confirmation to import UUID, immutable source hash, template version, mode, preview revision, and the exact eligible-row set.
+- Require explicit `confirm_valid_rows=true` after showing all counts; invalid rows are skipped, unchanged rows have no mutation/events, and zero eligible mutations cannot confirm.
+- Partial success is per Product row: each valid row commits or rolls back atomically; errors never leave half-created Product/SKU records.
+- Commit rechecks category, ownership, simple-Product shape, SKU uniqueness, active shipping requirements, restrictions, and exported/preview fingerprint under locks.
+- A changed Product produces a row `STALE_PRODUCT` conflict without overwrite; unrelated valid rows may succeed. Do not lock inventory quantities for catalog edits.
+- Upload, confirm, and retry require a UUID `Idempotency-Key`, scoped to Seller/Shop/action with a payload hash; same key/body returns the same import/projection, changed body returns 409. Retain request keys at least 30 days; never reuse a key for new intent.
+- Persist each successful row's Product ID and outcome in the same transaction as its catalog changes, unique by `(import_id,record_number)`; worker retries skip committed rows.
+- Retry transient infrastructure failures up to three attempts with 5/30-second backoff; exhausted work is `failed` with accurate already-committed counts, never described as full rollback.
+- Explicit retry resumes only infrastructure-failed/unprocessed rows of the same confirmed import; validation/conflict rows require a corrected file and new dry run. Resume requires retained source/row records and current authorization; expired artifacts return 410.
+- Proposed job states are `validating,dry_run_ready,queued,processing,completed,completed_with_errors,failed,expired`; they are import states, not Order/Shipment states.
+- Every processed row ends `created,updated,unchanged,invalid,conflict`; infrastructure-failed/unprocessed rows remain visible for resume. Final counts must reconcile.
+- After-commit cache/index refresh or notification failure cannot undo a committed catalog row or cause its replay.
+
+### Seller UI and acceptance
+
+- Follow `docs/design.md`: download template/export → choose mode/upload → review paginated preview/errors → explicit valid-row confirmation → progress/results.
+- Show limits, excluded features, create-as-draft/zero-stock warning, replacement/blank semantics, row errors, and partial-success counts before confirmation.
+- Provide keyboard-accessible light/dark mobile layouts, contained tables, upload/validation/queue progress, empty/error/retry/expired states, and clear return to Product editing.
+- Poll at most every 5 seconds while foregrounded; stop on terminal status/logout. Preserve uncertain mutation keys, refetch status, and never imply offline commit.
+- Clear private previews on account/approval/consent loss; request timeouts, forbidden reads, and failed downloads must not appear as success.
+- [ ] CSV/template/encoding/byte/record/cell/header boundaries and spreadsheet-safe round-trips are tested.
+- [ ] Every source, Product/SKU/category, preview, confirmation, result, and retry is role/Shop-scoped; no private paths or cross-tenant data leak.
+- [ ] Dry run changes only import metadata, and confirmation is bound to the reviewed immutable payload/row set.
+- [ ] Draft creation and allowed updates reuse catalog validation while preserving media, stock/reservations, historical Order/Finance snapshots, and publication/compliance boundaries.
+- [ ] Invalid/conflicting rows are isolated, partial outcomes reconcile, and concurrent/retried processing never duplicates Products, SKUs, events, or committed rows.
+- [ ] Busy/expired/infrastructure/authorization changes, cleanup, status recovery, and after-commit failures are covered on SQLite/PostgreSQL.
+- [ ] Seller responsive/theme/keyboard states, preview confirmation, retry, downloads, and current Buyer catalog visibility are verified.
+
+## HOW
+
+### Proposed APIs — unavailable until implementation
+
+All paths below are relative to `/api/v1/seller/product-bulk`; none exists in current routes.
+
+| Method/path | Proposed request → result |
+| --- | --- |
+| `GET /template` | Version 1 header-only CSV plus documented field instructions; examples are not extra import records. |
+| `POST /exports` | Allow-listed status or Product IDs → bounded synchronous CSV attachment, private/no-store. |
+| `POST /imports` | Multipart `file,mode` (`create` or `update`), UUID header → 202 `{data: Import}`; queued dry run only. |
+| `GET /imports/{import}` | Owned UUID → `{data: Import}` with state, mode, hashes/revision, expiry, counts, safe failure, and retry eligibility. |
+| `GET /imports/{import}/rows` | `page,per_page` → paginated safe preview/outcomes; never raw storage metadata. |
+| `POST /imports/{import}/confirm` | UUID header; `{source_hash,preview_revision,confirm_valid_rows:true}` → 202 current queued/processing/result projection. |
+| `POST /imports/{import}/retry` | UUID header; no replacement file → 202 same import resumed, or original projection for identical replay. |
+| `GET /imports/{import}/result` | Available owned result → safe CSV with record number, action/outcome, Product ID, field/code/message. |
+
+- Import projection uses `id,template_version,mode,state,source_hash,preview_revision,expires_at,counts,can_confirm,can_retry,error`; all capability flags are server-derived.
+- Row DTOs use `record_number,action,normalized_values,proposed_changes,outcome,errors,warnings`; field/code/message errors are safe plain text. Category choices reuse `GET /api/v1/seller/products/options`.
+- Planned errors: 401 unauthenticated; 403 role/status/consent; scoped 404; 409 busy/stale/idempotency/not-ready; 410 expired preview/artifact; 422 file/request errors; 429 throttling; retryable 503 infrastructure failure.
+- Add focused Seller controllers, Form Requests, Policies, Resources, parser/preview/commit services, and queued chunks; keep existing Product pages/services modular.
+- Add UUID `product_import_jobs`, `product_import_rows`, and `product_import_requests` through new migrations: ownership, mode/state, source hash/path, preview revision/expiry, confirmation, counts, normalized row/fingerprint, outcomes/attempts, result reference, and scoped action/key/payload-hash replay records.
+- Use string-backed enums and unique mutation/row constraints; transactionally persist Shop processing eligibility and worker progress so job locks alone are not correctness guarantees.
+- Reuse `ProductCatalogService`, active Shop-category checks, and shared Product field validators; make their validation reusable rather than sending synthetic HTTP requests to CRUD controllers.
+- CSV-first needs no spreadsheet dependency: use bounded PHP CSV readers/writers with an explicit empty escape argument and strict grammar checks. [PHP CSV parsing](https://www.php.net/manual/en/function.fgetcsv.php).
+- Queue validation/confirmation work after durable commit; dispatch refresh effects after row commit and keep retry timeouts below queue reservation lifetime. [Laravel queues](https://laravel.com/framework/docs/13.x/queues#jobs-and-database-transactions).
+- Catalog fingerprints cover editable values, identity, shape, and relevant lifecycle/compliance state, not stock balances; recheck authorization and category eligibility independently.
+- Verify byte boundaries, malformed quotes/newlines/BOM, price/cost precision, category/IDOR, SKU collisions, changed preview, concurrent creates/retries, worker crash-after-commit, and retained partial outcomes.
+- Enable proposed routes/UI only after additive migrations, worker recovery, private cleanup, API tests, and Seller/Buyer regressions pass; update schema/domain/progress implementation claims then.

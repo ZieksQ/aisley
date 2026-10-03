@@ -3,7 +3,7 @@ feature: manage-user-accounts
 title: Admin Manage User Accounts
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -14,7 +14,7 @@ scope: Admin Web Application
 ## WHAT
 
 - **Purpose:** Let authorized Admins search, inspect, and manage existing AISLEY user accounts and their account lifecycle/status.
-- **Primary actor:** Authenticated `ADMIN`.
+- **Primary actor:** Authenticated `admin`.
 - **Managed account roles:** Buyer, Seller, Courier, Logistics, and any other non-Admin account types supported by the shared user model.
 - **Admin-account management:** managing other Admin accounts is not assumed by this spec unless the permission model explicitly allows it.
 - **Source-defined capabilities:**
@@ -31,7 +31,7 @@ scope: Admin Web Application
   - Admin-created end-user accounts are an Open Question.
   - Do not create a second registration path unless the project explicitly requires it.
 - **Architecture:**
-  - Next.js/React owns user list/detail pages, filters, status controls, confirmation dialogs, and UI feedback.
+  - React + TypeScript (Vite and React Router) owns user list/detail pages, filters, status controls, confirmation dialogs, and UI feedback.
   - Laravel owns authentication, authorization, scoped queries, validation, lifecycle transitions, persistence, audit records, and access enforcement.
   - Laravel/database state is authoritative.
 - **Feature boundaries:**
@@ -62,7 +62,7 @@ scope: Admin Web Application
 ### Access control
 - Every endpoint requires:
   - authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
   - Manage User Accounts permission where custom Admin permissions exist
 - Laravel authorization is authoritative.
 - Frontend-hidden buttons are not authorization.
@@ -342,7 +342,7 @@ DEACTIVATED
 - Admin Account Management separately owns the current Admin's own profile/security settings. fileciteturn12file1
 - Global Ban is a separate security/blocklist concept. fileciteturn12file1
 - `README.md` requires Laravel-owned authorization, resource scoping, validated state transitions, transactions, audit history, pagination, and safe serialization. fileciteturn12file15
-- Exact user schema, lifecycle enum, role-specific profile fields, session/token revocation strategy, and notification policy were not available.
+- Current user/lifecycle source is available in `src/api/app/Models/User.php`, `src/api/app/Enums/UserStatus.php`, `src/api/app/Models/AccountLifecycleEvent.php`, `src/api/app/Http/Controllers/Admin/UserAccountController.php`, and `src/api/app/Services/Admin/UserAccountLifecycleService.php`. Validation and safe DTOs are defined by `src/api/app/Http/Requests/Admin/ChangeUserLifecycleRequest.php`, `src/api/app/Http/Resources/Admin/ManagedUserSummaryResource.php`, and `src/api/app/Http/Resources/Admin/ManagedUserDetailResource.php`; role access enforcement and routing can be inspected in `src/api/routes/api.php`. Further notification/retention policy remains a separate decision.
 
 ### Laravel data model
 - Reuse the shared user/account model.
@@ -419,7 +419,7 @@ POST /api/admin/users/{user}/deactivate
 - Laravel supports hiding model attributes such as passwords from JSON serialization, but Resources should still define purpose-specific Admin DTOs. citeturn926517search6
 - Never return auth secrets or raw sensitive evidence.
 
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 - Build:
   - user table/list
   - search/filter controls

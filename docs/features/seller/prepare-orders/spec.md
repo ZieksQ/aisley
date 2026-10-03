@@ -3,8 +3,8 @@ feature: prepare-orders
 title: Seller Prepare Orders
 system: AISLEY
 type: Feature Specification
-version: 1.3
-status: Partially implemented; operational preparation deferred
+version: 1.4
+status: Partially implemented; pickup requests, readiness, and shared waybills implemented; package measurements deferred
 role: Seller
 scope: Seller Web Application
 ---

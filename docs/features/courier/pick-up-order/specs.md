@@ -7,7 +7,7 @@ type: Feature Specification
 version: 2.9
 status: Implemented first-mile identifier pickup and task-bound final-mile hub handoff
 implementation_status: First-mile Courier API and route-manifest API retain QR/tracking-ID/Order-reference verification; final-mile hub handoff uses an accepted task and revision without identifier entry; Flutter remains external
-flutter_status: First-mile pickup and task-bound final-mile handoff implemented locally; live Logistics validation and installed-device verification remain open
+flutter_status: First-mile pickup with bounded schedule filtering and task-bound final-mile handoff implemented locally; authenticated filter, Logistics validation, and installed-device verification remain open
 canonical: true
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
 backend_contract_commit: d5c160d4a5a21272e487b6f46a82de35e81395cb
@@ -213,6 +213,7 @@ Example GeoJSON geometry (first-mile manifest only):
 
 - `src/couriermockup` implements the temporary browser contract check with `@zxing/browser` and `maplibre-gl`, both loaded only when their scanner/map state opens. It groups tasks by schedule, renders the authorized GeoJSON and numbered stops, resolves a scanned QR or manual tracking-ID/Order reference to the matching parcel in that open schedule, keeps the identifier as an untrusted candidate until the explicit confirmation call, and selects the matched task before showing the server result.
 - The mockup adds no provider/browser secret. `VITE_API_URL` remains a non-secret origin only; Geoapify calls and `GEOAPIFY_SERVER_API_KEY` remain server-side.
+- Flutter filters Seller pickups through the existing `pickup_schedule_id` query using IDs from the latest authorized unfiltered page (at most 50 choices), not a complete schedule catalog. Selection/clear/section retry reload only first-mile work; full refresh retains selection. Distinct filtered empty/error states, wrong-schedule rejection, obsolete-response suppression, and logout/authorization cleanup are required. First-mile QR pickup and final-mile work remain independent.
 - Flutter stores tokens only in OS secure storage and sends Bearer auth. It implements loading, empty, assigned, accepted, manifest-pending, manifest-ready, map-unavailable, permission-denied, mismatch, not-found, offline, retry, success, and stale-task states.
 - The scanner requests camera permission at use time, exposes a manual-entry fallback, announces textual results, uses adequate touch targets, and never relies on camera preview/color alone.
 - Cache only bounded, encrypted, private task/manifest data; clear it on logout, denial, affiliation invalidation, or account switch. Cached data never authorizes pickup.

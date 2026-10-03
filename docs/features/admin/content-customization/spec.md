@@ -3,7 +3,7 @@ feature: content-customization
 title: Admin Homepage Advertisement Content Customization
 system: AISLEY
 type: Feature Specification
-version: 1.1
+version: 1.2
 status: Draft
 role: Admin
 scope: Admin Web Application and Customer Homepage Advertisement Layer
@@ -24,7 +24,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
   - `multi_block`: one large advertisement plus two smaller stacked advertisements.
   - `multi_block_carousel`: a carousel in the large block plus two smaller static advertisements.
 - Desktop multi-block layouts use one large primary region and two stacked secondary regions. Mobile stacks the primary, secondary-top, and secondary-bottom blocks without horizontal overflow.
-- Laravel owns authorization, validation, media persistence, slot integrity, publication, cache invalidation, and audit records. Admin React owns forms, image-filename feedback, ordering, and state feedback. Customer Next.js renders the published API projection.
+- Laravel owns authorization, validation, media persistence, slot integrity, publication, cache invalidation, and audit records. Admin React + TypeScript (Vite and React Router) owns forms, image-filename feedback, ordering, and state feedback. Customer Next.js renders the published API projection.
 - The current `HomepageCampaign` records and `GET /api/v1/customer/home` campaign data are the existing integration foundation. The feature replaces the hard-coded hero/side composition with a server-selected advertisement-layer contract.
 - This feature is separate from Platform Settings announcements, Push Notification Management, product/category/deal sections, Seller content, and third-party ad networks.
 - Non-goals: arbitrary HTML/CSS/JavaScript, video or animated advertisements, audience targeting, ad billing, impression guarantees, or a general homepage page builder.
@@ -33,7 +33,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 ### Access, lifecycle, and isolation
 
-- Every Admin mutation/read requires Sanctum authentication, an active persisted `ADMIN` role, and the existing `platform-settings.view` or `platform-settings.manage` permission as appropriate. React visibility is not authorization.
+- Every Admin mutation/read requires Sanctum authentication, an active persisted `admin` role, and the existing `platform-settings.view` or `platform-settings.manage` permission as appropriate. React visibility is not authorization.
 - Use project-standard `401`, `403`, `404`, `409`, `422`, and upload `429` responses for authentication, permission, scope, concurrency, validation, and throttling failures.
 - Keep draft editing separate from the published configuration. Recommended lifecycle: `DRAFT → PUBLISHED → ARCHIVED`.
 - A publish operation must atomically persist layout, rotation interval, slot assignments, and all referenced advertisement content. It must never expose a half-configured layout.
@@ -116,7 +116,7 @@ scope: Admin Web Application and Customer Homepage Advertisement Layer
 
 ### Sources
 
-- Project sources: `docs/architecture.md`, `docs/design.md`, `docs/features/admin/manage-platform-settings/spec.md`, `docs/features/customer/customer-homepage-v2/spec.md`, `docs/references/file-upload-requirements.md`, existing `HomepageCampaign` model/service and Customer homepage components.
+- Project sources: `docs/architecture.md`, `docs/design.md`, `docs/features/admin/manage-platform-settings/spec.md`, `docs/features/customer/customer-homepage/spec.md`, `docs/references/file-upload-requirements.md`, existing `HomepageCampaign` model/service and Customer homepage components.
 - [WAI-ARIA Authoring Practices: Carousel Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/carousel/)
 - [WCAG 2.2 Understanding 2.2.2: Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide)
 - [Next.js Image Component](https://nextjs.org/docs/app/api-reference/components/image)

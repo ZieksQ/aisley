@@ -18,7 +18,9 @@ use App\Http\Resources\Courier\CourierUserResource;
 use App\Models\Document;
 use App\Models\LogisticsOrganization;
 use App\Models\User;
+use App\Services\Courier\CourierAccessService;
 use App\Services\Logistics\LogisticsNotificationService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,10 @@ use Throwable;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly LogisticsNotificationService $notifications) {}
+    public function __construct(
+        private readonly LogisticsNotificationService $notifications,
+        private readonly CourierAccessService $access,
+    ) {}
 
     public function options(Request $request): JsonResponse
     {
@@ -71,7 +76,11 @@ class AuthController extends Controller
         } catch (Throwable $e) {
             foreach ($stored as [$disk,$path]) {
                 Storage::disk($disk)->delete($path);
-            }throw $e;
+            }
+            if ($this->isDuplicateEmail($e)) {
+                return $this->duplicate();
+            }
+            throw $e;
         }
 
         return response()->json(['message' => 'Registration submitted for Logistics approval.', 'courier' => new CourierUserResource($this->load($user))], 201);
@@ -87,9 +96,9 @@ class AuthController extends Controller
 
             return response()->json(['code' => 'INVALID_CREDENTIALS', 'message' => 'The email or password is incorrect.'], 422);
         } RateLimiter::clear($request->throttleKey());
-        $denial = $this->denial($user);
+        $denial = $this->access->denial($user);
         if ($denial) {
-            return $denial;
+            return response()->json($denial, 403);
         }$token = $user->createToken($request->input('device_name'), ['courier'])->plainTextToken;
 
         return response()->json(['token' => $token, 'courier' => new CourierUserResource($this->load($user))]);
@@ -111,7 +120,7 @@ class AuthController extends Controller
     {
         RateLimiter::hit($request->throttleKey(), 60);
 
-        return response()->json(['message' => 'If a Courier account exists for that email, we will send password reset instructions.']);
+        return response()->json(['message' => 'Courier password recovery is not available yet.']);
     }
 
     private function load(User $u): User
@@ -124,22 +133,21 @@ class AuthController extends Controller
         return response()->json(['code' => 'EMAIL_ALREADY_REGISTERED', 'message' => 'A Courier account with this email already exists.', 'errors' => ['email' => ['A Courier account with this email already exists.']]], 422);
     }
 
+    private function isDuplicateEmail(Throwable $exception): bool
+    {
+        if (! $exception instanceof UniqueConstraintViolationException
+            || ! str_starts_with($exception->getSql(), 'insert into "users" ')) {
+            return false;
+        }
+
+        return $exception->index === 'users_email_role_unique'
+            || ($exception->index === null && $exception->columns === ['email', 'role']);
+    }
+
     private function limited(string $key): JsonResponse
     {
         $s = RateLimiter::availableIn($key);
 
         return response()->json(['code' => 'RATE_LIMITED', 'message' => "Too many attempts. Try again in {$s} seconds."], 429, ['Retry-After' => (string) $s]);
-    }
-
-    private function denial(User $u): ?JsonResponse
-    {
-        if ($u->status !== UserStatus::Active) {
-            return response()->json(['code' => $u->status === UserStatus::Suspended ? 'ACCOUNT_SUSPENDED' : ($u->status === UserStatus::Rejected ? 'ACCOUNT_REJECTED' : 'ACCOUNT_PENDING_APPROVAL'), 'message' => 'This Courier account is not active.'], 403);
-        }$a = $u->courierLogisticsAffiliation()->with('organization.user', 'hub')->first();
-        if (! $a || $a->status !== CourierAffiliationStatus::Approved || $a->organization?->user?->status !== UserStatus::Active || ! $a->hub) {
-            return response()->json(['code' => $a?->status === CourierAffiliationStatus::Rejected ? 'ACCOUNT_REJECTED' : 'LOGISTICS_ASSOCIATION_INVALID', 'message' => 'This Courier is not approved by an active Logistics organization.'], 403);
-        }
-
-        return null;
     }
 }

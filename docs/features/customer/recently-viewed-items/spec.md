@@ -51,6 +51,7 @@ scope: Customer web application and Laravel API
 - Merge deduplicates by Product ID, retains the later credible timestamp when it is not in the future, upserts Customer-scoped rows, prunes retention, and is safe to retry.
 - On merge success, replace or clear the guest key with the canonical result. On failure, retain the local list for a later retry without claiming that it synced.
 - Logout never deletes server history and must not copy a Customer's complete server history into guest storage.
+- The Homepage consumer clears its personalized snapshot on logout, unresolved session transitions, or Customer-ID changes and rejects old-session responses. The authenticated rail remains empty/public until a fresh scoped Homepage response arrives; discovery restoration is separately account-keyed and never becomes guest Recently Viewed history. See `customer-homepage/spec.md` for its session-isolation verification.
 
 ### Reading, removal, and privacy
 

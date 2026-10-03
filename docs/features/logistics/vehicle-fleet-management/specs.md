@@ -162,7 +162,7 @@ The Courier-owned one-vehicle registry below remains implemented and separate. [
 
 - Inspect current Vehicle/notification DTOs and tests before UI implementation; reuse the existing auth, API, layout, and private image patterns.
 - Keep the approval review screen separate from the current vehicle detail; changing OR/CR does not reopen an application.
-- Flutter registration remains a separate client rollout; no Courier web UI belongs in this repository.
+- The imported Flutter log (2026-10-02) records `motorcycle`, `car`, `van`, and `truck` in registration and vehicle editing. This edits the same personal Vehicle, not company-truck Linehaul eligibility; combined initial registration evidence and independent post-approval OR/CR replacement are unchanged. Live authenticated/device verification remains open.
 - Update external Flutter copies for these newly implemented API routes before shipping the mobile flow; no Courier web UI belongs in this repository.
 - Keep any future Flutter acceptance criteria unchecked until the external client rollout and end-to-end verification establish the behavior.
 - Append documentation and implementation results separately to `docs/PROGRESS.md`.

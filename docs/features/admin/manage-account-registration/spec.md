@@ -3,7 +3,7 @@ feature: manage-account-registration
 title: Admin Manage Account Registrations
 system: AISLEY
 type: Feature Specification
-version: 1.0
+version: 1.1
 status: Draft
 role: Admin
 scope: Admin Web Application
@@ -14,7 +14,7 @@ scope: Admin Web Application
 ## WHAT
 
 - **Purpose:** Let authorized Admins review pending account-registration applications and approve or reject them.
-- **Primary actor:** Authenticated `ADMIN`.
+- **Primary actor:** Authenticated `admin`.
 - **Source-defined behavior:**
   - review incoming registration requests
   - inspect submitted credentials/application details
@@ -28,7 +28,7 @@ scope: Admin Web Application
   - Manage User Accounts owns post-approval account administration such as suspension/restoration/deactivation.
   - Admin Authentication does not own public account approval.
 - **Architecture:**
-  - Next.js/React owns the Admin queue, application detail page, document previews, decision UI, filters, and user feedback.
+  - React + TypeScript (Vite and React Router) owns the Admin queue, application detail page, document previews, decision UI, filters, and user feedback.
   - Laravel owns authentication, authorization, application lookup, state transitions, validation, persistence, audit events, and notification dispatch.
   - Laravel/database state is authoritative.
 - **Core lifecycle:**
@@ -78,7 +78,7 @@ or repository-equivalent routes.
 
 - Every Admin registration-review endpoint requires:
   - authenticated session
-  - persisted role = `ADMIN`
+  - persisted role = `admin`
   - Manage Account Registrations permission where custom Admin permissions exist
 - Laravel authorization is authoritative.
 - Frontend guards are UX only.
@@ -329,7 +329,7 @@ PENDING → REJECTED
 - It explicitly requires corresponding applicant notification emails after state changes. fileciteturn8file0
 - Admin Authentication excludes public account approval and establishes that non-Admin account creation uses registration/approval flows. fileciteturn8file1
 - `README.md` requires Laravel-owned authorization/validation, transactional mutations, audit/event trails, after-commit notifications, private file handling, pagination, and idempotency. fileciteturn8file13
-- Exact registration forms, role-specific application fields, document checklist, Eloquent models, and storage driver were not available in the researched sources.
+- Current registration source is available in `src/api/app/Models/RegistrationApplication.php`, `src/api/app/Models/Document.php`, `src/api/app/Http/Controllers/Admin/RegistrationController.php`, `src/api/app/Services/Admin/RegistrationReviewService.php`, and `src/api/config/filesystems.php`. Review inputs and DTOs are defined by `src/api/app/Http/Requests/Admin/ListRegistrationsRequest.php`, `src/api/app/Http/Requests/Admin/RejectRegistrationRequest.php`, `src/api/app/Http/Resources/Admin/RegistrationSummaryResource.php`, and `src/api/app/Http/Resources/Admin/RegistrationDetailResource.php`; implemented routing is in `src/api/routes/api.php` and `src/admin/src/App.tsx`. Required applicant data comes from the owning role Auth specs and `docs/references/user-registration-requirements.md`.
 
 ### Laravel data model
 
@@ -391,7 +391,7 @@ POST /api/admin/account-registrations/{application}/reject
 - Never expose raw application-server paths.
 - Do not move/copy applicant documents just for Admin review unless storage lifecycle requires it.
 
-### Next.js / React
+### React + TypeScript (Vite and React Router)
 
 - Build:
   - registration queue/table

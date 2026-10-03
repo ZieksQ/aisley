@@ -3,8 +3,8 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.3
-status: Implemented foundation; dedicated coverage and recovery completion deferred
+version: 2.6
+status: Implemented foundation; auth denial parity covered; recovery completion deferred
 implementation_status: Auth foundation implemented; supplied Flutter progress records registration, bearer session, and protected scaffold UI; live cross-repository verification remains separate
 canonical: true
 role: Courier / Rider
@@ -18,7 +18,7 @@ source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics
 ## WHAT
 
 - **Purpose:** Let a Courier select one eligible Logistics organization, submit a pending application, wait for Logistics approval, and obtain mobile API access.
-- **Current foundation:** Registration, organization discovery, profile/address/vehicle creation, private evidence persistence, affiliation approval, bearer login, identity, logout, status gating, and a generic password-recovery entry point exist in Laravel.
+- **Current foundation:** Registration, organization discovery, profile/address/vehicle creation, private evidence persistence, affiliation approval, bearer login, identity, logout, status gating, and a password-recovery entry point reporting unavailability exist in Laravel.
 - **Client boundary:** Courier screens belong to the separate Flutter project. This repository provides API behavior only; do not add a Courier React page, browser-cookie flow, or web dashboard under `src/`.
 - **MVP cardinality:** one Courier has one current Logistics affiliation. The selected organization owns exactly one operational hub; the server derives that hub and the client cannot select a sub-hub.
 - **Approval authority:** The associated active Logistics organization approves or rejects the Courier affiliation. Admin may suspend, restore, or deactivate an account through the separate lifecycle feature, but Admin does not approve the affiliation.
@@ -51,14 +51,14 @@ GET active Logistics options
 - Accept one `logistics_organization_id` UUID. Re-resolve an active Logistics organization with a hub inside the transaction; ignore any client `hub_id` or sub-hub field.
 - Accept nested `address` fields: `address_line_1`, optional `address_line_2`, `barangay`, `city_municipality`, `province`, `region`, and `postal_code` (maximum 10). Set country to `Philippines` server-side.
 - Use bundled PSGC Region → Province → City/Municipality → Barangay data and a manual fallback in Flutter. Current Courier registration stores labels/text only; it does not persist PSGC codes, coordinates, or provider IDs.
-- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration enforces uniqueness after duplicate preflight. This personal vehicle cannot satisfy a company-truck Linehaul assignment. The supplied Flutter snapshot does not verify that its registration selector exposes `truck`.
+- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration enforces uniqueness after duplicate preflight. This personal vehicle cannot satisfy a company-truck Linehaul assignment. The imported Flutter log (2026-10-02) records all four values in registration and vehicle editing; authenticated live acceptance remains unverified.
 - Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred under the Logistics Vehicle Fleet Management spec. This does not remove existing registration/operational history or add a map-pin contract.
 
 ### Flutter registration field map
 
 - Text controls submit the exact snake-case keys shown in the API contract; display labels may use normal human-readable wording.
 - `middle_name` is optional and limited to one character; an empty value should be omitted or sent as `null`.
-- `birth_date` is a date value, not a client-calculated age; show age only after the server resource returns it.
+- `birth_date` is the submitted date value. Flutter may display a read-only age derived from the entered birth date; it never submits age or overrides the server-derived resource value.
 - `logistics_organization_id` is the selected organization UUID; do not derive or submit a hub ID.
 - `address[address_line_1]` is the required street/house detail; `address[address_line_2]` is optional.
 - `address[barangay]`, `address[city_municipality]`, `address[province]`, and `address[region]` are PSGC/manual labels.
@@ -76,7 +76,7 @@ GET active Logistics options
 - Store generated private object keys and document metadata. Never return bytes, raw paths, credentials, or predictable URLs in the Courier resource.
 - Create User, CourierProfile, address, pending RegistrationApplication, pending affiliation, Vehicle, and Document rows in one logical transaction.
 - Delete any stored evidence objects when persistence fails. Registration never issues a token or activates the account.
-- A duplicate same-role email returns `EMAIL_ALREADY_REGISTERED` with a field-addressable `email` error; concurrent duplicate handling must be covered before this contract is called complete.
+- A duplicate same-role email returns HTTP `422` with exactly `{ "code": "EMAIL_ALREADY_REGISTERED", "message": "A Courier account with this email already exists.", "errors": { "email": ["A Courier account with this email already exists."] } }`. This applies both to an existing Courier found by the precheck and to a concurrent users `(email, role)` uniqueness violation. The losing transaction rolls back before error translation and cleans up any stored evidence; unrelated uniqueness, database, or storage failures are not translated into duplicate-email errors.
 
 ### Logistics approval and lifecycle
 
@@ -97,8 +97,18 @@ GET active Logistics options
 
 ### Stable errors and privacy
 
-- Invalid credentials return `422` with `INVALID_CREDENTIALS`; inactive status returns `403` with `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE`.
-- Invalid or missing affiliation returns `403` with `LOGISTICS_ASSOCIATION_INVALID`; wrong role returns `FORBIDDEN_ROLE`.
+- Login validates Courier credentials before access checks. Unknown email, wrong password, or another role's credentials return `422 INVALID_CREDENTIALS` with `The email or password is incorrect.`; no account or affiliation state is disclosed and no token is issued.
+- After valid credentials at login, and after bearer authentication and Courier-role checks on protected requests, check account status before affiliation. Login and protected requests use the same `403` payload for each inactive account status, even when its affiliation is also invalid:
+
+  | Account status | Error code | Message |
+  | --- | --- | --- |
+  | `pending` | `ACCOUNT_PENDING_APPROVAL` | `This Courier account is not active.` |
+  | `rejected` | `ACCOUNT_REJECTED` | `This Courier account is not active.` |
+  | `suspended` | `ACCOUNT_SUSPENDED` | `This Courier account is not active.` |
+  | `deactivated` | `ACCOUNT_INACTIVE` | `This Courier account is not active.` |
+
+- For an active Courier, a missing, pending, rejected, or revoked affiliation, inactive/missing Logistics owner, or missing hub returns `403 LOGISTICS_ASSOCIATION_INVALID` with `This Courier is not approved by an active Logistics organization.` at both login and protected requests. A rejected affiliation does not by itself mean the account is rejected. Denied login issues no token.
+- A bearer-authenticated wrong role returns `403 FORBIDDEN_ROLE` with `This area is restricted to couriers.` before Courier access checks; guests or invalid tokens return `401`.
 - Missing current shared policy acceptance returns `403 POLICY_CONSENT_REQUIRED` with required policy/version descriptors and read/status/accept paths; Flutter must not treat it as invalid credentials.
 - Validation and file failures return `422`; login throttling returns `429` with `Retry-After`. Unknown organization and cross-organization IDs fail closed.
 - Auth DTOs may include Courier ID/email/role/status, profile first/last name/age, affiliation status, organization name, and hub name. They omit secrets, evidence, full address, reviewer notes, token hashes, and storage paths.
@@ -107,7 +117,7 @@ GET active Logistics options
 
 - Before a request, show `checking_session`, `submitting`, or `authenticating` without treating a local token as proof of approval.
 - A successful registration enters `pending_approval`; the response contains no token and cannot open operational screens.
-- `ACCOUNT_PENDING_APPROVAL` maps to a pending screen with a retryable status check, not to a login loop.
+- `ACCOUNT_PENDING_APPROVAL` maps to a local informational pending screen. No pending-status endpoint or token is issued; the Courier may retry login after Logistics approval.
 - `ACCOUNT_REJECTED` maps to a rejection screen; do not invent resubmission or appeal controls.
 - `ACCOUNT_SUSPENDED`, `ACCOUNT_INACTIVE`, and `LOGISTICS_ASSOCIATION_INVALID` clear operational session state and explain that access is blocked.
 - A successful login stores the returned token once, then calls `/me` only to restore identity on later launches.
@@ -125,15 +135,19 @@ GET active Logistics options
 - [x] Organization and sole hub are server-derived; role/status/reviewer/hub injection is prohibited.
 - [x] Accepted image types and the strict under-10-MiB boundary are enforced server-side.
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
-- [x] Bearer login, `/me`, current-token logout, generic recovery response, and DTO redaction exist.
-- [x] Complete recovery delivery/reset and affiliation-history/revocation, and verify concurrent duplicate registration; existing foundation tests do not establish these extensions.
+- [x] Bearer login, `/me`, current-token logout, and DTO redaction exist.
+- [x] The recovery entry point returns the same explicit unavailability response for every valid email; it creates no reset/access token, sends no mail or notification, and leaves passwords unchanged. Email validation, normalization, and the existing limiter hit are preserved.
+- [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; external Flutter integration remains unverified.
+- [ ] Complete password-recovery delivery and reset; the implemented entry point does not provide recovery.
+- [ ] Implement affiliation history and revocation workflows.
+- [x] Concurrent duplicate registration is verified with synchronized PostgreSQL endpoint workers after both negative prechecks, for the same and different Logistics organizations: one `201`, one exact duplicate `422`, one complete pending registration, two evidence files, no access token, and only the winning application notification. Deterministic SQLite collision and unrelated-failure cleanup tests also pass; external Flutter integration remains unverified.
 - [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
 ## HOW
 
 ### Implemented API contract
 
-The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; this documentation review does not certify external Flutter or PostgreSQL release tests.
+The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.6` supersedes its account/affiliation denial mapping, recovery availability messaging, and concurrent duplicate-registration handling. Focused SQLite regressions and disposable PostgreSQL registration-race verification do not certify external Flutter integration or unrelated PostgreSQL release gates.
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
@@ -148,7 +162,7 @@ The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3703
 - Public `multipart/form-data` endpoint with `throttle:10,1`. Send nested keys such as `address[address_line_1]` and the two named image fields.
 - Request fields are the registration rules above. Prohibited fields include `role`, `status`, `hub_id`, and `reviewer_id`; extra authority fields must not be forwarded.
 - `201`: `{ "message": "Registration submitted for Logistics approval.", "courier": <safe Courier resource> }`; no token is returned.
-- `422`: validation, duplicate Courier email, unavailable selected organization, or invalid file. The Flutter app maps `errors` by field and can retry after correction.
+- `422`: validation, duplicate Courier email (including concurrent submissions), unavailable selected organization, or invalid file. The exact duplicate response is defined above and has a field-addressable `errors.email` array. The Flutter app maps `errors` by field and can retry after correction.
 
 #### `POST /api/v1/courier/auth/login` — implemented
 
@@ -168,10 +182,11 @@ The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3703
 
 #### `POST /api/v1/courier/auth/forgot-password` — recovery entry point only
 
-- The development-only mockup may exercise this entry point, but must present its generic response without promising an actual reset email.
+- The development-only mockup may exercise this entry point, but must present its unavailability response without promising an actual reset email.
 
-- Public request `{ "email" }`; current controller records a limiter hit and always returns a generic `200` message.
-- No reset token or notification is currently created. Flutter must show a generic result and must not promise an email or fabricate a reset route.
+- Public request `{ "email" }`; email is required, trimmed, lowercased, validated as an email, and limited to 255 characters. Missing or malformed emails return `422` validation errors.
+- Every valid email receives HTTP `200` with exactly `{ "message": "Courier password recovery is not available yet." }`, whether it belongs to a Courier, another role, or no account. The controller preserves the existing normalized-email/IP limiter hit with a 60-second decay.
+- No reset token or access token is created, no mail or notification is sent, and passwords remain unchanged. Recovery delivery/reset remains deferred. Flutter must show the unavailability message and must not promise an email or fabricate a reset route.
 
 #### Logistics-owned approval routes — implemented, not Courier actions
 
@@ -198,6 +213,8 @@ The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3703
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.
 - Registration upload UI must show accepted formats and the under-10-MiB limit, progress/cancel/retry, and server field errors. Client checks are convenience only.
+- The imported Flutter log (2026-10-03) records protection of unsaved registration text, selections, and evidence on Back, Sign in, and Android system Back; untouched, reverted, and successfully submitted forms leave without a discard prompt, and in-flight submission retains its explicit cancel action.
+- The same imported record reports registration using independent password visibility controls, logical Next/Done and keyboard traversal, and ordered scroll/focus for local/server field errors, including PSGC selectors and evidence controls. Passwords clear after server attempts and upload cancellation; browser/device acceptance remains separate.
 - Flutter registration must retain both selected `XFile` contents until multipart submission on local web-server; browser paths cannot be passed to `MultipartFile.fromPath`. Keep Android's native upload behavior and the exact `government_id`/`vehicle_registration` parts; follow the copied `docs/flutter-file-uploads.md` and verify both targets before claiming web upload support.
 - Do not reproduce Eloquent, SQL, enum implementation, or authorization logic in Dart. The API response is authoritative and all mutations need online revalidation.
 - Add API tests for role/status/affiliation/hub scope, prohibited fields, duplicate races, file spoofing/boundaries, transaction cleanup, token issuance/logout, throttling, DTO privacy, and Logistics organization isolation.

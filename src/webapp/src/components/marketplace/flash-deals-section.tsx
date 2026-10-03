@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { FiArrowRight } from "react-icons/fi";
 
 import { useHomeData } from "./home-data-provider";
 import { ProductCard } from "./product-card";
@@ -86,13 +84,6 @@ export function FlashDealsSection() {
             </time>
           </div>
         </div>
-        <Link
-          href="/flash-deals"
-          className="flex items-center gap-1 text-sm font-semibold text-[#4C1268] hover:text-[#E6007A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-        >
-          See all deals
-          <FiArrowRight aria-hidden="true" className="size-4" />
-        </Link>
       </div>
 
       <div className="marketplace-scroll grid snap-x snap-mandatory grid-flow-col auto-cols-[44%] gap-3 overflow-x-auto pb-2 sm:auto-cols-[30%] lg:auto-cols-[19%] xl:auto-cols-[16%]">

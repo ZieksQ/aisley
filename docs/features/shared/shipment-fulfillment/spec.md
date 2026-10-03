@@ -113,7 +113,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 ### Cross-document decisions: physical vocabulary
 
 - Use lowercase `snake_case` for any future persisted/API values and keep enum-like database columns string-backed with PHP enum casts.
-- The detailed physical sequence described by the current canonical docs is:
+- The detailed physical sequence for direct same-hub delivery is:
 
 ```text
 awaiting_seller_pickup
@@ -132,7 +132,7 @@ awaiting_seller_pickup
 ```
 
 - These detailed values belong to the deployed Shipment/Delivery Task contract; they remain separate from `orders.status` and are stored as string-backed enum-like columns.
-- Existing high-level `OrderStatus` compatibility values remain separate. `picked_up` projects the explicit first-mile Seller handoff; `assigned` projects the committed scheduled final-mile assignment and does not represent hub receipt. Hub receipt, sorting, and dispatch remain detailed milestones; internal transfer execution remains deferred.
+- Existing high-level `OrderStatus` compatibility values remain separate. `picked_up` projects the explicit first-mile Seller handoff; `assigned` projects the committed scheduled final-mile assignment and does not represent hub receipt. Hub receipt, sorting, and dispatch remain detailed milestones; same-hub internal transfer is unnecessary, while company-truck Linehaul uses `in_transfer` between organizations’ sole hubs without changing high-level Order status.
 - Automatic Sorting records the plan revision, postal-code match, selected lane, or exception reason on the scan result. Client predictions and manual lane choices are inputs only; tenant/hub ownership and the current plan are authoritative.
 - Task-level `rejected` and informational `stale` outcomes follow the exception decision below and do not write a new `orders.status` value. Customer cancellation and Seller rejection of eligible `placed` Orders are implemented. Post-pickup cancellation, `delivery_failed`, `return_requested`, and `returned` transitions remain deferred.
 
@@ -143,6 +143,7 @@ awaiting_seller_pickup
 - `picked_up_from_seller` is the approved fulfillment boundary for consuming the reservation once; it must not decrement `on_hand` twice.
 - Post-pickup cancellation, terminal delivery failure, returns, refunds, and partial fulfillment remain deferred until an approved policy and line-level records exist. Retryable failed doorstep attempts keep the task `out_for_delivery`.
 - Waybill creation, printing, scanning, scheduling, and assignment do not independently mutate payment, Inventory, or Order status.
+- Logistics-confirmed final delivery commits task/Shipment/Order `delivered`; for COD it marks payment `paid` after verifying the server-derived declaration, without fulfilling Inventory again.
 
 ### Current implementation versus accepted target
 
@@ -178,13 +179,13 @@ awaiting_seller_pickup
 - [x] `docs/schema.md` migration ledger includes every repository migration, uses unique documentation sequence numbers, and records the implemented policy-consent protected-action gate.
 - [ ] Complete propagation of detailed schema columns/constraints, per-transition evidence/side effects, endpoint payloads, and the first-mile compatibility rollout into all owning specs. The selection, status, implementation summaries, migration-ledger corrections, and shared migration plan are documented; this broader implementation gate remains open.
 
-### MVP re-offer, expiry, and internal transfer rules
+### MVP re-offer, expiry, and hub transfer rules
 
-- A Courier rejects only its currently offered, unaccepted assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
-- Logistics re-offers the same task by appending a new offer for another eligible affiliated Courier. The task returns to `seller_pickup_assigned` for first mile or `delivery_assigned` for final mile; the rejected offer remains immutable.
+- A Courier rejects only its currently offered, unaccepted final-mile assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- Deployed Logistics re-offer appends a new offer for the same final-mile task and returns it to `delivery_assigned`; the rejected offer remains immutable. First-mile rejection/re-offer (`seller_pickup_assigned`) is a target policy only: no Courier first-mile rejection endpoint is deployed.
 - Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
 - Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
-- `in_transfer` execution is deferred in the one-hub MVP. Use `received_at_hub → sorted_at_hub → dispatched_from_hub`; dispatch requires a recorded sorting event. Do not create a dummy transfer event or an additional hub. The reserved `in_transfer` name is unavailable until a separately approved internal-transfer feature exists.
+- `in_transfer` is implemented for company-truck Linehaul between different organizations’ sole hubs. Accepted trip departure records transfer; each authorized destination receipt records custody and `received_at_hub`. A parcel may sort after receipt while other cargo remains in transfer. Same-hub processing uses `received_at_hub → sorted_at_hub → dispatched_from_hub` without a dummy transfer or additional sub-hub. Linehaul mutations remain Logistics-owned under `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
 
 ### First-mile migration bridge (implemented compatibility behavior)
 
@@ -207,7 +208,7 @@ The bridge implementation must test concurrent confirmation during cutover, resu
 
 - [x] Define exact Shipment/Parcel foreign keys, uniqueness, nullability, package measurement units/limits (or explicitly defer measurements), and creation/backfill timing in `docs/schema.md`.
 - [x] Define the compatibility rollout from `first_mile_tasks`/`courier_pickup_confirmations` to shared tasks and Logistics validation without creating duplicate custody or Inventory effects.
-- [x] Specify whether `in_transfer` is an internal sole-hub step and when it may be skipped; no inter-hub transfer is authorized.
+- [x] `in_transfer` belongs to implemented company-truck Linehaul between organizations’ sole hubs; same-hub receipt/sort/dispatch skips it. Trip acceptance, departure, and per-parcel receiving follow the owning Linehaul contract.
 - [x] Define re-offer transition from rejected state and defer automatic expiry. A concrete stale-display threshold remains owned by the Dashboard contract; until configured, expose the last activity timestamp rather than inventing a stale deadline.
 - [x] Complete every transition's preconditions, evidence, transactional effects, retry projection, and conflict response in the owning API contract before exposing it.
 
@@ -236,7 +237,7 @@ Complete each unchecked question before creating physical operational migrations
        **Answer/owner:**
   - **Offered:** Logistics sends the task to a Courier; store the task, Courier, offer time, and expiry/state.
   - **Accepted:** The Courier accepts the offer; the task’s current assignment becomes that Courier.
-  - **Rejected:** The Courier declines; store the rejection reason and timestamp. The Order and custody state do not change.
+  - **Rejected:** The Courier declines an eligible final-mile offer; store the rejection reason and timestamp. First-mile rejection/re-offer is planned and has no deployed Courier endpoint. The Order and custody state do not change.
   - **Re-offered:** Logistics offers the same `DeliveryTask` to another Courier by creating a new offer/assignment record. Do not create a new Order, Parcel, or Shipment.
 
 - [x] **Actor timestamps and presentation:** Which server timestamps and performing/validating/recording actors are required? Should a restricted Logistics/Admin audit log be separate from Customer/Courier milestone timelines?  
@@ -264,7 +265,7 @@ Complete each unchecked question before creating physical operational migrations
        **Answer/owner:** The authoritative transition matrix is maintained in `docs/workspace.md` and mirrored in each owning feature specification. The following is the accepted target vocabulary, not a claim that every state exists in today's backend enums. Existing first-mile task `assigned`/`accepted` values remain distinct from the future `seller_pickup_assigned`/`seller_pickup_accepted` names and high-level Order `assigned`. No client may submit an arbitrary target status.
   - `awaiting_seller_pickup → seller_pickup_assigned`: Logistics creates/offers the task after Seller readiness, selected-provider, hub, and waybill checks.
   - `seller_pickup_assigned → seller_pickup_accepted`: The affiliated Courier accepts its own offer.
-  - `seller_pickup_assigned → rejected`: The Courier rejects the offer with a reason; the Order and custody state remain unchanged. Logistics may re-offer the same task.
+  - Target only, unavailable in the deployed API: `seller_pickup_assigned → rejected` would record a Courier rejection without changing Order/custody and allow re-offer. Do not implement a Flutter first-mile Reject control; no owning endpoint is deployed.
   - `seller_pickup_accepted → picked_up_from_seller`: The deployed compatibility path verifies the Courier's QR/tracking-ID/Order-reference, explicitly confirms pickup, commits the first-mile handoff and Inventory effect once, and bridges shared records. A separate Logistics-validation first-mile cutover remains a target, not the current endpoint contract.
   - `picked_up_from_seller → received_at_hub`: Logistics validates receipt at its sole hub.
   - `received_at_hub → sorted_at_hub`: dedicated Receiving and Hub operations record these sole-hub transitions.
@@ -293,7 +294,7 @@ Complete each unchecked question before creating physical operational migrations
 | Courier task-confirmation submission for hub custody       | `docs/features/courier/pick-up-order/specs.md`            | Implemented P0 for hub pickup only                                                  |
 | Logistics scan validation and authoritative custody recording | `docs/features/logistics/update-status/specs.md`          | Implemented for hub/final-mile P0 transitions                                      |
 | Logistics bounded operational queue and Hub operations      | `docs/features/logistics/dashboard/specs.md`              | Implemented; active scoped rows/counts; stale threshold/realtime deferred         |
-| Hub receipt, sorting, transfer, and dispatch                  | `docs/features/logistics/update-status/specs.md`          | Implemented receipt/sort/dispatch; internal transfer execution deferred             |
+| Hub receipt, sorting, transfer, and dispatch                  | `docs/features/logistics/update-status/specs.md`          | Implemented receipt/sort/dispatch; company-truck transfer follows its owning Linehaul spec             |
 | Final-mile task creation, assignment, and re-offer            | `docs/features/logistics/deploy-rider/specs.md`           | Implemented final-mile candidate/offer API; advanced ranking deferred               |
 | Courier final-mile acceptance/rejection                       | `docs/features/courier/accept-delivery-requests/specs.md` | Implemented; first-mile listing/acceptance remains available                         |
 | Proof-of-delivery submission                                  | `docs/features/courier/proof-of-delivery/specs.md`        | Implemented private photo upload/read; signature deferred                           |
@@ -334,7 +335,7 @@ Complete each unchecked question before creating physical operational migrations
 - Lane-aware staging/dispatch is implemented under `docs/features/orders/lane-aware-dispatch/spec.md`: durable Shipment lane/session assignments, receipt-time ordering, audited pre-dispatch moves, explicit mixed-lane batches, immutable membership provenance, and live-lane clearing at validated hub pickup. Session closure reconciles sorting rather than gating each ready parcel.
 - [x] Task cardinality: one Order/Parcel per DeliveryTask; schedules may group Orders but do not create a multi-parcel task.
 - [x] Scan/evidence authority: first-mile identifier verification and explicit pickup confirmation remain on the compatibility contract. Final-mile hub handoff uses the accepted task and revision, with no identifier input; private photo POD and completion intent serve destination delivery. Logistics validates final-mile evidence and records custody, preserving the performing Courier and recording Logistics account. A scan/access event or notification alone never advances custody.
-- [x] Exception policy: returns, refunds, and partial fulfillment are deferred. A rejected Courier offer marks the task `rejected` without changing the Order; Logistics may offer the same task to another eligible Courier. An unfinished task becomes informationally `stale` and is not automatically cancelled or reassigned; no automatic post-pickup inventory release is assumed.
+- [x] Exception policy: returns, refunds, and partial fulfillment are deferred. A rejected final-mile Courier offer marks the task `rejected` without changing the Order; Logistics may offer the same task to another eligible Courier. An unfinished task becomes informationally `stale` and is not automatically cancelled or reassigned; no automatic post-pickup inventory release is assumed.
 - [x] Courier route summary: an authorized Courier may see provider-neutral `distance_km` and `estimated_duration_minutes` with the offered or accepted task; no map vendor or graphical route is implied.
 
 ### References
