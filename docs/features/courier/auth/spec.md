@@ -3,8 +3,8 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.3
-status: Implemented foundation; dedicated coverage and recovery completion deferred
+version: 2.4
+status: Implemented foundation; auth denial parity covered; recovery completion deferred
 implementation_status: Auth foundation implemented; supplied Flutter progress records registration, bearer session, and protected scaffold UI; live cross-repository verification remains separate
 canonical: true
 role: Courier / Rider
@@ -97,8 +97,18 @@ GET active Logistics options
 
 ### Stable errors and privacy
 
-- Invalid credentials return `422` with `INVALID_CREDENTIALS`; inactive status returns `403` with `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE`.
-- Invalid or missing affiliation returns `403` with `LOGISTICS_ASSOCIATION_INVALID`; wrong role returns `FORBIDDEN_ROLE`.
+- Login validates Courier credentials before access checks. Unknown email, wrong password, or another role's credentials return `422 INVALID_CREDENTIALS` with `The email or password is incorrect.`; no account or affiliation state is disclosed and no token is issued.
+- After valid credentials at login, and after bearer authentication and Courier-role checks on protected requests, check account status before affiliation. Login and protected requests use the same `403` payload for each inactive account status, even when its affiliation is also invalid:
+
+  | Account status | Error code | Message |
+  | --- | --- | --- |
+  | `pending` | `ACCOUNT_PENDING_APPROVAL` | `This Courier account is not active.` |
+  | `rejected` | `ACCOUNT_REJECTED` | `This Courier account is not active.` |
+  | `suspended` | `ACCOUNT_SUSPENDED` | `This Courier account is not active.` |
+  | `deactivated` | `ACCOUNT_INACTIVE` | `This Courier account is not active.` |
+
+- For an active Courier, a missing, pending, rejected, or revoked affiliation, inactive/missing Logistics owner, or missing hub returns `403 LOGISTICS_ASSOCIATION_INVALID` with `This Courier is not approved by an active Logistics organization.` at both login and protected requests. A rejected affiliation does not by itself mean the account is rejected. Denied login issues no token.
+- A bearer-authenticated wrong role returns `403 FORBIDDEN_ROLE` with `This area is restricted to couriers.` before Courier access checks; guests or invalid tokens return `401`.
 - Missing current shared policy acceptance returns `403 POLICY_CONSENT_REQUIRED` with required policy/version descriptors and read/status/accept paths; Flutter must not treat it as invalid credentials.
 - Validation and file failures return `422`; login throttling returns `429` with `Retry-After`. Unknown organization and cross-organization IDs fail closed.
 - Auth DTOs may include Courier ID/email/role/status, profile first/last name/age, affiliation status, organization name, and hub name. They omit secrets, evidence, full address, reviewer notes, token hashes, and storage paths.
@@ -126,6 +136,7 @@ GET active Logistics options
 - [x] Accepted image types and the strict under-10-MiB boundary are enforced server-side.
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
 - [x] Bearer login, `/me`, current-token logout, generic recovery response, and DTO redaction exist.
+- [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; external Flutter integration remains unverified.
 - [x] Complete recovery delivery/reset and affiliation-history/revocation, and verify concurrent duplicate registration; existing foundation tests do not establish these extensions.
 - [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
@@ -133,7 +144,7 @@ GET active Logistics options
 
 ### Implemented API contract
 
-The inspected backend baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; this documentation review does not certify external Flutter or PostgreSQL release tests.
+The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.4` supersedes its account/affiliation denial mapping. Focused SQLite authentication verification does not certify external Flutter or PostgreSQL release tests.
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
