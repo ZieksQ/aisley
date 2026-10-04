@@ -5,6 +5,7 @@ namespace App\Services\Logistics;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Jobs\Logistics\DeliverLogisticsNotification;
+use App\Models\CodInvoice;
 use App\Models\CompletionIntent;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DeliveryTask;
@@ -24,6 +25,8 @@ class LogisticsNotificationService
 {
     /** @var list<string> */
     public const TYPES = [
+        'cod_invoice_issued',
+        'cod_invoice_overdue',
         'logistics-pickup.requested',
         'logistics-courier.application-pending',
         'logistics-task.offer-rejected',
@@ -343,6 +346,12 @@ class LogisticsNotificationService
         }
         $orgId = (string) $org->id;
         $hubId = (string) $org->hub->id;
+
+        if (in_array($type, ['cod_invoice_issued', 'cod_invoice_overdue'], true)) {
+            $invoice = CodInvoice::query()->whereKey($this->uuid($data['invoice_id'] ?? null))->where('logistics_organization_id', $orgId)->first();
+
+            return $invoice ? $this->known('cod_invoice', $invoice->id, '/finance/remittances/invoices/'.$invoice->id) : $this->emptyContext();
+        }
 
         return match ($type) {
             'logistics-pickup.requested' => $this->pickupContext($data, $orgId, $hubId),

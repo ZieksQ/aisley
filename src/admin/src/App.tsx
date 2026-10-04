@@ -17,6 +17,7 @@ import { SellerCompliancePage } from './pages/SellerCompliancePage'
 import { SellerComplianceCasePage } from './pages/SellerComplianceCasePage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FeatureControlsPage } from './pages/FeatureControlsPage'
+import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
 import { FinancePage } from './pages/FinancePage'
 import { FinanceHoldsPage } from './pages/FinanceHoldsPage'
 import { PricingSettingsPage } from './pages/PricingSettingsPage'
@@ -33,6 +34,12 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<FinancePage />} path="/finance" />
+          <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
+          <Route element={<FinancePaymentsPage />} path="/finance/remittances" />
+          <Route element={<FinancePaymentsPage />} path="/finance/remittances/invoices/:invoiceId" />
+          <Route element={<FinancePaymentsPage />} path="/finance/remittances/:batchId" />
+          <Route element={<FinancePaymentsPage />} path="/finance/automation" />
+          <Route element={<FinancePaymentsPage />} path="/finance/sandbox" />
           <Route element={<PricingSettingsPage />} path="/pricing-and-fees" />
           <Route element={<FinanceHoldsPage />} path="/finance-holds" />
           <Route element={<FinanceHoldsPage />} path="/finance-holds/:holdId" />

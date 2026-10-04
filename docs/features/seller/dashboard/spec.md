@@ -144,3 +144,8 @@ active Seller session
 - A `DOMAIN_NOT_IMPLEMENTED` response is a truthful product state and should link to the relevant roadmap/spec, not show a disabled chart that looks like zero data.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Auth, Product/Catalog, Inventory, Low Stock Alerts, Order Approval, Prepare Orders, and Generate Report specs.
+
+## Finance navigation extension (2026-10-05)
+
+- Finance retains the overview and adds role-owned links to payout history and applicable payment settings. Admin and Logistics also have COD invoice/remittance pages; Admin owns automation and gateway simulation controls.
+- These workflows are specified in `../../shared/cod-automation/spec.md`; Dashboard aggregates and operational role boundaries remain unchanged.

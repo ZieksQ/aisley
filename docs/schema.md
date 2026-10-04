@@ -1588,3 +1588,12 @@ Before adding these tables:
 - update this document and `docs/PROGRESS.md` in the same change as the migrations.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the existing first-mile Seller handoff and Inventory fulfillment. It now idempotently bridges that result into shared Parcel/Shipment/DeliveryTask records without replaying stock. New hub and final-mile transitions use `FulfillmentTransitionService`, Logistics validation, and append-only physical events; signature evidence, live location telemetry, and exceptional recovery remain future extensions; private photo POD and advisory final-mile routes are implemented.
+
+## COD automation schema (2026-10-05)
+
+- Migration `2026_10_05_000001_add_cod_automation.php` adds UUID `cod_invoices`, `finance_automation_settings`, `finance_automation_runs`, `finance_payment_attempts`, `sandbox_gateway_accounts`, `sandbox_gateway_transactions`, `finance_gateway_events`, and `finance_webhook_receipts`.
+- Invoice Order IDs are unique. Collector, amount, deadline, and separate payout eligibility timestamps are delivery snapshots. Unknown historical ownership is nullable and requires review.
+- Payment keys/provider references, daily run keys, gateway idempotency keys, and accepted webhook event IDs are unique. Pending attempts reserve existing remittance allocations and payout obligations.
+- Remittance batches gain gateway identification and rejection actor/reason/time. Payout items retain failed history with `released_at`; per-attempt uniqueness replaces the old all-history obligation uniqueness. Beneficiary locks protect active claims.
+- New status/direction/scenario strings have PHP enum casts. All money remains integer centavos. Documents remain private; financial ledger entries remain append-only.
+- Rollback deliberately fails if retained retry history cannot satisfy the original all-history payout-item uniqueness; reconcile history rather than deleting it automatically.

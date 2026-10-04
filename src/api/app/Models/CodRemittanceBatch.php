@@ -14,7 +14,7 @@ class CodRemittanceBatch extends Model
 
     protected function casts(): array
     {
-        return ['total_cents' => 'integer', 'submitted_at' => 'immutable_datetime', 'cleared_at' => 'immutable_datetime'];
+        return ['is_gateway' => 'boolean', 'rejected_at' => 'immutable_datetime', 'total_cents' => 'integer', 'submitted_at' => 'immutable_datetime', 'cleared_at' => 'immutable_datetime'];
     }
 
     public function allocations(): HasMany

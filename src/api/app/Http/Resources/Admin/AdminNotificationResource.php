@@ -47,7 +47,7 @@ class AdminNotificationResource extends JsonResource
             return null;
         }
 
-        foreach (['/registrations/', '/audit-logs/', '/platform-settings', '/account', '/dashboard'] as $allowedPrefix) {
+        foreach (['/finance/remittances/invoices/', '/registrations/', '/audit-logs/', '/platform-settings', '/account', '/dashboard'] as $allowedPrefix) {
             if (str_starts_with($destination, $allowedPrefix)) {
                 return $destination;
             }

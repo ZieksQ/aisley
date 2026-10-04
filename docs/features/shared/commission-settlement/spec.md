@@ -25,9 +25,9 @@
 
 ## SETTLEMENT
 
-- Logistics remits full COD through a batch with provider/bank reference and Order allocations. Only Admin-cleared receipts fund Orders.
-- Seller and Logistics balances become eligible 14 calendar days after confirmed delivery, once fully funded and free of financial holds.
-- `finance:settle` runs daily at 09:00 Asia/Manila, reserves liabilities atomically, and creates idempotent sandbox transfers grouped by beneficiary and currency.
+- Final-mile Logistics receives an automatic COD invoice at confirmed delivery; its default deadline is 72 hours. Scheduled or manual full-balance payments fund Orders only after a verified gateway result; legacy manual receipts require Admin clearing. See `../cod-automation/spec.md`.
+- Seller balances default to 14 days after delivery; Logistics balances default to 24 hours. Admin customizes future-delivery delays. Both require full funding and no financial holds; Admin can send early Logistics payouts without a written reason.
+- `finance:automate` evaluates persisted daily collection and separate payout schedules every minute. Defaults are 09:00 Asia/Manila; Logistics chooses collection time, Admin chooses payout times. Gateway-backed transfers reserve liabilities atomically and retain attempt history. `finance:settle` remains a manual eligible-payout command.
 - Sandbox outcomes are deterministic: success, failure, delay/unknown, duplicate callback, and insufficient funds. Sandbox beneficiaries and callbacks stay marked and cannot be treated as live transfers.
 - Refunds and corrections use reversing entries. Pre-payout reversals reduce liabilities; post-payout reversals create recoverables.
 

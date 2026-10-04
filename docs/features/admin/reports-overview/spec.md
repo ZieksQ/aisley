@@ -3,7 +3,7 @@ feature: reports-overview
 title: Admin Finance Reports Overview
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 3.0
 status: Revised; Finance reporting baseline implemented; extensions and verification gaps remain
 role: Admin
 scope: Admin React dashboard and Laravel Finance API
@@ -27,9 +27,9 @@ last_reconciled: 2026-10-03
 
 - `src/admin/src/pages/FinancePage.tsx` composes `@aisley/finance-ui` at `/finance` within the existing Admin layout.
 - Current sections are summary cards, recorded/projected revenue, revenue/cost bridge, remittance/payouts, credit-account breakdown, money flow, and searchable ledger/CSV.
-- Order drill-down, costs/closure, configuration, remittance clearing, holds, and sandbox settlement have APIs; these workflows have no controls in the shared Finance screen.
+- Dedicated Finance remittance, payout, automation, and gateway sandbox pages now provide invoice review, legacy clearing/rejection, manual payouts, timing configuration, and payment documents. Order drill-down and costs/closure remain API-only in the shared overview. See `../../shared/cod-automation/spec.md`.
 - Admin Dashboard remains a separate permission-scoped registration/support/compliance overview; do not duplicate Finance charts or commission calculations there.
-- Custom date/group/Shop/status filters, full-history exports, PDF, export jobs, tax reporting, live payouts, and Customer refund workflows are not implemented.
+- Custom date/group/Shop/status filters, full-history report exports, report PDF, export jobs, tax reporting, live payouts, and Customer refund workflows are not implemented.
 - Future enhancements extend existing Finance contracts and permission boundaries; no parallel commission ledger or new report-export schema is authorized here.
 
 ## MUST
@@ -64,7 +64,7 @@ last_reconciled: 2026-10-03
 ### Remittance, forecast, and money flow
 
 - Remittance aging returns submitted/cleared batch totals and `oldestSubmittedAt`; it is not a dated cash-flow statement or per-batch review queue.
-- Only Admin-cleared COD allocations fund settlement; beneficiary eligibility separately requires 14 days after delivery, full funding, and no hold.
+- Verified gateway payments automatically clear COD; legacy manual receipts require Admin clearing. Seller/Logistics eligibility defaults to separate 14-day/24-hour delivery waits, full funding, and no hold; timing and early manual Logistics payouts follow the COD automation spec.
 - The API returns at most 20 recent payouts across beneficiaries; the current panel renders six, with status and explicit `isSandbox`.
 - Sandbox results, callbacks, beneficiaries, and payout amounts must never be represented as real transfers.
 - Recorded revenue and the server's 30-day outlook share one chart, with distinguished forecast styling and an accessible data table.
@@ -131,7 +131,7 @@ All paths below are relative to `/api/v1/admin/finance` and require `finance.vie
 - `Admin\FinanceController` delegates to `AbstractFinanceController` and `FinanceReportService`; derive `owner_type = platform` without a client owner selector.
 - `FinanceLifecycleService`, `LedgerService`, `FinanceWorkflowService`, and `SandboxSettlementService` retain recognition, journal, closure, and settlement ownership.
 - Reuse existing pricing snapshots, commissions, journals/lines, expenses, remittance/allocations, financial holds, closures, and payout records.
-- No report table, stored-export job, PDF dependency, new migration, or alternative commission formula is introduced by this revision.
+- Reporting still uses the existing ledger and workspace envelope. The separate COD automation feature adds invoice/payment persistence and documents using the already installed PDF renderer.
 - Shared `FinanceWorkspace` loads summary/ledger together through the Admin's existing credentialed API client; retain role-specific labels and permission-filtered navigation.
 - Review `FinanceAccessTest.php` and `FinanceLedgerTest.php`; current tests do not establish complete Finance manage/export/forecast or browser coverage.
 - Add targeted regressions for permission combinations, recognition/reversals, cost/closure boundaries, held/unfunded payouts, eight-week history, CSV paging/safety, and cross-account stale responses.
