@@ -196,7 +196,7 @@ class FinanceReportService
             ['id' => 'seller', 'label' => 'Seller proceeds'], ['id' => 'logistics', 'label' => 'Logistics services'], ['id' => 'commission', 'label' => 'Platform commission'],
         ], 'edges' => [
             ['id' => 'cod', 'source' => 'customer', 'target' => 'platform', 'label' => 'Full COD remittance'],
-            ['id' => 'seller-payout', 'source' => 'platform', 'target' => 'seller', 'label' => '14-day eligible payout'],
+            ['id' => 'seller-payout', 'source' => 'platform', 'target' => 'seller', 'label' => 'Configured eligible Seller payout'],
             ['id' => 'logistics-payout', 'source' => 'platform', 'target' => 'logistics', 'label' => 'Evidence-based shares'],
             ['id' => 'commission-retained', 'source' => 'platform', 'target' => 'commission', 'label' => 'Commission retained'],
         ], 'scope' => $scope['owner_type']];

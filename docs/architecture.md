@@ -92,3 +92,10 @@ Due to native enum column type errors in PostgreSQL migrations, database columns
 * **Domain Routing:**
 * Storefront (`webapp`) uses the root domain.
 * All dashboards and the API are routed via dedicated subdomains.
+
+### Finance gateway simulator
+
+- COD automation uses the existing Laravel database queue/scheduler and installed PDF renderer; no new application framework or provider SDK is required.
+- `finance:automate` evaluates persisted daily times every minute. Delivery commits durable invoices; queued work and periodic recovery handle PDFs, notifications, outbound payment HTTP, and signed webhooks.
+- Simulator routes are server-key-authenticated under `/api/v1/sandbox-gateway`; the result webhook is signature-authenticated under `/api/v1/finance/gateway/webhook`. Browser Finance routes retain Sanctum/RBAC/consent.
+- Configure `FINANCE_GATEWAY_ENABLED`, URL/key, and webhook URL/secret from `src/api/.env.example`. Requests originate from the queue worker, avoiding synchronous loopback deadlocks under the development HTTP server. Enable explicitly outside local/testing; this simulator moves no real money.

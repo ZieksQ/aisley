@@ -166,3 +166,8 @@ Production acceptance is not implied by mocked browser contracts. The separate P
 - Owning specs: `docs/features/admin/support-ticket-system/spec.md` and `docs/features/admin/monitor-seller-compliance/spec.md`.
 - Server-side authorization and aggregate approach: [Laravel authorization](https://laravel.com/framework/docs/13.x/authorization) and [query aggregates](https://laravel.com/framework/docs/13.x/queries#aggregates).
 - Broader analytics, Finance summaries, multi-status workloads, health monitoring, and realtime Dashboard events need a separate approved scope before implementation.
+
+## Finance navigation extension (2026-10-05)
+
+- Finance retains the overview and adds role-owned links to payout history and applicable payment settings. Admin and Logistics also have COD invoice/remittance pages; Admin owns automation and gateway simulation controls.
+- These workflows are specified in `../../shared/cod-automation/spec.md`; Dashboard aggregates and operational role boundaries remain unchanged.

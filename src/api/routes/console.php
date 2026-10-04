@@ -21,8 +21,8 @@ Schedule::command('pickups:dispatch-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
-Schedule::command('finance:settle')
-    ->dailyAt('09:00')
+Schedule::command('finance:automate')
+    ->everyMinute()
     ->timezone('Asia/Manila')
     ->withoutOverlapping()
     ->onOneServer();

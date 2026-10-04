@@ -2,8 +2,6 @@
 
 namespace App\Services\Finance;
 
-use App\Enums\OrderStatus;
-use App\Enums\PaymentStatus;
 use App\Models\CodRemittanceBatch;
 use App\Models\FinanceExpense;
 use App\Models\FinancePeriodClosure;
@@ -13,6 +11,7 @@ use App\Models\LogisticsRouteReconciliation;
 use App\Models\LogisticsServiceAllocation;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Finance\Automation\RemittanceService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -27,65 +26,12 @@ class FinanceWorkflowService
     /** @param list<array{order_id: string, amount_cents: int}> $allocations */
     public function submitRemittance(User $logistics, string $reference, string $currency, array $allocations): CodRemittanceBatch
     {
-        $organization = $logistics->logisticsOrganization()->firstOrFail();
-        $total = collect($allocations)->sum('amount_cents');
-        if ($total < 1) {
-            throw ValidationException::withMessages(['allocations' => 'Allocate a positive remittance amount.']);
-        }
-
-        return DB::transaction(function () use ($organization, $reference, $currency, $allocations, $total): CodRemittanceBatch {
-            $existing = CodRemittanceBatch::query()->where('logistics_organization_id', $organization->id)->where('reference', $reference)->first();
-            if ($existing !== null) {
-                return $existing->load('allocations');
-            }
-            foreach ($allocations as $index => $allocation) {
-                $order = Order::query()->whereKey($allocation['order_id'])
-                    ->where('currency', $currency)->where('status', OrderStatus::Delivered)->where('payment_status', PaymentStatus::Paid)
-                    ->whereHas('waybill', fn ($query) => $query->where('logistics_organization_id', $organization->id))
-                    ->lockForUpdate()->first();
-                if ($order === null) {
-                    throw ValidationException::withMessages(["allocations.{$index}.order_id" => 'This delivered COD Order is not remittable by your organization.']);
-                }
-                $cleared = (int) DB::table('cod_remittance_allocations')->join('cod_remittance_batches', 'cod_remittance_batches.id', '=', 'cod_remittance_allocations.cod_remittance_batch_id')
-                    ->where('cod_remittance_allocations.order_id', $order->id)->where('cod_remittance_batches.status', 'cleared')->sum('cod_remittance_allocations.amount_cents');
-                if ($cleared + (int) $allocation['amount_cents'] > $this->cents($order->payable_total)) {
-                    throw ValidationException::withMessages(["allocations.{$index}.amount_cents" => 'The allocation exceeds the unremitted COD balance.']);
-                }
-            }
-            $batch = CodRemittanceBatch::create([
-                'logistics_organization_id' => $organization->id, 'reference' => $reference,
-                'status' => 'submitted', 'currency' => $currency, 'total_cents' => $total, 'submitted_at' => now(),
-            ]);
-            foreach ($allocations as $allocation) {
-                $batch->allocations()->create($allocation);
-            }
-
-            return $batch->load('allocations');
-        }, 3);
+        return app(RemittanceService::class)->submit($logistics, $reference, $currency, $allocations);
     }
 
     public function clearRemittance(User $admin, string $batchId): CodRemittanceBatch
     {
-        return DB::transaction(function () use ($admin, $batchId): CodRemittanceBatch {
-            $batch = CodRemittanceBatch::query()->whereKey($batchId)->with('allocations')->lockForUpdate()->firstOrFail();
-            if ($batch->status === 'cleared') {
-                return $batch;
-            }
-            abort_if($batch->status !== 'submitted', 409, 'Only submitted remittances can be cleared.');
-            foreach ($batch->allocations as $allocation) {
-                $order = Order::query()->whereKey($allocation->order_id)->lockForUpdate()->firstOrFail();
-                $alreadyCleared = (int) DB::table('cod_remittance_allocations')->join('cod_remittance_batches', 'cod_remittance_batches.id', '=', 'cod_remittance_allocations.cod_remittance_batch_id')
-                    ->where('cod_remittance_allocations.order_id', $order->id)->where('cod_remittance_batches.status', 'cleared')->sum('cod_remittance_allocations.amount_cents');
-                abort_if($alreadyCleared + $allocation->amount_cents > $this->cents($order->payable_total), 409, 'Clearing would overfund an Order.');
-                $this->ledger->post('remittance:'.$batch->id.':'.$order->id, 'cod_remitted', $batch->currency, [
-                    ['account_code' => 'cash', 'owner_type' => 'platform', 'debit_cents' => $allocation->amount_cents],
-                    ['account_code' => 'cod_receivable', 'owner_type' => 'platform', 'credit_cents' => $allocation->amount_cents],
-                ], now(), $order->id, 'COD remittance receipt cleared by Admin.');
-            }
-            $batch->update(['status' => 'cleared', 'cleared_by_admin_id' => $admin->id, 'cleared_at' => now()]);
-
-            return $batch->refresh()->load('allocations');
-        }, 3);
+        return app(RemittanceService::class)->clear($batchId, $admin);
     }
 
     /** @param array<string, mixed> $scope @param array<string, mixed> $data */
@@ -163,9 +109,14 @@ class FinanceWorkflowService
 
     public function placeHold(User $admin, string $orderId, string $reason, ?string $notes): FinancialHold
     {
-        Order::query()->findOrFail($orderId);
+        return DB::transaction(function () use ($admin, $orderId, $reason, $notes) {
+            Order::query()->whereKey($orderId)->lockForUpdate()->firstOrFail();
+            $reserved = DB::table('finance_payout_items')->join('finance_payouts', 'finance_payouts.id', '=', 'finance_payout_items.finance_payout_id')
+                ->where('finance_payout_items.order_id', $orderId)->whereNull('finance_payout_items.released_at')->whereIn('finance_payouts.status', ['reserved', 'pending'])->exists();
+            abort_if($reserved, 409, 'Order funds are already reserved for payout. Reconcile the payment before placing a hold.');
 
-        return FinancialHold::create(['order_id' => $orderId, 'reason_code' => $reason, 'notes' => $notes, 'placed_by' => $admin->id, 'placed_at' => now()]);
+            return FinancialHold::create(['order_id' => $orderId, 'reason_code' => $reason, 'notes' => $notes, 'placed_by' => $admin->id, 'placed_at' => now()]);
+        }, 3);
     }
 
     public function releaseHold(User $admin, string $holdId): FinancialHold

@@ -24,6 +24,7 @@ import { ProductQuestionsPage } from './pages/ProductQuestionsPage'
 import { ProductReviewDetailPage } from './pages/ProductReviewDetailPage'
 import { ProductReviewsPage } from './pages/ProductReviewsPage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
+import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
 import { FinancePage } from './pages/FinancePage'
 import { MessagesPage } from './pages/MessagesPage'
 import { MessageThreadPage } from './pages/MessageThreadPage'
@@ -44,6 +45,8 @@ function App() {
         <Route element={<SellerLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<FinancePage />} path="/finance" />
+          <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
+          <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
           <Route element={<MessagesPage />} path="/messages" />
           <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
           <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />

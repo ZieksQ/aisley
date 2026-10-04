@@ -1,0 +1,27 @@
+.finance-payments { padding: 20px; max-width: 1400px; }
+.finance-payments h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+.finance-payments h3 { font-size: 16px; font-weight: 600; margin: 20px 0 12px; }
+.finance-payments p { margin: 8px 0; overflow-wrap: anywhere; }
+.payment-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.payment-table { overflow-x: auto; border: 1px solid var(--finance-border); border-radius: 8px; }
+.payment-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.payment-table th, .payment-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--finance-border); white-space: nowrap; }
+.payment-table th { font-weight: 600; background: var(--finance-hover); }
+.payment-table tbody tr:last-child td { border-bottom: 0; }
+.finance-payments button { box-shadow: none; border-radius: 8px; }
+.finance-payments button:not([disabled]):focus-visible, .finance-payments input:focus-visible, .finance-payments select:focus-visible, .payment-table:focus-visible { outline: 2px solid #E6007A; outline-offset: 2px; }
+.finance-payments label { color: var(--finance-text); }
+.finance-payments input:not([type="checkbox"]), .finance-payments select { color: var(--finance-text); background: var(--finance-surface); border: 1px solid var(--finance-border); border-radius: 8px; padding: 10px; min-width: 0; }
+.finance-payments button[class*="bg-white"] { color: var(--finance-text); background: var(--finance-surface); border-color: var(--finance-border); }
+.payment-error { color: #c32620; padding: 12px; border: 1px solid currentColor; border-radius: 8px; }
+.dark .payment-error { color: #fca5a5; }
+.payment-fields { display: grid; gap: 16px; max-width: 800px; }
+.payment-fields label { display: block; font-size: 14px; }
+.payment-fields label input:not([type="checkbox"]), .payment-fields label select { display: block; width: 100%; margin-top: 8px; }
+.payment-list { list-style: none; padding: 0; }
+.payment-list li { border-bottom: 1px solid var(--finance-border); padding: 12px 0; overflow-wrap: anywhere; }
+.payment-details { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 2fr); gap: 12px; max-width: 800px; }
+.payment-details dd { margin: 0; overflow-wrap: anywhere; }
+.payment-details dt { color: var(--finance-muted); }
+.finance-payments .payment-link { color: var(--finance-accent); background: transparent; padding: 0; min-height: 32px; border: 0; text-decoration: underline; }
+@media (min-width: 640px) { .payment-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } .finance-payments { padding: 24px; } }

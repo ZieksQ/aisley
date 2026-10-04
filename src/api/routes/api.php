@@ -6,9 +6,12 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FeatureControlController;
+use App\Http\Controllers\Admin\FinanceAutomationController;
 use App\Http\Controllers\Admin\FinanceConfigurationController;
 use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
 use App\Http\Controllers\Admin\FinanceHoldController;
+use App\Http\Controllers\Admin\FinancePaymentsController;
+use App\Http\Controllers\Admin\FinanceSandboxController;
 use App\Http\Controllers\Admin\FinanceWorkflowController;
 use App\Http\Controllers\Admin\HomepageAdvertisementController;
 use App\Http\Controllers\Admin\HubRoutingConfigurationController;
@@ -53,6 +56,8 @@ use App\Http\Controllers\Customer\RecentlyViewedController;
 use App\Http\Controllers\Customer\ShopBrowseController;
 use App\Http\Controllers\Customer\ShopSearchController;
 use App\Http\Controllers\Customer\WishlistController;
+use App\Http\Controllers\Finance\FinanceWebhookController;
+use App\Http\Controllers\Finance\SandboxGatewayController;
 use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
@@ -133,6 +138,25 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::post('/{ticket}/read', [AdminSupportTicketController::class, 'read'])->middleware('admin.permission:support-tickets.view')->whereUuid('ticket')->name('read');
     });
     Route::prefix('finance')->middleware('admin.permission:finance.view')->group(function () {
+        Route::get('/automation', [FinancePaymentsController::class, 'settings']);
+        Route::get('/payout-history', [FinancePaymentsController::class, 'payouts']);
+        Route::get('/payout-obligations', [FinancePaymentsController::class, 'obligations']);
+        Route::get('/payout-history/{payout}/receipt', [FinancePaymentsController::class, 'payoutReceipt']);
+        Route::get('/invoices', [FinancePaymentsController::class, 'invoices']);
+        Route::get('/invoices/{invoice}', [FinancePaymentsController::class, 'invoice']);
+        Route::get('/invoices/{invoice}/pdf', [FinancePaymentsController::class, 'invoicePdf']);
+        Route::get('/remittances', [FinancePaymentsController::class, 'batches']);
+        Route::get('/remittances/{batch}', [FinancePaymentsController::class, 'batch']);
+        Route::get('/remittances/{batch}/receipt', [FinancePaymentsController::class, 'receipt']);
+        Route::patch('/automation', [FinancePaymentsController::class, 'updateSettings'])->middleware('admin.permission:finance.manage');
+        Route::post('/payout-send', [FinanceAutomationController::class, 'payout'])->middleware('admin.permission:finance.manage');
+        Route::post('/remittances/{batch}/reject', [FinanceAutomationController::class, 'reject'])->middleware('admin.permission:finance.manage');
+        Route::post('/invoices/{invoice}/collector', [FinanceAutomationController::class, 'collector'])->middleware('admin.permission:finance.manage');
+        Route::get('/sandbox', [FinanceSandboxController::class, 'index']);
+        Route::put('/sandbox/accounts', [FinanceSandboxController::class, 'account'])->middleware('admin.permission:finance.manage');
+        Route::post('/sandbox/payments/{transaction}/resolve', [FinanceSandboxController::class, 'resolve'])->middleware('admin.permission:finance.manage');
+        Route::post('/sandbox/events/{event}/replay', [FinanceSandboxController::class, 'replay'])->middleware('admin.permission:finance.manage');
+
         Route::get('/summary', [AdminFinanceController::class, 'show']);
         Route::get('/series', [AdminFinanceController::class, 'show']);
         Route::get('/forecast', [AdminFinanceController::class, 'show']);
@@ -323,6 +347,11 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::post('/{conversation}/read', [SellerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
     });
     Route::prefix('finance')->group(function () {
+        Route::get('/automation', [App\Http\Controllers\Seller\FinancePaymentsController::class, 'settings']);
+        Route::get('/payout-history', [App\Http\Controllers\Seller\FinancePaymentsController::class, 'payouts']);
+        Route::get('/payout-obligations', [App\Http\Controllers\Seller\FinancePaymentsController::class, 'obligations']);
+        Route::get('/payout-history/{payout}/receipt', [App\Http\Controllers\Seller\FinancePaymentsController::class, 'payoutReceipt']);
+
         Route::get('/summary', [SellerFinanceController::class, 'show']);
         Route::get('/series', [SellerFinanceController::class, 'show']);
         Route::get('/forecast', [SellerFinanceController::class, 'show']);
@@ -443,6 +472,19 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
     });
     Route::prefix('finance')->group(function () {
+        Route::get('/automation', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'settings']);
+        Route::get('/payout-history', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'payouts']);
+        Route::get('/payout-obligations', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'obligations']);
+        Route::get('/payout-history/{payout}/receipt', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'payoutReceipt']);
+        Route::get('/invoices', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'invoices']);
+        Route::get('/invoices/{invoice}', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'invoice']);
+        Route::get('/invoices/{invoice}/pdf', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'invoicePdf']);
+        Route::get('/remittances', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'batches']);
+        Route::get('/remittances/{batch}', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'batch']);
+        Route::get('/remittances/{batch}/receipt', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'receipt']);
+        Route::patch('/automation', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'updateSettings']);
+        Route::post('/invoice-payments', [App\Http\Controllers\Logistics\FinancePaymentsController::class, 'pay']);
+
         Route::get('/summary', [LogisticsFinanceController::class, 'show']);
         Route::get('/series', [LogisticsFinanceController::class, 'show']);
         Route::get('/forecast', [LogisticsFinanceController::class, 'show']);
@@ -806,3 +848,8 @@ Route::prefix('v1/policy-consent')->name('policy-consent.')->middleware('auth:sa
         ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])
         ->name('accept');
 });
+
+// Machine-to-machine sandbox endpoints: API key or signed event, never browser role authority.
+Route::post('/v1/sandbox-gateway/payments', [SandboxGatewayController::class, 'create'])->middleware('throttle:120,1');
+Route::get('/v1/sandbox-gateway/payments/{transaction}', [SandboxGatewayController::class, 'show'])->middleware('throttle:120,1');
+Route::post('/v1/finance/gateway/webhook', FinanceWebhookController::class)->middleware('throttle:120,1');

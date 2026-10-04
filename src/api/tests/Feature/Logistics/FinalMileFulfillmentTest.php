@@ -415,6 +415,7 @@ class FinalMileFulfillmentTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/update-status/transitions', [
             'reference' => $pickup['waybills'][0]['reference'], 'target_state' => 'delivered', 'expected_revision' => $record['revision'], 'evidence_id' => $proof['proof_id'],
         ])->assertOk()->assertJsonPath('data.status', 'delivered');
+        $this->assertDatabaseHas('cod_invoices', ['order_id' => $order->id, 'logistics_organization_id' => $logistics->logisticsOrganization->id, 'status' => 'outstanding', 'total_cents' => 10000]);
         $this->assertSame(OrderStatus::Delivered, $order->fresh()->status);
         $this->assertSame(PaymentStatus::Paid, $order->fresh()->payment_status);
         $this->assertDatabaseHas('shipment_events', ['event_type' => 'delivery_completed', 'performing_courier_id' => $courier->id, 'recorded_by_logistics_id' => $logistics->id]);

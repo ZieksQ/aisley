@@ -841,3 +841,10 @@ Admin ↔ users through requester-owned support tickets, not unrestricted live c
 Advanced chat functionality such as real-time typing indicators or complex media messaging is not required for P0.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.
+
+## Automatic COD billing and settlement
+
+- Confirmed final-mile COD delivery creates one invoice for the collecting Logistics organization and snapshots a 72-hour deadline, 14-day Seller wait, and 24-hour Logistics wait by default.
+- Logistics pays outstanding invoices at its configurable daily time (default 09:00 Manila) or uses Pay now. Gateway-verified success clears remittance automatically; unknown payments stay reserved.
+- Admin configures deadlines, waiting periods, and separate outgoing payout schedules. Full remittance and no financial hold are required; manual Logistics payouts can bypass the wait without a reason.
+- The role pages, APIs, failure/retry behavior, PDFs, simulator credentials, and rollout commands are owned by `features/shared/cod-automation/spec.md`. Courier completion payloads are unchanged.
