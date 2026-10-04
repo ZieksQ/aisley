@@ -1,15 +1,15 @@
 // Real Chromium with mocked APIs. Set FINANCE_ROLE and FINANCE_ORIGIN for each dashboard; Chromium CDP uses 19225.
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 const role = process.env.FINANCE_ROLE ?? 'admin'
 const origin = process.env.FINANCE_ORIGIN ?? 'http://127.0.0.1:15175'
 assert.ok(['admin', 'logistics', 'seller'].includes(role))
+assert.equal((await fetch(origin, { signal: AbortSignal.timeout(5000) })).ok, true, 'Dashboard preview must be running')
 const targets = await (await fetch('http://127.0.0.1:19225/json')).json()
 const ws = new WebSocket(targets.find((target) => target.type === 'page').webSocketDebuggerUrl)
 await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true }))
 let serial = 0
 const pending = new Map()
-const loaded = new Set()
 ws.addEventListener('message', (event) => {
   const message = JSON.parse(event.data)
   if (message.method === 'Page.javascriptDialogOpening') void cdp('Page.handleJavaScriptDialog', { accept: true })
@@ -24,7 +24,6 @@ ws.addEventListener('message', (event) => {
       }))
     }
   }
-  if (message.method === 'Page.lifecycleEvent' && message.params.name === 'load') loaded.add(message.params.loaderId)
   if (message.method === 'Runtime.exceptionThrown') console.error('Browser error', JSON.stringify(message.params.exceptionDetails))
   if (!message.id) return
   const task = pending.get(message.id)
@@ -72,6 +71,7 @@ function fixtures(role) {
       window.financeFixture.writes.push({ path, body: JSON.parse(options.body ?? '{}') })
       return json({ data: { id: 'attempt-1', cod_remittance_batch_id: 'batch-1' } }, 202)
     }
+    if (window.financeFixture.mode === 'loading') return new Promise(() => {})
     if (window.financeFixture.mode === 'error') return json({ message: 'Finance temporarily unavailable.' }, 503)
     if (path.endsWith('/automation')) return json({ data: { platform: settings, collection: settings, timezone: 'Asia/Manila', next_collection_at: at, gateway_enabled: true, can_manage: role !== 'seller' && !sessionStorage.getItem('finance-readonly') } })
     if (path.endsWith('/invoices')) return json({ ...page(window.financeFixture.mode === 'empty' ? [] : [invoice]), summary: { outstanding_cents: 60000, overdue_cents: 60000, currency: 'PHP' } })
@@ -98,6 +98,7 @@ async function navigate(route) {
 }
 
 const routes = role === 'admin' ? ['/finance/remittances', '/finance/remittances/invoices/invoice-1', '/finance/remittances/batch-1', '/finance/payouts', '/finance/automation', '/finance/sandbox'] : role === 'logistics' ? ['/finance/remittances', '/finance/remittances/invoices/invoice-1', '/finance/remittances/batch-1', '/finance/payouts', '/finance/payment-settings'] : ['/finance/payouts', '/finance/payment-settings']
+try {
 for (const width of [390, 768, 1440]) {
   await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false })
   for (const theme of ['light', 'dark']) {
@@ -108,6 +109,18 @@ for (const width of [390, 768, 1440]) {
       await until('!document.querySelector(".finance-payments")?.innerText.includes("Loading…")')
       assert.equal(await js('document.documentElement.scrollWidth <= innerWidth + 1'), true, `${route}: page overflow at ${width}/${theme}`)
       assert.equal(await js('getComputedStyle(document.querySelector(".finance-payments")).color'), theme === 'dark' ? 'rgb(250, 250, 250)' : 'rgb(24, 24, 27)')
+      assert.equal(await js('Math.abs(document.querySelector(".payment-page-header").getBoundingClientRect().left - document.querySelector(".finance-navigation a").getBoundingClientRect().left) < 2'), true, `${route}: header/navigation gutters differ`)
+      assert.equal(await js('Array.from(document.querySelectorAll(".payment-table table")).every(t=>t.querySelector("caption") && Array.from(t.querySelectorAll("thead th")).every(h=>h.scope === "col"))'), true, `${route}: table semantics`)
+      assert.equal(await js('Array.from(document.querySelectorAll(".payment-button")).every(b=>getComputedStyle(b).boxShadow === "none")'), true, `${route}: excessive button shadow`)
+      if (theme === 'dark') await until('Array.from(document.querySelectorAll(".payment-button--outline")).every(b=>getComputedStyle(b).backgroundColor === "rgb(24, 24, 27)")')
+      if (theme === 'dark') assert.equal(await js('Array.from(document.querySelectorAll(".payment-button--outline")).every(b=>getComputedStyle(b).backgroundColor !== "rgb(255, 255, 255)")'), true, `${route}: light controls in dark mode`)
+      if (process.env.FINANCE_SCREENSHOTS && ((width === 390 && theme === 'light') || (width === 1440 && theme === 'dark'))) {
+        const directory = 'src/admin/node_modules/.cache/cod-design';
+        await mkdir(directory, { recursive: true });
+        const metrics = await cdp('Page.getLayoutMetrics');
+        const shot = await cdp('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: metrics.cssContentSize.height, scale: 1 } });
+        await writeFile(`${directory}/${role}-${width}-${theme}-${route.split('/').at(-1)}.png`, Buffer.from(shot.data, 'base64'));
+      }
     }
   }
 }
@@ -134,6 +147,8 @@ await until('document.body.innerText.includes("Payment outcome is being checked"
 assert.equal(await js('Array.from(document.querySelectorAll("button")).some(b=>b.textContent.includes("Clear receipt"))'), false)
 await navigate('/finance/remittances')
 await until('document.body.innerText.includes("AIS-0001")')
+await js('window.financeFixture.mode="loading";Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Refresh").click()')
+await until('document.body.innerText.includes("Loading…")')
 await js('window.financeFixture.mode="empty";Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Refresh").click()')
 await until('document.body.innerText.includes("No invoices match")')
 await js('window.financeFixture.mode="error";Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Refresh").click()')
@@ -151,11 +166,31 @@ if (role === 'logistics') {
   assert.equal((await js('window.financeFixture.writes[0]')).path, '/api/v1/logistics/finance/automation')
 }
 if (role === 'seller') assert.equal(await js('Array.from(document.querySelectorAll("button")).some(b=>b.textContent.trim()==="Save settings")'), false)
+if (role === 'admin') {
+  await navigate('/finance/sandbox')
+  await until('document.body.innerText.includes("logistics-org-1")')
+  await js('Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Edit account").click()')
+  await until('document.querySelector("#gateway-balance")')
+  assert.equal(await js('document.querySelector("#gateway-balance").value'), '1000')
+  await js('Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Save account").click()')
+  await until('window.financeFixture.writes.length === 1')
+  assert.equal((await js('window.financeFixture.writes[0]')).body.balance_cents, 100000)
+  await js('Array.from(document.querySelectorAll(".payment-tab")).find(b=>b.textContent.trim()==="Payments").click()')
+  await until('document.body.innerText.includes("Transaction details")')
+  await js('Array.from(document.querySelectorAll(".payment-tab")).find(b=>b.textContent.trim()==="Webhook deliveries").click()')
+  await until('document.body.innerText.includes("Event payload")')
+}
 if (role === 'admin') await js('sessionStorage.setItem("finance-readonly","1")')
 await navigate('/finance/payouts')
 await until('document.body.innerText.includes("AIS-0001")')
 assert.equal(await js('Array.from(document.querySelectorAll("button")).some(b=>b.textContent.trim()==="Send payout")'), false)
-await cdp('Fetch.disable')
-await cdp('Page.removeScriptToEvaluateOnNewDocument', { identifier: fixtureScript.identifier })
-ws.close()
+} finally {
+if (ws.readyState === WebSocket.OPEN) {
+  try {
+    await cdp('Fetch.disable')
+    await cdp('Page.removeScriptToEvaluateOnNewDocument', { identifier: fixtureScript.identifier })
+  } catch { /* Preserve the original failure if Chromium has disconnected. */ }
+  ws.close()
+}
+}
 console.log(`COD Finance browser checks passed: ${role}, ${routes.length} routes, three widths, both themes, keyboard access, role actions/permissions${role === 'seller' ? '' : ', unknown payment, empty/error states'}.`)

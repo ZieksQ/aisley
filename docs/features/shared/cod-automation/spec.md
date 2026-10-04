@@ -102,7 +102,8 @@
 - Invoice and payment PDFs require the same authorization as their owning records.
 - Financial responses and downloads use private no-store caching.
 - Follow docs/design.md for mobile-first layout, supported themes, focus, forms, and feedback.
-- Contain table overflow; keep payment actions reachable at narrow widths.
+- Follow the Finance workflow page guidance in docs/design.md: aligned headers/navigation, underline view selectors, grouped settings, scoped table headers, and explicit selection totals.
+- Contain table overflow; keep payment actions reachable at narrow widths. Sandbox account editing and diagnostics use disclosure rather than overwhelming the initial view.
 - Preserve the idempotency key after a recoverable uncertain mutation in the mounted workflow.
 - Server reservations remain authoritative after reload, permission loss, or navigation.
 - Use confirmation before sending money or changing payment policy.

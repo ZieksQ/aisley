@@ -107,6 +107,16 @@ Users bring expectations from other applications. Familiar interaction patterns 
 - Give icon-only actions accessible names, keep forms visibly labeled, and make navigation/dialog controls keyboard-operable with visible focus and appropriate expanded states.
 - Provide loading, empty, validation, error, disabled, and success states where the workflow needs them. Do not present failed requests as successful empty results or use color as the only status cue.
 
+## Finance workflow pages
+
+- The COD invoice, remittance, payout, automation/settings, and sandbox pages use the same centered 1280px content width, aligned page/navigation gutters, 24px page titles, and 14px body text. Preserve role-owned navigation and the existing dashboard shell.
+- Use a single page header with concise purpose text and grouped secondary actions. Navigation and view selectors use simple underline indicators, accessible current/pressed states, and contained horizontal scrolling on narrow screens. Reserve filled buttons for the next workflow action.
+- Show financial totals as a compact definition list rather than a decorative metric-card grid. Place selected order/invoice counts, beneficiary information, and totals beside the payment action. State waiting-period overrides and simulated-money status where they affect decisions.
+- Use compatible `@aisley/ui` fields/buttons with Finance-scoped theme styling. Labels sit above equally sized controls; filters align at their bottom edge. Group settings by COD collection, Seller payouts, and Logistics payouts. Preserve readable disabled states and plain labeled checkboxes.
+- Tables have captions and scoped column headers, tabular right-aligned amounts, readable references, and text status labels. Contain overflow within a focusable labeled table region; keep primary actions outside the table. Empty/error/loading states remain distinguishable.
+- Detail screens group references, amounts, dates, allocations, and attempts into predictable sections. Sandbox account editing is shown on demand; payment diagnostics and raw event payloads use disclosure controls.
+- These choices apply [NN/g's consistency, feedback, and error-prevention heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/), [GOV.UK button hierarchy](https://design-system.service.gov.uk/components/button/) and [table guidance](https://design-system.service.gov.uk/components/table/), and [W3C's semantic table guidance](https://www.w3.org/WAI/tutorials/tables/). Keep the AISLEY palette and role workflows authoritative rather than copying those sites' visual branding.
+
 ## Next.js SEO, SSR, and CSR
 
 These rendering rules apply to the Customer Next.js storefront; the Admin, Seller, and Logistics React Router dashboards retain their existing SPA architecture.
