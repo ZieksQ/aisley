@@ -1111,7 +1111,7 @@ Money terms are `value`, nullable `maximum_discount`, and `minimum_spend` as `NU
 
 ### 9.11 `checkout_quotes` and `checkout_batches`
 
-`checkout_quotes` stores a short-lived Customer-owned checkout intent as normalized JSON, a SHA-256 request hash, an authoritative state hash, and `expires_at`. It does not accept a client price, shipping fee, address snapshot, status, Logistics provider, or total. The state hash covers selected catalog/variant/inventory state, Address Book revision, selected voucher state, and server shipping configuration. Logistics selection belongs to the later Seller pickup transaction.
+`checkout_quotes` stores a short-lived Customer-owned checkout intent as normalized JSON, a SHA-256 request hash, an authoritative state hash, and `expires_at`. It does not accept a client price, shipping fee, address snapshot, status, or total; it accepts a Seller-enabled Logistics selection per Shop. The state hash covers selected catalog/variant/inventory state, Address Book revision, selected voucher state, and server shipping configuration. The quote also covers selected provider, effective surcharge tariff, service/main-Shop-Category rates, acceptance, and frozen route state. Seller pickup enforces the checkout-selected provider.
 
 `checkout_batches` records one successful atomic placement and has a unique `checkout_quote_id`. It stores Customer, Customer-scoped UUID `idempotency_key`, placement request hash, three-character currency, and `placed_at`. Unique (`customer_id`, `idempotency_key`) makes retries return the original Orders while rejecting reuse for different details.
 
@@ -1141,7 +1141,7 @@ Every Order starts with one `order_addresses` delivery snapshot at `version = 1`
 
 Successful placement increments `inventory_balances.reserved`, writes an immutable `reserve` movement linked to the Order, and updates catalog compatibility quantities to available stock. All Shop Orders, lines, address snapshots, status events, voucher records, inventory reservations, and selected-Cart cleanup commit in one transaction.
 
-The current checkout schema does not persist a Logistics provider directly. The Seller selects one when committing a pickup request for prepared Shop Orders, and the implemented pickup-request records store that server-validated eligible organization and derived sole hub immutably; the client may not submit an ineligible organization or replace the selection after commitment. Until the later logistics/zone feature exists, checkout applies the server-owned `CHECKOUT_SHIPPING_FEE_PER_SHOP` quote independently to each Shop (default `0.00`) and includes that configuration in quote staleness detection.
+Checkout persists the Customer-selected, Seller-enabled Logistics organization on each Shop Order and pricing snapshot. Pickup enforces this provider and stores its derived sole hub immutably. Effective destination surcharges, Logistics service bases once per route leg, and one Shop main-category weight/size extra per Parcel/service leg determine new Shop shipping; an unplanned route uses only destination surcharge. Provider/rate/route changes make the quote stale; placed Order prices remain frozen. See the route-based shipping extension below for the additive tables and historical pricing-model boundary.
 
 The reserved quantity is converted to fulfilled/committed inventory exactly once when first-mile pickup succeeds (`picked_up_from_seller`). An accepted cancellation or rejection before that milestone releases only the Order's reserved SKU quantities, transactionally and idempotently. After first-mile pickup, inventory is not automatically released; post-pickup cancellation, delivery failure, returns, refunds, and partial fulfillment remain deferred until their policies and line-level records are approved.
 
@@ -1574,3 +1574,18 @@ Before adding these tables:
 - update this document and `docs/PROGRESS.md` in the same change as the migrations.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the existing first-mile Seller handoff and Inventory fulfillment. It now idempotently bridges that result into shared Parcel/Shipment/DeliveryTask records without replaying stock. New hub and final-mile transitions use `FulfillmentTransitionService`, Logistics validation, and append-only physical events; signature evidence, live location telemetry, and exceptional recovery remain future extensions; private photo POD and advisory final-mile routes are implemented.
+
+## Shared pricing context inspected 2026-10-04
+
+Current Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`; Courier role projections and evidence/cash semantics are unchanged. Shipping enum-like values remain string-backed with PHP casts.
+
+### Route-based shipping and allocation extension
+
+- `shipping_rate_region_surcharges` belongs to one platform tariff version and uniquely normalizes one destination region within it. Admin edits surcharges only; technical parcel policy is inherited/read-only and legacy platform base/weight-charge fields are hidden/ignored by new quotes. New drafts persist zero platform base.
+- `shop_logistics_providers` uniquely records one Shop/organization enabled state, configuring Seller, and optimistic revision.
+- `logistics_rate_cards` are organization-scoped immutable versions with string-backed status; `logistics_service_rates` uniquely key card/service and store nonnegative `base_fee_cents` charged once per service leg. Service type has a shared PHP enum cast. New `logistics_rate_rules` uniquely key `shop_category_id` plus string-backed service type within a card and own only weight/size extras and limits. `category_id` is nullable and retained for legacy Product Category rules; new rules set it to null. Legacy category base values remain stored/hidden/ignored, with new rule bases zero. The service-base migration backfill takes the maximum historical category base per card/service; Logistics publishes a successor card with main Shop Category rules for new quotes. Existing Order snapshots remain unchanged.
+- `orders.selected_logistics_organization_id` is the checkout-selected first-mile provider used by pickup authorization.
+- `order_pricing_snapshots` stores selected provider, string-backed route pricing status, frozen route JSON, and private Logistics charge inputs. Existing rate/commission/Customer total fields remain immutable. `shipping_pricing_model` is a string with a shared PHP enum cast: existing snapshots default to `platform_base_v1`, new placement writes `logistics_service_base_v1`. New `base_fee_cents` aggregates service bases; `additional_weight_fee_cents` aggregates one Shop main-category extra per Parcel/service leg. Private leg inputs retain Shop Category, service-rate ID, base, extras, and full charge; historical snapshot values remain unchanged.
+- `logistics_service_allocations.quoted_charge_cents` records the frozen pro-rata weight separately from the final payout amount.
+- `logistics_route_reconciliations` stores one audited Admin decision per held Order, original pool, explicit platform subsidy, final allocations, note, actor, and time.
+- Product/Variant shipping measurement columns remain in the earlier finance migration; the API now requires Product measurements at creation and accepts only complete four-field Variant overrides.

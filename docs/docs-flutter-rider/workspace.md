@@ -155,7 +155,7 @@ Apply eligible vouchers and discounts.
 
 Select a shipping address.
 
-Checkout remains provider-neutral. The Seller selects one eligible Logistics organization when requesting pickup.
+The Seller configures allowed Shop providers. Checkout returns server-priced options and the Customer selects one Logistics organization per Shop Order; Seller pickup must use the frozen selection.
 
 Use the current COD payment flow. Future online payment methods require a separate payment contract.
 
@@ -167,7 +167,7 @@ The system must protect inventory from overselling when an order is finalized.
 
 Successful COD placement skips `pending_payment`, creates the Order at `placed` with `payment_status = pending`, and reserves the requested inventory atomically. `pending_payment` remains available for a future online-payment flow.
 
-The checkout schema does not persist a Logistics provider directly. The implemented Seller pickup-request transaction stores one server-validated eligible Logistics organization with its derived sole hub on the pickup/fulfillment records and must not silently replace it after commitment.
+Checkout persists the Customer-selected provider on each Shop Order and pricing snapshot. Seller pickup enforces that selection and stores its derived sole hub on pickup/fulfillment records; unavailable provider/route holds fulfillment without silently replacing it or repricing Customer COD.
 
 6.5 Address Book
 
@@ -263,13 +263,13 @@ Seller shall be able to process/approve an order and prepare it for fulfillment.
 
 Core flow:
 
-Customer places the Order → Seller processes and packs → Seller selects an eligible Logistics organization and confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
+Customer selects an enabled Logistics provider and places the Order → Seller processes and packs → Seller requests the selected provider and confirms `ready_for_pickup` → selected Logistics organization creates the first-mile task.
 
 Seller order processing does not assign a Courier; the later pickup-request transaction creates the shared waybill.
 
 7.5 Prepare Order, Select Logistics, and Create Waybill
 
-Seller shall pack each parcel, select an eligible Logistics organization, request pickup, and print the resulting shared waybill needed for first-mile pickup.
+Seller shall pack each parcel, request the checkout-selected Logistics organization, and print the resulting shared waybill needed for first-mile pickup.
 
 The shared-waybill identifier and QR must resolve the immutable Order/Parcel reference. Its server-owned snapshot uses the Shop pickup address and destination copied from Customer checkout; Seller cannot rewrite those facts.
 
@@ -618,7 +618,7 @@ Buyer places order
 ↓
 Seller begins processing and prepares the order
 ↓
-Seller selects an eligible Logistics organization, requests pickup, creates each waybill, and confirms `ready_for_pickup`
+Seller requests the checkout-selected Logistics organization, creates each waybill, and confirms `ready_for_pickup`
 ↓
 First-mile Courier accepts the Seller pickup task
 ↓
@@ -788,13 +788,7 @@ Subscription billing, the base subscription, and the ₱10 per-order Logistics S
 
 13.2 Shipping Fee
 
-Default shipping fee:
-
-₱50
-
-The source identifies this as the component where Logistics receives its commission.
-
-The MVP may use these as default values. Future configurability is recommended but is not required to prove the workflow.
+New shipping quotes use effective Admin destination-region surcharges plus Logistics service bases per first-mile/linehaul-hop/last-mile leg and one main-Shop-Category weight/size extra per Parcel/service leg. Unplanned routes retain only destination surcharge. Checkout freezes the chosen provider, route and Customer fee; later allocations or operational holds never increase committed COD. The historical ₱50 default is superseded for new quotes.
 
 14. Notifications
 

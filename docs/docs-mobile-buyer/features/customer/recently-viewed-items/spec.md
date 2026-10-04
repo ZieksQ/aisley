@@ -3,7 +3,7 @@ feature: recently-viewed-items
 role: Customer
 platform: Flutter / Dart
 phase: 2
-flutter_status: Pending
+flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ---
@@ -14,13 +14,13 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 
 Backend: Owned record/merge/list/remove/clear and public Product resolver implemented.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
 
-Successful detail → guest ID/time hints or server record → current visible cards → best-effort login merge.
+Successful authenticated detail → server record → current visible account cards; no guest store/merge.
 
-- Guest storage is at most 12 distinct productId/viewedAt hints, no DTO/price/account/token; use a platform adapter with blocked/corrupt/quota fallback. No recording from search/cards/Home impressions.
+- Buyer uses authenticated account history only. No recording from search/cards/Home impressions. Remove only buyer.public_recent_ids_v1 best-effort; blocked preferences never delay authentication.
 - Owned PUT uses server time and one User/Product row with current retention 50. Resolver takes productIds ≤12. Merge takes items with optional valid bounded viewedAt; malformed/duplicate request is validation, unavailable Products omitted.
-- Merge once after confirmed auth without delaying login; clear hints on success, preserve them on failure for retry. Remove is idempotent, clear-all needs confirmation. Logout retains server history and never copies it into guest storage; old-account reads/rails clear.
+- Buyer never writes guest hints or invokes automatic merge; backend merge/resolve contracts remain available but unused by app composition. Remove is idempotent, clear-all needs confirmation. Logout retains server history and never copies it into guest storage; old-account reads/rails clear.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
@@ -28,34 +28,38 @@ communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership
 and capabilities remain authoritative.
 
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+
 ## MUST
 
 ### Feature behavior and boundaries
 
-- Guest persistence contains at most12 public Product UUID/time hints, never account history or full
-  private DTOs.
-- Public resolver POST uses camelCase productIds1–12, returns only currently visible Products in
-  items.
+- Guest persistence is retired. Do not read, write, merge or resolve its hints; delete only the old
+  key best-effort, leaving unrelated preferences untouched.
+- The unused public resolver contract uses camelCase productIds1–12 and returns only visible
+  Products in items; Buyer does not call it.
 - Account list uses Laravel cursor collection, default 20 max50 and retention default50.
 - PUT records a successful Product detail view at server current time; no request timestamp allowed.
 - Merge sends items1–12 with productId and optional viewedAt; duplicate UUIDs/unknown fields invalid.
 - Timestamps must not be future and must be within configured365-day age; use injected clock in tests.
-- Authenticate and resolve consent before merge; remove only acknowledged mergedProductIds from guest
-  hints.
+- Authenticate and resolve consent before account history reads/writes. The backend merge contract
+  remains documented below for compatibility; Buyer does not invoke it.
 - Unavailable Products may be omitted from merge response and resolver without revealing hidden
   metadata.
 - Account history should not be copied into guest storage on sign-out or rollback.
-- Separate guest and Customer keyed memory/query generations; A→B→A never restores prior private feed.
+- Use verified Customer keyed memory/query generations; A→B→A never restores prior private feed.
 - Delete one result returns removed boolean; repeat may return false, which is successful state.
 - Clear requires confirmation and returns cleared/removedCount; repeated clear may report zero.
 - No unviewable error page triggers record or merge; a visible Product view is the event boundary.
 - History timestamps sort newest-first; merge retains newest eligible view, not append duplicates.
 - PUT rerecords current time; do not claim exact original timestamp replay under retry.
-- Guest storage denial/corruption uses memory fallback for hints and truthful persistence feedback.
+- Legacy cleanup failure is ignored without plaintext/session fallback or another guest history store.
 - Page query validates cursor≤2048 and supported keys; never substitute a fabricated cursor.
 - Private history errors keep safe retry without exposing previous account’s stale rows.
-- Test age/future/duplicate12-item validation, invisible Product omission and acknowledged partial
-  guest cleanup.
+- Preserve merge/resolver DTO contract coverage; test account-only recording and isolated legacy
+  cleanup without reading hints.
 - Test blocked storage, repeated PUT/remove/clear, session generation and cursor
   restoration/exhaustion.
 
@@ -130,8 +134,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 session memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on
 either change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public
-hints only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 
@@ -141,8 +145,8 @@ universal error envelope.
 
 - `RecentRepository` owns typed transport, parsing and owned cache access; inject dependencies through
   AppDependencies.
-- `GuestRecentStore` owns safe platform access without widget HTTP calls; inject dependencies through
-  AppDependencies.
+- `removeLegacyRecentHints` deletes only the retired key and catches preference failure independently
+  of bootstrap; no guest store/coordinator participates in AppDependencies.
 - `RecentViewModel` owns feature transitions, draft/query state and deliberate actions; inject
   dependencies through AppDependencies.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
@@ -181,7 +185,7 @@ universal error envelope.
 ### Verification scenarios
 
 - [ ] Record/revisit/retention and visible out-of-stock cards follow server rules.
-- [ ] Guest storage/merge/failure and account-switch/clear/late paging cannot leak private history.
+- [ ] No guest writes/merges; cleanup failure, account-switch/clear/late paging cannot leak private history.
 - [ ] Android and fixed-origin local browser verify loading/empty/errors, keyboard/back/focus,
   supported permission/retry states and cleanup after identity loss.
 - [ ] DTO fixtures reject wrong required types, distinguish null/absent/false/empty and preserve wire

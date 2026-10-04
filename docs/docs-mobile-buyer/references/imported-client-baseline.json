@@ -1,0 +1,286 @@
+{
+  "inspected_on": "2026-10-03",
+  "executed_resolution": true,
+  "packages": [
+    {
+      "name": "go_router",
+      "version": "16.2.4",
+      "environment": {
+        "sdk": "^3.7.0",
+        "flutter": ">=3.29.0"
+      },
+      "dependencies": {
+        "collection": "^1.15.0",
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "flutter_web_plugins": {
+          "sdk": "flutter"
+        },
+        "logging": "^1.0.0",
+        "meta": "^1.7.0"
+      },
+      "published": "2025-09-23T23:34:34.153823Z",
+      "metadata_url": "https://pub.dev/api/packages/go_router/versions/16.2.4",
+      "archive_sha256": "c752e2d08d088bf83742cb05bf83003f3e9d276ff1519b5c92f9d5e60e5ddd23"
+    },
+    {
+      "name": "dio",
+      "version": "5.9.0",
+      "environment": {
+        "sdk": ">=2.18.0 <4.0.0"
+      },
+      "dependencies": {
+        "async": "^2.8.2",
+        "collection": "^1.16.0",
+        "http_parser": "^4.0.0",
+        "meta": "^1.5.0",
+        "mime": ">=1.0.0 <3.0.0",
+        "path": "^1.8.0",
+        "dio_web_adapter": ">=1.1.0 <3.0.0"
+      },
+      "published": "2025-08-07T19:37:27.347398Z",
+      "metadata_url": "https://pub.dev/api/packages/dio/versions/5.9.0",
+      "archive_sha256": "d90ee57923d1828ac14e492ca49440f65477f4bb1263575900be731a3dac66a9"
+    },
+    {
+      "name": "flutter_secure_storage",
+      "version": "10.0.0",
+      "environment": {
+        "sdk": ">=3.3.0 <4.0.0",
+        "flutter": ">=3.19.0"
+      },
+      "dependencies": {
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "flutter_secure_storage_darwin": "^0.2.0",
+        "flutter_secure_storage_linux": "^3.0.0",
+        "flutter_secure_storage_platform_interface": "^2.0.1",
+        "flutter_secure_storage_web": "^2.1.0",
+        "flutter_secure_storage_windows": "^4.1.0",
+        "meta": "^1.3.0"
+      },
+      "published": "2025-12-10T18:26:53.309892Z",
+      "metadata_url": "https://pub.dev/api/packages/flutter_secure_storage/versions/10.0.0",
+      "archive_sha256": "da922f2aab2d733db7e011a6bcc4a825b844892d4edd6df83ff156b09a9b2e40"
+    },
+    {
+      "name": "image_picker",
+      "version": "1.2.0",
+      "environment": {
+        "sdk": "^3.6.0",
+        "flutter": ">=3.27.0"
+      },
+      "dependencies": {
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "image_picker_android": "^0.8.13",
+        "image_picker_for_web": "^3.1.0",
+        "image_picker_ios": "^0.8.13",
+        "image_picker_linux": "^0.2.2",
+        "image_picker_macos": "^0.2.2",
+        "image_picker_platform_interface": "^2.11.0",
+        "image_picker_windows": "^0.2.2"
+      },
+      "published": "2025-08-16T13:30:56.371192Z",
+      "metadata_url": "https://pub.dev/api/packages/image_picker/versions/1.2.0",
+      "archive_sha256": "736eb56a911cf24d1859315ad09ddec0b66104bc41a7f8c5b96b4e2620cf5041"
+    },
+    {
+      "name": "shared_preferences",
+      "version": "2.5.3",
+      "environment": {
+        "sdk": "^3.5.0",
+        "flutter": ">=3.24.0"
+      },
+      "dependencies": {
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "shared_preferences_android": "^2.3.4",
+        "shared_preferences_foundation": "^2.5.0",
+        "shared_preferences_linux": "^2.4.0",
+        "shared_preferences_platform_interface": "^2.4.0",
+        "shared_preferences_web": "^2.4.0",
+        "shared_preferences_windows": "^2.4.0"
+      },
+      "published": "2025-03-27T12:07:24.435756Z",
+      "metadata_url": "https://pub.dev/api/packages/shared_preferences/versions/2.5.3",
+      "archive_sha256": "6e8bf70b7fef813df4e9a36f658ac46d107db4b4cfe1048b477d4e453a8159f5"
+    },
+    {
+      "name": "url_launcher",
+      "version": "6.3.2",
+      "environment": {
+        "sdk": "^3.6.0",
+        "flutter": ">=3.27.0"
+      },
+      "dependencies": {
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "url_launcher_android": "^6.3.0",
+        "url_launcher_ios": "^6.2.4",
+        "url_launcher_linux": "^3.1.0",
+        "url_launcher_macos": "^3.1.0",
+        "url_launcher_platform_interface": "^2.3.0",
+        "url_launcher_web": "^2.2.0",
+        "url_launcher_windows": "^3.1.0"
+      },
+      "published": "2025-07-10T19:46:46.051934Z",
+      "metadata_url": "https://pub.dev/api/packages/url_launcher/versions/6.3.2",
+      "archive_sha256": "f6a7e5c4835bb4e3026a04793a4199ca2d14c739ec378fdfe23fc8075d0439f8"
+    },
+    {
+      "name": "flutter_markdown_plus",
+      "version": "1.0.12",
+      "environment": {
+        "sdk": "^3.4.0",
+        "flutter": ">=3.27.1"
+      },
+      "dependencies": {
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "markdown": "^7.3.1",
+        "meta": "^1.16.0",
+        "path": "^1.9.1"
+      },
+      "published": "2026-07-10T13:15:36.975506Z",
+      "metadata_url": "https://pub.dev/api/packages/flutter_markdown_plus/versions/1.0.12",
+      "archive_sha256": "fce641d6c2106cc495de1cd603f97a4f9d615a97a64011928ded380dbdade935"
+    },
+    {
+      "name": "flutter_map",
+      "version": "8.2.2",
+      "environment": {
+        "sdk": ">=3.6.0 <4.0.0",
+        "flutter": ">=3.27.0"
+      },
+      "dependencies": {
+        "async": "^2.11.0",
+        "collection": "^1.18.0",
+        "dart_earcut": "^1.1.0",
+        "dart_polylabel2": "^1.0.0",
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "http": "^1.5.0",
+        "latlong2": "^0.9.1",
+        "logger": "^2.0.0",
+        "meta": "^1.11.0",
+        "path": "^1.9.0",
+        "path_provider": "^2.1.5",
+        "proj4dart": "^2.1.0",
+        "uuid": "^4.5.1"
+      },
+      "published": "2025-09-19T22:46:52.976723Z",
+      "metadata_url": "https://pub.dev/api/packages/flutter_map/versions/8.2.2",
+      "archive_sha256": "391e7dc95cc3f5190748210a69d4cfeb5d8f84dcdfa9c3235d0a9d7742ccb3f8"
+    },
+    {
+      "name": "latlong2",
+      "version": "0.9.1",
+      "environment": {
+        "sdk": ">=3.0.0 <4.0.0"
+      },
+      "dependencies": {
+        "intl": ">=0.15.0 <1.0.0"
+      },
+      "published": "2024-03-27T15:13:48.185027Z",
+      "metadata_url": "https://pub.dev/api/packages/latlong2/versions/0.9.1",
+      "archive_sha256": "98227922caf49e6056f91b6c56945ea1c7b166f28ffcd5fb8e72fc0b453cc8fe"
+    },
+    {
+      "name": "geolocator",
+      "version": "14.0.2",
+      "environment": {
+        "sdk": "^3.5.0",
+        "flutter": ">=2.8.0"
+      },
+      "dependencies": {
+        "flutter": {
+          "sdk": "flutter"
+        },
+        "geolocator_platform_interface": "^4.2.3",
+        "geolocator_android": "^5.0.0",
+        "geolocator_apple": "^2.3.8",
+        "geolocator_web": "^4.1.1",
+        "geolocator_windows": "^0.2.3",
+        "geolocator_linux": "^0.2.3"
+      },
+      "published": "2025-07-02T07:37:49.822991Z",
+      "metadata_url": "https://pub.dev/api/packages/geolocator/versions/14.0.2",
+      "archive_sha256": "79939537046c9025be47ec645f35c8090ecadb6fe98eba146a0d25e8c1357516"
+    }
+  ],
+  "sdk": {
+    "verified_on": "2026-10-04",
+    "source": "flutter --version --machine",
+    "hash": "d3b14c876900e553bc736ca19295fc09e3853e8e",
+    "channel": "stable",
+    "version": "3.47.2",
+    "dart_sdk_version": "3.13.2",
+    "dart_sdk_arch": "x64",
+    "pubspec_sdk_constraint": "^3.13.2"
+  },
+  "historical_sdk_inspection": {
+    "inspected_on": "2026-10-03",
+    "executed_resolution": false,
+    "sdk": {
+      "hash": "d693b4b9dbac2acd4477aea4555ca6dcbea44ba2",
+      "channel": "stable",
+      "version": "3.35.4",
+      "dart_sdk_version": "3.9.2",
+      "dart_sdk_arch": "x64",
+      "release_date": "2025-09-16T20:09:41.727296Z",
+      "archive": "stable/linux/flutter_linux_3.35.4-stable.tar.xz",
+      "sha256": "151c75539aa1c01b874954d7b6e0006a622a3f12c76fd7f1fcafad27e6a2d68a"
+    },
+    "sdk_metadata_url": "https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json"
+  },
+  "verification": {
+    "executed_on": "2026-10-04",
+    "project": {
+      "commands": [
+        {
+          "command": "flutter --version --machine",
+          "exit_code": 0,
+          "result": "Flutter 3.47.2 stable / Dart 3.13.2"
+        },
+        {
+          "command": "flutter pub get --enforce-lockfile",
+          "exit_code": 0,
+          "result": "Dependencies resolved; tracked pubspec.yaml and pubspec.lock unchanged."
+        },
+        {
+          "command": "flutter analyze --no-pub",
+          "exit_code": 0,
+          "result": "No issues found; existing counter scaffold only."
+        }
+      ]
+    },
+    "documented_packages": {
+      "working_directory": "isolated temporary project under /tmp",
+      "command": "flutter pub get",
+      "exit_code": 0,
+      "result": "All ten documented pins resolved together; no application dependencies added.",
+      "manifest": "name: buyer_package_baseline_check\npublish_to: none\nenvironment:\n  sdk: '^3.13.2'\ndependencies:\n  flutter:\n    sdk: flutter\n  cupertino_icons: ^1.0.8\n  go_router: 16.2.4\n  dio: 5.9.0\n  flutter_secure_storage: 10.0.0\n  image_picker: 1.2.0\n  shared_preferences: 2.5.3\n  url_launcher: 6.3.2\n  flutter_markdown_plus: 1.0.12\n  flutter_map: 8.2.2\n  latlong2: 0.9.1\n  geolocator: 14.0.2\ndev_dependencies:\n  flutter_test:\n    sdk: flutter\n  flutter_lints: ^6.0.0\n",
+      "resolved_package_count": 126,
+      "lockfile_sha256": "1a732204dc471d399c9b33b76735f9aaa8d0124b53a828ef9755a3693a8b8f7a"
+    },
+    "limits": [
+      "Package metadata remains the 2026-10-03 inspection; no new package metadata inspection was performed.",
+      "No feature code was analyzed for the documented packages; only the existing scaffold was analyzed.",
+      "No Flutter tests, Android/web builds, live API, installed-device or browser acceptance checks ran.",
+      "The sandboxed Flutter wrapper initially failed writing its SDK cache; commands subsequently passed with approved cache access."
+    ]
+  },
+  "attribution": {
+    "source": "external Buyer Flutter project snapshot, imported 2026-10-04",
+    "executed_here": false,
+    "historical_metadata": "package-baseline.json remains unchanged; this record contains reported SDK/resolution evidence"
+  }
+}

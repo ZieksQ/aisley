@@ -46,3 +46,19 @@ Shop idempotency misuse can be a validation error; operational chat uses409 IDEM
 For consent denial, `data:{required_policies:[{type:string,label:string,version:int?,read_url:string,accept_url:string?}],status_url:string}` accompanies code/message. These are API paths subject to the same trusted-origin/type validation. Recheck status after acceptance; neither a local checkbox nor this denial descriptor opens private access.
 
 [Examples](examples/README.md) contain feature-specific request/success/null/empty/failure fixtures. [Operations](operations.md) decide whether exact replay is permitted. Cancelled transport can still commit. Retry supported UUID writes with identical frozen body/key; do not replay additive Cart/photo writes. All private failures are session-generation scoped, including stale401/403 from a previous account.
+
+## Current shipping selection failures — 2026-10-04
+
+Current source: `22b0a48f9575ead182d03c35ab87345711c23b90`; imported Buyer adoption gap G25 remains open.
+
+| Status / code | Field / recovery |
+| --- | --- |
+| 422 LOGISTICS_SELECTION_INVALID | logistics_selections; remove foreign-Shop choice or refresh disabled provider options |
+| 409 LOGISTICS_SELECTION_REQUIRED | logistics_selections; explicitly choose a provider for each multiple-option Shop |
+| 409 SHIPPING_COVERAGE_UNAVAILABLE | logistics_selections; no quoteable enabled option; change safe intent or retry later |
+| 409 LOGISTICS_PROVIDER_UNAVAILABLE / LOGISTICS_RATE_NOT_ACCEPTED | logistics_selections; refresh available options, never silently substitute |
+| 409 SHIPPING_RATE_UNAVAILABLE / PICKUP_ADDRESS_REQUIRED | address_id; platform/Seller configuration needs correction |
+| 409 SHIPPING_DATA_REQUIRED / SHIPPING_DIMENSIONS_UNSUPPORTED / SHIPPING_WEIGHT_UNSUPPORTED | items; parcel measurements/limits prevent quote |
+| 409 ROUTE_RATE_LIMIT_EXCEEDED | no field; route participant parcel limit blocks quote |
+
+Options discovery omits quotation failures. Non-limit route participant tariff/rate/service/category failures degrade to unplanned and are not returned as direct HTTP errors; successful unplanned quotes can later be held at Seller pickup. See [shipping selection](shipping-selection.md). Changed selections produce QUOTE_INPUT_CHANGED, or IDEMPOTENCY_KEY_REUSED for a changed uncertain-placement payload. Synthetic scenarios and error records are not executed backend tests.

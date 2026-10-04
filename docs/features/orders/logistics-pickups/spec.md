@@ -166,6 +166,6 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Saved-quote partner restriction (2026-09-24)
 
-- A Seller may select only a Logistics organization listed in the Order pricing snapshot that still accepts the saved shipping rate version.
+- Snapshot-backed Orders must match the checkout-selected provider. CHECKOUT_LOGISTICS_MISMATCH rejects substitution; unavailable provider or frozen route holds pickup and preserves Customer COD.
 - If no organization can honor the snapshot, fulfillment enters a financial hold for resolution. The Customer shipping fee and COD remain unchanged.
 - The selected partner fulfills against the immutable quote; pickup selection does not recalculate Customer pricing.

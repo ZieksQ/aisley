@@ -1,0 +1,20 @@
+{
+  "imported_on": "2026-10-04",
+  "source": "External Flutter documentation snapshots; no Flutter application checkout shipped",
+  "reported_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "snapshots": [
+    {
+      "upstream_path": "docs/cabigan/docs-mobile-buyer-from-flutter-project",
+      "files": 107,
+      "tree_sha256": "17ae7f1963ea0b474c2cb80b3855ac5de4e3ee77dcf4a7212d9d124f18c6816a",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; no transformations to source snapshot."
+    },
+    {
+      "upstream_path": "docs/cabigan/docs-flutter-courier-from-flutter-project",
+      "files": 47,
+      "tree_sha256": "78b802d8bdba1d16f7e0932eae9ceb7fe8449159773689654ee31fb4a5cdb269",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; no transformations to source snapshot."
+    }
+  ],
+  "executed_here": false
+}

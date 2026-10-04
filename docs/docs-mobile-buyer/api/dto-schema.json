@@ -1,6 +1,6 @@
 {
   "provenance": "Source-derived documentation schema; not a live API capture",
-  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
   "notation": "? nullable; ~ may be absent; [] list. Named types reference definitions. Unknown additive keys tolerated.",
   "definitions": {
     "Navigation": {
@@ -408,13 +408,10 @@
     },
     "ShippingQuote": {
       "serviceable": "bool",
-      "rateVersionId": "UUID",
-      "rateVersion": "int",
-      "billableWeightGrams": "int",
-      "baseFee": "money",
-      "additionalWeightFee": "money",
-      "destinationSurcharge": "money",
-      "eligibleLogisticsCount": "int"
+      "logisticsOrganizationId": "UUID",
+      "logisticsBusinessName": "string",
+      "routeStatus": "string",
+      "shippingFee": "money"
     },
     "Totals": {
       "merchandiseSubtotal": "money",
@@ -500,10 +497,10 @@
       "termsSummary": "string"
     },
     "BatchShipping": {
-      "rateVersionId": "UUID",
-      "rateVersion": "int",
-      "billableWeightGrams": "int",
-      "eligibleLogisticsCount": "int"
+      "logisticsOrganizationId": "UUID?",
+      "logisticsBusinessName": "string?",
+      "routeStatus": "string",
+      "shippingFee": "money"
     },
     "Order": {
       "id": "UUID",
@@ -527,7 +524,8 @@
       "trackingUrl": "URL",
       "delivery": "Delivery?",
       "map": "UnavailableMap",
-      "actions": "OrderActions"
+      "actions": "OrderActions",
+      "shippingProvider": "ShippingProvider?"
     },
     "Payment": {
       "method": "string",
@@ -569,7 +567,8 @@
       "latestTrackingAt": "timestamp",
       "totals": "Totals",
       "actions": "OrderActions",
-      "detailUrl": "URL"
+      "detailUrl": "URL",
+      "shippingProvider": "ShippingProvider?"
     },
     "ItemPreview": {
       "productId": "UUID?",
@@ -894,6 +893,25 @@
     "AddressOption": {
       "code": "string",
       "name": "string"
+    },
+    "ShippingProvider": {
+      "id": "UUID",
+      "businessName": "string"
+    },
+    "LogisticsOptions": {
+      "address": "QuoteAddress",
+      "groups": "LogisticsOptionGroup[]"
+    },
+    "LogisticsOptionGroup": {
+      "shop": "QuoteShop",
+      "options": "LogisticsOption[]"
+    },
+    "LogisticsOption": {
+      "organizationId": "UUID",
+      "businessName": "string",
+      "shippingFee": "money",
+      "routeStatus": "string"
     }
-  }
+  },
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
 }

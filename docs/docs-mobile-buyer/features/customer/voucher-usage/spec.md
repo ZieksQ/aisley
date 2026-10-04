@@ -3,9 +3,10 @@ feature: voucher-usage
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Pending
+flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ---
 
 # Checkout voucher usage
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Existing quote candidate/eligibility/selection/savings/snapshot/redemption implemented;
 wallet/claim/authoring deferred.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 
 Quote candidates → explicit UUID/target Shop → requote → reviewed savings → placement redeems.
 
@@ -24,11 +25,16 @@ Quote candidates → explicit UUID/target Shop → requote → reviewed savings 
 - Server time/scopes/exclusions/capacity/customer limit and integer-cent calculation/caps decide saving. Selected zero-saving voucher still redeems; quote reserves nothing. Placement locks/rechecks/redempts atomically and snapshots terms; cancellation/rejection currently does not restore counters.
 - Disclose removed/stale choices before another Place action and reject previous-account selections/results.
 
-The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
+The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
+imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
 communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership
 and capabilities remain authoritative.
+
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -60,7 +66,8 @@ and capabilities remain authoritative.
 - AppliedVouchers expose qualifyingBasis/discountAmount; Order snapshots retain committed
   terms/code/amount.
 - Cancellation currently does not restore voucher redemption capacity; do not promise reuse or refund.
-- Shipping discount reduces server shipping component; commission does not increase Customer COD.
+- Shipping discount reduces the selected provider’s server shipping fee; changing provider requires reviewed
+  requote and updated savings. Commission does not increase Customer COD.
 - No auto claim, code text injection, implicit promotion opt-in or other Customer’s eligibility
   inspection.
 - Candidate failures and checkout unavailable state are distinct from no available vouchers.
@@ -77,10 +84,10 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
 authority.
 
 - `POST /api/v1/customer/checkout/quote` → HTTP 200; `{data:Quote}`.
-  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status.
+  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - `POST /api/v1/customer/checkout/place` → HTTP 200; `{data:Batch}`.
-  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
+  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
   Replay: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
 - `GET /api/v1/customer/checkout/{batch}` → HTTP 200; `{data:Batch}`.
   Request: Owned batch UUID; no body.
@@ -133,8 +140,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 session memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on
 either change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public
-hints only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 
@@ -181,6 +188,7 @@ universal error envelope.
 
 ### Verification scenarios
 
+- [ ] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
 - [ ] Targeting, stacking/reasons/zero-saving/current amount display are server-driven.
 - [ ] Voucher-bearing replay/rollback/capacity conflicts and account switch do not double-consume or
   silently retarget.
@@ -192,7 +200,7 @@ universal error envelope.
   credential behavior.
 - [ ] Exercise normal, empty, malformed, denied, consent-required, validation, conflict, throttle,
   offline and timeout outcomes.
-- [ ] Delayed responses/errors after logout/account switch cannot repopulate private state or restart
+- [x] Delayed responses/errors after logout/account switch cannot repopulate private state or restart
   disposed work.
 - [ ] Same-key replay applies only where supported; additive Cart/image requests are never globally
   retried.
@@ -214,3 +222,6 @@ Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) a
 history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
+[shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.

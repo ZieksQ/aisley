@@ -12,15 +12,19 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Seller-to-Logistics Pickup Scheduling
 
+## Shared shipping revision — 2026-10-04
+
+Seller enables providers for its Shop; Customer selects/freezes one per Order. Pickup uses that selection. Bulk requests must group matching providers. Legacy options/ranking below cannot override snapshot-backed Orders. Route/provider unavailability holds fulfillment; Courier task/COD/evidence contracts and client acceptance are unchanged.
+
 ## WHAT
 
 - **Purpose:** Let a Seller hand prepared Orders to one selected Logistics organization, then let that organization assign an employed Courier and pickup schedule.
-- **Actors:** Seller selects the provider and requests pickup; Logistics owns its Pickups dashboard and schedule; Courier receives the assigned first-mile task through the external mobile app.
+- **Actors:** Seller requests the checkout-selected provider; Logistics owns its Pickups dashboard and schedule; Courier receives the assigned first-mile task through the external mobile app.
 - **Scope:** Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler, database notifications, and Geoapify-backed distance ranking.
 - **Current baseline:** Sellers can submit solo or bulk pickup requests with up to 50 Orders, and Logistics can combine eligible parcels from multiple Seller requests into one Courier schedule. Each created waybill has an explicit tracking ID, and the pickup transaction snapshots the Buyer postal code plus the selected Logistics hub's current sort-plan hint for later routing.
 - **Target flow:**
   ```text
-  Seller packs Orders → chooses Logistics → requests pickup
+  Seller packs Orders → verifies checkout-selected Logistics → requests pickup
   → Orders become ready_for_pickup and waybills are created
   → selected Logistics sees the request in Pickups
   → Logistics combines one or more Seller handoffs (up to 30 parcels)
@@ -39,7 +43,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## MUST
 
-### Seller provider selection
+### Seller pickup provider validation
 
 - Require Sanctum, active approved Seller access, and a server-derived Shop for every option and pickup request.
 - Seller may request only its own `seller_processing` Orders with valid payment, address snapshots, and Inventory reservations.
@@ -52,8 +56,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
   - options without a distance last, ordered by business name and UUID.
 - Preselect the sole exact match; if several exact matches exist, preselect the shortest returned distance; if no exact match exists, preselect the nearest ranked option.
 - Display the recommendation reason, availability, and rounded one-decimal kilometre distance; label unavailable distance honestly.
-- Seller must confirm the preselection and may choose another eligible option before submitting.
-- If Geoapify, coordinates, or quota are unavailable, list all eligible providers without a distance and require explicit Seller selection; never fabricate `0 km` or block packing.
+- Snapshot-backed Orders require their checkout-selected provider; Seller may not substitute another. Recommendation/preselection above applies only to legacy Orders without pricing snapshots.
+- Missing distance never permits provider substitution. For legacy Orders without snapshots, eligible options remain selectable without fabricated `0 km`.
 - If no provider is eligible, do not advance Orders or create waybills; show a retryable unavailable state.
 - Provider selection becomes immutable when the pickup request commits; reassignment needs an explicit future exception workflow.
 
@@ -107,7 +111,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Acceptance criteria
 
 - [x] Exact PSGC matches are recommended before proximity results, and displayed kilometres come only from a successful authoritative calculation.
-- [x] Seller selection is validated and frozen; only that Logistics tenant receives and sees the request.
+- [x] Checkout selection is validated at pickup and retained; only that Logistics tenant receives and sees the request.
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
 - [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
 - [x] The schedule list defaults to scheduled work and supports ascending or descending pickup-window sorting.
@@ -144,7 +148,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Seller: `GET /api/v1/seller/logistics-options`, `POST /api/v1/seller/orders/pickup-requests`.
 - Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-couriers` (optionally with `starts_at`, `ends_at`, and `exclude_schedule_id` for server-calculated availability), `GET /pickup-schedules`, `POST /pickup-schedules`, and revision/cancel endpoints.
 - Courier API: read assigned first-mile tasks and acknowledge/accept under the existing mobile-only boundary.
-- Add Seller provider-selection states and packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
+- Add Seller checkout-selected provider states and packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
 - API resources expose server-calculated capabilities; frontends never infer assignability, availability, distance validity, or tenant ownership.
 - Keep list selections across a recoverable refetch only while each Order remains eligible; announce selection counts and validation errors to assistive technology.
 - Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation. Schedule endpoints use combined Flatpickr date/time widgets with the mobile fallback disabled; the Courier picker shows contact information, account status, schedules affecting the requested dates, and whether the requested window is open.
@@ -160,10 +164,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Test Seller and Logistics responsive/accessibility flows; Courier work remains API-only.
 - Record request/schedule IDs, tenant IDs, Courier ID, revision, idempotency outcome, Geoapify credit estimate, and notification result; exclude full addresses and QR payloads.
 - Alert on overdue unassigned requests, due-reminder lag, repeated provider failures, and schedules starting without an active assigned Courier.
-- Roll out schema/backfill → option ranking → Seller selection/waybill creation → Logistics Pickups → scheduling/tasks → explicit Courier acceptance → rejection/re-offer history → notifications/reminders; physical scan/custody remains a later shared transition rollout.
+- Roll out schema/backfill → option ranking → checkout-selection validation/waybill creation → Logistics Pickups → scheduling/tasks → explicit Courier acceptance → rejection/re-offer history → notifications/reminders; physical scan/custody remains a later shared transition rollout.
 
 ### Saved-quote partner restriction (2026-09-24)
 
-- A Seller may select only a Logistics organization listed in the Order pricing snapshot that still accepts the saved shipping rate version.
+- Snapshot-backed Orders must match the checkout-selected provider. CHECKOUT_LOGISTICS_MISMATCH rejects substitution; unavailable provider or frozen route holds pickup and preserves Customer COD.
 - If no organization can honor the snapshot, fulfillment enters a financial hold for resolution. The Customer shipping fee and COD remain unchanged.
 - The selected partner fulfills against the immutable quote; pickup selection does not recalculate Customer pricing.

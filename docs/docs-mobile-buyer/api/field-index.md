@@ -1,6 +1,6 @@
 # Typed wire models
 
-Inspected checkout `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; synthetic examples, no live captures.
+Current inspected checkout `22b0a48f9575ead182d03c35ab87345711c23b90`; reported client adoption `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` (G25); synthetic examples, no live captures.
 
 Every named type below is an immutable DTO definition. Fields are required unless marked `~`; `?` permits JSON null.
 `UUID` = UUID string; `timestamp` = ISO-8601 UTC string; `date` = YYYY-MM-DD string.
@@ -17,6 +17,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 - Sex: `male`, `female`, `non_binary`, `prefer_not_to_say`; Address type: `shipping`, `billing`, `both`; payment method supported for placement: `cod`.
 - Order groups: `to_pay`, `to_prepare`, `to_ship`, `out_for_delivery`, `completed`, `cancelled_issue`; server labels/actions own display.
 - Voucher issuer: `shop` or `app`; benefit: `discount` or `shipping`; value: `fixed` or `percent`.
+- Shipping route status: `local`, `planned`, `unplanned`; successful quotation does not prove operational readiness. Provider projection may be null for legacy Orders.
 - Policy route types: `terms_of_service`, `privacy_policy`; never expose `internal_rules`.
 - Tracking `location` is an empty JSON array when both labels are absent (PHP array serialization), otherwise an object with optional `hub`/`city` strings. Normalize only this documented union.
 - Product specifications retain stored JSON; recognize safe key/value or name/value entries if present. Unexpected legacy shapes show unavailable specifications rather than fail the whole Product.
@@ -581,13 +582,10 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
 | `serviceable` | `bool` | non-null; required |
-| `rateVersionId` | `UUID` | non-null; required |
-| `rateVersion` | `int` | non-null; required |
-| `billableWeightGrams` | `int` | non-null; required |
-| `baseFee` | `money` | non-null; required |
-| `additionalWeightFee` | `money` | non-null; required |
-| `destinationSurcharge` | `money` | non-null; required |
-| `eligibleLogisticsCount` | `int` | non-null; required |
+| `logisticsOrganizationId` | `UUID` | non-null; required |
+| `logisticsBusinessName` | `string` | non-null; required |
+| `routeStatus` | `string` | non-null; required |
+| `shippingFee` | `money` | non-null; required |
 
 ## Totals
 
@@ -700,10 +698,10 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
-| `rateVersionId` | `UUID` | non-null; required |
-| `rateVersion` | `int` | non-null; required |
-| `billableWeightGrams` | `int` | non-null; required |
-| `eligibleLogisticsCount` | `int` | non-null; required |
+| `logisticsOrganizationId` | `UUID` | null allowed; required |
+| `logisticsBusinessName` | `string` | null allowed; required |
+| `routeStatus` | `string` | non-null; required |
+| `shippingFee` | `money` | non-null; required |
 
 ## Order
 
@@ -731,6 +729,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `delivery` | `Delivery` | null allowed; required |
 | `map` | `UnavailableMap` | non-null; required |
 | `actions` | `OrderActions` | non-null; required |
+| `shippingProvider` | `ShippingProvider` | null allowed; required |
 
 ## Payment
 
@@ -791,6 +790,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `totals` | `Totals` | non-null; required |
 | `actions` | `OrderActions` | non-null; required |
 | `detailUrl` | `URL` | non-null; required |
+| `shippingProvider` | `ShippingProvider` | null allowed; required |
 
 ## ItemPreview
 
@@ -1238,3 +1238,36 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | --- | --- | --- |
 | `code` | `string` | non-null; required |
 | `name` | `string` | non-null; required |
+
+## ShippingProvider
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `id` | `UUID` | non-null; required |
+| `businessName` | `string` | non-null; required |
+
+
+## LogisticsOptions
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `address` | `QuoteAddress` | non-null; required |
+| `groups` | `LogisticsOptionGroup[]` | non-null; required |
+
+
+## LogisticsOptionGroup
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `shop` | `QuoteShop` | non-null; required |
+| `options` | `LogisticsOption[]` | non-null; required |
+
+
+## LogisticsOption
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `organizationId` | `UUID` | non-null; required |
+| `businessName` | `string` | non-null; required |
+| `shippingFee` | `money` | non-null; required |
+| `routeStatus` | `string` | non-null; required |

@@ -1,12 +1,58 @@
 # Fresh Customer Flutter project setup
 
-These commands are implementation instructions to run **in the destination Flutter repository**, not commands executed in this documentation task. No Flutter project, package installation or backend configuration was created here.
+> Implementation, SDK/package resolution, tests, builds and browser results in this guide are reports from the external Buyer Flutter project and were not rerun here. This bundle contains documentation; `lib/`, tests, tools, lockfiles and build reports belong to that project. Current shipping-contract adoption remains [G25](references/integration-gaps.md).
 
-## Stable baseline and compatibility evidence
+## Phase 5 local readiness
 
-Use **Flutter 3.35.4 stable / Dart 3.9.2** (Flutter revision `d693b4b9dbac2acd4477aea4555ca6dcbea44ba2`). This is a concrete compatible baseline, not a claim to be the latest SDK. Official release metadata and package constraints inspected on 2026-10-03 are recorded in [package-baseline.json](references/package-baseline.json). [Flutter archive](https://docs.flutter.dev/install/archive)
+Run `python3 tool/verify_release.py` for locked dependencies, formatting, analysis,
+unit/widget/Chromium/tooling checks, portable documentation/assets/Android validation
+and placeholder web/release APK builds. Use `--live --browser` only with the authorized
+API and an already running Buyer at localhost:8766. Missing requested prerequisites
+are reported as blocked with a nonzero exit. Focused reruns use `--checks`.
+See [Phase 5 evidence and acceptance runbook](references/phase-5-verification.md)
+for report format, commands, signing limitations and remaining owner/device gates.
 
-Install/select the baseline through your approved SDK tooling, then verify `flutter --version` and `flutter doctor -v`. Resolve dependencies and commit pubspec.lock in the application repository. All direct SDK constraints accept this baseline; flutter_map 8.2.2 accepts latlong2 ^0.9.1. Transitive resolution, Android toolchain/plugin behavior and browser compatibility are still required checks, not established by metadata inspection.
+## Current Phases 1–4 local development
+
+The ten approved package pins support implemented auth, discovery/account, commerce and communication.
+Maps/uploads/PSGC/preferences are implemented; no dependency was added for Phases 3–4. Preserve
+historical SDK/package checks; current results are in [Phase 4 evidence](references/phase-4-verification.md).
+
+The authorized API is `http://localhost:8000/api/v1`. Buyer browser testing stays at
+`http://localhost:8766`; the documented recovery storefront default is `http://localhost:3000`.
+Debug builds default to these origins. Android uses the emulator host alias `10.0.2.2`
+on ports 8000/3000. Only localhost, 127.0.0.1 and 10.0.2.2 may use debug HTTP;
+release configuration requires explicit HTTPS origins. Do not substitute a phone's own
+localhost for the development computer; installed-device connectivity remains unverified.
+
+`API_BASE_URL` accepts either an origin such as `http://127.0.0.1:8000` or the full
+`http://127.0.0.1:8000/api/v1` base. The app normalizes both to `/api/v1`, including
+an optional trailing slash. Open Buyer at `http://localhost:8766` for its CORS origin.
+
+```sh
+flutter pub get --enforce-lockfile
+flutter run -d web-server --web-port 8766 --dart-define=API_BASE_URL=http://127.0.0.1:8000
+flutter build apk --debug
+flutter test
+BUYER_LIVE_API=1 flutter test test/live/public_api_test.dart
+CHROME_EXECUTABLE=/usr/bin/chromium flutter test --platform chrome test/web
+python3 tool/browser_smoke.py
+```
+
+The browser smoke tool needs an already running Buyer web server/API plus Chromium and
+chromedriver; it uses an isolated temporary profile, sends no real credentials, and creates
+no accounts. Live tests cover public discovery/policies, denial and CORS/idempotency preflight only. Authenticated live flows
+and installed Android acceptance remain open. No backend process/configuration is managed here.
+
+The original fresh-project instructions and historical checks follow.
+
+Creation, build and runtime commands below are implementation instructions for a destination Flutter repository. Executed SDK, dependency-resolution and analysis checks are recorded separately below. This documentation correction preserves the existing scaffold and application dependencies; feature packages were resolved only in a temporary verification project, and backend configuration was unchanged.
+
+## Selected project SDK and compatibility evidence
+
+Preserve this project’s selected **Flutter 3.47.2 stable / Dart 3.13.2** (Flutter revision `d3b14c876900e553bc736ca19295fc09e3853e8e`), verified with `flutter --version --machine` on 2026-10-04. Its existing pubspec.yaml requires `sdk: ^3.13.2`; the historical Dart 3.9.2 baseline cannot satisfy that constraint. Do not downgrade the SDK or loosen the project constraint to follow the old handoff. [package-baseline.json](references/package-baseline.json) preserves historical package metadata unchanged; [imported client baseline](references/imported-client-baseline.json) records the externally reported SDK verification and dependency resolution separately.
+
+For a fresh destination, select the same SDK through approved tooling and verify `flutter --version` and `flutter doctor -v`; preserve the selected SDK in the external Flutter project. Keep pubspec.lock committed. On 2026-10-04, `flutter pub get --enforce-lockfile` passed for the existing scaffold and `flutter analyze --no-pub` reported no issues. Separately, all ten package pins below resolved together with `sdk: ^3.13.2` in an isolated temporary manifest, including the optional map packages. The application’s dependencies and lockfile were unchanged. This proves dependency resolution, not feature implementation, plugin runtime behavior, Android/web builds or target acceptance; later phase reports separately record compilation and synthetic/browser checks; live/device and distribution gates remain open.
 
 | Package | Pin | Purpose / constraint evidence |
 | --- | --- | --- |
@@ -14,14 +60,14 @@ Install/select the baseline through your approved SDK tooling, then verify `flut
 | [dio](https://pub.dev/packages/dio/versions/5.9.0) | 5.9.0 | JSON, cancellation, multipart; Dart≥2.18 <4 |
 | [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage/versions/10.0.0) | 10.0.0 | Token only; Dart≥3.3 <4 / Flutter≥3.19 |
 | [image_picker](https://pub.dev/packages/image_picker/versions/1.2.0) | 1.2.0 | XFile photo adapter; Dart ^3.6 / Flutter≥3.27 |
-| [shared_preferences](https://pub.dev/packages/shared_preferences/versions/2.5.3) | 2.5.3 | Guest recency and nonsecret choices; Dart ^3.5 / Flutter≥3.24 |
+| [shared_preferences](https://pub.dev/packages/shared_preferences/versions/2.5.3) | 2.5.3 | Retired guest-key cleanup and nonsecret choices; Dart ^3.5 / Flutter≥3.24 |
 | [url_launcher](https://pub.dev/packages/url_launcher/versions/6.3.2) | 6.3.2 | Reviewed external recovery/policy links; Dart ^3.6 / Flutter≥3.27 |
 | [flutter_markdown_plus](https://pub.dev/packages/flutter_markdown_plus/versions/1.0.12) | 1.0.12 | Product/policy Markdown; Dart ^3.4 / Flutter≥3.27.1 |
 | [flutter_map](https://pub.dev/packages/flutter_map/versions/8.2.2) | 8.2.2 | Optional raster pin editor; Dart≥3.6 <4 / Flutter≥3.27 |
 | [latlong2](https://pub.dev/packages/latlong2/versions/0.9.1) | 0.9.1 | Optional coordinates; Dart≥3 <4 |
 | [geolocator](https://pub.dev/packages/geolocator/versions/14.0.2) | 14.0.2 | Optional foreground GPS; Dart ^3.5 |
 
-## Create and copy
+## Fresh destination creation and copy
 
 ```sh
 flutter create --platforms=android,web --org com.aisley --project-name aisley_buyer .
@@ -33,7 +79,7 @@ Declare the following in the created pubspec.yaml (preserve name/description/ver
 
 ```yaml
 environment:
-  sdk: '>=3.9.2 <4.0.0'
+  sdk: '^3.13.2'
 dependencies:
   flutter:
     sdk: flutter
@@ -82,9 +128,9 @@ Disable Android auto backup or exclude secure-storage preferences using Android 
 ## Inputs required from deployment owners
 
 - Reachable API/storefront origins, approved test Customer accounts, approval/consent state and representative visible Products/rates/vouchers/Orders.
-- Customer browser CORS must allow exactly http://localhost:8766 while preserving existing origins; required methods/preflights and Authorization, Content-Type, Idempotency-Key. Expose Retry-After. Current defaults omit this origin/header exposure.
+- Customer browser CORS must allow exactly http://localhost:8766 while preserving existing origins; required methods/preflights and Authorization, Content-Type, Idempotency-Key. Expose Retry-After. Localhost origin and required preflights pass; Retry-After exposure remains open.
 - Keep token-only Buyer browser origin outside Sanctum stateful domains; credentials disabled. Validate no same-host web-guard cookie contamination because Sanctum tries web identity before bearer fallback.
 - Suitable public Geoapify credentials with browser-origin restrictions and provider-supported Android restrictions/quotas. If the provider cannot safely support the intended native use, keep pinning disabled pending an owner-approved mediation design.
 - Map attribution/tile terms and trusted storefront reset-link deployment. Native reset app links and production browser security remain separate decisions.
 
-Do not modify server configuration to satisfy these inputs from the mobile task. Source compatibility inspection does not establish any build, live exchange, permission, device or browser acceptance result.
+Do not modify server configuration to satisfy these inputs from the mobile task. The historical metadata inspection and current dependency-resolution/scaffold-analysis checks do not establish any build, live exchange, permission, device or browser acceptance result.

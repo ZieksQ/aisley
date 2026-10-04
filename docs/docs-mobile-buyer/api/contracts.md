@@ -1,6 +1,6 @@
 # Typed API requests and DTOs
 
-Backend inspected at the [recorded baseline](../references/source-provenance.md); all Dart models/parsers pending. [Endpoint inventory](endpoints.md) defines methods and gates; [typed wire tables](field-index.md) define fields, nesting, nullability and omission. [Exact operations](operations.md) and [synthetic examples](examples/README.md) supply request/response fixtures.
+Backend inspected at the [recorded baseline](../references/source-provenance.md); Phases 1–4 Dart models/parsers are implemented with synthetic coverage; [live/device acceptance remains partial](../references/phase-4-verification.md). [Endpoint inventory](endpoints.md) defines methods and gates; [typed wire tables](field-index.md) define fields, nesting, nullability and omission. [Exact operations](operations.md) and [synthetic examples](examples/README.md) supply request/response fixtures.
 
 Use immutable typed models with explicit JSON-key mapping. UUIDs and opaque cursors are strings; timestamps are ISO-8601 parsed as UTC then displayed locally; birth dates are date-only. Distinguish absent, null, empty and false. Validate required structures and tolerate additive optional fields; unknown statuses render safe text and disable unsupported actions. A malformed success body is a decode failure, never an empty success.
 
@@ -34,7 +34,7 @@ Product/Cart numeric prices are informational. Quote/batch/Order monetary values
 
 ## Checkout intent and result
 
-For `buy_now`, send `mode`, `buy_now:{product_id,variant_id:null|UUID,quantity}`, `address_id`, `payment_method:"cod"`, and optional `vouchers:[{voucher_id,target_shop_id}]`. `variant_id` must be present, including null. For `cart`, replace `buy_now` with distinct owned `cart_item_ids`. Never mix modes or send computed prices/totals, shipping/provider IDs, status or owner.
+For `buy_now`, send `mode`, `buy_now:{product_id,variant_id:null|UUID,quantity}`, `address_id`, `payment_method:"cod"`, and optional `vouchers:[{voucher_id,target_shop_id}]`. `variant_id` must be present, including null. For `cart`, replace `buy_now` with distinct owned `cart_item_ids`. Add optional `logistics_selections:[{shop_id,logistics_organization_id}]` (max50, distinct Shop UUIDs). Never mix modes or send computed prices/totals/fees, status or owner. Provider IDs are accepted only in these scoped selections; see [shipping selection](shipping-selection.md).
 
 Placement adds `quote_id` and UUID `Idempotency-Key`; success is `200 {data:CheckoutBatch}` including replay. Defaults currently make quote lifetime 15 minutes; honor returned `expiresAt`. Retain exact key, quote and normalized intent after uncertainty. `409 IDEMPOTENCY_KEY_REUSED` means changed payload under one key; `QUOTE_ALREADY_PLACED` prevents another key for an already placed quote. `QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, `QUOTE_STALE` require reviewed refresh. No GET-by-key endpoint exists.
 
@@ -62,6 +62,8 @@ Quote candidates contain voucher `id,code,issuerType,benefitType,valueType,value
 
 Profile PATCH requires first_name, last_name, contact_number, sex and birth_date, with nullable middle_name; it is not an arbitrary partial profile patch. Address PATCH inherits the complete StoreAddressRequest fields. Password PATCH requires `current_password,password,password_confirmation`. Address defaults use create/update `is_default`; no separate default route. [Messaging](messaging.md) documents channel-specific start/body/read keys and envelopes.
 
-Quote shippingQuote exposes serviceable, rateVersionId, rateVersion, billableWeightGrams, baseFee, additionalWeightFee, destinationSurcharge and eligibleLogisticsCount; it exposes a count rather than organization IDs. Keep provider selection outside Buyer checkout.
+Current Quote shippingQuote exposes `serviceable,logisticsOrganizationId,logisticsBusinessName,routeStatus,shippingFee`. Batch shippingQuote omits serviceable and permits nullable provider ID/name; the whole projection is null without a pricing snapshot. Order list/detail/mutation include required nullable `shippingProvider:{id,businessName}|null`. No weight/tariff component/count fields remain. Use `POST /api/v1/customer/checkout/logistics-options` before quote; choices, fallback and G25 adoption boundaries are defined in [shipping selection](shipping-selection.md).
 
 The typed tables and operation contracts include inherited validation and current semantic ownership/replay boundaries. Implement from this local bundle; controlled live API fixture refresh is a later integration check, not required upstream reading. Source tests were inspected, not rerun. Quote Address excludes coordinates and includes nullable label; Batch Address includes coordinates. Support writes replay their recorded201 status; Customer replies reopen waiting/resolved tickets. Support detail cursor traversal uses Laravel’s request-bound resolver and remains a target verification requirement.
+
+Current source inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from the imported client adoption baseline. Changing selections invalidates quote intent; only exact frozen placement payload/key may reconcile uncertainty.

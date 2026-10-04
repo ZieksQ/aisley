@@ -25,7 +25,7 @@ Aisley uses first-party Logistics organizations and their sole operational hubs 
 - Customer account/profile data is allow-listed and Customer-scoped. Profile photos use the configured private disk/Azure Blob path and the shared upload policy; raw object paths and credentials are never returned.
 - Guests can be sent to sign-in with a same-origin return path for protected pages, then must intentionally retry the protected action after authentication.
 
-The Customer storefront uses the existing stateful Sanctum cookie flow. Any future external/mobile Customer client must use the documented bearer-token contract and the same role/status gates; no UI or API may bypass those gates.
+The Customer storefront uses the existing stateful Sanctum cookie flow. The external Buyer Flutter project reports scoped bearer authentication and Phase 1–4 implementation; it must use the same role/status gates. Its required sign-in/account-only recency are presentation decisions; storefront guest browsing/recency remain intact. Imported evidence is in the [Buyer bundle](../docs-mobile-buyer/README.md); controlled authenticated/device acceptance remains open.
 
 ## Public storefront and visibility contract
 
@@ -183,7 +183,7 @@ First-mile and final-mile assignments are independent. Completing Seller pickup 
 ### 13. Product Q&A and Chat/Messaging
 
 - **Purpose:** Ask public Product questions and communicate with an authorized Seller or support participant.
-- **Status:** Product Q&A Phase 1, Customer–Shop messaging, Order-scoped Customer–Logistics messaging, and accepted-final-mile Customer–Courier inbox/reply are implemented in the storefront and Laravel API. Courier messages is available through AccountMenu and eligible Order detail. All three channels use bounded polling; realtime, attachments, moderation, and general Admin chat remain deferred. The external Flutter Buyer composer/live exchange remains unverified and unchanged.
+- **Status:** Product Q&A Phase 1, Customer–Shop messaging, Order-scoped Customer–Logistics messaging, and accepted-final-mile Customer–Courier inbox/reply are implemented in the storefront and Laravel API. Courier messages is available through AccountMenu and eligible Order detail. All three channels use bounded polling; realtime, attachments, moderation, and general Admin chat remain deferred. The external Buyer Flutter project reports separate Shop/Logistics/Courier composers in [Phase 4 evidence](../docs-mobile-buyer/references/phase-4-verification.md). That report was not rerun here; authenticated counterpart exchanges and installed-device acceptance remain unverified.
 - **Boundary:** Shop, Logistics, and Courier threads have distinct conversation kinds, role-owned inboxes, and unread counts. Logistics contact follows the current Order handler; Courier contact requires its accepted final-mile task and current approved assignment, with read-only history after terminal/custody/reassignment changes. Chat remains separate from Q&A/notifications, exposes no private evidence or unrelated users, and cannot change an Order, custody, delivery completion, or complaint decision.
 
 ## Data, privacy, and consistency invariants

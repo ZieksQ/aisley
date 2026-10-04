@@ -35,3 +35,29 @@ New inspection checkout: `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`, captured be
 - Preserved historical provenance, documentation-validation and progress prefixes and all existing archive bytes. Reviewed synthetic fixture identifiers/contact/text/secret placeholders, conflict markers, completion states and documentation-only scope; whitespace checks passed.
 
 The final machine-readable [check summary](standalone-validation.json) records the actual link/file counts and zero validation errors. These checks cover document portability and fixture consistency, not executable Dart DTOs or a live API. No Flutter scaffold, dependency installation/resolution, analyzer, unit/widget/integration tests, Android/web builds, backend tests, migrations, seeds, live exchange or installed-device acceptance ran. Open integration gates and all Flutter completion criteria remain pending.
+
+> Imported external Buyer Flutter results follow. “This repository” below means the external Flutter project; these commands were not rerun here.
+
+## Registration fixture and project SDK correction — 2026-10-04
+
+The backend contract baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; no backend source or live exchange was revalidated. Historical validation entries above are unchanged.
+
+- Corrected both synthetic registration operation copies to HTTP 201, pending Customer and no token. Returned profile values match the synthetic request; nullable middle name/photo path remain null. JSON/semantic checks confirm duplicate agreement and unchanged non-registration operations, including active successful login.
+- Verified the installed Flutter 3.47.2 stable / Dart 3.13.2 and revision `d3b14c876900e553bc736ca19295fc09e3853e8e` with `flutter --version --machine`. Setup now preserves the existing `^3.13.2` constraint. The old SDK metadata and unchanged ten package metadata records remain historical evidence in [package baseline](package-baseline.json).
+- Executed `flutter pub get --enforce-lockfile` in this repository: exit 0; existing dependencies resolved without tracked manifest/lockfile changes. Executed `flutter analyze --no-pub`: exit 0, no issues found in the existing counter scaffold.
+- Executed `flutter pub get` in an isolated temporary manifest with the project SDK constraint, all ten documented exact pins, scaffold Cupertino icons and Flutter test/lint dependencies: exit 0; 126 packages resolved. Checked all ten locked pin versions. The manifest and lockfile hash are recorded in [package baseline](package-baseline.json); no feature packages were added to this application.
+- The initial sandboxed Flutter command could not write its SDK cache; subsequent commands passed with approved cache access. Parsed all documentation JSON and checked whitespace, duplicated fixtures, SDK agreement and unchanged tracked application files.
+
+No feature-code analysis, Flutter tests, Android/web builds, installed-device/browser checks or live API acceptance ran. These dependency/scaffold checks do not complete any Buyer feature or resolve remaining storage, plugin runtime, deployment or release gates.
+
+## Selective platform synchronization — 2026-10-04
+
+Current Laravel inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from reported external Buyer adoption `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`. Imported Phase 1–5/responsive evidence and SDK/package resolution were not rerun here; those report texts and earlier validation history remain preserved.
+
+- Copied Buyer and Courier bundles into isolated repository-local `docs/` layouts. Validated relative Markdown destinations/anchors, Buyer root-copy instruction paths, JSON parsing, evidence references and preserved Courier instructions. Courier AGENTS.md retains its README’s historical content/link exclusion; byte preservation was checked.
+- Checked all 22 Customer specs use WHAT/MUST/HOW, remain 200–230 lines and retain historical acceptance requirements except the explicit account-only recency revision. Imported checks complete only their evidenced adopted-baseline criteria; current shipping parsing/operation criteria are reopened under G25.
+- Compared 96 operation method/path pairs with actual current route enumeration; preserved existing IDs, assigned op-096, checked middleware and current Requests/Resources/source hashes. Validated 111 named nested types, required/nullable fields and all duplicated fixtures, pending/no-token/request-consistent registration and unchanged active login.
+- Reviewed snake_case selections, serviceable versus unplanned, nullable legacy provider fields, quote/placement hashing, exact-key replay and internal route failures versus client errors. Nineteen synthetic shipping scenarios supply expected contracts; they are not executed client/backend tests.
+- Checked all 19 PSGC manifest/hash/size records against unchanged tracked bytes, historical manifests/validation/progress prefixes, existing archive bytes, root instructions and unchanged Courier role contracts/client guides. Recorded snapshot/report provenance separately. Reviewed whitespace, privacy, contradictory provider/status wording and documentation-only scope.
+
+[Machine-readable results](sync-validation.json) report actual counts and limits. No application/Flutter/backend tests, SDK/dependency resolution, builds, authenticated API calls, browser/device or deployment acceptance ran in this checkout. G25 and controlled authenticated, installed-device, accessibility, signing and deployment gates remain open.

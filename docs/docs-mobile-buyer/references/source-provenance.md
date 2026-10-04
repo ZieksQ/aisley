@@ -231,3 +231,15 @@ Local [typed models](../api/field-index.md), [operations](../api/operations.md),
 New source details include Account account envelope; nullable stored specifications; FlashDeals nullable object rather than Product list; Quote Address label/no coordinates; support recorded201 replay and Customer reply reopening; Laravel request-bound cursor resolution; NCR/direct-city required-text compatibility and registration path-field discard. These observations do not claim backend fixes or Flutter adoption.
 
 No Flutter tests/builds, authenticated API exchanges, physical devices, provider requests, migrations, seeds or application database changes ran. See [documentation validation](documentation-validation.md) for completed handoff checks and [verification](../verification.md) for unexecuted release gates.
+
+## Imported client evidence and current inspection — 2026-10-04
+
+The external Buyer snapshot under upstream `docs/cabigan/docs-mobile-buyer-from-flutter-project/` reports Phases 1–4, Phase 5 verification tools, responsive phone/tablet layouts, required sign-in and account-only Recently Viewed. Six imported verification reports retain branch, adopted baseline, commands/results and open gates. Flutter/Dart, dependency resolution, analyzer/tests/builds and browser/API results are attributed to that external project; none were rerun here. Referenced application files and ignored reports are external, not included artifacts.
+
+Historical baseline/source manifests, route enumeration, package metadata and standalone validation remain unchanged. [Imported SDK/resolution baseline](imported-client-baseline.json) preserves historical metadata alongside reported Flutter 3.47.2 / Dart 3.13.2; it is not a local SDK inspection.
+
+[Current inspection](current-source-inspection.json) separately captures Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`, seven changed contract sources and shipping dependencies/Requests/Resources/enums/tests. [Current routes](routes-current.json) were enumerated here read-only; 96 Buyer-relevant operations include the new `op-096`. No backend tests or authenticated exchange ran here. Customer [shipping selection](../api/shipping-selection.md) governs current contracts; G25 records the external client adoption gap without changing its `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` baseline. No role-specific Courier source changed since that baseline in inspected controllers/Requests/Resources/services.
+
+The Courier import is byte-identical to its tracked counterpart except the tracked-only agent guide. Only shared shipping/pickup/pricing context is reconciled; Courier implementation statuses, task/COD/evidence contracts, guides and archives remain preserved. Required Flutter sign-in and account-only recency do not alter storefront guest behavior.
+
+[Snapshot and report hashes](imported-evidence.json) identify the untouched imported inputs and attribution-only verification copies. These preserve provenance without claiming direct inspection of external Flutter implementation code.

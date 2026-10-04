@@ -1,18 +1,26 @@
 # Backend and Buyer integration gaps
 
-Baseline reviewed 2026-10-03. All Buyer Flutter implementation is pending even where APIs exist. This register identifies unavailable platform behavior, source contradictions and integration/release decisions; it does not authorize backend changes.
+Phase 5 local readiness adds [repeatable checks and the acceptance runbook](phase-5-verification.md).
+The 2026-10-04 API probe was initially unreachable, then the API recovered without
+Buyer starting/modifying Laravel. All 42 public/denial/preflight tests and extended
+localhost:8766 browser smoke passed. ADB reported no attached devices; CORS exposed
+headers remain absent. No new backend conflict was established.
+Controlled authentication/device gates, deployed revision, Retry-After exposure,
+production application ID/signing and unresolved owner decisions remain open.
+
+Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification recorded separately; unverified live/device gates remain open. This register identifies unavailable platform behavior, source contradictions and integration/release decisions; it does not authorize backend changes.
 
 | ID | Gap and evidence | Buyer delivery treatment | Owner / phase |
 | --- | --- | --- | --- |
 | G01 | Customer RegisterRequest/controller omit reference-required address/ID evidence | Profile/credentials-only pending registration; explain limitation; no copied Courier upload parts | Customer API/Admin review; 1 follow-up |
 | G02 | No pending-applicant read, rejection resubmission, appeal exception or email-verification policy | Informational pending/rejected state and later login; no protected applicant support | Customer Auth; 1 |
 | G03 | Reset mail URL targets configured storefront; native links not configured | Use trusted storefront recovery; approve native app-link/reset handoff separately | Auth/deployment; 1 |
-| G04 | Buyer `localhost:8766` absent from default CORS; exposed headers empty | Backend owner allow-lists exact origin, keeps non-stateful token path and exposes Retry-After as needed | API/deployment; 1/5 |
-| G05 | Fresh-project SDK/package/architecture choices now supplied with official metadata | Use setup pins; transitive resolution/analyze/build/storage/target checks unexecuted | Flutter; 1/5 |
-| G06 | All 19 source-identical PSGC assets/manifest supplied; Dart loader still unimplemented | Copy/register assets, verify hierarchy/cascade/manual fallback and NCR coverage | Flutter/data; 2 |
+| G04 | Historical CORS default omitted Buyer; local API now permits localhost:8766, verified 2026-10-04. Exposed headers remain absent | Public browser reads and Authorization preflight pass; backend owner must expose Retry-After. Authenticated cookie isolation remains a target gate | API/deployment; 1/5 |
+| G05 | Fresh-project SDK/package/architecture choices supplied and Phase 1 dependencies resolved | Flutter 3.47.2 / Dart 3.13.2, locked dependencies, Phase 1 analysis/tests and Android/web builds pass; installed-device and real-account gates remain open | Flutter; 1/5 |
+| G06 | All 19 source-identical PSGC assets/manifest copied/registered; Phase 2 Dart loaders and manual fallback implemented | Source checksums and all regional hierarchies pass; deployed NCR shipping coverage and installed-device acceptance remain open | Flutter/data; 2 |
 | G07 | Optional flutter_map/latlong2/geolocator chosen; native public credential suitability still external | Geoapify intentional pin only; keep text-only if credential/permission/provider gate unresolved | Maps/deployment; 2/5 |
-| G08 | Portable Cart/Product contracts reconciled against source; historical canonical contradictions preserved upstream | Use local typed operations/specs; no backend/runtime fix implied | Documentation resolved; Flutter 3 |
-| G09 | Portable checkout/fulfillment context reconciled with implemented downstream workflow | Seller chooses Logistics; Buyer reads safe tracking and never selects providers | Documentation resolved; Flutter 3 |
+| G08 | Portable Cart/Product contracts reconciled against source; historical canonical contradictions preserved upstream | Use local typed operations/specs; no backend/runtime fix implied | Current contract documented; G25 client adoption pending |
+| G09 | Portable checkout/fulfillment context reconciled with implemented downstream workflow | Customer selects a Seller-enabled provider per Shop Order; Seller pickup enforces it. Courier assignment stays outside Buyer; current adoption remains G25 | Contract documented; client adoption pending |
 | G10 | Homepage configured shortcuts include unavailable vouchers/listings; Bazaar/MoneyFest deferred | Omit enabled destinations without approved implemented result; Category cards are keyword search, not exact global Category filter | Discovery/product; 2 |
 | G11 | Quote/voucher rules exist but voucher-specific concurrency and full UX cases remain open | No wallet/claim/code-entry/authoring API promises; verify stacking, zero savings, stale choices and limited capacity | Checkout/API/Flutter; 3/5 |
 | G12 | Pending mutation keys/payloads are session memory; no GET placement-by-key | Same-key in-session reconciliation; process-death uncertainty needs approved recovery/storage design before unattended recovery claims | Checkout/security; 3/5 |
@@ -23,8 +31,8 @@ Baseline reviewed 2026-10-03. All Buyer Flutter implementation is pending even w
 | G17 | Support ticket notifications/linked records/attachments deferred; requester UI says description but API uses body | Only subject/category/body create, revision-checked reply; pending/inactive Customers have no exception | Support; 4 |
 | G18 | Sanctum token expiration currently null; no refresh/revoke-all/session registry API | Secure restore and /me revalidation; current-token logout, documented password token effects; no invented refresh schedule | Security/Auth; 1/5 |
 | G19 | Portable contracts now cover inspected behavior; canonical historical wording remains optional evidence | Local specs/typed contracts govern implementation; log live contract differences separately | Documentation resolved; each phase |
-| G20 | Native Android and real-browser Buyer integration never run; source tests were inspected only | Record actual analyze/tests/build/device/browser/live results later; preserve all unchecked mobile criteria | Flutter/release; 5 |
-| G21 | Address correction implementation does not fully demonstrate current published-rate/coverage revalidation | It checks owned shipping-address completeness and Order eligibility but does not recalculate the saved shipping quote; review material-location changes with the backend owner before release | Order/Finance/API; 3/5 |
+| G20 | Phase 1 Android builds, Chromium UI/transport and public localhost API checks now pass; installed Android and live authenticated flows remain unverified | See [Phase 1 evidence](phase-1-verification.md); preserve broad acceptance criteria until target/account checks pass | Flutter/release; 1/5 |
+| G21 | Address correction implementation does not fully demonstrate current published-rate/coverage revalidation | It checks owned shipping-address completeness and Order eligibility but does not recalculate the saved shipping quote; Phase 3 enables only recipient/contact changes at an identical trimmed, complete location (empty optional line two equals null); block location changes pending backend-owner rate/coverage revalidation | Order/Finance/API; 3/5 |
 
 Unavailable APIs must not be mocked into production success. Test fixtures may model future/denied states clearly, but future endpoint proposals need separate backend authorization and acceptance.
 
@@ -38,3 +46,25 @@ Unavailable APIs must not be mocked into production success. Test fixtures may m
 | G24 | Registration Resource exposes profile_photo_path (normally null); discard this field. No evidence upload endpoint exists. | Backend owner assesses privacy of any non-null path; Flutter never constructs URLs from it. |
 
 Corrected portable contract details: Account uses account envelope; Quote Address has label but no coordinates; Support write replay preserves201 and Customer reply automatically reopens waiting/resolved tickets. These were source inspections, not live exchanges. No additional routes or backend fixes are authorized.
+
+## Phase 2 runtime checks — 2026-10-04
+
+Local contract baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; running Laravel revision is unidentified. Public Home/recommendations, Products/Shops search, directory/category/Shop browsing, Product detail and resolver parse successfully. Account, addresses, Wishlist, recency and avatar deny unauthenticated reads. No new runtime contract conflict was observed in that scope. G04 Retry-After exposure, G07 provider credentials, G15 upload hardening and G23 deployed NCR coverage remain open. [Phase 2 evidence](phase-2-verification.md) separates synthetic private workflows, public live checks and unverified acceptance.
+
+## Phase 3 runtime checks — 2026-10-04
+
+Cart/Orders/detail/tracking/Batch unauthenticated denial and exact localhost:8766 POST/PATCH Idempotency-Key preflights pass. Running backend revision remains unidentified; no authenticated commerce or transactional behavior was verified. G04/G11/G12/G21 remain open. [Phase 3 evidence](phase-3-verification.md) records synthetic replay, lifecycle and G21 restriction checks separately.
+
+## Phase 4 runtime checks — 2026-10-04
+
+Public questions/reviews and private conversation/context/notification/ticket unauthenticated or invalid-bearer denial checks pass, together with exact localhost:8766 preflights. No contract conflict was observed in this limited runtime scope; running backend revision remains unidentified. Controlled counterpart exchanges, real uploads and server concurrency remain unverified. G04 header exposure, G12 memory-only recovery, G15 upload hardening, G16 communication retention/abuse and G22 controlled live ticket-cursor gates remain open. See [Phase 4 evidence](phase-4-verification.md) for synthetic recovery and browser coverage.
+
+## Current platform inspection — 2026-10-04
+
+Imported runtime sections above report checks performed in the external Flutter project, not here. Its adopted baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; the running API revision was unidentified. Current source inspection is `22b0a48f9575ead182d03c35ab87345711c23b90`.
+
+| ID | Gap / required action | Owner / gate |
+| --- | --- | --- |
+| G25 | New checkout logistics-options, Shop-scoped selections, quote/Batch shipping DTOs and nullable Order shippingProvider are not established as adopted by imported Buyer code. Adopt current typed models, selections in frozen intent and failure/retry states; reverify parsers/UI and controlled commerce. Earlier tests cannot complete this gate. | Buyer/API; Phase 3/5 |
+
+[Shipping contract](../api/shipping-selection.md) documents provider eligibility, automatic single-option fallback, explicit multiple choice, empty discovery, route degradation and exact-key recovery. The storefront retains guest browsing/recency; Flutter requires sign-in and account-only history.

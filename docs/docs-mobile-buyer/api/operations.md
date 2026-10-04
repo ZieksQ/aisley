@@ -1,6 +1,6 @@
 # Requests, responses and replay contracts
 
-Inspected checkout `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; examples synthetic, not live captures.
+Current inspected checkout `22b0a48f9575ead182d03c35ab87345711c23b90`; reported external client adoption `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` (G25); examples synthetic, not live captures.
 
 Use [wire types](field-index.md), [schema](dto-schema.json), [examples](examples/README.md), [errors](errors.md) and [feature error codes](error-codes.json) together.
 JSON uses Accept/Content-Type application/json; multipart sets its own boundary. GET has no body. Private bearer is restricted to the trusted API origin.
@@ -319,22 +319,22 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `POST /api/v1/customer/checkout/quote`
 
 - Access: Active Customer + consent.
-- Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status.
+- Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
 - Response: HTTP 200; `{data:Quote}`.
-- Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
-- Notes: Laravel rechecks current ownership and visibility.
-- [Synthetic examples](examples/checkout-order.json).
+- Retry: No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.
+- Notes: Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.
+- [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
 ## op-030
 
 `POST /api/v1/customer/checkout/place`
 
 - Access: Active Customer + consent.
-- Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
+- Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Laravel rechecks current ownership and visibility.
-- [Synthetic examples](examples/checkout-order.json).
+- Notes: Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.
+- [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
 ## op-031
 
@@ -1047,3 +1047,16 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Response: HTTP 200; `{options:AddressOption[]}`.
 - Retry: Read retry; bundled/manual fallback on503.
 - [Synthetic examples](examples/address-options.json).
+
+## op-096
+
+`POST /api/v1/customer/checkout/logistics-options`
+
+- Access: Active Customer + consent.
+- Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
+- Response: HTTP 200; `{data:LogisticsOptions}`.
+- Retry: Read-only calculation via POST; no quote, reservation or durable key. Retry the same intent with bounded backoff and session/query guards.
+- Notes: Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Empty options are a successful read, not quote eligibility; G25 adoption pending.
+- [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
+
+Current shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; imported client adoption remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` (G25). Existing operation IDs are stable.

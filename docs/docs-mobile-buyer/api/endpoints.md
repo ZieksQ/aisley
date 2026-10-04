@@ -1,6 +1,6 @@
 # Verified Buyer endpoint inventory
 
-Historical enumeration was at `7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`. Re-enumerated before editing on 2026-10-03 at `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` using `php src/api/artisan route:list --path=api/v1 --json`; all 95 relevant method/path records remain available. [Restricted route snapshot](../references/routes-inspected.json) preserves current role/middleware evidence. This was read-only route inspection, not authenticated API execution. Every endpoint below is implemented in this Laravel checkout; every Buyer Flutter integration remains pending.
+Historical enumeration was at `7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`. Re-enumerated before editing on 2026-10-03 at `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` using `php src/api/artisan route:list --path=api/v1 --json`; all 95 historical relevant method/path records remain available. Current 2026-10-04 enumeration at `22b0a48f9575ead182d03c35ab87345711c23b90` adds checkout logistics-options (96 total); [current routes](../references/routes-current.json) preserve middleware. [Restricted route snapshot](../references/routes-inspected.json) preserves historical role/middleware evidence. This was read-only route inspection, not authenticated API execution. Every endpoint below is implemented in this Laravel checkout; the external Buyer reports Phases 1–4 integrations against its older adoption baseline, with G25 still open and [partial runtime acceptance](../references/phase-4-verification.md).
 
 **Public** needs no token. **Public/optional identity** personalizes only an active Customer, with any authenticated Home response private/no-store. **Active Customer** composes Sanctum and persisted role/status gate. **Active Customer + consent** adds the server policy gate and resource ownership. **Active policy actor** uses shared Sanctum/active-role policy authorization and remains exempt from consent blocking. Route/controller authorization and business rules still apply beyond middleware. GET routes also accept framework HEAD; the table shows the intended GET consumer method.
 
@@ -64,6 +64,7 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 | Method | Existing path | Access | Throttle | Controller/action |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/v1/customer/checkout/place` | Active Customer + consent | 120,1 | `Customer\CheckoutController@place` |
+| `POST` | `/api/v1/customer/checkout/logistics-options` | Active Customer + consent | 120,1 | `Customer\CheckoutController@logisticsOptions` |
 | `POST` | `/api/v1/customer/checkout/quote` | Active Customer + consent | 120,1 | `Customer\CheckoutController@quote` |
 | `GET` | `/api/v1/customer/checkout/{batch}` | Active Customer + consent | 120,1 | `Customer\CheckoutController@show` |
 

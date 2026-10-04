@@ -1,17 +1,17 @@
 {
   "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
-  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
   "operations": [
     {
       "feature": "checkout-order",
       "method": "POST",
       "path": "/api/v1/customer/checkout/quote",
-      "request_contract": "mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1\u20132147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status. ",
+      "request_contract": "mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1\u20132147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. ",
       "response_contract": "{data:Quote}",
       "status": 200,
-      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "retry": "No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.",
       "access": "Active Customer + consent",
-      "notes": "",
+      "notes": "Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -24,7 +24,13 @@
           },
           "address_id": "11111111-1111-4111-8111-111111111111",
           "payment_method": "cod",
-          "vouchers": []
+          "vouchers": [],
+          "logistics_selections": [
+            {
+              "shop_id": "11111111-1111-4111-8111-111111111111",
+              "logistics_organization_id": "22222222-2222-4222-8222-222222222222"
+            }
+          ]
         }
       },
       "response_example": {
@@ -75,13 +81,10 @@
               "appliedVouchers": [],
               "shippingQuote": {
                 "serviceable": true,
-                "rateVersionId": "00000008-1111-4111-8111-111111111111",
-                "rateVersion": 1,
-                "billableWeightGrams": 1,
-                "baseFee": "100.00",
-                "additionalWeightFee": "0.00",
-                "destinationSurcharge": "0.00",
-                "eligibleLogisticsCount": 1
+                "logisticsOrganizationId": "22222222-2222-4222-8222-222222222222",
+                "logisticsBusinessName": "Synthetic Logistics",
+                "routeStatus": "local",
+                "shippingFee": "100.00"
               },
               "totals": {
                 "merchandiseSubtotal": "100.00",
@@ -259,6 +262,90 @@
           "code": "IDEMPOTENCY_KEY_REUSED",
           "message": "This idempotency key was used for different checkout details.",
           "field": "idempotency_key"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "LOGISTICS_SELECTION_INVALID",
+          "message": "The selected Logistics provider is not enabled by this Shop.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "LOGISTICS_PROVIDER_UNAVAILABLE",
+          "message": "The selected Logistics provider is unavailable.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_RATE_UNAVAILABLE",
+          "message": "The platform shipping tariff is not active.",
+          "field": "address_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "LOGISTICS_RATE_NOT_ACCEPTED",
+          "message": "The selected Logistics provider has not accepted the active platform tariff.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_WEIGHT_UNSUPPORTED",
+          "message": "The Shop order exceeds the platform billable-weight limit.",
+          "field": "items"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "ROUTE_RATE_LIMIT_EXCEEDED",
+          "message": "A parcel exceeds a route participant rate limit.",
+          "field": null
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "LOGISTICS_SELECTION_INVALID",
+          "message": "A Logistics selection targets a Shop outside this checkout.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "LOGISTICS_SELECTION_REQUIRED",
+          "message": "Choose one Logistics provider for each Shop order.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_COVERAGE_UNAVAILABLE",
+          "message": "No enabled Logistics provider can quote this Shop order.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "PICKUP_ADDRESS_REQUIRED",
+          "message": "Synthetic Shop does not have a pickup address configured.",
+          "field": "address_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_DATA_REQUIRED",
+          "message": "Shipping weight and dimensions are missing for Synthetic Product.",
+          "field": "items"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_DIMENSIONS_UNSUPPORTED",
+          "message": "Synthetic Product exceeds the platform parcel dimensions.",
+          "field": "items"
         }
       ],
       "response_variants": []
@@ -267,12 +354,12 @@
       "feature": "checkout-order",
       "method": "POST",
       "path": "/api/v1/customer/checkout/place",
-      "request_contract": "mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1\u20132147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status. quote_id UUID + UUID header.",
+      "request_contract": "mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1\u20132147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.",
       "response_contract": "{data:Batch}",
       "status": 200,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
       "access": "Active Customer + consent",
-      "notes": "",
+      "notes": "Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.",
       "request_example": {
         "query": {},
         "headers": {
@@ -288,7 +375,13 @@
           "address_id": "11111111-1111-4111-8111-111111111111",
           "payment_method": "cod",
           "vouchers": [],
-          "quote_id": "11111111-1111-4111-8111-111111111111"
+          "quote_id": "11111111-1111-4111-8111-111111111111",
+          "logistics_selections": [
+            {
+              "shop_id": "11111111-1111-4111-8111-111111111111",
+              "logistics_organization_id": "22222222-2222-4222-8222-222222222222"
+            }
+          ]
         }
       },
       "response_example": {
@@ -342,7 +435,12 @@
                 "longitude": null
               },
               "vouchers": [],
-              "shippingQuote": null,
+              "shippingQuote": {
+                "logisticsOrganizationId": "22222222-2222-4222-8222-222222222222",
+                "logisticsBusinessName": "Synthetic Logistics",
+                "routeStatus": "local",
+                "shippingFee": "100.00"
+              },
               "totals": {
                 "merchandiseSubtotal": "100.00",
                 "shippingFee": "100.00",
@@ -511,6 +609,90 @@
           "code": "IDEMPOTENCY_KEY_REUSED",
           "message": "This idempotency key was used for different checkout details.",
           "field": "idempotency_key"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "LOGISTICS_SELECTION_INVALID",
+          "message": "The selected Logistics provider is not enabled by this Shop.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "LOGISTICS_PROVIDER_UNAVAILABLE",
+          "message": "The selected Logistics provider is unavailable.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_RATE_UNAVAILABLE",
+          "message": "The platform shipping tariff is not active.",
+          "field": "address_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "LOGISTICS_RATE_NOT_ACCEPTED",
+          "message": "The selected Logistics provider has not accepted the active platform tariff.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_WEIGHT_UNSUPPORTED",
+          "message": "The Shop order exceeds the platform billable-weight limit.",
+          "field": "items"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "ROUTE_RATE_LIMIT_EXCEEDED",
+          "message": "A parcel exceeds a route participant rate limit.",
+          "field": null
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "LOGISTICS_SELECTION_INVALID",
+          "message": "A Logistics selection targets a Shop outside this checkout.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "LOGISTICS_SELECTION_REQUIRED",
+          "message": "Choose one Logistics provider for each Shop order.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_COVERAGE_UNAVAILABLE",
+          "message": "No enabled Logistics provider can quote this Shop order.",
+          "field": "logistics_selections"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "PICKUP_ADDRESS_REQUIRED",
+          "message": "Synthetic Shop does not have a pickup address configured.",
+          "field": "address_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_DATA_REQUIRED",
+          "message": "Shipping weight and dimensions are missing for Synthetic Product.",
+          "field": "items"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "SHIPPING_DIMENSIONS_UNSUPPORTED",
+          "message": "Synthetic Product exceeds the platform parcel dimensions.",
+          "field": "items"
         }
       ],
       "response_variants": []
@@ -581,7 +763,12 @@
                 "longitude": null
               },
               "vouchers": [],
-              "shippingQuote": null,
+              "shippingQuote": {
+                "logisticsOrganizationId": "22222222-2222-4222-8222-222222222222",
+                "logisticsBusinessName": "Synthetic Logistics",
+                "routeStatus": "local",
+                "shippingFee": "100.00"
+              },
               "totals": {
                 "merchandiseSubtotal": "100.00",
                 "shippingFee": "100.00",
@@ -752,7 +939,333 @@
           "field": "idempotency_key"
         }
       ],
-      "response_variants": []
+      "response_variants": [
+        {
+          "name": "legacy-nullable-batch-provider",
+          "status": 200,
+          "body": {
+            "data": {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "currency": "PHP",
+              "placedAt": "2026-10-03T00:00:00.000000Z",
+              "orders": [
+                {
+                  "id": "11111111-1111-4111-8111-111111111111",
+                  "reference": "ASL-SYNTHETIC",
+                  "status": "placed",
+                  "paymentMethod": "cod",
+                  "paymentStatus": "pending",
+                  "shop": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "name": "Synthetic example"
+                  },
+                  "items": [
+                    {
+                      "id": "11111111-1111-4111-8111-111111111111",
+                      "productId": null,
+                      "variantId": null,
+                      "productName": "Synthetic example",
+                      "variantName": null,
+                      "sku": null,
+                      "selectedOptions": [
+                        {
+                          "group": "Synthetic example",
+                          "value": "Synthetic example"
+                        }
+                      ],
+                      "unitPrice": "100.00",
+                      "quantity": 1,
+                      "lineSubtotal": "100.00",
+                      "currency": "PHP"
+                    }
+                  ],
+                  "address": {
+                    "recipientName": "Synthetic example",
+                    "contactNumber": "Synthetic example",
+                    "addressLine1": "Synthetic example",
+                    "addressLine2": null,
+                    "barangay": "Synthetic example",
+                    "cityMunicipality": "Synthetic example",
+                    "province": "Synthetic example",
+                    "region": "Synthetic example",
+                    "postalCode": "Synthetic example",
+                    "country": "Synthetic example",
+                    "latitude": null,
+                    "longitude": null
+                  },
+                  "vouchers": [],
+                  "shippingQuote": {
+                    "logisticsOrganizationId": null,
+                    "logisticsBusinessName": null,
+                    "routeStatus": "unplanned",
+                    "shippingFee": "100.00"
+                  },
+                  "totals": {
+                    "merchandiseSubtotal": "100.00",
+                    "shippingFee": "100.00",
+                    "discount": "0.00",
+                    "shippingDiscount": "0.00",
+                    "payable": "200.00",
+                    "currency": "PHP"
+                  },
+                  "detailUrl": "/synthetic-placeholder"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "legacy-no-pricing-snapshot",
+          "status": 200,
+          "body": {
+            "data": {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "currency": "PHP",
+              "placedAt": "2026-10-03T00:00:00.000000Z",
+              "orders": [
+                {
+                  "id": "11111111-1111-4111-8111-111111111111",
+                  "reference": "ASL-SYNTHETIC",
+                  "status": "placed",
+                  "paymentMethod": "cod",
+                  "paymentStatus": "pending",
+                  "shop": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "name": "Synthetic example"
+                  },
+                  "items": [
+                    {
+                      "id": "11111111-1111-4111-8111-111111111111",
+                      "productId": null,
+                      "variantId": null,
+                      "productName": "Synthetic example",
+                      "variantName": null,
+                      "sku": null,
+                      "selectedOptions": [
+                        {
+                          "group": "Synthetic example",
+                          "value": "Synthetic example"
+                        }
+                      ],
+                      "unitPrice": "100.00",
+                      "quantity": 1,
+                      "lineSubtotal": "100.00",
+                      "currency": "PHP"
+                    }
+                  ],
+                  "address": {
+                    "recipientName": "Synthetic example",
+                    "contactNumber": "Synthetic example",
+                    "addressLine1": "Synthetic example",
+                    "addressLine2": null,
+                    "barangay": "Synthetic example",
+                    "cityMunicipality": "Synthetic example",
+                    "province": "Synthetic example",
+                    "region": "Synthetic example",
+                    "postalCode": "Synthetic example",
+                    "country": "Synthetic example",
+                    "latitude": null,
+                    "longitude": null
+                  },
+                  "vouchers": [],
+                  "shippingQuote": null,
+                  "totals": {
+                    "merchandiseSubtotal": "100.00",
+                    "shippingFee": "100.00",
+                    "discount": "0.00",
+                    "shippingDiscount": "0.00",
+                    "payable": "200.00",
+                    "currency": "PHP"
+                  },
+                  "detailUrl": "/synthetic-placeholder"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "op-096",
+      "feature": "checkout-order",
+      "method": "POST",
+      "path": "/api/v1/customer/checkout/logistics-options",
+      "request_contract": "mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1\u20132147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. ",
+      "response_contract": "{data:LogisticsOptions}",
+      "status": 200,
+      "retry": "Read-only calculation via POST; no quote, reservation or durable key. Retry the same intent with bounded backoff and session/query guards.",
+      "access": "Active Customer + consent",
+      "notes": "Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Empty options are a successful read, not quote eligibility; G25 adoption pending.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "mode": "buy_now",
+          "buy_now": {
+            "product_id": "11111111-1111-4111-8111-111111111111",
+            "variant_id": null,
+            "quantity": 1
+          },
+          "address_id": "11111111-1111-4111-8111-111111111111",
+          "payment_method": "cod",
+          "vouchers": []
+        }
+      },
+      "response_example": {
+        "data": {
+          "address": {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "recipientName": "Synthetic example",
+            "contactNumber": "Synthetic example",
+            "addressLine1": "Synthetic example",
+            "addressLine2": null,
+            "barangay": "Synthetic example",
+            "cityMunicipality": "Synthetic example",
+            "province": "Synthetic example",
+            "region": "Synthetic example",
+            "postalCode": "Synthetic example",
+            "country": "Synthetic example",
+            "label": null
+          },
+          "groups": [
+            {
+              "shop": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "name": "Synthetic example"
+              },
+              "options": [
+                {
+                  "organizationId": "22222222-2222-4222-8222-222222222222",
+                  "businessName": "Synthetic Logistics",
+                  "shippingFee": "100.00",
+                  "routeStatus": "local"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "errors": [
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "ADDRESS_NOT_FOUND",
+          "message": "Select an address from your Address Book.",
+          "field": "address_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "ADDRESS_NOT_SHIPPING",
+          "message": "The selected address is not available for shipping.",
+          "field": "address_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "INVENTORY_UNAVAILABLE",
+          "message": "Inventory is unavailable for a selected item.",
+          "field": null
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "CART_ITEM_NOT_FOUND",
+          "message": "One or more Cart items do not belong to this Customer.",
+          "field": "cart_item_ids"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 409,
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "A selected product is no longer available.",
+          "field": "product_id"
+        },
+        {
+          "feature": "checkout-order",
+          "status": 422,
+          "code": "ADDRESS_INCOMPLETE",
+          "message": "The selected address is incomplete.",
+          "field": "address_id"
+        }
+      ],
+      "response_variants": [
+        {
+          "name": "empty-provider-options",
+          "status": 200,
+          "body": {
+            "data": {
+              "address": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "recipientName": "Synthetic example",
+                "contactNumber": "Synthetic example",
+                "addressLine1": "Synthetic example",
+                "addressLine2": null,
+                "barangay": "Synthetic example",
+                "cityMunicipality": "Synthetic example",
+                "province": "Synthetic example",
+                "region": "Synthetic example",
+                "postalCode": "Synthetic example",
+                "country": "Synthetic example",
+                "label": null
+              },
+              "groups": [
+                {
+                  "shop": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "name": "Synthetic example"
+                  },
+                  "options": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "multiple-provider-options",
+          "status": 200,
+          "body": {
+            "data": {
+              "address": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "recipientName": "Synthetic example",
+                "contactNumber": "Synthetic example",
+                "addressLine1": "Synthetic example",
+                "addressLine2": null,
+                "barangay": "Synthetic example",
+                "cityMunicipality": "Synthetic example",
+                "province": "Synthetic example",
+                "region": "Synthetic example",
+                "postalCode": "Synthetic example",
+                "country": "Synthetic example",
+                "label": null
+              },
+              "groups": [
+                {
+                  "shop": {
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "name": "Synthetic example"
+                  },
+                  "options": [
+                    {
+                      "organizationId": "33333333-3333-4333-8333-333333333333",
+                      "businessName": "Synthetic Alternate Logistics",
+                      "shippingFee": "120.00",
+                      "routeStatus": "planned"
+                    },
+                    {
+                      "organizationId": "22222222-2222-4222-8222-222222222222",
+                      "businessName": "Synthetic Logistics",
+                      "shippingFee": "100.00",
+                      "routeStatus": "local"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "failure_examples": [
@@ -1069,6 +1582,158 @@
           "status_url": "/api/v1/policy-consent/status"
         }
       }
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "LOGISTICS_SELECTION_INVALID",
+        "message": "The selected Logistics provider is not enabled by this Shop.",
+        "errors": {
+          "logistics_selections": [
+            "The selected Logistics provider is not enabled by this Shop."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "LOGISTICS_PROVIDER_UNAVAILABLE",
+        "message": "The selected Logistics provider is unavailable.",
+        "errors": {
+          "logistics_selections": [
+            "The selected Logistics provider is unavailable."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "SHIPPING_RATE_UNAVAILABLE",
+        "message": "The platform shipping tariff is not active.",
+        "errors": {
+          "address_id": [
+            "The platform shipping tariff is not active."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "LOGISTICS_RATE_NOT_ACCEPTED",
+        "message": "The selected Logistics provider has not accepted the active platform tariff.",
+        "errors": {
+          "logistics_selections": [
+            "The selected Logistics provider has not accepted the active platform tariff."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "SHIPPING_WEIGHT_UNSUPPORTED",
+        "message": "The Shop order exceeds the platform billable-weight limit.",
+        "errors": {
+          "items": [
+            "The Shop order exceeds the platform billable-weight limit."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "ROUTE_RATE_LIMIT_EXCEEDED",
+        "message": "A parcel exceeds a route participant rate limit."
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 422,
+      "body": {
+        "code": "LOGISTICS_SELECTION_INVALID",
+        "message": "A Logistics selection targets a Shop outside this checkout.",
+        "errors": {
+          "logistics_selections": [
+            "A Logistics selection targets a Shop outside this checkout."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "LOGISTICS_SELECTION_REQUIRED",
+        "message": "Choose one Logistics provider for each Shop order.",
+        "errors": {
+          "logistics_selections": [
+            "Choose one Logistics provider for each Shop order."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "SHIPPING_COVERAGE_UNAVAILABLE",
+        "message": "No enabled Logistics provider can quote this Shop order.",
+        "errors": {
+          "logistics_selections": [
+            "No enabled Logistics provider can quote this Shop order."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "PICKUP_ADDRESS_REQUIRED",
+        "message": "Synthetic Shop does not have a pickup address configured.",
+        "errors": {
+          "address_id": [
+            "Synthetic Shop does not have a pickup address configured."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "SHIPPING_DATA_REQUIRED",
+        "message": "Shipping weight and dimensions are missing for Synthetic Product.",
+        "errors": {
+          "items": [
+            "Shipping weight and dimensions are missing for Synthetic Product."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+    },
+    {
+      "status": 409,
+      "body": {
+        "code": "SHIPPING_DIMENSIONS_UNSUPPORTED",
+        "message": "Synthetic Product exceeds the platform parcel dimensions.",
+        "errors": {
+          "items": [
+            "Synthetic Product exceeds the platform parcel dimensions."
+          ]
+        }
+      },
+      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
     }
-  ]
+  ],
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
 }

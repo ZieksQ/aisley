@@ -1,0 +1,109 @@
+{
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
+  "inspected_on": "2026-10-04",
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "evidence": "Read-only source/test inspection and route enumeration; application tests and live/device checks not executed here.",
+  "changed_contract_sources": [
+    "src/api/app/Http/Controllers/Customer/CheckoutController.php",
+    "src/api/app/Http/Requests/Customer/CheckoutQuoteRequest.php",
+    "src/api/app/Http/Resources/Customer/CheckoutBatchResource.php",
+    "src/api/app/Http/Resources/Customer/OrderResource.php",
+    "src/api/app/Http/Resources/Customer/OrderSummaryResource.php",
+    "src/api/app/Services/Customer/CheckoutService.php",
+    "src/api/app/Services/Customer/OrderTrackingService.php"
+  ],
+  "courier_role_sources_changed_since_adoption": false,
+  "files": [
+    {
+      "upstream_path": "src/api/app/Enums/ShippingPricingModel.php",
+      "sha256": "f5959ad2ad217c00c378c1610728597ebae00878605c86139b5fb4e34a734a50",
+      "bytes": 172
+    },
+    {
+      "upstream_path": "src/api/app/Enums/ShippingRoutePricingStatus.php",
+      "sha256": "868d5552a961bd357faed2f08f9eff92b0aa055f9ca99a01398546f5d4134a6b",
+      "bytes": 163
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/CheckoutController.php",
+      "sha256": "98c47569fb48ce39d83e94923e942862e3d1de6b055fa7423ea17fef9adebfa4",
+      "bytes": 1470
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/CheckoutQuoteRequest.php",
+      "sha256": "8b25025680fd323ff11b70dfe2de332133650fbd80e5c439e47529e63f61cf94",
+      "bytes": 2503
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/PlaceCheckoutRequest.php",
+      "sha256": "b891a1f328cc9d20f151e9e309ff8f3a52f2f8bd7d944001c5f96289925628e1",
+      "bytes": 853
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CheckoutBatchResource.php",
+      "sha256": "585ecc40a00986d32d0c0261ec591d94f395106f554cf30600e12c5c9362fae1",
+      "bytes": 4069
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CheckoutService.php",
+      "sha256": "ec510c8335ae01a9e4aeefbf3f28797dc50c3bb151e6e43e3bd1a8bec7eba683",
+      "bytes": 42318
+    },
+    {
+      "upstream_path": "src/api/app/Services/Finance/OrderPricingService.php",
+      "sha256": "4fd9cbb442a2ac3035925639e8464b14f6fee13231d7dc6e725187500602bd1e",
+      "bytes": 5040
+    },
+    {
+      "upstream_path": "src/api/app/Services/Finance/ShippingQuotationService.php",
+      "sha256": "0a33c360ed7c04bd9bfc291f1c370ddc0b4f94dad10398d611c8fe3dac64f818",
+      "bytes": 14506
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/EligibleLogisticsQuery.php",
+      "sha256": "bc00a1319a528d77991b59fdd30debd9e87f5257019c655f99f018fb40cfdac5",
+      "bytes": 4999
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/Routing/CheckoutRoutePlanner.php",
+      "sha256": "75ca45cfe16e489d726d351eb0612d8c3fb3d73ee87d4531fd47ecf81495ef45",
+      "bytes": 8954
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/Routing/ShipmentRouteService.php",
+      "sha256": "3436794976e7617319ba8a8426acc4b212029e08ef6ff0d3fcb70ecfadfe0568",
+      "bytes": 15830
+    },
+    {
+      "upstream_path": "src/api/app/Services/Seller/RequestSellerPickup.php",
+      "sha256": "643ed574d848641eeb5e15ea0393089fc40b1f4da76592348fe2e19f4c8f800b",
+      "bytes": 9051
+    },
+    {
+      "upstream_path": "src/api/routes/api.php",
+      "sha256": "d58a3c1ce0e2621ea3992e8768146cd3b0a85170be60c71ef764cc34bab743d5",
+      "bytes": 76074
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Customer/CustomerCheckoutTest.php",
+      "sha256": "4f429aaeaf68d29562c3811d90a5a59e395e24a6f5d1ec50bc0f2e30a5b3c7f9",
+      "bytes": 22442
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Finance/ShippingRateConfigurationTest.php",
+      "sha256": "6e885a3dc050288b7558f2eaf226095b008a3798260538517acec56166fa4b00",
+      "bytes": 10717
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Finance/ShippingServiceQuotationTest.php",
+      "sha256": "e2c624a93632bb55c62d876285ceb340a8b3888420c09f8743e8f0c149f22562",
+      "bytes": 10479
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Logistics/LogisticsPickupWaybillTest.php",
+      "sha256": "804d94edb4bf7dfc27520b2acbc15ff3c39875d41f4a35c12f547a6da3846cff",
+      "bytes": 54728
+    }
+  ],
+  "scope": "Shared fulfillment and pricing inspection only; Courier implementation/adoption history unchanged."
+}

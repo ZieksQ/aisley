@@ -1,0 +1,738 @@
+{
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
+  "inspected_on": "2026-10-04",
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "evidence": "Read-only source/test inspection and route enumeration; application tests and live/device checks not executed here.",
+  "changed_contract_sources": [
+    "src/api/app/Http/Controllers/Customer/CheckoutController.php",
+    "src/api/app/Http/Requests/Customer/CheckoutQuoteRequest.php",
+    "src/api/app/Http/Resources/Customer/CheckoutBatchResource.php",
+    "src/api/app/Http/Resources/Customer/OrderResource.php",
+    "src/api/app/Http/Resources/Customer/OrderSummaryResource.php",
+    "src/api/app/Services/Customer/CheckoutService.php",
+    "src/api/app/Services/Customer/OrderTrackingService.php"
+  ],
+  "courier_role_sources_changed_since_adoption": false,
+  "files": [
+    {
+      "upstream_path": "src/api/app/Enums/ShippingPricingModel.php",
+      "sha256": "f5959ad2ad217c00c378c1610728597ebae00878605c86139b5fb4e34a734a50",
+      "bytes": 172
+    },
+    {
+      "upstream_path": "src/api/app/Enums/ShippingRoutePricingStatus.php",
+      "sha256": "868d5552a961bd357faed2f08f9eff92b0aa055f9ca99a01398546f5d4134a6b",
+      "bytes": 163
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/AddressOptionController.php",
+      "sha256": "1f8efc4251f3615d8b27e4e48f08ead5cf18bf3caccae4f4a2f11c4b1bf84c03",
+      "bytes": 2173
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/AccountController.php",
+      "sha256": "26d6dbf5fd9e708d94fc513008da3b6f2ad5c3afc54b33ac2eb0a6fc1915ddff",
+      "bytes": 4811
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/AddressController.php",
+      "sha256": "c4364df24548ea10b3da4f3da061769b529f7349104516231e673fca4d049e5f",
+      "bytes": 1622
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/AuthController.php",
+      "sha256": "743f1d5657c0dc2e094f65bb4de8c0ec8151d6902327fb9a008ec726c5ccce69",
+      "bytes": 10916
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/CartController.php",
+      "sha256": "9e79d468bac40e8d7352a4192f1f6a824c6f3b99971bea1cb4f1d497e30c695d",
+      "bytes": 1108
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/CheckoutController.php",
+      "sha256": "98c47569fb48ce39d83e94923e942862e3d1de6b055fa7423ea17fef9adebfa4",
+      "bytes": 1470
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ConversationController.php",
+      "sha256": "2fd5a93be774fd980437fccbe1e4cebd0fa3cdd59f9765b182ceb6a4e57d8745",
+      "bytes": 1721
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/CourierConversationController.php",
+      "sha256": "954a7b2974f59686c068a797c60ae6ae65ab6aceb46faa4e2aa5621ff78e8ec2",
+      "bytes": 741
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/HomepageController.php",
+      "sha256": "2d3893227b2c7391ead88500ac5ecbeb4bfd7407b43fcb5071420ff82489f2f4",
+      "bytes": 2006
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/LogisticsConversationController.php",
+      "sha256": "17594fe76f10992073dab5814da369efb8edac61799f103a94852b93eb00fa09",
+      "bytes": 4031
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/NotificationController.php",
+      "sha256": "3ab5cbcfb22e738f59023938ab0544377a9530c549d5956a27cd0b206cc8fc27",
+      "bytes": 3456
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/OrderController.php",
+      "sha256": "a5c390144228770fe7562e6be0cc529ae305c3bdf4bcb48141d2f020abab1437",
+      "bytes": 2808
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ProductDetailController.php",
+      "sha256": "950333482c24014ab145cae01baf04f66006d3358676b817603b718538b0cec7",
+      "bytes": 992
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ProductQAController.php",
+      "sha256": "5ab36d7be826c3d73f4f18d2efb53861a292cf30f9e888be679d51030f716fc2",
+      "bytes": 1746
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ProductReviewController.php",
+      "sha256": "20f8c56a74d763f7604527e21494c44aa803eb505d56ffe0df83765addc986ca",
+      "bytes": 2298
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ProductSearchController.php",
+      "sha256": "1647059f4dcc71c4873da1bca4fed2833527705bd2903ae7731415348f0bf85d",
+      "bytes": 1157
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/PromotionPreferenceController.php",
+      "sha256": "de25ff3fb184c8b71b856105dd752c9825e12925d5c146605e97ebef80e22fca",
+      "bytes": 1868
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/RecentlyViewedController.php",
+      "sha256": "22ed81b8b48173858f537803c49f30df72602bd4692f01a7e87f7b76b7df13db",
+      "bytes": 3025
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ShopBrowseController.php",
+      "sha256": "f00caede135f279441950755ad264a3e2e4cb5093340702cec843c2bb8a2736f",
+      "bytes": 2832
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/ShopSearchController.php",
+      "sha256": "0b770deb57962ae834e7adc2c883306264f5d042fd26ff77f15578fd397497d8",
+      "bytes": 1059
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/WishlistController.php",
+      "sha256": "e795308704b4f86326c0cdd8a1f57a39ca84f72c1071ad8dd2be47462e8ae0a5",
+      "bytes": 1887
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Messaging/CourierCounterpartyConversationController.php",
+      "sha256": "dc6f7fecbc9001c9c4097a525a76283343e5fd0b687e852815585a1f03dd41c4",
+      "bytes": 4130
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/PlatformContentController.php",
+      "sha256": "88ad4a7531cc866112466b6bd6f9d14ea331014eb398a6a5b609553c9d145b63",
+      "bytes": 3578
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/PolicyConsentController.php",
+      "sha256": "4b91b92e5ca60512fffd69d3616051dc82e96ed93fb3a63b2e43ac311d746ae9",
+      "bytes": 2497
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Support/RequesterSupportTicketController.php",
+      "sha256": "7531d4d18cddb6a2e1d637b1e6540ce517d1d3c90bade4cc0321a25d44be68bc",
+      "bytes": 2227
+    },
+    {
+      "upstream_path": "src/api/app/Http/Middleware/Customer/EnsureActiveCustomer.php",
+      "sha256": "b5d718fce45120676b28025599a269c6dd282c63ac6f12e929e18a985472bf78",
+      "bytes": 1684
+    },
+    {
+      "upstream_path": "src/api/app/Http/Middleware/Policy/EnsureActivePolicyActor.php",
+      "sha256": "2fa69c4f3b4c36fed9079589c0c051fe252a1c044fe292ade38ca3286692ff47",
+      "bytes": 2512
+    },
+    {
+      "upstream_path": "src/api/app/Http/Middleware/Policy/EnsurePolicyConsent.php",
+      "sha256": "fcbb1db74f96c9330a964edd48a98d1f0974b6f81e41dc42492dab2fd89a06b3",
+      "bytes": 2551
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/AddCartItemRequest.php",
+      "sha256": "893edce9d70aa79ea305e810ab6f2d153b856df0db27de5ef76d785420144eb8",
+      "bytes": 523
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/AskProductQuestionRequest.php",
+      "sha256": "04a95d05f4a6a0af9ed6db7eb6c336f7be84dbbc7a69647b0e643d79765873d2",
+      "bytes": 2212
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/CancelOrderRequest.php",
+      "sha256": "b96eb9820815e1a9284241ca0bc3b4aa1be10cc06ffe73d9658ab76a1ac39178",
+      "bytes": 1168
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/CheckoutQuoteRequest.php",
+      "sha256": "8b25025680fd323ff11b70dfe2de332133650fbd80e5c439e47529e63f61cf94",
+      "bytes": 2503
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ForgotPasswordRequest.php",
+      "sha256": "e12e617879bbf9e0cf15f248b7b59e9954ae75fcd836be2b588b149adbf8322a",
+      "bytes": 788
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/HomepageRecommendationsRequest.php",
+      "sha256": "468c82012866f3750bb2e594511cbe95fd59574b86dc610c682dbdcb0cfd9e48",
+      "bytes": 2059
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/HomepageRequest.php",
+      "sha256": "b6be7dc548675b3d4b6eaefdaf62fc080888581cae5d2997cd632806b8732576",
+      "bytes": 1093
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ListNotificationsRequest.php",
+      "sha256": "228ce41127ce3246a2e0603333246aaafc2325929cf1b2869463182cc176288a",
+      "bytes": 423
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ListOrderTrackingRequest.php",
+      "sha256": "3f08e99f5b23faa48cf792b63b914fe901ac9d080e77f53c8be61adc7dc7a8cf",
+      "bytes": 578
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ListOrdersRequest.php",
+      "sha256": "7e996ef342949783202a0d31bbc49b163fbb896747119f3369496a4e3d9c83ac",
+      "bytes": 916
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ListProductQuestionsRequest.php",
+      "sha256": "2625ccea05666a0f44e7c69068dcfa3e87594d4aa3c90135e39b99eeb92ea222",
+      "bytes": 575
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ListProductReviewsRequest.php",
+      "sha256": "8370bf58cd8ab635815048d4b1e66cbae73a3953975b656a7bfa51a8397f76a5",
+      "bytes": 573
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/LoginRequest.php",
+      "sha256": "3453a60615f7909e51b88f8bcf580ae56d5be16fd34b74fe2eb771f804c4c9dd",
+      "bytes": 1046
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ModifyOrderRequest.php",
+      "sha256": "d8aa66272187f5b34eaff412286d0dd9abce52f5c0bc81eecd17543c4bc05aa3",
+      "bytes": 1253
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/PlaceCheckoutRequest.php",
+      "sha256": "b891a1f328cc9d20f151e9e309ff8f3a52f2f8bd7d944001c5f96289925628e1",
+      "bytes": 853
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ProductSearchRequest.php",
+      "sha256": "3f98dc5ae0d75b63f1b4042c0b97dc668c60859bb372c3319b0df32d145badba",
+      "bytes": 1175
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ProductSummaryResolveRequest.php",
+      "sha256": "53690835ea7ff171c367ad82e717387995489b52abbc10c99e6cb03444f0dd54",
+      "bytes": 991
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/RecentlyViewedListRequest.php",
+      "sha256": "e424e9141f1865bd469cf9ac2b0b6fce3642ce74c31c7f2fe61c9de84c8e18f8",
+      "bytes": 2410
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/RecentlyViewedMergeRequest.php",
+      "sha256": "7b348042a8f17c1b8a719b1ecff6c212b425fa91c6d73fa8b815fa4eb7982c9f",
+      "bytes": 1241
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/RegisterRequest.php",
+      "sha256": "b6d80d4f63b7d9f27079e6a3bbf45ffc4af4e5dd0afa52ae23cd79a603b3cb34",
+      "bytes": 1363
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ResetPasswordRequest.php",
+      "sha256": "91547c884401d138d70c0eb917ebd9fd0389fbcc9f4e52671c28db535be77850",
+      "bytes": 1060
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ShopDirectoryRequest.php",
+      "sha256": "d23ddd515296283bfdf47af427961ec04ca62ed2dbe1bc90f7581fe18769421a",
+      "bytes": 1436
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ShopProductsRequest.php",
+      "sha256": "ec50f3485991b04143d06ce9b080b7571eddd754ace97ac869b7f20454a95546",
+      "bytes": 1462
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/ShopSearchRequest.php",
+      "sha256": "16a5cb64f80a91ca0823474e515f9085ed7a3a8e6ac421f4975c23948d3cb581",
+      "bytes": 349
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/StoreAddressRequest.php",
+      "sha256": "d2ad68ef968770820b23899554a7784af5b5bb5411c7082bcbd61a9b40320713",
+      "bytes": 1442
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/StoreProductReviewRequest.php",
+      "sha256": "4ed9ed5d855c09df747ea8af085fdb5b35b3458d1f4126050982a0292c847416",
+      "bytes": 1873
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UpdateAccountPasswordRequest.php",
+      "sha256": "a20f7811003b94931733fe266e6a47f5a1a270e4ac4ad48c2c54c0467f2f4c62",
+      "bytes": 1210
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UpdateAccountProfileRequest.php",
+      "sha256": "9dea162136601c9de0745da15fb5f2c9043a55d0e99d09867d442a1e9317e87b",
+      "bytes": 1954
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UpdateAddressRequest.php",
+      "sha256": "d2f46537c8b6332af69e235e7917477dbe9512962846922e46c12db2e00a2078",
+      "bytes": 104
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UpdateCartItemRequest.php",
+      "sha256": "531df175e9cf1d9c2452913899253260f4b66fe179a27ec50e5c6d864fe425bf",
+      "bytes": 880
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UpdatePromotionPreferenceRequest.php",
+      "sha256": "0b8a08ff4a269898b5ad1c1a8b6d9edf010f14add5e64de23d441d0d337cfe58",
+      "bytes": 348
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UploadAccountProfilePhotoRequest.php",
+      "sha256": "dc864b727eb10eea29d3d556dd65da029b488e33869e5001de587e50dff42919",
+      "bytes": 1770
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/UploadProductReviewImageRequest.php",
+      "sha256": "51707dda6cc2b7bb3b7b91287d47970868e9d948abb815100f963c67278ff138",
+      "bytes": 1916
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/WishlistMutationRequest.php",
+      "sha256": "cb65092c439119346fe26edbc2a44408dfe028e933be27d14d7e410ddf55f2f6",
+      "bytes": 304
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/WishlistStatusRequest.php",
+      "sha256": "c271449c8bcca9c332cc9c22393e743207cfbd7d83757204bc8910bf98f01946",
+      "bytes": 426
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/ListConversationsRequest.php",
+      "sha256": "cb4e4399ebdd508d2e6054af62d6ba4ae462451da6ba6a81d79e6186ef60d0da",
+      "bytes": 332
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/OperationalMessageRequest.php",
+      "sha256": "636c7654da518ddee53bf9b3db7532a3d3d3fbf8aee03341f3bb5c9908734408",
+      "bytes": 1299
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/ReadConversationRequest.php",
+      "sha256": "107c8ea4bdb8e1d75995a5d3b78ac581db0226c911b82ad52311edc98942f63e",
+      "bytes": 330
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/SendConversationMessageRequest.php",
+      "sha256": "f772a887e8e6bcb99e5c7f8bada5e6c45480647b123530c476b2c08602dfe505",
+      "bytes": 1295
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/StartConversationRequest.php",
+      "sha256": "6fbfe8e5bb4b97fea44610feefd12d0d86da1b7ebc4efd2b3cae472ca5480bf8",
+      "bytes": 275
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/StartCourierCounterpartyConversationRequest.php",
+      "sha256": "fe5435ad4a41dbb99487c8ee393f17beb5b4118137d91b5b30de0f10b3c96b2d",
+      "bytes": 458
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/StartCustomerLogisticsConversationRequest.php",
+      "sha256": "5374559e503cbfb72ca4a072c5c9225f247e120999a7f198eb97077446ed597e",
+      "bytes": 456
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/StartOperationalConversationRequest.php",
+      "sha256": "83bff9b0ea5da8ab0ad4ca4a44add12548f24e3bb4ab21e597c809ac0eee56c9",
+      "bytes": 1001
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/StartSellerLogisticsConversationRequest.php",
+      "sha256": "f8c6f83190b1ce808ed468408e20b1e07b5b6941b93f8a6c957ec40b179d77d0",
+      "bytes": 463
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Policy/AcceptPolicyRequest.php",
+      "sha256": "07b671c24a6067277346a8104662bf971433291522f27322b830419678115f29",
+      "bytes": 998
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Support/CreateSupportTicketRequest.php",
+      "sha256": "348529d4efeb16f5825c685ddc0c3d9474c18c8fd6df8556f9aa99966b00d269",
+      "bytes": 916
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Support/ListSupportTicketsRequest.php",
+      "sha256": "d04ba87b6a4d7b5ff742555e7d7a4629547b306705e25a55df2969c5ad0484e0",
+      "bytes": 743
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Support/ReplySupportTicketRequest.php",
+      "sha256": "2c41d2a274d740763e06b306f03014d4e93101ff220ca64594b4dc21bd385488",
+      "bytes": 588
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Support/SupportTicketMutationRequest.php",
+      "sha256": "1f05264c874bd5b0b0c268200253dc2769d448107da2fde08881db80ca14328d",
+      "bytes": 975
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/AddressResource.php",
+      "sha256": "a522818b4ba61ba906d1235990db0ed6e11ce14abce5dee1958955168710f8c2",
+      "bytes": 1038
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CartItemResource.php",
+      "sha256": "e95954d937d1d13bbe3664df47df249a6e83a3098497db57a69a3372fdbaa723",
+      "bytes": 5037
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CartResource.php",
+      "sha256": "c1affaf6628dd268c44e8c7b4646645262a42a2f81f493bf70c013c32d1d1044",
+      "bytes": 1060
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CheckoutBatchResource.php",
+      "sha256": "585ecc40a00986d32d0c0261ec591d94f395106f554cf30600e12c5c9362fae1",
+      "bytes": 4069
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CustomerAccountResource.php",
+      "sha256": "ee0fc868dc848c4d8b0089ad5f6b746fcea686e4570494e7ce8dea67c87293ed",
+      "bytes": 1322
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CustomerNavigationResource.php",
+      "sha256": "7e8e99caa73ddc89f82f8506065f917a61deab5fcd877fd52700cd1586bf39d9",
+      "bytes": 916
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CustomerNotificationResource.php",
+      "sha256": "7bb0696f9a5e37eca53d5ea6793a56314f8359fb204eadc04e1298665751105e",
+      "bytes": 3029
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CustomerUserResource.php",
+      "sha256": "98e7171405b15b0f24879de8cc16b07ea793b4813849d0672ff0f623d82217a0",
+      "bytes": 1086
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/HomepageCampaignResource.php",
+      "sha256": "5e44405d33c808af9565ad335d30fcd90eb6db0722f0010cefb0015bb4f378a5",
+      "bytes": 1535
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/HomepageCategoryResource.php",
+      "sha256": "0ebd5e49c1da430661c6c2c690747d639bf278cbe72b15c99fcb4c881945e611",
+      "bytes": 534
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/OrderResource.php",
+      "sha256": "2be85a7d2fd3efb07b4784416d098620f9a2028b45dcbcfa86cd8f398e9c7094",
+      "bytes": 5613
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/OrderSummaryResource.php",
+      "sha256": "1af5edb89a7fa14f444805ade19954037fd38a93910e5906031cb621b5a1d936",
+      "bytes": 2458
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/OrderTrackingResource.php",
+      "sha256": "1ebf6d748074d724bd944ad3476fddc6a0e93b5e2462d1bd62e99b1f9a06f63e",
+      "bytes": 1311
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ProductDetailResource.php",
+      "sha256": "bdebb9039eb7af078b37509860025996bf6a8895049e8bdc94ee27b1c0267338",
+      "bytes": 6837
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ProductQAResource.php",
+      "sha256": "64669bd2d5755af372106cd54512138e182e4425002c7ed7e4302c1b2499271f",
+      "bytes": 776
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ProductReviewImageResource.php",
+      "sha256": "177ff1cbac2e83400e392ecf3e3806f91cb03671aad7634bcc92f98d29acaab8",
+      "bytes": 538
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ProductReviewResource.php",
+      "sha256": "cf1c91c0815a53c5415b1d482608acf7634ca79cfe717f6dee1211fffd46cd0e",
+      "bytes": 1276
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ProductSummaryResource.php",
+      "sha256": "aaa771770ea0b0f6451019ea3ea5a7a48505b0c4c1256dc66fefff3f30b215b1",
+      "bytes": 3950
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/RecentlyViewedItemResource.php",
+      "sha256": "415c305f5432aff073bb620e5c8ac91a6510cf6f59e8f3dd6846c85385cf79f1",
+      "bytes": 518
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ShopCategorySummaryResource.php",
+      "sha256": "3b0fc304fd642a2b33a4e8b70dfce6ea4d2153d0dbcf08cd5cb1ac4b9857de0c",
+      "bytes": 431
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ShopDetailResource.php",
+      "sha256": "453ab52e80a1e9d3e1a63d43b14fd1f8b8aca658b0a9b68917f758d95e5c66fb",
+      "bytes": 103
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/ShopSummaryResource.php",
+      "sha256": "af909aae4e60aac0b8dae9f8acb5600b38e73507a72db11d124d96c88afe586e",
+      "bytes": 889
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/WishlistItemResource.php",
+      "sha256": "f5de423f7a0416199ef8eb4873166394e0e293914f708ff28322277df3573c36",
+      "bytes": 577
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Support/SupportTicketView.php",
+      "sha256": "a7318ecf383468571a435e8c95e6d4b7da840898ab9c1c06c76fc97e9b1197a5",
+      "bytes": 2634
+    },
+    {
+      "upstream_path": "src/api/app/Services/Address/PhilippineAddressOptionsService.php",
+      "sha256": "8e8cf4812bf361b56c74d53641aedd85842592a7161b7aa12e077b150efdd018",
+      "bytes": 6613
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/AddressService.php",
+      "sha256": "e1d6850df9071569e8ac51d9dc0015e69a186190b54b84b123d459fb8ee66565",
+      "bytes": 3500
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CartService.php",
+      "sha256": "378cb711b8a3adc65affba01177284e7fcf05c50a81103816faf21d3b2df73f1",
+      "bytes": 9576
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CheckoutService.php",
+      "sha256": "ec510c8335ae01a9e4aeefbf3f28797dc50c3bb151e6e43e3bd1a8bec7eba683",
+      "bytes": 42318
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CustomerAccountService.php",
+      "sha256": "7701e4da40cc4f40405e754a718924f0e6f64f94301f0464b62427bde3934cc4",
+      "bytes": 7170
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CustomerOrderInventory.php",
+      "sha256": "402f1bba6664294449875e600b167c3ff552fe9eb64606fd816c564a0acfa975",
+      "bytes": 6191
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CustomerOrderMutationService.php",
+      "sha256": "f3d93edb0e392a110460d7b53bbefeea46780e07cc04309918ac8e279f40bbb5",
+      "bytes": 11347
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/CustomerOrderStatusMapper.php",
+      "sha256": "c65250cfa1c3109d351a174b71c6d6313eab7fefe57afab31dd61dfeeac07e2d",
+      "bytes": 3822
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/HomepageService.php",
+      "sha256": "cad65ec1a34de397593c9b5266e684a55a4cd341cb927bc4af318c47bf7b0749",
+      "bytes": 13663
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/OrderTrackingService.php",
+      "sha256": "e58b3463b3f6f247badf29c452e8c64bd84d09476d31a7691ee64a541c40ffab",
+      "bytes": 3338
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/ProductQAService.php",
+      "sha256": "329c083a19ecb79b42ed40c0aa51679c9e587547654fc7ae7384d18ec2573491",
+      "bytes": 6505
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/ProductReviewService.php",
+      "sha256": "458561cd2ea03dddc0319a50233a17d17f5a0da34a5b1a92e34f2908e4faa753",
+      "bytes": 12792
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/ProductSearchService.php",
+      "sha256": "668aef78eb13f503e42a7c5f915325eb5748da34811058fd41a7fdad0c340fbc",
+      "bytes": 1678
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/RecentlyViewedService.php",
+      "sha256": "757f1e2e1a9b8db7b91a9f29b95369739d03f7266f6c9c561f9c3b4e23a61b57",
+      "bytes": 6434
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/ShopBrowseService.php",
+      "sha256": "f137ccb3c44abe8be534267ca0aa36c05e84d114ce6334cd36bbfd5ac686dd50",
+      "bytes": 3848
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/ShopSearchService.php",
+      "sha256": "ada3a4a5b9c582efb888a5b3d78dc2dd35e945a73d836a1fe56d6bbc34c38d4a",
+      "bytes": 1013
+    },
+    {
+      "upstream_path": "src/api/app/Services/Customer/WishlistService.php",
+      "sha256": "a1a70730644055e4fc7aa1054ac0f1b4af687b0ded6d69c197e045cdaa91082e",
+      "bytes": 2281
+    },
+    {
+      "upstream_path": "src/api/app/Services/Finance/OrderPricingService.php",
+      "sha256": "4fd9cbb442a2ac3035925639e8464b14f6fee13231d7dc6e725187500602bd1e",
+      "bytes": 5040
+    },
+    {
+      "upstream_path": "src/api/app/Services/Finance/ShippingQuotationService.php",
+      "sha256": "0a33c360ed7c04bd9bfc291f1c370ddc0b4f94dad10398d611c8fe3dac64f818",
+      "bytes": 14506
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/EligibleLogisticsQuery.php",
+      "sha256": "bc00a1319a528d77991b59fdd30debd9e87f5257019c655f99f018fb40cfdac5",
+      "bytes": 4999
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/Routing/CheckoutRoutePlanner.php",
+      "sha256": "75ca45cfe16e489d726d351eb0612d8c3fb3d73ee87d4531fd47ecf81495ef45",
+      "bytes": 8954
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/Routing/ShipmentRouteService.php",
+      "sha256": "3436794976e7617319ba8a8426acc4b212029e08ef6ff0d3fcb70ecfadfe0568",
+      "bytes": 15830
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/ConversationApi.php",
+      "sha256": "63c49244e5019ddee675c84aaae9e6b9ce1342922d88e06de35799610995d393",
+      "bytes": 4223
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/ConversationService.php",
+      "sha256": "f8364506ec6dec77f3a2fb1ad7ecb99e02fb9fb4ed797ed4caeadb1e52ecb6cc",
+      "bytes": 13160
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/CourierCounterpartyConversationService.php",
+      "sha256": "e577f4f2fe973af77313fbfc519162c39f2e08128caf923f1faf9bb16bdd3cc0",
+      "bytes": 17060
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/CourierCounterpartyEligibility.php",
+      "sha256": "0841d71516c1fe32b2b3d0d985f5a46b496b0ee03eca79d396d0aa2aa3b3cf63",
+      "bytes": 5371
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/CustomerLogisticsConversationService.php",
+      "sha256": "5bb9384c66b148f4d25c1bd981b47c0dc59f1184ddf2061d09a80cb9bb3ee456",
+      "bytes": 12478
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/OperationalConversationService.php",
+      "sha256": "0af4835d0e2bb6144875dbcb05f3c4112eafecf9d339d31512139ef089f4543d",
+      "bytes": 18038
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/SellerLogisticsConversationService.php",
+      "sha256": "e661d7a93928f78ce4d76cbe26f6e702ad9c5cb7955a12af2f2f7ca2f17ec71d",
+      "bytes": 12158
+    },
+    {
+      "upstream_path": "src/api/app/Services/PolicyConsentService.php",
+      "sha256": "d8ea983a1a3f2498196557b2a178cee0bc5023981f9fc181e95a68320cf6ef68",
+      "bytes": 6633
+    },
+    {
+      "upstream_path": "src/api/app/Services/Seller/RequestSellerPickup.php",
+      "sha256": "643ed574d848641eeb5e15ea0393089fc40b1f4da76592348fe2e19f4c8f800b",
+      "bytes": 9051
+    },
+    {
+      "upstream_path": "src/api/app/Services/Support/SupportTicketReader.php",
+      "sha256": "ed4324eb15c1626382a082022ec311079603d14778c29073e51b83a983500f52",
+      "bytes": 4095
+    },
+    {
+      "upstream_path": "src/api/app/Services/Support/SupportTicketWriter.php",
+      "sha256": "c8133de7ed78ef5eb7828bcb820da6ca49e01566110979e930897c59922740dc",
+      "bytes": 10140
+    },
+    {
+      "upstream_path": "src/api/routes/api.php",
+      "sha256": "d58a3c1ce0e2621ea3992e8768146cd3b0a85170be60c71ef764cc34bab743d5",
+      "bytes": 76074
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Customer/CustomerCheckoutTest.php",
+      "sha256": "4f429aaeaf68d29562c3811d90a5a59e395e24a6f5d1ec50bc0f2e30a5b3c7f9",
+      "bytes": 22442
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Finance/ShippingRateConfigurationTest.php",
+      "sha256": "6e885a3dc050288b7558f2eaf226095b008a3798260538517acec56166fa4b00",
+      "bytes": 10717
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Finance/ShippingServiceQuotationTest.php",
+      "sha256": "e2c624a93632bb55c62d876285ceb340a8b3888420c09f8743e8f0c149f22562",
+      "bytes": 10479
+    },
+    {
+      "upstream_path": "src/api/tests/Feature/Logistics/LogisticsPickupWaybillTest.php",
+      "sha256": "804d94edb4bf7dfc27520b2acbc15ff3c39875d41f4a35c12f547a6da3846cff",
+      "bytes": 54728
+    },
+    {
+      "upstream_path": "src/api/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php",
+      "sha256": "be4648e2c7b26daff6b8e2f21667413efb4a12eeb42130890ba4e586f0cb1ee1",
+      "bytes": 20495
+    },
+    {
+      "upstream_path": "src/api/vendor/laravel/framework/src/Illuminate/Pagination/PaginationState.php",
+      "sha256": "27c8537b528f0f4c5d8998ed7ce5129b600983be954f80c2acf8f62c5cb470e3",
+      "bytes": 1035
+    },
+    {
+      "upstream_path": "src/webapp/src/lib/locations/psgc-options.ts",
+      "sha256": "3ced469ff3fe7823ca945181153654d1b92565bdf5c072ff4900d6e7c16bf6c0",
+      "bytes": 6495
+    }
+  ]
+}

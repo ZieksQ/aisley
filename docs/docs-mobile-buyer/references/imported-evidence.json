@@ -1,0 +1,58 @@
+{
+  "imported_on": "2026-10-04",
+  "source": "External Flutter documentation snapshots; no Flutter application checkout shipped",
+  "reported_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "snapshots": [
+    {
+      "upstream_path": "docs/cabigan/docs-mobile-buyer-from-flutter-project",
+      "files": 107,
+      "tree_sha256": "17ae7f1963ea0b474c2cb80b3855ac5de4e3ee77dcf4a7212d9d124f18c6816a",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; no transformations to source snapshot."
+    },
+    {
+      "upstream_path": "docs/cabigan/docs-flutter-courier-from-flutter-project",
+      "files": 47,
+      "tree_sha256": "78b802d8bdba1d16f7e0932eae9ceb7fe8449159773689654ee31fb4a5cdb269",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; no transformations to source snapshot."
+    }
+  ],
+  "buyer_reports": [
+    {
+      "file": "phase-1-verification.md",
+      "source_sha256": "5e94fe3dab9938361957b93af3c2a6dbd5d7f3248fdc6da688d5721052111027",
+      "bundle_sha256": "702d4d5d3443fccf83d9b015261ba7c21daf7a7ee5ed9edb5d199b2decbfb6f3",
+      "adaptation": "Added external-project attribution; original report text follows unchanged."
+    },
+    {
+      "file": "phase-2-verification.md",
+      "source_sha256": "06b08525c3c4adb126ebacb9e4e5ed3a9758889fa274fd9b7dfaafb10b8f5ae5",
+      "bundle_sha256": "5f70a154535e8ce4fccf5fa9c030e4f8af89807729853d018150e5750c407d37",
+      "adaptation": "Added external-project attribution; original report text follows unchanged."
+    },
+    {
+      "file": "phase-3-verification.md",
+      "source_sha256": "3b074a5dad2f3473911eb5dfa30a78b0aaba20fa8652253b8872b4a977ed8b0c",
+      "bundle_sha256": "83bb626432c0056f40f7b392963ff344460753aeb3411ab32f878c90c2d4d2b6",
+      "adaptation": "Added external-project attribution; original report text follows unchanged."
+    },
+    {
+      "file": "phase-4-verification.md",
+      "source_sha256": "665a46f62060c6bbf62c28ffe4ac1a9057bd3cc0a2f3002b156205a75685d96f",
+      "bundle_sha256": "2c5699d07bd35971a88efbc0e55f25fd5f0cb97cdbeb0006e7672376993df221",
+      "adaptation": "Added external-project attribution; original report text follows unchanged."
+    },
+    {
+      "file": "phase-5-verification.md",
+      "source_sha256": "6cb33070829586324d43cafad3ce1049a05db50e064cbac1b69b30d495140906",
+      "bundle_sha256": "5569ad5b677b1f59abb9c9dbc6518687082afe249b3b5433a8e24a3830415e3b",
+      "adaptation": "Added external-project attribution; original report text follows unchanged."
+    },
+    {
+      "file": "responsive-signin-verification.md",
+      "source_sha256": "cf54ad9bb7de42ea86eb6247cc357777eaceefdae7f8907cfa67069a0dc189e8",
+      "bundle_sha256": "d1bb8f9c0b7f1d0eae3c28e0d3efa21380556c9f95edcc784a4b961465261f54",
+      "adaptation": "Added external-project attribution; original report text follows unchanged."
+    }
+  ],
+  "executed_here": false
+}
