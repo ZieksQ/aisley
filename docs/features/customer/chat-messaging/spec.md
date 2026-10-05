@@ -13,6 +13,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 
 ## WHAT
 
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Its rich cards, Seller sharing, and images are target enhancements; this role's existing text-only API and implementation status remain authoritative until separately revised.
 - Let an authenticated Customer ask a Shop about a visible Product or an Order and continue the conversation in a private in-app inbox.
 - Shopee's [buyer chat guidance](https://help.shopee.ph/portal/4/article/82308-%5BChat%5D-How-do-I-chat-with-sellers) is a UX reference for a **Chat** entry point on a Shop and product/order questions; it is not a claim that AISLEY has Shopee's transport or policies.
 - The Shop is the conversation's public identity; the private Seller account is an authorization subject, not a displayed contact profile.

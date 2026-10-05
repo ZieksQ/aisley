@@ -13,6 +13,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 
 ## WHAT
 
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Proposed media remains gated on a separate implementation contract; existing operational eligibility, text-only APIs, and Courier mobile contracts remain authoritative.
 - Provide private, text-only operational chat between one Logistics organization and a relevant
   Seller, Courier, or Customer (called “Buyer” in the storefront). Each side may initiate and
   reply while its current relationship is authorized; Logistics is not the only initiator.

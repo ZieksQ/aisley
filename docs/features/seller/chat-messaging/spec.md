@@ -13,6 +13,7 @@ scope: Seller React dashboard and shared Laravel messaging domain
 
 ## WHAT
 
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Its rich cards, Seller sharing, and images are target enhancements; this role's existing text-only API and implementation status remain authoritative until separately revised.
 - An approved Seller can read and reply to private Customer conversations for the Shop they currently own. This is the Seller-side release dependency of [Customer Chat/Messaging](../../customer/chat-messaging/spec.md).
 - One Customer–Shop conversation and its messages serve both role apps. Seller replies do not create a Seller-only thread or separate message store.
 - The first release is persisted **text** over authenticated HTTP with bounded polling while the inbox/thread is visible. It is not instant realtime. Attachments, broadcasting, Seller-initiated outreach, archive/mute/report, typing, presence, and message deletion are deferred.
