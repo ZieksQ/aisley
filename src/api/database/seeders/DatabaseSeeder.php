@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             LuzonLogisticsSeeder::class,
             CourierSeeder::class,
             ProductSeeder::class,
+            DemoCheckoutSeeder::class,
         ]);
     }
 }

@@ -37,7 +37,11 @@ class InitialSellerSeeder extends Seeder
             'postal_code' => config('seller.initial.postal_code', '1200'),
         ]);
 
-        $count = min(100, max(0, (int) config('seller.generic.count', 5)));
+        $configuredCount = (int) config('seller.generic.count', 5);
+        $count = app()->environment('production') ? 0 : min(100, max(0, $configuredCount));
+        if ($configuredCount > 0 && $count === 0) {
+            $this->command?->warn('Generic Seller fixtures were not seeded in production.');
+        }
         $prefix = trim((string) config('seller.generic.email_prefix', 'seller')) ?: 'seller';
         $domain = trim((string) config('seller.generic.email_domain', 'example.com')) ?: 'example.com';
 

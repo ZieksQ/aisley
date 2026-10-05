@@ -323,9 +323,10 @@ class CustomerCheckoutTest extends TestCase
         foreach (['first_mile', 'last_mile'] as $serviceType) {
             $card->services()->create(['service_type' => $serviceType, 'base_fee_cents' => 200]);
             $card->rules()->create([
-                'category_id' => $product->category_id,
+                'shop_category_id' => $product->shop->shop_category_id,
+                'category_id' => null,
                 'service_type' => $serviceType,
-                'base_charge_cents' => 200,
+                'base_charge_cents' => 0,
                 'included_weight_grams' => 500,
                 'additional_weight_grams' => 500,
                 'additional_fee_cents' => 100,

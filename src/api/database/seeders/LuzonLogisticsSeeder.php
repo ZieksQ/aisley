@@ -180,13 +180,6 @@ class LuzonLogisticsSeeder extends Seeder
                 'is_default' => true,
             ],
         );
-        if ($address->latitude === null || $address->longitude === null) {
-            $address->forceFill([
-                'latitude' => $hub['latitude'],
-                'longitude' => $hub['longitude'],
-            ])->save();
-        }
-
         $organization = $logistics->logisticsOrganization()->firstOrCreate([], [
             'business_name' => 'Aisley '.(string) $hub['region'].' Logistics',
         ]);
@@ -255,39 +248,29 @@ class LuzonLogisticsSeeder extends Seeder
             ];
             if ($vehicleRecord === null) {
                 $profile->vehicles()->create($vehicleAttributes);
-            } else {
-                $vehicleRecord->forceFill($vehicleAttributes)->save();
             }
 
             $affiliation = $courier->courierLogisticsAffiliation()->firstOrNew();
             $shouldQualifyForCompanyTruck = $courierNumber === 1;
-            $requiresApproval = ! $affiliation->exists
-                || $affiliation->logistics_organization_id !== $organization->id
-                || $affiliation->logistics_hub_id !== $operationalHub->id
-                || $affiliation->status !== CourierAffiliationStatus::Approved
-                || $affiliation->reviewer_id !== $organization->user_id
-                || $affiliation->reviewed_at === null;
-            $requiresTruckQualification = $shouldQualifyForCompanyTruck
-                && ! $affiliation->can_drive_company_truck;
-
-            if ($requiresApproval || $requiresTruckQualification) {
-                $attributes = [
+            if (! $affiliation->exists) {
+                $affiliation->fill([
                     'logistics_organization_id' => $organization->id,
                     'logistics_hub_id' => $operationalHub->id,
                     'status' => CourierAffiliationStatus::Approved,
                     'reviewer_id' => $organization->user_id,
                     'reviewed_at' => now(),
                     'rejection_reason' => null,
-                ];
-
-                if ($requiresTruckQualification) {
-                    $attributes['can_drive_company_truck'] = true;
-                    $attributes['truck_driver_revision'] = $affiliation->exists
-                        ? ((int) $affiliation->truck_driver_revision) + 1
-                        : 1;
-                }
-
-                $affiliation->fill($attributes)->save();
+                    'can_drive_company_truck' => $shouldQualifyForCompanyTruck,
+                ])->save();
+            } elseif ($affiliation->logistics_organization_id === $organization->id
+                && $affiliation->logistics_hub_id === $operationalHub->id
+                && $affiliation->status === CourierAffiliationStatus::Approved
+                && $shouldQualifyForCompanyTruck
+                && ! $affiliation->can_drive_company_truck) {
+                $affiliation->update([
+                    'can_drive_company_truck' => true,
+                    'truck_driver_revision' => ((int) $affiliation->truck_driver_revision) + 1,
+                ]);
             }
         }
     }
