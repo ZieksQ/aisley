@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\DeliveryApprovalMode;
+use App\Services\Finance\Gateway\LogisticsBillingService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +14,17 @@ class LogisticsOrganization extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['user_id', 'business_name'];
+    protected $fillable = ['user_id', 'business_name', 'delivery_approval_mode'];
+
+    protected function casts(): array
+    {
+        return ['delivery_approval_mode' => DeliveryApprovalMode::class];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(fn (self $organization) => app(LogisticsBillingService::class)->provision($organization));
+    }
 
     public function user(): BelongsTo
     {

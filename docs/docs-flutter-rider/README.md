@@ -42,3 +42,8 @@ Current COD completion requires server-validated `cod_collected: true`: the auth
 ## Shared shipping refresh — 2026-10-04
 
 The current [inspection](references/current-source-inspection.json) records Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`. The imported Courier snapshot `docs/cabigan/docs-flutter-courier-from-flutter-project/` matches this bundle’s pre-sync content (except its tracked-only AGENTS.md). No Courier role-specific API source changed since the Buyer adoption baseline in inspected controllers/Requests/Resources/services. Shared requirements, workspace, schema, fulfillment/pickup guide and domains now describe Seller-enabled providers, Customer selection/frozen pricing and pickup enforcement. Courier task authorization, COD, evidence and delivery contracts, implementation/status records, architecture/design/instructions and archives retain their prior evidence and gates. Documentation validation is recorded in [sync checks](references/synchronization-2026-10-04.md); no Flutter/backend tests or live/device checks ran here.
+
+### POD policy contract addition (2026-10-05)
+- The canonical and portable Courier completion/photo-POD and shared fulfillment specs now document organization-configurable automatic approval for paid prepaid fulfillment; COD still requires manual Logistics review.
+- Courier completion GET adds nullable `data.rejection_reason`. Prepaid intent omits `cod_collected`; all current COD capture requirements remain unchanged. Check final GET state after an intent acknowledgment.
+- Backend/web implementation does not establish Flutter adoption or device acceptance. Existing Flutter status and imported baseline evidence remain unchanged.

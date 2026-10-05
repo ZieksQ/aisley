@@ -1597,3 +1597,10 @@ Before adding these tables:
 - Remittance batches gain gateway identification and rejection actor/reason/time. Payout items retain failed history with `released_at`; per-attempt uniqueness replaces the old all-history obligation uniqueness. Beneficiary locks protect active claims.
 - New status/direction/scenario strings have PHP enum casts. All money remains integer centavos. Documents remain private; financial ledger entries remain append-only.
 - Rollback deliberately fails if retained retry history cannot satisfy the original all-history payout-item uniqueness; reconcile history rather than deleting it automatically.
+
+## Delivery review and Courier cash additions (2026-10-05)
+- Additive migration `2026_10_05_000002_add_delivery_approval_and_courier_cash` adds string-backed organization approval mode, intent mode/organization/hub snapshots and fallback error, and nullable human/system review method on intents/proofs.
+- `courier_cash_obligations`: unique Order, authoritative final-mile task/Courier/collector, immutable reference/name/currency/centavo amount and delivery time, nullable reception time. No historical backfill.
+- `courier_cash_receipts` and items: organization-scoped retry identity/hash, one Courier/currency, exact total, receiving Logistics identity/time, unique allocation per obligation.
+- `courier_cash_credits`: unique receipt, simulated account, centavos/currency and nullable credited time. Account locks serialize balance changes; pending credits recover without duplicating receipt history.
+- Simulated accounts add a generated four-digit display suffix. Billing returns only a masked suffix, label, currency and active/availability flags. Existing balances remain intact; new Logistics account entrypoints explicitly use zero initial funding.

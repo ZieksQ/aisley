@@ -19,11 +19,11 @@ backend_contract_version_status: Historical QR baseline; the photo-POD revision 
 
 ## Final-mile photo and retry revision (2026-09-20)
 
-The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Only Logistics can validate that private image and atomically mark the task, Shipment, and Order delivered. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
+The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
 
 ## COD confirmation revision (2026-09-23)
 
-For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; refetch the task. The failed-attempt API exists, but its Flutter submission UI remains unadopted. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Future prepaid methods require an approved contract.
+For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; refetch the task. The failed-attempt API exists, but its Flutter submission UI remains unadopted. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
 
 ## WHAT
 
@@ -228,3 +228,15 @@ out_for_delivery
 - Roles: docs/domains/Courier.md and docs/domains/Logistics.md.
 - Features: docs/features/courier/proof-of-delivery/specs.md, docs/features/logistics/update-status/specs.md, docs/features/courier/delivery-history/specs.md.
 - Uploads: docs/references/file-upload-requirements.md.
+
+## Delivery approval policy revision (2026-10-05)
+
+- Logistics organizations choose manual review (default) or automatic prepaid approval. COD always requires manual photo review and cash-collection acknowledgment.
+- Completion intents snapshot approval mode and the current collector organization/hub. A setting change does not convert already-pending requests.
+- Automatic prepaid approval requires a valid stored photo plus explicit linked intent, current authorized assignment/revisions, and `payment_status = paid`. It performs no visual-quality assessment.
+- `prepaid` is a typed fulfillment value; Customer checkout remains COD-only. Online payment capture, prepaid checkout and Seller preparation are outside this revision.
+- Background approval uses the same delivery finalization service, with system attribution and no fabricated Logistics reviewer. Irrecoverable validation conflicts remain pending for manual review; lost dispatches are recovered by `deliveries:recover-approvals`.
+- Courier GET completion adds nullable `data.rejection_reason`. POST retains HTTP 202 intent acknowledgment; GET remains the authority for final task/Order state. For prepaid, omit `cod_collected`; COD still requires true.
+- COD approval creates a future-only Courier cash obligation. Receiving cash from that Courier is a separate Logistics receipt and does not clear the platform COD invoice.
+- Logistics Pending/History/Approval settings views retain private photos, timestamps, correction reasons and reviewer/system attribution.
+- Flutter implementation and device acceptance statuses are unchanged; this revision documents API behavior, not external-client adoption.

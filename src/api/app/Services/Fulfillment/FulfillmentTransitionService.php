@@ -3,6 +3,7 @@
 namespace App\Services\Fulfillment;
 
 use App\Enums\CourierAffiliationStatus;
+use App\Enums\DeliveryApprovalMode;
 use App\Enums\FirstMileTaskStatus;
 use App\Enums\FulfillmentOfferStatus;
 use App\Enums\FulfillmentTaskLeg;
@@ -12,12 +13,12 @@ use App\Enums\Logistics\HubRouteStatus;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
 use App\Enums\ShipmentEvidencePurpose;
 use App\Enums\ShipmentEvidenceStatus;
 use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
+use App\Jobs\Logistics\ApprovePrepaidDelivery;
 use App\Models\CompletionIntent;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DeliveryTask;
@@ -34,9 +35,7 @@ use App\Models\ShipmentEvidence;
 use App\Models\SortingLane;
 use App\Models\User;
 use App\Models\Waybill;
-use App\Notifications\Seller\SellerOrderDeliveredNotification;
 use App\Services\Courier\CourierNotificationService;
-use App\Services\Finance\Automation\CodInvoiceService;
 use App\Services\Finance\FinanceLifecycleService;
 use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\Logistics\Routing\LinehaulService;
@@ -361,8 +360,15 @@ class FulfillmentTransitionService
                 'cod_declared_amount' => $isCod ? $order->payable_total : null,
                 'cod_currency' => $isCod ? $order->currency : null,
                 'cod_declared_at' => $isCod ? now() : null,
+                'approval_mode' => $isCod ? DeliveryApprovalMode::Manual : (LogisticsOrganization::findOrFail($task->shipment->current_logistics_organization_id)->delivery_approval_mode ?? DeliveryApprovalMode::Manual),
+                'review_organization_id' => $task->shipment->current_logistics_organization_id,
+                'review_hub_id' => $task->shipment->current_hub_id,
             ]);
-            $this->notifications->queueCompletionRequested($intent);
+            if ($intent->approval_mode === DeliveryApprovalMode::Automatic) {
+                ApprovePrepaidDelivery::dispatch($intent->id)->afterCommit();
+            } else {
+                $this->notifications->queueCompletionRequested($intent);
+            }
 
             return $intent->fresh($this->completionRelations());
         }, 3);
@@ -414,6 +420,9 @@ class FulfillmentTransitionService
                 throw FulfillmentException::conflict('SHIPMENT_STATE_CONFLICT', 'That fulfillment transition is not allowed from the current state.');
             }
             $task = $this->taskForTransition($shipment, $target);
+            if ($task !== null) {
+                $task = DeliveryTask::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
+            }
             $evidence = null;
             if ($target === ShipmentStatus::PickedUpFromHub->value || $target === ShipmentStatus::Delivered->value) {
                 if (empty($input['evidence_id'])) {
@@ -439,7 +448,11 @@ class FulfillmentTransitionService
             }
 
             if ($target === ShipmentStatus::Delivered->value) {
-                return $this->finalizeDelivery($logistics, $shipment, $task, $evidence, $requestHash, $idempotencyKey, $input['reason'] ?? null);
+                $result = app(DeliveryFinalizationService::class)->finalize($logistics, $shipment, $task, $evidence, $requestHash, $idempotencyKey, $input['reason'] ?? null);
+                $result['shipment']->load($this->shipmentRelations());
+                $result['task']->load($this->taskRelations());
+
+                return $result;
             }
 
             if (in_array($target, [ShipmentStatus::ReceivedAtHub->value, ShipmentStatus::SortedAtHub->value, ShipmentStatus::DispatchedFromHub->value], true)) {
@@ -863,6 +876,8 @@ class FulfillmentTransitionService
         $query = DeliveryTask::query()->whereKey($taskId)->where('leg', FulfillmentTaskLeg::FinalMile->value)->where('courier_id', $courier->id)
             ->whereHas('shipment', fn ($shipment) => $shipment->where('current_logistics_organization_id', $affiliation->logistics_organization_id)->where('current_hub_id', $affiliation->logistics_hub_id))->with($this->taskRelations());
         if ($lock) {
+            $identity = (clone $query)->first() ?? throw FulfillmentException::notFound('TASK_NOT_FOUND', 'This final-mile task is not available.');
+            Shipment::query()->whereKey($identity->shipment_id)->lockForUpdate()->firstOrFail();
             $query->lockForUpdate();
         }
 
@@ -1174,59 +1189,6 @@ class FulfillmentTransitionService
             ['shipment_id' => $shipment->id, 'leg' => FulfillmentTaskLeg::FinalMile->value],
             ['status' => FulfillmentTaskStatus::DeliveryAssigned, 'revision' => 1],
         );
-    }
-
-    private function finalizeDelivery(User $logistics, Shipment $shipment, ?DeliveryTask $task, ?ShipmentEvidence $evidence, string $requestHash, string $idempotencyKey, ?string $reason = null): array
-    {
-        if ($task !== null) {
-            $task = DeliveryTask::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
-        }
-        if ($evidence !== null) {
-            $evidence = ShipmentEvidence::query()->whereKey($evidence->id)->lockForUpdate()->firstOrFail();
-        }
-        if ($task === null || $task->leg !== FulfillmentTaskLeg::FinalMile || $task->status !== FulfillmentTaskStatus::OutForDelivery || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof || $evidence->type !== 'photo' || ! $evidence->storage_disk || ! $evidence->storage_path || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)) {
-            throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The final-mile task is not ready for completion.');
-        }
-        $failedAttemptCount = FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count();
-        if (($evidence->metadata['failed_attempt_count'] ?? -1) !== $failedAttemptCount) {
-            throw FulfillmentException::conflict('PROOF_STALE_AFTER_FAILED_ATTEMPT', 'The Courier must submit a new photo after the failed attempt.');
-        }
-        $intent = CompletionIntent::query()->where('delivery_task_id', $task->id)->where('shipment_evidence_id', $evidence->id)->where('courier_id', $task->courier_id)->lockForUpdate()->latest('confirmed_at')->first();
-        if ($intent === null) {
-            throw FulfillmentException::conflict('COMPLETION_INTENT_REQUIRED', 'Courier completion intent is required before finalization.');
-        }
-        if ($intent->expected_revision !== $task->revision) {
-            throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The completion intent is stale. Ask the Courier to confirm the current task revision.');
-        }
-        $order = $shipment->parcel->order()->lockForUpdate()->firstOrFail();
-        if ($order->payment_method === PaymentMethod::CashOnDelivery) {
-            if ($intent->cod_declared_at === null || $intent->cod_declared_amount === null || $intent->cod_currency !== $order->currency
-                || ! hash_equals((string) $intent->cod_declared_amount, (string) $order->payable_total) || $order->payment_status !== PaymentStatus::Pending) {
-                throw FulfillmentException::conflict('COD_DECLARATION_INVALID', 'COD collection declaration is missing or does not match the Order amount.');
-            }
-        }
-        if ($evidence->status !== ShipmentEvidenceStatus::AwaitingValidation && $evidence->status !== ShipmentEvidenceStatus::Validated) {
-            throw FulfillmentException::conflict('PROOF_NOT_VALIDATED', 'The delivery proof has not passed validation.');
-        }
-        $this->validateEvidence($evidence, $logistics);
-        if ($order->status !== OrderStatus::OutForDelivery) {
-            throw FulfillmentException::conflict('ORDER_STATE_CONFLICT', 'The Order is not ready to be delivered.');
-        }
-        $this->orderTransitions->transition($order, OrderStatus::OutForDelivery, OrderStatus::Delivered, 'courier_complete_delivery');
-        if ($order->payment_method === PaymentMethod::CashOnDelivery) {
-            $order->update(['payment_status' => PaymentStatus::Paid]);
-        }
-        $order->loadMissing('shop.seller');
-        DB::afterCommit(fn () => $order->shop?->seller?->notify(new SellerOrderDeliveredNotification($order)));
-        $at = now();
-        $task->update(['status' => FulfillmentTaskStatus::Delivered, 'delivered_at' => $at, 'revision' => $task->revision + 1]);
-        $shipment->update(['status' => ShipmentStatus::Delivered, 'revision' => $shipment->revision + 1]);
-        $this->finance->recognizeDelivery($order, $shipment, $at);
-        app(CodInvoiceService::class)->issue($order, $shipment->current_logistics_organization_id, $at);
-        $intent->update(['status' => ShipmentEvidenceStatus::Validated, 'validated_at' => $at, 'validated_by_logistics_id' => $logistics->id]);
-        $event = $this->event($shipment, $task, 'delivery_completed', ShipmentStatus::OutForDelivery->value, ShipmentStatus::Delivered->value, $task->courier_id, $logistics->id, $task->offers()->where('status', FulfillmentOfferStatus::Accepted->value)->latest('sequence')->first(), $evidence, ['request_hash' => $requestHash, 'cod_collector_organization_id' => $shipment->current_logistics_organization_id], $idempotencyKey, $reason);
-
-        return ['shipment' => $shipment->fresh($this->shipmentRelations()), 'task' => $task->fresh($this->taskRelations()), 'event' => $event];
     }
 
     private function validateEvidence(ShipmentEvidence $evidence, User $logistics): void

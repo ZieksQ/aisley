@@ -24,6 +24,7 @@ class CompleteDeliveryController extends Controller
             'order_status' => $result['task']->shipment->parcel->order->status->value,
             'evidence_id' => $evidence?->id,
             'evidence_status' => $evidence?->status?->value ?? 'unavailable',
+            'rejection_reason' => $evidence?->rejection_reason,
             'proof_failed_attempt_count' => $evidence?->metadata['failed_attempt_count'] ?? null,
             'completion_status' => $intent?->status?->value,
             'delivered_at' => $result['task']->delivered_at?->toISOString(),
@@ -42,7 +43,7 @@ class CompleteDeliveryController extends Controller
             'order_status' => $intent->task->shipment->parcel->order->status->value,
             'evidence_status' => $intent->evidence->status->value,
             'completion_status' => $intent->status->value,
-            'delivered_at' => null,
+            'delivered_at' => $intent->task->delivered_at?->toISOString(),
             'revision' => $intent->task->revision,
         ]], 202)->header('Cache-Control', 'private, no-store');
     }

@@ -349,3 +349,15 @@ Complete each unchecked question before creating physical operational migrations
 - Confirmed delivery recognizes revenue and beneficiary liabilities using the immutable Order pricing snapshot; it does not imply remittance or payout.
 - Logistics commission applies once. The post-commission pool uses frozen quoted first-mile, linehaul, and last-mile charges as pro-rata weights, then verifies actual service owners before commitment.
 - Missing/contradictory carrier evidence or an unplanned fallback creates a financial hold. Admin reconciliation may assign actual participants and an explicit platform subsidy. See `docs/features/shared/commission-settlement/spec.md`.
+
+## Delivery approval policy revision (2026-10-05)
+
+- Logistics organizations choose manual review (default) or automatic prepaid approval. COD always requires manual photo review and cash-collection acknowledgment.
+- Completion intents snapshot approval mode and the current collector organization/hub. A setting change does not convert already-pending requests.
+- Automatic prepaid approval requires a valid stored photo plus explicit linked intent, current authorized assignment/revisions, and `payment_status = paid`. It performs no visual-quality assessment.
+- `prepaid` is a typed fulfillment value; Customer checkout remains COD-only. Online payment capture, prepaid checkout, prepaid settlement and Seller preparation are outside this revision. Prepaid approval does not invoke the COD receivable/settlement workflow.
+- Background approval uses the same delivery finalization service, with system attribution and no fabricated Logistics reviewer. Irrecoverable validation conflicts remain pending for manual review; lost dispatches are recovered by `deliveries:recover-approvals`.
+- Courier GET completion adds nullable `data.rejection_reason`. POST retains HTTP 202 intent acknowledgment; GET remains the authority for final task/Order state. For prepaid, omit `cod_collected`; COD still requires true.
+- COD approval creates a future-only Courier cash obligation. Receiving cash from that Courier is a separate Logistics receipt and does not clear the platform COD invoice.
+- Logistics Pending/History/Approval settings views retain private photos, timestamps, correction reasons and reviewer/system attribution.
+- Flutter implementation and device acceptance statuses are unchanged; this revision documents API behavior, not external-client adoption.

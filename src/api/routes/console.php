@@ -33,3 +33,5 @@ Schedule::command('campaigns:dispatch-pending')
 Schedule::command('campaigns:prune-recipients')
     ->daily()
     ->withoutOverlapping();
+
+Schedule::command('deliveries:recover-approvals')->everyMinute()->withoutOverlapping()->onOneServer();

@@ -12,6 +12,7 @@ use App\Models\CommissionPolicy;
 use App\Models\LogisticsOrganization;
 use App\Models\LogisticsServiceAllocation;
 use App\Models\Order;
+use App\Models\SandboxGatewayAccount;
 use App\Models\ShippingRateVersion;
 use App\Models\Shop;
 use App\Models\User;
@@ -26,6 +27,8 @@ trait FinanceAutomationFixtures
         $address = $this->address($user, $name.' Hub');
         $organization = LogisticsOrganization::create(['user_id' => $user->id, 'business_name' => $name]);
         $organization->hub()->create(['address_id' => $address->id, 'name' => $name.' Hub']);
+        // Explicit funding for successful-payment regression scenarios.
+        SandboxGatewayAccount::where('reference', 'logistics-'.$organization->id)->update(['balance_cents' => 100000000]);
 
         return $organization;
     }
