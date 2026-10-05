@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../../../../packages/ui/src";
+@source "../../../../packages/chat-ui/src";
 
 :root {
   --background: #f7f5f7;

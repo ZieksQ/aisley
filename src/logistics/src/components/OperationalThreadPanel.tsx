@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import { ChatComposer, ChatHistory, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalMessage, type OperationalThread } from '../lib/operationalChat'
 
@@ -22,18 +22,23 @@ function mergeMessages(current: OperationalMessage[], incoming: OperationalMessa
 }
 
 export function OperationalThreadPanel({ selected, context, onSaved }: { selected: OperationalThread | null; context: TaskContext | null; onSaved: (thread: OperationalThread) => void }) {
+  const contextId = context ? 'orderId' in context ? context.orderId : 'pickupRequestId' in context ? context.pickupRequestId : context.taskId : 'inbox'
+  const draftKey = `logistics-operational:${selected?.id ?? contextId}`
   const [thread, setThread] = useState<OperationalThread | null>(selected)
   const [messages, setMessages] = useState<OperationalMessage[]>([])
   const [olderCursor, setOlderCursor] = useState<string | null>(null)
-  const [draft, setDraft] = useState('')
-  const [pending, setPending] = useState<{ key: string; body: string } | null>(null)
+  const [draft, setDraft] = useState(() => readChatDraft(draftKey))
+  const [uncertain, setUncertain] = useState(() => Boolean(readChatAttempt(draftKey)))
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const pendingRef = useRef<{ key: string; body: string } | null>(null)
+  const pendingRef = useRef(readChatAttempt(draftKey))
   const activeIdRef = useRef(selected?.id ?? null)
   activeIdRef.current = selected?.id ?? null
+  const recipient = thread?.counterparty_role === 'customer' || Boolean(context && 'orderId' in context)
+    ? 'Customer'
+    : thread?.counterparty_role === 'seller' || Boolean(context && 'pickupRequestId' in context) ? 'Seller' : 'Courier'
 
   const refresh = useCallback(async (id: string, replace = false) => {
     const [detail, history] = await Promise.all([operationalChat.show(id), operationalChat.history(id)])
@@ -43,7 +48,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     if (replace) setOlderCursor(history.meta.next_cursor)
     if (history.data.length) {
       const last = history.data[history.data.length - 1].sequence
-      if (last > detail.data.last_read_sequence) {
+      if (!document.hidden && last > detail.data.last_read_sequence) {
         const read = await operationalChat.read(id, last)
         if (activeIdRef.current === id) setThread(read.data)
       }
@@ -54,19 +59,27 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     setThread(selected)
     setMessages([])
     setOlderCursor(null)
-    setDraft('')
-    setPending(null)
-    pendingRef.current = null
+    setDraft(readChatDraft(draftKey))
+    const attempt = readChatAttempt(draftKey)
+    pendingRef.current = attempt
+    setUncertain(Boolean(attempt))
     setError('')
     setNotice('')
     if (!selected) return
     let cancelled = false
     setLoading(true)
     void refresh(selected.id, true)
-      .catch((caught) => { if (!cancelled) setError(errorText(caught)) })
+      .catch((caught) => {
+        if (!cancelled) {
+          if (caught instanceof ApiError && [401, 403, 404].includes(caught.status)) {
+            clearChatPrivateState(); setThread(null); setMessages([]); setDraft(''); pendingRef.current = null; setUncertain(false);
+          }
+          setError(errorText(caught));
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [selected?.id, refresh])
+  }, [draftKey, selected?.id, refresh])
 
   useEffect(() => {
     if (!selected || !navigator.onLine) return
@@ -91,14 +104,16 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
       setMessages((current) => mergeMessages(page.data, current))
       setOlderCursor(page.meta.next_cursor)
     } catch (caught) {
+      if (caught instanceof ApiError && [401, 403, 404].includes(caught.status)) {
+        clearChatPrivateState(); setThread(null); setMessages([]); setDraft(''); pendingRef.current = null; setUncertain(false);
+      }
       setError(errorText(caught))
     } finally {
       setLoading(false)
     }
   }
 
-  async function send(event: FormEvent) {
-    event.preventDefault()
+  async function send() {
     if (!navigator.onLine || sending) {
       setError('Reconnect before sending a message.')
       return
@@ -107,7 +122,8 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     if (!body || body.length > 2000) return
     const attempt = pendingRef.current ?? { key: crypto.randomUUID(), body }
     pendingRef.current = attempt
-    setPending(attempt)
+    writeChatAttempt(draftKey, attempt)
+    setUncertain(true)
     setSending(true)
     setError('')
     setNotice('')
@@ -121,17 +137,28 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
           : await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key) : null
       if (!result) return
       pendingRef.current = null
-      setPending(null)
       setDraft('')
+      writeChatDraft(draftKey, '')
+      writeChatAttempt(draftKey, null)
+      setUncertain(false)
       setThread(result.conversation)
       setMessages((current) => mergeMessages(current, [result.message]))
       setNotice('Message saved.')
       onSaved(result.conversation)
     } catch (caught) {
       setError(errorText(caught))
-      if (caught instanceof ApiError && caught.status !== 408 && caught.status !== 0 && caught.status < 500) {
+      if (caught instanceof ApiError && [401, 403, 404].includes(caught.status)) {
+        clearChatPrivateState()
         pendingRef.current = null
-        setPending(null)
+        setDraft('')
+        writeChatDraft(draftKey, '')
+        writeChatAttempt(draftKey, null)
+        setUncertain(false)
+      } else if (caught instanceof ApiError && [409, 422, 429].includes(caught.status)) {
+        pendingRef.current = null
+        setUncertain(false)
+        writeChatAttempt(draftKey, null)
+        if (caught.status === 409 && thread) void refresh(thread.id).catch(() => undefined)
       }
     } finally {
       setSending(false)
@@ -139,11 +166,11 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
   }
 
   if (!thread && !context) {
-    return <div className="grid min-h-80 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open a pickup request, task, or Order to start messaging.</div>
+    return <div className="grid min-h-0 flex-1 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open a pickup request, task, or Order to start messaging.</div>
   }
 
   return (
-    <section aria-label="Operational conversation" className="flex min-h-[30rem] flex-col">
+    <section aria-label="Operational conversation" className="flex min-h-0 min-w-0 flex-1 flex-col">
       <header className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
         <h2 className="font-semibold">{thread?.counterparty_label ?? (context && 'pickupRequestId' in context ? 'Message Seller' : context && 'orderId' in context ? 'Message Customer' : 'Message task Courier')}</h2>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -151,47 +178,34 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         </p>
         {thread?.read_only_reason ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This relationship ended. History is read-only.</p> : null}
       </header>
-      <div aria-live="polite" className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-5">
-        {olderCursor ? <button className="text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" disabled={loading} onClick={() => void loadOlder()} type="button">Load older messages</button> : null}
-        {loading && !messages.length ? <p className="text-sm text-zinc-500">Loading messages…</p> : null}
-        {!loading && !messages.length ? <p className="text-sm text-zinc-500">No messages yet. The first message creates this private conversation.</p> : null}
-        {messages.map((message) => (
-          <div className={`flex ${message.mine ? 'justify-end' : 'justify-start'}`} key={message.id}>
-            <article className={`max-w-[85%] border px-3 py-2 text-sm sm:max-w-[70%] ${message.mine ? 'border-purple-200 bg-purple-50 dark:border-purple-400/25 dark:bg-purple-400/10' : 'border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[0.04]'}`}>
-              <p className="whitespace-pre-wrap break-words">{message.body}</p>
-              <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                {message.mine ? 'You' : thread?.counterparty_role === 'customer' ? 'Customer' : 'Courier'} · {new Date(message.created_at).toLocaleString('en-PH')}
-              </p>
-            </article>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-zinc-200 p-4 dark:border-white/10">
-        {error ? <p className="mb-2 text-sm text-red-700 dark:text-red-300" role="alert">{error}</p> : null}
-        {notice ? <p className="mb-2 text-sm text-emerald-700 dark:text-emerald-300" role="status">{notice}</p> : null}
-        {pending ? <p className="mb-2 text-xs text-amber-800 dark:text-amber-300">Delivery was not confirmed. Retry this exact message with the same send key.</p> : null}
-        {thread?.read_only_reason ? null : (
-          <form onSubmit={(event) => void send(event)}>
-            <label className="sr-only" htmlFor="courier-message">Message {thread?.counterparty_role === 'customer' || (context && 'orderId' in context) ? 'Customer' : 'Courier'}</label>
-            <textarea
-              className="min-h-24 w-full resize-y border border-zinc-300 bg-white p-3 text-sm outline-none focus:border-[#4C1268] dark:border-white/20 dark:bg-[#171719]"
-              disabled={sending || Boolean(pending)}
-              id="courier-message"
-              maxLength={2000}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Write an order-related message"
-              value={draft}
-            />
-            <div className="mt-2 flex justify-end gap-2">
-              <span className="mr-auto self-center text-xs text-zinc-500">{draft.length}/2000</span>
-              {pending ? <button className="border border-zinc-300 px-3 py-2 text-sm dark:border-white/20" disabled={sending} onClick={() => { pendingRef.current = null; setPending(null); setError('') }} type="button">Discard retry</button> : null}
-              <button className="bg-[#4C1268] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={sending || (!pending && !draft.trim())} type="submit">
-                {sending ? 'Sending…' : pending ? 'Retry same message' : 'Send message'}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+      <ChatHistory
+        key={selected?.id ?? contextId}
+        messages={messages.map((message) => ({
+          id: message.id, sequence: message.sequence, body: message.body, mine: message.mine,
+          sender: message.mine ? 'You' : thread?.counterparty_role === 'customer' ? 'Customer' : thread?.counterparty_role === 'seller' ? 'Seller' : 'Courier',
+          createdAt: message.created_at,
+        }))}
+        olderCursor={Boolean(olderCursor)}
+        onLoadOlder={() => void loadOlder()}
+        loadingOlder={loading}
+        loading={loading}
+        emptyText="The first message creates this private operational conversation."
+      />
+      <ChatComposer
+        id="operational-chat-message"
+        recipient={recipient}
+        placeholder="Write an order-related message"
+        value={draft}
+        onChange={(value) => { setDraft(value); writeChatDraft(draftKey, value) }}
+        onSubmit={() => void send()}
+        online={typeof navigator === 'undefined' || navigator.onLine}
+        sending={sending}
+        uncertain={uncertain && !sending}
+        sendAllowed={thread?.send_allowed ?? true}
+        readOnlyReason={thread?.read_only_reason ? 'This relationship ended. The conversation is read only.' : null}
+        error={error || undefined}
+        success={notice || undefined}
+      />
     </section>
   )
 }

@@ -136,3 +136,5 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Open production-policy decision: approve private-message retention, abuse reporting, and audited exceptional access. Until then, do not invent message purging or Admin transcript access.
 
 External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
+
+Web UI adoption (2026-10-05): The Logistics operational inbox and conversation view now use the shared presentation documented above; route, role-scoped API behavior, and task/Order/pickup context remain unchanged. Logistics lint, TypeScript, and production build passed. No Logistics-specific browser smoke was run.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@aisley/ui'
+import { ChatComposer, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
 import { ApiError } from "@/lib/api"
 import { courierMessages, type CourierSendResult } from "@/lib/courier-messages"
 import { courierError } from "./use-courier-access"
@@ -18,14 +18,17 @@ type Props = {
 }
 
 export function CourierComposer({ conversationId, orderId, allowed, onSaved, onConflict, onAccessError }: Props) {
-  const [body, setBody] = useState('')
+  const draftKey = `customer-courier:${conversationId ?? orderId ?? 'inbox'}`
+  const initialAttempt = readChatAttempt(draftKey)
+  const pending = useRef(initialAttempt)
+  const [body, setBody] = useState(() => initialAttempt?.body ?? readChatDraft(draftKey))
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
-  const [uncertain, setUncertain] = useState(false)
+  const [uncertain, setUncertain] = useState(() => Boolean(initialAttempt))
   const online = useCourierOnline()
-  const pending = useRef<{ body: string; key: string } | null>(null)
   const alive = useRef(true)
   const busy = useRef(false)
+  useEffect(() => { writeChatDraft(draftKey, body) }, [body, draftKey])
   useEffect(() => {
     alive.current = true
     return () => {
@@ -37,6 +40,7 @@ export function CourierComposer({ conversationId, orderId, allowed, onSaved, onC
     // Retry an uncertain send even after observed completion: the server can replay it.
     if (busy.current || !online || (!allowed && !pending.current) || !body.trim()) return
     pending.current ??= { body: body.trim(), key: crypto.randomUUID() }
+    writeChatAttempt(draftKey, pending.current)
     busy.current = true
     setSending(true)
     setError('')
@@ -44,14 +48,16 @@ export function CourierComposer({ conversationId, orderId, allowed, onSaved, onC
       const result = await courierMessages.send(conversationId, orderId, pending.current.body, pending.current.key)
       if (!alive.current) return
       pending.current = null
+      writeChatAttempt(draftKey, null)
       setUncertain(false)
       setBody('')
+      writeChatDraft(draftKey, '')
       onSaved(result)
     } catch (reason) {
       if (!alive.current) return
-      if (onAccessError(reason)) { pending.current = null; setBody(''); setUncertain(false); return }
-      const definitive = reason instanceof ApiError && [409, 419, 422].includes(reason.status)
-      if (definitive) { pending.current = null; setUncertain(false) }
+      if (onAccessError(reason)) { clearChatPrivateState(); pending.current = null; setBody(''); setUncertain(false); return }
+      const definitive = reason instanceof ApiError && [409, 419, 422, 429].includes(reason.status)
+      if (definitive) { pending.current = null; writeChatAttempt(draftKey, null); setUncertain(false) }
       else setUncertain(true)
       setError(definitive ? courierError(reason) : `${courierError(reason)} Delivery is unconfirmed. Retry this same message; it will not be duplicated.`)
       if (reason instanceof ApiError && reason.status === 409) onConflict()
@@ -61,42 +67,18 @@ export function CourierComposer({ conversationId, orderId, allowed, onSaved, onC
     }
   }
 
-  return (
-    <form
-      className="space-y-3 border-t border-zinc-200 p-4"
-      onSubmit={(event) => { event.preventDefault(); void send() }}
-    >
-      {!allowed && (
-        <p className="text-sm text-zinc-600">
-          This delivery is not open for messaging. Existing history is read-only.
-        </p>
-      )}
-      {!online && <p role="status" className="text-sm">You are offline. Your draft stays here until you reconnect.</p>}
-      <label className="block text-sm font-medium" htmlFor="courier-message">Message to Courier</label>
-      <textarea
-        id="courier-message"
-        className="min-h-28 w-full resize-y rounded-lg border border-zinc-300 bg-white p-3 text-sm text-zinc-950 focus-visible:outline-2 focus-visible:outline-[#E6007A] disabled:opacity-60"
-        disabled={sending || uncertain || !allowed}
-        maxLength={2000}
-        onChange={(event) => setBody(event.target.value)}
-        value={body}
-        aria-describedby="courier-message-help"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p id="courier-message-help" className="text-xs text-zinc-500">
-          Plain text only · {body.length}/2,000
-        </p>
-        <Button
-          className="min-h-11! rounded-lg! px-4! shadow-none! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
-          type="submit"
-          disabled={!online || (!allowed && !uncertain) || !body.trim()}
-          isLoading={sending}
-          loadingLabel="Sending"
-        >
-          {uncertain ? 'Retry same message' : 'Send message'}
-        </Button>
-      </div>
-      {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
-    </form>
-  )
+  return <ChatComposer
+    id="courier-message"
+    recipient="Courier"
+    value={body}
+    onChange={(value) => { setBody(value); setError(''); writeChatDraft(draftKey, value) }}
+    onSubmit={() => void send()}
+    sendAllowed={allowed}
+    online={online}
+    sending={sending}
+    uncertain={uncertain && !sending}
+    error={error}
+    placeholder="Coordinate this delivery"
+    readOnlyReason={!allowed ? 'This delivery is no longer open for messaging. Existing history remains available.' : null}
+  />
 }

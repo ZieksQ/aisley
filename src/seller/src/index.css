@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/chat-ui/src";
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {

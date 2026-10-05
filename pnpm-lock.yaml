@@ -34,6 +34,16 @@ importers:
         specifier: ^19.2.17
         version: 19.2.18
 
+  packages/chat-ui:
+    dependencies:
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.18
+
   packages/psgc-address-data: {}
 
   packages/support-tickets:
@@ -187,6 +197,9 @@ importers:
 
   src/logistics:
     dependencies:
+      '@aisley/chat-ui':
+        specifier: workspace:*
+        version: link:../../packages/chat-ui
       '@aisley/support-tickets':
         specifier: workspace:*
         version: link:../../packages/support-tickets
@@ -260,6 +273,9 @@ importers:
 
   src/seller:
     dependencies:
+      '@aisley/chat-ui':
+        specifier: workspace:*
+        version: link:../../packages/chat-ui
       '@aisley/support-tickets':
         specifier: workspace:*
         version: link:../../packages/support-tickets
@@ -330,6 +346,9 @@ importers:
 
   src/webapp:
     dependencies:
+      '@aisley/chat-ui':
+        specifier: workspace:*
+        version: link:../../packages/chat-ui
       '@aisley/support-tickets':
         specifier: workspace:*
         version: link:../../packages/support-tickets

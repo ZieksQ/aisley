@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@aisley/ui";
+import { clearChatPrivateState } from "@aisley/chat-ui";
 import { ApiError, apiRequest, initializeCsrf } from "@/lib/api";
 import type { AuthState, AuthenticatedCustomer } from "@/lib/auth/types";
 import { createSessionController } from "@/lib/auth/session-controller";
@@ -27,6 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ));
   const channel = useRef<BroadcastChannel | null>(null);
   const auth = useSyncExternalStore(session.subscribe, session.getSnapshot, getServerSnapshot);
+
+  useEffect(() => {
+    if (auth.status === "guest") clearChatPrivateState();
+  }, [auth.status]);
 
   useEffect(() => {
     const unsubscribe = subscribeToSessionFailures((failure) => {
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const logout = useCallback(async () => {
+    clearChatPrivateState();
     try {
       await initializeCsrf();
       await apiRequest<{ message: string }>("/api/v1/customer/auth/logout", { method: "POST" });
@@ -69,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const setAuthenticatedCustomer = useCallback((customer: AuthenticatedCustomer) => {
+    const current = session.getSnapshot();
+    if (current.status === "authenticated" && current.customer.id !== customer.id) clearChatPrivateState();
     session.setCustomer(customer);
     channel.current?.postMessage("session-changed");
   }, [session]);
