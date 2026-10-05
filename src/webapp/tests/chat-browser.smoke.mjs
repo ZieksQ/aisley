@@ -83,7 +83,7 @@ try {
   await until(() => seller.js('return location.pathname === "/dashboard"'), 'Seller dashboard');
   await seller.go('http://127.0.0.1:5174/messages');
   await until(() => seller.js('return document.body.innerText.includes("Browser hello")'), 'Seller inbox');
-  await seller.click('a[href^="/messages/"]');
+  await seller.click('aside[aria-label="Conversation inbox"] li button');
   await until(() => seller.js('return Boolean(document.querySelector("#seller-chat-message"))'), 'Seller thread');
   if (!(await seller.js('return document.documentElement.scrollWidth <= innerWidth + 2'))) throw new Error('Seller thread overflows a 390px viewport.');
   await seller.type('#seller-chat-message', 'Browser seller reply');
@@ -105,26 +105,26 @@ try {
   await until(() => customer.js('return document.body.innerText.includes("Browser seller reply")'), 'Customer refreshed reply');
   await customer.cdp('Network.enable');
   await customer.cdp('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
-  await customer.type('#chat-message', 'Browser offline retry');
-  await customer.click('form:has(#chat-message) button[type=submit]');
+  await customer.type('#shop-chat-message', 'Browser offline retry');
+  await customer.click('form:has(#shop-chat-message) button[type=submit]');
   await until(() => customer.js('return Boolean(document.querySelector("form [role=alert]")) || document.body.innerText.includes("Your connection may be unavailable")'), 'offline error');
-  if (!(await customer.js('return document.querySelector("#chat-message")?.value === "Browser offline retry"'))) throw new Error('Offline draft was lost.');
+  if (!(await customer.js('return document.querySelector("#shop-chat-message")?.value === "Browser offline retry"'))) throw new Error('Offline draft was lost.');
   await customer.cdp('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
-  await customer.click('form:has(#chat-message) button[type=submit]');
-  await until(() => customer.js('return document.body.innerText.includes("Browser offline retry") && document.querySelector("#chat-message")?.value === ""'), 'retry committed');
-  await until(() => customer.js('return document.querySelector("#chat-message")?.disabled === false'), 'Customer composer ready');
+  await customer.click('form:has(#shop-chat-message) button[type=submit]');
+  await until(() => customer.js('return document.body.innerText.includes("Browser offline retry") && document.querySelector("#shop-chat-message")?.value === ""'), 'retry committed');
+  await until(() => customer.js('return document.querySelector("#shop-chat-message")?.disabled === false'), 'Customer composer ready');
   await seller.js('window.dispatchEvent(new Event("online")); return true');
   await until(() => seller.js('return document.body.innerText.includes("Browser offline retry")'), 'Seller reconnect refresh');
 
   await customer.cdp('Network.emulateNetworkConditions', { offline: false, latency: 20000, downloadThroughput: -1, uploadThroughput: -1 });
-  await customer.type('#chat-message', 'Browser timeout retry');
-  await customer.click('form:has(#chat-message) button[type=submit]');
+  await customer.type('#shop-chat-message', 'Browser timeout retry');
+  await customer.click('form:has(#shop-chat-message) button[type=submit]');
   await until(() => customer.js('return document.body.innerText.includes("Message delivery was not confirmed")'), 'uncertain timeout', 22000);
-  if (!(await customer.js('return document.querySelector("#chat-message")?.value === "Browser timeout retry"'))) throw new Error('Timed-out draft was lost.');
+  if (!(await customer.js('return document.querySelector("#shop-chat-message")?.value === "Browser timeout retry"'))) throw new Error('Timed-out draft was lost.');
   await customer.cdp('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
-  await until(() => customer.js('return document.querySelector("form:has(#chat-message) button[type=submit]")?.disabled === false'), 'Customer retry ready');
-  await customer.click('form:has(#chat-message) button[type=submit]');
-  await until(() => customer.js('return document.body.innerText.includes("Browser timeout retry") && document.querySelector("#chat-message")?.value === ""'), 'timeout retry committed');
+  await until(() => customer.js('return document.querySelector("form:has(#shop-chat-message) button[type=submit]")?.disabled === false'), 'Customer retry ready');
+  await customer.click('form:has(#shop-chat-message) button[type=submit]');
+  await until(() => customer.js('return document.body.innerText.includes("Browser timeout retry") && document.querySelector("#shop-chat-message")?.value === ""'), 'timeout retry committed');
 
   if (orderId && logistics) {
     await customer.go(`http://127.0.0.1:3000/delivery-messages?order=${encodeURIComponent(orderId)}`);

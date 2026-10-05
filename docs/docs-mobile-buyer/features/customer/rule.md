@@ -111,7 +111,7 @@ Label future routes conceptual and unavailable. Optional public personalization 
 ## Privacy and reliability
 
 - Keep passwords, tokens, reset links, raw storage paths, evidence bytes and unnecessary PII out of DTOs, logs, screenshots, analytics and ordinary storage.
-- Separate public/guest caches from private/account caches. Guest recency contains bounded public ID/time hints; merge only after verified authentication.
+- Separate public/guest caches from private/account caches. Buyer composition uses account-only recency; never write/merge guest hints. Remove only the retired key best-effort without blocking authentication. Public backend resolver/merge and storefront guest history remain separate contracts.
 - Clear private drafts, quotes, uploads/previews, transcripts, history, read markers and pending keys on logout, identity switch or account loss. Ignore obsolete asynchronous responses.
 - Handle resource denial locally when identity stays valid. Consent gating differs from session loss; neither may expose another account's data.
 - Do not queue offline writes or blindly repeat uncertain actions. Follow the owning endpoint's replay/reconciliation contract.

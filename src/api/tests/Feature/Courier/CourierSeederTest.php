@@ -119,13 +119,14 @@ class CourierSeederTest extends TestCase
         $this->assertDatabaseCount('vehicles', 21);
         $this->assertDatabaseCount('courier_logistics_affiliations', 21);
         $this->assertTrue(Hash::check('CourierSecret123', $primary->fresh()->password));
-        $this->assertSame('logistics@example.com', $primary->courierLogisticsAffiliation->organization->user->email);
-        $this->assertSame(CourierAffiliationStatus::Approved, $primary->courierLogisticsAffiliation->status);
-        $this->assertTrue($primary->courierLogisticsAffiliation->can_drive_company_truck);
-        $this->assertSame(2, $primary->courierLogisticsAffiliation->truck_driver_revision);
+        $this->assertSame('another-logistics@example.com', $primary->courierLogisticsAffiliation->organization->user->email);
+        $this->assertSame(CourierAffiliationStatus::Pending, $primary->courierLogisticsAffiliation->status);
+        $this->assertFalse($primary->courierLogisticsAffiliation->can_drive_company_truck);
+        $this->assertNull($primary->courierLogisticsAffiliation->reviewed_at);
+        $this->assertSame(1, $primary->courierLogisticsAffiliation->truck_driver_revision);
 
         $this->seed(CourierSeeder::class);
-        $this->assertSame(2, $primary->fresh()->courierLogisticsAffiliation->truck_driver_revision);
+        $this->assertSame(1, $primary->fresh()->courierLogisticsAffiliation->truck_driver_revision);
     }
 
     private function createActiveLogistics(string $email, string $businessName): LogisticsOrganization

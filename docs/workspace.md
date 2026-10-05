@@ -167,7 +167,7 @@ The system must protect inventory from overselling when an order is finalized.
 
 Successful COD placement skips `pending_payment`, creates the Order at `placed` with `payment_status = pending`, and reserves the requested inventory atomically. `pending_payment` remains available for a future online-payment flow.
 
-The checkout schema does not persist a Logistics provider directly. The implemented Seller pickup-request transaction stores one server-validated eligible Logistics organization with its derived sole hub on the pickup/fulfillment records and must not silently replace it after commitment.
+Checkout persists the Customer-selected provider on each Shop Order and pricing snapshot. Seller pickup enforces that selection and stores its derived sole hub on pickup/fulfillment records; unavailable provider/route holds fulfillment without silently replacing it or repricing Customer COD.
 
 6.5 Address Book
 
@@ -269,7 +269,7 @@ Seller order processing does not assign a Courier; the later pickup-request tran
 
 7.5 Prepare Order, Select Logistics, and Create Waybill
 
-Seller shall pack each parcel, select an eligible Logistics organization, request pickup, and print the resulting shared waybill needed for first-mile pickup.
+Seller shall pack each parcel, request the checkout-selected Logistics organization, and print the resulting shared waybill needed for first-mile pickup.
 
 The shared-waybill identifier and QR must resolve the immutable Order/Parcel reference. Its server-owned snapshot uses the Shop pickup address and destination copied from Customer checkout; Seller cannot rewrite those facts.
 

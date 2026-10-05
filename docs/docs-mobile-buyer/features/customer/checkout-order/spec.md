@@ -3,9 +3,10 @@ feature: checkout-order
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Pending
+flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ---
 
 # COD checkout and placement
@@ -15,20 +16,25 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Quote/place/batch, per-Shop Orders, shipping/vouchers/reservations/snapshots and UUID replay
 implemented.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 
 Buy Now or selected Cart → saved shipping + COD → per-Shop quote → reviewed Place → atomic batch result.
 
-- Choose exactly buy_now product_id/nullable-present variant_id/quantity or distinct owned cart_item_ids; add address_id,payment_method:cod and optional voucher UUID/target Shop selections. No computed price/total/shipping/provider/owner/status.
-- Requote changed intent and display exact server serviceability/rate/shipping/savings/COD. Buyer never selects Logistics; Seller chooses downstream. One Shop creates one independent Order; all group Orders/snapshots/redemptions/reservations/selected Cart cleanup commit atomically.
+- Choose exactly buy_now product_id/nullable-present variant_id/quantity or distinct owned cart_item_ids; add address_id,payment_method:cod and optional voucher UUID/target Shop selections. Add logistics_selections per Shop; no computed price/total/shipping/owner/status.
+- Requote changed intent and display exact server serviceability/provider/routeStatus/shippingFee/savings/COD. Customer selects one Seller-enabled provider per Shop; Seller pickup enforces it. One Shop creates one independent Order; all group Orders/snapshots/redemptions/reservations/selected Cart cleanup commit atomically.
 - Place same intent plus quote_id and UUID key; COD starts placed/pending payment and reserves stock until authoritative first-mile fulfillment. Buy Now leaves Cart unchanged; commission does not increase COD.
 - Freeze uncertain key/payload for exact replay. Fresh quote needs review and deliberate Place; process-death recovery and missing GET-by-key remain gaps. Do not show partial success.
 
-The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
+The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
+imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
 communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership
 and capabilities remain authoritative.
+
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -41,9 +47,10 @@ and capabilities remain authoritative.
   local payable authority.
 - Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall
   orderCount summary.
-- Quote shippingQuote is always serviceable true for successful groups; unserviceable intent fails
-  rather than returning invented serviceable false group.
-- No Customer Logistics/provider/Courier selector exists; eligibleLogisticsCount is informative only.
+- Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee;
+  unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
+- Select one provider per Shop; implicit single-option fallback is allowed, multiple options require choice.
+- Empty options block quoting; provider failures never authorize substitution or a Courier selector.
 - Display returned expiresAt (default lifetime15min) and clear review validity when any intent input
   changes.
 - Place sends quote_id, exact intent and one UUID Idempotency-Key generated for that deliberate action.
@@ -57,8 +64,8 @@ and capabilities remain authoritative.
 - QUOTE_EXPIRED, QUOTE_INPUT_CHANGED and QUOTE_STALE require refreshed quote, user review and
   deliberate Place.
 - QUOTE_ALREADY_PLACED or IDEMPOTENCY_KEY_REUSED must not trigger a fresh-key blind retry.
-- Preserve immutable pending key/payload after offline/timeout; disable competing placement while
-  uncertain.
+- Preserve immutable pending key/payload after offline/timeout and same-identity consent interruption;
+  disable competing placement while uncertain and require deliberate exact replay.
 - GET batch is available only with known owned batch ID; no placement GET-by-key recovery endpoint
   exists.
 - Process-death uncertainty stays G12 with memory-only pending state; do not claim automated recovery.
@@ -75,11 +82,13 @@ Private calls use Bearer only for the configured API origin. Public reads need n
 A path UUID or slug is encoded before use; do not submit owner, status, financial or recipient
 authority.
 
+- `POST /api/v1/customer/checkout/logistics-options` → HTTP 200; `{data:LogisticsOptions}`.
+  Request: same CheckoutQuoteRequest intent; no key or quote creation. Read retry with session guards.
 - `POST /api/v1/customer/checkout/quote` → HTTP 200; `{data:Quote}`.
-  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status.
+  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - `POST /api/v1/customer/checkout/place` → HTTP 200; `{data:Batch}`.
-  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
+  Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
   Replay: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
 - `GET /api/v1/customer/checkout/{batch}` → HTTP 200; `{data:Batch}`.
   Request: Owned batch UUID; no body.
@@ -132,8 +141,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on
 either change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public
-hints only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 
@@ -182,6 +191,7 @@ universal error envelope.
 
 ### Verification scenarios
 
+- [ ] Current provider choice/fallback, shipping DTOs and frozen selection intent pass G25 client verification.
 - [ ] Atomic one/multi-Shop placement and immutable current quote/totals/serviceability follow Laravel.
 - [ ] Lost-response same-key replay creates one batch/reservation/redemption; stale inputs require
   reviewed recovery.
@@ -193,7 +203,7 @@ universal error envelope.
   credential behavior.
 - [ ] Exercise normal, empty, malformed, denied, consent-required, validation, conflict, throttle,
   offline and timeout outcomes.
-- [ ] Delayed responses/errors after logout/account switch cannot repopulate private state or restart
+- [x] Delayed responses/errors after logout/account switch cannot repopulate private state or restart
   disposed work.
 - [ ] Same-key replay applies only where supported; additive Cart/image requests are never globally
   retried.
@@ -215,3 +225,6 @@ Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) a
 history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
+[shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.

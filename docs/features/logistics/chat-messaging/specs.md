@@ -13,6 +13,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 
 ## WHAT
 
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Proposed media remains gated on a separate implementation contract; existing operational eligibility, text-only APIs, and Courier mobile contracts remain authoritative.
 - Provide private, text-only operational chat between one Logistics organization and a relevant
   Seller, Courier, or Customer (called “Buyer” in the storefront). Each side may initiate and
   reply while its current relationship is authorized; Logistics is not the only initiator.
@@ -133,3 +134,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Test shared migration/backfill, old Customer–Shop regression, two-worker PostgreSQL races, role/tenant isolation, and notification failure before enabling route families. Verify Logistics React and external Flutter states against live API; polling is acceptable without a realtime provider.
 - Implemented “active Buyer” means an active Customer account **and** an owned, nonterminal Order with a current Logistics handler resolved from Shipment custody or the selected Waybill before Shipment creation. In-transfer custody has no sendable handler; a later handler receives a new thread while the former participants retain read-only history.
 - Open production-policy decision: approve private-message retention, abuse reporting, and audited exceptional access. Until then, do not invent message purging or Admin transcript access.
+
+External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
+
+Web UI adoption (2026-10-05): The Logistics operational inbox and conversation view now use the shared presentation documented above; route, role-scoped API behavior, and task/Order/pickup context remain unchanged. Logistics lint, TypeScript, and production build passed. No Logistics-specific browser smoke was run.

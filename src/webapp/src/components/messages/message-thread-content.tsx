@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/chat-ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
-import { getConversation, listMessages, markConversationRead, sendMessage } from "@/lib/messages";
+import { getConversation, listConversations, listMessages, markConversationRead, sendMessage } from "@/lib/messages";
 import type { ConversationMessage, ConversationSummary } from "@/lib/messages";
 
 function errorText(reason: unknown) {
@@ -26,16 +28,52 @@ export function MessageThreadContent({ id }: { id: string }) {
 
 function AuthenticatedMessageThread({ id }: { id: string }) {
   const { auth } = useAuth();
+  const router = useRouter();
+  const accountId = auth.status === "authenticated" ? auth.customer.id : "unknown";
+  const draftKey = `customer-shop:${accountId}:${id}`;
   const [thread, setThread] = useState<ConversationSummary | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(() => readChatDraft(draftKey));
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [olderBusy, setOlderBusy] = useState(false);
   const [error, setError] = useState("");
   const [sendError, setSendError] = useState("");
-  const pendingKey = useRef<{ key: string; body: string } | null>(null);
+  const [uncertain, setUncertain] = useState(() => Boolean(readChatAttempt(draftKey)));
+  const [inbox, setInbox] = useState<ConversationSummary[]>([]);
+  const [inboxCursor, setInboxCursor] = useState<string | null>(null);
+  const [inboxError, setInboxError] = useState("");
+  const [inboxBusy, setInboxBusy] = useState(false);
+  const pendingKey = useRef(readChatAttempt(draftKey));
+
+  const clearPrivateConversationState = useCallback(() => {
+    clearChatPrivateState();
+    pendingKey.current = null;
+    setBody("");
+    setUncertain(false);
+  }, []);
+
+  useEffect(() => { writeChatDraft(draftKey, body); }, [body, draftKey]);
+
+  const loadInbox = useCallback(async (cursor?: string) => {
+    try {
+      const page = await listConversations(cursor);
+      setInbox((current) => cursor
+        ? [...current, ...page.items.filter((item) => !current.some((saved) => saved.id === item.id))]
+        : [...page.items, ...current.filter((item) => !page.items.some((fresh) => fresh.id === item.id))]);
+      setInboxCursor(page.next_cursor);
+      setInboxError("");
+    } catch (reason) {
+      if (reason instanceof ApiError && [401, 403].includes(reason.status)) {
+        clearPrivateConversationState();
+        setInbox([]);
+        setThread(null);
+        setMessages([]);
+      }
+      setInboxError(errorText(reason));
+    }
+  }, [clearPrivateConversationState]);
 
   const refresh = useCallback(async () => {
     if (auth.status !== "authenticated") return;
@@ -50,32 +88,39 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
       setNextCursor((current) => current ?? page.next_cursor);
       setError("");
       const latest = page.items.at(-1)?.sequence;
-      if (latest && latest > detail.data.last_read_sequence) {
+      if (!document.hidden && latest && latest > detail.data.last_read_sequence) {
         const read = await markConversationRead(id, latest);
         setThread(read.data);
       }
     } catch (reason) {
+      if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) {
+        clearPrivateConversationState();
+        setThread(null);
+        setMessages([]);
+      }
       setError(errorText(reason));
     } finally {
       setLoading(false);
     }
-  }, [auth.status, id]);
+  }, [auth.status, clearPrivateConversationState, id]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
-    const onFocus = () => { if (navigator.onLine) void refresh(); };
+    const initialInbox = window.setTimeout(() => void loadInbox(), 0);
+    const onFocus = () => { if (navigator.onLine) { void refresh(); void loadInbox(); } };
     const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible" && navigator.onLine) void refresh();
+      if (document.visibilityState === "visible" && navigator.onLine) { void refresh(); void loadInbox(); }
     }, 12000);
     window.addEventListener("focus", onFocus);
     window.addEventListener("online", onFocus);
     return () => {
       window.clearTimeout(initial);
+      window.clearTimeout(initialInbox);
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("online", onFocus);
     };
-  }, [refresh]);
+  }, [loadInbox, refresh]);
 
   async function loadOlder() {
     if (!nextCursor) return;
@@ -89,18 +134,23 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
       });
       setNextCursor(page.next_cursor);
     } catch (reason) {
+      if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) {
+        clearPrivateConversationState();
+        setThread(null);
+        setMessages([]);
+      }
       setError(errorText(reason));
     } finally {
       setOlderBusy(false);
     }
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit() {
     const text = body.trim();
-    if (!text || !thread?.send_allowed) return;
+    if (!text || (!thread?.send_allowed && !uncertain) || busy) return;
     const attempt = pendingKey.current?.body === text ? pendingKey.current : { key: crypto.randomUUID(), body: text };
     pendingKey.current = attempt;
+    writeChatAttempt(draftKey, attempt);
     setBusy(true);
     setSendError("");
     try {
@@ -109,43 +159,97 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
       setMessages((current) => current.some((message) => message.id === result.message.id) ? current : [...current, result.message]);
       setBody("");
       pendingKey.current = null;
+      writeChatDraft(draftKey, "");
+      writeChatAttempt(draftKey, null);
+      setUncertain(false);
       await refresh();
     } catch (reason) {
       setSendError(errorText(reason));
+      if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) {
+        clearPrivateConversationState();
+        pendingKey.current = null;
+        setBody("");
+        setUncertain(false);
+      } else if (reason instanceof ApiError && [409, 422, 429].includes(reason.status)) {
+        pendingKey.current = null;
+        writeChatAttempt(draftKey, null);
+        setUncertain(false);
+      } else {
+        setUncertain(true);
+      }
       void refresh();
     } finally {
       setBusy(false);
     }
   }
 
-  if (loading) return <p role="status">Loading conversation…</p>;
-  if (!thread) return <p className="border border-[#E8BBCD] bg-[#FFF5F8] p-4 text-sm text-[#8B204B]" role="alert">{error || "Conversation unavailable."} <button className="underline" onClick={() => void refresh()} type="button">Retry</button></p>;
+  const entries: ChatEntry[] = inbox.map((item) => ({
+    id: item.id,
+    title: item.shop.name,
+    preview: item.last_message_preview ?? "",
+    activity: item.last_message_at,
+    unread: item.unread_count,
+    onSelect: () => router.push(`/messages/${item.id}`),
+    selected: item.id === id,
+  }));
+  if (thread && !entries.some((entry) => entry.id === thread.id)) entries.unshift({
+    id: thread.id, title: thread.shop.name, preview: thread.last_message_preview ?? "", activity: thread.last_message_at,
+    unread: thread.unread_count, onSelect: () => router.push(`/messages/${thread.id}`), selected: true,
+  });
 
   return (
-    <div className="border border-[#DED7E1] bg-white">
-      <header className="border-b border-[#EAE4EC] px-4 py-4 sm:px-6">
-        <h1 className="text-xl font-semibold text-[#302534]">{thread.shop.name}</h1>
-        <p className="mt-1 text-xs text-[#746978]">Messages are saved in your Aisley inbox. Replies may take time to appear.</p>
-      </header>
-      {error && <p className="m-4 border border-[#E8BBCD] bg-[#FFF5F8] p-3 text-sm text-[#8B204B]" role="alert">{error} <button className="underline" onClick={() => void refresh()} type="button">Retry</button></p>}
-      {nextCursor && <button className="mx-4 mt-4 min-h-10 text-sm font-semibold text-[#4C1268] underline disabled:opacity-50" disabled={olderBusy} onClick={() => void loadOlder()} type="button">{olderBusy ? "Loading…" : "Load earlier messages"}</button>}
-      <ol aria-label="Conversation messages" className="space-y-3 px-4 py-5 sm:px-6">
-        {messages.map((message) => (
-          <li className={`max-w-[85%] border p-3 text-sm ${message.mine ? "ml-auto border-[#DCC6E3] bg-[#F8F2FA]" : "border-[#E6E0E8] bg-white"}`} key={message.id}>
-            <p className="mb-1 text-xs font-semibold text-[#655969]">{message.mine ? "You" : thread.shop.name}</p>
-            <p className="whitespace-pre-wrap break-words text-[#302534]">{message.body}</p>
-            {message.context && <p className="mt-2 border-t border-[#E6E0E8] pt-2 text-xs text-[#655969]">{message.context.url ? <Link className="font-semibold text-[#4C1268] underline" href={message.context.url}>{message.context.label}</Link> : message.context.label}</p>}
-            <time className="mt-2 block text-xs text-[#877A89]" dateTime={message.created_at}>{new Date(message.created_at).toLocaleString()}</time>
-          </li>
-        ))}
-      </ol>
-      <form className="border-t border-[#EAE4EC] p-4 sm:p-6" onSubmit={(event) => void submit(event)}>
-        <label className="block text-sm font-semibold text-[#302534]" htmlFor="chat-message">Message Seller</label>
-        <textarea className="mt-2 block min-h-24 w-full border border-[#CFC6D2] p-3 text-sm text-[#302534] focus-visible:outline-2 focus-visible:outline-[#E6007A] disabled:bg-[#F5F2F6]" disabled={!thread.send_allowed || busy} id="chat-message" maxLength={2000} onChange={(event) => { setBody(event.target.value); setSendError(""); if (pendingKey.current?.body !== event.target.value.trim()) pendingKey.current = null; }} value={body} />
-        {!thread.send_allowed && <p className="mt-2 text-sm text-[#8B204B]">This Shop cannot receive new messages right now. Your conversation history remains available.</p>}
-        {sendError && <p className="mt-2 text-sm text-[#8B204B]" role="alert">{sendError}</p>}
-        <button className="mt-3 min-h-10 rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={!thread.send_allowed || busy || !body.trim()} type="submit">{busy ? "Sending…" : "Send message"}</button>
-      </form>
-    </div>
+    <ChatWorkspace
+      entries={entries}
+      selected
+      inboxTitle="Shop messages"
+      inboxStatus={loading && !inbox.length ? <p className="p-4 text-sm text-[#655969]" role="status">Loading conversations…</p> : null}
+      inboxError={inboxError || undefined}
+      onRetryInbox={() => void loadInbox()}
+      canLoadMore={Boolean(inboxCursor)}
+      loadingMore={inboxBusy}
+      onLoadMore={() => {
+        if (!inboxCursor) return;
+        setInboxBusy(true);
+        void loadInbox(inboxCursor).finally(() => setInboxBusy(false));
+      }}
+        onBack={() => router.push("/messages")}
+    >
+      {loading && !thread ? <p className="p-5 text-sm text-[#655969]" role="status">Loading conversation…</p> : !thread ? (
+        <p className="m-4 border border-[#E8BBCD] bg-[#FFF5F8] p-4 text-sm text-[#8B204B]" role="alert">{error || "Conversation unavailable."} <button className="ml-2 underline" onClick={() => void refresh()} type="button">Retry</button></p>
+      ) : <>
+        <header className="shrink-0 border-b border-zinc-200 px-4 py-3 dark:border-white/10 sm:px-6">
+          <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{thread.shop.name}</h1>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Private Shop conversation · Messages are saved before they appear here.</p>
+        </header>
+        {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error} <button className="ml-2 underline" onClick={() => void refresh()} type="button">Retry</button></p> : null}
+        <ChatHistory
+          key={id}
+          messages={messages.map((message) => ({
+            id: message.id, sequence: message.sequence, body: message.body, mine: message.mine,
+            sender: message.mine ? "You" : thread.shop.name, createdAt: message.created_at,
+            context: message.context ? message.context.url
+              ? <Link className="font-semibold text-[#4C1268] underline dark:text-purple-300" href={message.context.url}>{message.context.label}</Link>
+              : <span>{message.context.label}</span>
+              : undefined,
+          }))}
+          olderCursor={Boolean(nextCursor)}
+          onLoadOlder={() => void loadOlder()}
+          loadingOlder={olderBusy}
+          emptyText="Your private conversation with this Shop starts with your first message."
+        />
+        {thread.send_allowed || uncertain ? <ChatComposer
+          id="shop-chat-message"
+          recipient="Seller"
+          value={body}
+          onChange={(value) => { setBody(value); setSendError(""); writeChatDraft(draftKey, value); }}
+          onSubmit={() => void submit()}
+          sending={busy}
+          uncertain={uncertain}
+          online={typeof navigator === "undefined" || navigator.onLine}
+          sendAllowed={thread.send_allowed}
+          error={sendError}
+        /> : <p className="border-t border-zinc-200 p-4 text-sm text-amber-800 dark:border-white/10 dark:text-amber-300">This Shop cannot receive new messages right now. Your conversation history remains available.</p>}
+      </>}
+    </ChatWorkspace>
   );
 }

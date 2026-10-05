@@ -17,6 +17,12 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
 
+## Shared shipping authority revision — 2026-10-04
+
+- Seller enables Shop providers; Customer selects one per Shop Order from server-priced options. Single-option fallback is allowed; multiple options need explicit selection.
+- Placement freezes provider/route/fee; pickup rejects substitution and can hold unavailable frozen routes/providers without repricing Customer COD.
+- The Courier acts only on its own offered/accepted task. No Courier API, COD, evidence or implementation status changed in this inspection.
+
 ## Company-truck parcel receipt revision — 2026-09-23
 
 Company-truck Linehaul now separates truck arrival, per-parcel receipt, and unloading closure. Its scoped receiving service uses `FulfillmentTransitionService::transferAtHub` for each verified Shipment/hop and appends one custody event; receipt/action records retain capture/server timestamps, actor, request identity, condition and retry result. A damaged receipt sets `shipments.condition_hold` while retaining `received_at_hub`; standard sorting and final-mile dispatch reject it until the receiving Logistics account records an inspection/release reason. Partial receipts can sort independently under the existing bounded session snapshot. A missing parcel remains `in_transfer` through truck return and may arrive late without another truck visit. This supersedes historical deferred-transfer and whole-manifest receipt wording for the company-truck workflow; high-level Order status rules remain unchanged.
@@ -75,7 +81,7 @@ Customer places Order
 
 In this register, `[x]` records an accepted decision or completed named correction. The sign-off checklist separately verifies propagation. Implementation and rollout require their own evidence. Do not expose an operational capability until its owning contract, migration, authorization checks, and verification evidence are present.
 
-- [x] **Logistics-selection authority:** The Seller selects one eligible Logistics organization when committing the pickup request. Checkout remains provider-neutral; the Customer selects a shipping address, not a Logistics provider. Remove or rewrite the old Customer-selection wording in `docs/requirements.md` and `docs/workspace.md`.
+- [x] **Logistics-selection authority (current revision):** Seller enables allowed Shop providers; Customer chooses one per Shop Order at checkout, and Seller pickup enforces the frozen selection. This supersedes the historical Seller-at-pickup decision; shared records preserve Customer price and append-only fulfillment history.
 - [x] **High-level status mapping:** `picked_up` is the high-level projection of first-mile `picked_up_from_seller`; `assigned` is the Customer-facing projection of a committed dispatch schedule/final-mile Courier offer. Hub receipt and sorting remain detailed physical milestones, not meanings of either high-level value.
 - [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. The shared physical Shipment/Parcel bridge, hub operations, final-mile tasks, task-confirmation hub evidence, photo POD, and P0 delivery completion are now implemented; signature media, location telemetry, and exceptional recovery remain deferred.
 - [x] **Schema-ledger synchronization:** Reconcile `docs/schema.md` with the migration directory without renaming or editing executed migrations. Add the implemented low-stock-alert, wishlist, and Logistics profile-photo migrations that are missing from the ledger; correct its duplicate sequence numbers for the Courier pickup, Product Q&A, and route-manifest entries; and record the implemented policy-consent protected-action gate.

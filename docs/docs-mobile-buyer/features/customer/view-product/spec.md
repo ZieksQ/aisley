@@ -3,7 +3,7 @@ feature: view-product
 role: Customer
 platform: Flutter / Dart
 phase: 2
-flutter_status: Pending
+flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ---
@@ -15,19 +15,23 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Product Detail Resource, media/valid variants and current purchase handoffs implemented;
 canonical checklist retains historical foundation wording.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open. Phase 3 now enables intentional Cart/Buy Now handoffs; see [commerce evidence](../../../references/phase-3-verification.md).
 
 Visible Product → gallery/description → complete valid variant + quantity → Cart or Buy Now.
 
 - Use immutable Product UUID, safe visibility-gated media, meaningful fallback/alt text and approved sanitized Markdown/GFM description. Raw HTML/arbitrary external image paths must not execute; descriptions and plain-text user content have distinct renderers.
 - Use ordered optionGroups/values and server-listed variant optionValueIds, not a Cartesian product. Selected price/media/stock may inherit permitted base fields; disable impossible/out-of-stock/incomplete combinations and bound quantity.
-- Guests can inspect; protected purchase/save/message requires sign-in then intentional retry. Detail never reserves inventory. Q&A/reviews/Wishlist/recency/chat retain their owning contracts; successful canonical detail load alone records recency.
+- Buyer detail requires verified active Customer and consent; purchase/save/message remain deliberate actions. Detail never reserves inventory. Q&A/reviews/Wishlist/recency/chat retain their owning contracts; successful canonical detail load alone records recency.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
 communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
 capabilities remain authoritative.
+
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -132,8 +136,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on
 either change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public
-hints only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 

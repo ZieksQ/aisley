@@ -1,6 +1,6 @@
 {
   "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
-  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
   "operations": [
     {
       "feature": "order-status",
@@ -52,7 +52,11 @@
                 "delivery_address"
               ]
             },
-            "detailUrl": "/synthetic-placeholder"
+            "detailUrl": "/synthetic-placeholder",
+            "shippingProvider": {
+              "id": "22222222-2222-4222-8222-222222222222",
+              "businessName": "Synthetic Logistics"
+            }
           }
         ],
         "links": {
@@ -116,6 +120,81 @@
               "per_page": 1,
               "to": null,
               "total": 0
+            },
+            "filters": {
+              "selected": null,
+              "tabs": [
+                {
+                  "value": null,
+                  "label": "Synthetic example"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "legacy-nullable-shipping-provider",
+          "status": 200,
+          "body": {
+            "data": [
+              {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "reference": "ASL-SYNTHETIC",
+                "shop": {
+                  "id": "11111111-1111-4111-8111-111111111111",
+                  "slug": "Synthetic example",
+                  "name": "Synthetic example",
+                  "logoUrl": null
+                },
+                "itemPreview": null,
+                "lineCount": 1,
+                "itemCount": 1,
+                "status": "placed",
+                "statusLabel": "Order placed",
+                "group": "to_prepare",
+                "groupLabel": "To Prepare",
+                "latestTrackingAt": "2026-10-03T00:00:00.000000Z",
+                "totals": {
+                  "merchandiseSubtotal": "100.00",
+                  "shippingFee": "100.00",
+                  "discount": "0.00",
+                  "shippingDiscount": "0.00",
+                  "payable": "200.00",
+                  "currency": "PHP"
+                },
+                "actions": {
+                  "canCancel": true,
+                  "canModify": true,
+                  "canReview": false,
+                  "modifiableFields": [
+                    "delivery_address"
+                  ]
+                },
+                "detailUrl": "/synthetic-placeholder",
+                "shippingProvider": null
+              }
+            ],
+            "links": {
+              "first": "/synthetic-placeholder",
+              "last": "/synthetic-placeholder",
+              "prev": null,
+              "next": null
+            },
+            "meta": {
+              "current_page": 1,
+              "from": null,
+              "last_page": 1,
+              "links": [
+                {
+                  "url": null,
+                  "label": "Synthetic example",
+                  "active": false
+                }
+              ],
+              "path": "/synthetic-placeholder",
+              "per_page": 1,
+              "to": null,
+              "total": 1
             },
             "filters": {
               "selected": null,
@@ -239,12 +318,119 @@
             "modifiableFields": [
               "delivery_address"
             ]
+          },
+          "shippingProvider": {
+            "id": "22222222-2222-4222-8222-222222222222",
+            "businessName": "Synthetic Logistics"
           }
         }
       },
       "id": "op-033",
       "errors": [],
-      "response_variants": []
+      "response_variants": [
+        {
+          "name": "legacy-nullable-shipping-provider",
+          "status": 200,
+          "body": {
+            "data": {
+              "id": "11111111-1111-4111-8111-111111111111",
+              "reference": "ASL-SYNTHETIC",
+              "checkoutBatchId": "11111111-1111-4111-8111-111111111111",
+              "placedAt": "2026-10-03T00:00:00.000000Z",
+              "latestTrackingAt": "2026-10-03T00:00:00.000000Z",
+              "status": "placed",
+              "statusLabel": "Order placed",
+              "group": "to_prepare",
+              "groupLabel": "To Prepare",
+              "shop": {
+                "id": "11111111-1111-4111-8111-111111111111",
+                "slug": "Synthetic example",
+                "name": "Synthetic example",
+                "logoUrl": null
+              },
+              "items": [
+                {
+                  "id": "11111111-1111-4111-8111-111111111111",
+                  "productId": null,
+                  "variantId": null,
+                  "productName": "Synthetic example",
+                  "variantName": null,
+                  "sku": null,
+                  "selectedOptions": [
+                    {
+                      "group": "Synthetic example",
+                      "value": "Synthetic example"
+                    }
+                  ],
+                  "unitPrice": "100.00",
+                  "quantity": 1,
+                  "lineSubtotal": "100.00",
+                  "currency": "PHP",
+                  "canReview": false,
+                  "reviewId": null
+                }
+              ],
+              "deliveryAddress": {
+                "version": 1,
+                "recipientName": "Synthetic example",
+                "contactNumber": "Synthetic example",
+                "addressLine1": "Synthetic example",
+                "addressLine2": null,
+                "barangay": "Synthetic example",
+                "cityMunicipality": "Synthetic example",
+                "province": "Synthetic example",
+                "region": "Synthetic example",
+                "postalCode": "Synthetic example",
+                "country": "Synthetic example"
+              },
+              "payment": {
+                "method": "cod",
+                "status": "pending"
+              },
+              "vouchers": [],
+              "totals": {
+                "merchandiseSubtotal": "100.00",
+                "shippingFee": "100.00",
+                "discount": "0.00",
+                "shippingDiscount": "0.00",
+                "payable": "200.00",
+                "currency": "PHP"
+              },
+              "timeline": [
+                {
+                  "id": "11111111-1111-4111-8111-111111111111",
+                  "status": "placed",
+                  "label": "Synthetic example",
+                  "eventType": null,
+                  "location": {},
+                  "occurredAt": "2026-10-03T00:00:00.000000Z"
+                }
+              ],
+              "timelineCount": 1,
+              "timelineHasMore": false,
+              "trackingUrl": "/synthetic-placeholder",
+              "delivery": null,
+              "map": {
+                "available": false,
+                "state": "unavailable",
+                "message": "Location is not available yet",
+                "currentPosition": null,
+                "route": null,
+                "capturedAt": null
+              },
+              "actions": {
+                "canCancel": true,
+                "canModify": true,
+                "canReview": false,
+                "modifiableFields": [
+                  "delivery_address"
+                ]
+              },
+              "shippingProvider": null
+            }
+          }
+        }
+      ]
     },
     {
       "feature": "order-status",
@@ -396,5 +582,6 @@
         }
       }
     }
-  ]
+  ],
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ChatWorkspace, clearChatPrivateState, type ChatEntry } from "@aisley/chat-ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { listConversations, type ConversationSummary } from "@/lib/messages";
@@ -15,6 +17,7 @@ export function MessagesInboxContent() {
 }
 
 function AuthenticatedMessagesInbox() {
+  const router = useRouter();
   const { auth } = useAuth();
   const [items, setItems] = useState<ConversationSummary[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -35,6 +38,10 @@ function AuthenticatedMessagesInbox() {
       setNextCursor((current) => current ?? result.next_cursor);
       setError("");
     } catch (reason) {
+      if (reason instanceof ApiError && [401, 403].includes(reason.status)) {
+        clearChatPrivateState();
+        setItems([]);
+      }
       setError(reason instanceof ApiError ? reason.message : "Messages could not be loaded. Try again.");
     } finally {
       setLoading(false);
@@ -71,28 +78,27 @@ function AuthenticatedMessagesInbox() {
     }
   }
 
+  const entries: ChatEntry[] = items.map((item) => ({
+    id: item.id,
+    title: item.shop.name,
+    preview: item.last_message_preview ?? "",
+    activity: item.last_message_at,
+    unread: item.unread_count,
+    onSelect: () => router.push(`/messages/${item.id}`),
+  }));
+
   return (
-    <div>
-      {error && <p className="mb-4 border border-[#E8BBCD] bg-[#FFF5F8] p-3 text-sm text-[#8B204B]" role="alert">{error} <button className="font-semibold underline" onClick={() => void refresh()} type="button">Retry</button></p>}
-      {loading ? <p role="status">Loading messages…</p> : items.length === 0 ? (
-        <p className="border border-[#DED7E1] bg-white p-8 text-center text-sm text-[#655969]">No conversations yet. Open a Shop or Product to message its Seller.</p>
-      ) : (
-        <div className="divide-y divide-[#EAE4EC] border border-[#DED7E1] bg-white">
-          {items.map((item) => (
-            <Link className="flex items-start justify-between gap-4 p-4 hover:bg-[#FAF7FB] focus-visible:outline-2 focus-visible:outline-[#E6007A]" href={`/messages/${item.id}`} key={item.id}>
-              <span className="min-w-0">
-                <span className="block font-semibold text-[#302534]">{item.shop.name}</span>
-                <span className="mt-1 block truncate text-sm text-[#6D6170]">{item.last_message_preview}</span>
-              </span>
-              <span className="shrink-0 text-right text-xs text-[#786C7B]">
-                {item.last_message_at ? new Date(item.last_message_at).toLocaleDateString() : ""}
-                {item.unread_count > 0 && <span className="mt-1 block font-semibold text-[#4C1268]">{item.unread_count} unread</span>}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-      {nextCursor && <button className="mt-4 min-h-10 border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] disabled:opacity-50" disabled={busy} onClick={() => void loadMore()} type="button">{busy ? "Loading…" : "Load older conversations"}</button>}
-    </div>
+    <ChatWorkspace
+      canLoadMore={Boolean(nextCursor)}
+      entries={entries}
+      inboxError={error || undefined}
+      inboxStatus={loading && !items.length ? <p className="p-4 text-sm text-[#655969]" role="status">Loading conversations…</p> : null}
+      onLoadMore={() => void loadMore()}
+      onRetryInbox={() => void refresh()}
+      loadingMore={busy}
+      selected={false}
+    >
+      <div className="grid min-h-full place-items-center p-8 text-center text-sm text-[#655969]"><p>Select a conversation, or open a Shop or Product to contact its Seller.</p></div>
+    </ChatWorkspace>
   );
 }

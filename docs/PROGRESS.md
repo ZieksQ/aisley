@@ -5,9 +5,11 @@ Short, dated log of what's been implemented. Update this after every feature/cha
 Format:
 
 `
+
 ## YYYY-MM-DD
+
 - Feature/change short summary
-`
+  `
 
 ---
 
@@ -33,3 +35,21 @@ Format:
 - Grouped settings into COD/Seller/Logistics sections and detail pages into references, dates, allocations, and attempts. Sandbox accounts use an on-demand editor with PHP balance input converted to centavos; payments and webhook diagnostics use separate view selectors/disclosures. Preserved role permissions, confirmation, idempotency, and payment API contracts.
 - Verification: Admin, Logistics, and Seller type/build/lint checks passed; Vite retains its large-chunk warnings. Chromium checks passed across all 6 Admin, 5 Logistics, and 2 Seller routes at 390/768/1440 pixels in light/dark, including aligned gutters, table semantics, dark controls, keyboard access, loading/empty/error states, Admin payout/read-only access, Logistics Pay now/schedule updates, Seller read-only settings, and sandbox editing/balance conversion.
 - Visually inspected captured mobile and desktop screenshots, including Admin dark settings/payouts and Logistics dark payment settings. Browser verification used mocked APIs with unchanged production bundle bytes and isolated Chromium sessions; interrupted preview/browser processes were restarted before completing checks. This frontend revision did not change backend or external Flutter contracts.
+
+## 2026-10-04
+
+- Selectively synchronized Buyer/Courier Flutter documentation with imported client evidence and current Laravel 22b0a48. Buyer reports Phase 1–4, Phase 5 tooling and responsive required-sign-in/account-only recency; external Flutter checks are attributed, not rerun. Added current per-Shop provider/options/DTO fixtures and G25 adoption gap while preserving the 57e9eb2 client baseline and remaining acceptance gates. Refreshed only Courier shared shipping context and stale canonical Buyer references; storefront guest behavior, app code/config/dependencies, root instructions, original snapshots, PSGC assets, progress histories and archives remain preserved. Standalone document/contract/provenance validation is recorded in both bundles; no application/backend/Flutter tests or live/device checks ran.
+
+## 2026-10-05
+
+- Refreshed local seeders for current checkout and inventory behavior. Split demo catalog definitions from persistence; preserve account, Shop, Product, SKU, balance, address-pin, provider, sorting-plan, and Courier review state on reruns; add missing local tariff, rate card, acceptance, commission, provider, postal coverage, and sorting plan only when histories/configuration allow. Skip generic role fixtures and the demo catalog/checkout settings in production. Updated the stale checkout pricing test fixture to use Shop Category rate rules and documented local setup. Focused SQLite seeder/checkout/courier tests pass (53 tests/579 assertions); focused PostgreSQL seeder tests pass (16 tests/190 assertions) on a temporary database that was dropped after verification. PHP Pint and diff checks pass.
+
+- Added shared web Chat Messaging UI/UX specification with Messenger-inspired interaction, marketplace Product/Order context, Seller product-sharing targets, private image rules linked to the upload policy, and future MP4/MP3/Word suggestions. Linked the design guide and Customer/Seller/Logistics chat specs while preserving current text-only API, implementation, and external Flutter status. Verified document structure and local links; no application or browser tests ran for this documentation-only change.
+
+- Expanded the shared chat specification's future document attachments to PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, TXT, and CSV, preserving separate upload-policy and implementation prerequisites. Documentation-only update; no application tests ran.
+
+- Overhauled all seven Customer, Seller, and Logistics web chat surfaces with the shared `@aisley/chat-ui` inbox/history/composer, memory-only drafts and exact retry state, responsive scroll handling, and keyboard/accessibility improvements while preserving role routes and current text APIs. All three app lint and TypeScript checks passed; Seller and Logistics production builds passed; mocked Seller Courier Chromium smoke passed at 390/768/1280px in light and dark themes, including desktop Enter-to-send and mobile newline handling. Customer production build was blocked by restricted access to existing Google Fonts; Customer and Logistics browser checks were not run.
+
+## 2026-10-05
+
+- Completed the rebase of `feature/chat-messaging-ui-overhaul` onto `origin/main` (`6496b9f`). Skipped eight commits already included in PR #108 after verifying its squash tree exactly matches their combined tree; resolved only the app-wide progress log by preserving both histories. Verified 1,974 remaining file paths against the combined upstream/branch changes, including automatic merges of the design/workflow documents; Git whitespace checks pass and no feature conflicts remain. No application code was manually changed and application tests were not rerun.

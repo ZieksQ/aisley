@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { ChatWorkspace, clearChatPrivateState, type ChatEntry } from '@aisley/chat-ui'
 import { OperationalThreadPanel } from '../components/OperationalThreadPanel'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalThread } from '../lib/operationalChat'
@@ -40,6 +41,7 @@ export function OperationalChatPage() {
       setUnreadTotal(page.meta.unread_count ?? 0)
       setError('')
     } catch (caught) {
+      if (caught instanceof ApiError && [401, 403].includes(caught.status)) { clearChatPrivateState(); setThreads([]); setSelectedId(null); }
       setError(caught instanceof ApiError ? caught.message : 'The operational inbox could not be loaded.')
     } finally {
       setLoading(false)
@@ -70,6 +72,27 @@ export function OperationalChatPage() {
     setParams({})
   }
 
+  function backToInbox() {
+    setSelectedId(null)
+    setParams({})
+  }
+
+  const entries: ChatEntry[] = threads.map((thread) => ({
+    id: thread.id,
+    title: thread.counterparty_label,
+    preview: thread.last_message_preview ?? '',
+    activity: thread.last_message_at,
+    unread: thread.unread_count,
+    context: thread.kind === 'seller_logistics'
+      ? `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)} · Seller`
+      : thread.kind === 'customer_logistics'
+        ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)} · Customer`
+        : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}`,
+    selected: selectedId === thread.id,
+    readOnly: Boolean(thread.read_only_reason),
+    onSelect: () => { setSelectedId(thread.id); setParams({}) },
+  }))
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -84,35 +107,22 @@ export function OperationalChatPage() {
           Refresh inbox
         </button>
       </div>
-      {error ? <p className="mb-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
-      <div className="grid overflow-hidden border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#171719] md:grid-cols-[minmax(15rem,19rem)_minmax(0,1fr)]">
-        <aside aria-label="Conversation inbox" className="border-b border-zinc-200 dark:border-white/10 md:border-b-0 md:border-r">
-          <div className="border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-white/10">Inbox</div>
-          {loading && !threads.length ? <p className="p-4 text-sm text-zinc-500">Loading conversations…</p> : null}
-          {!loading && !threads.length ? <p className="p-4 text-sm text-zinc-500">No conversations yet. Open a pickup request, assigned task, or handled Order to start one.</p> : null}
-          <ul className="max-h-[36rem] divide-y divide-zinc-200 overflow-y-auto dark:divide-white/10">
-            {threads.map((thread) => (
-              <li key={thread.id}>
-                <button
-                  aria-current={selectedId === thread.id ? 'true' : undefined}
-                  className={`w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-white/5 ${selectedId === thread.id ? 'bg-purple-50 dark:bg-purple-400/10' : ''}`}
-                  onClick={() => { setSelectedId(thread.id); setParams({}) }}
-                  type="button"
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold">{thread.counterparty_label}</span>
-                    {thread.unread_count ? <span className="border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-xs font-semibold text-[#4C1268] dark:border-purple-400/25 dark:bg-purple-400/10 dark:text-purple-200">{thread.unread_count} unread</span> : null}
-                  </span>
-                  <span className="mt-1 block truncate text-xs text-zinc-500">{thread.kind === 'seller_logistics' ? `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)} · Seller` : thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)} · Customer` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}`}</span>
-                  <span className="mt-1 block truncate text-xs text-zinc-600 dark:text-zinc-400">{thread.last_message_preview}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {nextCursor ? <button className="w-full border-t border-zinc-200 px-4 py-3 text-sm font-medium text-[#4C1268] hover:bg-zinc-50 dark:border-white/10 dark:text-purple-300 dark:hover:bg-white/5" disabled={loading} onClick={() => void load(true, nextCursor)} type="button">Load more conversations</button> : null}
-        </aside>
-        <OperationalThreadPanel context={context} onSaved={saved} selected={selected} />
-      </div>
+      <ChatWorkspace
+        entries={entries}
+        selected={Boolean(selected || context)}
+        inboxTitle={`Inbox · ${unreadTotal} unread`}
+        inboxStatus={loading && !threads.length ? <p className="p-4 text-sm text-zinc-500" role="status">Loading conversations…</p> : null}
+        inboxError={error || undefined}
+        onRetryInbox={() => void load()}
+        canLoadMore={Boolean(nextCursor)}
+        loadingMore={loading}
+        onLoadMore={() => { if (nextCursor) void load(true, nextCursor) }}
+        onBack={backToInbox}
+      >
+        {selected || context ? <OperationalThreadPanel context={context} onSaved={saved} selected={selected} /> : (
+          <div className="grid min-h-full place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Select a conversation, or open a pickup request, assigned task, or handled Order to start one.</div>
+        )}
+      </ChatWorkspace>
     </div>
   )
 }

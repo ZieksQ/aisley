@@ -1,0 +1,1369 @@
+{
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
+  "inspected_on": "2026-10-04",
+  "execution": "php src/api/artisan route:list --json; restricted to Buyer inventory afterward; no live exchange",
+  "routes": [
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/address-options/barangays",
+      "name": "address-options.barangays",
+      "action": "App\\Http\\Controllers\\AddressOptionController@barangays",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/address-options/municipalities",
+      "name": "address-options.municipalities",
+      "action": "App\\Http\\Controllers\\AddressOptionController@municipalities",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/address-options/provinces",
+      "name": "address-options.provinces",
+      "action": "App\\Http\\Controllers\\AddressOptionController@provinces",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/address-options/regions",
+      "name": "address-options.regions",
+      "action": "App\\Http\\Controllers\\AddressOptionController@regions",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/account",
+      "name": "customer.account.show",
+      "action": "App\\Http\\Controllers\\Customer\\AccountController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/account/notification-preferences",
+      "name": "customer.account.notification-preferences.show",
+      "action": "App\\Http\\Controllers\\Customer\\PromotionPreferenceController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/customer/account/notification-preferences",
+      "name": "customer.account.notification-preferences.update",
+      "action": "App\\Http\\Controllers\\Customer\\PromotionPreferenceController@update",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/customer/account/password",
+      "name": "customer.account.password.update",
+      "action": "App\\Http\\Controllers\\Customer\\AccountController@updatePassword",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:customer-account-password"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/customer/account/profile",
+      "name": "customer.account.profile.update",
+      "action": "App\\Http\\Controllers\\Customer\\AccountController@updateProfile",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/account/profile-photo",
+      "name": "customer.account.photo.store",
+      "action": "App\\Http\\Controllers\\Customer\\AccountController@uploadProfilePhoto",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:customer-profile-photo"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/account/profile-photo",
+      "name": "customer.account.photo.show",
+      "action": "App\\Http\\Controllers\\Customer\\AccountController@profilePhoto",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/customer/account/profile-photo",
+      "name": "customer.account.photo.destroy",
+      "action": "App\\Http\\Controllers\\Customer\\AccountController@removeProfilePhoto",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/addresses",
+      "name": "customer.addresses.index",
+      "action": "App\\Http\\Controllers\\Customer\\AddressController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/addresses",
+      "name": "customer.addresses.store",
+      "action": "App\\Http\\Controllers\\Customer\\AddressController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/customer/addresses/{address}",
+      "name": "customer.addresses.update",
+      "action": "App\\Http\\Controllers\\Customer\\AddressController@update",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/customer/addresses/{address}",
+      "name": "customer.addresses.destroy",
+      "action": "App\\Http\\Controllers\\Customer\\AddressController@destroy",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/auth/forgot-password",
+      "name": "customer.auth.password.email",
+      "action": "App\\Http\\Controllers\\Customer\\AuthController@forgotPassword",
+      "middleware": [
+        "api"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/auth/login",
+      "name": "customer.auth.login",
+      "action": "App\\Http\\Controllers\\Customer\\AuthController@login",
+      "middleware": [
+        "api"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/auth/logout",
+      "name": "customer.auth.logout",
+      "action": "App\\Http\\Controllers\\Customer\\AuthController@logout",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/auth/me",
+      "name": "customer.auth.me",
+      "action": "App\\Http\\Controllers\\Customer\\AuthController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/auth/register",
+      "name": "customer.auth.register",
+      "action": "App\\Http\\Controllers\\Customer\\AuthController@register",
+      "middleware": [
+        "api"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/auth/reset-password",
+      "name": "customer.auth.password.update",
+      "action": "App\\Http\\Controllers\\Customer\\AuthController@resetPassword",
+      "middleware": [
+        "api"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/cart",
+      "name": "customer.cart.show",
+      "action": "App\\Http\\Controllers\\Customer\\CartController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/cart/items",
+      "name": "customer.cart.items.store",
+      "action": "App\\Http\\Controllers\\Customer\\CartController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/customer/cart/items/{item}",
+      "name": "customer.cart.items.update",
+      "action": "App\\Http\\Controllers\\Customer\\CartController@update",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/customer/cart/items/{item}",
+      "name": "customer.cart.items.destroy",
+      "action": "App\\Http\\Controllers\\Customer\\CartController@destroy",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/checkout/logistics-options",
+      "name": "customer.checkout.logistics-options",
+      "action": "App\\Http\\Controllers\\Customer\\CheckoutController@logisticsOptions",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/checkout/place",
+      "name": "customer.checkout.place",
+      "action": "App\\Http\\Controllers\\Customer\\CheckoutController@place",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/checkout/quote",
+      "name": "customer.checkout.quote",
+      "action": "App\\Http\\Controllers\\Customer\\CheckoutController@quote",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/checkout/{batch}",
+      "name": "customer.checkout.show",
+      "action": "App\\Http\\Controllers\\Customer\\CheckoutController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/conversations",
+      "name": "customer.conversations.index",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/conversations",
+      "name": "customer.conversations.start",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@start",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:15,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/conversations/unread-count",
+      "name": "customer.conversations.unread-count",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@unreadCount",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/conversations/{conversation}",
+      "name": "customer.conversations.show",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/conversations/{conversation}/messages",
+      "name": "customer.conversations.messages",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@messages",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/conversations/{conversation}/messages",
+      "name": "customer.conversations.send",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@send",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/conversations/{conversation}/read",
+      "name": "customer.conversations.read",
+      "action": "App\\Http\\Controllers\\Customer\\ConversationController@read",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/courier-conversations",
+      "name": "customer.courier-conversations.index",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/courier-conversations",
+      "name": "customer.courier-conversations.start",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@start",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:15,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/courier-conversations/order-context/{order}",
+      "name": "customer.courier-conversations.order-context",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@orderContext",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/courier-conversations/{conversation}",
+      "name": "customer.courier-conversations.show",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/courier-conversations/{conversation}/messages",
+      "name": "customer.courier-conversations.messages",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@messages",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/courier-conversations/{conversation}/messages",
+      "name": "customer.courier-conversations.send",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@send",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/courier-conversations/{conversation}/read",
+      "name": "customer.courier-conversations.read",
+      "action": "App\\Http\\Controllers\\Customer\\CourierConversationController@read",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/home",
+      "name": "customer.home.show",
+      "action": "App\\Http\\Controllers\\Customer\\HomepageController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/home/recommendations",
+      "name": "customer.home.recommendations",
+      "action": "App\\Http\\Controllers\\Customer\\HomepageController@recommendations",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/logistics-conversations",
+      "name": "customer.logistics-conversations.index",
+      "action": "App\\Http\\Controllers\\Customer\\LogisticsConversationController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/logistics-conversations",
+      "name": "customer.logistics-conversations.start",
+      "action": "App\\Http\\Controllers\\Customer\\LogisticsConversationController@start",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:15,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/logistics-conversations/{conversation}",
+      "name": "customer.logistics-conversations.show",
+      "action": "App\\Http\\Controllers\\Customer\\LogisticsConversationController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/logistics-conversations/{conversation}/messages",
+      "name": "customer.logistics-conversations.messages",
+      "action": "App\\Http\\Controllers\\Customer\\LogisticsConversationController@messages",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/logistics-conversations/{conversation}/messages",
+      "name": "customer.logistics-conversations.send",
+      "action": "App\\Http\\Controllers\\Customer\\LogisticsConversationController@send",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/logistics-conversations/{conversation}/read",
+      "name": "customer.logistics-conversations.read",
+      "action": "App\\Http\\Controllers\\Customer\\LogisticsConversationController@read",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/notifications",
+      "name": "customer.notifications.index",
+      "action": "App\\Http\\Controllers\\Customer\\NotificationController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/notifications/{notification}",
+      "name": "customer.notifications.show",
+      "action": "App\\Http\\Controllers\\Customer\\NotificationController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/notifications/{notification}/read",
+      "name": "customer.notifications.read",
+      "action": "App\\Http\\Controllers\\Customer\\NotificationController@markRead",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/order-items/{orderItem}/review",
+      "name": "customer.reviews.store",
+      "action": "App\\Http\\Controllers\\Customer\\ProductReviewController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:customer-product-reviews"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/orders",
+      "name": "customer.orders.index",
+      "action": "App\\Http\\Controllers\\Customer\\OrderController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/orders/{order}",
+      "name": "customer.orders.show",
+      "action": "App\\Http\\Controllers\\Customer\\OrderController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/orders/{order}/cancel",
+      "name": "customer.orders.cancel",
+      "action": "App\\Http\\Controllers\\Customer\\OrderController@cancel",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/customer/orders/{order}/modification",
+      "name": "customer.orders.modify",
+      "action": "App\\Http\\Controllers\\Customer\\OrderController@modify",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/orders/{order}/tracking",
+      "name": "customer.orders.tracking",
+      "action": "App\\Http\\Controllers\\Customer\\OrderController@tracking",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/products/resolve",
+      "name": "customer.products.resolve",
+      "action": "App\\Http\\Controllers\\Customer\\RecentlyViewedController@resolve",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/products/search",
+      "name": "customer.products.search",
+      "action": "App\\Http\\Controllers\\Customer\\ProductSearchController",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/recently-viewed",
+      "name": "customer.recently-viewed.index",
+      "action": "App\\Http\\Controllers\\Customer\\RecentlyViewedController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/customer/recently-viewed",
+      "name": "customer.recently-viewed.clear",
+      "action": "App\\Http\\Controllers\\Customer\\RecentlyViewedController@clear",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/recently-viewed/merge",
+      "name": "customer.recently-viewed.merge",
+      "action": "App\\Http\\Controllers\\Customer\\RecentlyViewedController@merge",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PUT",
+      "uri": "api/v1/customer/recently-viewed/{product}",
+      "name": "customer.recently-viewed.store",
+      "action": "App\\Http\\Controllers\\Customer\\RecentlyViewedController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/customer/recently-viewed/{product}",
+      "name": "customer.recently-viewed.destroy",
+      "action": "App\\Http\\Controllers\\Customer\\RecentlyViewedController@destroy",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/reviews/{review}/images",
+      "name": "customer.reviews.images.store",
+      "action": "App\\Http\\Controllers\\Customer\\ProductReviewController@uploadImage",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:customer-product-review-images"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/search/shops",
+      "name": "customer.search.shops",
+      "action": "App\\Http\\Controllers\\Customer\\ShopSearchController",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/shops",
+      "name": "customer.shops.index",
+      "action": "App\\Http\\Controllers\\Customer\\ShopBrowseController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/shops/{slug}",
+      "name": "customer.shops.show",
+      "action": "App\\Http\\Controllers\\Customer\\ShopBrowseController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/shops/{slug}/products",
+      "name": "customer.shops.products.index",
+      "action": "App\\Http\\Controllers\\Customer\\ShopBrowseController@products",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/support-tickets",
+      "name": "customer.support-tickets.index",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/support-tickets",
+      "name": "customer.support-tickets.store",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/support-tickets/{ticket}",
+      "name": "customer.support-tickets.show",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/support-tickets/{ticket}/read",
+      "name": "customer.support-tickets.read",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@read",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/customer/support-tickets/{ticket}/replies",
+      "name": "customer.support-tickets.replies.store",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@reply",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/wishlist",
+      "name": "customer.wishlist.index",
+      "action": "App\\Http\\Controllers\\Customer\\WishlistController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/customer/wishlist/status",
+      "name": "customer.wishlist.status",
+      "action": "App\\Http\\Controllers\\Customer\\WishlistController@status",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PUT",
+      "uri": "api/v1/customer/wishlist/{product}",
+      "name": "customer.wishlist.store",
+      "action": "App\\Http\\Controllers\\Customer\\WishlistController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/customer/wishlist/{product}",
+      "name": "customer.wishlist.destroy",
+      "action": "App\\Http\\Controllers\\Customer\\WishlistController@destroy",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/homepage-advertisement-images/{campaign}/{variant}",
+      "name": "homepage-advertisement-images.show",
+      "action": "App\\Http\\Controllers\\HomepageAdvertisementImageController",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/platform/announcements",
+      "name": "platform.announcements.index",
+      "action": "App\\Http\\Controllers\\PlatformContentController@announcements",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/platform/policies/{type}",
+      "name": "platform.policies.show",
+      "action": "App\\Http\\Controllers\\PlatformContentController@policy",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/platform/policies/{type}/history",
+      "name": "platform.policies.history.index",
+      "action": "App\\Http\\Controllers\\PlatformContentController@policyHistory",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/platform/policies/{type}/history/{version}",
+      "name": "platform.policies.history.show",
+      "action": "App\\Http\\Controllers\\PlatformContentController@policyHistoryVersion",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/policy-consent/status",
+      "name": "policy-consent.status",
+      "action": "App\\Http\\Controllers\\PolicyConsentController@status",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Policy\\EnsureActivePolicyActor",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:policy-consent-status"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/policy-consent/{type}/versions/{version}/accept",
+      "name": "policy-consent.accept",
+      "action": "App\\Http\\Controllers\\PolicyConsentController@accept",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Policy\\EnsureActivePolicyActor",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:policy-consent-acceptance"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/product-description-assets/{asset}",
+      "name": "product-description-assets.show",
+      "action": "App\\Http\\Controllers\\ProductDescriptionAssetController",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/product-media/{media}",
+      "name": "product-media.show",
+      "action": "App\\Http\\Controllers\\ProductMediaController",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/product-review-images/{image}",
+      "name": "product-review-images.show",
+      "action": "App\\Http\\Controllers\\ProductReviewImageController",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/products/{id}",
+      "name": "products.show",
+      "action": "App\\Http\\Controllers\\Customer\\ProductDetailController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/products/{product}/questions",
+      "name": "products.questions.index",
+      "action": "App\\Http\\Controllers\\Customer\\ProductQAController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/products/{product}/questions",
+      "name": "products.questions.store",
+      "action": "App\\Http\\Controllers\\Customer\\ProductQAController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Customer\\EnsureActiveCustomer",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:customer-product-questions"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/products/{product}/reviews",
+      "name": "products.reviews.index",
+      "action": "App\\Http\\Controllers\\Customer\\ProductReviewController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    }
+  ]
+}

@@ -88,6 +88,8 @@ Avoid creating duplicate components when an appropriate shared component already
 
 Users bring expectations from other applications. Familiar interaction patterns help them understand AISLEY without learning a new interface for each feature.
 
+- Messaging presentation follows the [shared Chat Messaging UI/UX specification](features/shared/chat-messaging/spec.md) alongside this guide. It governs web inboxes, threads, commerce context, and proposed media interactions; role specs retain authorization/workflow ownership, and proposed capabilities do not change current text-only API contracts.
+
 - Prefer established e-commerce conventions for navigation, search, filters, forms, checkout, messaging, and account settings. Reuse the app's existing patterns and compatible shared components rather than inventing new controls for familiar tasks.
 - Keep terminology, action labels, status meanings, and similar interactions consistent within each app. Share compatible presentation patterns across web apps without mixing role-specific screens, navigation, or authorization.
 - Make the primary action and next step clear. Group secondary actions, use concise labels, and show workflow progress when relevant; do not hide required choices or confirmations to simplify a screen.

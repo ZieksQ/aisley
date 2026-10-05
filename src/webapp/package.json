@@ -10,6 +10,7 @@
     "test:auth": "node tests/auth-session.test.mjs"
   },
   "dependencies": {
+    "@aisley/chat-ui": "workspace:*",
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/ui": "workspace:*",
     "@aisley/support-tickets": "workspace:*",

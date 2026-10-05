@@ -29,7 +29,11 @@ class InitialCustomerSeeder extends Seeder
             'birth_date' => config('customer.initial.birth_date', '2000-01-01'),
         ]);
 
-        $count = min(100, max(0, (int) config('customer.generic.count', 20)));
+        $configuredCount = (int) config('customer.generic.count', 20);
+        $count = app()->environment('production') ? 0 : min(100, max(0, $configuredCount));
+        if ($configuredCount > 0 && $count === 0) {
+            $this->command?->warn('Generic Customer fixtures were not seeded in production.');
+        }
         $prefix = trim((string) config('customer.generic.email_prefix', 'customer')) ?: 'customer';
         $domain = trim((string) config('customer.generic.email_domain', 'example.com')) ?: 'example.com';
 

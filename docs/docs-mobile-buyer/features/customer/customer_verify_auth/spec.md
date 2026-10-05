@@ -3,7 +3,7 @@ feature: customer_verify_auth
 role: Customer
 platform: Flutter / Dart
 phase: 1
-flutter_status: Pending
+flutter_status: Implemented; target acceptance pending
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ---
@@ -15,12 +15,12 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: /me role/status and policy guards implemented; storefront session UX has its own separate
 implementation.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented; target acceptance pending**. See the Phase 1 verification record for evidence.
 
-App load → one deduplicated secure-token restoration → /me → guest/active/denied/retry → consent → private route.
+App load → one deduplicated secure-token restoration → /me → signed-out/active/denied/retry → consent → private route.
 
 - One session controller owns verified identity and session generation. Do not issue a new /me from every screen/render or persist a trusted login flag.
-- Public discovery/Shop/Product/policies stay available. Cart/checkout/Orders/account/messages/notifications/tickets need active Customer plus server-required consent. Validate internal return destinations and require deliberate mutation retry after login.
+- Home/Shops/Search/Products/Q&A/reviews and every other shopping destination need verified active Customer plus required consent. Auth/approval/recovery/Terms/Privacy stay available. Validate internal return destinations and require deliberate mutation retry after login.
 - POLICY_CONSENT_REQUIRED opens consent while preserving auth; resource-specific denial clears its data. Logout/account switching rejects all delayed private successes/errors and clears caches/drafts/uploads/quotes/keys/read markers.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
@@ -29,12 +29,16 @@ communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
 capabilities remain authoritative.
 
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+
 ## MUST
 
 ### Feature behavior and boundaries
 
 - One root controller deduplicates bootstrap; route rebuilds/widgets never start independent /me calls.
-- Initial state hides private data but keeps public browsing available. Stored token presence never
+- Initial state hides all shopping widgets/navigation and shows checking or session Retry. Stored token presence never
   means approval.
 - Verified /me must have role customer/status active and a Customer UUID before binding any private
   repository.
@@ -44,10 +48,10 @@ capabilities remain authoritative.
   retry.
 - Allow-list return routes and validate IDs/slugs; reject arbitrary URLs, another role path and mutation
   query instructions.
-- Bottom Home/Shops remain public; Cart and private Account links redirect guests to sign-in with a safe
-  read return.
-- Android/browser Back returns to the previous safe destination; cancelling sign-in does not execute a
-  saved action.
+- Bottom Home/Shops/Cart/Account mount only after verification; all shopping links retain a validated
+  read return through login/consent. Normal sign-in opens Home.
+- Root sign-in has no shopping cancel; child auth/policy Back returns to sign-in. Consent offers
+  explicit sign-out; no saved mutation automatically resumes.
 - Foreground resume deduplicates identity/consent refresh and leaves offline private content hidden if
   identity is unverified.
 - HTTP 401 invalidates credential storage; explicit account/role denial clears private identity and shows
@@ -62,8 +66,8 @@ capabilities remain authoritative.
   supported; never send the token.
 - Failed secure deletion exposes retry and suppresses restoration; local sign-out must not claim durable
   token deletion.
-- Public Home fallback uses a credential-free request; discard any authenticated response from the
-  previous identity.
+- Home never falls back to guest browsing when verification fails; discard authenticated responses
+  from the previous identity and retain session checking/retry.
 - Only token persists securely; identity flags, consent acceptance and cached private state are not
   trusted disk authority.
 - Test delayed private200/401 completions after switching, repeated startup, forbidden roles and
@@ -131,8 +135,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on
 either change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public
-hints only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 

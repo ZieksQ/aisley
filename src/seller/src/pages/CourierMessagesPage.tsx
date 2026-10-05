@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { ChatWorkspace, type ChatEntry } from '@aisley/chat-ui'
 import { useAuth } from '../auth/useAuth'
 import { CourierThread } from '../components/courier-messages/CourierThread'
 import { courierError, useCourierAccess } from '../components/courier-messages/useCourierAccess'
@@ -80,6 +81,17 @@ function CourierInbox() {
   }
 
   const selected = Boolean(conversationId || orderId)
+  const entries: ChatEntry[] = threads.map((thread) => ({
+    id: thread.id,
+    title: `Courier · Order ${thread.order_reference}`,
+    preview: thread.last_message_preview ?? '',
+    activity: null,
+    unread: thread.unread_count,
+    context: 'First-mile pickup',
+    selected: conversationId === thread.id,
+    readOnly: !thread.send_allowed,
+    onSelect: () => setParams({ conversation: thread.id }, { replace: true }),
+  }))
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-4 py-7 sm:px-6 lg:px-8">
       <header className="space-y-2">
@@ -90,49 +102,18 @@ function CourierInbox() {
         <p className="text-sm">{unread} unread {unread === 1 ? 'message' : 'messages'}</p>
       </header>
       {!online && <p className="text-sm" role="status">You are offline. Messages will refresh when you reconnect.</p>}
-      {selected && (
-        <Link className="inline-flex min-h-11 items-center text-sm underline focus-visible:outline-2 lg:hidden" to="/courier-messages">
-          Back to Courier inbox
-        </Link>
-      )}
-      {error && (
-        <div className="space-y-2">
-          <p className="text-sm text-red-700 dark:text-red-300" role="alert">{error}</p>
-          <button className="min-h-11 text-sm underline focus-visible:outline-2" onClick={onUpdated} type="button">Refresh inbox</button>
-        </div>
-      )}
-      <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <section className={`${selected ? 'hidden lg:block' : ''} min-w-0 rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#171719]`} aria-label="Courier inbox">
-          <h3 className="border-b border-zinc-200 p-4 font-semibold dark:border-white/10">First-mile conversations</h3>
-          {loading && <p className="p-4 text-sm" role="status">Loading inbox…</p>}
-          {!loading && !error && !threads.length && (
-            <p className="p-4 text-sm text-zinc-600 dark:text-zinc-400">
-              No Courier conversations yet. Open an Order after its pickup is accepted to send the first message.
-            </p>
-          )}
-          <ul className="max-h-[65vh] overflow-y-auto">
-            {threads.map((thread) => (
-              <li key={thread.id}>
-                <Link
-                  aria-current={conversationId === thread.id ? 'page' : undefined}
-                  className={`block space-y-1 border-b border-zinc-200 p-4 text-sm focus-visible:outline-2 focus-visible:outline-[#E6007A] dark:border-white/10 ${conversationId === thread.id ? 'bg-[#4C1268]/5 dark:bg-white/10' : 'hover:bg-zinc-50 dark:hover:bg-white/5'}`}
-                  to={`/courier-messages?conversation=${thread.id}`}
-                >
-                  <span className="block break-all font-medium">Order {thread.order_reference}</span>
-                  <span className="block truncate text-zinc-600 dark:text-zinc-400">{thread.last_message_preview}</span>
-                  <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-                    {thread.unread_count} unread · {thread.send_allowed ? 'Pickup active' : 'Read-only'}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {cursor && (
-            <button className="m-4 min-h-11 text-sm underline focus-visible:outline-2 disabled:opacity-50" disabled={moreLoading} onClick={() => void loadMore()} type="button">
-              {moreLoading ? 'Loading…' : 'Load more conversations'}
-            </button>
-          )}
-        </section>
+      <ChatWorkspace
+        entries={entries}
+        selected={selected && !denied}
+        inboxTitle={`First-mile conversations · ${unread} unread`}
+        inboxStatus={loading && !threads.length ? <p className="p-4 text-sm text-zinc-500" role="status">Loading inbox…</p> : null}
+        inboxError={error || undefined}
+        onRetryInbox={onUpdated}
+        canLoadMore={Boolean(cursor)}
+        loadingMore={moreLoading}
+        onLoadMore={() => void loadMore()}
+        onBack={() => setParams({}, { replace: true })}
+      >
         {selected && !denied ? (
           <CourierThread
             key={conversationId ?? orderId}
@@ -142,11 +123,11 @@ function CourierInbox() {
             onStarted={onStarted}
           />
         ) : (
-          <p className="rounded-lg border border-zinc-200 p-5 text-sm text-zinc-600 dark:border-white/10 dark:text-zinc-400">
-            Select a Courier conversation to view its history.
+          <p className="grid min-h-full place-items-center p-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
+            {denied ? 'This Courier conversation is unavailable to your account.' : 'Select a Courier conversation, or open an eligible Order to start one.'}
           </p>
         )}
-      </div>
+      </ChatWorkspace>
     </div>
   )
 }

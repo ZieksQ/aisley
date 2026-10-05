@@ -1,5 +1,5 @@
 {
-  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
   "source_derived": true,
   "live_capture": false,
   "cases": [
@@ -359,6 +359,123 @@
       "code": "IDEMPOTENCY_CONFLICT",
       "message": "This send key was already used for a different message.",
       "field": null
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "LOGISTICS_SELECTION_INVALID",
+      "message": "The selected Logistics provider is not enabled by this Shop.",
+      "field": "logistics_selections"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "LOGISTICS_PROVIDER_UNAVAILABLE",
+      "message": "The selected Logistics provider is unavailable.",
+      "field": "logistics_selections"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "SHIPPING_RATE_UNAVAILABLE",
+      "message": "The platform shipping tariff is not active.",
+      "field": "address_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "LOGISTICS_RATE_NOT_ACCEPTED",
+      "message": "The selected Logistics provider has not accepted the active platform tariff.",
+      "field": "logistics_selections"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "SHIPPING_WEIGHT_UNSUPPORTED",
+      "message": "The Shop order exceeds the platform billable-weight limit.",
+      "field": "items"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "ROUTE_PARTICIPANT_TARIFF_NOT_ACCEPTED",
+      "message": "A route participant has not accepted the platform tariff.",
+      "field": null,
+      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "ROUTE_PARTICIPANT_RATE_UNAVAILABLE",
+      "message": "A route participant has no active rate card.",
+      "field": null,
+      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "ROUTE_SERVICE_RATE_UNAVAILABLE",
+      "message": "A route participant has no base fee for the required service.",
+      "field": null,
+      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "ROUTE_CATEGORY_RATE_UNAVAILABLE",
+      "message": "A route participant has no rate for the Shop main category.",
+      "field": null,
+      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "ROUTE_RATE_LIMIT_EXCEEDED",
+      "message": "A parcel exceeds a route participant rate limit.",
+      "field": null
+    },
+    {
+      "feature": "checkout-order",
+      "status": 422,
+      "code": "LOGISTICS_SELECTION_INVALID",
+      "message": "A Logistics selection targets a Shop outside this checkout.",
+      "field": "logistics_selections"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "LOGISTICS_SELECTION_REQUIRED",
+      "message": "Choose one Logistics provider for each Shop order.",
+      "field": "logistics_selections"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "SHIPPING_COVERAGE_UNAVAILABLE",
+      "message": "No enabled Logistics provider can quote this Shop order.",
+      "field": "logistics_selections"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "PICKUP_ADDRESS_REQUIRED",
+      "message": "Synthetic Shop does not have a pickup address configured.",
+      "field": "address_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "SHIPPING_DATA_REQUIRED",
+      "message": "Shipping weight and dimensions are missing for Synthetic Product.",
+      "field": "items"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "SHIPPING_DIMENSIONS_UNSUPPORTED",
+      "message": "Synthetic Product exceeds the platform parcel dimensions.",
+      "field": "items"
     }
-  ]
+  ],
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
 }

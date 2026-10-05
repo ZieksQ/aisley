@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { ChatWorkspace, type ChatEntry } from '@aisley/chat-ui'
 import { ApiError } from '../lib/api'
 import { listConversations, type Conversation } from '../lib/messages'
 
 export function MessagesPage() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<Conversation[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,26 +60,37 @@ export function MessagesPage() {
     }
   }
 
+  const entries: ChatEntry[] = items.map((item) => ({
+    id: item.id,
+    title: item.customer_name ?? 'Customer',
+    preview: item.last_message_preview ?? '',
+    activity: item.last_message_at,
+    unread: item.unread_count,
+    context: item.shop.name,
+    onSelect: () => navigate(`/messages/${item.id}`),
+  }))
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
         <h2 className="text-2xl font-semibold">Messages</h2>
         <button className="text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" onClick={() => void refresh()} type="button">Refresh</button>
       </div>
-      {error && <p className="mt-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{error} <button className="underline" onClick={() => void refresh()} type="button">Retry</button></p>}
-      {loading ? <p className="mt-6 text-sm text-zinc-500" role="status">Loading messages…</p> : items.length === 0 ? (
-        <p className="mt-5 border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-white/10 dark:bg-[#18181b]">No Customer conversations yet.</p>
-      ) : (
-        <div className="mt-5 divide-y divide-zinc-200 border border-zinc-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#18181b]">
-          {items.map((item) => (
-            <Link className="flex items-start justify-between gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-white/[0.04]" key={item.id} to={`/messages/${item.id}`}>
-              <span className="min-w-0"><span className="block font-semibold">{item.customer_name ?? 'Customer'}</span><span className="mt-1 block truncate text-sm text-zinc-500">{item.last_message_preview}</span></span>
-              <span className="shrink-0 text-right text-xs text-zinc-500">{item.last_message_at ? new Date(item.last_message_at).toLocaleDateString() : ''}{item.unread_count > 0 && <span className="mt-1 block font-semibold text-[#4C1268] dark:text-purple-300">{item.unread_count} unread</span>}</span>
-            </Link>
-          ))}
-        </div>
-      )}
-      {cursor && <button className="mt-4 border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-white/20" disabled={busy} onClick={() => void loadMore()} type="button">{busy ? 'Loading…' : 'Load older conversations'}</button>}
+      <div className="mt-5">
+        <ChatWorkspace
+          entries={entries}
+          selected={false}
+          inboxTitle="Customer conversations"
+          inboxStatus={loading && !items.length ? <p className="p-4 text-sm text-zinc-500" role="status">Loading conversations…</p> : null}
+          inboxError={error || undefined}
+          onRetryInbox={() => void refresh()}
+          canLoadMore={Boolean(cursor)}
+          loadingMore={busy}
+          onLoadMore={() => void loadMore()}
+        >
+          <div className="grid min-h-full place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">{items.length ? 'Select a conversation to read and reply.' : 'Customer conversations will appear here.'}</div>
+        </ChatWorkspace>
+      </div>
     </div>
   )
 }

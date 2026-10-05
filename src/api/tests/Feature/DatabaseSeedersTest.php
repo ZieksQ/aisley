@@ -2,15 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Enums\InventorySkuStatus;
 use App\Enums\ProductStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductOptionGroup;
 use App\Models\ProductVariant;
+use App\Models\Shop;
 use App\Models\User;
+use Database\Seeders\CourierSeeder;
 use Database\Seeders\InitialCustomerSeeder;
 use Database\Seeders\InitialLogisticsSeeder;
 use Database\Seeders\InitialSellerSeeder;
@@ -119,6 +123,68 @@ class DatabaseSeedersTest extends TestCase
         $this->assertDatabaseCount('product_variants', 13);
     }
 
+    public function test_product_seeder_preserves_shop_edits_and_inventory_ledger_as_stock_authority(): void
+    {
+        $this->configureInitialSeller();
+        $this->seed(InitialSellerSeeder::class);
+        $this->seed(ProductSeeder::class);
+
+        $shop = Shop::query()->where('slug', 'aisley-demo-store')->firstOrFail();
+        $product = Product::query()->where('slug', 'wireless-precision-mouse')->firstOrFail();
+        $sku = $product->inventorySkus()->where('is_base', true)->firstOrFail();
+        $balance = $sku->balance()->firstOrFail();
+        $movementsBefore = InventoryMovement::query()->count();
+
+        $shop->update(['is_on_vacation' => true, 'vacation_message' => 'Back next week.']);
+        $product->update(['name' => 'Seller-edited Mouse', 'price' => '19.50', 'status' => ProductStatus::Archived]);
+        $sku->update(['code' => 'SELLER-MOUSE-001', 'status' => InventorySkuStatus::Inactive]);
+        $balance->update(['on_hand' => 60, 'reserved' => 3]);
+
+        $this->seed(ProductSeeder::class);
+
+        $this->assertTrue($shop->fresh()->is_on_vacation);
+        $this->assertSame('Back next week.', $shop->fresh()->vacation_message);
+        $this->assertSame('Seller-edited Mouse', $product->fresh()->name);
+        $this->assertSame('19.50', $product->fresh()->price);
+        $this->assertSame(ProductStatus::Archived, $product->fresh()->status);
+        $this->assertSame('SELLER-MOUSE-001', $sku->fresh()->code);
+        $this->assertSame(InventorySkuStatus::Inactive, $sku->fresh()->status);
+        $this->assertSame(57, $balance->fresh()->on_hand - $balance->fresh()->reserved);
+        $this->assertSame(57, $product->fresh()->stock_quantity);
+        $this->assertSame($movementsBefore, InventoryMovement::query()->count());
+    }
+
+    public function test_standalone_product_seeder_uses_configured_seller_credentials_and_pickup_address(): void
+    {
+        $this->configureInitialSeller();
+
+        $this->seed(ProductSeeder::class);
+
+        $seller = User::query()->where('email', 'seeded-seller@example.com')->firstOrFail();
+        $shop = Shop::query()->where('slug', 'aisley-demo-store')->firstOrFail();
+        $this->assertTrue(Hash::check('InitialSeller123', $seller->password));
+        $this->assertSame($seller->id, $shop->seller_id);
+        $this->assertSame('Shop pickup address', $seller->addresses()->sole()->label);
+        $this->assertTrue($seller->addresses()->sole()->is_default);
+    }
+
+    public function test_product_seeder_does_not_create_the_demo_catalog_in_production(): void
+    {
+        $this->configureInitialSeller();
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => 'production');
+
+        try {
+            app(ProductSeeder::class)->run();
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
+
+        $this->assertDatabaseCount('shops', 0);
+        $this->assertDatabaseCount('products', 0);
+        $this->assertDatabaseCount('users', 0);
+    }
+
     public function test_initial_seller_seeder_uses_configuration_without_overwriting_an_existing_account(): void
     {
         $this->configureInitialSeller([
@@ -194,6 +260,52 @@ class DatabaseSeedersTest extends TestCase
         ]);
     }
 
+    public function test_generic_role_fixtures_are_skipped_in_production(): void
+    {
+        config()->set('customer.initial', [
+            'email' => 'production-customer@example.com', 'password' => 'CustomerSecret123',
+            'first_name' => 'Jamie', 'last_name' => 'Buyer', 'contact_number' => '+639171111111', 'birth_date' => '1998-04-12',
+        ]);
+        config()->set('customer.generic.count', 2);
+        $this->configureInitialSeller(['email' => 'production-seller@example.com']);
+        config()->set('seller.generic.count', 2);
+        config()->set('logistics.initial', [
+            'email' => 'production-logistics@example.com', 'password' => 'LogisticsSecret123',
+            'first_name' => 'Logan', 'last_name' => 'Operator', 'contact_number' => '+639171111112', 'birth_date' => '1990-01-01',
+            'business_name' => 'Aisley Delivery Services', 'hub_name' => 'Aisley Makati Hub',
+            'address_line_1' => '1 Hub Road', 'address_line_2' => null, 'barangay' => 'Poblacion',
+            'city_municipality' => 'Makati City', 'province' => 'Metro Manila', 'region' => 'National Capital Region (NCR)', 'postal_code' => '1200',
+        ]);
+        config()->set('logistics.generic.count', 2);
+        config()->set('courier.initial', [
+            'email' => 'production-courier@example.com', 'password' => 'CourierSecret123',
+            'first_name' => 'Casey', 'last_name' => 'Rider', 'middle_name' => null,
+            'contact_number' => '+639171111113', 'birth_date' => '1994-06-15', 'vehicle_type' => 'motorcycle',
+            'plate_number' => 'PROD-001', 'address_line_1' => '2 Courier Avenue', 'address_line_2' => null,
+            'barangay' => 'Poblacion', 'city_municipality' => 'Makati City', 'province' => 'Metro Manila',
+            'region' => 'National Capital Region (NCR)', 'postal_code' => '1200',
+        ]);
+        config()->set('courier.generic.count', 2);
+
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => 'production');
+
+        try {
+            app(InitialCustomerSeeder::class)->run();
+            app(InitialSellerSeeder::class)->run();
+            app(InitialLogisticsSeeder::class)->run();
+            app(CourierSeeder::class)->run();
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
+
+        $this->assertSame(1, User::query()->where('role', UserRole::Customer)->count());
+        $this->assertSame(1, User::query()->where('role', UserRole::Seller)->count());
+        $this->assertSame(1, User::query()->where('role', UserRole::Logistics)->count());
+        $this->assertSame(1, User::query()->where('role', UserRole::Courier)->count());
+        $this->assertSame(4, User::query()->count());
+    }
+
     public function test_initial_logistics_seeder_creates_one_active_organization_and_sole_hub_from_configuration(): void
     {
         config()->set('logistics.initial', [
@@ -234,8 +346,8 @@ class DatabaseSeedersTest extends TestCase
         $this->seed(InitialLogisticsSeeder::class);
 
         $this->assertTrue(Hash::check('InitialLogistics123', $logistics->fresh()->password));
-        $this->assertSame(14.565681, (float) $logistics->addresses()->sole()->latitude);
-        $this->assertSame(121.032077, (float) $logistics->addresses()->sole()->longitude);
+        $this->assertNull($logistics->addresses()->sole()->latitude);
+        $this->assertNull($logistics->addresses()->sole()->longitude);
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('logistics_hubs', 1);
     }

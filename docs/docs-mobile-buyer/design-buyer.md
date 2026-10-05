@@ -1,6 +1,6 @@
 # Buyer native mobile design
 
-Status: proposed shared Flutter design; every screen pending. Adapted from Aisley's Customer branding and interaction contract at `docs/design.md`; the existing web guide governs the storefront, while this document governs the standalone Buyer app.
+Status (external Buyer report, not rerun here): shared light Flutter design applied to Phases 1–4; installed-device accessibility acceptance remains pending. Adapted from Aisley's Customer branding and interaction contract at `docs/design.md`; the existing web guide governs the storefront, while this document governs the standalone Buyer app.
 
 Use a light-only Material theme with primary `#E6007A`, secondary `#4C1268`, error `#FF3B30`, and warning `#FF8800`. Neutral surfaces dominate; supporting typography/borders and restrained primary accents follow the brand's 60/30/10 balance. Verify foreground/background contrast and adjust text/surface use where a brand accent is insufficient. Do not rely on color alone for status, selected variants, unread or validation.
 
@@ -10,7 +10,7 @@ Use one app-wide typography/spacing/theme and compatible shared Flutter widgets.
 
 Minimum interactive touch target is 48×48 logical pixels; keep icon labels/tooltips/semantics, visible focus, accessible checkboxes/radios and sufficient separation. Respect text scaling, TalkBack reading order, keyboard access in local web, reduced motion and meaningful image descriptions. Long names/references and untrusted text wrap without hiding critical actions.
 
-Compose the narrow phone layout first, contain horizontal gallery/rails, respect safe areas and bottom navigation, then adapt to wider browser/tablet views. Keyboard opening must keep the active field, errors and submit/composer reachable. Use scrollable forms/dialogs; do not overlay Cart/Place order actions over focused fields. Test small height and landscape as well as width.
+Use available logical width: phone below 600 pixels with 16-pixel padding; tablet from 600 with 24-pixel padding. Constrain forms to 560 pixels and shopping content to 1120. Browser resizing tests these Android sizes; desktop/laptop design is outside scope. Keyboard opening must keep the active field, errors and submit/composer reachable. Use scrollable forms/dialogs; do not overlay Cart/Place order actions over focused fields. Test small height and landscape as well as width.
 
 Back/Cancel closes the current dialog or route predictably; preserve safe input during recoverable errors and confirm discarding a changed form when necessary. Confirm deletion, clear history and cancellation with the named resource/consequence. Consent confirmation starts unchecked. Use autofill and correct text-input actions, while passwords and private selections clear at their lifecycle boundary.
 
@@ -19,3 +19,18 @@ Every feature provides initial/loading, loaded, valid empty, unavailable, valida
 Skeletons should preserve layout; asynchronous announcements should not steal focus. Offer Retry without clearing safe drafts, and focus the first relevant validation error. Carousels with automatic motion require an accessible pause control or avoid automatic rotation. Message arrival must not force scroll when reading older history; provide a clear new-message control. Map/GPS and file-picker permission denial keep manual alternatives usable.
 
 The server owns action capabilities. Disabled or read-only state should explain the next step, including approval, consent, stock change, started Seller processing or ended delivery contact. [Verification](verification.md) records actual responsive/accessibility checks; publishing this guide does not certify any implementation.
+
+Shopping requires verified active Customer identity and current required consent. Hide
+Home/Shops/Cart/Account navigation until verification; checking and recoverable failures
+show session Retry. Root sign-in has no shopping Cancel. Child auth/policy screens return
+to sign-in; consent offers explicit Sign out. Normal sign-in opens Home, while validated
+read links survive login/consent. A saved mutation never automatically resumes.
+
+Shell pages have one scaffold/safe-area/keyboard owner; hide bottom navigation while the
+keyboard occupies the viewport. Forms, filters, pagination, errors, message/support composers
+and dialogs scroll within actual available height. Resizing retains safe input/focus/scroll
+without repeating requests. Cards use natural heights and 1–4 columns from minimum width
+160 multiplied by text scale clamped to 1–2; full prices, ratings and actions wrap. Preview
+titles may truncate. Rails size themselves from their content. Product galleries follow
+available width with bounded height; two-column detail requires content width at least 840
+and text scale no greater than 1.5, otherwise stack. Preserve gallery page and variant state.

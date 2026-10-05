@@ -51,7 +51,11 @@ class CourierSeeder extends Seeder
             ], $organization, canDriveCompanyTruck: true);
         }
 
-        $count = min(100, max(0, (int) config('courier.generic.count', 20)));
+        $configuredCount = (int) config('courier.generic.count', 20);
+        $count = app()->environment('production') ? 0 : min(100, max(0, $configuredCount));
+        if ($configuredCount > 0 && $count === 0) {
+            $this->command?->warn('Generic Courier fixtures were not seeded in production.');
+        }
         $prefix = trim((string) config('courier.generic.email_prefix', 'courier')) ?: 'courier';
         $domain = trim((string) config('courier.generic.email_domain', 'example.com')) ?: 'example.com';
         for ($number = 1; $number <= $count; $number++) {
@@ -110,33 +114,42 @@ class CourierSeeder extends Seeder
             'city_municipality' => $details['city_municipality'], 'province' => $details['province'], 'region' => $details['region'],
             'postal_code' => $details['postal_code'], 'country' => 'Philippines', 'is_default' => true,
         ]);
-        $courier->courierProfile->vehicles()->firstOrCreate(['plate_number' => $details['plate_number']], ['type' => $details['vehicle_type'], 'status' => VehicleStatus::Active]);
+        $vehicle = $courier->courierProfile->vehicles()->first();
+        if ($vehicle === null) {
+            $courier->courierProfile->vehicles()->create([
+                'plate_number' => $details['plate_number'],
+                'type' => $details['vehicle_type'],
+                'status' => VehicleStatus::Active,
+            ]);
+        }
         $affiliation = $courier->courierLogisticsAffiliation()->firstOrNew();
-        $requiresApproval = ! $affiliation->exists
-            || $affiliation->logistics_organization_id !== $organization->id
-            || $affiliation->logistics_hub_id !== $organization->hub->id
-            || $affiliation->status !== CourierAffiliationStatus::Approved;
-        $requiresTruckQualification = $canDriveCompanyTruck
-            && ! $affiliation->can_drive_company_truck;
-
-        if ($requiresApproval || $requiresTruckQualification) {
-            $attributes = [
+        if (! $affiliation->exists) {
+            $affiliation->fill([
                 'logistics_organization_id' => $organization->id,
                 'logistics_hub_id' => $organization->hub->id,
                 'status' => CourierAffiliationStatus::Approved,
                 'reviewer_id' => $organization->user_id,
                 'reviewed_at' => now(),
                 'rejection_reason' => null,
-            ];
+                'can_drive_company_truck' => $canDriveCompanyTruck,
+            ])->save();
 
-            if ($requiresTruckQualification) {
-                $attributes['can_drive_company_truck'] = true;
-                $attributes['truck_driver_revision'] = $affiliation->exists
-                    ? ((int) $affiliation->truck_driver_revision) + 1
-                    : 1;
-            }
+            return;
+        }
 
-            $affiliation->fill($attributes)->save();
+        if ($affiliation->logistics_organization_id !== $organization->id
+            || $affiliation->logistics_hub_id !== $organization->hub->id
+            || $affiliation->status !== CourierAffiliationStatus::Approved) {
+            $this->command?->warn("Courier affiliation for {$email} was preserved because it has a different organization or review state.");
+
+            return;
+        }
+
+        if ($canDriveCompanyTruck && ! $affiliation->can_drive_company_truck) {
+            $affiliation->update([
+                'can_drive_company_truck' => true,
+                'truck_driver_revision' => ((int) $affiliation->truck_driver_revision) + 1,
+            ]);
         }
     }
 }

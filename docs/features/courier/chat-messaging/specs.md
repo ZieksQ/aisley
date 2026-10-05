@@ -228,3 +228,5 @@ backend_contract_version: courier-operational-messaging-v2
 - Copy this API contract and `api-handoff.md` to Flutter. All three Courier channels and
   both web counterparts are implemented locally; live exchange remains unverified.
   Buyer starts refresh the final-mile task; replies refresh `send_allowed`. No counterpart Order-context calls are made by Flutter.
+
+External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.

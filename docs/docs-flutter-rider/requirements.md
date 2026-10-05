@@ -6,7 +6,7 @@ Aisley is a vertically integrated multi-vendor e-commerce marketplace. Independe
 Unlike a marketplace that depends on third-party logistics APIs, Aisley controls its own logistics infrastructure. The MVP must therefore support the marketplace transaction and first-party logistics lifecycle as one connected system.
 
 The core MVP success path is:
-Buyer discovers a product and places an order → Seller processes and packs it → Seller selects an eligible Logistics organization, requests pickup, and prints the shared waybill → selected Logistics schedules/assigns a first-mile Courier → Courier picks it up and transfers it to Logistics → Logistics receives it through offline-capable scanning and sorts it → Logistics creates a delivery schedule for up to 15 sorted parcels and one final-mile Courier → Courier delivers it → Buyer receives and rates it.
+Buyer discovers a product, selects one Seller-enabled Logistics provider per Shop Order, and places an order with a frozen shipping fee → Seller processes, packs, requests that selected provider, and prints the shared waybill → selected Logistics schedules/assigns a first-mile Courier → Courier picks it up and transfers it to Logistics → Logistics follows the frozen planned route or resolves an unplanned fallback, receives and sorts it → Logistics creates a delivery schedule for up to 15 sorted parcels and one final-mile Courier → Courier delivers it → Buyer receives and rates it.
 
 This is the implemented P0 cross-role flow. The foundation includes Seller pickup requests, the immutable shared waybill, pickup schedules, first-mile assignment/acceptance and confirmation, inventory fulfillment, and Courier route manifests. The additive Shipment/Parcel/Delivery Task contract provides Logistics hub milestones, one atomic final-mile dispatch-batch acceptance, task-bound hub-pickup confirmation evidence, private photo POD, retryable failed doorstep attempts, Logistics-confirmed delivery, and advisory Geoapify batch routing. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred.
 
@@ -24,7 +24,7 @@ The MVP shall prove that Aisley can operate the complete marketplace and logisti
 - Role-based authentication and authorization across web and mobile applications.
 - Platform fee and shipping-fee tracking.
 
-The Seller selects an eligible Logistics organization when requesting pickup for prepared Shop Orders. A same-city/province/country provider is recommended first, then eligible providers are ranked by Geoapify road distance when coordinates and provider capacity are available. The committed provider must not be silently replaced.
+The Seller enables the Logistics organizations offered for its Shop. At checkout the Customer selects one enabled provider per Shop Order from server-priced options. The Order freezes that provider; Seller pickup must use it and no role may silently replace it or increase Customer COD.
 
 # Roles
 
@@ -58,7 +58,7 @@ MVP responsibilities:
 - Add products to cart or buy immediately.
 - Apply vouchers/discounts.
 - Use the current COD payment flow; future online payment methods require a separate payment contract.
-- Select a Customer-owned shipping address at checkout; the Seller selects Logistics when requesting pickup.
+- Select a Customer-owned shipping address and one Seller-enabled Logistics provider per Shop Order at checkout; Seller pickup enforces the frozen provider.
 - Manage shipping/billing addresses.
 - Use the bundled PSGC Region → Province → City/Municipality → Barangay address data with manual fields; optional Geoapify suggestions/coordinates and a Leaflet pin assist when the Customer chooses **Pin location**. Mapbox is not used.
 - Place orders.
@@ -159,3 +159,9 @@ MVP responsibilities:
 - New physical Shipment/Parcel/Scan/custody, final-mile Delivery Task/assignment, and photo proof-of-delivery writes use the reconciled shared operational schema and transition contract, deployed additively and copied into their owning documents. Existing Seller pickup requests, shared waybills, pickup schedules, first-mile assignment/acceptance, and explicit Courier pickup confirmation remain backward-compatible foundations. Confirmation records first-mile custody and inventory fulfillment; scheduling or scanning alone does not. Signature evidence, live location telemetry, returns, and exceptional recovery remain deferred. Subscription billing, provider integration, subscription records, and subscription enforcement are deferred from the MVP and do not gate current approved Logistics access.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges the result into shared physical records without replaying stock. Hub and final-mile transitions use the Logistics-authoritative `FulfillmentTransitionService`; signature proof, live location telemetry, returns, and exceptional recovery remain future extensions; private photo POD and advisory final-mile routes are implemented.
+
+## Current shared shipping context — 2026-10-04
+
+For new checkout quotes, Logistics sets one base fee per offered service and one Shop main-category weight/size rule per category/service leg. Products in the same Shop Order may use different Product Categories; their billable weights are combined and the main-category extra is charged once per Parcel/service leg. Shipping equals first-mile base plus every linehaul-hop base plus last-mile base plus destination surcharge plus weight/size extras; a service base applies once per leg. Admin controls only destination-region surcharges in shipping configuration. Parcel measurement policy remains read-only there. An unplanned route quotes only the destination surcharge and retains the existing later reconciliation workflow; existing Order totals remain frozen.
+
+Inspected Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`. This is shared fulfillment context, not a Courier API/client change or permission to select providers. Courier task authorization, COD and evidence contracts remain unchanged.

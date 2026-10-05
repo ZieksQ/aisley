@@ -3,7 +3,7 @@ feature: customer-auth
 role: Customer
 platform: Flutter / Dart
 phase: 1
-flutter_status: Pending
+flutter_status: Implemented; target acceptance pending
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ---
@@ -15,7 +15,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Auth/approval-aware registration, login and recovery implemented; address/ID registration and
 native reset links deferred.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented; target acceptance pending**. See the Phase 1 verification record for evidence.
 
 Profile/credentials → pending/no credential → Admin decision outside app → device-token login → /me → consent.
 
@@ -28,6 +28,10 @@ Use this feature with its prerequisite session/consent boundary and the related 
 repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
 capabilities remain authoritative.
+
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -133,8 +137,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on either
 change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public hints
-only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 

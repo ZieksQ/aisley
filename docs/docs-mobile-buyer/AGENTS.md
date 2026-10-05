@@ -19,7 +19,7 @@ The Buyer application is one Flutter/Dart client for AISLEY's external Laravel A
 
 The Flutter project owns Customer screens, navigation, typed networking, secure storage, local state and accessibility. Laravel owns identity, approval, consent enforcement, permissions, prices, shipping, vouchers, checkout eligibility, Order transitions, conversation permissions and support-ticket rules.
 
-Every Buyer Flutter feature remains pending at this documentation baseline. Implemented Laravel/storefront behavior and imported Courier work do not establish Buyer mobile implementation or acceptance. Reconcile copied-contract conflicts with current backend evidence before enabling affected behavior.
+The external Buyer project reports Phases 1–4 implementation and Phase 5 local verification tooling at adopted backend 57e9eb2; controlled authenticated/device and distribution acceptance remain open. This bundle contains documentation only; imported tests/builds/browser and SDK/dependency checks were not rerun here. Current provider-selection/DTO adoption is G25. Reconcile copied-contract conflicts with current backend evidence before enabling affected behavior.
 
 ## Git branch and commit rules
 
@@ -44,7 +44,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 9. Keep backend/storage credentials, private map-provider keys and reset tokens out of source, assets, fixtures, screenshots and commits. Send authorization only to the configured trusted API origin.
 10. Verify fields, routes, statuses, ownership and availability against the contract. Record missing/conflicting behavior in the integration-gap register and leave affected actions unavailable until resolved.
 11. Let Laravel determine active/Admin-approved Customer access, visibility, ownership, stock, prices, shipping, vouchers and Order capabilities. Client guards never authorize an action.
-12. Keep protected navigation closed until `/me` identity and required consent resolve. Public browsing may continue during recoverable failures; stored status is not proof of approval.
+12. Keep every shopping destination closed until `/me` identity and required consent resolve. Before verification expose only authentication, approval, recovery and Terms/Privacy; stored status is not proof of approval.
 13. Clear private caches, quotes, drafts, uploads/previews, history, read markers, pending keys and obsolete responses on logout, account switch or identity authorization loss.
 14. Offline mode may show permitted bounded stale reads. Do not queue commerce/communication writes or blindly retry uncertain mutations; follow each endpoint's actual replay contract.
 15. Keep Shop, Logistics and Courier conversation channels separate. Participants, read-only transitions and support-ticket authority come from Laravel.
@@ -78,7 +78,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 
 - Use exact `/api/v1/...` methods, paths, content types, JSON casing, envelopes, nullable fields, error codes and per-operation retry rules.
 - Keep typed parsing in DTOs/models and API access in repositories; keep HTTP calls, tokens and response-shape guesses out of widgets.
-- Scope private responses/cache keys to verified identity. Keep public browsing and guest recency separate from account history and private media.
+- Scope private responses/cache keys to verified identity. Public API contracts remain credential-free where documented; app navigation requires sign-in. Recently Viewed uses verified account history only.
 - A `401` clears invalid identity. Explicit account/role denial clears private identity; resource-specific `403/404` clears affected state. `POLICY_CONSENT_REQUIRED` preserves the session while blocking protected work.
 - Treat `409` as conflict, `422` as validation and `429` as throttling; honor documented `Retry-After`. Timeout/offline/server failure are errors, not authoritative empty lists.
 - Reuse keys and frozen payloads only for supported replay. Do not retry additive Cart changes, photo uploads or uncertain writes as new actions.
@@ -118,7 +118,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 ## Privacy, accessibility and reliability
 
 - Display only permitted personal data. Keep reviewer notes, raw storage paths and credentials out of screens, logs and ordinary caches.
-- Guest recency contains bounded public Product ID/time hints. Never copy private account history into guest storage; merge only after verified authentication.
+- Do not write or merge guest recency. Best-effort removal of `buyer.public_recent_ids_v1` must not block authentication or touch unrelated preferences.
 - Deduplicate results and reject obsolete session generations. Resource denial or identity loss must not leave another account's data visible.
 - Provide loading, empty, unavailable, forbidden, stale, partial, retry, success and offline states. Preserve safe input after recoverable errors and clear private state on account loss.
 - Verify 48×48 logical-pixel targets, labels, text scaling, TalkBack order, visible focus and non-color status cues. Respect keyboard insets, safe areas and Android/browser back/cancel.

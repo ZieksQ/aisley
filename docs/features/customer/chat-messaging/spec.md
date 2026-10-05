@@ -13,6 +13,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 
 ## WHAT
 
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Its rich cards, Seller sharing, and images are target enhancements; this role's existing text-only API and implementation status remain authoritative until separately revised.
 - Let an authenticated Customer ask a Shop about a visible Product or an Order and continue the conversation in a private in-app inbox.
 - Shopee's [buyer chat guidance](https://help.shopee.ph/portal/4/article/82308-%5BChat%5D-How-do-I-chat-with-sellers) is a UX reference for a **Chat** entry point on a Shop and product/order questions; it is not a claim that AISLEY has Shopee's transport or policies.
 - The Shop is the conversation's public identity; the private Seller account is an authorization subject, not a displayed contact profile.
@@ -140,3 +141,7 @@ Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passe
 - Courier uses the existing `/api/v1/customer/courier-conversations` list/start/detail/history/send/read family plus the additive private Order-context endpoint. Its context DTO is `{ data: { order_id, order_reference, send_allowed, conversation_id } }`; foreign Orders are `404`. The shared service uses the same accepted-task selection for context and transactional start.
 - The Next.js server page passes only URL selectors/public homepage data to focused client components under `components/courier-messages/`; private chat is never fetched into cached server props. `lib/courier-messages.ts` owns typed credentialed calls. Order delivery composition is extracted into `components/orders/delivery-panel.tsx`; no migrations, dependencies, Courier web UI, or Flutter changes are needed.
 - Reusable mocked browser check: start the storefront on port 15173 and ChromeDriver on 19515, then run `node tests/courier-chat-browser.smoke.mjs` inside `src/webapp`. It writes generated profiles/screenshots only under ignored `node_modules/.cache/`, without using seeded accounts or a database.
+
+External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
+
+Web UI adoption (2026-10-05): Customer–Shop, Customer–Courier, and Customer–Logistics views now use the shared presentation documented above. Existing Customer endpoints and text/context payloads are unchanged; Customer lint and TypeScript checks passed. Production build and Customer browser verification remain unconfirmed because the environment could not fetch the app's existing Google Fonts during build.

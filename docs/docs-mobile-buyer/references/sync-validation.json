@@ -1,0 +1,50 @@
+{
+  "validated_on": "2026-10-04",
+  "backend_checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
+  "reported_client_adoption": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "checks_executed_here": {
+    "buyer": {
+      "markdown_files": 57,
+      "local_links_and_anchors": 701,
+      "root_instruction_paths": 27,
+      "isolated_docs_copy": true,
+      "customer_specs": 22,
+      "spec_line_range": [
+        215,
+        230
+      ],
+      "operations": 96,
+      "named_types": 111,
+      "duplicated_fixtures": 96,
+      "shipping_scenarios": 19,
+      "contract_checks": true
+    },
+    "courier": {
+      "markdown_files": 49,
+      "local_links_and_anchors": 35,
+      "root_instruction_paths": 0,
+      "isolated_docs_copy": true
+    },
+    "preservation": {
+      "psgc_assets": 19,
+      "archives_and_historical_records": 14,
+      "root_instructions": true,
+      "courier_role_contracts_and_client_guides": true,
+      "progress_prefixes": true,
+      "imported_snapshot_tree_hashes": true,
+      "courier_input_files_matching_initial_tracked": 47,
+      "buyer_original_verification_reports": 6
+    },
+    "canonical_local_links": 7,
+    "privacy_conflict_and_documentation_scope": true,
+    "wire_table_schema_agreement": true
+  },
+  "errors": [],
+  "limits": [
+    "Documentation-only validation; no executable Flutter DTO tests.",
+    "Imported Flutter SDK/dependency/tests/builds/browser/API evidence was not rerun.",
+    "No backend/application tests, authenticated exchange or installed-device acceptance ran.",
+    "G25 current shipping adoption and live/device/accessibility/signing/deployment gates remain open.",
+    "Courier unchanged AGENTS.md excluded from link validation per its existing README; byte preservation verified."
+  ]
+}

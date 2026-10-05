@@ -35,13 +35,13 @@ class MarketplaceCategorySeeder extends Seeder
             foreach (array_keys(self::TAXONOMY) as $shopPosition => $shopCategoryName) {
                 $productCategoryNames = self::TAXONOMY[$shopCategoryName];
                 $shopCategorySlug = Str::slug($shopCategoryName);
-                $shopCategory = ShopCategory::query()->updateOrCreate(
+                $shopCategory = ShopCategory::query()->firstOrCreate(
                     ['slug' => $shopCategorySlug],
                     ['name' => $shopCategoryName, 'status' => CategoryStatus::Active, 'position' => $shopPosition],
                 );
 
                 foreach ($productCategoryNames as $productPosition => $productCategoryName) {
-                    Category::query()->updateOrCreate(
+                    Category::query()->firstOrCreate(
                         ['slug' => $shopCategorySlug.'-'.Str::slug($productCategoryName)],
                         [
                             'shop_category_id' => $shopCategory->id,

@@ -3,9 +3,10 @@ feature: order-status
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Pending
+flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ---
 
 # Owned Orders and tracking
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Owned list/detail/timeline, status mapper, immutable facts and safe assigned-Courier projection
 implemented; live maps deferred.
 
-Flutter: **pending**. These are implementation requirements, not completed screens or tests.
+Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 
 Account Orders → All/status group → own detail/timeline → server-capable correction/contact/review.
 
@@ -24,11 +25,16 @@ Account Orders → All/status group → own detail/timeline → server-capable c
 - Buyer cannot advance status, scan/submit proof/accept tasks/collect COD. map.available=false means no fabricated GPS/route/ETA. Tracking Courier name/contact does not enable chat: fetch Courier Order-context.
 - Responses are private; focus/reconnect/filter paging must discard obsolete account responses. Routine movement/first-mile scheduling does not imply Buyer notifications.
 
-The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
+The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
+imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
 communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
 capabilities remain authoritative.
+
+Buyer presentation requires verified active Customer identity and required consent for every shopping
+screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -106,8 +112,8 @@ actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
-| `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `actions: OrderActions` |
-| `OrderSummary` | `id: UUID`, `reference: string`, `shop: OrderShop`, `itemPreview: ItemPreview?`, `lineCount: int`, `itemCount: int`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `latestTrackingAt: timestamp`, `totals: Totals`, `actions: OrderActions`, `detailUrl: URL` |
+| `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `actions: OrderActions` |
+| `OrderSummary` | `id: UUID`, `reference: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `itemPreview: ItemPreview?`, `lineCount: int`, `itemCount: int`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `latestTrackingAt: timestamp`, `totals: Totals`, `actions: OrderActions`, `detailUrl: URL` |
 | `Tracking` | `id: UUID`, `status: string`, `label: string`, `eventType: string?`, `location: TrackingLocation`, `occurredAt: timestamp` |
 | `OrderActions` | `canCancel: bool`, `canModify: bool`, `canReview: bool`, `modifiableFields: string[]` |
 
@@ -130,8 +136,8 @@ Duplicate submits are disabled. Supported uncertain UUID writes retain exact key
 memory.
 Queries/pages belong to a full request signature and session generation. Drop stale success/error on
 either change.
-Private data is memory-only by default; token is secure-store only, guest recency holds bounded public
-hints only.
+Private data is memory-only; token is secure-store only. Recently Viewed is account-only.
+Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 
@@ -181,6 +187,7 @@ universal error envelope.
 
 ### Verification scenarios
 
+- [ ] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
 - [ ] Foreign/role/account-state privacy and bounded group/list/timeline work.
 - [ ] Server actions/maps/labels and independent Shop Orders remain truthful through refresh/error/late
   replies.
@@ -192,7 +199,7 @@ universal error envelope.
   credential behavior.
 - [ ] Exercise normal, empty, malformed, denied, consent-required, validation, conflict, throttle,
   offline and timeout outcomes.
-- [ ] Delayed responses/errors after logout/account switch cannot repopulate private state or restart
+- [x] Delayed responses/errors after logout/account switch cannot repopulate private state or restart
   disposed work.
 - [ ] Same-key replay applies only where supported; additive Cart/image requests are never globally
   retried.
@@ -213,3 +220,6 @@ No Flutter implementation checkbox is completed by documentation authoring or ro
 Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
+[shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.

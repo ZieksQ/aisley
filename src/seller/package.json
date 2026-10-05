@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aisley/chat-ui": "workspace:*",
     "@aisley/psgc-address-data": "workspace:*",
     "@aisley/finance-ui": "workspace:*",
     "@aisley/ui": "workspace:*",

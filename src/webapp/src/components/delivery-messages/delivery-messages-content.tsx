@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/chat-ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { deliveryMessages, type DeliveryMessage, type DeliveryThread } from "@/lib/delivery-messages";
@@ -36,20 +37,24 @@ export function DeliveryMessagesContent({ orderId, conversationId }: { orderId: 
 }
 
 function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: string | null; conversationId: string | null }) {
+  const { auth } = useAuth();
   const router = useRouter();
+  const accountId = auth.status === "authenticated" ? auth.customer.id : "unknown";
   const [threads, setThreads] = useState<DeliveryThread[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(conversationId);
+  const selected = threads.find((thread) => thread.id === selectedId) ?? null;
+  const startingOrder = selected ? null : orderId;
+  const draftKey = `customer-logistics:${accountId}:${selectedId ?? startingOrder ?? 'inbox'}`;
+  const [draft, setDraft] = useChatDraft(draftKey);
+  const [pending, setPending] = useChatAttempt(draftKey);
   const [messages, setMessages] = useState<DeliveryMessage[]>([]);
   const [nextThreadCursor, setNextThreadCursor] = useState<string | null>(null);
   const [nextMessageCursor, setNextMessageCursor] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const pending = useRef<{ key: string; body: string } | null>(null);
-  const selected = threads.find((thread) => thread.id === selectedId) ?? null;
-  const startingOrder = selected ? null : orderId;
+  const activeDraftKey = useRef(draftKey);
 
   const refresh = useCallback(async () => {
     if (!navigator.onLine) return;
@@ -57,17 +62,30 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       const page = await deliveryMessages.list();
       setThreads((current) => [...page.data, ...current.filter((item) => !page.data.some((fresh) => fresh.id === item.id))]);
       setNextThreadCursor(page.meta.next_cursor);
-      if (!conversationId && orderId) {
+      if (activeDraftKey.current === draftKey && !conversationId && orderId) {
         const match = page.data.find((thread) => thread.order_id === orderId && thread.send_allowed);
-        if (match) setSelectedId(match.id);
+        if (match && !readChatAttempt(draftKey)) {
+          const startKey = `customer-logistics:${accountId}:${orderId}`;
+          const threadKey = `customer-logistics:${accountId}:${match.id}`;
+          if (readChatDraft(startKey) && !readChatDraft(threadKey)) writeChatDraft(threadKey, readChatDraft(startKey));
+          activeDraftKey.current = threadKey;
+          setLoading(true);
+          setSelectedId(match.id);
+        }
       }
       setError("");
     } catch (reason) {
+      if (reason instanceof ApiError && [401, 403].includes(reason.status)) {
+        clearChatPrivateState();
+        setThreads([]);
+        setMessages([]);
+        setSelectedId(null);
+      }
       setError(errorText(reason));
     } finally {
       setLoading(false);
     }
-  }, [conversationId, orderId]);
+  }, [accountId, conversationId, draftKey, orderId]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
@@ -89,18 +107,26 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
         setMessages((current) => mergeMessages(current, history.data));
         setNextMessageCursor(history.meta.next_cursor);
         const latest = history.data.at(-1)?.sequence;
-        if (latest && latest > detail.data.last_read_sequence) {
+        if (!document.hidden && latest && latest > detail.data.last_read_sequence) {
           const read = await deliveryMessages.read(selectedId, latest);
           if (!cancelled) setThreads((current) => current.map((thread) => thread.id === selectedId ? read.data : thread));
         }
-      } catch (reason) { if (!cancelled) setError(errorText(reason)); }
+      } catch (reason) {
+        if (!cancelled) {
+          if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) {
+            clearChatPrivateState(); setThreads([]); setMessages([]);
+          }
+          setError(errorText(reason));
+        }
+      }
+      finally { if (!cancelled) setLoading(false); }
     };
-    void load();
+    const initial = window.setTimeout(() => { setLoading(true); void load(); }, 0);
     const poll = () => { if (document.visibilityState === "visible" && navigator.onLine) void load(); };
     const timer = window.setInterval(poll, 15000);
     window.addEventListener("focus", poll);
     window.addEventListener("online", poll);
-    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener("focus", poll); window.removeEventListener("online", poll); };
+    return () => { cancelled = true; window.clearTimeout(initial); window.clearInterval(timer); window.removeEventListener("focus", poll); window.removeEventListener("online", poll); };
   }, [selectedId]);
 
   async function loadOlderThreads() {
@@ -109,7 +135,10 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       const page = await deliveryMessages.list(nextThreadCursor);
       setThreads((current) => [...current, ...page.data.filter((thread) => !current.some((item) => item.id === thread.id))]);
       setNextThreadCursor(page.meta.next_cursor);
-    } catch (reason) { setError(errorText(reason)); }
+    } catch (reason) {
+      if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) { clearChatPrivateState(); setThreads([]); setMessages([]); }
+      setError(errorText(reason));
+    }
   }
 
   async function loadOlderMessages() {
@@ -118,71 +147,95 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       const page = await deliveryMessages.history(selectedId, nextMessageCursor);
       setMessages((current) => mergeMessages(current, page.data));
       setNextMessageCursor(page.meta.next_cursor);
-    } catch (reason) { setError(errorText(reason)); }
+    } catch (reason) {
+      if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) { clearChatPrivateState(); setThreads([]); setMessages([]); }
+      setError(errorText(reason));
+    }
   }
 
-  async function send(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function send() {
     if (busy || !navigator.onLine) { setError("Reconnect before sending a message."); return; }
-    const body = draft.trim();
+    const body = pending?.body ?? draft.trim();
     if (!body || body.length > 2000 || (!selectedId && !startingOrder)) return;
-    const attempt = pending.current?.body === body ? pending.current : { key: crypto.randomUUID(), body };
-    pending.current = attempt;
+    const contextToken = selectedId ? null : `order:${startingOrder}`;
+    const savedAttempt = readChatAttempt(draftKey);
+    const attempt = savedAttempt?.body === body && savedAttempt.context === contextToken
+      ? savedAttempt : { key: crypto.randomUUID(), body, context: contextToken };
+    setPending(attempt);
+    const targetDraftKey = draftKey;
+    const targetConversationId = selectedId;
+    const targetOrderId = startingOrder;
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      const result = selectedId
-        ? await deliveryMessages.send(selectedId, attempt.body, attempt.key)
-        : await deliveryMessages.start(startingOrder!, attempt.body, attempt.key);
-      pending.current = null;
-      setDraft("");
+      const result = targetConversationId
+        ? await deliveryMessages.send(targetConversationId, attempt.body, attempt.key)
+        : await deliveryMessages.start(targetOrderId!, attempt.body, attempt.key);
+      writeChatDraft(targetDraftKey, "");
+      writeChatAttempt(targetDraftKey, null);
+      if (activeDraftKey.current !== targetDraftKey) { void refresh(); return; }
       setMessages((current) => mergeMessages(current, [result.message]));
       setThreads((current) => [result.conversation, ...current.filter((thread) => thread.id !== result.conversation.id)]);
+      activeDraftKey.current = `customer-logistics:${accountId}:${result.conversation.id}`;
       setSelectedId(result.conversation.id);
       setNotice("Message saved.");
       router.replace(`/delivery-messages?conversation=${encodeURIComponent(result.conversation.id)}`);
-    } catch (reason) { setError(errorText(reason)); }
+    } catch (reason) {
+      if (activeDraftKey.current !== targetDraftKey) return;
+      setError(errorText(reason));
+      if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) {
+        clearChatPrivateState();
+      } else if (reason instanceof ApiError && [409, 422, 429].includes(reason.status)) {
+        writeChatAttempt(targetDraftKey, null);
+        if (reason.status === 409) void refresh();
+      }
+    }
     finally { setBusy(false); }
   }
 
-  return <div className="grid border border-[#DED7E1] bg-white md:grid-cols-[16rem_minmax(0,1fr)]">
-    <aside aria-label="Delivery inbox" className="border-b border-[#EAE4EC] md:border-b-0 md:border-r">
-      <div className="border-b border-[#EAE4EC] px-4 py-3 text-sm font-semibold text-[#302534]">Delivery inbox</div>
-      {loading && <p className="p-4 text-sm text-[#655969]" role="status">Loading conversations…</p>}
-      {!loading && !threads.length && <p className="p-4 text-sm text-[#655969]">No delivery conversations yet. Open an active Order to contact its Logistics team.</p>}
-      <ul className="divide-y divide-[#EAE4EC]">{threads.map((thread) => <li key={thread.id}>
-        <button aria-current={selectedId === thread.id ? "true" : undefined} className="w-full p-4 text-left hover:bg-[#FAF7FB] focus-visible:outline-2 focus-visible:outline-[#E6007A]" onClick={() => { setSelectedId(thread.id); setMessages([]); setNotice(""); router.replace(`/delivery-messages?conversation=${encodeURIComponent(thread.id)}`); }} type="button">
-          <span className="block text-sm font-semibold text-[#302534]">{thread.counterparty_label}</span>
-          <span className="mt-1 block text-xs text-[#655969]">Order {thread.order_reference ?? thread.order_id.slice(0, 8)}{thread.unread_count ? ` · ${thread.unread_count} unread` : ""}</span>
-          <span className="mt-1 block truncate text-xs text-[#655969]">{thread.last_message_preview}</span>
-        </button>
-      </li>)}</ul>
-      {nextThreadCursor && <button className="w-full border-t border-[#EAE4EC] p-3 text-sm font-semibold text-[#4C1268]" onClick={() => void loadOlderThreads()} type="button">Load older conversations</button>}
-    </aside>
-    <section aria-label="Delivery conversation" className="flex min-h-80 flex-col">
-      <header className="border-b border-[#EAE4EC] px-4 py-4">
-        <h2 className="font-semibold text-[#302534]">{selected?.counterparty_label ?? (startingOrder ? "Contact Logistics" : "Choose a conversation")}</h2>
-        <p className="mt-1 text-xs text-[#655969]">{selected ? `Order ${selected.order_reference ?? selected.order_id.slice(0, 8)}` : startingOrder ? `Order ${startingOrder.slice(0, 8)}` : "Delivery conversations are separate from Shop messages."}</p>
-        {selected?.read_only_reason && <p className="mt-2 text-xs text-[#8B204B]">The delivery relationship ended. This history is read-only.</p>}
+  const entries: ChatEntry[] = threads.map((thread) => ({
+    id: thread.id, title: thread.counterparty_label, preview: thread.last_message_preview ?? '',
+    activity: thread.last_message_at, unread: thread.unread_count,
+    context: `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}`,
+    selected: selectedId === thread.id, readOnly: Boolean(thread.read_only_reason),
+    onSelect: () => { activeDraftKey.current = `customer-logistics:${accountId}:${thread.id}`; setBusy(false); setLoading(true); setSelectedId(thread.id); setMessages([]); setNotice(""); setError(""); router.replace(`/delivery-messages?conversation=${encodeURIComponent(thread.id)}`); },
+  }));
+
+  return <ChatWorkspace
+    entries={entries}
+    selected={Boolean(selected || startingOrder || selectedId)}
+    inboxTitle="Delivery conversations"
+    inboxStatus={loading && !threads.length ? <p className="p-4 text-sm text-[#655969]" role="status">Loading conversations…</p> : null}
+    inboxError={error && !selected && !startingOrder ? error : undefined}
+    onRetryInbox={() => void refresh()}
+    canLoadMore={Boolean(nextThreadCursor)}
+    onLoadMore={() => void loadOlderThreads()}
+    onBack={() => { activeDraftKey.current = `customer-logistics:${accountId}:${orderId ?? 'inbox'}`; setBusy(false); setSelectedId(null); setMessages([]); setError(""); router.replace('/delivery-messages'); }}
+  >
+    {selected || startingOrder || selectedId ? <>
+      <header className="shrink-0 border-b border-zinc-200 px-4 py-3 dark:border-white/10 sm:px-6">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{selected?.counterparty_label ?? (startingOrder ? 'Contact Logistics' : loading ? 'Loading conversation…' : 'Delivery conversation')}</h2>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{selected ? `Order ${selected.order_reference ?? selected.order_id.slice(0, 8)}` : startingOrder ? `Order ${startingOrder.slice(0, 8)}` : 'Delivery coordination'}</p>
       </header>
-      <div aria-live="polite" className="flex-1 space-y-3 p-4">
-        {nextMessageCursor && <button className="text-sm font-semibold text-[#4C1268] underline" onClick={() => void loadOlderMessages()} type="button">Load earlier messages</button>}
-        {!messages.length && <p className="text-sm text-[#655969]">{startingOrder ? "Your first message creates a private Order conversation." : "No messages to show."}</p>}
-        {messages.map((message) => <article className={`max-w-[85%] border p-3 text-sm ${message.mine ? "ml-auto border-[#DCC6E3] bg-[#F8F2FA]" : "border-[#E6E0E8]"}`} key={message.id}>
-          <p className="mb-1 text-xs font-semibold text-[#655969]">{message.mine ? "You" : selected?.counterparty_label ?? "Logistics"}</p>
-          <p className="whitespace-pre-wrap break-words text-[#302534]">{message.body}</p>
-          <time className="mt-2 block text-xs text-[#877A89]" dateTime={message.created_at}>{new Date(message.created_at).toLocaleString()}</time>
-        </article>)}
-      </div>
-      {(selected || startingOrder) && <form className="border-t border-[#EAE4EC] p-4" onSubmit={(event) => void send(event)}>
-        {error && <p className="mb-2 text-sm text-[#8B204B]" role="alert">{error}</p>}
-        {notice && <p className="mb-2 text-sm text-[#20734A]" role="status">{notice}</p>}
-        <label className="block text-sm font-semibold text-[#302534]" htmlFor="delivery-message">Message Logistics</label>
-        <textarea className="mt-2 min-h-24 w-full border border-[#CFC6D2] p-3 text-sm focus-visible:outline-2 focus-visible:outline-[#E6007A]" disabled={busy || selected?.send_allowed === false} id="delivery-message" maxLength={2000} onChange={(event) => setDraft(event.target.value)} value={draft} />
-        <button className="mt-3 min-h-10 rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !draft.trim() || selected?.send_allowed === false} type="submit">{busy ? "Sending…" : "Send message"}</button>
-      </form>}
-      {error && !selected && !startingOrder && <p className="p-4 text-sm text-[#8B204B]" role="alert">{error}</p>}
-    </section>
-  </div>;
+      {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
+      <ChatHistory
+        key={selectedId ?? startingOrder ?? 'delivery-inbox'}
+        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : selected?.counterparty_label ?? 'Logistics', createdAt: message.created_at }))}
+        olderCursor={Boolean(nextMessageCursor)} onLoadOlder={() => void loadOlderMessages()} loading={loading}
+        emptyText={startingOrder ? 'Your first message creates a private Order conversation.' : 'No messages to show.'}
+      />
+      {selected || startingOrder ? <ChatComposer
+        id="delivery-message" recipient="Logistics"
+        value={draft}
+        onChange={(value) => { setDraft(value); setError(""); setNotice(""); }}
+        onSubmit={() => void send()}
+        sendAllowed={selected?.send_allowed ?? true}
+        readOnlyReason={selected?.read_only_reason ? 'The delivery relationship ended. This history is read only.' : null}
+        online={typeof navigator === 'undefined' || navigator.onLine}
+        sending={busy} uncertain={Boolean(pending) && !busy} error={error || undefined}
+        success={notice ? 'Message saved.' : undefined}
+      /> : <p className="p-4 text-sm text-zinc-500" role="status">{loading ? 'Loading messages…' : error || 'This conversation is unavailable.'}</p>}
+    </> : <div className="grid min-h-full place-items-center p-8 text-center text-sm text-[#655969]">Select an Order conversation or open an eligible Order to contact Logistics.</div>}
+  </ChatWorkspace>;
 }

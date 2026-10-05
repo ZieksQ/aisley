@@ -1,6 +1,6 @@
 {
   "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
-  "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "checkout": "22b0a48f9575ead182d03c35ab87345711c23b90",
   "operations": [
     {
       "feature": "customer-auth",
@@ -33,14 +33,14 @@
           "id": "11111111-1111-4111-8111-111111111111",
           "email": "buyer@example.invalid",
           "role": "customer",
-          "status": "active",
+          "status": "pending",
           "profile": {
-            "first_name": null,
-            "last_name": null,
+            "first_name": "Synthetic",
+            "last_name": "Customer",
             "middle_name": null,
-            "contact_number": null,
-            "sex": null,
-            "birth_date": null,
+            "contact_number": "SYNTHETIC_CONTACT",
+            "sex": "prefer_not_to_say",
+            "birth_date": "2000-01-01",
             "profile_photo_path": null
           }
         }
@@ -247,5 +247,6 @@
         }
       }
     }
-  ]
+  ],
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
 }

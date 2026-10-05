@@ -39,7 +39,11 @@ class InitialLogisticsSeeder extends Seeder
             'postal_code' => config('logistics.initial.postal_code', '1200'),
         ]);
 
-        $count = min(100, max(0, (int) config('logistics.generic.count', 5)));
+        $configuredCount = (int) config('logistics.generic.count', 5);
+        $count = app()->environment('production') ? 0 : min(100, max(0, $configuredCount));
+        if ($configuredCount > 0 && $count === 0) {
+            $this->command?->warn('Generic Logistics fixtures were not seeded in production.');
+        }
         $prefix = trim((string) config('logistics.generic.email_prefix', 'logistics')) ?: 'logistics';
         $domain = trim((string) config('logistics.generic.email_domain', 'example.com')) ?: 'example.com';
 
@@ -102,13 +106,6 @@ class InitialLogisticsSeeder extends Seeder
                 'is_default' => true,
             ],
         );
-        if ($address->latitude === null || $address->longitude === null) {
-            $address->forceFill([
-                'latitude' => config('logistics.initial.latitude', 14.565681),
-                'longitude' => config('logistics.initial.longitude', 121.032077),
-            ])->save();
-        }
-
         $organization = $logistics->logisticsOrganization()->firstOrCreate([], [
             'business_name' => $details['business_name'],
         ]);

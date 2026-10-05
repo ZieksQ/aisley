@@ -1,6 +1,6 @@
 # Buyer Flutter documentation bundle
 
-Historical baseline: **`7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`**. New contract inspection before editing: **2026-10-03**, checkout **`57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`**. Buyer Flutter implementation: **pending in every feature**.
+Historical baseline: **`7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`**. Reported client adoption inspection: **2026-10-03**, checkout **`57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`**. Buyer Flutter implementation (external project report): **Phases 1–4 implemented; live/device acceptance remains partial**. See [Phase 4 evidence](references/phase-4-verification.md), [Phase 3 evidence](references/phase-3-verification.md), [Phase 2 evidence](references/phase-2-verification.md) and [Phase 1 evidence](references/phase-1-verification.md).
 
 This portable bundle defines a new standalone Flutter/Dart Customer app targeting Android, with the same application tested in a local browser. Laravel, Sanctum, PostgreSQL, and configured blob storage remain the platform backend. `customer` is the only persisted/API role; Buyer is product terminology.
 
@@ -15,10 +15,14 @@ Read in this order:
 
 ## Delivery phases
 
+Phase 5 local-readiness tooling and the acceptance runbook are implemented. See
+[Phase 5 evidence and retained gates](references/phase-5-verification.md). Controlled
+authenticated, installed-device and distribution acceptance remains open.
+
 | Phase | Deliverables | Exit boundary |
 | --- | --- | --- |
 | 1 — Foundation/authentication | App composition, typed network client, configuration, secure token storage, login/register/recovery, session restoration, policy reading/consent, protected navigation | Android and fixed-origin local web compile; active Customer restoration and denial/consent cleanup verified |
-| 2 — Discovery/account | Homepage, Products/Shops search, Shop browsing, Product Detail, profile/password/photo, Address Book, Wishlist, Recently Viewed | Public/private cache separation, PSGC fallback, authenticated photos, guest merge and account switching verified |
+| 2 — Discovery/account | Homepage, Products/Shops search, Shop browsing, Product Detail, profile/password/photo, Address Book, Wishlist, Recently Viewed | Public/private cache separation, PSGC fallback, authenticated photos, account history and account switching verified |
 | 3 — Cart/checkout/orders | Cart configuration, Buy Now, quotes, voucher usage, COD placement/results, Orders/tracking, cancellation/address correction | Server totals and serviceability, immutable snapshots, uncertain placement reconciliation and same-key retries verified |
 | 4 — Communication/reviews/support | Separate Shop/Logistics/Courier inboxes, notifications/preferences, Q&A, verified reviews/photos, support tickets | Cross-role replies, read markers, read-only transitions, partial uploads and safe retries verified |
 | 5 — Integration/release | Live development API, installed Android, local browser, security/accessibility/permission and recovery checks | Evidence recorded against backend commit; open release gates explicitly resolved or retained |
@@ -31,12 +35,16 @@ Copy **this directory's complete contents** into the standalone repository's `do
 
 The [documentation validation record](references/documentation-validation.md) records completed checks and their limits.
 
-The handoff includes complete feature contracts, a concrete stable SDK/package blueprint, synthetic examples and all nineteen unchanged PSGC reference assets with attribution/checksums. It includes no Flutter implementation, credentials or server configuration. Copy the assets using [setup](setup.md). Local documents supply implementation authority; upstream source paths/hashes are optional audit provenance. A missing monorepo checkout is not an implementation dependency.
+The handoff includes complete feature contracts, a concrete stable SDK/package blueprint, synthetic examples and all nineteen unchanged PSGC reference assets with attribution/checksums. The original documentation handoff included no Flutter implementation, credentials or server configuration; the external Flutter project reports Phases 1–4 under `lib/` and Phase 5 tooling. This tracked bundle contains documentation only. References to `lib/`, tests, `tool/`, lockfiles and ignored build reports describe that external project, and its results were not rerun here. Copy the assets using [setup](setup.md). Local documents supply implementation authority; upstream source paths/hashes are optional audit provenance. A missing monorepo checkout is not an implementation dependency.
 
 Configured backend origins, approved test accounts, localhost CORS/header visibility and suitable public map credentials remain external deployment inputs. Validate live integration against the deployed backend; record material differences and actual Flutter results in Progress without rewriting the historical baseline.
 
-The bundle is now tracked at `docs/docs-mobile-buyer/`, following its relocation in commit `c5ce0cc`. Its original location under `docs/cabigan/` was ignored; that directory's existing ignore policy remains unchanged. Copy the complete tracked bundle when handing it off.
+This platform repository tracks the bundle at `docs/docs-mobile-buyer/`; the external Flutter destination is `docs/`. Upstream relocation to
+`docs/docs-mobile-buyer/` in `c5ce0cc` and the original ignored `docs/cabigan/`
+location remain historical provenance. Copy the complete bundle when handing it off.
 
 ## Customer specification maintenance
 
-Read [Customer rules](features/customer/rule.md) before creating or revising a Customer spec, including authentication. New or revised specs use WHAT/MUST/HOW and contain 200–230 physical lines; this local rule overrides the feature-spec skill's shorter length preference. All 22 Customer specs now meet the length requirement and define requests, types, states, replay and tests. Shared consent is also complete. Flutter implementation and acceptance remain pending; documentation validation is recorded separately.
+Read [Customer rules](features/customer/rule.md) before creating or revising a Customer spec, including authentication. New or revised specs use WHAT/MUST/HOW and contain 200–230 physical lines; this local rule overrides the feature-spec skill's shorter length preference. All 22 Customer specs now meet the length requirement and define requests, types, states, replay and tests. Shared consent is also complete. Phases 1–4 implementation evidence is recorded separately; controlled authenticated and installed-device acceptance gates stay open.
+
+Current Laravel inspection: **2026-10-04**, `22b0a48f9575ead182d03c35ab87345711c23b90`. See [per-Shop shipping selection](api/shipping-selection.md) and [current provenance](references/source-provenance.md). Provider selection and changed shipping DTOs remain a client adoption gap (G25); imported results retain the earlier baseline. Required sign-in and account-only recency apply to Buyer Flutter presentation; the storefront keeps guest browsing/recency.

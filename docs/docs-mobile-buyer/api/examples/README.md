@@ -28,3 +28,5 @@ Read [operation contracts](../operations.md) and [wire definitions](../field-ind
 - [wishlist](./wishlist.json)
 
 - [Auxiliary address options](address-options.json)
+
+- [Current shipping-selection scenarios](shipping-selection-scenarios.json) cover empty/single/multiple options, invalid/unavailable providers, tariff/route failures, frozen/replayed/changed intent and nullable legacy providers. These are synthetic expected contracts; current client adoption remains G25.
