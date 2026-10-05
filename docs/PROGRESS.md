@@ -49,3 +49,7 @@ Format:
 - Expanded the shared chat specification's future document attachments to PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, TXT, and CSV, preserving separate upload-policy and implementation prerequisites. Documentation-only update; no application tests ran.
 
 - Overhauled all seven Customer, Seller, and Logistics web chat surfaces with the shared `@aisley/chat-ui` inbox/history/composer, memory-only drafts and exact retry state, responsive scroll handling, and keyboard/accessibility improvements while preserving role routes and current text APIs. All three app lint and TypeScript checks passed; Seller and Logistics production builds passed; mocked Seller Courier Chromium smoke passed at 390/768/1280px in light and dark themes, including desktop Enter-to-send and mobile newline handling. Customer production build was blocked by restricted access to existing Google Fonts; Customer and Logistics browser checks were not run.
+
+## 2026-10-05
+
+- Completed the rebase of `feature/chat-messaging-ui-overhaul` onto `origin/main` (`6496b9f`). Skipped eight commits already included in PR #108 after verifying its squash tree exactly matches their combined tree; resolved only the app-wide progress log by preserving both histories. Verified 1,974 remaining file paths against the combined upstream/branch changes, including automatic merges of the design/workflow documents; Git whitespace checks pass and no feature conflicts remain. No application code was manually changed and application tests were not rerun.
