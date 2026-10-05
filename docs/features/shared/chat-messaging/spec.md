@@ -94,9 +94,23 @@
 | --- | --- | --- |
 | Video | MP4 (`.mp4`, `video/mp4`); poster, explicit play/pause, no autoplay | Approved codecs, duration/size limits, content inspection, processing/transcoding, private delivery, accessible text alternative |
 | Audio | MP3 (`.mp3`, `audio/mpeg`); duration and explicit playback controls | Duration/size limits, actual audio validation, private delivery, accessible transcript/caption approach; recording needs separate microphone consent UX |
-| Word documents | `.docx` (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`); filename, size, explicit download | Validate Office package contents, scan/quarantine, bounded archive inspection, safe download headers, retention; defer legacy `.doc` and macro-enabled `.docm` |
+| Documents | Formats listed below; show filename, format, size, and explicit download | Define per-format size limits, content validation, scan/quarantine, safe download headers, private delivery, and retention; inspect packaged formats within resource bounds and render any text preview as untrusted plain text |
 
-- The image policy does not authorize any of these formats. Keep MP4, MP3, and Word selection disabled until separate approved policies and role contracts exist; renaming a file must never bypass validation.
+Document formats proposed for future chat attachments:
+
+| Extension | Format |
+| --- | --- |
+| `.pdf` | PDF |
+| `.docx` | Microsoft Word |
+| `.xlsx` | Excel |
+| `.pptx` | PowerPoint |
+| `.odt` | OpenDocument Text |
+| `.ods` | OpenDocument Spreadsheet |
+| `.odp` | OpenDocument Presentation |
+| `.txt` | Plain text |
+| `.csv` | CSV |
+
+- The image policy does not authorize any of these formats. Keep MP4, MP3, and document selection disabled until separate approved policies and role contracts exist; renaming a file must never bypass validation. Legacy Office and macro-enabled formats remain outside the proposed list.
 - Consider Seller saved replies, participant-scoped conversation search, and reply-to-message references after core chat is stable. Each requires its own scope, authorization, accessibility, and acceptance criteria.
 - Read receipts, typing/presence, mute/report, and retention controls remain separate product decisions; borrowing Messenger presentation does not promise its feature set or end-to-end encryption.
 
