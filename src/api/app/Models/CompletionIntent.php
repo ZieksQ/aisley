@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DeliveryApprovalMode;
 use App\Enums\ShipmentEvidenceStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -15,11 +16,12 @@ class CompletionIntent extends Model
         'delivery_task_id', 'shipment_evidence_id', 'courier_id', 'expected_revision', 'status',
         'idempotency_key', 'request_hash', 'confirmed_at', 'validated_at', 'validated_by_logistics_id',
         'cod_declared_amount', 'cod_currency', 'cod_declared_at',
+        'approval_mode', 'review_organization_id', 'review_hub_id', 'automatic_review_error', 'review_method',
     ];
 
     protected function casts(): array
     {
-        return ['status' => ShipmentEvidenceStatus::class, 'expected_revision' => 'integer', 'confirmed_at' => 'datetime', 'validated_at' => 'datetime', 'cod_declared_amount' => 'decimal:2', 'cod_declared_at' => 'datetime'];
+        return ['approval_mode' => DeliveryApprovalMode::class, 'review_method' => DeliveryApprovalMode::class, 'status' => ShipmentEvidenceStatus::class, 'expected_revision' => 'integer', 'confirmed_at' => 'datetime', 'validated_at' => 'datetime', 'cod_declared_amount' => 'decimal:2', 'cod_declared_at' => 'datetime'];
     }
 
     public function task(): BelongsTo

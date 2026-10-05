@@ -27,7 +27,7 @@ class CheckoutQuoteRequest extends FormRequest
             'buy_now.variant_id' => ['present_if:mode,buy_now', 'nullable', 'uuid'],
             'buy_now.quantity' => ['required_if:mode,buy_now', 'integer', 'min:1', 'max:2147483647'],
             'address_id' => ['required', 'uuid'],
-            'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
+            'payment_method' => ['required', Rule::in([PaymentMethod::CashOnDelivery->value])],
             'vouchers' => ['sometimes', 'array', 'max:20'],
             'vouchers.*.voucher_id' => ['required', 'uuid', 'distinct:strict'],
             'vouchers.*.target_shop_id' => ['required', 'uuid'],

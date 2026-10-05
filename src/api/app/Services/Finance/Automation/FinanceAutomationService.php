@@ -10,6 +10,7 @@ use App\Models\FinanceAutomationRun;
 use App\Models\FinancePaymentAttempt;
 use App\Models\FinanceWebhookReceipt;
 use App\Models\LogisticsOrganization;
+use App\Services\Finance\CourierCashCreditService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,7 @@ class FinanceAutomationService
     public function tick(): int
     {
         $this->notices->dispatchPending();
+        app(CourierCashCreditService::class)->recover();
         if (! config('finance.gateway_enabled')) {
             return 0;
         }

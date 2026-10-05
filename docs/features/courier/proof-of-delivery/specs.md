@@ -219,3 +219,15 @@ Idempotency-Key: <UUID header>
 - [x] External Flutter privately rereads active/rejected POD by opaque proof ID without exposing or persisting a raw storage path.
 
 **References:** `docs/features/courier/rules.md`, `docs/features/shared/shipment-fulfillment/spec.md`, `docs/references/file-upload-requirements.md`, `docs/features/logistics/update-status/specs.md`, `docs/features/courier/pick-up-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.
+
+## Delivery approval policy revision (2026-10-05)
+
+- Logistics organizations choose manual review (default) or automatic prepaid approval. COD always requires manual photo review and cash-collection acknowledgment.
+- Completion intents snapshot approval mode and the current collector organization/hub. A setting change does not convert already-pending requests.
+- Automatic prepaid approval requires a valid stored photo plus explicit linked intent, current authorized assignment/revisions, and `payment_status = paid`. It performs no visual-quality assessment.
+- `prepaid` is a typed fulfillment value; Customer checkout remains COD-only. Online payment capture, prepaid checkout and Seller preparation are outside this revision.
+- Background approval uses the same delivery finalization service, with system attribution and no fabricated Logistics reviewer. Irrecoverable validation conflicts remain pending for manual review; lost dispatches are recovered by `deliveries:recover-approvals`.
+- Courier GET completion adds nullable `data.rejection_reason`. POST retains HTTP 202 intent acknowledgment; GET remains the authority for final task/Order state. For prepaid, omit `cod_collected`; COD still requires true.
+- COD approval creates a future-only Courier cash obligation. Receiving cash from that Courier is a separate Logistics receipt and does not clear the platform COD invoice.
+- Logistics Pending/History/Approval settings views retain private photos, timestamps, correction reasons and reviewer/system attribution.
+- Flutter implementation and device acceptance statuses are unchanged; this revision documents API behavior, not external-client adoption.

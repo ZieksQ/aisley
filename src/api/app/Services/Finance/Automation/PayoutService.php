@@ -95,7 +95,7 @@ class PayoutService
             $amount = $items->sum('amount_cents');
             $available = FinanceLedgerLine::query()->where('owner_type', $type)->where('owner_id', $beneficiaryId)->where('account_code', $type.'_liability')->whereHas('journal', fn ($q) => $q->where('currency', $currency))->get()->sum(fn ($line) => $line->credit_cents - $line->debit_cents);
             abort_unless($available >= $amount, 409, 'Recorded liability is below the selected payout amount.');
-            SandboxGatewayAccount::query()->firstOrCreate(['reference' => $account->account_reference], ['scenario' => $account->scenario]);
+            SandboxGatewayAccount::query()->firstOrCreate(['reference' => $account->account_reference], ['scenario' => $account->scenario, 'balance_cents' => $type === 'logistics' ? 0 : 100000000]);
             $payout = FinancePayout::create([
                 'beneficiary_type' => $type, 'beneficiary_id' => $beneficiaryId, 'sandbox_beneficiary_account_id' => $account->id,
                 'amount_cents' => $amount, 'currency' => $currency, 'status' => 'pending', 'is_sandbox' => true,

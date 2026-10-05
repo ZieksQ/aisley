@@ -848,3 +848,9 @@ Advanced chat functionality such as real-time typing indicators or complex media
 - Logistics pays outstanding invoices at its configurable daily time (default 09:00 Manila) or uses Pay now. Gateway-verified success clears remittance automatically; unknown payments stay reserved.
 - Admin configures deadlines, waiting periods, and separate outgoing payout schedules. Full remittance and no financial hold are required; manual Logistics payouts can bypass the wait without a reason.
 - The role pages, APIs, failure/retry behavior, PDFs, simulator credentials, and rollout commands are owned by `features/shared/cod-automation/spec.md`. Courier completion payloads are unchanged.
+
+## Logistics delivery review and Courier cash revision (2026-10-05)
+- The Logistics delivery-review specification now owns manual/default or automatic prepaid approval; COD remains manual. The shared finalizer commits both modes with human/system attribution.
+- Future confirmed COD deliveries create immutable Courier/collector cash obligations. Courier Cash Remittance records physical cash received separately from platform COD invoices and payouts.
+- Billing exposes masked simulated account metadata only. New Logistics accounts start at zero, existing funded accounts are preserved, and cash receipts credit once when simulation is enabled.
+- Customer checkout remains COD-only; `prepaid` enables paid fulfillment/testing without implementing online payment or prepaid Seller preparation.

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DeliveryApprovalMode;
 use App\Enums\ShipmentEvidencePurpose;
 use App\Enums\ShipmentEvidenceStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,13 +19,14 @@ class ShipmentEvidence extends Model
     protected $fillable = [
         'delivery_task_id', 'delivery_task_offer_id', 'waybill_id', 'courier_id', 'purpose', 'type',
         'safe_reference', 'identifier_hash', 'status', 'idempotency_key', 'request_hash', 'correlation_id',
-        'validated_by_logistics_id', 'rejection_reason', 'metadata', 'submitted_at', 'validated_at',
+        'review_method', 'validated_by_logistics_id', 'rejection_reason', 'metadata', 'submitted_at', 'validated_at',
         'storage_disk', 'storage_path', 'mime_type', 'byte_size', 'image_width', 'image_height', 'sha256',
     ];
 
     protected function casts(): array
     {
         return [
+            'review_method' => DeliveryApprovalMode::class,
             'purpose' => ShipmentEvidencePurpose::class,
             'status' => ShipmentEvidenceStatus::class,
             'metadata' => 'array',

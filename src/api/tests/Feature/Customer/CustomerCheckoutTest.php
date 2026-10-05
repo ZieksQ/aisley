@@ -66,6 +66,15 @@ class CustomerCheckoutTest extends TestCase
             ->assertJsonValidationErrors(['total', 'shipping_fee', 'status']);
     }
 
+    public function test_prepaid_fulfillment_type_does_not_enable_prepaid_checkout(): void
+    {
+        $customer = $this->customer();
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $payload = $this->buyNowPayload($product, $this->address($customer));
+        $payload['payment_method'] = 'prepaid';
+        $this->postJson('/api/v1/customer/checkout/quote', $payload)->assertUnprocessable()->assertJsonValidationErrors('payment_method');
+    }
+
     public function test_buy_now_places_one_cod_order_snapshots_address_reserves_stock_and_is_idempotent(): void
     {
         $customer = $this->customer();

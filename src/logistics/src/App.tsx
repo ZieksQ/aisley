@@ -7,6 +7,8 @@ import { CourierApplicationsPage } from './pages/CourierApplicationsPage'
 import { CourierVehiclePage } from './pages/CourierVehiclePage'
 import { CourierVehiclesPage } from './pages/CourierVehiclesPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { BillingPage } from './pages/BillingPage'
+import { CourierCashPage } from './pages/CourierCashPage'
 import { DeliveryConfirmationsPage } from './pages/DeliveryConfirmationsPage'
 import { DispatchPage } from './pages/DispatchPage'
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
@@ -43,6 +45,8 @@ export default function App() {
       <Route element={<LogisticsLayout />}>
         <Route element={<DashboardPage />} path="/dashboard" />
         <Route element={<FinancePage />} path="/finance" />
+        <Route element={<CourierCashPage />} path="/finance/courier-cash" />
+        <Route element={<BillingPage />} path="/finance/billing" />
           <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances/invoices/:invoiceId" />

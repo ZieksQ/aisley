@@ -201,3 +201,9 @@ The current schema implements Logistics identity, organization, sole hub, Courie
 - `docs/features/logistics/*/specs.md` — feature-specific implementation contracts.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; advanced route/location telemetry and exceptional recovery remain future extensions.
+
+## Logistics delivery review and Courier cash revision (2026-10-05)
+- The Logistics delivery-review specification now owns manual/default or automatic prepaid approval; COD remains manual. The shared finalizer commits both modes with human/system attribution.
+- Future confirmed COD deliveries create immutable Courier/collector cash obligations. Courier Cash Remittance records physical cash received separately from platform COD invoices and payouts.
+- Billing exposes masked simulated account metadata only. New Logistics accounts start at zero, existing funded accounts are preserved, and cash receipts credit once when simulation is enabled.
+- Customer checkout remains COD-only; `prepaid` enables paid fulfillment/testing without implementing online payment or prepaid Seller preparation.

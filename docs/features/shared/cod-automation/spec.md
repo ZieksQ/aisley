@@ -145,3 +145,10 @@
 - Test gateway API authentication, idempotency, status retrieval, signed delivery, and simulated balance conservation.
 - Run scoped backend regressions plus three dashboard builds/lints and responsive/theme/browser checks.
 - Record actual verification and any remaining limitations in docs/PROGRESS.md.
+
+### Courier-to-Logistics cash and Billing revision (2026-10-05)
+- [Courier Cash Remittance](../../logistics/courier-cash-remittance/spec.md) records full selected confirmed-delivery balances received from one Courier/currency, with immutable collector ownership, idempotent receipts and exactly-once simulator credits.
+- This is separate from platform invoice remittance. Cash reception leaves the COD invoice outstanding until verified platform payment.
+- [Billing](../../logistics/billing/spec.md) displays safe masked simulated account metadata. Every Logistics organization has one account; new accounts start at zero and historical balances are preserved.
+- No historical delivery cash is assumed unremitted. New confirmed COD deliveries create obligations through the shared finalizer only.
+- `finance:automate` recovers pending cash credits when simulation is enabled and the matching account is active; receipt history exposes credited/pending status.

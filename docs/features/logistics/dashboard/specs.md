@@ -141,3 +141,8 @@ active Logistics session
 
 - Finance retains the overview and adds role-owned links to payout history and applicable payment settings. Admin and Logistics also have COD invoice/remittance pages; Admin owns automation and gateway simulation controls.
 - These workflows are specified in `../../shared/cod-automation/spec.md`; Dashboard aggregates and operational role boundaries remain unchanged.
+
+## POD and Courier cash navigation revision (2026-10-05)
+- `/delivery-confirmations` retains its Logistics navigation entry and adds Pending, History, and Approval settings views.
+- Finance navigation adds Courier cash (`/finance/courier-cash`) and Billing (`/finance/billing`). Existing platform Remittances and Payment settings remain separate.
+- Courier cash receipts show physical cash received; Billing shows masked simulated account details without balance or credentials.
