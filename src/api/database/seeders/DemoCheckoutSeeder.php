@@ -24,6 +24,7 @@ use App\Models\ShopLogisticsProvider;
 use App\Models\SortingLane;
 use App\Models\SortingPlan;
 use App\Models\SortingPlanLane;
+use App\Models\SortingPlanVersion;
 use App\Models\User;
 use App\Services\Logistics\SortingPlanService;
 use Illuminate\Database\Seeder;
@@ -311,7 +312,7 @@ class DemoCheckoutSeeder extends Seeder
         }
 
         $activePlans = SortingPlan::query()->where('logistics_hub_id', $hub->id)->where('is_active', true)
-            ->with('lanes.lane')->get();
+            ->get()->map(fn ($plan) => app(SortingPlanService::class)->plansForHub($organization->id, $hub->id))->filter();
         if ($activePlans->isNotEmpty()) {
             $configured = $activePlans->contains(fn (SortingPlan $plan) => $plan->lanes->contains(
                 fn (SortingPlanLane $lane) => $lane->destination_type === SortingDestinationType::PostalCode
@@ -361,12 +362,19 @@ class DemoCheckoutSeeder extends Seeder
             'is_active' => true,
             'revision' => 1,
         ]);
-        $plan->lanes()->create([
+        $mapping = $plan->lanes()->create([
             'sorting_lane_id' => $lane->id,
             'destination_type' => SortingDestinationType::PostalCode,
             'postal_code' => $postalCode,
             'position' => 1,
         ]);
+        SortingLane::query()->firstOrCreate(['logistics_organization_id' => $organization->id, 'logistics_hub_id' => $hub->id, 'code' => 'EXCEPTION'],
+            ['created_by_logistics_id' => $organization->user_id, 'name' => 'Exception review', 'type' => SortingLaneType::Exception, 'is_active' => true, 'position' => 2, 'revision' => 1]);
+        $version = SortingPlanVersion::create(['sorting_plan_id' => $plan->id, 'number' => 1, 'name' => $plan->name,
+            'mappings' => [[...$mapping->only(['id', 'sorting_lane_id', 'postal_code', 'destination_hub_id', 'position']), 'destination_type' => $mapping->destination_type->value]],
+            'differences' => ['initial' => true], 'published_by' => $organization->user_id, 'published_at' => now()]);
+        $plan->update(['active_version_id' => $version->id, 'draft_dirty' => false]);
+
     }
 
     private function customerAddress(LogisticsOrganization $organization): void

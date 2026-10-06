@@ -97,6 +97,8 @@ trait HubRoutingFixtures
         $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Route plan', 'is_active' => true])->assertCreated()->json('data');
         $destination = $next ? ['destination_type' => 'hub', 'destination_hub_id' => $next] : ['postal_code' => '6000'];
         $this->postJson('/api/v1/logistics/sorting/plans/'.$plan['id'].'/lanes', ['expected_revision' => $plan['revision'], 'lane_id' => $lane['id'], ...$destination])->assertOk();
+        $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'EX', 'name' => 'Routing exceptions', 'type' => 'exception'])->assertCreated();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/plans/'.$plan['id'].'/actions/publish', ['expected_revision' => 2, 'activate' => true])->assertOk();
         $session = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/sessions')->assertCreated()->json('data');
         $this->postJson('/api/v1/logistics/sorting/sessions/'.$session['id'].'/batches', ['captures' => [[
             'client_id' => (string) Str::uuid(), 'lane_id' => null, 'auto_route' => true, 'reference' => $reference,

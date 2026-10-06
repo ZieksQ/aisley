@@ -15,7 +15,7 @@ class OpenSortingSessionRequest extends FormRequest
 
     public function rules(): array
     {
-        return [];
+        return ['recovery_shipment_ids' => ['sometimes', 'array', 'min:1', 'max:100'], 'recovery_shipment_ids.*' => ['required', 'uuid', 'distinct']];
     }
 
     public function after(): array

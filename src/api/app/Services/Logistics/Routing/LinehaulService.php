@@ -4,6 +4,7 @@ namespace App\Services\Logistics\Routing;
 
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulManifestStatus;
+use App\Enums\Logistics\SortingLaneState;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
@@ -16,6 +17,7 @@ use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\PlatformFeatureControlService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -59,7 +61,7 @@ class LinehaulService
                 continue;
             }
             $lane = $shipment->sortingLane;
-            if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard
+            if ($lane === null || ! $lane->is_active || $lane->operational_state !== SortingLaneState::Open || $lane->type !== SortingLaneType::Standard
                 || $lane->logistics_organization_id !== $organization->id || $lane->logistics_hub_id !== $organization->hub->id) {
                 continue;
             }
@@ -70,8 +72,9 @@ class LinehaulService
                 'received_at' => $shipment->received_at_hub_at?->toISOString(),
                 'revision' => $shipment->revision,
                 'lane_id' => $shipment->sortingLane?->id,
-                'lane_code' => $shipment->sortingLane?->code,
-                'lane_name' => $shipment->sortingLane?->name,
+                'lane_code' => $shipment->sorting_assignment['lane']['code'] ?? null,
+                'lane_name' => $shipment->sorting_assignment['lane']['name'] ?? null,
+                'sorting_assignment' => $shipment->sorting_assignment,
             ];
         }
 
@@ -126,7 +129,7 @@ class LinehaulService
 
         return DB::transaction(function () use ($actor, $references, $id, $hash): array {
             $hub = $actor->logisticsOrganization->hub;
-            LogisticsHub::query()->whereKey($hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($hub->id);
             $prior = DB::table('linehaul_manifests')->where('id', $id)->first();
             if ($prior !== null) {
                 if ($prior->created_by !== $actor->id || $prior->request_hash !== $hash) {
@@ -151,7 +154,7 @@ class LinehaulService
                 if ($target !== $hop['to_hub']['id']) {
                     throw FulfillmentException::conflict('LINEHAUL_MIXED_DESTINATIONS', 'A manifest can contain only parcels going to the same next hub.');
                 }
-                $items[] = ['reference' => $reference, 'hop_id' => $hop['id'], 'expected_revision' => $record['revision'], 'expected_hop_revision' => $hop['revision']];
+                $items[] = ['sorting_assignment' => $record['sorting_assignment'] ?? null, 'reference' => $reference, 'hop_id' => $hop['id'], 'expected_revision' => $record['revision'], 'expected_hop_revision' => $hop['revision']];
             }
             DB::table('linehaul_manifests')->insert([
                 'id' => $id, 'from_hub_id' => $hub->id, 'to_hub_id' => $target, 'created_by' => $actor->id,
@@ -185,6 +188,7 @@ class LinehaulService
             'created_by' => $actor->id,
             'status' => LinehaulManifestStatus::InTransfer->value,
             'items' => json_encode($members->map(fn ($item): array => [
+                'sorting_assignment' => $item->sorting_assignment,
                 'reference' => $item->shipment->parcel->waybill->reference,
                 'hop_id' => $item->shipment_route_hop_id,
                 'expected_revision' => $item->shipment_revision_reserved,
@@ -211,7 +215,7 @@ class LinehaulService
     {
         return DB::transaction(function () use ($actor, $id): array {
             $hub = $actor->logisticsOrganization->hub;
-            LogisticsHub::query()->whereKey($hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($hub->id);
             $manifest = DB::table('linehaul_manifests')->where('id', $id)->where('to_hub_id', $hub->id)->lockForUpdate()->first();
             if ($manifest === null) {
                 throw FulfillmentException::notFound();
@@ -241,6 +245,7 @@ class LinehaulService
             'from_hub' => LogisticsHub::find($manifest->from_hub_id)?->name,
             'to_hub' => LogisticsHub::find($manifest->to_hub_id)?->name,
             'references' => array_column(json_decode($manifest->items, true), 'reference'),
+            'parcels' => array_map(fn ($item) => ['reference' => $item['reference'], 'sorting_assignment' => $item['sorting_assignment'] ?? null], json_decode($manifest->items, true)),
             'created_at' => $manifest->created_at, 'received_at' => $manifest->received_at];
     }
 }

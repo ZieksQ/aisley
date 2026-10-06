@@ -47,3 +47,7 @@ The current [inspection](references/current-source-inspection.json) records Lara
 - The canonical and portable Courier completion/photo-POD and shared fulfillment specs now document organization-configurable automatic approval for paid prepaid fulfillment; COD still requires manual Logistics review.
 - Courier completion GET adds nullable `data.rejection_reason`. Prepaid intent omits `cod_collected`; all current COD capture requirements remain unchanged. Check final GET state after an intent acknowledgment.
 - Backend/web implementation does not establish Flutter adoption or device acceptance. Existing Flutter status and imported baseline evidence remain unchanged.
+
+### Sorting lane handoff contract — 2026-10-06
+
+The [portable pickup spec](features/courier/pick-up-order/specs.md) now documents frozen sorting assignment and live lane-block metadata on final-mile task reads. Logistics cannot validate staged pickup while its physical lane is paused/held; accepted tasks and pending confirmation evidence remain available after Resume. The Courier confirmation request is unchanged. Existing Flutter implementation/adoption/device status and imported baseline remain unchanged; no Flutter tests ran for this backend/web revision.

@@ -3,14 +3,18 @@ feature: logistics-sorting
 title: Logistics Sorting
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented MVP with postal-code and hub-target sort-plan routing; advanced automation and containerization remain deferred
+version: 1.3
+status: Implemented versioned routing, lane controls, durable exception recovery and offline capture; containerization remains deferred
 role: Logistics
 scope: Logistics API and Logistics web application
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/features/logistics/update-status/specs.md, docs/features/logistics/deploy-rider/specs.md
 ---
 
 # Logistics Sorting
+
+## Versions and recovery — 2026-10-06
+
+The [versions, lane controls and recovery contract](versions-and-recovery.md) supersedes historical live-plan editing, deletion of published plans, manual exception override, and exception-blocked session closure below. Use published versions for scans, preserve frozen physical assignments in both dispatch paths, and correct then rescan durable exceptions. Pause/Hold is selected-lane only; offline captures require API confirmation.
 
 ## Parcel receiving and reconciliation — 2026-09-23
 
@@ -76,7 +80,7 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 - Guessed foreign lane, session, Shipment, waybill, Order, or Parcel identifiers return no existence disclosure or mutation.
 - Allow only one open session per organization/hub; an identical open request replays and a conflicting request returns `409`.
 - Snapshot no more than 100 oldest eligible parcels when a session opens; newly received parcels wait for a later session.
-- A session closes only when no snapshot item is pending or in exception and no client outbox entry remains unsynced.
+- A session closes only when no snapshot item is pending and all device captures reconcile; explicitly acknowledge carried-over exceptions, which remain in the durable queue.
 - Closed sessions and inactive lanes are read-only and unavailable for new captures.
 
 ### Lanes and labels
@@ -95,10 +99,10 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 - Workspace redesign (2026-09-20): the main Sort plan page shows only the active plan's lane mappings, physical lanes, and supported postal codes, each in a compact eight-row paginated list ordered by lane number where applicable. Plan creation and editing use one viewport-bounded dialog; selected plan information and mappings occupy the left side, while the plan list and aligned Save/Activate/Delete controls occupy the right side. Narrow screens put the selector first. Linehaul partner requests have their own dialog; grouped departure and receipt controls appear in Sorting. The newer Linehaul contract in `docs/features/logistics/hub-to-hub-routing/specs.md` governs shared postal coverage and still-pending connection and postal-mapping enforcement changes.
 
 - Linehaul separation/consent (2026-09-19): Sorting remains the scan/reconciliation workspace; transfers and network setup live on the separate protected Linehaul page with a Beta sidebar tag. Sort plan maps only receiver-accepted active outgoing next hubs to standard lanes and cannot create/enable connections. Linehaul lists other active hubs for connection requests; the target Logistics must accept before automatic routing can use that directed edge. Automatic lane selection follows the committed minimum driving-plus-handling-time route; it does not promise minimum kilometres. Vehicle/Courier assignment and capacity-based automatic disconnection are deferred. This supersedes the earlier unilateral selector fix and embedded transfer UI.
-- Current Linehaul revision (2026-09-18): create/edit plans in labelled native dialogs; confirm deletion with expected revision and tenant ownership. Deleting an active plan leaves automatic scans on exception fallback until another is activated. Preserve historical scans. Linehaul groups sorted parcels by immediate next hub into immutable manifests, with atomic departure and individual verified receipt. Logistics manages its own service areas and outgoing connections; the Admin linehaul switch defaults on. See the current contract revision in `docs/features/logistics/hub-to-hub-routing/specs.md`, which supersedes earlier flag/transfer UI wording below.
+- Current Linehaul revision (2026-09-18): create/edit plans in labelled native dialogs; confirm deletion with expected revision and tenant ownership. Published plans use archival after pending schedules are cancelled and another active version is selected; only unpublished inactive drafts can be deleted. Preserve historical scans. Linehaul groups sorted parcels by immediate next hub into immutable manifests, with atomic departure and individual verified receipt. Logistics manages its own service areas and outgoing connections; the Admin linehaul switch defaults on. See the current contract revision in `docs/features/logistics/hub-to-hub-routing/specs.md`, which supersedes earlier flag/transfer UI wording below.
 - A sort plan belongs to the authenticated Logistics organization and sole hub, has a unique name, revision, active flag, and creator.
-- Only one plan can be active for a hub. Activating a plan deactivates the previous plan and increments its revision.
-- A plan mapping stores one normalized four-digit postal code, one active standard lane, and a display position; a postal code cannot be duplicated within a plan.
+- Only one published version can be active for a hub across named plans. Activation changes the selected version under network/hub locks; draft edits never alter its immutable mappings.
+- An editable draft mapping stores one normalized four-digit postal code, one active standard lane, and a display position; a postal code cannot be duplicated within a plan.
 - Plan edits use expected revisions and never rewrite earlier sorting scans or waybill snapshots.
 - The Sort plan page owns plan creation, activation, lane creation/editing, printable lane labels, and postal-code mappings; the Sorting page remains the scan/reconciliation workspace.
 
@@ -110,7 +114,7 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 - Store `client_id`, session, optional lane, automatic-routing flag, reference, expected Shipment revision, source, capture time, exception code, and reason in Dexie.
 - The local predicted lane is display guidance only. The API may route a queued capture differently if the plan, postal code, or lane changed before synchronization.
 - Prevent a duplicate parcel from being queued twice on the same device; do not silently replace pending work.
-- Bulk-sync 1-100 entries on ten queued entries, five minutes, reconnect, or explicit **Sync scans** action.
+- Bulk-sync 1–100 entries promptly online/on reconnect, with periodic and explicit **Sync scans** recovery. Keep offline parcels in a pending area until the API confirms their lane.
 - The batch response reports `sorted`, `exception`, or `failed` per entry; clear only committed entries.
 - Failed entries remain local with stable client IDs and the server's safe code/message.
 - Matching client-ID retries replay the committed result; changed payloads return an idempotency conflict.
@@ -149,14 +153,14 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 ### Acceptance criteria
 
 - [x] Only the owning Logistics organization and sole hub can manage lanes, sessions, and sorting captures.
-- [x] One open bounded session snapshots eligible received parcels and cannot close while work remains unresolved.
+- [x] One open bounded session snapshots eligible received parcels; acknowledged exceptions carry over after pending items and device captures reconcile.
 - [x] Standard-lane scans commit `sorted_at_hub` through the shared transition service with immutable metadata.
-- [x] Exception-lane scans remain `received_at_hub`, require a valid reason code, and can be resolved by a later standard-lane scan.
+- [x] Exception-lane scans remain `received_at_hub`, require a valid reason code, and can be resolved by a later automatic standard-lane rescan after correction and any required inspection/release.
 - [x] Offline Code 128/waybill QR/manual captures survive reload and sync with stable idempotency and partial-result handling.
 - [x] Duplicate, stale, foreign, inactive-lane, closed-session, and invalid-state captures are non-mutating.
 - [x] Lane labels are printable and scanner-selectable without a new dependency.
 - [x] Each Logistics organization can create and activate a tenant-scoped sort plan, create lanes on the Sort plan page, and map exact Buyer postal codes.
-- [x] Automatic scan routing resolves the tracking ID and current Buyer postal code server-side, records the plan/mapping used, and falls back to an exception lane when routing data is absent or unavailable.
+- [x] Automatic scan routing resolves the tracking ID and immutable recipient postal code against the active published version server-side, records the plan/mapping used, and falls back to an exception lane when routing data is absent or unavailable.
 - [x] Dispatch shows only successfully synchronized sorted parcels.
 - [x] The responsive page is compact, accessible, dark-mode compatible, and named **Sorting** in the sidebar.
 - [x] The page uses dot-only online/connecting/offline feedback, consistently labels manual upload as **Sync scans**, and provides an operator-instructions dialog from the header.

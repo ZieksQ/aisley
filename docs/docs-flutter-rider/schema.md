@@ -1589,3 +1589,9 @@ Current Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`; Courier role project
 - `logistics_service_allocations.quoted_charge_cents` records the frozen pro-rata weight separately from the final payout amount.
 - `logistics_route_reconciliations` stores one audited Admin decision per held Order, original pool, explicit platform subsidy, final allocations, note, actor, and time.
 - Product/Variant shipping measurement columns remain in the earlier finance migration; the API now requires Product measurements at creation and accepts only complete four-field Variant overrides.
+
+## 2026-10-06 — Selected-lane handoff contract addendum
+
+Final-mile task reads now include nullable `sorting_assignment`, `hub_pickup_lane` (stored sorting labels with live operational state/reason), and `hub_pickup_blocked_reason`. Logistics Pause/Hold affects only selected physical lanes, retains accepted tasks and pending confirmation evidence, and prevents validated hub pickup while a parcel remains staged there. Resume permits validation of the same evidence; parcels already picked up are unaffected. The task-revision-only Courier submission body and first-mile identifier verification remain unchanged.
+
+Published sort-plan changes never reprice checkout, change a committed destination, or replace an already sorted parcel's labels. Sorting exceptions remain received at hub, carry over between Logistics sessions, and require correction plus rescanning; damage requires documented release. These are backend/Logistics operations, not new Courier mobile mutations. See [the affected pickup contract](features/courier/pick-up-order/specs.md). External Flutter adoption, implementation and device acceptance status are unchanged.

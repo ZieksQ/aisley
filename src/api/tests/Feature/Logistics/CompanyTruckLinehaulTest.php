@@ -3,6 +3,7 @@
 namespace Tests\Feature\Logistics;
 
 use App\Models\CompanyTruck;
+use App\Models\LinehaulTripShipment;
 use App\Models\Shipment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +48,7 @@ class CompanyTruckLinehaulTest extends TestCase
             'expected_revision' => $alternatePlan['revision'], 'lane_id' => $alternateLane['id'],
             'destination_type' => 'hub', 'destination_hub_id' => $b[2]->id,
         ])->assertOk();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/plans/'.$alternatePlan['id'].'/actions/publish', ['expected_revision' => 2, 'activate' => true])->assertOk();
         foreach (array_slice($references, 1) as $reference) {
             $item = collect($session['items'])->first(fn ($item) => $item['reference'] === $reference);
             $this->postJson('/api/v1/logistics/sorting/sessions/'.$session['id'].'/batches', ['captures' => [[
@@ -95,9 +97,17 @@ class CompanyTruckLinehaulTest extends TestCase
 
         $this->actingAs($b[0])->getJson('/api/v1/logistics/linehaul/trips')->assertOk()->assertJsonPath('data.inbound.0.can_decide', true);
         $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/decision', ['accept' => true, 'expected_revision' => 1])->assertOk();
+        $sourceLane = Shipment::find($selectedShipmentIds[0])->sortingLane;
+        $this->actingAs($a[0])->withHeader('Idempotency-Key', (string) Str::uuid())->patchJson('/api/v1/logistics/sorting/lanes/'.$sourceLane->id, ['expected_revision' => $sourceLane->revision, 'operational_state' => 'held', 'blocking_reason' => 'Inspect outbound lane'])->assertOk();
+        $this->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])->assertConflict()->assertJsonPath('code', 'SORT_LANE_BLOCKED');
+        $this->assertDatabaseHas('linehaul_trips', ['id' => $trip['id'], 'status' => 'scheduled']);
+        $this->assertSame(2, LinehaulTripShipment::where('linehaul_trip_id', $trip['id'])->whereNull('released_at')->count());
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->patchJson('/api/v1/logistics/sorting/lanes/'.$sourceLane->id, ['expected_revision' => $sourceLane->fresh()->revision, 'operational_state' => 'open', 'code' => 'RENAMED-STD'])->assertOk();
         $this->actingAs($a[0])->postJson('/api/v1/logistics/linehaul/trips/'.$trip['id'].'/depart', ['expected_revision' => 2])
             ->assertOk()->assertJsonPath('data.status', 'in_transfer');
         $this->assertSame(2, Shipment::query()->where('status', 'in_transfer')->count());
+        $this->assertSame('STD', Shipment::find($selectedShipmentIds[0])->route->hops()->first()->source_lane['code']);
+        $this->assertSame('STD', LinehaulTripShipment::where('shipment_id', $selectedShipmentIds[0])->sole()->sorting_assignment['lane']['code']);
         $this->actingAs($b[0]);
         $this->receiveTripParcels($trip['id']);
         $this->assertDatabaseHas('company_trucks', ['id' => $truck['id'], 'logistics_organization_id' => $a[1]->id, 'availability' => 'visiting', 'last_confirmed_hub_id' => $b[2]->id]);

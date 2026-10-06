@@ -6,15 +6,36 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\AddSortingPlanLaneRequest;
 use App\Http\Requests\Logistics\CreateSortingPlanRequest;
 use App\Http\Requests\Logistics\RemoveSortingPlanLaneRequest;
+use App\Http\Requests\Logistics\SortingVersionActionRequest;
 use App\Http\Requests\Logistics\UpdateSortingPlanRequest;
 use App\Models\SortingPlan;
 use App\Models\SortingPlanLane;
+use App\Services\Logistics\Sorting\SortingVersionService;
 use App\Services\Logistics\SortingPlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SortingPlanController extends Controller
 {
+    public function versionAction(SortingVersionActionRequest $request, SortingPlan $plan, string $action, SortingVersionService $service): JsonResponse
+    {
+        return $this->json(['data' => $service->action($request->user(), $plan, $action, $request->validated(), (string) $request->header('Idempotency-Key'))]);
+    }
+
+    public function versions(Request $request, SortingPlan $plan, SortingVersionService $service): JsonResponse
+    {
+        $owned = $service->owned($request->user(), $plan->id);
+
+        return $this->json(['data' => $owned->versions()->get()->toArray()]);
+    }
+
+    public function version(Request $request, SortingPlan $plan, string $version, SortingVersionService $service): JsonResponse
+    {
+        $owned = $service->owned($request->user(), $plan->id);
+
+        return $this->json(['data' => $owned->versions()->whereKey($version)->firstOrFail()->toArray()]);
+    }
+
     public function destroy(RemoveSortingPlanLaneRequest $request, SortingPlan $plan, SortingPlanService $service): JsonResponse
     {
         $service->deletePlan($request->user(), $plan, (int) $request->validated('expected_revision'));

@@ -15,12 +15,13 @@ class SortingSessionItem extends Model
 
     protected $fillable = [
         'sorting_session_id', 'shipment_id', 'sorting_lane_id', 'status', 'expected_shipment_revision',
-        'exception_code', 'exception_reason', 'exception_recorded_at', 'exception_resolved_at', 'completed_at',
+        'exception_code', 'exception_reason', 'exception_recorded_at', 'exception_resolved_at', 'completed_at', 'assignment_snapshot',
     ];
 
     protected function casts(): array
     {
         return [
+            'assignment_snapshot' => 'array',
             'status' => SortingItemStatus::class,
             'expected_shipment_revision' => 'integer',
             'exception_code' => SortingExceptionCode::class,

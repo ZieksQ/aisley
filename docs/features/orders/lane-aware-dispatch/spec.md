@@ -1,5 +1,9 @@
 # Lane-aware Sorting and Dispatch
 
+## Versioned assignments and lane controls — 2026-10-06
+
+The [Sorting revision](../logistics-sorting/versions-and-recovery.md) governs immutable versions, scheduling, selected-lane Pause/Hold and durable exceptions. Sorting freezes labels and next steps at successful placement; dispatch copies that snapshot while checking live lane state/revisions. A paused/held source blocks scheduling and validated hub pickup, preserving reservations/evidence until Resume. Published plan edits affect new scans only.
+
 ## WHAT
 
 - Status: implemented; acceptance evidence recorded below.
@@ -47,12 +51,12 @@
 - Retain device capture time separately in the existing receipt event metadata.
 - Standard-lane synchronization records lane/session and advances sorted custody.
 - Exception synchronization retains received custody and operational hold details.
-- Automatic synchronization resolves the tenant-owned tracking ID, Buyer postal code, and current active sort plan on the server; a client-predicted lane is advisory only.
+- Automatic synchronization resolves the tenant-owned tracking ID, immutable recipient postal code, and active published version on the server; a client-predicted lane is advisory only.
 - A missing plan, missing postal code, unmapped postal code, or unavailable mapped lane is recorded in the active exception lane with a routing reason and plan/mapping metadata when available.
 - The Sort plan page owns plan activation, lane creation, printable lane labels, and exact postal-code mappings; Sorting owns scan/reconciliation and may request a manual standard-lane override.
-- Resolve exceptions through a standard-lane capture with existing retry rules.
+- Correct the cause and rescan with automatic current-version routing; damage requires documented release. Manual standard-lane override cannot clear outstanding exceptions.
 - A generic sort transition cannot bypass an unresolved sorting exception.
-- Close sessions only after all items reconcile; the client also checks its outbox.
+- Close sessions after pending items and device captures reconcile; explicitly acknowledge carried-over durable exceptions.
 - Closure does not erase the parcel's staging assignment.
 - A ready parcel may dispatch while its session remains open or has exceptions.
 - Block lane deactivation/type changes while parcels remain staged, through delivery acceptance.
@@ -62,7 +66,7 @@
 ### Moving sorted parcels
 
 - Offer an online Move lane action in Sorting and the Dispatch ready queue.
-- Require another active standard lane in the same organization/hub.
+- Require another active/open standard lane in the same organization/hub; cancel linehaul reservations before a physical move.
 - Require current Shipment revision, destination-lane revision, and bounded reason.
 - Reject same-lane moves, stale revisions, inactive/exception lanes, and foreign IDs.
 - Permit moves only while custody is sorted_at_hub, before dispatch/assignment.
@@ -108,7 +112,7 @@
 - Use existing dashboard palette, dark mode, and shared operation controls.
 - Keep dialogs within 90% of viewport height with internal scrolling.
 - Avoid a wide reconciliation table as the mobile interaction surface.
-- Current screen dimensions cannot be detected in this tool session; requested from the user.
+- Sorting revision verification covers 390/768/1440px in light and dark themes; see [the dated evidence](../logistics-sorting/verification.md).
 
 ### Acceptance and evidence
 

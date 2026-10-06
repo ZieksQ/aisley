@@ -13,7 +13,7 @@ class Shipment extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['condition_hold', 'current_logistics_organization_id', 'current_hub_id', 'parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision', 'sorting_lane_id', 'sorting_session_id', 'received_at_hub_at'];
+    protected $fillable = ['sorting_assignment', 'condition_hold', 'current_logistics_organization_id', 'current_hub_id', 'parcel_id', 'logistics_organization_id', 'logistics_hub_id', 'status', 'revision', 'sorting_lane_id', 'sorting_session_id', 'received_at_hub_at'];
 
     protected static function booted(): void
     {
@@ -35,7 +35,7 @@ class Shipment extends Model
 
     protected function casts(): array
     {
-        return ['condition_hold' => 'boolean', 'status' => ShipmentStatus::class, 'revision' => 'integer', 'received_at_hub_at' => 'immutable_datetime'];
+        return ['sorting_assignment' => 'array', 'condition_hold' => 'boolean', 'status' => ShipmentStatus::class, 'revision' => 'integer', 'received_at_hub_at' => 'immutable_datetime'];
     }
 
     public function sortingLane(): BelongsTo
@@ -66,6 +66,11 @@ class Shipment extends Model
     public function events(): HasMany
     {
         return $this->hasMany(ShipmentEvent::class);
+    }
+
+    public function sortingExceptions(): HasMany
+    {
+        return $this->hasMany(SortingException::class);
     }
 
     public function sortingItems(): HasMany

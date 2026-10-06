@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Logistics\SortingLaneState;
 use App\Enums\Logistics\SortingLaneType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -12,14 +13,16 @@ class SortingLane extends Model
 {
     use HasUuids;
 
+    protected $attributes = ['operational_state' => 'open'];
+
     protected $fillable = [
         'logistics_organization_id', 'logistics_hub_id', 'created_by_logistics_id', 'code', 'name',
-        'type', 'is_active', 'position', 'revision',
+        'operational_state', 'blocking_reason', 'state_changed_by', 'state_changed_at', 'type', 'is_active', 'position', 'revision',
     ];
 
     protected function casts(): array
     {
-        return ['type' => SortingLaneType::class, 'is_active' => 'boolean', 'position' => 'integer', 'revision' => 'integer'];
+        return ['operational_state' => SortingLaneState::class, 'state_changed_at' => 'immutable_datetime', 'type' => SortingLaneType::class, 'is_active' => 'boolean', 'position' => 'integer', 'revision' => 'integer'];
     }
 
     public function organization(): BelongsTo

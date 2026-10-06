@@ -13,6 +13,6 @@ class CloseSortingSessionRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['expected_revision' => ['required', 'integer', 'min:1']];
+        return ['carry_over_exceptions' => ['sometimes', 'boolean'], 'expected_revision' => ['required', 'integer', 'min:1']];
     }
 }

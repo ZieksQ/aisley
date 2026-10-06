@@ -13,9 +13,12 @@ use App\Http\Requests\Logistics\UpdateSortingLaneRequest;
 use App\Models\SortingLane;
 use App\Models\SortingSession;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Logistics\Sorting\SortingLocks;
+use App\Services\Logistics\Sorting\SortingMutationService;
 use App\Services\Logistics\SortingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class SortingController extends Controller
@@ -39,6 +42,17 @@ class SortingController extends Controller
 
     public function updateLane(UpdateSortingLaneRequest $request, SortingLane $lane, SortingService $service): JsonResponse
     {
+        if ($request->has('operational_state')) {
+            $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
+            $projection = DB::transaction(function () use ($request, $lane, $service, $org): array {
+                SortingLocks::hub($org->hub->id);
+
+                return app(SortingMutationService::class)->run($request->user(), (string) $request->header('Idempotency-Key'), ['lane_id' => $lane->id, ...$request->validated()], fn () => $service->laneProjection($service->updateLane($request->user(), $lane, $request->validated())));
+            }, 3);
+
+            return $this->json(['data' => $projection]);
+        }
+
         return $this->json(['data' => $service->laneProjection($service->updateLane($request->user(), $lane, $request->validated()))]);
     }
 
@@ -49,14 +63,14 @@ class SortingController extends Controller
 
     public function openSession(OpenSortingSessionRequest $request, SortingService $service): JsonResponse
     {
-        $session = $service->openSession($request->user(), $request->idempotencyKey());
+        $session = $service->openSession($request->user(), $request->idempotencyKey(), $request->validated('recovery_shipment_ids', []));
 
         return $this->json(['data' => $service->sessionProjection($session)], 201);
     }
 
     public function closeSession(CloseSortingSessionRequest $request, SortingSession $session, SortingService $service): JsonResponse
     {
-        $closed = $service->closeSession($request->user(), $session, (int) $request->validated('expected_revision'));
+        $closed = $service->closeSession($request->user(), $session, (int) $request->validated('expected_revision'), $request->boolean('carry_over_exceptions'));
 
         return $this->json(['data' => $service->sessionProjection($closed)]);
     }

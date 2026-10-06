@@ -16,6 +16,8 @@ use App\Models\SortingLane;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
+use App\Services\Logistics\Sorting\SortingAssignmentService;
+use App\Services\Logistics\Sorting\SortingLocks;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,6 +31,8 @@ class DispatchScheduleService
         $requestHash = hash('sha256', json_encode($input, JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $requestHash): DispatchSchedule {
+            $org = $this->organization($logistics);
+            SortingLocks::hub($org->hub->id);
             $previous = DispatchSchedule::query()->where('created_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
             if ($previous !== null) {
                 if (! hash_equals($previous->request_hash, $requestHash)) {
@@ -56,6 +60,7 @@ class DispatchScheduleService
 
             foreach ($shipments as $shipment) {
                 app(ShipmentRouteService::class)->assertFinalMile($shipment);
+                app(SortingAssignmentService::class)->assertOpen($shipment);
             }
 
             $laneIds = $shipments->pluck('sorting_lane_id')->unique();
@@ -110,7 +115,7 @@ class DispatchScheduleService
                     'shipment_id' => $shipmentId,
                     'delivery_task_id' => $offer['task']->id,
                     'sequence' => $index + 1,
-                    'source_lane' => ($lane = $lanes->get($shipment->sorting_lane_id)) ? ['id' => $lane->id, 'code' => $lane->code, 'name' => $lane->name, 'revision' => $lane->revision] : null,
+                    'source_lane' => $shipment->sorting_assignment ? [...$shipment->sorting_assignment['lane'], 'sorting_assignment' => $shipment->sorting_assignment] : null,
                     'sorting_session_id' => $shipment->sorting_session_id,
                     'shipment_revision_at_dispatch' => $shipment->revision,
                 ]);
