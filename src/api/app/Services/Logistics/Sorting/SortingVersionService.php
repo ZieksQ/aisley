@@ -61,21 +61,8 @@ class SortingVersionService
                         $plan->update(['draft_dirty' => true, 'revision' => $plan->revision + 1]);
                         break;
                     case 'duplicate':
-                        if ($version === null) {
-                            throw FulfillmentException::invalid('SORT_VERSION_REQUIRED', 'Select a published version to duplicate.');
-                        }
-                        $name = trim($input['name']);
-                        if (SortingPlan::query()->where('logistics_hub_id', $plan->logistics_hub_id)->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->exists()) {
-                            throw FulfillmentException::invalid('SORT_PLAN_NAME_TAKEN', 'A plan already uses this name.', 'name');
-                        }
-                        $copy = SortingPlan::create(['logistics_organization_id' => $plan->logistics_organization_id,
-                            'logistics_hub_id' => $plan->logistics_hub_id, 'created_by_logistics_id' => $actor->id,
-                            'name' => $name, 'is_active' => false, 'revision' => 1, 'draft_dirty' => true]);
-                        foreach ($version->mappings as $mapping) {
-                            unset($mapping['id']);
-                            $copy->lanes()->create($mapping);
-                        }
-                        $plan = $copy;
+                        $plan = app(SortingPlanCopyService::class)->copy($actor, $plan, $version, $input['name'] ?? null);
+                        $extra['plan_name'] = $plan->name;
                         break;
                     case 'publish':
                         if (! $plan->draft_dirty) {

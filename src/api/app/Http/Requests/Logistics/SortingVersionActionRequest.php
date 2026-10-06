@@ -19,9 +19,9 @@ class SortingVersionActionRequest extends FormRequest
 
         return [
             'expected_revision' => ['required', 'integer', 'min:1'],
-            'version_id' => [in_array($action, ['duplicate', 'activate', 'schedule']) ? 'required' : 'sometimes', 'uuid'],
+            'version_id' => [in_array($action, ['activate', 'schedule']) ? 'required' : 'sometimes', 'uuid'],
             'activation_id' => [$action === 'cancel' ? 'required' : 'sometimes', 'uuid'],
-            'name' => [$action === 'duplicate' ? 'required' : 'sometimes', 'string', 'min:2', 'max:80'],
+            'name' => ['sometimes', 'string', 'min:2', 'max:80'],
             'activate' => ['sometimes', 'boolean'],
             'scheduled_for' => [$action === 'schedule' ? 'required' : 'sometimes', 'date'],
         ];

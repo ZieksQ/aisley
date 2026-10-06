@@ -40,7 +40,7 @@ Start an isolated Chromium profile exposing local CDP on port `19226`, then run:
 node src/logistics/tests/sorting-browser.smoke.mjs
 ```
 
-The harness creates a fresh browser target and installs controlled tenant/auth/sorting/dispatch API fixtures before navigation. It checks 390/768/1440px in light/dark across Sort plan, Sorting, last-mile Dispatch and company-truck Dispatch; table containment, keyboard focus/native-dialog Escape, disabled held-lane selection and blocked-trip reasons, original identity/body on uncertain plan/lane/release retries, documented damage release and selected recovery requests, and loading/empty/error reads.
+The harness creates a fresh browser target and installs controlled tenant/auth/sorting/dispatch API fixtures before navigation. It checks 390/768/1440px in light/dark across Sort plan, Sorting, last-mile Dispatch and company-truck Dispatch; table containment, keyboard focus/native-dialog Escape, disabled held-lane selection and blocked-trip reasons, original identity/body on uncertain plan/copy/release retries, documented damage release and selected recovery requests, and loading/empty/error reads.
 
 Offline capture is checked by disconnecting the capture context, verifying no mutation is sent, reloading with the same IndexedDB outbox, and confirming prompt synchronization displays the API lane. The mocked API intentionally confirms lane 5 while its cached routing points at lane 1. Committed retry behavior is separately verified through Laravel/PostgreSQL tests; mock responses do not certify live integration.
 
@@ -51,3 +51,13 @@ Screenshots are written only to ignored `src/api/storage/framework/testing/sorti
 The new additive migration was applied to local PostgreSQL; a read-only import check found four plans/four initial versions, no invalid active selection and no duplicate active hubs. For other environments, apply only `2026_10_06_000004_add_sorting_versions_and_recovery.php` and keep Laravel's existing scheduler running for one-minute activation recovery. Authoritative reads/scans also catch up overdue selections. Operators must reconcile participating device outboxes before closing a session and physically rescan recovered parcels.
 
 Canonical Sorting, dispatch, routing, shared fulfillment/workspace/schema and affected Courier handoff contracts were updated. The portable Courier bundle received only affected contract sections and an attributed documentation progress entry; its Flutter implementation/adoption/acceptance status and archived logs remain unchanged.
+
+## Sort plan UI revision — 2026-10-07
+
+The Sort plan workspace now uses lane Activate/Deactivate, plan-row three-dot menus with a confirmed numbered copy action, a separate searchable published-version browser, visible preserved-destination/difference tables, and dismissible five-second success messages. Historical API lane states and dispatch behavior remain compatible; the browser harness no longer attempts the removed lane-state controls.
+
+Run `php src/api/vendor/bin/phpunit -c src/api/phpunit.xml src/api/tests/Feature/Logistics/SortingPlanCopyTest.php` from the repository root for automatic naming, draft/published mapping isolation, replay, archived names, Unicode length and tenant isolation. Existing SortingVersions/HubRouting regressions cover destination-aware lane changes and preserved assignments/accepted connections. These focused SQLite runs passed 32 tests / 557 assertions; scoped PHP Pint and Logistics lint/type/build passed. Vite retains its existing chunk-size warning.
+
+The updated browser harness checks the published-version modal and copy confirmation in all six Sort plan viewport/theme combinations, keyboard focus/Escape, no duplicate-name field or mapping disclosure, independent plan/version searches, exact uncertain-copy retries, successful-copy focus restoration, manual dismissal and automatic expiry. The existing Sorting/dispatch responsive, exception-release/recovery and offline checks remain in the harness. Browser checks use controlled API fixtures and are separate from live API/PostgreSQL/device verification.
+
+Final Chromium run passed all 24 existing viewport/theme states, including the six revised Sort plan modal/menu combinations, and the additional copy/search/notice/focus checks. Mobile light and desktop dark published-version screenshots were visually inspected. No live HTTP, PostgreSQL concurrency or physical-device checks were rerun for this revision.

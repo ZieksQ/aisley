@@ -2,12 +2,22 @@
 
 Implemented contract revision: 2026-10-06. This revision supersedes mutable active-plan, manual exception override, and exception-blocked session closure wording in the original Sorting and lane-aware dispatch specs. The shared [web design contract](../../../design.md) continues to govern Logistics presentation.
 
+## Sort plan UI revision — 2026-10-07
+
+- Sort plan shows the existing lane Activate/Deactivate action. Remove Open/Resume/Paused/Held controls from this web workspace. Historical operational metadata and API/dispatch compatibility remain preserved; this UI revision does not relax lane-in-use or protected-exception-lane checks.
+- Keep destination-aware lane changes: postal mappings use the immutable recipient postal code; transfer mappings require the committed next hub and an active accepted connection. A lane change such as lane 2 → lane 5 applies through a new published selection to future scans. Existing assignments, waybills, postal destinations and committed hops retain their original evidence.
+- Every plan row has a keyboard-accessible vertical three-dot actions menu with a copy icon and **Duplicate plan** text. Confirm copying in a centered modal before sending any mutation. There is no duplicate-name input.
+- The plan-list copy action copies the latest published version, or the draft when none exists, into an independent inactive draft with new mapping identities and shared physical lanes. The API assigns `Name (1)`, `Name (2)`, etc., incrementing existing suffixes within the same hub, including archived names; copying a numbered copy increments the original base name. Names remain within 80 characters. Number allocation is serialized under the hub lock. A legacy explicit `name` remains accepted for API compatibility.
+- **Published versions** opens a separate viewport-bounded browser with its own search by version number, snapshot name or publication date. Plan search belongs to the right-side plan list. Version selection uses a visible list, with activation, successor creation and one-time scheduling beside the selected snapshot.
+- Preserved destinations and mapping differences are visible sections/tables. Do not use a dropdown, disclosure, accordion, `<details>` or `<summary>` to hide these sections. Contain table scrolling and keep the Logistics palette, light/dark themes and compact controls.
+- Success messages include an accessible X control and dismiss after five seconds. Validation, activation failures and uncertain-request recovery stay visible where corrective action is required. Copy retries preserve the original payload and UUID; prevent closing or switching away from an uncertain copy.
+
 ## Plans and publication
 
 - A named plan owns editable draft mapping rows and numbered immutable `sorting_plan_versions`. `revision` is only an optimistic concurrency counter; version numbers increase independently per plan.
 - New plans are inactive drafts. Legacy `is_active` on creation no longer activates unpublished content. Published mapping/name snapshots never change; database triggers and the API model reject version updates/deletes.
 - Draft edits mark unpublished changes, leaving the active version untouched. Explicit successor creation copies any selected published version into the editable draft, and requires no unfinished draft. Publishing preserves its name, mappings, actor/time and mapping differences.
-- Duplicate a selected published version into a separately named draft with new mapping identities and shared physical lane IDs. Editing the duplicate cannot change its source.
+- Duplicate a selected published version (or an unpublished draft) into an automatically numbered independent draft with new mapping identities and shared physical lane IDs. Editing the duplicate cannot change its source.
 - Publish alone, publish and activate immediately, or publish and schedule one future activation. Existing published versions may also be activated or scheduled. One-time scheduling only; no recurring shifts.
 - `scheduled_for` accepts an ISO timestamp with offset; an unqualified timestamp is interpreted in Asia/Manila. The web form sends `+08:00`. Stored times are UTC with second precision. Only one pending activation per hub/instant; different future times are allowed.
 - Exactly one version is selected across the hub's named plans after successful activation. Empty mappings, inactive/non-standard lanes, unavailable accepted connections/participants, missing open fallback lane, or an archived plan prevent activation. Pause/Hold is a temporary physical lane block and does not invalidate publication.
@@ -63,7 +73,7 @@ All routes below are under `/api/v1/logistics`, protected by Sanctum, active Log
 | `POST sorting/sessions` | Adds optional `recovery_shipment_ids` (1–100); existing UUID Idempotency-Key |
 | `POST sorting/sessions/{session}/close` | Adds explicit `carry_over_exceptions` acknowledgement |
 
-Action bodies always include `expected_revision`; duplication/activation/scheduling select `version_id`; duplication supplies `name`; scheduling supplies `scheduled_for`; cancellation supplies `activation_id`; publication optionally supplies `activate` or `scheduled_for` (mutually exclusive).
+Action bodies always include `expected_revision`; activation/scheduling require `version_id`; duplication optionally selects `version_id` (otherwise copies the draft) and optionally supplies a legacy explicit `name`; omitted names are allocated automatically; scheduling supplies `scheduled_for`; cancellation supplies `activation_id`; publication optionally supplies `activate` or `scheduled_for` (mutually exclusive).
 
 ## Migration and verification boundary
 

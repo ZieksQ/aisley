@@ -3,7 +3,8 @@ import { ApiError } from '../../lib/api'
 import { sortingMutation } from '../../lib/sortingApi'
 import { ErrorNotice, field, manilaDate } from '../PickupUi'
 import { SortingButton } from './SortingButton'
-import { VersionMappings } from './VersionMappings'
+import { PublishedVersions } from './PublishedVersions'
+import { TimedNotice } from './TimedNotice'
 import type { SortingLane, SortingPlan } from '../../types/sorting'
 
 type Attempt = { action: string; body: string; key: string }
@@ -15,8 +16,6 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
   onChanged: (id?: string) => Promise<void>
   onBlocked: (blocked: boolean) => void
 }) {
-  const [versionId, setVersionId] = useState('')
-  const [name, setName] = useState('')
   const [time, setTime] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -24,7 +23,6 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
   const [uncertain, setUncertain] = useState(false)
   const attempt = useRef<Attempt | null>(null)
   useEffect(() => { onBlocked(busy || uncertain) }, [busy, uncertain, onBlocked])
-  const selected = plan.versions.find((version) => version.id === versionId) ?? plan.versions[0]
 
   async function perform(action: string, fields: Record<string, unknown> = {}, replay = false) {
     if (busy) return
@@ -36,6 +34,7 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
     const pending = attempt.current
     setBusy(true)
     setError('')
+    setNotice('')
     try {
       const response = await sortingMutation<{ data: { plan_id: string; activation?: { status: string; failure_reason: string | null } } }>({
         path: `/api/v1/logistics/sorting/plans/${plan.id}/actions/${pending.action}`,
@@ -44,7 +43,8 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
       })
       attempt.current = null
       setUncertain(false)
-      setNotice(response.data.activation?.status === 'failed' ? `Activation failed: ${response.data.activation.failure_reason}` : 'Plan action recorded.')
+      if (response.data.activation?.status === 'failed') setError(`Activation failed: ${response.data.activation.failure_reason}`)
+      else setNotice('Plan action recorded.')
       await onChanged(response.data.plan_id)
     } catch (caught) {
       const unknown = !(caught instanceof ApiError) || caught.status === 408 || caught.status === 0 || caught.status >= 500
@@ -55,26 +55,26 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
   }
 
   const blocked = busy || uncertain || Boolean(plan.archived_at)
-  return <section className="space-y-3 border-t border-zinc-200 pt-3 dark:border-white/10" aria-label="Plan versions">
-
-
-    <h4 className="font-semibold">
-      Published versions
-    </h4>
-
-    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-      {plan.draft_dirty ? 'Draft has unpublished changes.' : 'Published mappings are preserved. Edit to create a successor draft.'} Active version: {plan.versions.find((version) => version.id === plan.active_version_id)?.number ?? 'None'}.
-    </p>
+  const feedback = <>
     {error ? <ErrorNotice message={error} /> : null}
     {uncertain ? <SortingButton disabled={busy} onClick={() => void perform('', {}, true)}>
       Verify previous action
     </SortingButton> : null}
-    {notice ? <p role="status" className="text-sm">
-      {notice}
-    </p> : null}
+    <TimedNotice message={notice} onChange={setNotice} />
+  </>
+
+  return <section className="space-y-3 border-t border-zinc-200 pt-3 dark:border-white/10" aria-label="Plan publication">
+
+    <h4 className="font-semibold">
+      Draft publication
+    </h4>
+
+    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      {plan.draft_dirty ? 'Draft has unpublished changes.' : 'Draft matches the latest publication.'} Active version: {plan.versions.find((version) => version.id === plan.active_version_id)?.number ?? 'None'}.
+    </p>
+    {feedback}
 
     <div className="flex flex-wrap gap-2">
-
 
       <SortingButton disabled={blocked || !plan.draft_dirty} onClick={() => void perform('publish')}>
         Publish draft
@@ -84,70 +84,73 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
         Publish and activate
       </SortingButton>
 
-      <SortingButton disabled={blocked || plan.draft_dirty || !selected} onClick={() => void perform('draft', { version_id: selected?.id })}>
-        Create successor draft
-      </SortingButton>
+      <PublishedVersions plan={plan} lanes={lanes} hubs={hubs} blocked={busy || uncertain} feedback={feedback} actions={(version) => <>
+        <div className="flex flex-wrap gap-2 border-t border-zinc-200 pt-3 dark:border-white/10">
+
+          <SortingButton disabled={blocked || version.id === plan.active_version_id} onClick={() => { if (window.confirm(`Activate version ${version.number} for new scans now?`)) void perform('activate', { version_id: version.id }) }}>
+            Activate selected version
+          </SortingButton>
+
+          <SortingButton disabled={blocked || plan.draft_dirty} onClick={() => void perform('draft', { version_id: version.id })}>
+            Create successor draft
+          </SortingButton>
+
+        </div>
+        <form className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end" onSubmit={(event) => { event.preventDefault(); void perform('schedule', { version_id: version.id, scheduled_for: `${time}:00+08:00` }) }}>
+
+          <label className="text-sm">
+            One-time activation (Asia/Manila)
+            <input className={`${field} mt-1`} type="datetime-local" required value={time} disabled={blocked} onChange={(event) => setTime(event.target.value)} />
+          </label>
+
+          <SortingButton type="submit" disabled={blocked}>
+            Schedule activation
+          </SortingButton>
+
+        </form>
+      </>} />
 
     </div>
-    {plan.versions.length ? <>
-      <label className="block text-sm">
-        Version
-        <select className={`${field} mt-1`} disabled={busy || uncertain} value={selected?.id ?? ''} onChange={(event) => setVersionId(event.target.value)}>
-          {plan.versions.map((version) => <option key={version.id} value={version.id}>
-            Version {version.number} · {manilaDate(version.published_at)}
-          </option>)}
-        </select>
-      </label>
-      <p className="break-all text-xs text-zinc-500">
-        Published by {selected?.published_by}. {selected?.mappings.length} destination mappings.
-      </p>
-      <VersionMappings version={selected} lanes={lanes} hubs={hubs} />
-      <SortingButton disabled={blocked} onClick={() => { if (window.confirm(`Activate version ${selected.number} for new scans now?`)) void perform('activate', { version_id: selected.id }) }}>
-        Activate selected version
-      </SortingButton>
-      <form className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end" onSubmit={(event) => { event.preventDefault(); void perform('duplicate', { version_id: selected.id, name }) }}>
-
-
-        <label className="text-sm">
-          Duplicate plan name
-          <input className={`${field} mt-1`} required minLength={2} maxLength={80} value={name} disabled={blocked} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <SortingButton type="submit" disabled={blocked}>
-          Duplicate plan
-        </SortingButton>
-
-      </form>
-    </> : <p className="text-sm text-zinc-500">
-      No published versions yet.
-    </p>}
-
-    <form className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end" onSubmit={(event) => { event.preventDefault(); void perform(plan.draft_dirty ? 'publish' : 'schedule', { ...(plan.draft_dirty ? {} : { version_id: selected?.id }), scheduled_for: `${time}:00+08:00` }) }}>
-
+    {plan.draft_dirty ? <form className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end" onSubmit={(event) => { event.preventDefault(); void perform('publish', { scheduled_for: `${time}:00+08:00` }) }}>
 
       <label className="text-sm">
         One-time activation (Asia/Manila)
         <input className={`${field} mt-1`} type="datetime-local" required value={time} disabled={blocked} onChange={(event) => setTime(event.target.value)} />
       </label>
-      <SortingButton type="submit" disabled={blocked || (!plan.draft_dirty && !selected)}>
-        Schedule activation
+
+      <SortingButton type="submit" disabled={blocked}>
+        Publish and schedule
       </SortingButton>
 
-    </form>
+    </form> : null}
+    {plan.activations.length ? <section className="space-y-2" aria-label="Activation history">
 
-    <ul className="space-y-2 text-sm" aria-label="Activation history">
-      {plan.activations.map((activation) => <li className="border-t border-zinc-200 pt-2 dark:border-white/10" key={activation.id}>
-        <p>
-          {manilaDate(activation.scheduled_for)} · {activation.status}
-        </p>
-        <p className="break-all text-xs text-zinc-500">
-          Requested by {activation.requested_by}{activation.completed_at ? ` · Completed ${manilaDate(activation.completed_at)}` : ''}
-        </p>{activation.failure_reason ? <p role="status">
-          {activation.failure_reason}
-        </p> : null}{activation.status === 'scheduled' ? <SortingButton disabled={blocked} onClick={() => { if (window.confirm('Cancel this scheduled activation?')) void perform('cancel', { activation_id: activation.id }) }}>
-          Cancel schedule
-        </SortingButton> : null}
-      </li>)}
-    </ul>
+      <h4 className="font-semibold">
+        Activation history
+      </h4>
+
+      <ul className="divide-y divide-zinc-200 text-sm dark:divide-white/10">
+        {plan.activations.map((activation) => <li className="space-y-1 py-2" key={activation.id}>
+
+          <p>
+            {manilaDate(activation.scheduled_for)} · {activation.status}
+          </p>
+
+          <p className="break-all text-xs text-zinc-600 dark:text-zinc-400">
+            Requested by {activation.requested_by}{activation.completed_at ? ` · Completed ${manilaDate(activation.completed_at)}` : ''}
+          </p>
+          {activation.failure_reason ? <p>
+            {activation.failure_reason}
+          </p> : null}
+          {activation.status === 'scheduled' ? <SortingButton disabled={blocked} onClick={() => { if (window.confirm('Cancel this scheduled activation?')) void perform('cancel', { activation_id: activation.id }) }}>
+            Cancel schedule
+          </SortingButton> : null}
+
+        </li>)}
+
+      </ul>
+
+    </section> : null}
 
     <SortingButton disabled={blocked || plan.is_active} onClick={() => { if (window.confirm(`Archive ${plan.name}? Its versions and history will remain readable.`)) void perform('archive') }}>
       Archive plan
