@@ -165,3 +165,9 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 - Use shared @aisley/chat-ui selection/progress/checking, bounded image previews, accessible image dialogs, explicit video controls without autoplay, and document filename/type/size/download cards. Preserve AISLEY themes and familiar Shopee/Lazada explicit-send behavior.
 - Keep selected media and optional caption beside the composer, provide Remove/Retry file, and block Send until every selection is ready. Preserve exact pending payloads after uncertain delivery; clear private file/draft state on authorization loss.
 - Media dialogs must contain focus, close with Escape, restore focus and fit narrow screens. Attachment errors remain actionable and cannot appear as successful sends. Verify 390/768/1280px, Customer light and dashboard light/dark alongside existing chat behavior.
+
+## Chat notification control
+
+- Customer, Seller, and Logistics headers use a dedicated chat icon beside the general notification bell, with an accessible aggregate unread-message count and `99+` visual cap. Follow the [shared Chat Messaging notification contract](features/shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06).
+- Use a compact, viewport-bounded dropdown with safe counterpart/channel labels, plain-text previews, timestamps and per-conversation unread text. Keep links to the role's existing separate inboxes and routes. Opening the dropdown leaves chat read markers unchanged.
+- Preserve theme contrast, keyboard link access, Escape/Close focus restoration and outside dismissal. Show loading/empty/error/offline feedback without concealing refresh failures or retaining private previews after authorization loss.

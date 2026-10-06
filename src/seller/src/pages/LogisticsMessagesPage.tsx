@@ -27,6 +27,7 @@ export function LogisticsMessagesPage() {
   const accountId = seller?.id ?? 'unknown'
   const [params, setParams] = useSearchParams()
   const pickupId = params.get('pickup_request_id')
+  const conversationId = params.get('conversation')
   const [threads, setThreads] = useState<LogisticsThread[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -81,10 +82,27 @@ export function LogisticsMessagesPage() {
     if (pickupId) setSelectedId(threads.find((item) => item.pickup_request_id === pickupId)?.id ?? null)
   }, [pickupId, threads])
 
+  useEffect(() => {
+    if (pickupId) return
+    let active = true
+    setSelectedId(conversationId)
+    if (conversationId) {
+      void logisticsMessages.show(conversationId).then(({ data }) => {
+        if (active) setThreads((current) => [data, ...current.filter((item) => item.id !== data.id)])
+      }).catch((reason) => {
+        if (!active) return
+        setSelectedId(null)
+        if (reason instanceof ApiError && [401, 403].includes(reason.status)) { clearChatPrivateState(); setThreads([]) }
+        setError(failure(reason))
+      })
+    }
+    return () => { active = false }
+  }, [conversationId, pickupId])
+
   function saved(thread: LogisticsThread) {
     setThreads((current) => [thread, ...current.filter((item) => item.id !== thread.id)])
     setSelectedId(thread.id)
-    setParams({})
+    setParams({ conversation: thread.id })
   }
 
   function backToInbox() {
@@ -101,7 +119,7 @@ export function LogisticsMessagesPage() {
     context: `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)}`,
     selected: selectedId === thread.id,
     readOnly: Boolean(thread.read_only_reason),
-    onSelect: () => { setSelectedId(thread.id); setParams({}) },
+    onSelect: () => { setSelectedId(thread.id); setParams({ conversation: thread.id }) },
   }))
 
   return (

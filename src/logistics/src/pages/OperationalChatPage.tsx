@@ -13,6 +13,7 @@ export function OperationalChatPage() {
   const [loading, setLoading] = useState(true)
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [error, setError] = useState('')
+  const conversationId = params.get('conversation')
   const leg = params.get('leg')
   const taskId = params.get('task_id')
   const orderId = params.get('order_id')
@@ -65,6 +66,22 @@ export function OperationalChatPage() {
       window.removeEventListener('online', poll)
     }
   }, [load])
+
+  useEffect(() => {
+    let active = true
+    setSelectedId(conversationId)
+    if (conversationId) {
+      void operationalChat.show(conversationId).then(({ data }) => {
+        if (active) setThreads((current) => [data, ...current.filter((item) => item.id !== data.id)])
+      }).catch((caught) => {
+        if (!active) return
+        setSelectedId(null)
+        if (caught instanceof ApiError && [401, 403].includes(caught.status)) { clearChatPrivateState(); setThreads([]) }
+        setError(caught instanceof Error ? caught.message : 'This conversation could not be loaded.')
+      })
+    }
+    return () => { active = false }
+  }, [conversationId])
 
   function saved(thread: OperationalThread) {
     setThreads((current) => [thread, ...current.filter((item) => item.id !== thread.id)])

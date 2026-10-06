@@ -137,3 +137,31 @@ Document formats supported when media is enabled:
 
 - `@aisley/chat-ui` now supplies the shared inbox, conversation history, and composer across Customer–Shop, Customer–Courier, Customer–Logistics, Seller–Shop, Seller–Courier, Seller–Logistics, and Logistics operational chat. The role apps retain their existing routes, API clients, authorization, and separate channel identities. Product/Order context stays label-only or links to its existing route; this rollout adds no rich cards, attachments, receipts, or backend/mobile capability.
 - ESLint/Oxlint and TypeScript checks passed for all three web apps; Seller and Logistics production builds passed. The mocked Seller Courier Chromium smoke passed at 390, 768, and 1280px in both dashboard themes, covering empty/eligible entry, exact first-send retry, history paging, desktop Enter-to-send, mobile newline preservation, read-only/access-denied states, offline, validation, and throttling. Confirmed 409/422/429 rejections preserve editable text without claiming delivery uncertainty; uncertain transport/server outcomes retain the original locked payload and key. The Customer production build could not complete because Next.js could not fetch its existing Geist fonts from Google Fonts in the restricted network environment; Customer browser smoke was not run. Existing large-chunk warnings remain in the Seller and Logistics builds.
+
+## Dedicated web chat notifications — 2026-10-06
+
+- Customer, Seller, and Logistics headers have a separate Chat messages icon, total unread incoming-message badge (`99+` visually), and accessible dropdown. First messages and subsequent replies, including attachment-only messages, participate automatically after commit. No general notification rows are created.
+- Preview the five most recently active authorized conversations with unread incoming messages, ordered by activity then UUID. Show safe counterpart, channel, latest plain-text preview, activity time, and unread count; totals include all authorized conversations beyond the preview limit. Separate role/channel inboxes and their history routes remain authoritative.
+- Opening the dropdown reads no messages. Selecting a preview opens its owning thread; only the active visible thread can advance its existing read marker. Successful read acknowledgments immediately refresh the header count. Outgoing messages and exact send retries add no recipient duplicates.
+- Poll once every 15 seconds while online and foregrounded, refresh on focus/visibility/reconnect and dropdown opening, and serialize requests with a 15-second deadline. Preserve the last known values with explicit refresh-error feedback; distinguish loading, empty, offline, and access-denied states. Clear private previews on logout, account switch, or authorization loss, and ignore obsolete in-flight responses.
+- Dropdowns fit the viewport at 390/768/1280px, support normal links/Tab navigation, Escape/Close with focus restoration and outside dismissal, and preserve Customer light-only plus Seller/Logistics light/dark presentation. This is foreground in-app polling, without sound, popup, realtime transport, email, or background push.
+
+### Additive web API contract
+
+`GET /api/v1/{customer|seller|logistics}/chat-notifications` requires the owning role's existing Sanctum, active-account/approval, and policy-consent middleware. Customer retains its overall API rate limit. Return private `no-store` JSON:
+
+```json
+{
+  "data": [{
+    "id": "<conversation-uuid>",
+    "kind": "customer_shop",
+    "counterparty_label": "Shop name",
+    "last_message_preview": "Hello",
+    "last_message_at": "2026-10-06T01:00:00Z",
+    "unread_count": 1
+  }],
+  "meta": { "unread_count": 1 }
+}
+```
+
+The endpoint accepts no recipient selector and returns at most five previews. Kinds are existing conversation kinds; each role receives only its existing authorized channels. Totals derive from committed incoming messages above the current participant marker within existing service scopes, including authorized read-only history. No new schema, read endpoint, or message-send contract is introduced. Admin and external Courier clients do not receive a new endpoint or UI; existing Buyer/Courier contracts remain compatible.

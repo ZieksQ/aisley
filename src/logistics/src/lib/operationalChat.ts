@@ -1,3 +1,4 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
 import type { ChatAttachment } from "@aisley/chat-ui";
 import { csrf, requestWithTimeout } from './api'
 
@@ -73,6 +74,6 @@ export const operationalChat = {
   },
   async read(id: string, lastReadSequence: number) {
     await csrf()
-    return requestWithTimeout<ThreadResponse>(`${base}/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_sequence: lastReadSequence }) })
+    return acknowledgeChatRead(requestWithTimeout<ThreadResponse>(`${base}/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_sequence: lastReadSequence }) }))
   },
 }

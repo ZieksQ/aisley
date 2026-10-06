@@ -149,3 +149,9 @@ Web UI adoption (2026-10-05): The Logistics operational inbox and conversation v
 - Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
 
 The Logistics selected conversation is retained in `?conversation=<uuid>` after first send and inbox selection, so the existing consent recheck on query navigation can restore the same scoped thread. Back returns to the inbox.
+
+## Dedicated web chat notifications — 2026-10-06
+
+- The header Chat messages icon combines unread incoming messages across authorized Customer Order, Seller pickup, and Courier task conversations, separately from the general notification bell. It previews up to five unread conversations and links directly to the existing role/channel thread.
+- Follow the [shared notification behavior and additive API contract](../../shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06): `GET /api/v1/logistics/chat-notifications`, foreground 15-second refresh, participant-derived totals, private previews, and immediate refresh after successful read acknowledgment. Opening the dropdown does not mark read.
+- Existing channel routes, authorization, approval/tenant boundaries, read-only history, idempotency and media contracts remain authoritative. This web change does not establish external Flutter adoption or background push.

@@ -1,3 +1,4 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
 import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout } from './api'
 
@@ -44,7 +45,7 @@ export const logisticsMessages = {
   send: (id: string, body: string, key: string, attachmentIds: string[] = []) => apiWriteWithCsrfTimeout<WriteResponse>(`${base}/${id}/messages`, {
     method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ body, attachment_ids: attachmentIds }),
   }),
-  read: (id: string, sequence: number) => apiRequest<{ data: LogisticsThread }>(`${base}/${id}/read`, {
+  read: (id: string, sequence: number) => acknowledgeChatRead(apiRequest<{ data: LogisticsThread }>(`${base}/${id}/read`, {
     method: 'POST', body: JSON.stringify({ last_read_sequence: sequence }),
-  }),
+  })),
 }

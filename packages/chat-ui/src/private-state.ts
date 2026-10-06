@@ -42,6 +42,7 @@ export function writeChatAttempt(key: string, value: ChatAttempt | null) {
 }
 
 export function clearChatPrivateState() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("aisley:chat-private-cleared"));
   clearChatMediaPrivateState();
   const keys = new Set([...drafts.keys(), ...attempts.keys()]);
   drafts.clear();

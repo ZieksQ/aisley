@@ -1,3 +1,4 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
 import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout } from "@/lib/api"
 
@@ -53,9 +54,9 @@ export const courierMessages = {
     id ? `${root}/${encodeURIComponent(id)}/messages` : root,
     { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(id ? { body, attachment_ids: attachmentIds } : { context_type: 'order', context_id: order, body, attachment_ids: attachmentIds }) },
   ),
-  markRead: (id: string, sequence: number) => apiWriteWithCsrfTimeout<{ data: CourierConversation }>(`${root}/${encodeURIComponent(id)}/read`, {
+  markRead: (id: string, sequence: number) => acknowledgeChatRead(apiWriteWithCsrfTimeout<{ data: CourierConversation }>(`${root}/${encodeURIComponent(id)}/read`, {
     method: 'POST', body: JSON.stringify({ last_read_sequence: sequence }),
-  }),
+  })),
 }
 
 export function mergeCourierMessages(current: CourierMessage[], incoming: CourierMessage[]) {

@@ -113,6 +113,10 @@ class ChatMediaTest extends TestCase
             $first = $this->actingAs($sender)->postJson("/api/v1/{$role}/{$route}", $start + ['attachment_ids' => [$asset]], $this->key())
                 ->assertCreated()->assertJsonPath('message.attachments.0.id', $asset);
             $this->actingAs($recipient)->get("/api/v1/{$recipientRole}/chat-attachments/{$asset}/content")->assertOk();
+            if ($recipientRole !== 'courier') {
+                $this->getJson("/api/v1/{$recipientRole}/chat-notifications")->assertOk()
+                    ->assertJsonPath('data.0.id', $first->json('conversation.id'));
+            }
             $reply = $this->upload($recipient, ['conversation_id' => $first->json('conversation.id')]);
             app(ChatAttachmentProcessor::class)->process($reply);
             $recipientRoute = in_array($recipientRole, ['courier', 'logistics'], true) ? 'operational-conversations' : $route;

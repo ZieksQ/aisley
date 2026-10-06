@@ -1,3 +1,4 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
 import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from "@/lib/api";
 
@@ -43,6 +44,6 @@ export const deliveryMessages = {
   },
   async read(id: string, sequence: number) {
     await initializeCsrf();
-    return apiRequest<{ data: DeliveryThread }>(`${base}/${id}/read`, { method: "POST", body: JSON.stringify({ last_read_sequence: sequence }) });
+    return acknowledgeChatRead(apiRequest<{ data: DeliveryThread }>(`${base}/${id}/read`, { method: "POST", body: JSON.stringify({ last_read_sequence: sequence }) }));
   },
 };

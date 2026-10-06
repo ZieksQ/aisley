@@ -1,3 +1,4 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
 import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from './api'
 
@@ -38,5 +39,5 @@ export async function sendMessage(id: string, body: string, key: string, attachm
 
 export async function markRead(id: string, sequence: number) {
   await initializeCsrf()
-  return apiRequest<{ data: Conversation }>(`${base}/${id}/read`, { method: 'POST', body: JSON.stringify({ sequence }) })
+  return acknowledgeChatRead(apiRequest<{ data: Conversation }>(`${base}/${id}/read`, { method: 'POST', body: JSON.stringify({ sequence }) }))
 }

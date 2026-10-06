@@ -156,3 +156,9 @@ Web UI adoption (2026-10-05): Customer–Shop, Customer–Courier, and Customer�
 - Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
 
 Customer–Courier mutations now use separate named per-account start (15/minute) and reply (30/minute) counters so browsing, upload/status and history do not consume those budgets. The overall 120 Customer requests/minute remains enforced. This matches existing Customer Shop/Logistics counter isolation.
+
+## Dedicated web chat notifications — 2026-10-06
+
+- The header Chat messages icon combines unread incoming messages across authorized Shop, Logistics Order, and final-mile Courier conversations, separately from the general notification bell. It previews up to five unread conversations and links directly to the existing role/channel thread.
+- Follow the [shared notification behavior and additive API contract](../../shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06): `GET /api/v1/customer/chat-notifications`, foreground 15-second refresh, participant-derived totals, private previews, and immediate refresh after successful read acknowledgment. Opening the dropdown does not mark read.
+- Existing channel routes, authorization, approval/tenant boundaries, read-only history, idempotency and media contracts remain authoritative. This web change does not establish external Flutter adoption or background push.

@@ -40,6 +40,7 @@ use App\Http\Controllers\Customer\AccountController as CustomerAccountController
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
+use App\Http\Controllers\Customer\ChatNotificationController as CustomerChatNotificationController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
 use App\Http\Controllers\Customer\CourierConversationController as CustomerCourierConversationController;
@@ -62,6 +63,7 @@ use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\BillingController;
+use App\Http\Controllers\Logistics\ChatNotificationController as LogisticsChatNotificationController;
 use App\Http\Controllers\Logistics\CompanyFleetController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\CourierCashController;
@@ -95,6 +97,7 @@ use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
+use App\Http\Controllers\Seller\ChatNotificationController as SellerChatNotificationController;
 use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
 use App\Http\Controllers\Seller\CourierConversationController as SellerCourierConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
@@ -345,6 +348,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::post('/{voucher}/{operation}', [\App\Http\Controllers\Seller\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end');
     });
 
+    Route::get('/chat-notifications', SellerChatNotificationController::class)->name('chat-notifications');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
@@ -489,6 +493,7 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::get('/chat-notifications', LogisticsChatNotificationController::class)->name('chat-notifications');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
@@ -771,6 +776,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::get('/chat-notifications', CustomerChatNotificationController::class)->name('chat-notifications');
         Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
             Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
             Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
