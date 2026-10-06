@@ -5,6 +5,7 @@ namespace App\Services\Logistics;
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\HubRouteStatus;
 use App\Enums\Logistics\SortingDestinationType;
+use App\Enums\Logistics\SortingLaneState;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
@@ -14,9 +15,13 @@ use App\Models\LogisticsOrganization;
 use App\Models\Shipment;
 use App\Models\SortingLane;
 use App\Models\SortingPlan;
+use App\Models\SortingPlanActivation;
 use App\Models\SortingPlanLane;
+use App\Models\SortingPlanVersion;
 use App\Models\User;
 use App\Services\Logistics\Routing\ShipmentRouteService;
+use App\Services\Logistics\Sorting\SortingLocks;
+use App\Services\Logistics\Sorting\SortingVersionService;
 use Illuminate\Support\Facades\DB;
 
 class SortingPlanService
@@ -30,6 +35,9 @@ class SortingPlanService
             if ($owned->revision !== $revision) {
                 throw FulfillmentException::conflict('SORT_PLAN_REVISION_CONFLICT', 'The plan changed. Refresh before deleting it.');
             }
+            if ($owned->is_active || $owned->versions()->exists()) {
+                throw FulfillmentException::conflict('SORT_PLAN_ARCHIVE_REQUIRED', 'Published plans must be archived; activate another version and cancel schedules first.');
+            }
             $owned->delete();
         }, 3);
     }
@@ -38,16 +46,18 @@ class SortingPlanService
     public function overview(User $logistics): array
     {
         $org = $this->organization($logistics);
+        app(SortingVersionService::class)->recoverHub($org->hub->id);
         $plans = SortingPlan::query()
             ->where('logistics_organization_id', $org->id)
             ->where('logistics_hub_id', $org->hub->id)
-            ->with('lanes.lane')
+            ->with(['lanes.lane', 'versions'])
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get();
 
         return [
             'context' => ['organization_id' => $org->id, 'hub_id' => $org->hub->id, 'hub_name' => $org->hub->name],
+            'active_version_id' => $plans->firstWhere('is_active', true)?->active_version_id,
             'active_plan_id' => $plans->firstWhere('is_active', true)?->id,
             'plans' => $plans->map(fn (SortingPlan $plan): array => $this->planProjection($plan))->values()->all(),
             'lanes' => $this->lanes($org),
@@ -63,22 +73,17 @@ class SortingPlanService
         $org = $this->organization($logistics);
         $name = trim((string) $input['name']);
 
-        return DB::transaction(function () use ($logistics, $org, $name, $input): SortingPlan {
+        return DB::transaction(function () use ($logistics, $org, $name): SortingPlan {
             $this->lockHub($org);
             $this->assertUniquePlanName($org, $name);
-            $activate = array_key_exists('is_active', $input)
-                ? (bool) $input['is_active']
-                : ! $this->plans($org)->where('is_active', true)->exists();
-            if ($activate) {
-                $this->deactivateOtherPlans($org);
-            }
 
             return SortingPlan::create([
                 'logistics_organization_id' => $org->id,
                 'logistics_hub_id' => $org->hub->id,
                 'created_by_logistics_id' => $logistics->id,
                 'name' => $name,
-                'is_active' => $activate,
+                'is_active' => false,
+                'draft_dirty' => true,
                 'revision' => 1,
             ])->load('lanes.lane');
         }, 3);
@@ -98,13 +103,13 @@ class SortingPlanService
             if ($name !== $owned->name) {
                 $this->assertUniquePlanName($org, $name, $owned->id);
             }
-            $active = array_key_exists('is_active', $input) ? (bool) $input['is_active'] : $owned->is_active;
-            if ($active) {
-                $this->deactivateOtherPlans($org, $owned->id);
+            $this->assertEditable($owned);
+            if ($input['is_active'] ?? false) {
+                throw FulfillmentException::invalid('SORT_PUBLICATION_REQUIRED', 'Publish and activate an immutable version instead of activating a draft.');
             }
             $owned->update([
                 'name' => $name,
-                'is_active' => $active,
+                'draft_dirty' => true,
                 'revision' => $owned->revision + 1,
             ]);
 
@@ -140,7 +145,7 @@ class SortingPlanService
             if ($lane === null) {
                 throw FulfillmentException::notFound('SORT_LANE_NOT_FOUND', 'This sorting lane is unavailable.');
             }
-            if (! $lane->is_active || $lane->type !== SortingLaneType::Standard) {
+            if (! $lane->is_active || $lane->operational_state !== SortingLaneState::Open || $lane->type !== SortingLaneType::Standard) {
                 throw FulfillmentException::invalid('SORT_PLAN_STANDARD_LANE_REQUIRED', 'Postal-code mappings require an active standard lane.', 'lane_id');
             }
             if ($hubTarget) {
@@ -160,6 +165,7 @@ class SortingPlanService
                 throw FulfillmentException::invalid('SORT_PLAN_POSTAL_CODE_TAKEN', 'This postal code is already mapped in the sort plan.', 'postal_code');
             }
 
+            $this->assertEditable($owned);
             $owned->lanes()->create([
                 'sorting_lane_id' => $lane->id,
                 'postal_code' => $postalCode,
@@ -167,7 +173,7 @@ class SortingPlanService
                 'destination_hub_id' => $hubTarget ? $input['destination_hub_id'] : null,
                 'position' => (int) ($input['position'] ?? 1),
             ]);
-            $owned->update(['revision' => $owned->revision + 1]);
+            $owned->update(['revision' => $owned->revision + 1, 'draft_dirty' => true]);
 
             return $owned->fresh('lanes.lane');
         }, 3);
@@ -187,8 +193,9 @@ class SortingPlanService
             if ($mapping === null) {
                 throw FulfillmentException::notFound('SORT_PLAN_LANE_NOT_FOUND', 'This sort-plan postal-code mapping is unavailable.');
             }
+            $this->assertEditable($owned);
             $mapping->delete();
-            $owned->update(['revision' => $owned->revision + 1]);
+            $owned->update(['revision' => $owned->revision + 1, 'draft_dirty' => true]);
 
             return $owned->fresh('lanes.lane');
         }, 3);
@@ -203,12 +210,7 @@ class SortingPlanService
     public function routeForContext(string $organizationId, string $hubId, ?string $postalCode): array
     {
         $normalized = $postalCode === null ? null : $this->normalizePostalCode($postalCode);
-        $plan = SortingPlan::query()
-            ->where('logistics_organization_id', $organizationId)
-            ->where('logistics_hub_id', $hubId)
-            ->where('is_active', true)
-            ->with('lanes.lane')
-            ->first();
+        $plan = $this->plansForHub($organizationId, $hubId);
         if ($plan === null) {
             return ['plan' => null, 'plan_lane' => null, 'lane' => null, 'postal_code' => $normalized, 'reason' => 'no_active_plan'];
         }
@@ -220,7 +222,7 @@ class SortingPlanService
             return ['plan' => $plan, 'plan_lane' => null, 'lane' => null, 'postal_code' => $normalized, 'reason' => 'postal_code_not_mapped'];
         }
         $lane = $mapping->lane;
-        if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard) {
+        if ($lane === null || ! $lane->is_active || $lane->operational_state !== SortingLaneState::Open || $lane->type !== SortingLaneType::Standard) {
             return ['plan' => $plan, 'plan_lane' => $mapping, 'lane' => null, 'postal_code' => $normalized, 'reason' => 'mapped_lane_unavailable'];
         }
 
@@ -247,18 +249,38 @@ class SortingPlanService
         if (! $allowed) {
             return [...$base, 'reason' => 'connection_unavailable'];
         }
+        if ($plan === null) {
+            return [...$base, 'reason' => 'no_active_plan'];
+        }
         $mapping = $plan?->lanes->first(fn ($mapping) => $mapping->destination_type === SortingDestinationType::Hub && $mapping->destination_hub_id === $hop->to_hub_id);
         $lane = $mapping?->lane;
-        if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard || $lane->logistics_organization_id !== $shipment->current_logistics_organization_id || $lane->logistics_hub_id !== $shipment->current_hub_id) {
+        if ($lane === null || ! $lane->is_active || $lane->operational_state !== SortingLaneState::Open || $lane->type !== SortingLaneType::Standard || $lane->logistics_organization_id !== $shipment->current_logistics_organization_id || $lane->logistics_hub_id !== $shipment->current_hub_id) {
             return [...$base, 'plan_lane' => $mapping, 'reason' => 'hub_lane_unavailable'];
         }
 
         return [...$base, 'plan_lane' => $mapping, 'lane' => $lane, 'reason' => 'matched'];
     }
 
-    private function plansForHub(string $organizationId, string $hubId): ?SortingPlan
+    public function plansForHub(string $organizationId, string $hubId): ?SortingPlan
     {
-        return SortingPlan::query()->where('logistics_organization_id', $organizationId)->where('logistics_hub_id', $hubId)->where('is_active', true)->with('lanes.lane')->first();
+        app(SortingVersionService::class)->recoverHub($hubId);
+        $plan = SortingPlan::query()->where('logistics_organization_id', $organizationId)->where('logistics_hub_id', $hubId)->where('is_active', true)->first();
+        $version = $plan?->active_version_id ? SortingPlanVersion::find($plan->active_version_id) : null;
+        if ($version === null) {
+            return null;
+        }
+        // Virtual mapping models expose published IDs; physical lanes remain shared resources.
+        $mappings = collect($version->mappings)->map(function (array $mapping) use ($plan) {
+            $model = new SortingPlanLane;
+            $model->setRawAttributes([...$mapping, 'sorting_plan_id' => $plan->id]);
+            $model->setRelation('lane', SortingLane::find($mapping['sorting_lane_id']));
+
+            return $model;
+        });
+        $plan->setRelation('lanes', $mappings);
+        $plan->setRelation('activeVersion', $version);
+
+        return $plan;
     }
 
     /** @return array<string, mixed> */
@@ -270,6 +292,8 @@ class SortingPlanService
         return [
             'plan_id' => $routing['plan']?->id,
             'plan_name' => $routing['plan']?->name,
+            'version_id' => $routing['plan']?->active_version_id,
+            'version_number' => $routing['plan']?->activeVersion?->number,
             'plan_revision' => $routing['plan']?->revision,
             'postal_code' => $routing['postal_code'],
             'lane_id' => $lane?->id,
@@ -287,6 +311,7 @@ class SortingPlanService
             ->where('logistics_hub_id', $hubId)
             ->where('type', SortingLaneType::Exception->value)
             ->where('is_active', true)
+            ->where('operational_state', 'open')
             ->orderBy('position')
             ->orderBy('code')
             ->first();
@@ -301,6 +326,11 @@ class SortingPlanService
             'id' => $plan->id,
             'name' => $plan->name,
             'is_active' => $plan->is_active,
+            'active_version_id' => $plan->active_version_id,
+            'draft_dirty' => $plan->draft_dirty,
+            'archived_at' => $plan->archived_at?->toISOString(),
+            'versions' => $plan->versions->toArray(),
+            'activations' => SortingPlanActivation::query()->whereIn('sorting_plan_version_id', $plan->versions->pluck('id'))->orderByDesc('scheduled_for')->get()->toArray(),
             'revision' => $plan->revision,
             'created_at' => $plan->created_at?->toISOString(),
             'updated_at' => $plan->updated_at?->toISOString(),
@@ -324,6 +354,8 @@ class SortingPlanService
             'name' => $lane->name,
             'type' => $lane->type->value,
             'is_active' => $lane->is_active,
+            'operational_state' => $lane->operational_state->value,
+            'blocking_reason' => $lane->blocking_reason,
             'position' => $lane->position,
             'revision' => $lane->revision,
             'label_payload' => 'AISLEY:SORT-LANE:1:'.$lane->id,
@@ -350,7 +382,9 @@ class SortingPlanService
 
     private function lockHub(LogisticsOrganization $org): LogisticsHub
     {
-        return LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+        SortingLocks::hub($org->hub->id);
+
+        return $org->hub;
     }
 
     private function ownedPlan(LogisticsOrganization $org, string $planId, bool $lock = false): SortingPlan
@@ -377,12 +411,13 @@ class SortingPlanService
         }
     }
 
-    private function deactivateOtherPlans(LogisticsOrganization $org, ?string $except = null): void
+    private function assertEditable(SortingPlan $plan): void
     {
-        $this->plans($org)
-            ->where('is_active', true)
-            ->when($except, fn ($query) => $query->whereKeyNot($except))
-            ->update(['is_active' => false, 'revision' => DB::raw('revision + 1')]);
+        if ($plan->archived_at !== null) {
+            throw FulfillmentException::conflict('SORT_PLAN_ARCHIVED', 'Archived plans are read-only.');
+        }
+        // Draft rows are separate from immutable published mappings. Edits create a successor draft.
+        $plan->draft_dirty = true;
     }
 
     private function plans(LogisticsOrganization $org)

@@ -5,6 +5,7 @@ namespace App\Services\Logistics;
 use App\Enums\Logistics\HubRouteStatus;
 use App\Enums\Logistics\SortingExceptionCode;
 use App\Enums\Logistics\SortingItemStatus;
+use App\Enums\Logistics\SortingLaneState;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\Logistics\SortingScanOutcome;
 use App\Enums\Logistics\SortingSessionStatus;
@@ -14,16 +15,19 @@ use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
 use App\Models\Shipment;
 use App\Models\SortingLane;
-use App\Models\SortingPlan;
+use App\Models\SortingPlanLane;
 use App\Models\SortingScan;
 use App\Models\SortingSession;
 use App\Models\SortingSessionItem;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
+use App\Services\Logistics\Sorting\SortingAssignmentService;
+use App\Services\Logistics\Sorting\SortingExceptionService;
+use App\Services\Logistics\Sorting\SortingLaneService;
+use App\Services\Logistics\Sorting\SortingSessionService;
+use App\Services\Logistics\Sorting\SortingVersionService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Picqer\Barcode\BarcodeGeneratorSVG;
 use Symfony\Component\HttpFoundation\Response;
 
 class SortingService
@@ -39,6 +43,7 @@ class SortingService
     public function overview(User $logistics): array
     {
         $org = $this->organization($logistics);
+        app(SortingVersionService::class)->recoverHub($org->hub->id);
         $session = SortingSession::query()
             ->where('logistics_organization_id', $org->id)
             ->where('logistics_hub_id', $org->hub->id)
@@ -51,6 +56,7 @@ class SortingService
             ->where('current_hub_id', $org->hub->id)
             ->where('status', ShipmentStatus::ReceivedAtHub->value)
             ->where('condition_hold', false)
+            ->whereDoesntHave('sortingExceptions', fn ($q) => $q->whereNull('resolved_at')->where('logistics_hub_id', $org->hub->id))
             ->when($assigned !== [], fn ($query) => $query->whereNotIn('id', $assigned))
             ->count();
 
@@ -66,147 +72,22 @@ class SortingService
 
     public function createLane(User $logistics, array $input): SortingLane
     {
-        $org = $this->organization($logistics);
-        $code = mb_strtoupper(trim((string) $input['code']));
-        if ($this->laneCodeExists($org, $code)) {
-            throw FulfillmentException::invalid('SORT_LANE_CODE_TAKEN', 'A sorting lane already uses this code.', 'code');
-        }
-        $position = (int) ($input['position'] ?? ((int) SortingLane::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->max('position') + 1));
-
-        return SortingLane::create([
-            'logistics_organization_id' => $org->id,
-            'logistics_hub_id' => $org->hub->id,
-            'created_by_logistics_id' => $logistics->id,
-            'code' => $code,
-            'name' => trim((string) $input['name']),
-            'type' => SortingLaneType::from((string) $input['type']),
-            'is_active' => true,
-            'position' => $position,
-            'revision' => 1,
-        ]);
+        return app(SortingLaneService::class)->createLane($logistics, $input);
     }
 
     public function updateLane(User $logistics, SortingLane $lane, array $input): SortingLane
     {
-        $org = $this->organization($logistics);
-
-        return DB::transaction(function () use ($lane, $input, $org): SortingLane {
-            $owned = $this->ownedLane($org, $lane->id, true);
-            if ($owned->revision !== (int) $input['expected_revision']) {
-                throw FulfillmentException::conflict('SORT_LANE_REVISION_CONFLICT', 'The sorting lane changed. Refresh before editing it.');
-            }
-            $code = array_key_exists('code', $input) ? mb_strtoupper(trim((string) $input['code'])) : $owned->code;
-            if ($code !== $owned->code && $this->laneCodeExists($org, $code, $owned->id)) {
-                throw FulfillmentException::invalid('SORT_LANE_CODE_TAKEN', 'A sorting lane already uses this code.', 'code');
-            }
-            $nextType = array_key_exists('type', $input) ? SortingLaneType::from((string) $input['type']) : $owned->type;
-            $nextActive = array_key_exists('is_active', $input) ? (bool) $input['is_active'] : $owned->is_active;
-            $referencedByOpenSession = SortingSessionItem::query()->where('sorting_lane_id', $owned->id)
-                ->whereHas('session', fn ($query) => $query->where('status', SortingSessionStatus::Open->value))->exists();
-            $hasStagedParcels = Shipment::query()->where('sorting_lane_id', $owned->id)->whereIn('status', [
-                ShipmentStatus::SortedAtHub->value, ShipmentStatus::DispatchedFromHub->value,
-                ShipmentStatus::DeliveryAssigned->value, ShipmentStatus::DeliveryAccepted->value,
-            ])->exists();
-            if (($referencedByOpenSession || $hasStagedParcels) && ((! $nextActive) || $nextType !== $owned->type)) {
-                throw FulfillmentException::conflict('SORT_LANE_IN_USE', 'Reconcile the open session and move staged parcels or confirm Courier collection before changing this lane type or deactivating it.');
-            }
-
-            $owned->update([
-                'code' => $code,
-                'name' => array_key_exists('name', $input) ? trim((string) $input['name']) : $owned->name,
-                'type' => $nextType,
-                'is_active' => $nextActive,
-                'position' => (int) ($input['position'] ?? $owned->position),
-                'revision' => $owned->revision + 1,
-            ]);
-
-            return $owned->fresh();
-        }, 3);
+        return app(SortingLaneService::class)->updateLane($logistics, $lane, $input);
     }
 
-    public function openSession(User $logistics, string $idempotencyKey): SortingSession
+    public function openSession(User $logistics, string $idempotencyKey, array $recoveryIds = []): SortingSession
     {
-        $org = $this->organization($logistics);
-        $requestHash = hash('sha256', 'sorting-session-v1|'.$org->id.'|'.$org->hub->id);
-
-        return DB::transaction(function () use ($logistics, $org, $idempotencyKey, $requestHash): SortingSession {
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
-            $prior = SortingSession::query()->where('opened_by_logistics_id', $logistics->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
-            if ($prior !== null) {
-                if (! hash_equals($prior->request_hash, $requestHash)) {
-                    throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used for another sorting session.');
-                }
-
-                return $this->loadSession($prior);
-            }
-            if (SortingSession::query()->where('open_key', $org->id.':'.$org->hub->id)->exists()) {
-                throw FulfillmentException::conflict('SORT_SESSION_ALREADY_OPEN', 'This hub already has an open sorting session.');
-            }
-            if (! SortingLane::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)->where('type', SortingLaneType::Standard->value)->where('is_active', true)->exists()) {
-                throw FulfillmentException::invalid('SORT_STANDARD_LANE_REQUIRED', 'Create an active standard lane before starting a sorting session.');
-            }
-            $shipments = Shipment::query()
-                ->where('current_logistics_organization_id', $org->id)
-                ->where('current_hub_id', $org->hub->id)
-                ->where('status', ShipmentStatus::ReceivedAtHub->value)
-                ->where('condition_hold', false)
-                ->whereDoesntHave('sortingItems', fn ($query) => $query->whereHas('session', fn ($session) => $session->where('status', SortingSessionStatus::Open->value)->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)))
-                ->orderByRaw('COALESCE(received_at_hub_at, created_at)')->orderBy('id')->limit(self::SESSION_LIMIT)->lockForUpdate()->get();
-            if ($shipments->isEmpty()) {
-                throw FulfillmentException::invalid('SORT_SESSION_EMPTY', 'No received parcels are waiting for sorting.');
-            }
-
-            $session = SortingSession::create([
-                'logistics_organization_id' => $org->id,
-                'logistics_hub_id' => $org->hub->id,
-                'opened_by_logistics_id' => $logistics->id,
-                'reference' => 'SRT-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
-                'status' => SortingSessionStatus::Open,
-                'open_key' => $org->id.':'.$org->hub->id,
-                'expected_count' => $shipments->count(),
-                'revision' => 1,
-                'idempotency_key' => $idempotencyKey,
-                'request_hash' => $requestHash,
-                'opened_at' => now(),
-            ]);
-            foreach ($shipments as $shipment) {
-                $session->items()->create([
-                    'shipment_id' => $shipment->id,
-                    'status' => SortingItemStatus::Pending,
-                    'expected_shipment_revision' => $shipment->revision,
-                ]);
-            }
-
-            return $this->loadSession($session);
-        }, 3);
+        return app(SortingSessionService::class)->openSession($logistics, $idempotencyKey, $recoveryIds);
     }
 
-    public function closeSession(User $logistics, SortingSession $session, int $expectedRevision): SortingSession
+    public function closeSession(User $logistics, SortingSession $session, int $expectedRevision, bool $carryOver = false): SortingSession
     {
-        $org = $this->organization($logistics);
-
-        return DB::transaction(function () use ($logistics, $session, $expectedRevision, $org): SortingSession {
-            $owned = $this->ownedSession($org, $session->id, true);
-            if ($owned->status === SortingSessionStatus::Closed) {
-                return $this->loadSession($owned);
-            }
-            if ($owned->revision !== $expectedRevision) {
-                throw FulfillmentException::conflict('SORT_SESSION_REVISION_CONFLICT', 'The sorting session changed. Refresh before closing it.');
-            }
-            $unresolved = $owned->items()->whereIn('status', [SortingItemStatus::Pending->value, SortingItemStatus::Exception->value])->count();
-            if ($unresolved > 0) {
-                throw FulfillmentException::conflict('SORT_SESSION_UNRESOLVED', "Resolve {$unresolved} pending or exception parcel(s) before closing this session.");
-            }
-            $owned->update([
-                'status' => SortingSessionStatus::Closed,
-                'open_key' => null,
-                'closed_by_logistics_id' => $logistics->id,
-                'closed_at' => now(),
-                'revision' => $owned->revision + 1,
-            ]);
-
-            return $this->loadSession($owned);
-        }, 3);
+        return app(SortingSessionService::class)->closeSession($logistics, $session, $expectedRevision, $carryOver);
     }
 
     /** @return array<string, mixed> */
@@ -232,6 +113,7 @@ class SortingService
             // Match network configuration lock order before acquiring hub/custody locks.
             DB::table('permissions')->where('slug', 'platform-settings.manage')->lockForUpdate()->first();
             LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            app(SortingVersionService::class)->recoverHubLocked($org->hub->id);
             $ownedSession = $this->ownedSession($org, $session->id, true);
             $previous = SortingScan::query()->where('logistics_organization_id', $org->id)->where('client_id', $capture['client_id'])->lockForUpdate()->first();
             if ($previous !== null) {
@@ -239,26 +121,27 @@ class SortingService
                     throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This sorting identifier was already used for another capture.');
                 }
 
-                return $this->scanProjection($previous->load(['lane', 'plan', 'planLane']));
+                return $previous->result_snapshot ?? $this->scanProjection($previous->load(['lane', 'plan', 'planLane']));
             }
             if ($ownedSession->status !== SortingSessionStatus::Open) {
                 throw FulfillmentException::conflict('SORT_SESSION_CLOSED', 'This sorting session is already closed.');
             }
             $shipment = $this->fulfillment->recordForLogistics($logistics, $reference);
             $shipment = Shipment::query()->whereKey($shipment->id)->with('parcel.order.address')->lockForUpdate()->firstOrFail();
+            $outstanding = app(SortingExceptionService::class)->outstanding($shipment);
+            if ($outstanding && ! $autoRoute && $this->ownedLane($org, (string) ($capture['lane_id'] ?? ''), true)->type === SortingLaneType::Standard) {
+                throw FulfillmentException::conflict('SORT_EXCEPTION_RESCAN_REQUIRED', 'Recover outstanding exceptions with a new automatic scan after correction.');
+            }
             $manualException = ! $autoRoute && filled($capture['lane_id'] ?? null)
                 && $this->ownedLane($org, (string) $capture['lane_id'], true)->type === SortingLaneType::Exception;
             $autoRoute = $autoRoute || ($shipment->route !== null && $shipment->route->status !== HubRouteStatus::Local && ! $manualException);
             if ($autoRoute) {
                 app(ShipmentRouteService::class)->retryHeldAtSorting($shipment);
             }
-            $routing = $autoRoute ? $this->sortingPlans->routeForShipment($shipment) : [
-                'plan' => null,
-                'plan_lane' => null,
-                'lane' => null,
-                'postal_code' => null,
-                'reason' => 'manual_lane',
-            ];
+            $routing = $this->sortingPlans->routeForShipment($shipment);
+            if (! $autoRoute) {
+                $routing['reason'] = 'manual_lane';
+            }
             if ($autoRoute) {
                 $automaticLaneId = $routing['lane'] instanceof SortingLane
                     ? $routing['lane']->id
@@ -272,6 +155,20 @@ class SortingService
                     throw FulfillmentException::invalid('SORT_LANE_REQUIRED', 'Select a sorting lane or enable automatic sorting.', 'lane_id');
                 }
                 $lane = $this->ownedLane($org, (string) $capture['lane_id'], true);
+            }
+            if ($lane->operational_state !== SortingLaneState::Open) {
+                $routing['reason'] = 'lane_blocked';
+                $routing['lane'] = null;
+                $lane = $this->sortingPlans->exceptionLaneForContext($org->id, $org->hub->id)
+                    ?? throw FulfillmentException::invalid('SORT_EXCEPTION_LANE_REQUIRED', 'Configure an open exception lane.');
+                $autoRoute = true;
+            }
+            if ($outstanding?->exception_code === SortingExceptionCode::Damaged && $outstanding->released_at === null) {
+                $routing['reason'] = 'damage_inspection_required';
+                $routing['lane'] = null;
+                $lane = $this->sortingPlans->exceptionLaneForContext($org->id, $org->hub->id)
+                    ?? throw FulfillmentException::invalid('SORT_EXCEPTION_LANE_REQUIRED', 'Configure an open exception lane.');
+                $autoRoute = true;
             }
             if (! $lane->is_active) {
                 throw FulfillmentException::conflict('SORT_LANE_INACTIVE', 'This sorting lane is inactive.');
@@ -290,12 +187,16 @@ class SortingService
                 throw FulfillmentException::conflict('SORT_SHIPMENT_STATE_CONFLICT', 'Only a parcel received at this hub can be sorted.');
             }
 
-            $exceptionCode = $capture['exception_code'] ?? null;
+            $exceptionCode = $routing['reason'] === 'damage_inspection_required' ? SortingExceptionCode::Damaged->value : ($capture['exception_code'] ?? null);
             $reason = isset($capture['reason']) ? trim((string) $capture['reason']) : null;
             if ($autoRoute && $routing['lane'] === null) {
                 $exceptionCode ??= SortingExceptionCode::DestinationUnclear->value;
                 $reason ??= $this->automaticExceptionReason((string) $routing['reason'], $routing['postal_code']);
             }
+            if (! $autoRoute && $routing['lane']?->id !== $lane->id) {
+                $routing['plan_lane'] = null;
+            }
+            $assignment = app(SortingAssignmentService::class)->snapshot($shipment, $lane, $routing, $logistics->id);
             if ($lane->type === SortingLaneType::Exception) {
                 if ($exceptionCode === null) {
                     throw FulfillmentException::invalid('SORT_EXCEPTION_CODE_REQUIRED', 'Choose an exception reason before scanning into this lane.', 'exception_code');
@@ -305,6 +206,7 @@ class SortingService
                 }
                 $outcome = SortingScanOutcome::Exception;
                 $item->update([
+                    'assignment_snapshot' => $assignment,
                     'sorting_lane_id' => $lane->id,
                     'status' => SortingItemStatus::Exception,
                     'exception_code' => SortingExceptionCode::from((string) $exceptionCode),
@@ -325,9 +227,11 @@ class SortingService
                     $lane->id,
                     (string) $capture['source'],
                     (string) $capture['captured_at'],
+                    $assignment,
                 );
                 $outcome = SortingScanOutcome::Sorted;
                 $item->update([
+                    'assignment_snapshot' => $assignment,
                     'sorting_lane_id' => $lane->id,
                     'status' => SortingItemStatus::Sorted,
                     'exception_resolved_at' => $item->status === SortingItemStatus::Exception ? now() : $item->exception_resolved_at,
@@ -341,8 +245,10 @@ class SortingService
                 'sorting_session_id' => $ownedSession->id,
                 'sorting_session_item_id' => $item->id,
                 'sorting_lane_id' => $lane->id,
+                'sorting_plan_version_id' => $routing['plan']?->active_version_id,
+                'assignment_snapshot' => $assignment,
                 'sorting_plan_id' => $routing['plan']?->id,
-                'sorting_plan_lane_id' => $routing['plan_lane']?->id,
+                'sorting_plan_lane_id' => $routing['plan_lane'] && SortingPlanLane::whereKey($routing['plan_lane']->id)->exists() ? $routing['plan_lane']->id : null,
                 'automatic_routing' => $autoRoute,
                 'shipment_id' => $shipment->id,
                 'recorded_by_logistics_id' => $logistics->id,
@@ -357,37 +263,22 @@ class SortingService
                 'processed_at' => now(),
             ]);
 
-            return $this->scanProjection($scan->load(['lane', 'plan', 'planLane']));
+            $exceptions = app(SortingExceptionService::class);
+            if ($outcome === SortingScanOutcome::Exception) {
+                $exceptions->record($shipment, $scan, $routing['reason']);
+            } else {
+                $exceptions->resolve($shipment, $scan);
+            }
+            $result = $this->scanProjection($scan->load(['lane', 'plan', 'planLane']));
+            $scan->update(['result_snapshot' => $result]);
+
+            return $result;
         }, 3);
     }
 
     public function labelResponse(User $logistics, SortingLane $lane): Response
     {
-        $org = $this->organization($logistics);
-        $owned = $this->ownedLane($org, $lane->id);
-        $payload = 'AISLEY:SORT-LANE:1:'.$owned->id;
-        $barcode = (new BarcodeGeneratorSVG)->getBarcode($payload, BarcodeGeneratorSVG::TYPE_CODE_128, 2, 60);
-        $code = htmlspecialchars($owned->code, ENT_QUOTES | ENT_XML1, 'UTF-8');
-        $name = htmlspecialchars($owned->name, ENT_QUOTES | ENT_XML1, 'UTF-8');
-        $image = base64_encode($barcode);
-        $svg = <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300" role="img" aria-labelledby="title desc">
-  <title id="title">Sorting lane {$code}</title>
-  <desc id="desc">Printable Code 128 label for {$name}</desc>
-  <rect width="600" height="300" fill="#fff"/>
-  <text x="300" y="55" text-anchor="middle" font-family="sans-serif" font-size="34" font-weight="700" fill="#111">{$code}</text>
-  <text x="300" y="88" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#333">{$name}</text>
-  <image x="45" y="112" width="510" height="105" href="data:image/svg+xml;base64,{$image}" preserveAspectRatio="xMidYMid meet"/>
-  <text x="300" y="252" text-anchor="middle" font-family="monospace" font-size="12" fill="#444">{$payload}</text>
-</svg>
-SVG;
-
-        return response($svg, 200, [
-            'Content-Type' => 'image/svg+xml; charset=UTF-8',
-            'Content-Disposition' => 'inline; filename="sorting-lane-'.$owned->code.'.svg"',
-            'Cache-Control' => 'private, no-store, max-age=0',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return app(SortingLaneService::class)->labelResponse($logistics, $lane);
     }
 
     /** @return array<string, mixed> */
@@ -399,6 +290,8 @@ SVG;
             'name' => $lane->name,
             'type' => $lane->type->value,
             'is_active' => $lane->is_active,
+            'operational_state' => $lane->operational_state->value,
+            'blocking_reason' => $lane->blocking_reason,
             'position' => $lane->position,
             'revision' => $lane->revision,
             'label_payload' => 'AISLEY:SORT-LANE:1:'.$lane->id,
@@ -443,6 +336,7 @@ SVG;
             'shipment_revision' => $shipment?->revision,
             'can_move' => $atThisHub && $shipment?->status === ShipmentStatus::SortedAtHub,
             'lane_id' => $item->sorting_lane_id,
+            'sorting_assignment' => $item->assignment_snapshot,
             'exception_code' => $item->exception_code?->value,
             'exception_reason' => $item->exception_reason,
             'completed_at' => $item->completed_at?->toISOString(),
@@ -486,7 +380,9 @@ SVG;
             'client_id' => $scan->client_id,
             'reference' => $scan->reference,
             'status' => $scan->outcome->value,
-            'lane' => $scan->lane ? $this->laneProjection($scan->lane) : null,
+            'lane' => $scan->assignment_snapshot['lane'] ?? null,
+            'sorting_assignment' => $scan->assignment_snapshot,
+            'version_id' => $scan->sorting_plan_version_id,
             'automatic' => $scan->automatic_routing,
             'sort_plan_id' => $scan->sorting_plan_id,
             'sort_plan_lane_id' => $scan->sorting_plan_lane_id,
@@ -527,12 +423,6 @@ SVG;
         return $query->first() ?? throw FulfillmentException::notFound('SORT_SESSION_NOT_FOUND', 'This sorting session is unavailable.');
     }
 
-    private function laneCodeExists(LogisticsOrganization $org, string $code, ?string $except = null): bool
-    {
-        return SortingLane::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)
-            ->where('code', $code)->when($except, fn ($query) => $query->whereKeyNot($except))->exists();
-    }
-
     private function lanes(LogisticsOrganization $org): array
     {
         return SortingLane::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)
@@ -542,12 +432,7 @@ SVG;
     /** @return array<string, mixed> */
     private function automaticSortingProjection(LogisticsOrganization $org): array
     {
-        $plan = SortingPlan::query()
-            ->where('logistics_organization_id', $org->id)
-            ->where('logistics_hub_id', $org->hub->id)
-            ->where('is_active', true)
-            ->with('lanes.lane')
-            ->first();
+        $plan = $this->sortingPlans->plansForHub($org->id, $org->hub->id);
         $exceptionLane = $this->sortingPlans->exceptionLaneForContext($org->id, $org->hub->id);
 
         return [
@@ -564,6 +449,10 @@ SVG;
             'postal_code_missing' => 'The recipient postal code is missing or invalid.',
             'postal_code_not_mapped' => $postalCode ? "Postal code {$postalCode} is not mapped in the active sort plan." : 'The recipient postal code is not mapped in the active sort plan.',
             'mapped_lane_unavailable' => 'The mapped standard lane is inactive or unavailable.',
+            'hub_lane_unavailable' => 'The committed next hub has no available standard lane in the active version.',
+            'lane_blocked' => 'The selected lane is paused or held. Resume the lane before rescanning.',
+            'connection_unavailable' => 'The committed hub connection is unavailable. Restore it before rescanning.',
+            'damage_inspection_required' => 'Document inspection and release before rescanning this damaged parcel.',
             default => 'Automatic sort-plan routing could not identify a standard lane.',
         };
     }

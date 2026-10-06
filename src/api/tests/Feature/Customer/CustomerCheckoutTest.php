@@ -26,6 +26,7 @@ use App\Models\Shop;
 use App\Models\ShopLogisticsProvider;
 use App\Models\SortingLane;
 use App\Models\SortingPlan;
+use App\Models\SortingPlanVersion;
 use App\Models\User;
 use App\Models\Voucher;
 use Database\Seeders\ProductSeeder;
@@ -320,6 +321,10 @@ class CustomerCheckoutTest extends TestCase
             'postal_code' => '1203',
             'position' => 1,
         ]);
+        $version = SortingPlanVersion::create(['sorting_plan_id' => $plan->id, 'number' => 1, 'name' => $plan->name,
+            'mappings' => $plan->lanes->map(fn ($mapping) => [...$mapping->only(['id', 'sorting_lane_id', 'postal_code', 'destination_hub_id', 'position']), 'destination_type' => $mapping->destination_type->value])->all(),
+            'differences' => [], 'published_by' => $plan->created_by_logistics_id, 'published_at' => now()]);
+        $plan->update(['active_version_id' => $version->id, 'draft_dirty' => false]);
         $card = LogisticsRateCard::create([
             'logistics_organization_id' => $organization->id,
             'version_number' => 1,
@@ -344,6 +349,7 @@ class CustomerCheckoutTest extends TestCase
                 'max_width_mm' => 2000,
                 'max_height_mm' => 2000,
             ]);
+
         }
         $payload = $this->buyNowPayload($product, $address, 2);
         $payload['logistics_selections'] = [[

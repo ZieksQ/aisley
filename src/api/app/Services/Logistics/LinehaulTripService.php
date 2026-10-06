@@ -7,6 +7,7 @@ use App\Enums\Logistics\CompanyTruckAvailability;
 use App\Enums\Logistics\HubRouteHopStatus;
 use App\Enums\Logistics\LinehaulTripDirection;
 use App\Enums\Logistics\LinehaulTripStatus;
+use App\Enums\Logistics\SortingLaneState;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
@@ -24,6 +25,8 @@ use App\Models\Shipment;
 use App\Models\User;
 use App\Services\Courier\CourierNotificationService;
 use App\Services\Logistics\Routing\LinehaulService;
+use App\Services\Logistics\Sorting\SortingAssignmentService;
+use App\Services\Logistics\Sorting\SortingLocks;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -53,7 +56,7 @@ class LinehaulTripService
     {
         return DB::transaction(function () use ($actor, $input, $key): array {
             $org = $this->organization($actor);
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($org->hub->id);
             if (($prior = LinehaulTrip::query()->where('requested_by', $actor->id)->where('idempotency_key', $key)->first()) !== null) {
                 return $this->idempotent($prior, $input, $org->hub->id);
             }
@@ -100,7 +103,7 @@ class LinehaulTripService
     {
         return DB::transaction(function () use ($actor, $id, $accept, $reason, $expectedRevision): array {
             $org = $this->organization($actor);
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($org->hub->id);
             $trip = LinehaulTrip::query()->whereKey($id)->where('to_hub_id', $org->hub->id)->where('direction', LinehaulTripDirection::Outbound)->lockForUpdate()->first();
             if ($trip === null) {
                 throw FulfillmentException::notFound('LINEHAUL_TRIP_NOT_FOUND', 'This inbound linehaul request is unavailable.');
@@ -128,7 +131,7 @@ class LinehaulTripService
     {
         return DB::transaction(function () use ($actor, $id, $expectedRevision): array {
             $org = $this->organization($actor);
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($org->hub->id);
             $trip = LinehaulTrip::query()->whereKey($id)->where('from_hub_id', $org->hub->id)->lockForUpdate()->first();
             if ($trip === null) {
                 throw FulfillmentException::notFound('LINEHAUL_TRIP_NOT_FOUND', 'This linehaul trip is unavailable.');
@@ -147,7 +150,7 @@ class LinehaulTripService
     {
         return DB::transaction(function () use ($actor, $id, $expectedRevision): array {
             $org = $this->organization($actor);
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($org->hub->id);
             $trip = LinehaulTrip::query()->whereKey($id)->where('from_hub_id', $org->hub->id)->with(['truck', 'shipments.shipment.parcel.waybill', 'shipments.hop'])->lockForUpdate()->first();
             if ($trip === null) {
                 throw FulfillmentException::notFound('LINEHAUL_TRIP_NOT_FOUND', 'This linehaul trip is unavailable.');
@@ -179,7 +182,7 @@ class LinehaulTripService
     {
         return DB::transaction(function () use ($actor, $id, $expectedRevision): array {
             $org = $this->organization($actor);
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($org->hub->id);
             $trip = LinehaulTrip::query()->whereKey($id)->where('to_hub_id', $org->hub->id)->with('truck')->lockForUpdate()->first();
             if ($trip === null) {
                 throw FulfillmentException::notFound('LINEHAUL_TRIP_NOT_FOUND', 'This arriving linehaul trip is unavailable.');
@@ -203,7 +206,7 @@ class LinehaulTripService
     {
         return DB::transaction(function () use ($actor, $outboundId, $input, $key): array {
             $org = $this->organization($actor);
-            LogisticsHub::query()->whereKey($org->hub->id)->lockForUpdate()->firstOrFail();
+            SortingLocks::hub($org->hub->id);
             if (($prior = LinehaulTrip::query()->where('requested_by', $actor->id)->where('idempotency_key', $key)->first()) !== null) {
                 return $this->idempotent($prior, $input, $org->hub->id);
             }
@@ -272,11 +275,13 @@ class LinehaulTripService
             'parcel_count' => $trip->parcel_count,
             'remaining_capacity' => max(0, $trip->capacity_snapshot - $trip->parcel_count),
             'references' => $references,
+            'parcels' => $trip->shipments->map(fn ($item) => ['reference' => $item->shipment?->parcel?->waybill?->reference, 'sorting_assignment' => $item->sorting_assignment, 'lane' => app(SortingAssignmentService::class)->projection($item->shipment)])->all(),
+            'lane_blocked' => $trip->status === LinehaulTripStatus::Scheduled && $trip->shipments->contains(fn ($item) => $item->shipment?->sortingLane?->operational_state !== SortingLaneState::Open),
             'empty_return' => $trip->direction === LinehaulTripDirection::Return && $trip->parcel_count === 0,
             'rejection_reason' => $trip->rejection_reason,
             'revision' => $trip->revision,
             'can_decide' => $viewerHub === $trip->to_hub_id && $trip->direction === LinehaulTripDirection::Outbound && $trip->status === LinehaulTripStatus::PendingAcceptance,
-            'can_depart' => $viewerHub === $trip->from_hub_id && $trip->status === LinehaulTripStatus::Scheduled,
+            'can_depart' => $viewerHub === $trip->from_hub_id && $trip->status === LinehaulTripStatus::Scheduled && ! $trip->shipments->contains(fn ($item) => $item->shipment?->sortingLane?->operational_state !== SortingLaneState::Open),
             'can_receive' => $viewerHub === $trip->to_hub_id && $trip->status === LinehaulTripStatus::InTransfer,
             'can_schedule_return' => $viewerHub === $trip->to_hub_id && $trip->direction === LinehaulTripDirection::Outbound && $trip->status === LinehaulTripStatus::Received && $trip->returnTrip === null,
             'departed_at' => $trip->departed_at?->toISOString(),
@@ -306,7 +311,7 @@ class LinehaulTripService
                 continue;
             }
             $lane = $shipment->sortingLane;
-            if ($lane === null || ! $lane->is_active || $lane->type !== SortingLaneType::Standard
+            if ($lane === null || ! $lane->is_active || $lane->operational_state !== SortingLaneState::Open || $lane->type !== SortingLaneType::Standard
                 || $lane->logistics_organization_id !== $orgId || $lane->logistics_hub_id !== $hubId) {
                 continue;
             }
@@ -324,6 +329,7 @@ class LinehaulTripService
     {
         foreach ($items->values() as $index => $item) {
             LinehaulTripShipment::create([
+                'sorting_assignment' => $item['shipment']->sorting_assignment,
                 'linehaul_trip_id' => $trip->id,
                 'shipment_id' => $item['shipment']->id,
                 'shipment_route_hop_id' => $item['hop']->id,

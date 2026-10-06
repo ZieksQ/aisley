@@ -75,7 +75,8 @@ export type FulfillmentShipment = {
   status: string
   revision: number
   last_activity_at: string | null
-  sorting_lane?: { id: string; code: string; name: string; revision: number } | null
+  sorting_assignment?: import('./sorting').SortingAssignment | null
+  sorting_lane?: { id: string; code: string | null; name: string | null; revision: number; operational_state: 'open' | 'paused' | 'held'; blocking_reason: string | null } | null
   sorting_session_id?: string | null
   received_at_hub_at?: string | null
   parcel: {

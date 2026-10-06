@@ -1,16 +1,17 @@
 import { ParcelLaneMove } from '../components/ParcelLaneMove'
 import { useWaybillCamera } from '../lib/useWaybillCamera'
 import Dexie from 'dexie'
+import { ExceptionQueue } from '../components/sorting/ExceptionQueue'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPlus, FaPrint, FaRoute, FaStop, FaTrashCan, FaWarehouse, FaXmark } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
 import { ConnectionStatus } from '../components/ConnectionStatus'
 import { ErrorNotice, PrimaryButton, field, manilaDate, panel } from '../components/PickupUi'
-import { ApiError, blob as requestBlob, csrf, request, requestWithTimeout } from '../lib/api'
+import { ApiError, blob as requestBlob, csrf, requestWithTimeout } from '../lib/api'
 import { sortingDb, type PendingSortCapture } from '../lib/sortingDb'
 import type { SortingBatchResponse, SortingItem, SortingLane, SortingOverview } from '../types/sorting'
 
-const AUTO_SYNC_COUNT = 10
+const AUTO_SYNC_COUNT = 1
 const AUTO_SYNC_MS = 5 * 60 * 1000
 const iconButton = 'grid size-9 shrink-0 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/10 dark:hover:text-white'
 
@@ -43,12 +44,15 @@ export function SortingPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [syncBusy, setSyncBusy] = useState(false)
+  const [sessionUncertain, setSessionUncertain] = useState(false)
+  const sessionAttempt = useRef<{ path: string; body: string; key: string } | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [itemSearch, setItemSearch] = useState('')
   const [itemStatus, setItemStatus] = useState('')
   const helpDialog = useRef<HTMLDialogElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const syncLock = useRef(false)
   const lastAutoSyncBatch = useRef('')
 
   const session = overview?.session ?? null
@@ -58,9 +62,9 @@ export function SortingPage() {
     ? (overview?.automatic_sorting.active_plan ? 'Plan routing active' : 'Plan routing · exception fallback')
     : (selectedLane ? selectedLane.code + ' · ' + selectedLane.name : 'Select an active lane')
 
-  const loadCaptures = useCallback(async (contextKey: string, sessionId: string | undefined) => {
-    if (!contextKey || !sessionId) { setCaptures([]); return }
-    setCaptures(await sortingDb.captures.where({ context: contextKey, sessionId }).sortBy('capturedAt'))
+  const loadCaptures = useCallback(async (contextKey: string, _sessionId?: string) => {
+    if (!contextKey) { setCaptures([]); return }
+    setCaptures(await sortingDb.captures.where({ context: contextKey }).sortBy('capturedAt'))
   }, [])
 
   const load = useCallback(async () => {
@@ -103,8 +107,8 @@ export function SortingPage() {
       })
       setManualReference('')
       setError('')
-      setNotice(autoRoute ? item.reference + ' saved for automatic routing on this device.' : item.reference + ' saved on this device for ' + targetLane.code + '.')
-      await loadCaptures(context, session.id)
+      setNotice(item.reference + ' · Pending verification. Retain the parcel in the pending area until the API confirms its lane.')
+      await loadCaptures(context, session?.id)
     } catch (caught) {
       setError(caught instanceof Dexie.ConstraintError ? item.reference + ' is already waiting to sync.' : 'The sorting capture could not be saved on this device.')
     }
@@ -125,14 +129,17 @@ export function SortingPage() {
   }, [overview?.lanes, queueCapture])
 
   const sync = useCallback(async () => {
-    if (!session || !context || !navigator.onLine) return
-    const queued = await sortingDb.captures.where({ context, sessionId: session.id }).sortBy('capturedAt')
-    if (!queued.length) return
+    if (!context || !navigator.onLine || syncLock.current) return
+    syncLock.current = true
+    const allQueued = await sortingDb.captures.where({ context }).sortBy('capturedAt')
+    const queued = allQueued.filter((capture) => capture.sessionId === allQueued[0]?.sessionId).slice(0, 100)
+    if (!queued.length) { syncLock.current = false; return }
     setSyncBusy(true)
     setError('')
     try {
       await csrf()
-      const response = await request<SortingBatchResponse>(`/api/v1/logistics/sorting/sessions/${session.id}/batches`, {
+      await sortingDb.captures.where('id').anyOf(queued.map((capture) => capture.id)).modify({ attempted: true })
+      const response = await requestWithTimeout<SortingBatchResponse>(`/api/v1/logistics/sorting/sessions/${queued[0].sessionId}/batches`, {
         method: 'POST',
         body: JSON.stringify({ captures: queued.map((capture) => ({
           client_id: capture.id, lane_id: capture.laneId, auto_route: capture.autoRoute ?? false, reference: capture.reference,
@@ -143,14 +150,15 @@ export function SortingPage() {
       const completed = response.data.filter((item) => item.status !== 'failed').map((item) => item.client_id)
       if (completed.length) await sortingDb.captures.bulkDelete(completed)
       for (const failed of response.data.filter((item) => item.status === 'failed')) {
-        await sortingDb.captures.update(failed.client_id, { error: failed.message ?? 'The sorting capture was rejected.' })
+        await sortingDb.captures.update(failed.client_id, { attempted: false, error: failed.message ?? 'The sorting capture was rejected.' })
       }
-      setNotice(`${response.summary.sorted} sorted · ${response.summary.exception} exception${response.summary.exception === 1 ? '' : 's'}${response.summary.failed ? ` · ${response.summary.failed} need review` : ''}.`)
+      setNotice(response.data.filter((item) => item.status !== 'failed').map((item) => `${item.reference}: ${item.lane?.code ?? 'Unknown historical lane'} (${item.status})`).join(' · ') + ` · ${response.summary.sorted} sorted · ${response.summary.exception} exception${response.summary.exception === 1 ? '' : 's'}${response.summary.failed ? ` · ${response.summary.failed} need review` : ''}.`)
       await load()
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Queued captures remain saved offline. Try syncing again when connected.')
-      await loadCaptures(context, session.id)
+      await loadCaptures(context, session?.id)
     } finally {
+      syncLock.current = false
       setSyncBusy(false)
     }
   }, [context, load, loadCaptures, session])
@@ -176,28 +184,43 @@ export function SortingPage() {
     setScannerOpen(false)
   })
 
-  async function startSession() {
-    setBusy(true); setError(''); setNotice('')
+  async function submitSessionAction() {
+    const attempt = sessionAttempt.current
+    if (!attempt || busy) return
+    setBusy(true)
+    setError('')
+    setNotice('')
     try {
       await csrf()
-      await request('/api/v1/logistics/sorting/sessions', { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({}) })
-      setNotice('Sorting session started.')
+      await requestWithTimeout(attempt.path, {
+        method: 'POST', headers: { 'Idempotency-Key': attempt.key }, body: attempt.body,
+      })
+      sessionAttempt.current = null
+      setSessionUncertain(false)
+      setSelectedLaneId('')
+      setNotice('Session action confirmed.')
       await load()
-    } catch (caught) { setError(caught instanceof ApiError ? caught.message : 'The sorting session could not be started.') }
-    finally { setBusy(false) }
+    } catch (caught) {
+      const unknown = !(caught instanceof ApiError) || caught.status === 408 || caught.status === 0 || caught.status >= 500
+      setSessionUncertain(unknown)
+      if (!unknown) sessionAttempt.current = null
+      setError(caught instanceof Error ? caught.message : 'The session action could not be confirmed.')
+    } finally { setBusy(false) }
+  }
+
+  async function startSession() {
+    if (sessionAttempt.current) return
+    sessionAttempt.current = { path: '/api/v1/logistics/sorting/sessions', key: crypto.randomUUID(), body: '{}' }
+    await submitSessionAction()
   }
 
   async function closeSession() {
-    if (!session || !window.confirm(`Close ${session.reference}? This session cannot accept more scans.`)) return
-    setBusy(true); setError(''); setNotice('')
-    try {
-      await csrf()
-      await request(`/api/v1/logistics/sorting/sessions/${session.id}/close`, { method: 'POST', body: JSON.stringify({ expected_revision: session.revision }) })
-      setSelectedLaneId('')
-      setNotice('Sorting session closed. Committed parcels are ready for dispatch.')
-      await load()
-    } catch (caught) { setError(caught instanceof ApiError ? caught.message : 'The sorting session could not be closed.') }
-    finally { setBusy(false) }
+    if (sessionAttempt.current || !session || !window.confirm(`Close ${session.reference}? Outstanding exceptions carry over to the durable queue. All device captures must be reconciled.`)) return
+    sessionAttempt.current = {
+      path: `/api/v1/logistics/sorting/sessions/${session.id}/close`, key: crypto.randomUUID(),
+      body: JSON.stringify({ expected_revision: session.revision, carry_over_exceptions: true }),
+    }
+    await submitSessionAction()
   }
 
   async function openLabel(lane: SortingLane) {
@@ -230,7 +253,7 @@ export function SortingPage() {
     {notice ? <p className="mt-3 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
 
     <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-y border-zinc-200 py-2 text-sm dark:border-white/10">
-      <span><strong>{session?.counts.pending ?? 0}</strong> pending</span><span><strong>{session?.counts.sorted ?? 0}</strong> sorted</span><span><strong>{session?.counts.exception ?? 0}</strong> exceptions</span><span><strong>{captures.length}</strong> on this device</span><span><strong>{overview?.waiting_received ?? 0}</strong> next session</span>
+      <span><strong>{session?.counts.pending ?? 0}</strong> pending</span><span><strong>{session?.counts.sorted ?? 0}</strong> sorted</span><span><strong>{session?.counts.exception ?? 0}</strong> exceptions</span><span><strong>{captures.length}</strong> pending verification</span><span><strong>{overview?.waiting_received ?? 0}</strong> next session</span>
     </div>
 
     <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_23rem]">
@@ -243,15 +266,15 @@ export function SortingPage() {
         </section>
 
         <section className={`${panel} overflow-hidden`}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({captures.length})</h3><p className="text-xs text-zinc-500">Syncs at 10 scans, after five minutes, or on reconnect.</p></div><PrimaryButton busy={syncBusy} disabled={!online || captures.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PrimaryButton></div>
-          {captures.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{captures.map((capture) => { const lane = overview?.lanes.find((item) => item.id === capture.laneId); const laneLabel = (capture.autoRoute ?? false) ? (lane ? 'Plan target · ' + lane.code : 'Plan routing') : (lane?.code ?? 'Lane unavailable'); return <li className="flex items-start justify-between gap-3 px-3 py-2.5" key={capture.id}><div className="min-w-0"><p className="truncate font-mono text-sm font-medium">{capture.reference}</p><p className="text-xs text-zinc-500">{laneLabel} · {capture.source === 'barcode' ? 'scanned' : 'manual'} · {manilaDate(capture.capturedAt)}</p>{capture.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{capture.error}</p> : null}</div><button aria-label={'Remove ' + capture.reference + ' from this device'} className={iconButton} onClick={() => void sortingDb.captures.delete(capture.id).then(() => loadCaptures(context, session?.id))} title="Remove local capture" type="button"><FaTrashCan aria-hidden="true" /></button></li> })}</ul> : <p className="px-3 py-5 text-center text-sm text-zinc-500">No captures waiting to sync.</p>}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({captures.length})</h3><p className="text-xs text-zinc-500">Pending verification. Retain parcels in the pending area. Syncs promptly online and on reconnect.</p></div><PrimaryButton busy={syncBusy} disabled={!online || captures.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PrimaryButton></div>
+          {captures.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{captures.map((capture) => { const lane = overview?.lanes.find((item) => item.id === capture.laneId); const laneLabel = (capture.autoRoute ?? false) ? (lane ? 'Plan target · ' + lane.code : 'Plan routing') : (lane?.code ?? 'Lane unavailable'); return <li className="flex items-start justify-between gap-3 px-3 py-2.5" key={capture.id}><div className="min-w-0"><p className="truncate font-mono text-sm font-medium">{capture.reference}</p><p className="text-xs text-zinc-500">{laneLabel} · {capture.source === 'barcode' ? 'scanned' : 'manual'} · {manilaDate(capture.capturedAt)}</p>{capture.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{capture.error}</p> : null}</div><button aria-label={'Remove ' + capture.reference + ' from this device'} className={iconButton} disabled={syncBusy || capture.attempted} onClick={() => { if (window.confirm('Remove this uncommitted capture from this device?')) void sortingDb.captures.delete(capture.id).then(() => loadCaptures(context, session?.id)) }} title="Remove local capture" type="button"><FaTrashCan aria-hidden="true" /></button></li> })}</ul> : <p className="px-3 py-5 text-center text-sm text-zinc-500">No captures waiting to sync.</p>}
         </section>
       </div>
 
       <aside className="space-y-3">
         <section className={panel}>
           <div className="border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="font-semibold">Session</h3></div>
-          <div className="p-3">{session ? <><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-sm font-medium">{session.reference}</p><p className="mt-1 text-xs text-zinc-500">Opened {manilaDate(session.opened_at)} · {session.expected_count} expected</p></div><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Open</span></div><PrimaryButton className="mt-3 w-full" busy={busy} disabled={captures.length > 0 || session.counts.pending > 0 || session.counts.exception > 0} onClick={() => void closeSession()}>Close session</PrimaryButton></> : <><p className="text-sm text-zinc-600 dark:text-zinc-400">{overview?.waiting_received ?? 0} received parcel{overview?.waiting_received === 1 ? '' : 's'} ready. Sessions include up to {overview?.session_limit ?? 100} oldest parcels.</p><PrimaryButton className="mt-3 w-full" busy={busy} disabled={!overview?.lanes.some((lane) => lane.is_active && lane.type === 'standard') || !overview?.waiting_received} onClick={() => void startSession()}>Start session</PrimaryButton></>}</div>
+          <div className="p-3">{session ? <><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-sm font-medium">{session.reference}</p><p className="mt-1 text-xs text-zinc-500">Opened {manilaDate(session.opened_at)} · {session.expected_count} expected</p></div><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Open</span></div><PrimaryButton className="mt-3 w-full" busy={busy} disabled={sessionUncertain || captures.length > 0 || session.counts.pending > 0} onClick={() => void closeSession()}>Close session</PrimaryButton></> : <><p className="text-sm text-zinc-600 dark:text-zinc-400">{overview?.waiting_received ?? 0} received parcel{overview?.waiting_received === 1 ? '' : 's'} ready. Sessions include up to {overview?.session_limit ?? 100} oldest parcels.</p><PrimaryButton className="mt-3 w-full" busy={busy} disabled={sessionUncertain || !overview?.lanes.some((lane) => lane.is_active && lane.type === 'standard') || !overview?.waiting_received} onClick={() => void startSession()}>Start session</PrimaryButton></>}</div>
         </section>
 
         <section className={panel}>
@@ -264,16 +287,19 @@ export function SortingPage() {
     {session ? <section className={`${panel} mt-3 overflow-hidden`}>
       <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 px-3 py-2.5 dark:border-white/10"><h3 className="mr-auto font-semibold">Session reconciliation</h3><label className="w-full min-w-0 sm:w-auto"><span className="sr-only">Search session parcels</span><input className={`${field} max-w-full sm:w-60`} onChange={(event) => setItemSearch(event.target.value)} placeholder="Search reference or area" value={itemSearch} /></label><label><span className="sr-only">Filter session status</span><select className={`${field} w-36`} onChange={(event) => setItemStatus(event.target.value)} value={itemStatus}><option value="">All statuses</option><option value="pending">Pending</option><option value="sorted">Sorted</option><option value="exception">Exception</option></select></label></div>
       <ul className="divide-y divide-zinc-200 dark:divide-white/10">{filteredItems.map((item) => {
-        const lane = overview?.lanes.find((candidate) => candidate.id === item.lane_id)
+        const lane = item.sorting_assignment?.lane ?? overview?.lanes.find((candidate) => candidate.id === item.lane_id)
         return <li key={item.id} className="grid min-w-0 gap-2 p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center">
           <div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{item.reference}</p><p className="break-all text-xs text-zinc-500">{item.order_reference}</p></div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{destination(item)}</p>
-          <div><p className="text-xs"><span className="md:sr-only">Lane: </span>{lane?.code ?? 'Unassigned'}</p><p className="text-xs text-zinc-500">Auto: {item.automatic_routing.lane?.code ?? 'Exception fallback'}</p>{item.route ? <p className="mt-1 break-words text-xs">{item.route.next_hub ? 'Next hub: ' + item.route.next_hub.name : item.route.failure_code ? 'Route held: ' + item.route.failure_code.replaceAll('_', ' ').toLowerCase() : 'Final-mile postal routing'}</p> : null}{item.can_move ? <ParcelLaneMove shipmentId={item.shipment_id} revision={item.shipment_revision} laneId={item.lane_id} lanes={overview?.lanes ?? []} disabled={syncBusy || busy || captures.some((capture) => capture.reference === item.reference)} onMoved={load} /> : null}</div>
+          <div><p className="text-xs"><span className="md:sr-only">Lane: </span>{lane?.code ?? 'Unassigned'}</p>{item.sorting_assignment ? <p className="text-xs text-zinc-500">{item.sorting_assignment.legacy_reconstructed ? 'Reconstructed legacy assignment' : `Version ${item.sorting_assignment.version_number ?? 'manual'} · ${item.sorting_assignment.next_hub_name ?? item.sorting_assignment.postal_code ?? ''}`}</p> : null}<p className="text-xs text-zinc-500">Auto: {item.automatic_routing.lane?.code ?? 'Exception fallback'}</p>{item.route ? <p className="mt-1 break-words text-xs">{item.route.next_hub ? 'Next hub: ' + item.route.next_hub.name : item.route.failure_code ? 'Route held: ' + item.route.failure_code.replaceAll('_', ' ').toLowerCase() : 'Final-mile postal routing'}</p> : null}{item.can_move ? <ParcelLaneMove shipmentId={item.shipment_id} revision={item.shipment_revision} laneId={item.lane_id} lanes={overview?.lanes ?? []} disabled={syncBusy || busy || captures.some((capture) => capture.reference === item.reference)} onMoved={load} /> : null}</div>
           <div className={`text-sm ${statusTone(item.status)}`}><p className="font-medium capitalize">{item.status}</p>{item.exception_code ? <p className="text-xs">{item.exception_code.replaceAll('_', ' ')}{item.exception_reason ? ` · ${item.exception_reason}` : ''}</p> : null}</div>
         </li>
       })}</ul>{!filteredItems.length ? <p className="px-3 py-5 text-center text-sm text-zinc-500">No session parcels match the filters.</p> : null}
 
     </section> : null}
+
+    {sessionUncertain ? <div className="mt-3"><PrimaryButton busy={busy} onClick={() => void submitSessionAction()}>Verify previous session action</PrimaryButton></div> : null}
+    <ExceptionQueue hasSession={Boolean(session) || sessionUncertain} onChanged={load} />
 
     <dialog aria-labelledby="sorting-help-title" className="m-auto max-h-[90dvh] w-[min(92vw,34rem)] overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
       <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 id="sorting-help-title" className="font-semibold">How to use Sorting</h3><button aria-label="Close sorting instructions" className={iconButton} onClick={() => helpDialog.current?.close()} title="Close" type="button"><FaXmark aria-hidden="true" /></button></div>
@@ -281,9 +307,9 @@ export function SortingPage() {
         <li>Create an active standard lane, an active exception lane, and an active Sort plan with postal-code or allowed next-hub mappings. Print and place the lane labels from the Sort plan page.</li>
         <li>Start a session. It loads up to 100 of the oldest parcels already received at this hub.</li>
         <li>Leave <strong>Use plan routing</strong> enabled for normal work. Scan each parcel tracking ID or enter it manually; the server checks the committed next hop or buyer postal code and chooses the mapped lane.</li>
-        <li>If the plan is missing, the postal code is unmapped, or a mapped lane is unavailable, the parcel goes to the exception lane and stays received at hub. Scan a lane label or choose a lane only for a deliberate manual override.</li>
-        <li>Use <strong>Sync scans</strong> when needed. Captures also sync at 10 scans, after five minutes, or when the connection returns.</li>
-        <li>Resolve exceptions by scanning into a standard lane. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch local or destination-hub parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
+        <li>If the plan is missing, the postal code is unmapped, or a mapped lane is unavailable, the parcel goes to the exception lane and stays received at hub. Manual lane selection cannot bypass Pause/Hold or an outstanding exception.</li>
+        <li>Use <strong>Sync scans</strong> when needed. Captures sync promptly online and when the connection returns. Offline scans stay Pending verification; retain parcels in the pending area.</li>
+        <li>Correct the exception cause, then rescan with plan routing. Damage requires documented inspection/release. Select carried-over parcels from the exception queue for a recovery session. Use Move lane to relocate an already sorted parcel before dispatch.</li><li>Dispatch local or destination-hub parcels by source lane, even while the session is open. Close the session once all parcels are reconciled and local scans are synced.</li>
         <li>Linehaul extends automated sorting: transfer parcels use the mapped next-hub lane; destination-hub parcels use postal codes. Missing routes or mappings remain held.</li>
         <li>Linehaul groups sorted parcels with the same next hub in one manifest. Confirm physical departure together; the receiving hub scans parcels individually in Receive at hub. Verified parcels can sort while the truck is still unloading. Transfers require a connection and cannot skip hops.</li>
       </ol>

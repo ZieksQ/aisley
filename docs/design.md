@@ -119,6 +119,14 @@ Users bring expectations from other applications. Familiar interaction patterns 
 - Detail screens group references, amounts, dates, allocations, and attempts into predictable sections. Sandbox account editing is shown on demand; payment diagnostics and raw event payloads use disclosure controls.
 - These choices apply [NN/g's consistency, feedback, and error-prevention heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/), [GOV.UK button hierarchy](https://design-system.service.gov.uk/components/button/) and [table guidance](https://design-system.service.gov.uk/components/table/), and [W3C's semantic table guidance](https://www.w3.org/WAI/tutorials/tables/). Keep the AISLEY palette and role workflows authoritative rather than copying those sites' visual branding.
 
+## Logistics Sort plan workspace
+
+- Use compact bordered lists and tables, the existing neutral surfaces and AISLEY palette, readable light/dark controls and visible keyboard focus. Keep the plan list on the right at desktop widths and before the editor on narrow screens.
+- Give each plan a vertical three-dot actions menu; use a copy icon with Duplicate plan text and a centered confirmation modal. Duplication has no name input; the server assigns the next numbered name.
+- Browse/search published versions in a separate viewport-bounded modal, with a visible version list and selected snapshot actions. Keep plan search within the plan list.
+- Show preserved destinations and mapping differences directly in tables or sections. Do not hide this content in dropdowns, disclosure controls or accordions. Contain table overflow and modal scrolling.
+- Success messages have an accessible X button and dismiss after five seconds. Keep actionable errors and uncertain-request verification visible until resolved. This rule applies to the Sort plan workspace and its version/copy actions.
+
 ## Next.js SEO, SSR, and CSR
 
 These rendering rules apply to the Customer Next.js storefront; the Admin, Seller, and Logistics React Router dashboards retain their existing SPA architecture.

@@ -16,12 +16,14 @@ class SortingScan extends Model
     protected $fillable = [
         'logistics_organization_id', 'logistics_hub_id', 'sorting_session_id', 'sorting_session_item_id',
         'sorting_lane_id', 'sorting_plan_id', 'sorting_plan_lane_id', 'automatic_routing', 'shipment_id', 'recorded_by_logistics_id', 'client_id', 'request_hash',
-        'reference', 'outcome', 'source', 'exception_code', 'reason', 'captured_at', 'processed_at',
+        'sorting_plan_version_id', 'assignment_snapshot', 'result_snapshot', 'reference', 'outcome', 'source', 'exception_code', 'reason', 'captured_at', 'processed_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'assignment_snapshot' => 'array',
+            'result_snapshot' => 'array',
             'outcome' => SortingScanOutcome::class,
             'source' => SortingScanSource::class,
             'exception_code' => SortingExceptionCode::class,

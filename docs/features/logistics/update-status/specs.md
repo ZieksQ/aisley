@@ -12,6 +12,12 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Update Status
 
+## Sorting exception and pickup authority — 2026-10-06
+
+A generic sort transition cannot clear an outstanding durable exception. Correct configuration, inspect/release damage where required, and rescan through Sorting. Final-mile hub pickup validation rechecks the stored physical lane’s live operational state under network/hub/custody locks; Pause/Hold blocks validation while retaining task-bound evidence for Resume. Reads preserve frozen lane labels and expose live blocking metadata separately.
+
+See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.md).
+
 ## Final-mile photo confirmation revision (2026-09-20)
 
 For `delivered`, Logistics selects the matching Courier photo POD and completion intent, opens its private image through the scoped `GET /api/v1/logistics/delivery-proofs/{proof}/photo` route, then explicitly validates delivery through the existing revision-checked transition. Logistics can reject a bad photo with a reason and current task revision through `POST /api/v1/logistics/delivery-proofs/{proof}/reject`; its pending intent is rejected too, while custody stays `out_for_delivery`. The service checks that the image object still exists before accepting intent or finalization. A waybill QR, tracking ID, or Order reference cannot substitute for delivery proof. Hub pickup uses separate task-bound `task_confirmation` evidence without identifier input; Logistics validation commits its custody transition. Failed doorstep attempts keep the Shipment `out_for_delivery` and permit later Courier retry. Older QR-gated delivery wording below describes the superseded proof method.

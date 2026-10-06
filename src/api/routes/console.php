@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\SortingPlanActivation;
+use App\Services\Logistics\Sorting\SortingVersionService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -35,3 +37,11 @@ Schedule::command('campaigns:prune-recipients')
     ->withoutOverlapping();
 
 Schedule::command('deliveries:recover-approvals')->everyMinute()->withoutOverlapping()->onOneServer();
+
+Artisan::command('sorting:activate-due', function () {
+    $hubs = SortingPlanActivation::query()->where('status', 'scheduled')->where('scheduled_for', '<=', now())->distinct()->pluck('logistics_hub_id');
+    foreach ($hubs as $hubId) {
+        app(SortingVersionService::class)->recoverHub($hubId);
+    }
+})->purpose('Recover overdue one-time sort-plan activations');
+Schedule::command('sorting:activate-due')->everyMinute()->timezone('Asia/Manila')->withoutOverlapping()->onOneServer();

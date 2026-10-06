@@ -12,6 +12,12 @@ related_issue: https://github.com/ZieksQ/aisley/issues/98
 
 # Company Truck Linehaul Dispatch
 
+## Sorting provenance and lane blocks — 2026-10-06
+
+Company-truck membership freezes each parcel’s `sorting_assignment` at reservation. Ready groups and trip/manifest reads display stored labels/version/destination. Recheck physical lane state under network/hub locks for reservation and departure, including previously scheduled trips. Pause/Hold preserves reservations and blocks departure until Resume; renamed lanes and new active versions never relocate reserved/sorted parcels or alter their committed next hub.
+
+See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.md).
+
 ## Implemented receiving contract
 
 All receiving routes require the existing active Logistics/Sanctum/policy middleware and derive the sole receiving hub from the account. Requests for another hub return scoped 404. Receipt and discrepancy actions remain available after the Linehaul feature or connection is disabled.

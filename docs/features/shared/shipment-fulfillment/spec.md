@@ -15,6 +15,12 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 
 > **Cross-document decision notice:** This document is the canonical decision and reconciliation record for shared Shipment/Parcel/DeliveryTask concerns; it is not a replacement for the implementation contracts in `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, the domain documents, or owning feature specifications. Use it to answer cross-role concerns and direct revisions to those files. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
 
+## Frozen sorting assignment contract — 2026-10-06
+
+Version activation changes routing for new API scans only. Successful sorting freezes version identity, physical lane labels and immutable postal code or committed next hop/connection/hub. Dispatch reservations and movement history preserve those snapshots. Selected-lane Pause/Hold blocks staged dispatch/departure/validated hub pickup; already departed parcels are unaffected. Durable exceptions remain received at hub and recover through correction, documented damage release and a new automatic scan. Existing provider, checkout pricing and committed hub routes remain authoritative.
+
+See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.md).
+
 ## Checkout-selected provider and frozen pricing route — 2026-09-27
 
 - The Seller configures the Shop's allowed Logistics organizations; the Customer selects one provider per Shop Order at checkout. This supersedes the historical Seller-at-pickup selection decision below.
@@ -41,7 +47,7 @@ Logistics dispatches at most 15 sorted destination-hub parcels to one Courier sc
 
 - **Purpose:** Keep a compact reference for the future movement of a prepared Order from Seller pickup through the Logistics hub to Buyer delivery.
 - **Why it exists:** Current Order, waybill, pickup, Logistics, and Courier documents mention the same physical flow in different places. This guide collects terminology, records cross-role decisions, and identifies exactly which documents must be revised together.
-- **Current baseline:** Seller pickup requests, selected Logistics organizations, shared waybills, pickup schedules, first-mile assignment/acceptance/confirmation, route manifests, shared Parcel/Shipment records, hub processing, atomic final-mile dispatch-batch acceptance, task-bound hub handoff, private photo POD, and Logistics-gated delivery completion exist. Waybills expose an explicit tracking ID with a thin Code 128 barcode, and Logistics sort plans route exact Buyer postal codes at scan time. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred; advisory Geoapify final-mile routing is implemented.
+- **Current baseline:** Seller pickup requests, selected Logistics organizations, shared waybills, pickup schedules, first-mile assignment/acceptance/confirmation, route manifests, shared Parcel/Shipment records, hub processing, atomic final-mile dispatch-batch acceptance, task-bound hub handoff, private photo POD, and Logistics-gated delivery completion exist. Waybills expose an explicit tracking ID with a thin Code 128 barcode, and Logistics sort plans route exact Buyer postal codes at scan time. Signature proof, live location telemetry, returns, and exceptional delivery recovery remain deferred; advisory Geoapify final-mile routing is implemented.
 - **Role boundary:** Seller prepares and hands off; Logistics operates its single hub and assigns first-mile/final-mile work; Courier acts only on an assigned mobile API task; Customer reads safe tracking projections.
 - **Non-goals:** changing current routes or migrations, adding a second waybill, choosing a map provider, optimizing routes, creating multi-hub operations, billing subscriptions, or building Courier web UI.
 
@@ -85,7 +91,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 
 - [x] **Logistics-selection authority:** The Seller configures allowed Shop providers, the Customer selects one per Shop Order at checkout, and Seller pickup enforces the frozen selection.
 - [x] **High-level status mapping:** `picked_up` is the high-level projection of first-mile `picked_up_from_seller`; `assigned` is the Customer-facing projection of a committed dispatch schedule/final-mile Courier offer. Hub receipt and sorting remain detailed physical milestones, not meanings of either high-level value.
-- [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. The shared physical Shipment/Parcel bridge, hub operations, final-mile tasks, task-confirmation hub evidence, photo POD, and P0 delivery completion are now implemented; signature media, location telemetry, and exceptional recovery remain deferred.
+- [x] **Implemented/deferred summaries:** Update `docs/domains/Seller.md`, `docs/domains/Buyer.md`, and `docs/features/seller/prepare-orders/spec.md` so Seller pickup selection, shared-waybill persistence, pickup scheduling, first-mile assignment/acceptance, and explicit pickup confirmation are identified as the implemented foundation. The shared physical Shipment/Parcel bridge, hub operations, final-mile tasks, task-confirmation hub evidence, photo POD, and P0 delivery completion are now implemented; signature media, location telemetry, and exceptional delivery recovery remain deferred.
 - [x] **Schema-ledger synchronization:** Reconcile `docs/schema.md` with the migration directory without renaming or editing executed migrations. Add the implemented low-stock-alert, wishlist, and Logistics profile-photo migrations that are missing from the ledger; correct its duplicate sequence numbers for the Courier pickup, Product Q&A, and route-manifest entries; and record the implemented policy-consent protected-action gate.
 - [x] **Endpoint ownership paths:** The ownership table below uses the exact existing `spec.md`/`specs.md` paths. A route is usable only when that owning specification marks it implemented and the additive schema is deployed; advanced conceptual capabilities remain unavailable until their own rollout gates pass.
 - [x] **Legacy-reference audit:** Active canonical documents must not rely on the missing `app.md` or `docs/workflows.md`, old uppercase order values, or Mapbox assumptions. Draft and superseded specs may retain historical wording, but they must not be used as implementation authority until revised.
@@ -147,7 +153,7 @@ awaiting_seller_pickup
 
 ### Current implementation versus accepted target
 
-**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the existing first-mile Seller handoff and Inventory fulfillment. It now idempotently bridges that result into the shared Parcel/Shipment/DeliveryTask records without replaying stock. Final-mile and hub transitions use `FulfillmentTransitionService`, Logistics validation, and append-only physical events; private photo POD is implemented, while signature evidence, live location telemetry, and exceptional recovery remain future extensions.
+**Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the existing first-mile Seller handoff and Inventory fulfillment. It now idempotently bridges that result into the shared Parcel/Shipment/DeliveryTask records without replaying stock. Final-mile and hub transitions use `FulfillmentTransitionService`, Logistics validation, and append-only physical events; private photo POD is implemented, while signature evidence, live location telemetry, and exceptional delivery recovery remain future extensions.
 
 ### Cross-document decisions: API and client boundary
 
@@ -301,9 +307,9 @@ Complete each unchecked question before creating physical operational migrations
 | Final delivered transition                                    | `docs/features/courier/complete-delivery/specs.md`        | Implemented with Logistics validation and Courier completion intent                 |
 
 - [x] **Verification plan approved:** The test categories below are the accepted plan; this checkbox does not claim that future physical migrations or tests have run.
-- [ ] **Verification execution:** SQLite physical migration and end-to-end API tests pass; PostgreSQL schema-health/API verification is still pending the local container credential fix and is recorded in `docs/PROGRESS.md`.
+- [x] **Verification execution for the deployed P0 flow:** SQLite regressions and connected checkout-to-delivery API scenarios pass. Disposable PostgreSQL migration/API and independent-worker concurrency checks have now run; see the [dated verification report](verification.md) for exact scope and limits.
 
-  **Answer/owner:** The backend fulfillment maintainer owns the verification plan. The migration and API suites must run against both the PHPUnit SQLite database and PostgreSQL, which is the production database. SQLite coverage is now present and passing for the final-mile flow; PostgreSQL execution remains an environment prerequisite before production rollout.
+  **Answer/owner:** The backend fulfillment maintainer owns the verification plan. Migration and API suites run against PHPUnit SQLite and disposable PostgreSQL, the production database engine. The connected tests create Orders through checkout rather than fabricating prepared Order/custody records. Automated backend verification does not establish browser, physical scanner or external mobile-app acceptance.
   - **Migration tests:** Verify migration order, Shipment/Parcel/DeliveryTask foreign keys, indexes, uniqueness constraints, string-backed status fields, sole-hub scope, append-only
     history constraints, and schema-health checks on SQLite and PostgreSQL.
   - **IDOR/tenant tests:** A Courier, Logistics account, Seller, or Customer cannot read or mutate another organization’s task, hub, Order, Parcel, waybill, scan, evidence, or history.
@@ -317,7 +323,7 @@ Complete each unchecked question before creating physical operational migrations
     returns, refunds, and partial fulfillment have no unapproved automatic inventory effect.
   - **Notification-failure tests:** A notification or queue failure after commit does not roll back the transition, inventory effect, or audit history. Retrying delivery does not create
     duplicate notifications.
-  - **Rollout gate:** SQLite tests pass for the deployed P0 flow. PostgreSQL schema-health and API checks must still pass before production rollout; clients may consume only the explicitly implemented routes in development environments with the migration applied.
+  - **Rollout gate:** Current P0 API scenarios pass on SQLite and disposable PostgreSQL. Deployment-specific schema health, queue/scheduler operation, storage/provider integration and client/device acceptance remain separate checks; clients may consume only explicitly implemented routes with the required migrations applied.
 
 ## HOW
 

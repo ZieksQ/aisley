@@ -1193,10 +1193,14 @@ The additive fulfillment migration creates one immutable `parcels` row and one `
 | `delivery_task_offers` | Immutable Courier offers/rejections/acceptance sequence, Logistics actor, request hash, and actor-scoped idempotency key. Re-offer reuses the task and appends a sequence. |
 | `dispatch_schedules` | One organization/sole-hub schedule for one active approved Courier, future time, 1–15 parcels, revision, status, and Logistics-actor idempotency. |
 | `dispatch_schedule_shipments` | Unique Shipment/final-mile task membership with stable sequence; immutable `source_lane` JSON (ID/code/name/revision), sorting session, and pre-dispatch Shipment revision. Historical backfill is explicitly marked inferred. |
-| `sorting_plans` | Organization/sole-hub sort plans with unique names, one active plan per hub, revision, creator, and lifecycle metadata. |
+| `sorting_plans` | Named draft plans, unique per organization/sole hub; optimistic revision, unpublished-change flag, selected active version and archival time. |
+| `sorting_plan_versions` | Immutable numbered name/mapping/difference snapshots, publication actor/time; database triggers reject update/delete. |
+| `sorting_plan_activations` | One-time UTC schedules, requested/cancellation actors, pending hub/second uniqueness, activation/failure/cancellation outcome and reason. |
+| `sorting_mutations` | Actor/client UUID identity, request hash and preserved original mutation response for exact uncertain retry. |
+| `sorting_exceptions` | Durable organization/hub/Shipment exception queue, physical lane, cause/reason, attempts/revision, inspection/release and resolving scan/actor/time; survives sessions. |
 | `sorting_plan_lanes` | Exact normalized four-digit postal-code mappings from a sort plan to one active standard lane, with unique postal code per plan and ordered lane position. |
 | `hub_service_areas` | Active four-digit delivery coverage per Logistics sole hub. The additive 2026-09-20 migration replaces global active-code uniqueness with unique `(logistics_hub_id, postal_code)`, allowing multiple hubs to support one code. New route snapshots choose the lowest-cost reachable supporting hub, preferring local coverage. |
-| `sorting_lanes` | Organization/sole-hub lane definitions with unique code, standard/exception type, active flag, position, creator, and optimistic revision. |
+| `sorting_lanes` | Organization/sole-hub lane definitions with unique code, standard/exception type, administrative active flag, string-backed open/paused/held operational state with reason/actor/time, position, creator, and optimistic revision. |
 | `sorting_sessions` | One open session per organization/hub through nullable unique `open_key`; stores human reference, 100-item maximum expected count, actors, lifecycle, revision, and open-request idempotency. |
 | `sorting_session_items` | Session snapshot membership and current pending/sorted/exception reconciliation state; stores expected Shipment revision, selected lane, exception context, and completion time. |
 | `sorting_scans` | Append-style idempotent capture results scoped by organization/hub/session/item/lane/Shipment; stores stable client UUID, request hash, source, captured/processed times, actor, automatic-routing flag, selected plan/mapping IDs, and optional exception context/reason. |
@@ -1604,3 +1608,7 @@ Before adding these tables:
 - `courier_cash_receipts` and items: organization-scoped retry identity/hash, one Courier/currency, exact total, receiving Logistics identity/time, unique allocation per obligation.
 - `courier_cash_credits`: unique receipt, simulated account, centavos/currency and nullable credited time. Account locks serialize balance changes; pending credits recover without duplicating receipt history.
 - Simulated accounts add a generated four-digit display suffix. Billing returns only a masked suffix, label, currency and active/availability flags. Existing balances remain intact; new Logistics account entrypoints explicitly use zero initial funding.
+
+### Sorting versions and assignment migration — 2026-10-06
+
+`2026_10_06_000004_add_sorting_versions_and_recovery.php` adds version/schedule/mutation/exception tables and string-backed operational state. `shipments.sorting_assignment`, `sorting_session_items.assignment_snapshot`, `sorting_scans.assignment_snapshot`/`result_snapshot` and `linehaul_trip_shipments.sorting_assignment` retain frozen evidence; scans also identify their immutable version. Final-mile dispatch membership, linehaul manifests and hop source-lane evidence copy the same sorting snapshot. Import current plans as version 1 preserving active selection, reconstruct legacy assignment/scan identities with unknown labels null and an explicit legacy marker, and carry unresolved session exceptions into the durable queue. Existing pricing/provider/route contracts and executed migrations remain unchanged.

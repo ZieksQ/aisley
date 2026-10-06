@@ -102,6 +102,10 @@ class LogisticsPickupWaybillTest extends TestCase
         $lane = $this->actingAs($selectedUser)->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'PICK-01', 'name' => 'Cebu outbound', 'type' => 'standard'])->assertCreated()->json('data');
         $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Pickup destination plan', 'is_active' => true])->assertCreated()->json('data');
         $this->postJson("/api/v1/logistics/sorting/plans/{$plan['id']}/lanes", ['expected_revision' => $plan['revision'], 'lane_id' => $lane['id'], 'postal_code' => '6000'])->assertOk();
+        $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'EX', 'name' => 'Pickup exceptions', 'type' => 'exception'])->assertCreated();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson("/api/v1/logistics/sorting/plans/{$plan['id']}/actions/publish", [
+            'expected_revision' => 2, 'activate' => true,
+        ])->assertOk();
         $pickupAddress = $seller->addresses()->sole();
         $key = (string) Str::uuid();
 

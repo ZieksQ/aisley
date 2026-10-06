@@ -11,13 +11,15 @@ class SortingPlan extends Model
 {
     use HasUuids;
 
+    protected $attributes = ['draft_dirty' => true];
+
     protected $fillable = [
-        'logistics_organization_id', 'logistics_hub_id', 'created_by_logistics_id', 'name', 'is_active', 'revision',
+        'logistics_organization_id', 'logistics_hub_id', 'created_by_logistics_id', 'name', 'is_active', 'revision', 'active_version_id', 'draft_dirty', 'archived_at',
     ];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'revision' => 'integer'];
+        return ['draft_dirty' => 'boolean', 'archived_at' => 'immutable_datetime', 'is_active' => 'boolean', 'revision' => 'integer'];
     }
 
     public function organization(): BelongsTo
@@ -33,6 +35,16 @@ class SortingPlan extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_logistics_id');
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(SortingPlanVersion::class)->orderByDesc('number');
+    }
+
+    public function activeVersion(): BelongsTo
+    {
+        return $this->belongsTo(SortingPlanVersion::class, 'active_version_id');
     }
 
     public function lanes(): HasMany

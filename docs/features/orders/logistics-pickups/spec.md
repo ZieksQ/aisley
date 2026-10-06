@@ -63,6 +63,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - Preserve the current maximum of 50 distinct Orders per Seller request; expose unscheduled counts clearly and never assign more than 30 of them to one schedule.
 - In one locked transaction, revalidate Shop ownership, all Orders, chosen Logistics eligibility, reservation state, and a Seller-scoped idempotency key.
+- Acquire the shared routing-settings gate before Seller/provider/hub/Order locks, including when pickup-time plan reads recover overdue activations. Concurrent plan activation and pickup creation must serialize without holding the hub while waiting for that gate. A committed waybill hint remains immutable on replay; later physical sorting uses the current published version.
 - Commit one request, its Order links, each `seller_processing → ready_for_pickup` event, and one waybill per Order atomically.
 - During that same transaction, evaluate the Buyer postal code against the selected Logistics hub's current active sort plan and persist the immutable routing hint with the waybill. This hint is advisory history; hub scan-time routing rechecks the current plan and may fall back to the exception lane.
 - Notify only the selected Logistics organization after commit; never broadcast a request to every Logistics account.

@@ -35,6 +35,7 @@ use App\Models\Voucher;
 use App\Models\VoucherRedemption;
 use App\Services\Finance\OrderPricingService;
 use App\Services\Finance\ShippingQuotationService;
+use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\Seller\LowStockAlertService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
@@ -108,6 +109,9 @@ class CheckoutService
         }
 
         return DB::transaction(function () use ($customer, $data, $input, $idempotencyKey, $placementHash): CheckoutBatch {
+            // Routing recovery and Seller pickup take this gate before shared inventory rows.
+            SortingLocks::network();
+
             User::query()->whereKey($customer->id)->lockForUpdate()->firstOrFail();
 
             $existing = CheckoutBatch::query()

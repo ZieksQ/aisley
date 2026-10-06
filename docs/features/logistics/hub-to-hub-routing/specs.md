@@ -11,6 +11,12 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Linehaul
 
+## Versioned hub mappings — 2026-10-06
+
+Routing scans and new quotations use immutable active published mappings, recovering overdue activations first. A transfer sorts against its committed next hub; activation never reprices checkout or recalculates committed hops. Store version/lane/hop/connection/next-hub evidence on sorting. Both linehaul paths use that snapshot for departure provenance. Selected-lane Pause/Hold blocks new reservations and existing departures while preserving cargo reservations; connection restoration plus rescan recovers durable route exceptions.
+
+See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.md).
+
 ## Checkout route pricing revision — 2026-09-27
 
 - Checkout now previews the complete commercial route from the Customer-selected provider's hub to a destination hub serving the Buyer postal code.

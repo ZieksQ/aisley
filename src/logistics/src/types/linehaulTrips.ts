@@ -15,6 +15,8 @@ export type LinehaulTrip = {
   rejection_reason: string | null
   revision: number
   can_decide: boolean
+  lane_blocked: boolean
+  parcels: Array<{ reference: string; sorting_assignment: import('./sorting').SortingAssignment | null; lane: { operational_state: string; blocking_reason: string | null } | null }>
   can_depart: boolean
   can_receive: boolean
   can_schedule_return: boolean

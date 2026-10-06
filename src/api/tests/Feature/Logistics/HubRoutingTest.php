@@ -12,6 +12,7 @@ use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\ShipmentRoute;
 use App\Models\ShipmentRouteHop;
+use App\Models\SortingException;
 use App\Models\User;
 use App\Models\Waybill;
 use App\Services\Fulfillment\FulfillmentTransitionService;
@@ -58,7 +59,7 @@ class HubRoutingTest extends TestCase
         $this->actingAs($origin[0])->getJson('/api/v1/logistics/sorting/plans')
             ->assertOk()->assertExactJson(['data' => [
                 'context' => ['organization_id' => $origin[1]->id, 'hub_id' => $origin[2]->id, 'hub_name' => $origin[2]->name],
-                'active_plan_id' => null, 'plans' => [], 'lanes' => [],
+                'active_version_id' => null, 'active_plan_id' => null, 'plans' => [], 'lanes' => [],
                 'next_hubs' => collect([$allowed[2]])->sortBy('name')->map(fn ($hub) => ['id' => $hub->id, 'name' => $hub->name])->values()->all(),
             ]]);
     }
@@ -410,6 +411,10 @@ class HubRoutingTest extends TestCase
 
     public function test_additive_migration_backfills_current_custody_without_routing_existing_waybills(): void
     {
+        if (DB::getDriverName() !== 'sqlite') {
+            $this->markTestSkipped('SQLite legacy migration reconstruction check.');
+        }
+
         config(['hub-routing.enabled' => false]);
         $a = $this->pinnedHub();
         [, $reference] = $this->pickupAt($a);
@@ -441,11 +446,14 @@ class HubRoutingTest extends TestCase
         $exception = $this->postJson('/api/v1/logistics/sorting/lanes', ['code' => 'EX', 'name' => 'Exception', 'type' => 'exception'])->assertCreated()->json('data');
         $plan = $this->postJson('/api/v1/logistics/sorting/plans', ['name' => 'Route plan', 'is_active' => true])->assertCreated()->json('data');
         $this->postJson('/api/v1/logistics/sorting/plans/'.$plan['id'].'/lanes', ['expected_revision' => $plan['revision'], 'lane_id' => $standard['id'], 'destination_type' => 'hub', 'destination_hub_id' => $b[2]->id])->assertOk();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/plans/'.$plan['id'].'/actions/publish', ['expected_revision' => 2, 'activate' => true])->assertOk();
         $session = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/sessions')->assertCreated()->json('data');
         $capture = ['client_id' => (string) Str::uuid(), 'lane_id' => $exception['id'], 'auto_route' => false, 'reference' => $reference,
             'expected_revision' => $session['items'][0]['expected_revision'], 'source' => 'manual', 'captured_at' => now()->toISOString(), 'exception_code' => 'damaged'];
         $this->postJson('/api/v1/logistics/sorting/sessions/'.$session['id'].'/batches', ['captures' => [$capture]])->assertOk()->assertJsonPath('summary.exception', 1);
         $this->assertSame('received_at_hub', Shipment::sole()->status->value);
+        $exceptionRecord = SortingException::sole();
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/logistics/sorting/exceptions/'.$exceptionRecord->id.'/release', ['expected_revision' => $exceptionRecord->revision, 'reason' => 'Inspection complete; contents safe.'])->assertOk();
         unset($capture['exception_code']);
         $capture['client_id'] = (string) Str::uuid();
         $capture['auto_route'] = true;

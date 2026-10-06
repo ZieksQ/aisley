@@ -11,13 +11,13 @@ class LinehaulTripShipment extends Model
     use HasUuids;
 
     protected $fillable = [
-        'linehaul_trip_id', 'shipment_id', 'shipment_route_hop_id', 'sequence',
+        'sorting_assignment', 'linehaul_trip_id', 'shipment_id', 'shipment_route_hop_id', 'sequence',
         'shipment_revision_reserved', 'hop_revision_reserved', 'released_at',
     ];
 
     protected function casts(): array
     {
-        return ['released_at' => 'datetime'];
+        return ['sorting_assignment' => 'array', 'released_at' => 'datetime'];
     }
 
     public function trip(): BelongsTo

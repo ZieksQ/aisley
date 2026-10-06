@@ -3,13 +3,13 @@
 namespace App\Services\Logistics\Routing;
 
 use App\Enums\Logistics\SortingDestinationType;
+use App\Enums\Logistics\SortingLaneState;
 use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShippingRoutePricingStatus;
 use App\Enums\UserStatus;
 use App\Models\HubConnection;
 use App\Models\HubServiceArea;
 use App\Models\LogisticsHub;
-use App\Models\SortingPlan;
 use App\Services\Logistics\SortingPlanService;
 
 class CheckoutRoutePlanner
@@ -38,12 +38,13 @@ class CheckoutRoutePlanner
             return $this->unplanned('destination_uncovered', $origin, $postal);
         }
 
-        $plans = SortingPlan::query()->where('is_active', true)->with('lanes.lane')->get()->keyBy('logistics_hub_id');
+        $hubs = LogisticsHub::query()->orderBy('id')->get();
+        $plans = $hubs->map(fn ($hub) => $this->sortingPlans->plansForHub($hub->logistics_organization_id, $hub->id))->filter()->keyBy('logistics_hub_id');
         $destinationsWithFinalMile = collect($destinationIds)->filter(function (string $hubId) use ($plans, $postal): bool {
             $plan = $plans->get($hubId);
             $mapping = $plan?->lanes->first(fn ($lane) => $lane->destination_type === SortingDestinationType::PostalCode && $lane->postal_code === $postal);
 
-            return $mapping?->lane?->is_active === true && $mapping->lane->type === SortingLaneType::Standard;
+            return $mapping?->lane?->is_active === true && $mapping->lane->operational_state === SortingLaneState::Open && $mapping->lane->type === SortingLaneType::Standard;
         })->values()->all();
         if ($destinationsWithFinalMile === []) {
             return $this->unplanned('destination_sort_plan_unavailable', $origin, $postal);
@@ -61,7 +62,7 @@ class CheckoutRoutePlanner
             $plan = $plans->get($edge->from_hub_id);
             $mapping = $plan?->lanes->first(fn ($lane) => $lane->destination_type === SortingDestinationType::Hub && $lane->destination_hub_id === $edge->to_hub_id);
 
-            return $mapping?->lane?->is_active === true && $mapping->lane->type === SortingLaneType::Standard;
+            return $mapping?->lane?->is_active === true && $mapping->lane->operational_state === SortingLaneState::Open && $mapping->lane->type === SortingLaneType::Standard;
         })->values();
         $nodes = $edges->pluck('from_hub_id')->merge($edges->pluck('to_hub_id'))->unique();
         if ($edges->count() > config('hub-routing.max_edges') || $nodes->count() > config('hub-routing.max_nodes')) {
@@ -132,7 +133,8 @@ class CheckoutRoutePlanner
         $planSnapshots = $hubIds->map(function (string $hubId) use ($plans): array {
             $plan = $plans->get($hubId);
 
-            return ['hub_id' => $hubId, 'plan_id' => $plan?->id, 'revision' => $plan?->revision];
+            return ['hub_id' => $hubId, 'plan_id' => $plan?->id, 'revision' => $plan?->revision,
+                'version_id' => $plan?->activeVersion?->id, 'version_number' => $plan?->activeVersion?->number];
         })->values()->all();
 
         return [

@@ -19,6 +19,10 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Pick Up Order Specification
 
+## Physical staging lane control — 2026-10-06
+
+Final-mile task reads add nullable `sorting_assignment` (frozen version/lane/destination evidence), `hub_pickup_lane` (frozen lane labels with live `revision`, `operational_state`, `blocking_reason`), and `hub_pickup_blocked_reason`. Display stored labels when used for handoff context; do not substitute current plan labels. A paused/held physical lane blocks Logistics validation with `409 SORT_LANE_BLOCKED`, retaining the same accepted task and pending confirmation evidence for Resume. Courier task-confirmation submission and its revision/UUID Idempotency-Key body remain unchanged; submission does not certify pickup. Already validated/departed work is unaffected. These backend additions do not establish Flutter adoption or change its existing completion/acceptance status.
+
 ## Final-mile handoff revision (2026-09-21)
 
 The final-mile hub pickup endpoint now accepts only `{"expected_revision": <current task revision>}` and a UUID `Idempotency-Key`. The Courier selects an accepted final-mile task and explicitly requests hub handoff confirmation without entering a parcel identifier, scanning a waybill, or sending tracking/Order references. Laravel derives the parcel, waybill, Courier, and Logistics hub from that task, stores `task_confirmation` evidence without an identifier hash, and returns pending evidence; only Logistics validation commits `picked_up_from_hub`. Identifier fields now return `422` on this endpoint. First-mile Seller pickup still uses its separate scan/manual identifier contract. The shared Courier tile proxy now serves Geoapify `osm-bright` for embedded maps. Older final-mile identifier and `osm-carto` wording below is superseded by this revision.

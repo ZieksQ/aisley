@@ -12,6 +12,12 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 # Deploy Rider
 
+## Frozen staging and selected-lane controls — 2026-10-06
+
+Final-mile schedule membership copies the stored sorting assignment including original version and lane labels. Check the physical lane’s live administrative/operational state and revision transactionally; paused/held lanes block new schedules and validated hub pickup without cancelling existing offers, evidence or reservations. Other open lanes continue dispatching, and Resume permits staged work to continue.
+
+See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.md).
+
 ## Company-truck driver boundary — 2026-09-23
 
 Linehaul uses a separate Logistics-managed `can_drive_company_truck` capability and `linehaul_trips` assignment. It does not use final-mile offers or the Courier's personal vehicle. Active pickup/final-mile work blocks a linehaul driver assignment, and an active linehaul assignment blocks conflicting driver reuse. Final-mile schedules retain their 15-parcel contract. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.

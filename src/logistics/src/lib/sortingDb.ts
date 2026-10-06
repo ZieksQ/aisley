@@ -12,6 +12,7 @@ export type PendingSortCapture = {
   capturedAt: string
   exceptionCode?: 'damaged' | 'unreadable_label' | 'destination_unclear' | 'other'
   reason?: string
+  attempted?: boolean
   error?: string
 }
 
