@@ -758,19 +758,19 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         });
         Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
             Route::get('/', [CustomerLogisticsConversationController::class, 'index'])->name('index');
-            Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:customer-logistics-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerLogisticsConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
-            Route::post('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:customer-logistics-chat-send')->name('send');
             Route::post('/{conversation}/read', [CustomerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
         });
         Route::prefix('conversations')->name('conversations.')->group(function () {
             Route::get('/', [CustomerConversationController::class, 'index'])->name('index');
             Route::get('/unread-count', [CustomerConversationController::class, 'unreadCount'])->name('unread-count');
-            Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:customer-shop-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
-            Route::post('/{conversation}/messages', [CustomerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/messages', [CustomerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:customer-shop-chat-send')->name('send');
             Route::post('/{conversation}/read', [CustomerConversationController::class, 'read'])->whereUuid('conversation')->name('read');
         });
         Route::get('/notifications', [CustomerNotificationController::class, 'index'])->name('notifications.index');

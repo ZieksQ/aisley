@@ -36,6 +36,17 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
         Event::listen(CustomerOrderStatusChanged::class, SendCustomerOrderStatusNotification::class);
 
+        // Chat mutations must not share counters with browsing or polling.
+        foreach ([
+            'customer-shop-chat-start' => 15,
+            'customer-shop-chat-send' => 30,
+            'customer-logistics-chat-start' => 15,
+            'customer-logistics-chat-send' => 30,
+        ] as $name => $attempts) {
+            RateLimiter::for($name, fn (Request $request): Limit => Limit::perMinute($attempts)
+                ->by($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        }
+
         RateLimiter::for('customer-account-password', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [
                 'customer-account-password',

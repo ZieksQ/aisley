@@ -69,6 +69,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 ### Privacy and misuse
 
 - Throttle conversation starts and sends per authenticated account; return `429` without changing persisted history.
+- Customer–Shop starts allow 15 requests/minute and replies allow 30 requests/minute, with separate named counters per authenticated Customer across all Shops. Browsing, inbox/history polling, and read acknowledgments do not consume these mutation allowances; Customer–Logistics uses its own counters. The overall 120-request/minute Customer API limit still applies, and throttled responses retain retry headers.
 - Do not expose an arbitrary user search, recipient picker, Seller email/phone, or raw Shop-owner ID in the Customer composer.
 - Log safe message/conversation IDs, actor, outcome and timing for operations; do not log message bodies by default.
 - Admin has no automatic right to inspect private chats. Any report/review access needs an approved complaint or moderation contract and audited scope.

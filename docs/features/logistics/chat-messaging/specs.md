@@ -88,6 +88,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Rate-limit starts and sends; log message IDs, actor, outcome, and timing without body by default.
   Do not expose addresses, phone/email, payment secrets, private evidence, raw paths, or unrelated
   Order items in thread DTOs. Show only the minimum task/Order context needed by that participant.
+- Customer–Logistics starts allow 15 requests/minute and replies allow 30 requests/minute, with separate named counters per authenticated Customer across all Logistics recipients. Browsing, inbox/history polling, read acknowledgments, and Customer–Shop mutations do not consume these allowances. The overall 120-request/minute Customer API limit still applies; `429` preserves history and includes retry headers.
 - Admin has no automatic private-chat read privilege. Moderation, retention/deletion, abuse
   reporting, and exceptional access need separate approved policy before production release.
 
