@@ -51,3 +51,7 @@ The current [inspection](references/current-source-inspection.json) records Lara
 ### Sorting lane handoff contract — 2026-10-06
 
 The [portable pickup spec](features/courier/pick-up-order/specs.md) now documents frozen sorting assignment and live lane-block metadata on final-mile task reads. Logistics cannot validate staged pickup while its physical lane is paused/held; accepted tasks and pending confirmation evidence remain available after Resume. The Courier confirmation request is unchanged. Existing Flutter implementation/adoption/device status and imported baseline remain unchanged; no Flutter tests ran for this backend/web revision.
+
+## Chat media contract refresh — 2026-10-06
+
+[Private chat media](features/courier/chat-messaging/media-api.md) documents the additive implemented Laravel upload/processing/delivery contract and counterpart web controls. Media is disabled until operators enable the prepared runtime. External Flutter attachment implementation, authenticated media exchange and device acceptance remain pending; imported adoption baselines and prior test evidence are unchanged. Only affected messaging contract sections and DTO/examples were refreshed.

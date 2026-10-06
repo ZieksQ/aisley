@@ -1,6 +1,7 @@
+import { clearChatMediaPrivateState } from "./media-state";
 import { useCallback, useSyncExternalStore } from "react";
 
-export type ChatAttempt = { key: string; body: string; context?: string | null };
+export type ChatAttempt = { key: string; body: string; attachmentIds?: string[]; context?: string | null };
 
 const drafts = new Map<string, string>();
 const attempts = new Map<string, ChatAttempt>();
@@ -41,6 +42,7 @@ export function writeChatAttempt(key: string, value: ChatAttempt | null) {
 }
 
 export function clearChatPrivateState() {
+  clearChatMediaPrivateState();
   const keys = new Set([...drafts.keys(), ...attempts.keys()]);
   drafts.clear();
   attempts.clear();

@@ -668,7 +668,8 @@
       "mine": "bool",
       "sender_role": "string",
       "context": "MessageContext?",
-      "created_at": "timestamp?"
+      "created_at": "timestamp?",
+      "attachments": "ChatAttachment[]~"
     },
     "MessageContext": {
       "type": "string",
@@ -716,7 +717,8 @@
       "sender_role": "string",
       "mine": "bool",
       "body": "string",
-      "created_at": "timestamp?"
+      "created_at": "timestamp?",
+      "attachments": "ChatAttachment[]~"
     },
     "CourierOrderContext": {
       "order_id": "UUID",
@@ -914,10 +916,29 @@
       "businessName": "string",
       "shippingFee": "money",
       "routeStatus": "string"
+    },
+    "ChatAttachment": {
+      "id": "UUID",
+      "kind": "image|video|document",
+      "filename": "string",
+      "mime_type": "string",
+      "byte_size": "int",
+      "state": "pending|ready|rejected|failed|deleted",
+      "error_code": "string?",
+      "width": "int?",
+      "height": "int?",
+      "duration_seconds": "number?",
+      "content_url": "URL?",
+      "preview_url": "URL?"
     }
   },
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
   "contract_updates": {
     "2026-10-09": "Voucher, AppliedVoucher and BatchVoucher add name; see voucher-selection-update.md. External Flutter adoption remains G26."
+  },
+  "chat_media_contract": {
+    "date": "2026-10-06",
+    "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
+    "client_adoption": "pending"
   }
 }

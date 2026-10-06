@@ -85,10 +85,10 @@
       "feature": "courier-messaging",
       "method": "POST",
       "path": "/api/v1/customer/courier-conversations",
-      "request_contract": "context_type order; context_id owned Order UUID; body trimmed1\u20132000; UUID header; server resolves counterparty.",
+      "request_contract": "context_type order; context_id owned Order UUID; body optional trimmed\u22642000 with attachments; text-only body1\u20132000; UUID header; server resolves counterparty. Optional ordered distinct attachment_ids UUID[]\u22645, all ready and same scope, total\u226450 MiB.",
       "response_contract": "{conversation:CourierConversation,message:OperationalMessage}",
       "status": 201,
-      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
+      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation. Media retries preserve ordered attachment IDs.",
       "access": "Active Customer + consent",
       "notes": "Shop start/send201 including replay; operational201 created/200 replay. History page selected newest-first but returned ascending; merge by ID/sequence, retain older cursor gaps.",
       "request_example": {
@@ -128,7 +128,8 @@
           "sender_role": "customer",
           "mine": true,
           "body": "Synthetic message",
-          "created_at": null
+          "created_at": null,
+          "attachments": []
         }
       },
       "id": "op-071",
@@ -276,7 +277,8 @@
             "sender_role": "customer",
             "mine": true,
             "body": "Synthetic message",
-            "created_at": null
+            "created_at": null,
+            "attachments": []
           }
         ],
         "meta": {
@@ -324,10 +326,10 @@
       "feature": "courier-messaging",
       "method": "POST",
       "path": "/api/v1/customer/courier-conversations/{conversation}/messages",
-      "request_contract": "body trimmed1\u20132000; UUID header; Shop allows optional validated product|order context_type/context_id; operational sends body only.",
+      "request_contract": "body optional trimmed\u22642000 with attachments; text-only body1\u20132000; UUID header; Shop allows optional validated product|order context_type/context_id; operational sends body and optional attachment_ids. Optional ordered distinct attachment_ids UUID[]\u22645, all ready and same scope, total\u226450 MiB.",
       "response_contract": "{conversation:CourierConversation,message:OperationalMessage}",
       "status": 201,
-      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
+      "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation. Media retries preserve ordered attachment IDs.",
       "access": "Active Customer + consent",
       "notes": "Shop start/send201 including replay; operational201 created/200 replay. History page selected newest-first but returned ascending; merge by ID/sequence, retain older cursor gaps.",
       "request_example": {
@@ -365,7 +367,8 @@
           "sender_role": "customer",
           "mine": true,
           "body": "Synthetic message",
-          "created_at": null
+          "created_at": null,
+          "attachments": []
         }
       },
       "id": "op-074",
@@ -633,5 +636,10 @@
         }
       }
     }
-  ]
+  ],
+  "chat_media_contract": {
+    "date": "2026-10-06",
+    "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
+    "client_adoption": "pending"
+  }
 }

@@ -1,3 +1,4 @@
+import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from "@/lib/api";
 
 export type ConversationSummary = {
@@ -16,6 +17,7 @@ export type ConversationMessage = {
   id: string;
   sequence: number;
   body: string;
+  attachments?: ChatAttachment[];
   mine: boolean;
   sender_role: "customer" | "seller";
   context: { type: "product" | "order"; id: string | null; label: string; url: string | null } | null;
@@ -25,7 +27,7 @@ export type ConversationMessage = {
 export type ConversationPage = { items: ConversationSummary[]; next_cursor: string | null; unread_count: number };
 export type MessagePage = { items: ConversationMessage[]; next_cursor: string | null };
 export type SendResult = { conversation: ConversationSummary; message: ConversationMessage };
-export type MessageInput = { body: string; context_type?: "product" | "order"; context_id?: string };
+export type MessageInput = { body: string; attachment_ids?: string[]; context_type?: "product" | "order"; context_id?: string };
 
 const base = "/api/v1/customer/conversations";
 

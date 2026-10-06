@@ -1,3 +1,4 @@
+import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from './api'
 
 export type Conversation = {
@@ -16,6 +17,7 @@ export type Message = {
   id: string
   sequence: number
   body: string
+  attachments?: ChatAttachment[];
   mine: boolean
   sender_role: 'customer' | 'seller'
   context: { type: 'product' | 'order'; id: string | null; label: string; url: string | null } | null
@@ -28,9 +30,9 @@ export const listConversations = (cursor?: string) => apiRequest<{ items: Conver
 export const getConversation = (id: string) => apiRequest<{ data: Conversation }>(`${base}/${id}`)
 export const listMessages = (id: string, cursor?: string) => apiRequest<{ items: Message[]; next_cursor: string | null }>(`${base}/${id}/messages${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
 
-export async function sendMessage(id: string, body: string, key: string) {
+export async function sendMessage(id: string, body: string, key: string, attachmentIds: string[] = []) {
   return apiWriteWithCsrfTimeout<{ conversation: Conversation; message: Message }>(`${base}/${id}/messages`, {
-    method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ body }),
+    method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ body, attachment_ids: attachmentIds }),
   })
 }
 

@@ -12,7 +12,8 @@
     "dev:seller": "pnpm --dir src/seller dev",
     "dev:admin": "pnpm --dir src/admin dev",
     "dev:logistics": "pnpm --dir src/logistics dev",
-    "dev:couriermockup": "pnpm --dir src/couriermockup dev"
+    "dev:couriermockup": "pnpm --dir src/couriermockup dev",
+    "dev:media": "cd src/api && php -d memory_limit=512M artisan queue:work media --queue=media --tries=3 --timeout=180"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

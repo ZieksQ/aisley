@@ -86,6 +86,7 @@ use App\Http\Controllers\Logistics\ShippingRateController;
 use App\Http\Controllers\Logistics\SortingController;
 use App\Http\Controllers\Logistics\SortingExceptionController;
 use App\Http\Controllers\Logistics\SortingPlanController;
+use App\Http\Controllers\Messaging\ChatAttachmentController;
 use App\Http\Controllers\Messaging\OperationalConversationController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
@@ -351,6 +352,16 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
+    Route::prefix('chat-attachments')->group(function () {
+        Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+        Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+        Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+        Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+        Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+        Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+        Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+    });
+
     Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
         Route::get('/', [SellerCourierConversationController::class, 'index'])->name('index');
         Route::get('/order-context/{order}', [SellerCourierConversationController::class, 'orderContext'])->whereUuid('order')->name('order-context');
@@ -485,6 +496,16 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
+    Route::prefix('chat-attachments')->group(function () {
+        Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+        Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+        Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+        Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+        Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+        Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+        Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+    });
+
     Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
         Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
         Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -644,6 +665,16 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
+    Route::prefix('chat-attachments')->group(function () {
+        Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+        Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+        Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+        Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+        Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+        Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+        Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+    });
+
     Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
         Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
         Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -747,13 +778,23 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
             Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
             Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
         });
+        Route::prefix('chat-attachments')->group(function () {
+            Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+            Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+            Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+            Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+            Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+            Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+            Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+        });
+
         Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
             Route::get('/', [CustomerCourierConversationController::class, 'index'])->name('index');
             Route::get('/order-context/{order}', [CustomerCourierConversationController::class, 'orderContext'])->whereUuid('order')->name('order-context');
-            Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:customer-courier-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
-            Route::post('/{conversation}/messages', [CustomerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/messages', [CustomerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:customer-courier-chat-send')->name('send');
             Route::post('/{conversation}/read', [CustomerCourierConversationController::class, 'read'])->whereUuid('conversation')->name('read');
         });
         Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {

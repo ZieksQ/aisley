@@ -50,3 +50,7 @@ Read [Customer rules](features/customer/rule.md) before creating or revising a C
 Current Laravel inspection: **2026-10-04**, `22b0a48f9575ead182d03c35ab87345711c23b90`. See [per-Shop shipping selection](api/shipping-selection.md) and [current provenance](references/source-provenance.md). Provider selection and changed shipping DTOs remain a client adoption gap (G25); imported results retain the earlier baseline. Required sign-in and account-only recency apply to Buyer Flutter presentation; the storefront keeps guest browsing/recency.
 
 2026-10-09 contract delta: [voucher names/default pairing](api/voucher-selection-update.md). Customer names and default opposite-benefit pairing require external client adoption (G26); earlier Flutter implementation evidence and status remain unchanged.
+
+## Chat media contract refresh — 2026-10-06
+
+[Private chat media](api/chat-media.md) documents the additive implemented Laravel upload/processing/delivery contract and counterpart web controls. Media is disabled until operators enable the prepared runtime. External Flutter attachment implementation, authenticated media exchange and device acceptance remain pending; imported adoption baselines and prior test evidence are unchanged. Only affected messaging contract sections and DTO/examples were refreshed.

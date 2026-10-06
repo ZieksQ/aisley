@@ -1,3 +1,4 @@
+import type { ChatAttachment } from "./media-types";
 import type { ReactNode } from "react";
 
 export type ChatEntry = {
@@ -17,6 +18,7 @@ export type ChatMessageItem = {
   id: string;
   sequence: number;
   body: string;
+  attachments?: ChatAttachment[];
   mine: boolean;
   sender: string;
   createdAt: string;

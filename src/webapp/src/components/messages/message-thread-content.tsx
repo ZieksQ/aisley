@@ -1,9 +1,10 @@
 "use client";
 
+import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/chat-ui";
+import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/chat-ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { getConversation, listConversations, listMessages, markConversationRead, sendMessage } from "@/lib/messages";
@@ -145,21 +146,21 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
     }
   }
 
-  async function submit() {
+  async function submit(attachmentIds: string[] = []) {
     const text = body.trim();
-    if (!text || (!thread?.send_allowed && !uncertain) || busy) return;
-    const attempt = pendingKey.current?.body === text ? pendingKey.current : { key: crypto.randomUUID(), body: text };
+    if ((!text && !attachmentIds.length) || (!thread?.send_allowed && !uncertain) || busy) return;
+    const attempt = pendingKey.current?.body === text && JSON.stringify(pendingKey.current.attachmentIds ?? []) === JSON.stringify(attachmentIds) ? pendingKey.current : { key: crypto.randomUUID(), body: text, attachmentIds };
     pendingKey.current = attempt;
     writeChatAttempt(draftKey, attempt);
     setBusy(true);
     setSendError("");
     try {
-      const result = await sendMessage(id, { body: text }, attempt.key);
+      const result = await sendMessage(id, { body: text, attachment_ids: attempt.attachmentIds ?? [] }, attempt.key);
       setThread(result.conversation);
       setMessages((current) => current.some((message) => message.id === result.message.id) ? current : [...current, result.message]);
       setBody("");
       pendingKey.current = null;
-      writeChatDraft(draftKey, "");
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, "");
       writeChatAttempt(draftKey, null);
       setUncertain(false);
       await refresh();
@@ -223,10 +224,11 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
         </header>
         {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error} <button className="ml-2 underline" onClick={() => void refresh()} type="button">Retry</button></p> : null}
         <ChatHistory
+          mediaClient={chatMedia}
           key={id}
           messages={messages.map((message) => ({
             id: message.id, sequence: message.sequence, body: message.body, mine: message.mine,
-            sender: message.mine ? "You" : thread.shop.name, createdAt: message.created_at,
+            sender: message.mine ? "You" : thread.shop.name, attachments: message.attachments, createdAt: message.created_at,
             context: message.context ? message.context.url
               ? <Link className="font-semibold text-[#4C1268] underline dark:text-purple-300" href={message.context.url}>{message.context.label}</Link>
               : <span>{message.context.label}</span>
@@ -238,11 +240,12 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
           emptyText="Your private conversation with this Shop starts with your first message."
         />
         {thread.send_allowed || uncertain ? <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { conversation_id: id } }}
           id="shop-chat-message"
           recipient="Seller"
           value={body}
           onChange={(value) => { setBody(value); setSendError(""); writeChatDraft(draftKey, value); }}
-          onSubmit={() => void submit()}
+          onSubmit={(ids) => void submit(ids)}
           sending={busy}
           uncertain={uncertain}
           online={typeof navigator === "undefined" || navigator.onLine}

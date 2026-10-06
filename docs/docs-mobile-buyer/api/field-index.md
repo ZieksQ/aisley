@@ -930,6 +930,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `sender_role` | `string` | non-null; required |
 | `context` | `MessageContext` | null allowed; required |
 | `created_at` | `timestamp` | null allowed; required |
+| `attachments` | `ChatAttachment[]` | empty for text; additive, may be omitted by older server |
 
 ## MessageContext
 
@@ -990,6 +991,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `mine` | `bool` | non-null; required |
 | `body` | `string` | non-null; required |
 | `created_at` | `timestamp` | null allowed; required |
+| `attachments` | `ChatAttachment[]` | empty for text; additive, may be omitted by older server |
 
 ## CourierOrderContext
 
@@ -1276,3 +1278,22 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `routeStatus` | `string` | non-null; required |
 
 Voucher/AppliedVoucher/BatchVoucher `name` fields reflect the [2026-10-09 contract delta](voucher-selection-update.md), after the historical inspection. External Flutter parsing/display adoption remains unverified (G26).
+
+## ChatAttachment (2026-10-06 addition; Flutter adoption pending)
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `id` | `UUID` | non-null; required |
+| `kind` | `image|video|document` | non-null; required |
+| `filename` | `string` | non-null; required |
+| `mime_type` | `string` | non-null; required |
+| `byte_size` | `int` | non-null; required |
+| `state` | `pending|ready|rejected|failed|deleted` | non-null; required |
+| `error_code` | `string` | null allowed; required |
+| `width` | `int` | null allowed; required |
+| `height` | `int` | null allowed; required |
+| `duration_seconds` | `number` | null allowed; required |
+| `content_url` | `URL` | null allowed; required |
+| `preview_url` | `URL` | null allowed; required |
+
+See [private media](chat-media.md) for lifecycle, authorization and transport.

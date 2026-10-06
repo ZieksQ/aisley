@@ -10,8 +10,8 @@ class SendConversationMessageRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if (is_string($this->input('body'))) {
-            $this->merge(['body' => trim($this->input('body'))]);
+        if (is_string($this->input('body')) || $this->input('body') === null) {
+            $this->merge(['body' => trim((string) $this->input('body', ''))]);
         }
     }
 
@@ -23,7 +23,9 @@ class SendConversationMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'min:1', 'max:2000'],
+            'body' => ['required_without:attachment_ids', 'nullable', 'string', 'max:2000'],
+            'attachment_ids' => ['sometimes', 'array', 'list', 'max:5'],
+            'attachment_ids.*' => ['required', 'uuid', 'distinct'],
             'context_type' => ['nullable', Rule::in(['product', 'order'])],
             'context_id' => ['required_with:context_type', 'prohibited_unless:context_type,product,order', 'nullable', 'uuid'],
             'sender_user_id' => ['prohibited'],

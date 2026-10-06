@@ -19,6 +19,7 @@ use App\Models\LogisticsOrganization;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
+use App\Services\Messaging\Media\ChatAttachmentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +51,18 @@ class OperationalConversationService
     public function find(User $actor, string $role, string $id): Conversation
     {
         return $this->scoped($actor, $role)->whereKey($id)->firstOrFail();
+    }
+
+    public function mediaContext(User $actor, string $role, string $leg, string $taskId): Conversation
+    {
+        $task = $this->taskForStart($actor, $role, $leg, $taskId);
+        $context = $this->activeContext($task, $actor, $role);
+
+        return new Conversation(['kind' => ConversationKind::LogisticsCourier,
+            'logistics_organization_id' => $context['organization']->id,
+            'logistics_hub_id' => $context['organization']->hub->id, 'delivery_task_id' => $task->id,
+            'courier_user_id' => $context['courier_id'], 'logistics_user_id' => $context['organization']->user_id,
+            'task_leg' => $task->leg->value]);
     }
 
     public function unreadTotal(User $actor, string $role): int
@@ -99,13 +112,14 @@ class OperationalConversationService
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
     public function start(User $actor, string $role, array $input, string $key): array
     {
-        $hash = $this->hash(['start', $input['leg'], $input['task_id'], $input['body']]);
+        $attachmentIds = $input['attachment_ids'] ?? [];
+        $hash = $this->hash(['start', $input['leg'], $input['task_id'], $input['body']], $attachmentIds);
         if ($prior = $this->prior($actor, $role, $key, $hash)) {
             return $prior;
         }
         $task = $this->taskForStart($actor, $role, $input['leg'], $input['task_id']);
 
-        return DB::transaction(function () use ($actor, $role, $task, $input, $key, $hash): array {
+        return DB::transaction(function () use ($actor, $role, $task, $input, $key, $hash, $attachmentIds): array {
             $task = DeliveryTask::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
             if ($prior = $this->prior($actor, $role, $key, $hash)) {
                 return $prior;
@@ -131,22 +145,22 @@ class OperationalConversationService
                     ConversationParticipant::create(['conversation_id' => $conversation->id, 'user_id' => $userId]);
                 }
             }
-            $message = $this->persist($conversation, $actor, $input['body'], $key, $hash);
+            $message = $this->persist($conversation, $actor, $input['body'], $key, $hash, $attachmentIds);
 
             return compact('conversation', 'message') + ['replay' => false];
         }, 3);
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    public function send(User $actor, string $role, string $id, string $body, string $key): array
+    public function send(User $actor, string $role, string $id, string $body, string $key, array $attachmentIds = []): array
     {
         $conversation = $this->find($actor, $role, $id);
-        $hash = $this->hash(['send', $id, $body]);
+        $hash = $this->hash(['send', $id, $body], $attachmentIds);
         if ($prior = $this->prior($actor, $role, $key, $hash, $id)) {
             return $prior;
         }
 
-        return DB::transaction(function () use ($actor, $role, $conversation, $body, $key, $hash): array {
+        return DB::transaction(function () use ($actor, $role, $conversation, $body, $key, $hash, $attachmentIds): array {
             $task = DeliveryTask::query()->whereKey($conversation->delivery_task_id)->lockForUpdate()->firstOrFail();
             $conversation = $this->scoped($actor, $role)->whereKey($conversation->id)->lockForUpdate()->firstOrFail();
             if ($prior = $this->prior($actor, $role, $key, $hash, $conversation->id)) {
@@ -162,7 +176,7 @@ class OperationalConversationService
                 || $task->leg->value !== $conversation->task_leg) {
                 throw FulfillmentException::conflict('CONVERSATION_READ_ONLY', 'This conversation is read-only.');
             }
-            $message = $this->persist($conversation, $actor, $body, $key, $hash);
+            $message = $this->persist($conversation, $actor, $body, $key, $hash, $attachmentIds);
 
             return compact('conversation', 'message') + ['replay' => false];
         }, 3);
@@ -225,6 +239,7 @@ class OperationalConversationService
             'sender_role' => $message->sender_user_id === $conversation->courier_user_id ? 'courier' : 'logistics',
             'mine' => $message->sender_user_id === $actor->id,
             'body' => $message->body,
+            'attachments' => app(ChatAttachmentService::class)->messages($message, $actor),
             'created_at' => $message->created_at?->toIso8601String(),
         ];
     }
@@ -329,7 +344,7 @@ class OperationalConversationService
         return compact('conversation', 'message') + ['replay' => true];
     }
 
-    private function persist(Conversation $conversation, User $actor, string $body, string $key, string $hash): Message
+    private function persist(Conversation $conversation, User $actor, string $body, string $key, string $hash, array $attachmentIds = []): Message
     {
         $sequence = $conversation->last_sequence + 1;
         $message = Message::create([
@@ -338,15 +353,16 @@ class OperationalConversationService
             'sequence' => $sequence,
             'idempotency_key' => $key,
             'payload_hash' => $hash,
-            'body' => $body,
+            'body' => ChatAttachmentService::body($body, $attachmentIds),
         ]);
+        app(ChatAttachmentService::class)->bind($message, $conversation, $actor, $attachmentIds);
         $conversation->update(['last_sequence' => $sequence, 'last_message_id' => $message->id, 'last_message_at' => $message->created_at]);
 
         return $message;
     }
 
-    private function hash(array $parts): string
+    private function hash(array $parts, array $attachmentIds = []): string
     {
-        return hash('sha256', json_encode($parts, JSON_THROW_ON_ERROR));
+        return ChatAttachmentService::hash($parts, $attachmentIds);
     }
 }

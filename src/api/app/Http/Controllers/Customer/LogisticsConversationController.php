@@ -32,7 +32,7 @@ class LogisticsConversationController extends Controller
     {
         $actor = $request->user();
         $input = $request->validated();
-        $result = $this->conversations->start($actor, 'customer', $input['context_id'], $input['body'], $request->idempotencyKey());
+        $result = $this->conversations->start($actor, 'customer', $input['context_id'], $input['body'], $request->idempotencyKey(), $request->validated('attachment_ids', []));
 
         return $this->writeResponse($result, $actor);
     }
@@ -48,7 +48,7 @@ class LogisticsConversationController extends Controller
     {
         $input = $request->validate(['cursor' => ['sometimes', 'string', 'max:2048'], 'limit' => ['sometimes', 'integer', 'min:1', 'max:50']]);
         $record = $this->conversations->find($request->user(), 'customer', $conversation);
-        $page = $record->messages()->orderByDesc('sequence')->cursorPaginate($input['limit'] ?? 20);
+        $page = $record->messages()->with('attachments')->orderByDesc('sequence')->cursorPaginate($input['limit'] ?? 20);
 
         return $this->response(['data' => $page->getCollection()->reverse()->map(
             fn ($message) => $this->conversations->message($message, $record, $request->user())
@@ -58,7 +58,7 @@ class LogisticsConversationController extends Controller
     public function send(OperationalMessageRequest $request, string $conversation): JsonResponse
     {
         return $this->writeResponse($this->conversations->send(
-            $request->user(), 'customer', $conversation, $request->validated('body'), $request->idempotencyKey()
+            $request->user(), 'customer', $conversation, $request->validated('body'), $request->idempotencyKey(), $request->validated('attachment_ids', [])
         ), $request->user());
     }
 

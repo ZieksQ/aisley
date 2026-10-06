@@ -12,6 +12,7 @@ use App\Models\DeliveryTask;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Messaging\Media\ChatAttachmentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +89,32 @@ class CourierCounterpartyConversationService
             'send_allowed' => $allowed, 'conversation_id' => $conversation?->id];
     }
 
+    public function mediaContext(User $actor, string $role, array $input): Conversation
+    {
+        $counterpart = $role === 'courier' ? $input['counterparty_role'] : $role;
+        abort_unless(in_array($counterpart, ['seller', 'customer'], true), 422);
+        if ($role === 'courier') {
+            $leg = $counterpart === 'seller' ? 'first_mile' : 'final_mile';
+            abort_unless($input['leg'] === $leg, 422);
+            $task = $this->tasks->taskForStart($actor, $role, $leg, $input['task_id']);
+        } else {
+            $order = Order::query()->findOrFail($input['context_id']);
+            abort_unless($role === 'seller' ? $order->shop?->seller_id === $actor->id
+                : $order->customer_id === $actor->id, 404);
+            $task = $this->acceptedOrderTasks($order, $role)->firstOrFail();
+        }
+        $context = $this->eligibility->resolve($task, $counterpart);
+        abort_unless($role === 'courier' ? $context['courier_id'] === $actor->id
+            : $context['counterpart_id'] === $actor->id, 404);
+
+        return new Conversation(['kind' => $this->kind($counterpart), 'delivery_task_id' => $task->id,
+            'courier_user_id' => $context['courier_id'],
+            'seller_user_id' => $counterpart === 'seller' ? $context['counterpart_id'] : null,
+            'customer_user_id' => $counterpart === 'customer' ? $context['counterpart_id'] : null,
+            'shop_id' => $context['shop_id'], 'logistics_organization_id' => $context['organization']->id,
+            'logistics_hub_id' => $context['organization']->hub->id, 'task_leg' => $task->leg->value]);
+    }
+
     public function unreadTotal(User $actor, string $role): int
     {
         return (int) DB::table('messages')
@@ -101,25 +128,25 @@ class CourierCounterpartyConversationService
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    public function startFromTask(User $courier, string $counterpart, string $leg, string $taskId, string $body, string $key): array
+    public function startFromTask(User $courier, string $counterpart, string $leg, string $taskId, string $body, string $key, array $attachmentIds = []): array
     {
         abort_unless(in_array($counterpart, ['seller', 'customer'], true), 422);
         abort_unless(($counterpart === 'seller' && $leg === FulfillmentTaskLeg::FirstMile->value)
             || ($counterpart === 'customer' && $leg === FulfillmentTaskLeg::FinalMile->value), 422);
-        $hash = $this->hash(['start', $leg, $taskId, $counterpart, $body]);
+        $hash = $this->hash(['start', $leg, $taskId, $counterpart, $body], $attachmentIds);
         if ($prior = $this->prior($courier, 'courier', $key, $hash)) {
             return $prior;
         }
         $task = $this->tasks->taskForStart($courier, 'courier', $leg, $taskId);
 
-        return $this->start($courier, 'courier', $task, $counterpart, $body, $key, $hash);
+        return $this->start($courier, 'courier', $task, $counterpart, $body, $key, $hash, $attachmentIds);
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    public function startFromOrder(User $actor, string $role, string $orderId, string $body, string $key): array
+    public function startFromOrder(User $actor, string $role, string $orderId, string $body, string $key, array $attachmentIds = []): array
     {
         abort_unless(in_array($role, ['seller', 'customer'], true), 422);
-        $hash = $this->hash(['start', 'order', $orderId, $role, $body]);
+        $hash = $this->hash(['start', 'order', $orderId, $role, $body], $attachmentIds);
         if ($prior = $this->prior($actor, $role, $key, $hash)) {
             return $prior;
         }
@@ -128,7 +155,7 @@ class CourierCounterpartyConversationService
             ? $order->shop?->seller_id === $actor->id : $order->customer_id === $actor->id, 404);
         $task = $this->acceptedOrderTasks($order, $role)->firstOrFail();
 
-        return $this->start($actor, $role, $task, $role, $body, $key, $hash);
+        return $this->start($actor, $role, $task, $role, $body, $key, $hash, $attachmentIds);
     }
 
     private function acceptedOrderTasks(Order $order, string $role): Builder
@@ -145,9 +172,9 @@ class CourierCounterpartyConversationService
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    private function start(User $actor, string $role, DeliveryTask $task, string $counterpart, string $body, string $key, string $hash): array
+    private function start(User $actor, string $role, DeliveryTask $task, string $counterpart, string $body, string $key, string $hash, array $attachmentIds = []): array
     {
-        return DB::transaction(function () use ($actor, $role, $task, $counterpart, $body, $key, $hash): array {
+        return DB::transaction(function () use ($actor, $role, $task, $counterpart, $body, $key, $hash, $attachmentIds): array {
             $task = DeliveryTask::query()->whereKey($task->id)->lockForUpdate()->firstOrFail();
             if ($prior = $this->prior($actor, $role, $key, $hash)) {
                 return $prior;
@@ -177,22 +204,22 @@ class CourierCounterpartyConversationService
                     ConversationParticipant::create(['conversation_id' => $conversation->id, 'user_id' => $userId]);
                 }
             }
-            $message = $this->persist($conversation, $actor, $body, $key, $hash);
+            $message = $this->persist($conversation, $actor, $body, $key, $hash, $attachmentIds);
 
             return compact('conversation', 'message') + ['replay' => false];
         }, 3);
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    public function send(User $actor, string $role, string $id, string $body, string $key): array
+    public function send(User $actor, string $role, string $id, string $body, string $key, array $attachmentIds = []): array
     {
         $conversation = $this->find($actor, $role, $id);
-        $hash = $this->hash(['send', $id, $body]);
+        $hash = $this->hash(['send', $id, $body], $attachmentIds);
         if ($prior = $this->prior($actor, $role, $key, $hash, $id)) {
             return $prior;
         }
 
-        return DB::transaction(function () use ($actor, $role, $conversation, $body, $key, $hash): array {
+        return DB::transaction(function () use ($actor, $role, $conversation, $body, $key, $hash, $attachmentIds): array {
             $task = DeliveryTask::query()->whereKey($conversation->delivery_task_id)->lockForUpdate()->firstOrFail();
             $conversation = $this->scoped($actor, $role)->whereKey($conversation->id)->lockForUpdate()->firstOrFail();
             if ($prior = $this->prior($actor, $role, $key, $hash, $conversation->id)) {
@@ -203,7 +230,7 @@ class CourierCounterpartyConversationService
             if (! $this->matches($conversation, $context, $task)) {
                 throw FulfillmentException::conflict('CONVERSATION_READ_ONLY', 'This conversation is read-only.');
             }
-            $message = $this->persist($conversation, $actor, $body, $key, $hash);
+            $message = $this->persist($conversation, $actor, $body, $key, $hash, $attachmentIds);
 
             return compact('conversation', 'message') + ['replay' => false];
         }, 3);
@@ -274,6 +301,7 @@ class CourierCounterpartyConversationService
                 : ($conversation->kind === ConversationKind::CourierSeller ? 'seller' : 'customer'),
             'mine' => $message->sender_user_id === $actor->id,
             'body' => $message->body,
+            'attachments' => app(ChatAttachmentService::class)->messages($message, $actor),
             'created_at' => $message->created_at?->toIso8601String(),
         ];
     }
@@ -309,7 +337,7 @@ class CourierCounterpartyConversationService
         return compact('conversation', 'message') + ['replay' => true];
     }
 
-    private function persist(Conversation $conversation, User $actor, string $body, string $key, string $hash): Message
+    private function persist(Conversation $conversation, User $actor, string $body, string $key, string $hash, array $attachmentIds = []): Message
     {
         $message = Message::create([
             'conversation_id' => $conversation->id,
@@ -317,16 +345,17 @@ class CourierCounterpartyConversationService
             'sequence' => $conversation->last_sequence + 1,
             'idempotency_key' => $key,
             'payload_hash' => $hash,
-            'body' => $body,
+            'body' => ChatAttachmentService::body($body, $attachmentIds),
         ]);
+        app(ChatAttachmentService::class)->bind($message, $conversation, $actor, $attachmentIds);
         $conversation->update(['last_sequence' => $message->sequence, 'last_message_id' => $message->id,
             'last_message_at' => $message->created_at]);
 
         return $message;
     }
 
-    private function hash(array $parts): string
+    private function hash(array $parts, array $attachmentIds = []): string
     {
-        return hash('sha256', json_encode($parts, JSON_THROW_ON_ERROR));
+        return ChatAttachmentService::hash($parts, $attachmentIds);
     }
 }

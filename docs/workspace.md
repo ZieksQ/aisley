@@ -841,7 +841,7 @@ Seller ↔ Logistics.
 
 Admin ↔ users through requester-owned support tickets, not unrestricted live chat.
 
-Advanced chat functionality such as real-time typing indicators or complex media messaging is not required for P0.
+Existing chat channels now support runtime-gated private image/video/document attachments under [Chat Media](features/shared/chat-media/spec.md): select and check files, optional caption, explicit Send, participant-scoped viewing/download. Uploads create no empty thread and do not become formal proof or alter Orders. Typing/presence/realtime transport and Admin private chat remain outside this release.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile state changes use the Logistics-authoritative `FulfillmentTransitionService`; final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional delivery recovery remain future extensions.
 

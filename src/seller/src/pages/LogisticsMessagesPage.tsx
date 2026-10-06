@@ -1,6 +1,7 @@
+import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import { logisticsMessages, type LogisticsMessage, type LogisticsThread } from '../lib/logisticsMessages'
@@ -206,14 +207,14 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
     }
   }, [selectedId, refresh])
 
-  async function send() {
+  async function send(attachmentIds: string[] = []) {
     if (!navigator.onLine) {
       setError('Reconnect before sending a message.')
       return
     }
     if (busy) return
-    const attempt = pending ?? { body: draft.trim(), key: crypto.randomUUID() }
-    if (!attempt.body || attempt.body.length > 2000) return
+    const attempt = pending ?? { body: draft.trim(), key: crypto.randomUUID(), attachmentIds }
+    if ((!attempt.body && !attachmentIds.length) || attempt.body.length > 2000) return
     setPending(attempt)
     setUncertain(true)
     writeChatAttempt(draftKey, attempt)
@@ -221,12 +222,12 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
     setError('')
     setNotice('')
     try {
-      const result = thread ? await logisticsMessages.send(thread.id, attempt.body, attempt.key)
-        : contextId ? await logisticsMessages.start(contextId, attempt.body, attempt.key) : null
+      const result = thread ? await logisticsMessages.send(thread.id, attempt.body, attempt.key, attempt.attachmentIds ?? [])
+        : contextId ? await logisticsMessages.start(contextId, attempt.body, attempt.key, attempt.attachmentIds ?? []) : null
       if (!result) return
       setPending(null)
       setDraft('')
-      writeChatDraft(draftKey, '')
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
       writeChatAttempt(draftKey, null)
       setUncertain(false)
       setThread(result.conversation)
@@ -273,8 +274,9 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
         {thread?.read_only_reason && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This pickup relationship ended. History is read-only.</p>}
       </header>
       <ChatHistory
+          mediaClient={chatMedia}
         key={selectedId ?? contextId ?? 'pickup-inbox'}
-        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : 'Logistics', createdAt: message.created_at }))}
+        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : 'Logistics', attachments: message.attachments, createdAt: message.created_at }))}
         olderCursor={Boolean(older)}
         onLoadOlder={() => void loadOlder()}
         loadingOlder={olderBusy}
@@ -282,11 +284,12 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
         emptyText="No messages yet. Your first message creates this private conversation."
       />
       <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { ...(thread ? { conversation_id: thread.id } : { channel: "logistics", context_type: "pickup_request", context_id: contextId ?? undefined }) } }}
         id="logistics-message"
         recipient="Logistics"
         value={draft}
         onChange={(value) => { setDraft(value); writeChatDraft(draftKey, value); if (!uncertain) { setPending(null); writeChatAttempt(draftKey, null) } }}
-        onSubmit={() => void send()}
+        onSubmit={(ids) => void send(ids)}
         online={typeof navigator === 'undefined' || navigator.onLine}
         sending={busy}
         uncertain={uncertain && !busy}

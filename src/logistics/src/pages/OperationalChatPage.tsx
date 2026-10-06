@@ -9,7 +9,7 @@ export function OperationalChatPage() {
   const [params, setParams] = useSearchParams()
   const [threads, setThreads] = useState<OperationalThread[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(() => params.get('conversation'))
   const [loading, setLoading] = useState(true)
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [error, setError] = useState('')
@@ -69,7 +69,7 @@ export function OperationalChatPage() {
   function saved(thread: OperationalThread) {
     setThreads((current) => [thread, ...current.filter((item) => item.id !== thread.id)])
     setSelectedId(thread.id)
-    setParams({})
+    setParams({ conversation: thread.id })
   }
 
   function backToInbox() {
@@ -90,7 +90,7 @@ export function OperationalChatPage() {
         : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}`,
     selected: selectedId === thread.id,
     readOnly: Boolean(thread.read_only_reason),
-    onSelect: () => { setSelectedId(thread.id); setParams({}) },
+    onSelect: () => { setSelectedId(thread.id); setParams({ conversation: thread.id }) },
   }))
 
   return (

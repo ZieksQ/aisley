@@ -36,3 +36,7 @@
 - Record the backend API commit/version, exact browser origin, test results, and any CORS gap in `docs/PROGRESS.md`; never include credentials or private evidence in that log.
 
 Sources: [Flutter `file_selector` package](https://pub.dev/packages/file_selector), [`XFile` API](https://pub.dev/documentation/cross_file/latest/cross_file/XFile-class.html), [`MultipartFile.fromPath` platform limit](https://pub.dev/documentation/http/latest/http/MultipartFile/fromPath.html), [`MultipartRequest` API](https://pub.dev/documentation/http/latest/http/MultipartRequest-class.html), and [browser CORS header rules](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Access-Control-Allow-Headers).
+
+## Chat media transport addition — 2026-10-06
+
+The implemented [chat media API](features/courier/chat-messaging/media-api.md) uses per-file multipart `file` plus JSON-string `context`, UUID upload key, scoped Courier bearer and asynchronous status checking. Image/MP4/document limits and private authenticated byte reads are specific to chat and do not change registration, OR/CR, profile or POD requirements. External Flutter chat attachment selection/rendering/transport and device acceptance remain pending; prior platform-safe upload evidence is preserved.

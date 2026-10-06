@@ -5,9 +5,9 @@
 - Govern messaging presentation in Customer, Seller, and Logistics web apps, including their web conversations with Couriers. Courier mobile UI and external Flutter bundles are outside this web specification.
 - Follow the [web design contract](../../../design.md) for brand, typography, spacing, shared components, accessibility, and themes. Customer remains light-only; Seller and Logistics support light and dark.
 - Role contracts own participants, initiation, navigation, authorization, and lifecycle: [Customer](../../customer/chat-messaging/spec.md), [Seller](../../seller/chat-messaging/spec.md), and [Logistics](../../logistics/chat-messaging/specs.md). This document supplies their common web presentation rules.
-- Current baseline is persisted plain-text chat, bounded polling, unread markers, and Customer-originated Product/Order context. Existing Customer–Shop context contains type, ID, label, and URL; it does not promise thumbnails, prices, attachments, or recipient read receipts.
-- Rich commerce cards, Seller product sharing, and image attachments below are target enhancements. Their requirements apply when the owning role/API contract enables them; this document does not mark them implemented or override current text-only restrictions.
-- Use Messenger as interaction inspiration and marketplace chat as commerce inspiration. Retain AISLEY branding, supported capabilities, and tenant boundaries.
+- Current baseline is persisted chat with bounded polling, unread markers, Customer-originated Product/Order context, and runtime-gated private attachments under the [Chat Media contract](../chat-media/spec.md). Existing Customer–Shop commerce context contains type, ID, label, and URL; it does not promise commerce thumbnails/prices or recipient read receipts.
+- Rich commerce cards and Seller product sharing remain target enhancements. Private image/video/document attachments are implemented behind runtime readiness; see the owning media contract and actual verification log.
+- Use Messenger as interaction inspiration and marketplace chat as commerce inspiration. Use Shopee/Lazada attachment selection and explicit-send patterns under the media contract; retain AISLEY branding, supported capabilities and tenant boundaries.
 
 ---
 
@@ -27,7 +27,7 @@
 
 ### Composer, reading, and message status
 
-- Provide a labeled multiline composer and visible Send button. Preserve the existing trimmed, nonempty, 2,000-character text limit until an owning contract explicitly adds image-only or card-only messages.
+- Provide a labeled multiline composer and visible Send button. Preserve the 2,000-character trimmed caption limit. Require text or ready attachments; attachment-only sends are supported by the media contract.
 - On desktop, Enter sends and Shift+Enter inserts a newline; never submit during input-method composition. On touch keyboards preserve newline entry and use the explicit Send action.
 - Hide unavailable feature actions rather than showing attachment, call, typing, presence, or read-receipt affordances that cannot work. Emoji entered as plain text needs no separate rich-message capability.
 - Preserve draft text per conversation in memory while navigating within the authenticated session. Confirm before an action would discard unsent input; clear private drafts/history on logout, account change, or authorization loss.
@@ -54,7 +54,7 @@
 - Archived, removed, or unauthorized context displays Product unavailable or Order unavailable with no inaccessible destination or leaked metadata. Preserve the surrounding authorized message and pagination.
 - Operational conversations retain their task, pickup request, or Order header and eligibility rules. Do not place shopping recommendation controls in those channels or transfer history to a replacement Courier/organization.
 
-### Image attachments — target phase
+### Private attachments — implemented with runtime gating
 
 - Apply the complete [file and image upload policy](../../../references/file-upload-requirements.md) to chat images, including validation, generated storage keys, metadata, processing, errors, and access rules; do not fork its allowlist.
 - Accept JPEG/JPG, PNG, and WebP only, strictly below 10 MiB (10,485,760 bytes) per image. Display accepted formats and the policy's 10 MB wording before selection; images at the exact byte boundary are rejected.
@@ -66,7 +66,7 @@
 - Keep upload completion distinct from message persistence. Freeze the intended payload after an uncertain send and reconcile the same message; retries must not produce duplicate bubbles or repeated attachments.
 - Render authorized images within bounded message previews preserving aspect ratio; open a keyboard-accessible viewer on selection. Show explicit unavailable/retry placeholders without breaking the message layout.
 - Deliver through authorized endpoints or short-lived signed URLs; do not store expiring URLs as message content or expose raw storage paths. Clear temporary previews and revoke browser object URLs when no longer needed.
-- Before activation, the owning implementation spec must settle image count per message, aggregate request limits, image-only sends, unreferenced-upload cleanup, retention, and cross-client compatibility. Current APIs continue rejecting attachments until that contract exists.
+- The [Chat Media specification](../chat-media/spec.md) owns formats, count/aggregate limits, attachment-only sends, scanning, cleanup, retention and compatibility. Attach controls appear only when media runtime capabilities are ready.
 
 ### Privacy and role boundaries
 
@@ -85,18 +85,18 @@
 - Reuse compatible `@aisley/ui` primitives and established theme tokens. Keep role navigation/API clients separate; share presentation components only where their responsibilities and consumers are compatible.
 - Keep pages focused on composition; place inbox rows, history, composer, context cards, picker, and media viewer in cohesive components. Keep request/retry/read state in hooks or services and API parsing in typed clients.
 - Preserve bounded foreground polling, focus/reconnect refresh, cursor pagination, server sequence ordering, and message-ID reconciliation. No new realtime service or library is required by this specification.
-- Rich cards need additive, role-safe context fields beyond today's type/ID/label/URL. Seller product sharing needs authorized selection/send support; attachments need a validated private asset lifecycle. Define these in the owning implementation specs before changing public DTOs or accepting new payloads.
+- Rich cards need additive, role-safe context fields beyond today's type/ID/label/URL. Seller product sharing needs authorized selection/send support; attachments use the implemented private lifecycle defined in the media contract.
 - Hide unsupported controls until server and consuming clients are ready. If a future change affects external Buyer/Courier contracts, update only the affected canonical and mobile documentation together at that time.
 
-### Future suggestions — not enabled upload formats
+### Future suggestions and implemented media
 
 | Capability | Suggested format/experience | Required policy before implementation |
 | --- | --- | --- |
-| Video | MP4 (`.mp4`, `video/mp4`); poster, explicit play/pause, no autoplay | Approved codecs, duration/size limits, content inspection, processing/transcoding, private delivery, accessible text alternative |
+| Video | MP4 with poster and explicit controls; no autoplay | Implemented under the [media contract](../chat-media/spec.md); no automatic transcoding |
 | Audio | MP3 (`.mp3`, `audio/mpeg`); duration and explicit playback controls | Duration/size limits, actual audio validation, private delivery, accessible transcript/caption approach; recording needs separate microphone consent UX |
-| Documents | Formats listed below; show filename, format, size, and explicit download | Define per-format size limits, content validation, scan/quarantine, safe download headers, private delivery, and retention; inspect packaged formats within resource bounds and render any text preview as untrusted plain text |
+| Documents | Formats below; filename, type, size and Download | Implemented under the media contract with content inspection, scanning and private download |
 
-Document formats proposed for future chat attachments:
+Document formats supported when media is enabled:
 
 | Extension | Format |
 | --- | --- |
@@ -110,11 +110,11 @@ Document formats proposed for future chat attachments:
 | `.txt` | Plain text |
 | `.csv` | CSV |
 
-- The image policy does not authorize any of these formats. Keep MP4, MP3, and document selection disabled until separate approved policies and role contracts exist; renaming a file must never bypass validation. Legacy Office and macro-enabled formats remain outside the proposed list.
+- The chat media policy separately authorizes MP4 and the listed documents; it does not broaden image-upload formats elsewhere. MP3/audio remains deferred. Renaming files cannot bypass validation; legacy and macro-enabled Office formats remain excluded.
 - Consider Seller saved replies, participant-scoped conversation search, and reply-to-message references after core chat is stable. Each requires its own scope, authorization, accessibility, and acceptance criteria.
 - Read receipts, typing/presence, mute/report, and retention controls remain separate product decisions; borrowing Messenger presentation does not promise its feature set or end-to-end encryption.
 
-### Acceptance scenarios for future implementation
+### Acceptance scenarios and verification
 
 - [ ] At 390px, 768px, and 1280px, inbox/thread navigation, long content, keyboard-open composer, dialogs, and context cards remain usable without page-wide horizontal scrolling; verify Customer light and dashboard light/dark themes.
 - [ ] Keyboard and screen-reader users can send, insert newlines, remove context, navigate history, and close viewers; input-method composition never triggers an unintended send.

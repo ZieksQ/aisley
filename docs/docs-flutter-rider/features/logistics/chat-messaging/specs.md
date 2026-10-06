@@ -133,3 +133,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Test shared migration/backfill, old Customer–Shop regression, two-worker PostgreSQL races, role/tenant isolation, and notification failure before enabling route families. Verify Logistics React and external Flutter states against live API; polling is acceptable without a realtime provider.
 - Implemented “active Buyer” means an active Customer account **and** an owned, nonterminal Order with a current Logistics handler resolved from Shipment custody or the selected Waybill before Shipment creation. In-transfer custody has no sendable handler; a later handler receives a new thread while the former participants retain read-only history.
 - Open production-policy decision: approve private-message retention, abuse reporting, and audited exceptional access. Until then, do not invent message purging or Admin transcript access.
+
+## Additive private media API — 2026-10-06
+
+The implemented [Courier media contract](../../courier/chat-messaging/media-api.md) adds private uploads/status and authorized media retrieval to existing Logistics–Courier and Courier counterpart messaging. Use ordered `attachment_ids` with optional caption in existing role routes; messages add `attachments`. External Flutter media adoption remains pending. This addition supersedes snapshot text-only exclusions without granting Logistics web actions to Courier.

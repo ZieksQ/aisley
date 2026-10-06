@@ -83,6 +83,38 @@ services:
     networks:
       - backend
 
+  media-queue:
+    <<: [*api-environment, *api-build]
+    restart: unless-stopped
+    profiles: [chat-media]
+    command: ["php", "artisan", "queue:work", "media", "--queue=media", "--sleep=3", "--tries=3", "--timeout=180", "--max-time=3600"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      clamav:
+        condition: service_healthy
+    networks:
+      - backend
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    profiles: [chat-media]
+    environment:
+      CLAMAV_NO_MILTER: "true"
+    volumes:
+      - ./clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+      - clamav-signatures:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+    mem_limit: 4g
+    networks:
+      - backend
+
   scheduler:
     <<: [*api-environment, *api-build]
     restart: unless-stopped
@@ -107,6 +139,7 @@ services:
 
 volumes:
   postgres-data:
+  clamav-signatures:
 
 networks:
   edge:

@@ -1,6 +1,7 @@
+import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import { getConversation, listConversations, listMessages, markRead, sendMessage, type Conversation, type Message } from '../lib/messages'
@@ -132,19 +133,19 @@ export function MessageThreadPage() {
     finally { setOlderBusy(false) }
   }
 
-  async function submit() {
+  async function submit(attachmentIds: string[] = []) {
     const text = body.trim()
-    if (!text || (!thread?.send_allowed && !uncertain) || busy) return
+    if ((!text && !attachmentIds.length) || (!thread?.send_allowed && !uncertain) || busy) return
     const savedAttempt = readChatAttempt(draftKey)
-    const attempt = savedAttempt?.body === text ? savedAttempt : { key: crypto.randomUUID(), body: text }
+    const attempt = savedAttempt?.body === text && JSON.stringify(savedAttempt.attachmentIds ?? []) === JSON.stringify(attachmentIds) ? savedAttempt : { key: crypto.randomUUID(), body: text, attachmentIds }
     pending.current = attempt
     writeChatAttempt(draftKey, attempt)
     setBusy(true)
     setSendError('')
     setSent(false)
     try {
-      const result = await sendMessage(conversationId, text, attempt.key)
-      writeChatDraft(draftKey, '')
+      const result = await sendMessage(conversationId, text, attempt.key, attempt.attachmentIds ?? [])
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
       writeChatAttempt(draftKey, null)
       if (activeDraftKey.current !== draftKey) { void loadInbox(); return }
       setThread(result.conversation)
@@ -214,10 +215,11 @@ export function MessageThreadPage() {
           </header>
           {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{error} <button className="ml-2 underline" onClick={() => void refresh()} type="button">Retry</button></p> : null}
           <ChatHistory
+          mediaClient={chatMedia}
             key={conversationId}
             messages={messages.map((message) => ({
               id: message.id, sequence: message.sequence, body: message.body, mine: message.mine,
-              sender: message.mine ? 'You' : thread.customer_name ?? 'Customer', createdAt: message.created_at,
+              sender: message.mine ? 'You' : thread.customer_name ?? 'Customer', attachments: message.attachments, createdAt: message.created_at,
               context: message.context ? message.context.url ? <Link className="font-semibold text-[#4C1268] underline dark:text-purple-300" to={message.context.url}>{message.context.label}</Link> : <span>{message.context.label}</span> : undefined,
             }))}
             olderCursor={Boolean(cursor)}
@@ -226,11 +228,12 @@ export function MessageThreadPage() {
             emptyText="No messages yet. Customer messages will appear here."
           />
           {thread.send_allowed || uncertain ? <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { conversation_id: conversationId } }}
             id="seller-chat-message"
             recipient="Customer"
             value={body}
             onChange={(value) => { setBody(value); writeChatDraft(draftKey, value); setSendError('') }}
-            onSubmit={() => void submit()}
+            onSubmit={(ids) => void submit(ids)}
             sendAllowed={thread.send_allowed}
             online={typeof navigator === 'undefined' || navigator.onLine}
             sending={busy}

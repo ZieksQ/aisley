@@ -1,3 +1,4 @@
+import { chatMedia } from '../../lib/chat-media';
 import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChatHistory, clearChatPrivateState } from '@aisley/chat-ui'
@@ -138,9 +139,10 @@ export function CourierThread({ conversationId, orderId, onUpdated, onStarted }:
       {readError && <p className="p-4 text-sm" role="status">{readError}</p>}
       {!loading && !denied && <>
         <ChatHistory
+          mediaClient={chatMedia}
           key={conversationId ?? orderId ?? 'courier-inbox'}
           label="First-mile conversation messages"
-          messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : 'Courier', createdAt: message.created_at }))}
+          messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : 'Courier', attachments: message.attachments, createdAt: message.created_at }))}
           olderCursor={Boolean(cursor)}
           onLoadOlder={() => void loadOlder()}
           loadingOlder={olderLoading}

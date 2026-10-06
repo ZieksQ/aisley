@@ -29,3 +29,7 @@ Customer, Admin, Seller, and Logistics frontend changes must follow [docs/design
 ## Notes
 
 The repository is scaffolded to match the architecture in `docs/architecture.md`. PostgreSQL must already be running before starting the development processes.
+
+## Local chat media
+
+Private chat attachments use FFmpeg/ffprobe, GD/Zip and ClamAV. See [deployment/local media setup](docker/README.md#private-chat-media) and the [feature contract](docs/features/shared/chat-media/spec.md). Start `pnpm dev:media` alongside `pnpm dev` when media is enabled; the ordinary notification worker does not consume the media queue. Media defaults off.

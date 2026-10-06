@@ -228,3 +228,7 @@ backend_contract_version: courier-operational-messaging-v2
 - Copy this API contract and `api-handoff.md` to Flutter. All three Courier channels and
   both web counterparts are implemented locally; live exchange remains unverified.
   Buyer starts refresh the final-mile task; replies refresh `send_allowed`. No counterpart Order-context calls are made by Flutter.
+
+## Additive media contract — 2026-10-06
+
+The Laravel backend now supports private image, MP4 and document attachments for existing role-authorized relationships. [Media API](media-api.md) supersedes text-only attachment restrictions in this copied snapshot, permits optional caption with ready attachment IDs, and defines limits, state and exact retry. External Flutter media adoption remains pending; prior client status and acceptance evidence are preserved.

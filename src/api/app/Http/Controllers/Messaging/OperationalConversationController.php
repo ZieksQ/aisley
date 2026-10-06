@@ -57,9 +57,9 @@ class OperationalConversationController extends Controller
         $role = $this->role($request);
         $input = $request->validated();
         $result = match ($role === 'logistics' ? ($input['context_type'] ?? null) : ($input['counterparty_role'] ?? null)) {
-            'order' => $this->orders->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey()),
-            'pickup_request' => $this->pickups->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey()),
-            'seller', 'customer' => $this->counterparties->startFromTask($actor, $input['counterparty_role'], $input['leg'], $input['task_id'], $input['body'], $request->idempotencyKey()),
+            'order' => $this->orders->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey(), $request->validated('attachment_ids', [])),
+            'pickup_request' => $this->pickups->start($actor, 'logistics', $input['context_id'], $input['body'], $request->idempotencyKey(), $request->validated('attachment_ids', [])),
+            'seller', 'customer' => $this->counterparties->startFromTask($actor, $input['counterparty_role'], $input['leg'], $input['task_id'], $input['body'], $request->idempotencyKey(), $request->validated('attachment_ids', [])),
             default => $this->conversations->start($actor, $role, $input, $request->idempotencyKey()),
         };
 
@@ -80,7 +80,7 @@ class OperationalConversationController extends Controller
         $input = $request->validate(['cursor' => ['sometimes', 'string', 'max:2048'], 'limit' => ['sometimes', 'integer', 'min:1', 'max:50']]);
         $actor = $request->user();
         $record = $this->find($actor, $this->role($request), $conversation);
-        $page = $record->messages()->orderByDesc('sequence')->cursorPaginate($input['limit'] ?? 20);
+        $page = $record->messages()->with('attachments')->orderByDesc('sequence')->cursorPaginate($input['limit'] ?? 20);
 
         return $this->response([
             'data' => $page->getCollection()->reverse()->map(fn ($message) => $this->service($record)->message($message, $record, $actor))->values()->all(),
@@ -93,7 +93,7 @@ class OperationalConversationController extends Controller
         $actor = $request->user();
         $role = $this->role($request);
         $record = $this->find($actor, $role, $conversation);
-        $result = $this->service($record)->send($actor, $role, $conversation, $request->validated('body'), $request->idempotencyKey());
+        $result = $this->service($record)->send($actor, $role, $conversation, $request->validated('body'), $request->idempotencyKey(), $request->validated('attachment_ids', []));
 
         return $this->writeResponse($result, $actor, $role);
     }

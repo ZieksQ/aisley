@@ -248,3 +248,7 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 - Customer methods differ from other roles: account password is PATCH, avatar part is photo, review part image, Q&A part question, support description part body, Shop read sequence versus operational read last_read_sequence.
 
 The current [95 typed operation records](operation-index.json) cover all inventory methods with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
+
+## Additive chat media endpoints — 2026-10-06
+
+[Private media](chat-media.md) defines Customer GET/POST `/api/v1/customer/chat-attachments`, GET/DELETE `/{id}`, POST `/{id}/retry`, GET `/{id}/content` and GET `/{id}/preview`. All three existing chat start/reply routes accept ordered `attachment_ids`; messages add `attachments`. Runtime gated; external Flutter adoption pending.

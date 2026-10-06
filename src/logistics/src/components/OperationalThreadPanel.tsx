@@ -1,5 +1,6 @@
+import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChatComposer, ChatHistory, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, ChatHistory, type ChatMediaContext, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalMessage, type OperationalThread } from '../lib/operationalChat'
 
@@ -113,14 +114,14 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     }
   }
 
-  async function send() {
+  async function send(attachmentIds: string[] = []) {
     if (!navigator.onLine || sending) {
       setError('Reconnect before sending a message.')
       return
     }
     const body = pendingRef.current?.body ?? draft.trim()
-    if (!body || body.length > 2000) return
-    const attempt = pendingRef.current ?? { key: crypto.randomUUID(), body }
+    if ((!body && !attachmentIds.length) || body.length > 2000) return
+    const attempt = pendingRef.current ?? { key: crypto.randomUUID(), body, attachmentIds }
     pendingRef.current = attempt
     writeChatAttempt(draftKey, attempt)
     setUncertain(true)
@@ -129,16 +130,16 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     setNotice('')
     try {
       const result = thread
-        ? await operationalChat.send(thread.id, attempt.body, attempt.key)
+        ? await operationalChat.send(thread.id, attempt.body, attempt.key, attempt.attachmentIds ?? [])
         : context ? 'orderId' in context
-          ? await operationalChat.startOrder(context.orderId, attempt.body, attempt.key)
+          ? await operationalChat.startOrder(context.orderId, attempt.body, attempt.key, attempt.attachmentIds ?? [])
           : 'pickupRequestId' in context
-            ? await operationalChat.startPickup(context.pickupRequestId, attempt.body, attempt.key)
-          : await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key) : null
+            ? await operationalChat.startPickup(context.pickupRequestId, attempt.body, attempt.key, attempt.attachmentIds ?? [])
+          : await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key, attempt.attachmentIds ?? []) : null
       if (!result) return
       pendingRef.current = null
       setDraft('')
-      writeChatDraft(draftKey, '')
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
       writeChatAttempt(draftKey, null)
       setUncertain(false)
       setThread(result.conversation)
@@ -151,7 +152,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         clearChatPrivateState()
         pendingRef.current = null
         setDraft('')
-        writeChatDraft(draftKey, '')
+        clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
         writeChatAttempt(draftKey, null)
         setUncertain(false)
       } else if (caught instanceof ApiError && [409, 422, 429].includes(caught.status)) {
@@ -169,6 +170,12 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     return <div className="grid min-h-0 flex-1 place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Choose a conversation or open a pickup request, task, or Order to start messaging.</div>
   }
 
+  const mediaContext: ChatMediaContext = thread ? { conversation_id: thread.id }
+    : context && 'orderId' in context ? { channel: 'operational', context_type: 'order', context_id: context.orderId }
+    : context && 'pickupRequestId' in context ? { channel: 'operational', context_type: 'pickup_request', context_id: context.pickupRequestId }
+    : context && 'taskId' in context ? { channel: 'operational', leg: context.leg, task_id: context.taskId }
+    : { channel: 'operational' }
+
   return (
     <section aria-label="Operational conversation" className="flex min-h-0 min-w-0 flex-1 flex-col">
       <header className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
@@ -179,11 +186,12 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         {thread?.read_only_reason ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This relationship ended. History is read-only.</p> : null}
       </header>
       <ChatHistory
+          mediaClient={chatMedia}
         key={selected?.id ?? contextId}
         messages={messages.map((message) => ({
           id: message.id, sequence: message.sequence, body: message.body, mine: message.mine,
           sender: message.mine ? 'You' : thread?.counterparty_role === 'customer' ? 'Customer' : thread?.counterparty_role === 'seller' ? 'Seller' : 'Courier',
-          createdAt: message.created_at,
+          attachments: message.attachments, createdAt: message.created_at,
         }))}
         olderCursor={Boolean(olderCursor)}
         onLoadOlder={() => void loadOlder()}
@@ -192,12 +200,13 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         emptyText="The first message creates this private operational conversation."
       />
       <ChatComposer
+        media={{ client: chatMedia, draftKey, context: mediaContext }}
         id="operational-chat-message"
         recipient={recipient}
         placeholder="Write an order-related message"
         value={draft}
         onChange={(value) => { setDraft(value); writeChatDraft(draftKey, value) }}
-        onSubmit={() => void send()}
+        onSubmit={(ids) => void send(ids)}
         online={typeof navigator === 'undefined' || navigator.onLine}
         sending={sending}
         uncertain={uncertain && !sending}

@@ -1,9 +1,10 @@
 "use client";
 
+import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChatComposer, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from "@aisley/chat-ui";
+import { clearChatAttachments, ChatComposer, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from "@aisley/chat-ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { startConversation, type MessageInput } from "@/lib/messages";
@@ -67,20 +68,20 @@ function AuthenticatedStartConversation({ shopId, productId, orderId }: { shopId
 
   useEffect(() => { writeChatDraft(draftKey, body); }, [body, draftKey]);
 
-  async function submit() {
+  async function submit(attachmentIds: string[] = []) {
     const text = body.trim();
-    if (!text || !shopId || contextLoading || busy || ((productId || orderId) && !context && !contextRemoved)) return;
+    if ((!text && !attachmentIds.length) || !shopId || contextLoading || busy || ((productId || orderId) && !context && !contextRemoved)) return;
     const contextToken = context ? `${context.type}:${context.id}` : null;
-    const attempt = pendingKey.current?.body === text && pendingKey.current.context === contextToken
-      ? pendingKey.current : { key: crypto.randomUUID(), body: text, context: contextToken };
+    const attempt = pendingKey.current?.body === text && JSON.stringify(pendingKey.current.attachmentIds ?? []) === JSON.stringify(attachmentIds) && pendingKey.current.context === contextToken
+      ? pendingKey.current : { key: crypto.randomUUID(), body: text, context: contextToken, attachmentIds };
     pendingKey.current = attempt;
     writeChatAttempt(draftKey, attempt);
     const input: MessageInput = context ? { body: text, context_type: context.type, context_id: context.id } : { body: text };
     setBusy(true);
     setError("");
     try {
-      const result = await startConversation(shopId, input, attempt.key);
-      writeChatDraft(draftKey, "");
+      const result = await startConversation(shopId, { ...input, attachment_ids: attempt.attachmentIds ?? [] }, attempt.key);
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, "");
       writeChatAttempt(draftKey, null);
       router.replace(`/messages/${result.conversation.id}`);
     } catch (reason) {
@@ -110,11 +111,12 @@ function AuthenticatedStartConversation({ shopId, productId, orderId }: { shopId
       {contextLoading ? <p className="px-4 pt-3 text-sm text-zinc-500" role="status">Checking linked {productId ? "Product" : "Order"}…</p> : null}
       {error ? <p className="mx-4 mt-3 text-sm text-red-700 dark:text-red-300" role="alert">{error}</p> : null}
       <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { channel: "shop", shop_id: shopId, ...(context ? { context_type: context.type, context_id: context.id } : {}) } }}
         id="first-message"
         recipient="Seller"
         value={body}
         onChange={(value) => { setBody(value); setError(""); writeChatDraft(draftKey, value); }}
-        onSubmit={() => void submit()}
+        onSubmit={(ids) => void submit(ids)}
         sending={busy}
         uncertain={uncertain && !busy}
         sendAllowed={!contextLoading && (!(productId || orderId) || Boolean(context) || contextRemoved)}

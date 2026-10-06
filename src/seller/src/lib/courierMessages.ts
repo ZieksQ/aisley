@@ -1,3 +1,4 @@
+import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout } from './api'
 
 export type CourierConversation = {
@@ -17,6 +18,7 @@ export type CourierMessage = {
   id: string
   sequence: number
   body: string
+  attachments?: ChatAttachment[];
   mine: boolean
   created_at: string
 }
@@ -47,9 +49,9 @@ export const courierMessages = {
   context: (order: string, signal?: AbortSignal) => read<{ data: CourierOrderContext }>(`${root}/order-context/${encodeURIComponent(order)}`, signal),
   detail: (id: string, signal?: AbortSignal) => read<{ data: CourierConversation }>(`${root}/${encodeURIComponent(id)}`, signal),
   history: (id: string, cursor?: string | null, signal?: AbortSignal) => read<CourierPage<CourierMessage>>(`${root}/${encodeURIComponent(id)}/messages${cursorQuery(cursor)}`, signal),
-  send: (id: string | null, order: string | null, body: string, key: string) => apiWriteWithCsrfTimeout<CourierSendResult>(
+  send: (id: string | null, order: string | null, body: string, key: string, attachmentIds: string[] = []) => apiWriteWithCsrfTimeout<CourierSendResult>(
     id ? `${root}/${encodeURIComponent(id)}/messages` : root,
-    { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(id ? { body } : { context_type: 'order', context_id: order, body }) },
+    { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(id ? { body, attachment_ids: attachmentIds } : { context_type: 'order', context_id: order, body, attachment_ids: attachmentIds }) },
   ),
   markRead: (id: string, sequence: number) => apiWriteWithCsrfTimeout<{ data: CourierConversation }>(`${root}/${encodeURIComponent(id)}/read`, {
     method: 'POST', body: JSON.stringify({ last_read_sequence: sequence }),

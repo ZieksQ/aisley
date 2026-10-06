@@ -14,6 +14,7 @@ use App\Models\Message;
 use App\Models\Order;
 use App\Models\SellerPickupRequest;
 use App\Models\User;
+use App\Services\Messaging\Media\ChatAttachmentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -41,6 +42,19 @@ class SellerLogisticsConversationService
         return $this->scoped($actor, $role)->whereKey($id)->firstOrFail();
     }
 
+    public function mediaContext(User $actor, string $role, string $pickupId): Conversation
+    {
+        $pickup = SellerPickupRequest::query()->findOrFail($pickupId);
+        abort_unless($this->relationshipActive($pickup)
+            && ($role !== 'seller' || $pickup->seller_id === $actor->id)
+            && ($role !== 'logistics' || $pickup->organization->user_id === $actor->id), 404);
+
+        return new Conversation(['kind' => ConversationKind::SellerLogistics,
+            'seller_pickup_request_id' => $pickup->id, 'seller_user_id' => $pickup->seller_id,
+            'shop_id' => $pickup->shop_id, 'logistics_organization_id' => $pickup->logistics_organization_id,
+            'logistics_hub_id' => $pickup->logistics_hub_id, 'logistics_user_id' => $pickup->organization->user_id]);
+    }
+
     public function unreadTotal(User $actor, string $role): int
     {
         return (int) DB::table('messages')
@@ -54,14 +68,14 @@ class SellerLogisticsConversationService
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    public function start(User $actor, string $role, string $pickupId, string $body, string $key): array
+    public function start(User $actor, string $role, string $pickupId, string $body, string $key, array $attachmentIds = []): array
     {
-        $hash = $this->hash(['start', $pickupId, $body]);
+        $hash = $this->hash(['start', $pickupId, $body], $attachmentIds);
         if ($prior = $this->prior($actor, $role, $key, $hash)) {
             return $prior;
         }
 
-        return DB::transaction(function () use ($actor, $role, $pickupId, $body, $key, $hash): array {
+        return DB::transaction(function () use ($actor, $role, $pickupId, $body, $key, $hash, $attachmentIds): array {
             $pickup = SellerPickupRequest::query()->whereKey($pickupId)->lockForUpdate()->firstOrFail();
             if ($prior = $this->prior($actor, $role, $key, $hash)) {
                 return $prior;
@@ -89,22 +103,22 @@ class SellerLogisticsConversationService
                     ConversationParticipant::create(['conversation_id' => $conversation->id, 'user_id' => $userId]);
                 }
             }
-            $message = $this->persist($conversation, $actor, $body, $key, $hash);
+            $message = $this->persist($conversation, $actor, $body, $key, $hash, $attachmentIds);
 
             return compact('conversation', 'message') + ['replay' => false];
         }, 3);
     }
 
     /** @return array{conversation: Conversation, message: Message, replay: bool} */
-    public function send(User $actor, string $role, string $id, string $body, string $key): array
+    public function send(User $actor, string $role, string $id, string $body, string $key, array $attachmentIds = []): array
     {
         $conversation = $this->find($actor, $role, $id);
-        $hash = $this->hash(['send', $id, $body]);
+        $hash = $this->hash(['send', $id, $body], $attachmentIds);
         if ($prior = $this->prior($actor, $role, $key, $hash, $id)) {
             return $prior;
         }
 
-        return DB::transaction(function () use ($actor, $role, $conversation, $body, $key, $hash): array {
+        return DB::transaction(function () use ($actor, $role, $conversation, $body, $key, $hash, $attachmentIds): array {
             $pickup = SellerPickupRequest::query()->whereKey($conversation->seller_pickup_request_id)->lockForUpdate()->firstOrFail();
             $conversation = $this->scoped($actor, $role)->whereKey($conversation->id)->lockForUpdate()->firstOrFail();
             if ($prior = $this->prior($actor, $role, $key, $hash, $conversation->id)) {
@@ -113,7 +127,7 @@ class SellerLogisticsConversationService
             if (! $this->matches($conversation, $pickup) || ! $this->relationshipActive($pickup, true)) {
                 throw FulfillmentException::conflict('CONVERSATION_READ_ONLY', 'This conversation is read-only.');
             }
-            $message = $this->persist($conversation, $actor, $body, $key, $hash);
+            $message = $this->persist($conversation, $actor, $body, $key, $hash, $attachmentIds);
 
             return compact('conversation', 'message') + ['replay' => false];
         }, 3);
@@ -173,6 +187,7 @@ class SellerLogisticsConversationService
             'sender_role' => $message->sender_user_id === $conversation->seller_user_id ? 'seller' : 'logistics',
             'mine' => $message->sender_user_id === $actor->id,
             'body' => $message->body,
+            'attachments' => app(ChatAttachmentService::class)->messages($message, $actor),
             'created_at' => $message->created_at?->toIso8601String(),
         ];
     }
@@ -226,7 +241,7 @@ class SellerLogisticsConversationService
         return compact('conversation', 'message') + ['replay' => true];
     }
 
-    private function persist(Conversation $conversation, User $actor, string $body, string $key, string $hash): Message
+    private function persist(Conversation $conversation, User $actor, string $body, string $key, string $hash, array $attachmentIds = []): Message
     {
         $message = Message::create([
             'conversation_id' => $conversation->id,
@@ -234,16 +249,17 @@ class SellerLogisticsConversationService
             'sequence' => $conversation->last_sequence + 1,
             'idempotency_key' => $key,
             'payload_hash' => $hash,
-            'body' => $body,
+            'body' => ChatAttachmentService::body($body, $attachmentIds),
         ]);
+        app(ChatAttachmentService::class)->bind($message, $conversation, $actor, $attachmentIds);
         $conversation->update(['last_sequence' => $message->sequence, 'last_message_id' => $message->id,
             'last_message_at' => $message->created_at]);
 
         return $message;
     }
 
-    private function hash(array $parts): string
+    private function hash(array $parts, array $attachmentIds = []): string
     {
-        return hash('sha256', json_encode($parts, JSON_THROW_ON_ERROR));
+        return ChatAttachmentService::hash($parts, $attachmentIds);
     }
 }
