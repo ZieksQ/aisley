@@ -307,9 +307,9 @@ Complete each unchecked question before creating physical operational migrations
 | Final delivered transition                                    | `docs/features/courier/complete-delivery/specs.md`        | Implemented with Logistics validation and Courier completion intent                 |
 
 - [x] **Verification plan approved:** The test categories below are the accepted plan; this checkbox does not claim that future physical migrations or tests have run.
-- [ ] **Verification execution:** SQLite physical migration and end-to-end API tests pass; PostgreSQL schema-health/API verification is still pending the local container credential fix and is recorded in `docs/PROGRESS.md`.
+- [x] **Verification execution for the deployed P0 flow:** SQLite regressions and connected checkout-to-delivery API scenarios pass. Disposable PostgreSQL migration/API and independent-worker concurrency checks have now run; see the [dated verification report](verification.md) for exact scope and limits.
 
-  **Answer/owner:** The backend fulfillment maintainer owns the verification plan. The migration and API suites must run against both the PHPUnit SQLite database and PostgreSQL, which is the production database. SQLite coverage is now present and passing for the final-mile flow; PostgreSQL execution remains an environment prerequisite before production rollout.
+  **Answer/owner:** The backend fulfillment maintainer owns the verification plan. Migration and API suites run against PHPUnit SQLite and disposable PostgreSQL, the production database engine. The connected tests create Orders through checkout rather than fabricating prepared Order/custody records. Automated backend verification does not establish browser, physical scanner or external mobile-app acceptance.
   - **Migration tests:** Verify migration order, Shipment/Parcel/DeliveryTask foreign keys, indexes, uniqueness constraints, string-backed status fields, sole-hub scope, append-only
     history constraints, and schema-health checks on SQLite and PostgreSQL.
   - **IDOR/tenant tests:** A Courier, Logistics account, Seller, or Customer cannot read or mutate another organization’s task, hub, Order, Parcel, waybill, scan, evidence, or history.
@@ -323,7 +323,7 @@ Complete each unchecked question before creating physical operational migrations
     returns, refunds, and partial fulfillment have no unapproved automatic inventory effect.
   - **Notification-failure tests:** A notification or queue failure after commit does not roll back the transition, inventory effect, or audit history. Retrying delivery does not create
     duplicate notifications.
-  - **Rollout gate:** SQLite tests pass for the deployed P0 flow. PostgreSQL schema-health and API checks must still pass before production rollout; clients may consume only the explicitly implemented routes in development environments with the migration applied.
+  - **Rollout gate:** Current P0 API scenarios pass on SQLite and disposable PostgreSQL. Deployment-specific schema health, queue/scheduler operation, storage/provider integration and client/device acceptance remain separate checks; clients may consume only explicitly implemented routes with the required migrations applied.
 
 ## HOW
 

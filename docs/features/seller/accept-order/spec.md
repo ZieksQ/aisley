@@ -58,7 +58,7 @@ scope: Seller Web Application and Laravel API
 ### Customer and Inventory boundaries
 
 - Once `seller_processing` commits, normal Customer cancellation and modification are no longer available. A concurrent Customer cancellation and Seller approval action has one transactionally valid winner.
-- Customer Order Status continues to map `placed`, `seller_processing`, and `ready_for_pickup` to **To Prepare**. Only Logistics receipt later changes the high-level Order to `assigned` / Customer **To Ship**.
+- Customer Order Status maps `placed`, `seller_processing`, and `ready_for_pickup` to **To Prepare**. Explicit first-mile Seller pickup projects `picked_up` / **To Ship**. Hub receipt/sorting are Shipment milestones; a committed final-mile dispatch schedule projects `assigned` / **To Ship**.
 - Approving an Order must not consume reserved stock, decrement `on_hand`, or create a second inventory ledger path. Inventory fulfillment conversion remains owned by its approved downstream action.
 
 ### Prepare and Logistics handoff
@@ -86,7 +86,7 @@ scope: Seller Web Application and Laravel API
 - [x] A COD Order with `placed`/`pending` payment can be approved or rejected exactly once.
 - [x] Approval transitions only `placed → seller_processing`; rejection transitions only `placed → rejected`, releases its reservation, and both append immutable history.
 - [x] Notification read/open does not change Order status.
-- [ ] Concurrent Customer cancellation and Seller approval cannot both commit incompatible transitions.
+- [x] Concurrent Customer cancellation and Seller approval cannot both commit incompatible transitions; verified with independent PostgreSQL workers in `OrderLifecycleConcurrencyTest`.
 - [x] Approval does not mark payment paid, generate a waybill, assign a Courier, or mutate Inventory balances.
 - [x] Seller readiness emits a committed Logistics handoff and supports downstream bulk pickup grouping without merging Orders.
 - [x] Pickup readiness creates immutable waybills; Seller and selected Logistics can view them only through role-scoped endpoints.
@@ -117,6 +117,7 @@ GET  /api/v1/seller/orders/{order}/waybill
 
 ### Verification and rollout
 
+- The [connected lifecycle verification](../../shared/shipment-fulfillment/verification.md) carries API-created checkout Orders through approval, pickup, local/transfer delivery and COD finalization. It also verifies approval/cancellation races on PostgreSQL; browser and external Flutter acceptance remain separate.
 - API tests cover role/Shop isolation, COD pending approval/rejection, reservation release, invalid states, duplicate/concurrent requests, immutable snapshots, multi-Order pickup, after-commit Logistics notification, and no approval payment/Inventory/waybill side effects.
 - Seller tests cover Monitoring/Approval/Pickup navigation, approve/reject actions, disabled capabilities, `409` refetch, notification read separation, pickup selection, and accessible error states.
 - Roll out in dependency order: Seller order list/detail and notification → Approval → provider selection/pickup request/waybill → Logistics Pickups scheduling → Courier pickup/receipt → remaining shipment flow.
@@ -127,4 +128,4 @@ GET  /api/v1/seller/orders/{order}/waybill
 - Shopee's seller flow separates **To Ship**, Arrange Shipment, pickup/drop-off selection, AWB printing, and mass pickup; late shipment/pickup can lead to system cancellation. See [Shopee seller fulfillment guide](https://cdngarenanow-a.akamaihd.net/shopee/seller/seller_cms/e68a7068c5423d45decff4573cd3fdef/How%20to%20fulfil%20an%20order%20in%20seller%20centre.pdf), [Shopee mass pickup guide](https://cdngarenanow-a.akamaihd.net/shopee/seller/seller_cms/6f01c96a4fa2e7feb8c441245ea98b4b/9.9%20Campaign%20Preparation.pdf), and [Shopee COD guidance](https://help.shopee.ph/portal/4/article/135541-How-do-I-choose-Cash-on-Delivery-(COD)-as-a-payment-option-(TAG)).
 - Lazada's official fulfillment APIs separate Pack, PrintAWB, ReadyToShip, and pickup operations; some document endpoints accept multiple packages. See [Lazada fulfillment API](https://open.lazada.com/apps/doc/doc?docId=120984&nodeId=30764) and [Lazada Pack/PrintAWB/ReadyToShip guide](https://open.lazada.com/apps/doc/doc?docId=121328&nodeId=43453).
 - Aisley keeps Seller approval and pickup readiness separate, creates one shared waybill at readiness, and keeps bulk pickup as an operational grouping without merging Orders.
-- Open: Seller processing deadline/SLA, Courier acceptance-versus-acknowledgement policy, and the owner of the final `pending → paid` payment update at delivery completion.
+- Open: Seller processing deadline/SLA and Courier acceptance-versus-acknowledgement policy. The shared delivery finalizer owns COD `pending → paid`, atomically with Logistics-confirmed delivery; Seller approval leaves payment pending.

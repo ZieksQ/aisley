@@ -105,6 +105,7 @@ Buy Now or selected Cart lines
 
 ### Data flow and verification
 
+- [Connected lifecycle verification](../../shared/shipment-fulfillment/verification.md) exercises real Cart checkout through Seller approval, first-mile stock fulfillment, local/company-truck delivery, Logistics POD validation and verified-purchase review. Independent PostgreSQL workers verify duplicate placement and competing Customers buying the last unit.
 - Quote: normalize intent → resolve Customer-owned inputs → group by Shop → calculate server totals/vouchers → save short-lived Customer-owned quote with state/request hashes.
 - Place: lock Customer/quote/inventory/voucher rows → revalidate hashes and all rules → create Orders/snapshots/reservations → clear selected Cart lines → commit → queue after-commit notifications.
 - Test ownership, one-/multi-Shop grouping, immutable snapshots, COD-only validation, restriction/availability changes, voucher targeting, rollback, stable locking, and idempotent retries on SQLite and PostgreSQL.
