@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Logistics\EligibleLogisticsQuery;
 use App\Services\Logistics\LogisticsNotificationService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
+use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\Logistics\SortingPlanService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
@@ -73,6 +74,8 @@ class RequestSellerPickup
         }
 
         return DB::transaction(function () use ($seller, $orderIds, $pickupAddressId, $logisticsOrganizationId, $key, $provider): SellerPickupRequest {
+            // The later routing snapshot can recover activations; take its network gate before domain locks.
+            SortingLocks::network();
             $shop = Shop::query()->where('seller_id', $seller->id)->lockForUpdate()->firstOrFail();
             $previous = SellerPickupRequest::query()->where('seller_id', $seller->id)->where('idempotency_key', $key)->with(['orders', 'waybills'])->first();
             if ($previous) {
