@@ -32,7 +32,7 @@ and capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -54,10 +54,15 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Fallback campaign IDs are strings such as default-primary; do not require a UUID for every campaign.
 - Pause carousel rotation offscreen/background; provide accessible previous/next and avoid overriding
   keyboard focus.
-- Shortcut targets may have no implemented destination: only enable supported local routes, not
-  voucher-wallet placeholders.
+- Home quick actions expose Search only; Shops remains available through the main navigation.
+  Enable supported local shortcuts only, never voucher-wallet placeholders.
 - Category cards use keyword search by Category name; they are not exact global Product-category
-  filters.
+  filters. Initially show one width/text-scaled category row. Place Show all/Show less by the
+  heading, wrapping beneath it when needed; hide it when all fit and retain expansion while Home
+  stays mounted.
+- Category cards share measured label height and a 48px image/icon area; full labels fit at current text scale.
+- Shared Product cards keep square images, two-line titles, aligned price/metadata slots and aligned
+  purchase actions while respecting text scaling. Listing Add to Cart uses current Product detail.
 - Deal price/progress is a display projection; expiry/timer does not guarantee checkout eligibility or
   reservation.
 - Recommendation limit8–50 default 20 and opaque nextCursor are server-owned; null means exhausted.

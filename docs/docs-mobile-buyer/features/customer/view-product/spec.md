@@ -31,7 +31,7 @@ capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -51,6 +51,12 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - No options means variant_id is explicitly null in Add Cart/Buy Now, not omitted.
 - Add Cart hands exact Product/variant/quantity to CartRepository; it increments and is not UUID
   replay-safe.
+- Listing Add to Cart and detail Add/Buy Now fetch current Product detail before purchase. Simple
+  listing cards add one unit; detail quantity is retained. Variant purchases use a bounded mobile
+  bottom sheet or larger-screen dialog and require a complete available combination. Cancel makes
+  no write; unavailable combinations cannot be confirmed.
+- Detail keeps interactive variant selection in the purchase flow. The picker shows current option
+  price/stock/quantity and submits only a valid combination through the owning screen controller.
 - Buy Now builds a checkout intent without changing Cart and requires owned shipping address/COD quote.
 - Wishlist and Q&A/review sections use their own repositories and independent loading/error state.
 - Only record Recently Viewed after successful public detail display; error/loading does not create

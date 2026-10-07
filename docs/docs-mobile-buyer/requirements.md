@@ -39,7 +39,7 @@ Bazaar/MoneyFest placeholders, guest Cart/Wishlist merge, voucher claiming/walle
 
 ## Fulfillment and financial context
 
-Seller approves/prepares their own Orders, selects Logistics downstream, requests pickup and participates in first-mile handoff. Logistics controls hub custody, dispatch and associated Courier approval. Courier is external mobile-only: accepted first/final-mile work, private evidence and COD collection are outside Buyer. Customer sees safe Order/tracking/contact projections only and cannot call those role endpoints.
+Seller approves/prepares their own Orders, requests pickup from each Order’s checkout-selected provider and participates in first-mile handoff. Logistics controls hub custody, dispatch and associated Courier approval. Courier is external mobile-only: accepted first/final-mile work, private evidence and COD collection are outside Buyer. Customer sees safe Order/tracking/contact projections only and cannot call those role endpoints.
 
 Quote/batch/Order totals are PHP money strings; Product/Cart numeric prices are display information. No mobile total is submitted as authority. Placement commits all Shop Orders, pricing/address/voucher snapshots, reservations/redemptions and selected Cart cleanup atomically. COD initially remains pending and delivery/COD recognition comes from the server workflows. Commission does not add a Buyer surcharge. Cancellation releases eligible reservations once but does not currently restore voucher capacity. Address correction lacks demonstrated current-rate/coverage recalculation and remains a release gate.
 
@@ -56,3 +56,7 @@ Do not infer implementation from enum values, public shortcut URLs or historical
 ## Current platform shipping contract
 
 Customers select one Seller-enabled provider per Shop Order using [options/quote/place](api/shipping-selection.md); the server freezes its provider, route and final shipping fee. Seller pickup enforces that provider. Required sign-in/account-only history are Flutter presentation decisions; public API and storefront guest browsing/recency remain available. The imported client adoption baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; newer shipping selection/projections are unadopted pending G25.
+
+## Newer Flutter presentation evidence — 2026-10-07
+
+The external Buyer project reports [marketplace layouts](references/marketplace-verification.md) on phone/tablet/desktop in one Flutter app, stable mounted pages during temporary background revalidation errors, mouse/text shopping controls and embedded Profile-photo operations. PSGC fields require explicit hierarchical selections; typed matches do not select, NCR uses a compatibility choice, unsupported Province mappings/failed assets block save with Retry. Street/contact/postal fields remain manual, and optional pin failure does not block valid locality saving. These Flutter choices preserve storefront behavior and API validation. [Private chat media](api/chat-media.md) is implemented in Laravel; Flutter adoption remains G26 alongside provider selection G25. Dated historical checkout failures retain unverified current resolution.

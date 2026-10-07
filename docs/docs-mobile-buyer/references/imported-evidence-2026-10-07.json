@@ -1,0 +1,83 @@
+{
+  "reviewed_on": "2026-10-07",
+  "backend_checkout": "a94669248c63525e44243327f4c25feca46c9c50",
+  "client_adoption": {
+    "buyer": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+    "courier": "d7df220"
+  },
+  "snapshots": [
+    {
+      "upstream_path": "docs/cabigan/docs-mobile-customer",
+      "files": 118,
+      "tree_sha256": "f3c7d5e80165909418e9e129c0e4518eeff6a29dc314c26f7eb07f4e5efa39cf",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; source bytes unchanged."
+    },
+    {
+      "upstream_path": "docs/cabigan/docs-flutter-courier",
+      "files": 47,
+      "tree_sha256": "78b802d8bdba1d16f7e0932eae9ceb7fe8449159773689654ee31fb4a5cdb269",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; source bytes unchanged."
+    }
+  ],
+  "buyer_report": {
+    "file": "references/marketplace-verification.md",
+    "reported_on": "2026-10-04",
+    "source_sha256": "5a3699cf3b4d48d137ee8dcc017445df0c3f1cb8d6c9afa519753a88395a78bd",
+    "bundle_sha256": "4893bc4301f026b8a062f2a6533a423374b1931717a4c9db6e1db6ff1edc5a55",
+    "adaptation": "Added attribution paragraph; original report text follows unchanged."
+  },
+  "screenshots": [
+    {
+      "file": "references/marketplace-screenshots/cart-1440.png",
+      "sha256": "7a09b05dd9294f25cfaf6fee6251c95130aff5ba03d10158d310b5dcfca622b1",
+      "bytes": 51315
+    },
+    {
+      "file": "references/marketplace-screenshots/cart-390.png",
+      "sha256": "86df6340e03e1d20a35ad4891cdff9b38ec3d63f6503b455f4da723750180575",
+      "bytes": 42120
+    },
+    {
+      "file": "references/marketplace-screenshots/checkout-1440.png",
+      "sha256": "e2c4328c71483a5e92583c63957a4460d4d7590b2b1aa74149781e1425427dfe",
+      "bytes": 88666
+    },
+    {
+      "file": "references/marketplace-screenshots/checkout-390.png",
+      "sha256": "378b2d787ec258e6753cc74ec293bbceffb7637daf867c2bc423ee5b0399aacd",
+      "bytes": 49772
+    },
+    {
+      "file": "references/marketplace-screenshots/home-1440.png",
+      "sha256": "6dce7670a638ffbd75a69dbdd4c13e1c8695a1974c4d2412bcd50aa4acf82e81",
+      "bytes": 43008
+    },
+    {
+      "file": "references/marketplace-screenshots/home-390.png",
+      "sha256": "c0b6fc0d7bb8ea3b36763655b86a1f5130033a8b1ca4a74164d58a271fd41a7e",
+      "bytes": 33459
+    },
+    {
+      "file": "references/marketplace-screenshots/messages-1440.png",
+      "sha256": "d91309fcfa5317d5128851577d75e3ee9a7c1bcdd366b1e199ca3f77d248620c",
+      "bytes": 46545
+    },
+    {
+      "file": "references/marketplace-screenshots/messages-390.png",
+      "sha256": "8ca1c4970c7ead6459b653022795a0a6ec47c71362b53e8cf37668ba2fae1a88",
+      "bytes": 25066
+    },
+    {
+      "file": "references/marketplace-screenshots/product-1440.png",
+      "sha256": "02de590518f4b41d6d924a6ad12a0fbc1e41455837f398076905bd5c7afc96c3",
+      "bytes": 54504
+    },
+    {
+      "file": "references/marketplace-screenshots/product-390.png",
+      "sha256": "28c399fcbb36c4492bf2c3a3ab0360292c14a417104cbeba64c7e89673512f3d",
+      "bytes": 23046
+    }
+  ],
+  "results_executed_here": false,
+  "courier_client_evidence": "Matches previously imported design/architecture/rules and archive bytes; 454 passes remain an attributed prior report, not a new run."
+}

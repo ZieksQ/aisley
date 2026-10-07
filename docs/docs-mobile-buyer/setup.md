@@ -12,6 +12,22 @@ are reported as blocked with a nonzero exit. Focused reruns use `--checks`.
 See [Phase 5 evidence and acceptance runbook](references/phase-5-verification.md)
 for report format, commands, signing limitations and remaining owner/device gates.
 
+## Responsive marketplace browser verification
+
+Android and responsive web share one Flutter app; phone/tablet/desktop layouts follow
+[Buyer design](design-buyer.md). No extra UI package, font or backend change is required.
+In the external Flutter project, with its Buyer web server running on localhost:8766, run the isolated synthetic smoke:
+
+```sh
+BUYER_SCREENSHOT_DIR=build/verification/marketplace-screenshots python3 tool/browser_smoke.py --synthetic-only
+```
+
+This mode intercepts every API path before app startup (including reloads), verifies
+signed-out guards and synthetic mobile/desktop shopping/quote journeys, and sends no
+synthetic credential or write to Laravel. Unknown API requests fail locally. It does not
+certify deployed CORS, real-account commerce or installed-device acceptance. The existing
+live browser mode remains separate and needs the authorized API already running.
+
 ## Current Phases 1–4 local development
 
 The ten approved package pins support implemented auth, discovery/account, commerce and communication.

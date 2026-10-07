@@ -47,10 +47,16 @@ location remain historical provenance. Copy the complete bundle when handing it 
 
 Read [Customer rules](features/customer/rule.md) before creating or revising a Customer spec, including authentication. New or revised specs use WHAT/MUST/HOW and contain 200–230 physical lines; this local rule overrides the feature-spec skill's shorter length preference. All 22 Customer specs now meet the length requirement and define requests, types, states, replay and tests. Shared consent is also complete. Phases 1–4 implementation evidence is recorded separately; controlled authenticated and installed-device acceptance gates stay open.
 
-Current Laravel inspection: **2026-10-04**, `22b0a48f9575ead182d03c35ab87345711c23b90`. See [per-Shop shipping selection](api/shipping-selection.md) and [current provenance](references/source-provenance.md). Provider selection and changed shipping DTOs remain a client adoption gap (G25); imported results retain the earlier baseline. Required sign-in and account-only recency apply to Buyer Flutter presentation; the storefront keeps guest browsing/recency.
+Historical shipping inspection: **2026-10-04**, `22b0a48f9575ead182d03c35ab87345711c23b90`. See [per-Shop shipping selection](api/shipping-selection.md) and [current provenance](references/source-provenance.md). Provider selection and changed shipping DTOs remain a client adoption gap (G25); imported results retain the earlier baseline. Required sign-in and account-only recency apply to Buyer Flutter presentation; the storefront keeps guest browsing/recency.
 
 2026-10-09 contract delta: [voucher names/default pairing](api/voucher-selection-update.md). Customer names and default opposite-benefit pairing require external client adoption (G26); earlier Flutter implementation evidence and status remain unchanged.
 
 ## Chat media contract refresh — 2026-10-06
 
 [Private chat media](api/chat-media.md) documents the additive implemented Laravel upload/processing/delivery contract and counterpart web controls. Media is disabled until operators enable the prepared runtime. External Flutter attachment implementation, authenticated media exchange and device acceptance remain pending; imported adoption baselines and prior test evidence are unchanged. Only affected messaging contract sections and DTO/examples were refreshed.
+
+## Selective synchronization — 2026-10-07
+
+Newer external Buyer evidence reports marketplace phone/tablet/desktop layouts, stable navigation/page retention, mouse/text shopping controls, embedded Profile photos and explicit selected-only PSGC dropdowns. [Marketplace report and ten synthetic screenshots](references/marketplace-verification.md) travel with this bundle; dated October 5 follow-ups remain in [Progress](PROGRESS.md). Tests/builds are attributed reports, not rerun here. Storefront guest browsing, recency and address behavior are unchanged.
+
+[Current backend review and portable checks](references/synchronization-2026-10-07.md) retain historical manifests and distinguish reviewed Laravel `a946692` from Buyer-adopted `57e9eb2`. Per-Shop provider selection (G25), private chat media adoption (G27), current resolution of historical checkout deployment failures, live/device/accessibility/signing/production gates remain unverified. External source paths are optional provenance; this complete bundle resolves locally after copying into `docs/`. Preserve active destination instructions and archive bytes during a selective merge.

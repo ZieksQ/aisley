@@ -1,15 +1,11 @@
 # Progress
 
-Short, dated log for the standalone Buyer Flutter project. Append implementation and actual verification here after copying the bundle. Preserve history; archive complete logs after 150 physical lines.
+Short, dated log for the standalone Buyer Flutter project. Append actual implementation and verification after copying; preserve complete history and archive logs exceeding 150 physical lines.
 
-Format:
+## Backend and client snapshot
 
-```text
-## YYYY-MM-DD
-- Change, backend baseline, checks actually run, remaining gates.
-```
-
----
+- Historical backend 7b1a08a; Buyer adoption remains 57e9eb2. Documentation review: Laravel a946692, 2026-10-07. Phases 1–4, Phase 5 tooling and October 4–5 marketplace/control refinements are externally reported; no Flutter results were rerun here.
+- Provider selection G25, private media G27, historical checkout resolution, controlled authenticated/live, installed Android/TalkBack/picker, Firefox modes and distribution gates remain open.
 
 ## 2026-10-03
 
@@ -106,3 +102,9 @@ Format:
 ## 2026-10-09
 
 - Synchronized the affected voucher contract sections with branch `feature/voucher-names-stacking-ux`: customer-visible names in quote/applied/Batch DTOs, frozen Order names with historical code fallback, default opposite-benefit pairing and one App voucher per benefit per batch. Updated error examples and recorded external client adoption gap G26 alongside retained G25. Prior Flutter implementation evidence/status is unchanged; no Flutter analyze/build/device/live verification ran.
+
+## 2026-10-07 — Archive and synchronization
+
+- Archived the complete merged progress history unchanged in [PROGRESS-2026-10-07.md](logs/PROGRESS-2026-10-07.md), including all dated imported results and the synchronization entry. Forwarding pages under logs/references preserve historical links without rewriting the archive.
+- Selectively synchronized marketplace layout/navigation, page retention, shopping controls, embedded Profile photos and selected-only PSGC; imported [marketplace report/ten screenshots](references/marketplace-verification.md) with attribution. Current shipping/private-media contracts remain intact; storefront behavior and Courier client adoption are unchanged.
+- Independent portable-document/contract/evidence/preservation checks are in [synchronization](references/synchronization-2026-10-07.md). No application/Flutter tests/builds, live/device, dependency, configuration, migration or external-project changes ran here.

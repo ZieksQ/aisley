@@ -1,0 +1,51 @@
+{
+  "validated_on": "2026-10-07",
+  "backend_checkout": "a94669248c63525e44243327f4c25feca46c9c50",
+  "checks_executed_here": {
+    "isolated_docs_copy": true,
+    "markdown_files": 51,
+    "local_links_and_anchors": 49,
+    "json_files": 7,
+    "instruction_paths": 17,
+    "specs_checked": 12,
+    "spec_line_range": [
+      203,
+      230
+    ],
+    "unchanged_oversized_drafts": [
+      {
+        "feature": "profit-dashboard",
+        "lines": 969
+      },
+      {
+        "feature": "incident-reporting",
+        "lines": 1073
+      }
+    ],
+    "embedded_json_examples": 22,
+    "current_role_route_records": 67,
+    "route_references_checked": 57
+  },
+  "preservation": {
+    "files_hashed": 274,
+    "cabigan_files": 239,
+    "root_and_courier_instructions_unchanged": true,
+    "buyer_guide_only_psgc_clarification": true,
+    "existing_archives": true,
+    "psgc_assets": true,
+    "original_progress_prefix": true
+  },
+  "errors": [],
+  "limits": [
+    "Documentation-only checks; DTO validation is against synthetic JSON/schema, not executable Dart or HTTP.",
+    "Imported Flutter tests/builds/browser/SDK results were not rerun.",
+    "No application/backend tests, live API/device/accessibility/signing/production acceptance or deployment repair ran.",
+    "G25 shipping and G26 media adoption remain open; Courier adoption stays d7df220.",
+    "Unrelated oversized Incident/Profit drafts and historical source manifests are preserved."
+  ],
+  "bundle": "docs/docs-flutter-rider",
+  "canonical_links_checked": 6,
+  "canonical_revised_courier_spec_lines": 230,
+  "source_hashes_checked": 14,
+  "snapshot_tree_hashes_checked": 2
+}

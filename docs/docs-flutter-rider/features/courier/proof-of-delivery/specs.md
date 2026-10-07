@@ -48,7 +48,6 @@ final-mile task
 ```
 
 ## MUST
-
 ### Authentication and ownership
 
 - Require `auth:sanctum`, `courier.active`, and `policy.consent`; Flutter sends `Authorization: Bearer <token>`.
@@ -56,7 +55,6 @@ final-mile task
 - The Courier must have an accepted final-mile task and the task must be in the approved delivery/drop-off state.
 - Evidence may be created only for that task's Order/Parcel and the authenticated Courier's current Logistics affiliation.
 - Cross-role, cross-organization, foreign task, guessed proof ID, or inactive-account access fails closed without existence disclosure.
-
 ### Logistics validation and recording authority
 
 - Courier captures a private photo POD for final-mile delivery. Signature or other methods require a later approved proof policy; QR/tracking-ID/Order-reference are not delivery proof.
@@ -66,7 +64,6 @@ final-mile task
 - `waybill_access_events` and QR resolves remain access audits. A scan/access event alone never satisfies e-POD or advances custody.
 - Evidence status is separate from delivery state: `awaiting_validation`, `validated`, `rejected`, or `unavailable`; submission time is `submitted_at`, not a new persisted `submitted` status.
 - Complete Delivery records intent for the linked awaiting-validation or validated photo; only Logistics validation of that photo and matching intent commits `delivered`.
-
 ### Evidence methods and upload policy
 
 - The implemented delivery method at `out_for_delivery` is one private photo POD. Final-mile hub handoff uses the accepted task and `expected_revision` with a UUID `Idempotency-Key`, not QR/reference input; first-mile verification remains separate. Signature and proof combinations are deferred.

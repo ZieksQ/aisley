@@ -22,3 +22,8 @@ This is the progress log for the external Courier Flutter application. It is sep
 ## 2026-10-06 — Sorting and final-mile handoff contract addendum
 
 - Updated the copied Courier pickup specification and relevant shared requirements/workspace/schema sections for frozen sorting assignments and selected-lane Pause/Hold enforcement at Logistics validation. Submission remains revision-only; pending evidence and accepted tasks remain reusable after Resume. This is a backend contract/documentation update from `feature/sort-plan-versions-lane-recovery`, not Flutter implementation or adoption evidence. Existing client status and archives are preserved; no Flutter analyzer, build, runtime or device checks ran.
+
+## 2026-10-07 — Documentation synchronization
+
+- Recompared the supplied Courier snapshot: client architecture/design/rules, imported 454-test record and archives match previously imported evidence. Current reviewed Laravel a946692 is separate from adopted d7df220 and historical 4c3f504; no new client adoption is claimed.
+- Corrected stale backend/synchronization summaries while preserving current shipping, POD rejection/automatic paid-prepaid approval, COD manual review and private chat-media contracts. Auth, route/failed-attempt/linehaul and live/device/media gates remain open. Independent portable checks are in references/synchronization-2026-10-07.md; no application/Flutter tests/builds or live/device checks ran here.

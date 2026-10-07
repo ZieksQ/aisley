@@ -31,7 +31,7 @@ capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -52,8 +52,9 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   read return through login/consent. Normal sign-in opens Home.
 - Root sign-in has no shopping cancel; child auth/policy Back returns to sign-in. Consent offers
   explicit sign-out; no saved mutation automatically resumes.
-- Foreground resume deduplicates identity/consent refresh and leaves offline private content hidden if
-  identity is unverified.
+- Background revalidation deduplicates `/me`/consent checks and retains the current route, scroll,
+  drafts and dialogs on temporary failure with retry feedback. Revocation clears private state; new
+  required consent blocks shopping.
 - HTTP 401 invalidates credential storage; explicit account/role denial clears private identity and shows
   reason.
 - Resource403/404 clears the affected record only; do not globally sign out for another account’s scoped

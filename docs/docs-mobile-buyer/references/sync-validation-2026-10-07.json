@@ -1,0 +1,48 @@
+{
+  "validated_on": "2026-10-07",
+  "backend_checkout": "a94669248c63525e44243327f4c25feca46c9c50",
+  "checks_executed_here": {
+    "isolated_docs_copy": true,
+    "markdown_files": 68,
+    "local_links_and_anchors": 765,
+    "json_files": 61,
+    "instruction_paths": 27,
+    "specs_checked": 22,
+    "spec_line_range": [
+      215,
+      230
+    ],
+    "unchanged_oversized_drafts": [],
+    "embedded_json_examples": 6,
+    "operations": 103,
+    "named_types": 112,
+    "wire_fields": 701,
+    "duplicated_fixtures": 103,
+    "typed_response_fixtures": 95,
+    "psgc_assets": 19,
+    "shipping_scenarios": 19,
+    "screenshots": 10
+  },
+  "preservation": {
+    "files_hashed": 274,
+    "cabigan_files": 239,
+    "root_and_courier_instructions_unchanged": true,
+    "buyer_guide_only_psgc_clarification": true,
+    "existing_archives": true,
+    "psgc_assets": true,
+    "original_progress_prefix": true
+  },
+  "errors": [],
+  "limits": [
+    "Documentation-only checks; DTO validation is against synthetic JSON/schema, not executable Dart or HTTP.",
+    "Imported Flutter tests/builds/browser/SDK results were not rerun.",
+    "No application/backend tests, live API/device/accessibility/signing/production acceptance or deployment repair ran.",
+    "G25 shipping and G26 media adoption remain open; Courier adoption stays d7df220.",
+    "Unrelated oversized Incident/Profit drafts and historical source manifests are preserved."
+  ],
+  "bundle": "docs/docs-mobile-buyer",
+  "canonical_links_checked": 6,
+  "canonical_revised_courier_spec_lines": 230,
+  "source_hashes_checked": 14,
+  "snapshot_tree_hashes_checked": 2
+}

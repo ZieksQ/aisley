@@ -30,7 +30,7 @@ capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -40,6 +40,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   data.
 - Split profile/password/photo/preference workflows so a failure in one preserves safe input in another.
 - Profile PATCH requires a complete form: names/contact/sex/birth_date; middle_name becomes null when blank.
+- Profile embeds photo viewing, picking, preview, upload and confirmed removal. Photo work is
+  independently busy and preserves profile text; pending selections participate in discard checks.
+- Account has no separate Photo destination. Legacy `/account/photo` links open Profile.
+- Keep 16px between Profile fields and 24px before each section.
 - Email/role/status/approval and storage metadata remain read-only. Never submit arbitrary copied account DTO.
 - Age is server-derived and read-only. Preserve date-only representation instead of timezone-shifting
   birthdays.
