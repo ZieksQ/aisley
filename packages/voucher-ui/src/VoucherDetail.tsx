@@ -116,7 +116,9 @@ export function VoucherDetail({ id, ...props }: VoucherProps & { id: string }) {
   return (
     <main className="vouchers">
       <header>
-        <h1>{editing ? 'Edit voucher draft' : voucher.code}</h1>
+        <h1>
+          {editing ? 'Edit voucher draft' : (voucher.name ?? voucher.code)}
+        </h1>
         {!editing && (
           <Button
             variant="outline"

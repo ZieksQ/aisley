@@ -86,7 +86,7 @@
 .vouchers textarea {
   min-height: 120px;
 }
-.vouchers input[type="checkbox"] {
+.vouchers input[type='checkbox'] {
   width: 18px;
   min-height: 18px;
 }
@@ -101,12 +101,12 @@
   color: #f4f4f5;
   border-color: #71717a;
 }
-.dark .vouchers button[class*="bg-white"] {
+.dark .vouchers button[class*='bg-white'] {
   background: #27272a;
   color: #f4f4f5;
   border-color: #71717a;
 }
-.vouchers button[class*="bg-transparent"] {
+.vouchers button[class*='bg-transparent'] {
   color: inherit;
 }
 .vouchers .voucher-check {
@@ -224,13 +224,63 @@
   }
 }
 
-.dark .vouchers [id$="-hint"] {
+.dark .vouchers [id$='-hint'] {
   color: #a1a1aa;
 }
-.dark .vouchers [id$="-error"] {
+.dark .vouchers [id$='-error'] {
   color: #ff817b;
 }
 .vouchers .voucher-table:focus-visible {
   outline: 2px solid #e6007a;
   outline-offset: 3px;
+}
+
+.voucher-code {
+  display: block;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #52525b;
+}
+.dark .voucher-code {
+  color: #a1a1aa;
+}
+.voucher-help {
+  position: relative;
+  display: inline-flex;
+}
+.vouchers .voucher-help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  background: transparent;
+  color: #52525b;
+  border: 0;
+}
+.dark .vouchers .voucher-help-button {
+  color: #d4d4d8;
+}
+.voucher-help-tip {
+  position: fixed;
+  z-index: 10;
+  width: min(280px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid #a1a1aa;
+  border-radius: 6px;
+  background: #fff;
+  color: #27272a;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .voucher-help-tip {
+  background: #27272a;
+  color: #f4f4f5;
+  border-color: #71717a;
+}
+.vouchers h1 {
+  overflow-wrap: anywhere;
 }

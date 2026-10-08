@@ -21,10 +21,13 @@ abstract class VoucherMutationRequest extends FormRequest
         if ($this->has('code') && is_string($this->input('code')) && $this->input('code') !== $this->publishedCode) {
             $this->merge(['code' => trim(preg_replace('/[^A-Z0-9-]+/', '-', strtoupper(trim($this->input('code')))), '-')]);
         }
+        if ($this->has('name') && is_string($this->input('name'))) {
+            $this->merge(['name' => trim($this->input('name'))]);
+        }
         if ($this->hasTerms()) {
             $this->merge(array_replace([
                 'currency' => 'PHP', 'payment_method' => 'cod', 'minimum_spend' => '0.00',
-                'per_customer_limit' => 1, 'global_limit' => null, 'maximum_discount' => null, 'stacking' => false,
+                'per_customer_limit' => 1, 'global_limit' => null, 'maximum_discount' => null, 'stacking' => true,
             ], $this->all()));
         }
     }
@@ -50,6 +53,7 @@ abstract class VoucherMutationRequest extends FormRequest
         }
 
         return [...$rules,
+            'name' => ['required', 'string', 'max:120', 'not_regex:/[<>]/'],
             'code' => ['sometimes', 'nullable', 'string', 'max:64', ...($this->publishedCode !== null && $this->input('code') === $this->publishedCode ? [] : ['regex:/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/'])],
             'currency' => ['required', Rule::in(['PHP'])],
             'payment_method' => ['required', Rule::in(['cod'])],
@@ -62,7 +66,8 @@ abstract class VoucherMutationRequest extends FormRequest
             'ends_at' => ['required', 'date', 'after:starts_at', 'regex:/T.*(?:Z|[+-]\d{2}:\d{2})$/'],
             'global_limit' => ['nullable', 'integer', 'min:1', 'max:2147483647'],
             'per_customer_limit' => ['required', 'integer', 'min:1', 'max:2147483647'],
-            'stacking' => ['required', 'boolean'],
+            // Accepted for older authoring clients; checkout pairing is always enabled.
+            'stacking' => ['sometimes', 'boolean'],
             'terms_summary' => ['required', 'string', 'max:5000'],
         ];
     }

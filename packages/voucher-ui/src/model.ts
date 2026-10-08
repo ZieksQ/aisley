@@ -26,7 +26,7 @@ export const localDate = (value: string) =>
 export const utcDate = (value: string) =>
   new Date(`${value}:00+08:00`).toISOString()
 export const benefit = (terms: Terms) =>
-  `${terms.value_type === 'percent' ? `${terms.value}%` : money(terms.value)} ${terms.benefit_type === 'shipping' ? 'shipping saving' : 'merchandise discount'}`
+  `${terms.value_type === 'percent' ? `${terms.value}%` : money(terms.value)} ${terms.benefit_type === 'shipping' ? 'shipping saving' : 'merchandise discount'}${terms.maximum_discount ? `, capped at ${money(terms.maximum_discount)}` : ''}`
 export const denied = (error: Failure) =>
   error.status === 401 ||
   error.status === 403 ||
@@ -39,6 +39,7 @@ export const funding = (role: 'admin' | 'seller') =>
     : 'Your Shop funds this discount through reduced merchandise proceeds before commission. Settlement applies no second deduction.'
 
 export type FormValues = {
+  name: string
   code: string
   benefit_type: Terms['benefit_type']
   value_type: Terms['value_type']
@@ -49,11 +50,11 @@ export type FormValues = {
   ends_at: string
   global_limit: string
   per_customer_limit: string
-  stacking: boolean
   terms_summary: string
 }
 export function formValues(terms?: Terms): FormValues {
   return {
+    name: terms?.name ?? terms?.code ?? '',
     code: terms?.code ?? '',
     benefit_type: terms?.benefit_type ?? 'discount',
     value_type: terms?.value_type ?? 'fixed',
@@ -66,7 +67,6 @@ export function formValues(terms?: Terms): FormValues {
     ),
     global_limit: terms?.global_limit?.toString() ?? '',
     per_customer_limit: terms?.per_customer_limit.toString() ?? '1',
-    stacking: Boolean(terms?.stacking_policy?.allow_with?.length),
     terms_summary: terms?.terms_summary ?? '',
   }
 }

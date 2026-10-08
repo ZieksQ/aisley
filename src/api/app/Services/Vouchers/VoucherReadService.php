@@ -37,7 +37,7 @@ class VoucherReadService
         $draft = $voucher->draftVersion;
 
         return [
-            'id' => $voucher->id, 'code' => $voucher->code, 'issuer_type' => $voucher->issuer_type->value,
+            'id' => $voucher->id, 'name' => $voucher->name ?? $voucher->code, 'code' => $voucher->code, 'issuer_type' => $voucher->issuer_type->value,
             'benefit_type' => $voucher->benefit_type->value, 'currency' => 'PHP', 'lifecycle' => $voucher->lifecycle->value,
             'status' => $this->status($voucher), 'revision' => $voucher->revision, 'version' => $voucher->version,
             'availability_revision' => $voucher->availability_revision, 'is_active' => $voucher->is_active,
@@ -53,8 +53,9 @@ class VoucherReadService
     {
         $query = $this->scope($user)->with('draftVersion');
         if ($search = $filters['search'] ?? null) {
-            // Codes only: literal search, no client wildcard or arbitrary JSON matching.
-            $query->whereRaw('UPPER(code) LIKE ?', ['%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], strtoupper($search)).'%']);
+            $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], strtoupper($search)).'%';
+            $query->where(fn ($query) => $query->whereRaw("UPPER(code) LIKE ? ESCAPE '\\'", [$pattern])
+                ->orWhereRaw("UPPER(name) LIKE ? ESCAPE '\\'", [$pattern]));
         }
         if ($benefit = $filters['benefit'] ?? null) {
             $query->where('benefit_type', $benefit);
@@ -111,6 +112,7 @@ class VoucherReadService
 
     private function safeTerms(array $terms): array
     {
+        $terms['name'] = $terms['name'] ?? $terms['code'];
         $rules = $terms['eligibility_rules'] ?? [];
         $terms['eligibility_scope'] = collect($rules)->contains(fn ($values) => ! empty($values)) ? 'legacy_targeted' : 'unrestricted';
         unset($rules['customer_ids'], $rules['excluded_customer_ids']);

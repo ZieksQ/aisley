@@ -50,6 +50,7 @@ class VoucherMutationService
                         $this->terms->assertSupported($voucher);
                         $source = $voucher->id;
                         $terms = $voucher->draftVersion?->terms ?? $this->terms->snapshot($voucher);
+                        $terms['name'] = $terms['name'] ?? $terms['code'];
                         $terms['code'] = 'AIS-'.strtoupper(Str::random(12));
                         $voucher = $this->create($actor, $terms);
                         $this->record($actor, $voucher, 'duplicate', ['source_id' => $source]);
@@ -129,6 +130,7 @@ class VoucherMutationService
         $draft = $voucher->draftVersion;
         $this->conflict($draft === null, 'DRAFT_REQUIRED', 'Save a working draft before publication.');
         $terms = $draft->terms;
+        $terms['name'] = $terms['name'] ?? $terms['code'];
         $this->terms->assertIdentity($voucher, $terms);
         $this->conflict($terms['global_limit'] !== null && $terms['global_limit'] < $voucher->redeemed_count, 'LIMIT_BELOW_USAGE', 'Total limit cannot be below committed redemption usage.');
         $this->conflict(now()->gte($terms['ends_at']), 'VOUCHER_EXPIRED', 'Publication requires a future end.');

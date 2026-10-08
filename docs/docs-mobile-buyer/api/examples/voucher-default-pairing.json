@@ -1,0 +1,49 @@
+{
+  "provenance": "Synthetic voucher-only projection for the 2026-10-09 contract delta; not a full quote or live capture",
+  "availableVouchers": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "name": "Payday savings",
+      "code": "PAYDAY20",
+      "issuerType": "app",
+      "benefitType": "discount",
+      "valueType": "percent",
+      "value": "20.00",
+      "maximumDiscount": "100.00",
+      "minimumSpend": "500.00",
+      "termsSummary": "20% off eligible merchandise, capped at PHP 100.",
+      "validFrom": "2026-10-09T00:00:00Z",
+      "validUntil": "2026-10-16T00:00:00Z",
+      "paymentMethod": "cod",
+      "stackableWith": ["app:shipping", "shop:shipping"],
+      "scope": {"productIds": [], "categoryIds": [], "excludedProductIds": [], "excludedCategoryIds": []},
+      "eligible": true,
+      "reason": null,
+      "saving": "100.00"
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "name": "Delivery savings",
+      "code": "SHIP50",
+      "issuerType": "app",
+      "benefitType": "shipping",
+      "valueType": "fixed",
+      "value": "50.00",
+      "maximumDiscount": null,
+      "minimumSpend": "0.00",
+      "termsSummary": "Save up to PHP 50 on delivery.",
+      "validFrom": "2026-10-09T00:00:00Z",
+      "validUntil": "2026-10-16T00:00:00Z",
+      "paymentMethod": "cod",
+      "stackableWith": ["app:discount", "shop:discount"],
+      "scope": {"productIds": [], "categoryIds": [], "excludedProductIds": [], "excludedCategoryIds": []},
+      "eligible": true,
+      "reason": null,
+      "saving": "50.00"
+    }
+  ],
+  "selection": [
+    {"voucher_id": "11111111-1111-4111-8111-111111111111", "target_shop_id": "33333333-3333-4333-8333-333333333333"},
+    {"voucher_id": "22222222-2222-4222-8222-222222222222", "target_shop_id": "33333333-3333-4333-8333-333333333333"}
+  ]
+}

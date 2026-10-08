@@ -17,7 +17,7 @@ class Voucher extends Model
     use HasUuids;
 
     protected $fillable = [
-        'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
+        'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
         'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
         'per_customer_limit', 'redeemed_count', 'payment_method', 'eligibility_rules',
         'stacking_policy', 'terms_summary', 'version', 'is_active',

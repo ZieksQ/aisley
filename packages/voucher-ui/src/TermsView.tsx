@@ -4,11 +4,13 @@ import type { Terms } from './types'
 export function TermsView({ terms }: { terms: Terms }) {
   return (
     <dl>
+      <dt>Voucher name</dt>
+      <dd>{terms.name ?? terms.code}</dd>
       <dt>Code</dt>
       <dd>{terms.code}</dd>
       <dt>Benefit</dt>
       <dd>{benefit(terms)}</dd>
-      <dt>Maximum saving</dt>
+      <dt>Savings cap</dt>
       <dd>
         {terms.maximum_discount
           ? money(terms.maximum_discount)
@@ -27,11 +29,7 @@ export function TermsView({ terms }: { terms: Terms }) {
       <dt>Payment / currency</dt>
       <dd>COD / PHP</dd>
       <dt>Stacking</dt>
-      <dd>
-        {terms.stacking_policy?.allow_with?.length
-          ? 'Allowed with an opposite-benefit voucher that also permits stacking'
-          : 'No stacking'}
-      </dd>
+      <dd>One discount and one shipping voucher per Shop order.</dd>
       <dt>Eligibility</dt>
       <dd>
         {terms.eligibility_scope === 'legacy_targeted' ||

@@ -11,13 +11,14 @@ use Illuminate\Validation\ValidationException;
 
 class VoucherTerms
 {
-    public const FIELDS = ['code', 'benefit_type', 'value_type', 'value', 'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit', 'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy', 'terms_summary'];
+    public const FIELDS = ['name', 'code', 'benefit_type', 'value_type', 'value', 'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit', 'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy', 'terms_summary'];
 
     public function normalize(array $data, ?string $code = null): array
     {
         $opposite = $data['benefit_type'] === 'discount' ? 'shipping' : 'discount';
 
         return [
+            'name' => trim($data['name']),
             'code' => $data['code'] ?? $code ?? 'AIS-'.strtoupper(Str::random(12)),
             'benefit_type' => $data['benefit_type'], 'value_type' => $data['value_type'],
             'value' => number_format((float) $data['value'], 2, '.', ''),
@@ -27,7 +28,7 @@ class VoucherTerms
             'ends_at' => CarbonImmutable::parse($data['ends_at'])->utc()->toISOString(),
             'global_limit' => isset($data['global_limit']) ? (int) $data['global_limit'] : null,
             'per_customer_limit' => (int) $data['per_customer_limit'], 'payment_method' => 'cod',
-            'eligibility_rules' => [], 'stacking_policy' => ['allow_with' => $data['stacking'] ? ['app:'.$opposite, 'shop:'.$opposite] : []],
+            'eligibility_rules' => [], 'stacking_policy' => ['allow_with' => ['app:'.$opposite, 'shop:'.$opposite]],
             'terms_summary' => trim($data['terms_summary']),
         ];
     }

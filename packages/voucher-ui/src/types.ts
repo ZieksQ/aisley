@@ -1,4 +1,5 @@
 export type Terms = {
+  name: string
   code: string
   benefit_type: 'discount' | 'shipping'
   value_type: 'fixed' | 'percent'
@@ -25,6 +26,7 @@ export type VoucherStatus =
   | 'ended'
 export type Voucher = {
   id: string
+  name: string
   code: string
   benefit_type: Terms['benefit_type']
   lifecycle: 'draft' | 'published' | 'ended'

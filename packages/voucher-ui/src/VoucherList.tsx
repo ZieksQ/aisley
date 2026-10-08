@@ -64,7 +64,7 @@ export function VoucherList(props: VoucherProps) {
       >
         <TextField
           id="voucher-search"
-          label="Search code"
+          label="Search name or code"
           maxLength={64}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -136,13 +136,17 @@ export function VoucherList(props: VoucherProps) {
                   </caption>
                   <thead>
                     <tr>
-                      {['Code', 'Benefit', 'Status', 'Validity', 'Usage'].map(
-                        (label) => (
-                          <th scope="col" key={label}>
-                            {label}
-                          </th>
-                        ),
-                      )}
+                      {[
+                        'Voucher',
+                        'Benefit',
+                        'Status',
+                        'Validity',
+                        'Usage',
+                      ].map((label) => (
+                        <th scope="col" key={label}>
+                          {label}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -155,8 +159,9 @@ export function VoucherList(props: VoucherProps) {
                               props.navigate(`/vouchers/${voucher.id}`)
                             }
                           >
-                            {voucher.code}
+                            {voucher.name ?? voucher.code}
                           </Button>
+                          <span className="voucher-code">{voucher.code}</span>
                         </td>
                         <td>{benefit(voucher.terms)}</td>
                         <td>

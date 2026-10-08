@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button, TextField, SelectField } from '@aisley/ui'
 import { formValues, funding, payload, type FormValues } from './model'
 import type { Terms, Failure } from './types'
+import { FieldHelp } from './FieldHelp'
 
 export function VoucherEditor({
   initial,
@@ -65,13 +66,21 @@ export function VoucherEditor({
       }}
     >
       <fieldset disabled={busy || uncertain}>
-        <legend>Voucher identity</legend>
-        {field('code', 'Code', 'text', {
-          maxLength: 64,
-          disabled: identityLocked,
-          placeholder: 'Generated when left blank',
-          hint: 'Uppercase letters, digits and hyphens. Fixed after publication.',
-        })}
+        <legend>Voucher details</legend>
+        <div className="voucher-fields">
+          {field('name', 'Voucher name', 'text', {
+            required: true,
+            maxLength: 120,
+            placeholder: 'e.g. Payday savings',
+            hint: 'Customers see this name when choosing a voucher at checkout.',
+          })}
+          {field('code', 'Code', 'text', {
+            maxLength: 64,
+            disabled: identityLocked,
+            placeholder: 'Generated when left blank',
+            hint: 'Uppercase letters, digits and hyphens. Fixed after publication.',
+          })}
+        </div>
       </fieldset>
       <fieldset disabled={busy || uncertain}>
         <legend>Benefit</legend>
@@ -110,17 +119,24 @@ export function VoucherEditor({
             values.value_type === 'percent' ? 'Percentage' : 'Saving (PHP)',
             'number',
             {
+              labelHelp: (
+                <FieldHelp
+                  label={
+                    values.value_type === 'percent'
+                      ? 'Percentage'
+                      : 'Saving (PHP)'
+                  }
+                >
+                  {values.value_type === 'percent'
+                    ? 'The percentage taken off eligible merchandise or the shipping fee. A savings cap limits the final amount.'
+                    : 'The PHP amount taken off eligible merchandise or the shipping fee. Savings never exceed that amount or the savings cap.'}
+                </FieldHelp>
+              ),
               required: true,
               min: '0.01',
               step: '0.01',
               max: values.value_type === 'percent' ? 100 : '9999999999.99',
             },
-          )}
-          {field(
-            'maximum_discount',
-            'Maximum saving (PHP, optional)',
-            'number',
-            { min: '0.01', step: '0.01' },
           )}
         </div>
         <p className="mt-4">{funding(role)}</p>
@@ -134,8 +150,21 @@ export function VoucherEditor({
             'number',
             { required: true, min: '0', step: '0.01' },
           )}
-          <p>All eligible items · PHP · Cash on delivery</p>
+          {field('maximum_discount', 'Savings cap (PHP, optional)', 'number', {
+            min: '0.01',
+            step: '0.01',
+            max: '9999999999.99',
+            hint: 'Leave blank for no additional cap.',
+            labelHelp: (
+              <FieldHelp label="Savings cap">
+                The most this voucher can save per Shop order, in PHP. For
+                example, 20% off a ₱1,000 eligible amount with a ₱100 cap saves
+                ₱100. This also limits fixed savings.
+              </FieldHelp>
+            ),
+          })}
         </div>
+        <p className="mt-4">All eligible items · PHP · Cash on delivery</p>
       </fieldset>
       <fieldset disabled={busy || uncertain}>
         <legend>Schedule (Asia/Manila)</legend>
@@ -169,21 +198,6 @@ export function VoucherEditor({
             max: 2147483647,
           })}
         </div>
-      </fieldset>
-      <fieldset disabled={busy || uncertain}>
-        <legend>Stacking</legend>
-        <label className="voucher-check">
-          <input
-            type="checkbox"
-            checked={values.stacking}
-            onChange={(event) => update('stacking', event.target.checked)}
-          />
-          Allow an opposite-benefit voucher that also permits stacking
-        </label>
-        <p className="mt-3">
-          At most one discount and one shipping voucher per Shop Order, and one
-          App voucher per checkout.
-        </p>
       </fieldset>
       <fieldset disabled={busy || uncertain}>
         <legend>Terms</legend>

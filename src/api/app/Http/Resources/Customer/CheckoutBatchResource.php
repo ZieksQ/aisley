@@ -51,6 +51,7 @@ class CheckoutBatchResource extends JsonResource
                 ],
                 'vouchers' => $order->vouchers->map(fn ($voucher) => [
                     'id' => $voucher->voucher_id,
+                    'name' => $voucher->name ?? $voucher->code,
                     'code' => $voucher->code,
                     'issuerType' => $voucher->issuer_type->value,
                     'benefitType' => $voucher->benefit_type->value,

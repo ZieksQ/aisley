@@ -209,6 +209,21 @@ class CustomerCheckoutTest extends TestCase
         $this->assertCount(0, $groups[$first->shop_id]['appliedVouchers']);
         $this->assertSame('50.00', $groups[$second->shop_id]['appliedVouchers'][0]['discountAmount']);
         $this->assertSame('50.00', $groups[$second->shop_id]['totals']['payable']);
+
+        $shipping = Voucher::create([
+            'name' => 'Delivery savings', 'code' => 'APPSHIP', 'issuer_type' => VoucherIssuerType::App,
+            'benefit_type' => VoucherBenefitType::Shipping, 'value_type' => VoucherValueType::Fixed,
+            'value' => '10.00', 'minimum_spend' => '0.00', 'starts_at' => now()->subDay(),
+            'ends_at' => now()->addDay(), 'per_customer_limit' => 1, 'terms_summary' => 'Shipping saving.',
+        ]);
+        $payload['vouchers'][] = ['voucher_id' => $shipping->id, 'target_shop_id' => $first->shop_id];
+        $groups = collect($this->postJson('/api/v1/customer/checkout/quote', $payload)
+            ->assertOk()->json('data.groups'))->keyBy('shop.id');
+        $this->assertCount(1, $groups[$first->shop_id]['appliedVouchers']);
+        $this->assertCount(1, $groups[$second->shop_id]['appliedVouchers']);
+        $this->assertSame('shipping', $groups[$first->shop_id]['appliedVouchers'][0]['benefitType']);
+        $this->assertSame('Delivery savings', $groups[$first->shop_id]['appliedVouchers'][0]['name']);
+        $this->assertSame('50.00', $groups[$second->shop_id]['totals']['discount']);
     }
 
     public function test_stale_quote_and_foreign_address_roll_back_without_orders_or_reservations(): void

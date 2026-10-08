@@ -30,3 +30,5 @@ Read [operation contracts](../operations.md) and [wire definitions](../field-ind
 - [Auxiliary address options](address-options.json)
 
 - [Current shipping-selection scenarios](shipping-selection-scenarios.json) cover empty/single/multiple options, invalid/unavailable providers, tariff/route failures, frozen/replayed/changed intent and nullable legacy providers. These are synthetic expected contracts; current client adoption remains G25.
+
+- [Voucher names/default pairing projection](voucher-default-pairing.json) illustrates two opposite App benefits and capped savings for the [2026-10-09 update](../voucher-selection-update.md). G26 adoption is unverified.

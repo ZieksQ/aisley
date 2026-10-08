@@ -87,6 +87,7 @@ export type CheckoutRequestPayload = {
 
 export type CheckoutVoucher = {
   id: string;
+  name: string;
   code: string;
   issuerType: "app" | "shop";
   benefitType: "discount" | "shipping";
@@ -141,6 +142,7 @@ export type CheckoutQuote = {
     availableVouchers: CheckoutVoucher[];
     appliedVouchers: Array<{
       id: string;
+      name: string;
       code: string;
       issuerType: "app" | "shop";
       benefitType: "discount" | "shipping";
@@ -185,6 +187,7 @@ export type CheckoutBatch = {
     address: Omit<CustomerAddress, "id" | "label" | "type" | "isDefault">;
     vouchers: Array<{
       id: string;
+      name: string;
       code: string;
       issuerType: "app" | "shop";
       benefitType: "discount" | "shipping";

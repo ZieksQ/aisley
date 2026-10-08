@@ -253,7 +253,9 @@ export function CheckoutPageContent() {
         )
       : selectedVouchers.filter((item) => {
           const selectedVoucher = findVoucher(item.voucher_id);
-          if (voucher.issuerType === "app" && selectedVoucher?.issuerType === "app") {
+          if (voucher.issuerType === "app" &&
+            selectedVoucher?.issuerType === "app" &&
+            selectedVoucher.benefitType === voucher.benefitType) {
             return false;
           }
           return !(

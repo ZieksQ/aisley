@@ -64,6 +64,7 @@ function fixture(role) {
   const start = new Date(Date.now() - 86400000).toISOString()
   const end = new Date(Date.now() + 7 * 86400000).toISOString()
   const terms = {
+    name: 'Payday savings',
     code: 'AIS-VOUCHER-1',
     benefit_type: 'discount',
     value_type: 'fixed',
@@ -81,6 +82,7 @@ function fixture(role) {
   }
   const make = (i) => ({
     id: `voucher-${i}`,
+    name: `Payday savings ${i}`,
     code: `AIS-VOUCHER-${i}`,
     benefit_type: 'discount',
     lifecycle: i === 2 ? 'draft' : 'published',
@@ -228,7 +230,7 @@ function fixture(role) {
         value: Number(input.value).toFixed(2),
         maximum_discount: input.maximum_discount || null,
         stacking_policy: {
-          allow_with: input.stacking ? ['app:shipping', 'shop:shipping'] : [],
+          allow_with: ['app:shipping', 'shop:shipping'],
         },
       })
       if (!id || action === 'duplicate') {
@@ -245,6 +247,7 @@ function fixture(role) {
         row.terms = !id
           ? normalize(body)
           : { ...row.terms, code: `AIS-COPY-${state.rows.length}` }
+        row.name = row.terms.name
         row.code = row.terms.code
         row.draft = { id: 'draft-new', number: 1, terms: row.terms }
         state.rows.push(row)
@@ -258,6 +261,7 @@ function fixture(role) {
           }
         if (action === 'publish') {
           row.terms = row.draft.terms
+          row.name = row.terms.name
           row.version = row.draft.number
           row.draft = null
           row.status =
@@ -301,6 +305,7 @@ async function navigate(
   await cdp('Page.addScriptToEvaluateOnNewDocument', {
     source: `localStorage.setItem('aisley-${role}-theme', ${JSON.stringify(theme)});`,
   })
+  await cdp('Page.bringToFront')
   await cdp('Page.navigate', { url: origin + path })
   await until(ready)
   await sleep(200)
@@ -357,6 +362,94 @@ try {
           await js(`document.documentElement.scrollWidth <= ${width} + 1`),
           `${role} ${route} overflow ${width}`,
         )
+        if (route.endsWith('/new')) {
+          assert.equal(
+            await js(
+              'document.querySelector("#voucher-maximum_discount").closest("fieldset").querySelector("legend").textContent',
+            ),
+            'Conditions',
+          )
+          assert.equal(
+            await js(
+              'Array.from(document.querySelectorAll(".vouchers legend")).some(e=>e.textContent === "Stacking")',
+            ),
+            false,
+          )
+          assert.equal(
+            await js('document.querySelector("#voucher-name").required'),
+            true,
+          )
+          for (const label of ['Saving (PHP)', 'Savings cap']) {
+            const selector = `[aria-label="About ${label}"]`
+            await js(
+              `document.querySelector(${JSON.stringify(selector)}).focus()`,
+            )
+            await until('document.querySelector("[role=tooltip]")')
+            assert.equal(
+              await js(
+                `(() => { const b=document.querySelector(${JSON.stringify(selector)});return b.parentElement.parentElement.querySelector('label')?.htmlFor })()`,
+              ),
+              label === 'Savings cap'
+                ? 'voucher-maximum_discount'
+                : 'voucher-value',
+            )
+            assert.ok(
+              await js(
+                `(() => { const r=document.querySelector('[role=tooltip]').getBoundingClientRect();return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight })()`,
+              ),
+            )
+            await cdp('Input.dispatchKeyEvent', {
+              type: 'keyDown',
+              key: 'Escape',
+              code: 'Escape',
+              windowsVirtualKeyCode: 27,
+            })
+            await until('!document.querySelector("[role=tooltip]")')
+            await js('document.activeElement.blur()')
+            await js(
+              `document.querySelector(${JSON.stringify(selector)}).click()`,
+            )
+            await until('document.querySelector("[role=tooltip]")')
+            await js(
+              `document.querySelector(${JSON.stringify(selector)}).focus();document.activeElement.blur()`,
+            )
+            await until('!document.querySelector("[role=tooltip]")')
+            const point = await js(
+              `(() => { const e=document.querySelector(${JSON.stringify(selector)});e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2} })()`,
+            )
+            await cdp('Input.dispatchMouseEvent', {
+              type: 'mouseMoved',
+              ...point,
+            })
+            await until('document.querySelector("[role=tooltip]")')
+            if (
+              label === 'Savings cap' &&
+              ((width === 390 && theme === 'light') ||
+                (width === 1440 && theme === 'dark'))
+            ) {
+              const shot = await cdp('Page.captureScreenshot', {
+                format: 'png',
+              })
+              await writeFile(
+                `${shots}/${width}-${theme}-cap-help.png`,
+                Buffer.from(shot.data, 'base64'),
+              )
+            }
+            await cdp('Input.dispatchKeyEvent', {
+              type: 'keyDown',
+              key: 'Escape',
+              code: 'Escape',
+              windowsVirtualKeyCode: 27,
+            })
+            await until('!document.querySelector("[role=tooltip]")')
+            await cdp('Input.dispatchMouseEvent', {
+              type: 'mouseMoved',
+              x: 0,
+              y: 0,
+            })
+            await until('!document.querySelector("[role=tooltip]")')
+          }
+        }
         assert.equal(
           await js('document.documentElement.classList.contains("dark")'),
           theme === 'dark',
@@ -424,6 +517,7 @@ try {
       ),
       false,
     )
+  await fill('voucher-name', 'Payday savings')
   await fill('voucher-value', '25')
   await fill('voucher-terms_summary', 'Safe retained terms')
   await js('window.confirm=()=>false')
@@ -599,7 +693,7 @@ try {
       viewportThemeRouteStates: states,
       result: 'passed',
       checks:
-        'forms, tables, focus, publication, lifecycle, differences, pagination, errors, retained input, exact retries, access loss, permissions',
+        'names, cap conditions, label tooltip hover/focus/tap/Escape/bounds, forms, tables, focus, publication, lifecycle, differences, pagination, errors, retained input, exact retries, access loss, permissions',
       screenshots: shots,
     }),
   )

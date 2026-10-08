@@ -42,11 +42,11 @@ reviewed: 2026-10-09
 - App definitions have no Shop owner; Shop definitions have one `shop_id`. PostgreSQL enforces this pairing in the existing migration.
 - Checkout groups server-resolved selected lines by Shop; one batch creates one Order per Shop.
 - A Shop voucher applies only to its issuing Shop group. Different Shops may use different eligible Shop vouchers in the same batch.
-- At most one App voucher total is allowed per batch, regardless of benefit. The Customer supplies its one target Shop even in a single-Shop checkout.
+- At most one App discount and one App shipping voucher are allowed per batch. Each selection has its own explicit target Shop, even in single-Shop checkout.
 - Target Shop must exist in that Customer's resolved checkout groups and independently qualify; never aggregate other Shops' spend or silently retarget savings.
 - A Shop group accepts at most one discount and one shipping voucher. Same-benefit stacking is rejected even if stored permissions suggest otherwise.
-- Different-benefit stacking requires reciprocal `stacking_policy.allow_with` entries using `{issuer}:{benefit}`, such as `app:discount` or `shop:shipping`.
-- Missing/empty reciprocal permissions disallow a pair. Listing a voucher as individually eligible does not certify compatibility with the selected combination.
+- One discount and one shipping voucher combine by default, regardless of legacy `stacking_policy.allow_with` values.
+- Two discounts or two shipping vouchers in the same Shop group remain invalid. Listing an individually eligible voucher does not bypass benefit or capacity limits.
 - No highest-saving target recommendation or automatic voucher preselection currently exists.
 
 ### Eligibility and authoritative calculation
@@ -74,13 +74,13 @@ reviewed: 2026-10-09
   `vouchers: [{voucher_id: "<voucher UUID>", target_shop_id: "<participating Shop UUID>"}]`.
 - Each voucher UUID must be distinct and every selection must include a target Shop UUID. Displayed code is not an accepted code-entry/redemption input.
 - Customer, Shop ownership, eligibility, price, saving, shipping quote, and status are server-derived; the target ID is an allocation request, not authorization proof.
-- Quote returns `data.groups[].availableVouchers[]` with `id`, `code`, `issuerType`, `benefitType`, `valueType`, `value`, `maximumDiscount`, and `minimumSpend`.
+- Quote returns `data.groups[].availableVouchers[]` with `id`, customer-visible `name`, `code`, `issuerType`, `benefitType`, `valueType`, `value`, `maximumDiscount`, and `minimumSpend`.
 - Other fields: `termsSummary`, `validFrom/validUntil`, `paymentMethod`, `stackableWith`, `scope`, `eligible`, `reason`, and two-decimal `saving`.
 - `scope` contains Product/Category inclusion/exclusion ID arrays only; Customer targeting lists, global counts, budgets, and other users' redemptions are not exposed.
 - `availableVouchers` means relevant candidates, not eligible-only or paginated wallet records; ineligible candidates have `saving = "0.00"`.
-- `appliedVouchers[]` returns `id`, `code`, issuer/benefit, `qualifyingBasis`, and `discountAmount` for accepted selection.
+- `appliedVouchers[]` returns `id`, `name`, `code`, issuer/benefit, `qualifyingBasis`, and `discountAmount` for accepted selection.
 - Group and batch summaries expose `merchandiseSubtotal`, `shippingFee`, `discount`, `shippingDiscount`, `payable`, and `currency`; combined totals do not imply cross-Shop allocation.
-- Successful batch reads expose `data.orders[].vouchers[]` with the applied fields plus `termsSummary`; snapshot version/time are persisted, not returned by this DTO.
+- Successful batch reads expose `data.orders[].vouchers[]` with the applied fields plus `termsSummary`; `name` is frozen at placement and falls back to code for historical snapshots; snapshot version/time are persisted, not returned by this DTO.
 
 ### Transaction, snapshots, and retries
 
@@ -98,8 +98,8 @@ reviewed: 2026-10-09
 
 ### Customer experience and integration gaps
 
-- `/checkout` shows expandable per-Shop voucher candidates, terms/code, individual saving or readable ineligibility, selected state, and the explicit App target Shop.
-- Toggling replaces a same-benefit choice for that Shop and removes another selected App voucher; it requotes rather than calculating a local discount.
+- `/checkout` shows expandable per-Shop voucher candidates, name/code, visible savings cap, individual saving or readable ineligibility, selected state, and the explicit App target Shop.
+- Toggling replaces a same-benefit choice for that Shop and removes another selected App voucher of the same benefit; it requotes rather than calculating a local discount.
 - No choice is preselected. Selected intent and totals update only after a successful quote; controls are disabled while quoting/placing.
 - Existing `409` recovery attempts a fresh quote and may fall back to no vouchers; it requires another Place action, not automatic placement.
 - Removal/fallback must be clearly disclosed before confirmation. Current fallback can clear the prior message, so full stale-selection disclosure is not certified.
@@ -113,7 +113,7 @@ reviewed: 2026-10-09
 Checked items reflect inspected implementation and existing test sources; unverified behavior remains unchecked.
 
 - [x] Customer Checkout lists relevant candidates with server eligibility/reasons and accepts UUID selections without a claim or code-entry API.
-- [x] Shop scope, one explicit App target, per-benefit limits, and reciprocal stacking checks exist without cross-Shop threshold aggregation.
+- [x] Shop scope, explicit App targets, per-benefit limits, and default opposite-benefit pairing checks exist without cross-Shop threshold aggregation.
 - [x] Supported item/Customer rules, full-Shop minimum spend, integer-cent rounding, caps, and nonnegative totals follow the existing calculator.
 - [x] Placement stores per-Order snapshots/redemptions and increments capacity inside the Checkout transaction; same-key replay returns the same batch.
 - [x] Private quote/batch responses omit targeting lists and use existing Customer role, ownership, and consent gates.
@@ -135,7 +135,7 @@ All routes require `auth:sanctum`, `customer.active`, and `policy.consent` withi
 | `GET /api/v1/customer/checkout/{batch}` | Owned batch UUID; `200 {data: CheckoutBatch}`; foreign/missing batch is `404`. |
 
 - Successful responses are `private, no-store`; browser calls reuse the established credentialed Sanctum/CSRF client, not shared Homepage caching.
-- Invalid selections use `422`: `VOUCHER_TARGET_INVALID`, `VOUCHER_SHOP_MISMATCH`, `APP_VOUCHER_LIMIT`, `VOUCHER_BENEFIT_LIMIT`, or `VOUCHERS_NOT_STACKABLE`.
+- Invalid selections use `422`: `VOUCHER_TARGET_INVALID`, `VOUCHER_SHOP_MISMATCH`, `APP_VOUCHER_LIMIT`, `VOUCHER_BENEFIT_LIMIT`.
 - Selected ineligibility uses `409`: `VOUCHER_TERMS_INVALID`, `VOUCHER_INACTIVE`, `VOUCHER_NOT_STARTED`, `VOUCHER_EXPIRED`, `VOUCHER_PAYMENT_INELIGIBLE`, `VOUCHER_EXHAUSTED`, `VOUCHER_CUSTOMER_LIMIT`, `VOUCHER_MINIMUM_SPEND`, `VOUCHER_CUSTOMER_INELIGIBLE`, or `VOUCHER_ITEMS_INELIGIBLE`.
 - Checkout conflicts include `QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, and `QUOTE_STALE`; domain errors return `{code, message, errors?}` with selection fields where applicable.
 - Standard auth/approval/consent and rate-limit errors remain owned by middleware; never substitute conceptual voucher routes or invented error codes.

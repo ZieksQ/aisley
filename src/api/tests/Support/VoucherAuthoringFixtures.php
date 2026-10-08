@@ -30,7 +30,7 @@ trait VoucherAuthoringFixtures
     private function voucherTerms(array $overrides = []): array
     {
         return array_replace([
-            'revision' => 0, 'code' => 'TEST-'.strtoupper(Str::random(8)), 'benefit_type' => 'discount',
+            'revision' => 0, 'name' => 'Everyday savings', 'code' => 'TEST-'.strtoupper(Str::random(8)), 'benefit_type' => 'discount',
             'value_type' => 'fixed', 'value' => '100.00', 'starts_at' => now()->subHour()->toISOString(),
             'ends_at' => now()->addDays(7)->toISOString(), 'terms_summary' => 'Save on all eligible items with COD.',
         ], $overrides);

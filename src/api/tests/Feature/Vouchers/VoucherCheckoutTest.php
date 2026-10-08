@@ -77,7 +77,7 @@ class VoucherCheckoutTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/customer/checkout/place', [...$intent, 'quote_id' => $quote['quoteId']])->assertOk()->assertJsonPath('data.orders.0.vouchers.0.discountAmount', '10.00');
     }
 
-    public function test_reciprocal_stacking_limits_and_immutable_redemption_report_after_cancellation(): void
+    public function test_default_stacking_limits_and_immutable_redemption_report_after_cancellation(): void
     {
         $context = $this->lifecycleContext(false);
         $admin = $this->voucherActor();
@@ -86,7 +86,7 @@ class VoucherCheckoutTest extends TestCase
         $discount = $this->voucherAction($this->draftVoucher('seller', ['value_type' => 'percent', 'value' => 10]), 'publish', 'seller')->assertOk()->json('data');
         $intent = $this->intent($context, [$shipping, $discount]);
         $this->asLifecycleActor($context['customer']);
-        $this->postJson('/api/v1/customer/checkout/quote', $intent)->assertUnprocessable()->assertJsonPath('code', 'VOUCHERS_NOT_STACKABLE');
+        $this->postJson('/api/v1/customer/checkout/quote', $intent)->assertOk()->assertJsonPath('data.summary.payable', '185.00');
         $this->asLifecycleActor($context['seller']);
         $working = $this->withHeader('Idempotency-Key', (string) Str::uuid())->putJson('/api/v1/seller/vouchers/'.$discount['id'].'/draft', $this->voucherTerms(['code' => $discount['code'], 'revision' => $discount['revision'], 'value_type' => 'percent', 'value' => 10, 'stacking' => true]))->assertOk()->json('data');
         $discount = $this->voucherAction($working, 'publish', 'seller')->assertOk()->json('data');
@@ -107,6 +107,6 @@ class VoucherCheckoutTest extends TestCase
         $this->asLifecycleActor($admin);
         $otherApp = $this->voucherAction($this->draftVoucher('admin', ['value' => 10, 'stacking' => true]), 'publish')->assertOk()->json('data');
         $this->asLifecycleActor($context['customer']);
-        $this->postJson('/api/v1/customer/checkout/quote', $this->intent($context, [$shipping, $otherApp]))->assertUnprocessable()->assertJsonPath('code', 'APP_VOUCHER_LIMIT');
+        $this->postJson('/api/v1/customer/checkout/quote', $this->intent($context, [$shipping, $otherApp]))->assertOk()->assertJsonCount(2, 'data.groups.0.appliedVouchers');
     }
 }
