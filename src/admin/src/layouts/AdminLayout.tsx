@@ -28,7 +28,7 @@ export function AdminLayout() {
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
   const isHomepageAdEditor = location.pathname.startsWith('/platform-settings/homepage-ads/')
-  const pageTitle = location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/notification-campaigns') ? 'Notification campaigns' : location.pathname.startsWith('/registrations')
+  const pageTitle = location.pathname.startsWith('/vouchers') ? 'Vouchers' : location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/notification-campaigns') ? 'Notification campaigns' : location.pathname.startsWith('/registrations')
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'

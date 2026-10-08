@@ -435,6 +435,7 @@ class CheckoutService
     private function applyVouchers(User $customer, array &$groups, array $selections, bool $lock, array &$state): void
     {
         $voucherQuery = Voucher::query()
+            ->where('lifecycle', 'published')
             ->where(function ($query) use ($groups) {
                 $query->where('issuer_type', VoucherIssuerType::App->value)
                     ->orWhereIn('shop_id', array_keys($groups));
@@ -490,8 +491,20 @@ class CheckoutService
                 'voucher' => $voucher, 'benefit_type' => $voucher->benefit_type,
                 'basis_cents' => $basis, 'discount_cents' => $discount,
             ];
-            $state['vouchers'][] = [$voucher->id, $voucher->updated_at?->getTimestamp(), $voucher->redeemed_count, $selection['target_shop_id'], $basis, $discount];
+            $state['vouchers'][] = [$voucher->id, $voucher->version, $voucher->availability_revision, $this->voucherState($voucher), $voucher->redeemed_count, $selection['target_shop_id'], $basis, $discount];
         }
+    }
+
+    private function voucherState(Voucher $voucher): array
+    {
+        // Authoring metadata/draft saves do not change the terms selected by checkout.
+        // Include the full projection to also detect legacy imports and direct term changes.
+        return $voucher->only([
+            'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
+            'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
+            'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy',
+            'terms_summary', 'is_active', 'lifecycle',
+        ]);
     }
 
     /** @param array<string, mixed> $group */

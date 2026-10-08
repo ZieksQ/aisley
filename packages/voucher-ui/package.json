@@ -1,0 +1,22 @@
+{
+  "name": "@aisley/voucher-ui",
+  "version": "0.1.0",
+  "private": true,
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/vouchers.css"
+  },
+  "peerDependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "dependencies": {
+    "@aisley/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17"
+  }
+}

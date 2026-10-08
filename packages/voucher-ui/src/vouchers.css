@@ -1,0 +1,236 @@
+.vouchers {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 14px;
+  color: #27272a;
+}
+.dark .vouchers {
+  color: #f4f4f5;
+}
+.vouchers h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+.vouchers h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.vouchers h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.vouchers p {
+  line-height: 1.6;
+}
+.vouchers header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.vouchers section,
+.vouchers fieldset {
+  min-width: 0;
+  margin-bottom: 24px;
+}
+.vouchers fieldset {
+  padding: 20px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+}
+.dark .vouchers fieldset {
+  border-color: #52525b;
+}
+.vouchers legend {
+  padding: 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.voucher-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.vouchers .voucher-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+  align-items: center;
+}
+.vouchers button {
+  min-height: 40px;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.vouchers button:focus-visible,
+.vouchers a:focus-visible {
+  outline: 2px solid #e6007a;
+  outline-offset: 3px;
+}
+.vouchers input,
+.vouchers select,
+.vouchers textarea {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid #a1a1aa;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  color: #27272a;
+}
+.vouchers textarea {
+  min-height: 120px;
+}
+.vouchers input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+}
+.vouchers label {
+  color: inherit;
+  font-size: 14px;
+}
+.dark .vouchers input,
+.dark .vouchers select,
+.dark .vouchers textarea {
+  background: #27272a;
+  color: #f4f4f5;
+  border-color: #71717a;
+}
+.dark .vouchers button[class*="bg-white"] {
+  background: #27272a;
+  color: #f4f4f5;
+  border-color: #71717a;
+}
+.vouchers button[class*="bg-transparent"] {
+  color: inherit;
+}
+.vouchers .voucher-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.vouchers .voucher-table {
+  overflow-x: auto;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+}
+.dark .vouchers .voucher-table {
+  border-color: #52525b;
+}
+.vouchers table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+.vouchers caption {
+  text-align: left;
+  padding: 12px;
+  font-weight: 600;
+}
+.vouchers th,
+.vouchers td {
+  padding: 12px;
+  border-top: 1px solid #d4d4d8;
+  text-align: left;
+}
+.dark .vouchers th,
+.dark .vouchers td {
+  border-color: #52525b;
+}
+.vouchers .amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.vouchers dl {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr);
+  gap: 10px 16px;
+}
+.vouchers dd {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.vouchers dt {
+  color: #52525b;
+}
+.dark .vouchers dt {
+  color: #a1a1aa;
+}
+.vouchers .voucher-error {
+  border-left: 3px solid #d8271f;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.vouchers .voucher-notice {
+  border-left: 3px solid #e6007a;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.vouchers .voucher-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+.vouchers dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid #a1a1aa;
+  border-radius: 8px;
+  padding: 24px;
+  background: #fff;
+  color: inherit;
+  margin: auto;
+}
+.dark .vouchers dialog {
+  background: #27272a;
+  border-color: #71717a;
+}
+.vouchers dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+.vouchers .voucher-diff td {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 180px;
+  max-width: 350px;
+}
+@media (min-width: 768px) {
+  .voucher-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .vouchers {
+    padding: 16px;
+  }
+  .vouchers fieldset {
+    padding: 16px;
+  }
+  .vouchers dl {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .vouchers dd {
+    margin-bottom: 12px;
+  }
+}
+
+.dark .vouchers [id$="-hint"] {
+  color: #a1a1aa;
+}
+.dark .vouchers [id$="-error"] {
+  color: #ff817b;
+}
+.vouchers .voucher-table:focus-visible {
+  outline: 2px solid #e6007a;
+  outline-offset: 3px;
+}

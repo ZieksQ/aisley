@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PaymentMethod;
 use App\Enums\VoucherBenefitType;
 use App\Enums\VoucherIssuerType;
+use App\Enums\VoucherLifecycle;
 use App\Enums\VoucherValueType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ class Voucher extends Model
         'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
         'per_customer_limit', 'redeemed_count', 'payment_method', 'eligibility_rules',
         'stacking_policy', 'terms_summary', 'version', 'is_active',
+        'lifecycle', 'revision', 'availability_revision', 'draft_version_id', 'published_at', 'ended_at',
     ];
 
     protected function casts(): array
@@ -41,7 +43,22 @@ class Voucher extends Model
             'stacking_policy' => 'array',
             'version' => 'integer',
             'is_active' => 'boolean',
+            'lifecycle' => VoucherLifecycle::class,
+            'revision' => 'integer',
+            'availability_revision' => 'integer',
+            'published_at' => 'datetime',
+            'ended_at' => 'datetime',
         ];
+    }
+
+    public function draftVersion(): BelongsTo
+    {
+        return $this->belongsTo(VoucherVersion::class, 'draft_version_id');
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(VoucherVersion::class);
     }
 
     public function shop(): BelongsTo

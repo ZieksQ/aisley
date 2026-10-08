@@ -23,7 +23,8 @@
     "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.2",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "@aisley/voucher-ui": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

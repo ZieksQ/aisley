@@ -9,6 +9,8 @@ class AdminPermissionSeeder extends Seeder
 {
     /** @var array<int, array{name: string, slug: string, description: string}> */
     private const PERMISSIONS = [
+        ['name' => 'View vouchers', 'slug' => 'vouchers.view', 'description' => 'View platform vouchers and redemption history.'],
+        ['name' => 'Manage vouchers', 'slug' => 'vouchers.manage', 'description' => 'Create, revise, publish and control platform vouchers.'],
         [
             'name' => 'View account registrations',
             'slug' => 'registrations.view',

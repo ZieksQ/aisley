@@ -857,3 +857,7 @@ Advanced chat functionality such as real-time typing indicators or complex media
 - Future confirmed COD deliveries create immutable Courier/collector cash obligations. Courier Cash Remittance records physical cash received separately from platform COD invoices and payouts.
 - Billing exposes masked simulated account metadata only. New Logistics accounts start at zero, existing funded accounts are preserved, and cash receipts credit once when simulation is enabled.
 - Customer checkout remains COD-only; `prepaid` enables paid fulfillment/testing without implementing online payment or prepaid Seller preparation.
+
+## Voucher authoring workflow (2026-10-09)
+
+Admin Vouchers under Platform manages platform-funded merchandise/shipping offers; Seller Vouchers under Shop manages own-Shop merchandise offers. Save a complete draft, review exact terms/Asia/Manila schedule/funding, then publish. First publication can be immediate or scheduled; server-time checkout eligibility needs no activation job. A published revision remains a separate working draft until immediate replacement publication, preserving UUID/code and usage. Pause/resume preserves terms; ending is permanent. Duplicate for independent identity/usage or future offers. Reports retain consumed cancelled Orders and show Customer savings without identities. Mutation revisions and exact UUID retries protect uncertain requests. See [shared authoring](features/shared/voucher-authoring/spec.md) and owning [Admin](features/admin/vouchers/spec.md)/[Seller](features/seller/vouchers/spec.md) specifications.

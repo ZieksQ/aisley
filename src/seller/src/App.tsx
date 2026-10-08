@@ -1,3 +1,4 @@
+import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SellerLayout } from './layouts/SellerLayout'
@@ -44,6 +45,9 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<SellerLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<VouchersPage />} path="/vouchers" />
+          <Route element={<VouchersPage />} path="/vouchers/new" />
+          <Route element={<VouchersPage />} path="/vouchers/:voucherId" />
           <Route element={<FinancePage />} path="/finance" />
           <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
           <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />

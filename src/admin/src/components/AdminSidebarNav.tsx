@@ -56,6 +56,7 @@ const groups: NavGroup[] = [
     label: 'Platform',
     items: [
       { label: 'Finance', path: '/finance', icon: FaChartLine, permission: 'finance.view' },
+      { label: 'Vouchers', path: '/vouchers', icon: FaTags, permission: 'vouchers.view' },
       { label: 'Pricing & fees', path: '/pricing-and-fees', icon: FaTags, permission: 'finance.view' },
       { label: 'Finance holds', path: '/finance-holds', icon: FaMoneyBillTransfer, permission: 'finance.view' },
       { label: 'System audit logs', path: '/audit-logs', icon: FaClockRotateLeft, permission: 'audit-logs.view' },
