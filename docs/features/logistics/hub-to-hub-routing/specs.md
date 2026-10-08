@@ -46,7 +46,7 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 
 ## Company-truck dispatch revision — 2026-09-23
 
-[Company Truck Linehaul Dispatch](company-truck-linehaul-dispatch/spec.md) supersedes the immediate-departure, no-vehicle, no-Courier-assignment, and automatic-membership wording below. Partner connections stay on `/linehaul`; outbound trip preparation is on `/linehaul-dispatch`; last-mile work stays on `/dispatch`; inbound approval, receipts, and visitor returns are on `/inbound-linehaul`; fleet management is on `/fleet`. New departures require an accepted company-truck trip with a qualified driver and capacity-frozen operator-selected membership that the server revalidates. Existing final-mile schedules remain capped at 15, while linehaul load is capped by the selected truck and may combine physical lanes only when the immediate destination Logistics hub is the same. Historical already-departed manifests remain receivable.
+[Company Truck Linehaul Dispatch](../company-truck-linehaul-dispatch/spec.md) supersedes the immediate-departure, no-vehicle, no-Courier-assignment, and automatic-membership wording below. Partner connections stay on `/linehaul`; outbound trip preparation is on `/linehaul-dispatch`; last-mile work stays on `/dispatch`; inbound approval, receipts, and visitor returns are on `/inbound-linehaul`; fleet management is on `/fleet`. New departures require an accepted company-truck trip with a qualified driver and capacity-frozen operator-selected membership that the server revalidates. Existing final-mile schedules remain capped at 15, while linehaul load is capped by the selected truck and may combine physical lanes only when the immediate destination Logistics hub is the same. Historical already-departed manifests remain receivable.
 
 ## Connection and Sort plan revision — 2026-09-20
 
@@ -340,3 +340,7 @@ Frontend acceptance:
 - [ ] Physical barcode/camera and real inter-hub handoff verification.
 
 The runtime routing flag still defaults to disabled for newly created waybills. Platform network configuration, hold-recovery policy, bilateral consent, and physical linehaul rollout retain their existing boundaries. Admin network configuration continues through the existing permission-gated API; this extension does not add an Admin frontend.
+
+## Regional development network — 2026-10-08
+
+The default seeder now uses `PhilippinesLogisticsSeeder` to represent all 18 regions with researched freight districts, representative pins, 21 nearby/vehicle-carrying RoRo corridors (42 directed accepted connections), urban postal coverage, physical lanes and immutable published next-hub plans. It preserves operator settings and production gating. Corridor metrics are documented approximate development inputs, not live provider measurements; no ferry scheduling or transport-mode API is added. See [the complete fixture catalogue, research and credentials](../../../philippines-logistics-seeding.md).
