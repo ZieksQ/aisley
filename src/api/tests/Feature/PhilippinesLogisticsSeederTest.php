@@ -20,16 +20,19 @@ use App\Models\User;
 use App\Services\Finance\ShippingQuotationService;
 use App\Services\Logistics\Routing\CheckoutRoutePlanner;
 use App\Services\Logistics\Routing\DirectedHubPathFinder;
+use App\Services\Logistics\Sorting\SortingVersionService;
 use App\Services\Logistics\SortingPlanService;
 use Database\Seeders\LuzonLogisticsSeeder;
 use Database\Seeders\PhilippinesLogistics\RegionalAccountSeeder;
 use Database\Seeders\PhilippinesLogistics\RegionalHubCatalog;
 use Database\Seeders\PhilippinesLogistics\RegionalNetworkSeeder;
+use Database\Seeders\PhilippinesLogistics\RegionalPostalLaneSeeder;
 use Database\Seeders\PhilippinesLogisticsSeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PhilippinesLogisticsSeederTest extends TestCase
@@ -246,6 +249,144 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $this->seed(PhilippinesLogisticsSeeder::class);
         $this->assertDatabaseCount('sorting_plans', 19);
         $this->assertDatabaseCount('sorting_plan_versions', 18);
+    }
+
+    public function test_new_plan_has_a_distinct_lane_for_every_active_supported_postal_code(): void
+    {
+        $definition = RegionalHubCatalog::hubs()[0];
+        $hub = app(RegionalAccountSeeder::class)->seed($definition, 1);
+        foreach (['1200' => true, '1201' => true, '1202' => false] as $code => $active) {
+            HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => (string) $code,
+                'is_active' => $active, 'revision' => 1, 'created_by' => $hub->organization->user_id]);
+        }
+
+        $this->seedNetwork();
+
+        $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
+        $postal = collect($plan->activeVersion->mappings)->where('destination_type', 'postal_code');
+        $this->assertSame(['1018', '1200', '1201'], $postal->pluck('postal_code')->sort()->values()->all());
+        $this->assertCount(3, $postal->pluck('sorting_lane_id')->unique());
+        $this->assertTrue(SortingLane::whereIn('id', $postal->pluck('sorting_lane_id'))->get()
+            ->every(fn ($lane) => $lane->logistics_hub_id === $hub->id && $lane->is_active
+                && $lane->type === SortingLaneType::Standard));
+        $this->assertDatabaseMissing('sorting_plan_lanes', ['sorting_plan_id' => $plan->id, 'postal_code' => '1202']);
+    }
+
+    public function test_rerun_repairs_missing_and_shared_postal_lanes_with_an_idempotent_successor(): void
+    {
+        $this->seedNetwork();
+        $actor = User::where('email', 'logistics.luzon01@example.com')->firstOrFail();
+        $hub = $actor->logisticsOrganization->hub;
+        $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
+        // The selected plan may be an operator's plan rather than the named fixture.
+        $plan->update(['name' => 'Operator selected plan']);
+        foreach (['1200', '1201', '1202'] as $code) {
+            HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => $code,
+                'is_active' => $code !== '1202', 'revision' => 1, 'created_by' => $actor->id]);
+        }
+        $versions = app(SortingVersionService::class);
+        $versions->action($actor, $plan, 'draft', ['expected_revision' => $plan->revision], (string) Str::uuid());
+        $local = $plan->lanes()->where('postal_code', '1018')->firstOrFail();
+        $plan->lanes()->create(['destination_type' => 'postal_code', 'postal_code' => '1200',
+            'sorting_lane_id' => $local->sorting_lane_id, 'position' => 5]);
+        $versions->action($actor, $plan, 'publish', ['expected_revision' => $plan->fresh()->revision,
+            'activate' => true], (string) Str::uuid());
+        $before = $plan->fresh()->activeVersion;
+        $snapshot = $before->toArray();
+        $transferFacts = fn ($mappings) => collect($mappings)->where('destination_type', 'hub')
+            ->map(fn ($mapping) => collect($mapping)->except('id')->all())->values()->all();
+        $transfers = $transferFacts($before->mappings);
+
+        $this->seed(PhilippinesLogisticsSeeder::class);
+
+        $repaired = $plan->fresh();
+        $this->assertTrue($repaired->is_active);
+        $this->assertSame(3, $repaired->activeVersion->number);
+        $postal = collect($repaired->activeVersion->mappings)->where('destination_type', 'postal_code');
+        $this->assertSame(['1018', '1200', '1201'], $postal->pluck('postal_code')->sort()->values()->all());
+        $this->assertCount(3, $postal->pluck('sorting_lane_id')->unique());
+        $this->assertSame($snapshot, $before->fresh()->toArray());
+        $this->assertSame($transfers, $transferFacts($repaired->activeVersion->mappings));
+        $this->assertSame('local', app(CheckoutRoutePlanner::class)->plan($hub, '1201')['status']);
+        $selection = $repaired->active_version_id;
+        $laneCount = SortingLane::count();
+        $this->seed(PhilippinesLogisticsSeeder::class);
+        $this->assertSame($selection, $plan->fresh()->active_version_id);
+        $this->assertSame(3, $plan->versions()->count());
+        $this->assertSame($laneCount, SortingLane::count());
+    }
+
+    public function test_postal_repair_completes_the_active_version_without_changing_an_unfinished_operator_draft(): void
+    {
+        $this->seedNetwork();
+        $actor = User::where('email', 'logistics.luzon01@example.com')->firstOrFail();
+        $hub = $actor->logisticsOrganization->hub;
+        $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
+        HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => '1200',
+            'is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
+        app(SortingVersionService::class)->action($actor, $plan, 'draft', [
+            'expected_revision' => $plan->revision,
+        ], (string) Str::uuid());
+        $plan->lanes()->where('postal_code', '1018')->delete();
+        $before = $plan->fresh()->toArray();
+        $draft = $plan->lanes()->get()->toArray();
+        $published = $plan->fresh()->activeVersion->toArray();
+
+        $this->seed(PhilippinesLogisticsSeeder::class);
+
+        $repaired = $plan->fresh();
+        $this->assertTrue($repaired->draft_dirty);
+        $this->assertTrue($repaired->is_active);
+        $this->assertNotSame($before['active_version_id'], $repaired->active_version_id);
+        $this->assertSame($draft, $plan->lanes()->get()->toArray());
+        $this->assertSame(2, $plan->versions()->count());
+        $this->assertSame($published, $plan->versions()->whereKey($before['active_version_id'])->firstOrFail()->toArray());
+        $postal = collect($repaired->activeVersion->mappings)->where('destination_type', 'postal_code');
+        $this->assertSame(['1018', '1200'], $postal->pluck('postal_code')->sort()->values()->all());
+        $this->assertCount(2, $postal->pluck('sorting_lane_id')->unique());
+        $this->assertSame('local', app(CheckoutRoutePlanner::class)->plan($hub, '1200')['status']);
+        $this->seed(PhilippinesLogisticsSeeder::class);
+        $this->assertSame($repaired->active_version_id, $plan->fresh()->active_version_id);
+        $this->assertSame($draft, $plan->lanes()->get()->toArray());
+    }
+
+    public function test_postal_repair_preserves_schedules_and_rolls_back_unavailable_configuration(): void
+    {
+        $this->seedNetwork();
+        $actor = User::where('email', 'logistics.luzon01@example.com')->firstOrFail();
+        $hub = $actor->logisticsOrganization->hub;
+        $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
+        HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => '1200',
+            'is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
+        $versions = app(SortingVersionService::class);
+        $schedule = $versions->action($actor, $plan, 'schedule', [
+            'expected_revision' => $plan->revision, 'version_id' => $plan->active_version_id,
+            'scheduled_for' => now()->addDay()->toIso8601String(),
+        ], (string) Str::uuid());
+        $warnings = [];
+        $warn = function ($message) use (&$warnings): void {
+            $warnings[] = $message;
+        };
+        $repair = app(RegionalPostalLaneSeeder::class);
+        $before = $plan->fresh()->toArray();
+        $repair->repair($hub, $warn);
+        $this->assertSame($before, $plan->fresh()->toArray());
+        $this->assertCount(1, $warnings);
+        $this->assertDatabaseMissing('sorting_lanes', ['logistics_hub_id' => $hub->id, 'code' => 'POSTAL-1200']);
+        $versions->action($actor, $plan, 'cancel', [
+            'expected_revision' => $plan->fresh()->revision, 'activation_id' => $schedule['activation']['id'],
+        ], (string) Str::uuid());
+
+        // A failed publication must roll back its new lane, draft and revision.
+        HubConnection::where('from_hub_id', $hub->id)->firstOrFail()->update(['is_active' => false]);
+        $before = $plan->fresh()->toArray();
+        $mappings = $plan->lanes()->get()->toArray();
+        $repair->repair($hub, $warn);
+        $this->assertCount(2, $warnings);
+        $this->assertSame($before, $plan->fresh()->toArray());
+        $this->assertSame($mappings, $plan->lanes()->get()->toArray());
+        $this->assertSame(1, $plan->versions()->count());
+        $this->assertDatabaseMissing('sorting_lanes', ['logistics_hub_id' => $hub->id, 'code' => 'POSTAL-1200']);
     }
 
     private function seedNetwork(): void

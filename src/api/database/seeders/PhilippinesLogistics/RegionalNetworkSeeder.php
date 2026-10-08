@@ -94,6 +94,8 @@ class RegionalNetworkSeeder
             'logistics_hub_id' => $hub->id, 'postal_code' => $definition['postal_code'],
         ], ['is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
 
+        app(RegionalPostalLaneSeeder::class)->repair($hub, $warn);
+
         // Never rewrite this fixture's operator-edited draft or immutable history.
         if (SortingPlan::where('logistics_hub_id', $hub->id)->where('name', self::PLAN_NAME)->exists()) {
 
@@ -106,17 +108,21 @@ class RegionalNetworkSeeder
             return;
         }
 
-        $local = $this->lane($hub, 'LOCAL', 'Local delivery '.$definition['postal_code'], SortingLaneType::Standard, 1);
-        $exception = $this->lane($hub, 'EXCEPTION', 'Exception review', SortingLaneType::Exception, 2);
+        $local = HubServiceArea::where('logistics_hub_id', $hub->id)->where('is_active', true)
+            ->orderBy('postal_code')->get()->map(fn ($area, $index) => [$area, $this->lane(
+                $hub, $area->postal_code === $definition['postal_code'] ? 'LOCAL' : 'POSTAL-'.$area->postal_code,
+                'Local delivery '.$area->postal_code, SortingLaneType::Standard, $index + 1,
+            )]);
+        $exception = $this->lane($hub, 'EXCEPTION', 'Exception review', SortingLaneType::Exception, $local->count() + 1);
         $outgoing = HubConnection::where('from_hub_id', $hub->id)->where('is_active', true)
             ->where('receiver_accepted', true)->whereHas('toHub.organization.user', fn ($q) => $q->where('status', 'active'))
             ->with('toHub')->orderBy('to_hub_id')->get();
         $lanes = [];
         foreach ($outgoing as $index => $edge) {
             $lanes[] = [$edge, $this->lane($hub, 'TRANSFER-'.strtoupper(substr(hash('sha256', $edge->to_hub_id), 0, 12)),
-                'Transfer to '.$edge->toHub->name, SortingLaneType::Standard, $index + 3)];
+                'Transfer to '.$edge->toHub->name, SortingLaneType::Standard, $local->count() + $index + 2)];
         }
-        if (! $local->is_active || $local->type !== SortingLaneType::Standard
+        if ($local->contains(fn ($pair) => ! $pair[1]->is_active || $pair[1]->type !== SortingLaneType::Standard)
             || ! $exception->is_active || $exception->type !== SortingLaneType::Exception
             || $exception->operational_state->value !== 'open'
             || collect($lanes)->contains(fn ($pair) => ! $pair[1]->is_active || $pair[1]->type !== SortingLaneType::Standard)) {
@@ -131,10 +137,12 @@ class RegionalNetworkSeeder
             'created_by_logistics_id' => $actor->id,
             'name' => self::PLAN_NAME, 'is_active' => false, 'revision' => 1,
         ]);
-        $plan->lanes()->create([
-            'sorting_lane_id' => $local->id, 'destination_type' => SortingDestinationType::PostalCode,
-            'postal_code' => $definition['postal_code'], 'position' => 1,
-        ]);
+        foreach ($local as [$area, $lane]) {
+            $plan->lanes()->create([
+                'sorting_lane_id' => $lane->id, 'destination_type' => SortingDestinationType::PostalCode,
+                'postal_code' => $area->postal_code, 'position' => $lane->position,
+            ]);
+        }
         foreach ($lanes as [$edge, $lane]) {
             $plan->lanes()->create([
                 'sorting_lane_id' => $lane->id, 'destination_type' => SortingDestinationType::Hub,
