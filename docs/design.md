@@ -127,6 +127,15 @@ Users bring expectations from other applications. Familiar interaction patterns 
 - Show preserved destinations and mapping differences directly in tables or sections. Do not hide this content in dropdowns, disclosure controls or accordions. Contain table overflow and modal scrolling.
 - Success messages have an accessible X button and dismiss after five seconds. Keep actionable errors and uncertain-request verification visible until resolved. This rule applies to the Sort plan workspace and its version/copy actions.
 
+## Logistics Settings and Support tickets
+
+- Settings is reached from the sidebar account popup and replaces operational navigation with its own solid sidebar: Back to workspace, Account, Terms and conditions, Billing, Appearance. Keep operational Finance payment settings separate. The [Settings specification](features/logistics/settings/spec.md) owns routes and legacy redirects.
+- Appearance uses one labeled dropdown: System (default), Light, Dark. System responds to device changes; explicit preferences persist for this browser. Apply the theme across authentication and protected screens.
+- Logistics Support tickets uses a compact request list with subject, reference, status, update date and functional unread counts; select a ticket to read its plain-text conversation and reply. New ticket opens the creation form on demand. At narrow widths, show the list or content with an All tickets back action, rather than stacking the full list above the conversation.
+- Use the existing neutral surfaces and brand palette, ordinary headings and 6–8px control/container radii, simple borders, visible focus and restrained shadows. Keep loading, failed reads, empty tickets and failed mutations distinct. Confirm discarding drafts and retain exact uncertain retry payloads.
+- All Logistics date/time fields, including Finance collection time and sort-plan activation, use the installed Flatpickr wrapper with theme-aware styling. The newly converted Finance/activation fields allow keyboard entry and retain browser required-field validation. Preserve each field's API format and Asia/Manila schedule semantics.
+- Research references: [Linear preferences](https://linear.app/docs/account-preferences) for the explicit/system theme choice; [Zendesk request tracking](https://support.zendesk.com/hc/en-us/articles/4408846805530-Submitting-and-tracking-requests-in-the-help-center-Customer-Portal) for request metadata and conversation follow-up; [Flatpickr options](https://flatpickr.js.org/options/) for date/time and time-only picker configuration. These inform interaction patterns; Aisley workflows and palette remain authoritative.
+
 ## Next.js SEO, SSR, and CSR
 
 These rendering rules apply to the Customer Next.js storefront; the Admin, Seller, and Logistics React Router dashboards retain their existing SPA architecture.

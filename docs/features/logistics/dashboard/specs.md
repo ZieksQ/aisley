@@ -84,7 +84,7 @@ active Logistics session
 
 - Keep Dashboard directly accessible. Group the other sidebar destinations into **Hub operations** (Parcel search, Pickups, Receive at hub, Sorting, Sort plan), **Transport & delivery** (Linehaul, Linehaul dispatch, Inbound linehaul, Last-mile dispatch, Delivery confirmations), **Pricing & rates** (Shipping rates), **Organization** (Courier applications, Vehicles, Company fleet, Finance), and **Communication** (Operational messages, Support tickets).
 - Show one expanded group at a time. Open the group containing the current route after navigation or reload, including pickup/application detail and `/couriers/:courierId/vehicle` under Vehicles. On Dashboard, groups begin collapsed.
-- Keep existing Beta labels on Sort plan, Linehaul, Linehaul dispatch, and Inbound linehaul. Preserve the separate account menu for Account, policy consent, notifications, and sign-out. Shipping rates is a standalone sidebar destination, not an account-menu or Settings item.
+- Keep existing Beta labels on Sort plan, Linehaul, Linehaul dispatch, and Inbound linehaul. The separate account menu contains Settings, Notifications, and Log out. [Settings](../settings/spec.md) uses its own sidebar for Account, Terms and conditions, Billing, and Appearance. Shipping rates is a standalone operational sidebar destination.
 - Group controls must be keyboard-operable and expose expanded state; links must have visible active states in both themes and work in the mobile sidebar. This navigation change does not create new operational actions, queue data, or permissions.
 
 ### Acceptance criteria
@@ -144,5 +144,5 @@ active Logistics session
 
 ## POD and Courier cash navigation revision (2026-10-05)
 - `/delivery-confirmations` retains its Logistics navigation entry and adds Pending, History, and Approval settings views.
-- Finance navigation adds Courier cash (`/finance/courier-cash`) and Billing (`/finance/billing`). Existing platform Remittances and Payment settings remain separate.
+- Finance navigation adds Courier cash (`/finance/courier-cash`). Billing moved to `/settings/billing` on 2026-10-08; `/finance/billing` remains a redirect. Existing platform Remittances and Payment settings remain separate.
 - Courier cash receipts show physical cash received; Billing shows masked simulated account details without balance or credentials.

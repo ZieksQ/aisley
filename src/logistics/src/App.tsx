@@ -33,6 +33,7 @@ import { SortingPage } from './pages/SortingPage'
 import { SortPlanPage } from './pages/SortPlanPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
 import { ShippingRatesPage } from './pages/ShippingRatesPage'
+import { AppearancePage } from './pages/AppearancePage'
 
 export default function App() {
   return <Routes>
@@ -46,7 +47,7 @@ export default function App() {
         <Route element={<DashboardPage />} path="/dashboard" />
         <Route element={<FinancePage />} path="/finance" />
         <Route element={<CourierCashPage />} path="/finance/courier-cash" />
-        <Route element={<BillingPage />} path="/finance/billing" />
+        <Route element={<Navigate replace to="/settings/billing" />} path="/finance/billing" />
           <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances/invoices/:invoiceId" />
@@ -72,10 +73,14 @@ export default function App() {
         <Route element={<NotificationsPage />} path="/notifications/:notificationId" />
         <Route element={<OperationalChatPage />} path="/messages" />
         <Route element={<SupportTicketsPage />} path="/support-tickets" />
-        <Route element={<AccountPage />} path="/account" />
+        <Route element={<Navigate replace to="/settings/account" />} path="/account" />
         <Route element={<ShippingRatesPage />} path="/shipping-rates" />
-        <Route element={<Navigate replace to="/shipping-rates" />} path="/settings" />
-        <Route element={<PolicyConsentPage />} path="/policy-consent" />
+        <Route element={<Navigate replace to="/settings/account" />} path="/settings" />
+        <Route element={<AccountPage />} path="/settings/account" />
+        <Route element={<BillingPage />} path="/settings/billing" />
+        <Route element={<PolicyConsentPage />} path="/settings/terms" />
+        <Route element={<AppearancePage />} path="/settings/appearance" />
+        <Route element={<Navigate replace to="/settings/terms" />} path="/policy-consent" />
         <Route element={<NotFoundPage />} path="*" />
       </Route>
     </Route>

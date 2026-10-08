@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FinanceNavigation } from '../components/FinanceNavigation'
 import { ErrorNotice, link } from '../components/PickupUi'
 import { billingAccount, type Billing } from '../features/logisticsFinance/api'
-import { workspace } from '../features/logisticsFinance/presentation'
 
 export function BillingPage() {
   const [account, setAccount] = useState<Billing | null>(null)
@@ -19,8 +17,7 @@ export function BillingPage() {
     return () => controller.abort()
   }, [version])
   return <>
-    <FinanceNavigation />
-    <main className={workspace}>
+    <section className="max-w-5xl p-5 sm:p-7">
       <header className="border-b border-zinc-200 pb-4 dark:border-white/10">
         <h2 className="text-xl font-semibold">Billing</h2>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Payment method for COD remittances and Logistics payouts.</p>
@@ -60,6 +57,6 @@ export function BillingPage() {
           <Link className={link} to="/finance/payment-settings">Payment settings</Link>
         </div>
       </section>}
-    </main>
+    </section>
   </>
 }

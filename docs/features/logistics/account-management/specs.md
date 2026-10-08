@@ -110,7 +110,7 @@ active Logistics session
 - Separate **Personal profile**, **Organization**, **Operational hub**, and **Security** sections. Clearly label the hub as the sole operational hub/sorting center, not a personal residence.
 - Show loading, saved, validation, conflict, unauthorized, missing-hub, network, and retry states. Do not optimistically claim a save before the server projection returns.
 - Use semantic labels, keyboard-accessible controls, visible focus, field-level errors, responsive dark-mode dashboard styling, and non-color-only status/error cues.
-- Account Settings is linked from the protected Logistics navigation. Existing authentication and `/auth/me` behavior remains unchanged; the settings page refreshes the shell projection after a successful organization update.
+- Account Settings is hosted at `/settings/account` in the dedicated [Settings workspace](../settings/spec.md), reached from the account popup. Legacy `/account` redirects there. Existing authentication and `/auth/me` behavior remains unchanged; the settings page refreshes the shell projection after a successful organization update.
 
 ### Acceptance criteria
 

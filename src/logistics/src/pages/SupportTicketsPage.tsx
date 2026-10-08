@@ -1,16 +1,8 @@
-import { createTicketClient, SupportTicketsWorkspace, type TicketTransport } from '@aisley/support-tickets'
-import { csrf, request, requestWithTimeout } from '../lib/api'
-
-const transport: TicketTransport = async <T,>(path: string, options?: RequestInit): Promise<T> => {
-  if (options?.method === 'POST') {
-    await csrf()
-    return requestWithTimeout<T>(path, options)
-  }
-  return request<T>(path, options)
-}
-
-const client = createTicketClient('logistics', transport)
+import { SupportWorkspace } from '../features/supportTickets/SupportWorkspace'
+import { useSupportTicketClient } from '../features/supportTickets/useSupportTicketClient'
 
 export function SupportTicketsPage() {
-  return <SupportTicketsWorkspace client={client} />
+  const { client, accessLost } = useSupportTicketClient()
+  if (accessLost) return <p className="p-5 text-sm" role="status">Your support access changed. Clearing private tickets…</p>
+  return <SupportWorkspace client={client} />
 }

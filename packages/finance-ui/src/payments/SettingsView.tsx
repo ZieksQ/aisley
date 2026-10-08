@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { TextField } from '@aisley/ui'
 import { Button, date, Feedback, PaymentShell } from './common'
 import { useFinanceRead, usePaymentAction, useUnsavedPaymentForm } from './hooks'
 import type { PaymentProps, SettingsResponse } from './types'
-export function SettingsView(props: PaymentProps) {
+type SettingsProps = PaymentProps & {
+  renderCollectionTime?: (field: { id: string; label: string; value: string; disabled: boolean; onChange: (value: string) => void }) => ReactNode
+}
+
+export function SettingsView(props: SettingsProps) {
   const read = useFinanceRead<SettingsResponse>(props, '/automation')
   const [message, setMessage] = useState('')
   return <PaymentShell
@@ -17,7 +21,7 @@ export function SettingsView(props: PaymentProps) {
       saved={() => { setMessage('Payment settings saved.'); read.reload() }} />}
   </PaymentShell>
 }
-function SettingsForm(props: PaymentProps & { response: SettingsResponse; saved: () => void }) {
+function SettingsForm(props: SettingsProps & { response: SettingsResponse; saved: () => void }) {
   const current = props.response.data
   const [deadlineDays, setDeadlineDays] = useState(String(current.platform.cod_deadline_hours / 24))
   const [sellerDays, setSellerDays] = useState(String(current.platform.seller_delay_hours / 24))
@@ -148,13 +152,14 @@ function SettingsForm(props: PaymentProps & { response: SettingsResponse; saved:
         </div>
         <div>
           <div className="payment-fields">
-            <TextField
+            {props.renderCollectionTime ? props.renderCollectionTime({ id: 'collection-time', label: 'Daily COD payment time', value: collectionTime, disabled: !canManage || action.busy, onChange: setCollectionTime }) : <TextField
               id="collection-time"
               label="Daily COD payment time"
               type="time"
               required
+              disabled={!canManage || action.busy}
               value={collectionTime}
-              onChange={(e) => setCollectionTime(e.target.value)} />
+              onChange={(e) => setCollectionTime(e.target.value)} />}
           </div>
           <p className="payment-muted payment-next-run">Next collection: {date(current.next_collection_at)}</p>
         </div>

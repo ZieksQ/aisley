@@ -16,6 +16,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 Follow the [current Sort plan UI revision](versions-and-recovery.md#sort-plan-ui-revision--2026-10-07): lane Activate/Deactivate, confirmed automatic numbered duplication from each plan's three-dot menu, separate searchable published-version browser, visible mapping tables without disclosures, and dismissible five-second success messages. Postal-code and accepted linehaul destination checks and immutable assignments remain authoritative.
 
+The 2026-10-08 date/time control revision uses the installed Logistics Flatpickr wrapper for draft and published-version activation. Preserve `YYYY-MM-DDTHH:mm:00+08:00` payloads and explicit Asia/Manila labels; both picker locations remain usable inside their dialogs.
+
 ## Versions and recovery — 2026-10-06
 
 The [versions, lane controls and recovery contract](versions-and-recovery.md) supersedes historical live-plan editing, deletion of published plans, manual exception override, and exception-blocked session closure below. Use published versions for scans, preserve frozen physical assignments in both dispatch paths, and correct then rescan durable exceptions. Historical API Pause/Hold is selected-lane only; those controls are removed from the Sort plan web workspace by the 2026-10-07 revision. Offline captures require API confirmation.

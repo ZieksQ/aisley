@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@aisley/ui'
-import type { TicketClient, TicketDetail } from './types'
+import type { TicketClient, TicketDetail, TicketDraftState } from './types'
 
 const statusLabel: Record<string, string> = {
   open: 'Open',
@@ -9,12 +9,13 @@ const statusLabel: Record<string, string> = {
   resolved: 'Resolved',
 }
 
-export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onChanged }: {
+export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onChanged, onDraftChange }: {
   client: TicketClient
   detail: TicketDetail
   olderBusy: boolean
   onLoadOlder: () => void
   onChanged: () => void
+  onDraftChange?: (state: TicketDraftState) => void
 }) {
   const [body, setBody] = useState('')
   const [key, setKey] = useState<string | null>(null)
@@ -22,6 +23,8 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const ticket = detail.data
+  const pendingInput = useRef<{ body: string; expected_revision: number } | null>(null)
+  useEffect(() => { onDraftChange?.({ dirty: Boolean(body), busy, uncertain }) }, [onDraftChange, body, busy, uncertain])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -31,14 +34,19 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
     setBusy(true)
     setError(null)
     try {
-      await client.reply(ticket.id, { body: body.trim(), expected_revision: ticket.revision }, requestKey)
+      const input = pendingInput.current ?? { body: body.trim(), expected_revision: ticket.revision }
+      pendingInput.current = input
+      await client.reply(ticket.id, input, requestKey)
       setBody('')
       setKey(null)
       setUncertain(false)
+      pendingInput.current = null
       onChanged()
     } catch (caught) {
       const status = (caught as { status?: number }).status
-      setUncertain(!status || status === 408)
+      const unknown = !status || status === 408 || status >= 500
+      setUncertain(unknown)
+      if (!unknown) pendingInput.current = null
       setError(caught instanceof Error ? caught.message : 'The reply could not be saved.')
       if (status === 409) {
         setKey(null)
@@ -58,7 +66,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
       <span className="support-ticket-status">{statusLabel[ticket.status]}</span>
     </div>
     <p className="support-ticket-meta">
-      {ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)} · Updated {new Date(ticket.last_activity_at).toLocaleString()}
+      {ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)} · Updated {new Date(ticket.last_activity_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
     </p>
     {detail.next_cursor &&
       <button className="support-ticket-secondary" disabled={olderBusy} onClick={onLoadOlder} type="button">
@@ -68,7 +76,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
       {detail.events.map((event) => <li key={event.id}>
         <div className="support-ticket-event-top">
           <strong>{event.is_mine ? 'You' : event.actor_role === 'admin' ? 'Support team' : 'Requester'}</strong>
-          <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString()}</time>
+          <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</time>
         </div>
         {event.type === 'reply' && <p className="support-ticket-message">{event.body}</p>}
         {event.type === 'status' &&
@@ -95,7 +103,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
           {busy ? 'Sending…' : uncertain ? 'Retry reply' : 'Send reply'}
         </Button>
         {uncertain &&
-          <button className="support-ticket-secondary" onClick={() => { setBody(''); setKey(null); setUncertain(false); setError(null) }} type="button">
+          <button className="support-ticket-secondary" onClick={() => { if (window.confirm('Discard this reply? It may already have been saved.')) { setBody(''); setKey(null); setUncertain(false); setError(null); pendingInput.current = null } }} type="button">
             Discard draft
           </button>}
       </div>
