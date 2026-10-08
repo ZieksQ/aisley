@@ -4,7 +4,8 @@
   "private": true,
   "sideEffects": ["*.css"],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./styles": "./src/workspace.css"
   },
   "peerDependencies": {
     "react": "^19.2.8"

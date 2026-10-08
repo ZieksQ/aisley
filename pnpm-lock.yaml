@@ -69,6 +69,22 @@ importers:
         specifier: ^19.2.17
         version: 19.2.18
 
+  packages/voucher-ui:
+    dependencies:
+      '@aisley/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.18
+
   src/admin:
     dependencies:
       '@aisley/support-tickets':
@@ -83,6 +99,9 @@ importers:
       '@aisley/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@aisley/voucher-ui':
+        specifier: workspace:*
+        version: link:../../packages/voucher-ui
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -288,6 +307,9 @@ importers:
       '@aisley/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@aisley/voucher-ui':
+        specifier: workspace:*
+        version: link:../../packages/voucher-ui
       '@mdxeditor/editor':
         specifier: ^3.55.0
         version: 3.55.0(@codemirror/language@6.12.4)(@lezer/highlight@1.2.3)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(yjs@13.6.32)

@@ -109,3 +109,7 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - A completed linehaul hop earns from the Order's one-time Logistics pool only when receipt evidence, the frozen route-distance snapshot, and actual trip-owning Logistics organization are present.
 - Planned hops earn nothing. Centavo remainders are assigned deterministically, and one organization performing multiple services receives consolidated proceeds.
 - Shared trip costs are recorded by Logistics and allocated equally across carried parcels for the v1 profit workspace. Customer COD is never repriced for reroutes, additional hubs, or operating-cost variance.
+
+## Regional development fleet — 2026-10-08
+
+The non-production `PhilippinesLogisticsSeeder` creates two available home-hub company trucks per region (250/500 fixture parcel-count capacities), five approved affiliated Couriers per hub and truck-driver capability on the first two newly created affiliations. Existing reviews, capability removals, truck locations and availability remain unchanged. No trip, manifest, driver online session or regulatory document is fabricated. See [the regional fixture catalogue and account list](../../../philippines-logistics-seeding.md). Existing dispatch/approval/receipt contracts are unchanged.

@@ -68,3 +68,7 @@ Imported runtime sections above report checks performed in the external Flutter 
 | G25 | New checkout logistics-options, Shop-scoped selections, quote/Batch shipping DTOs and nullable Order shippingProvider are not established as adopted by imported Buyer code. Adopt current typed models, selections in frozen intent and failure/retry states; reverify parsers/UI and controlled commerce. Earlier tests cannot complete this gate. | Buyer/API; Phase 3/5 |
 
 [Shipping contract](../api/shipping-selection.md) documents provider eligibility, automatic single-option fallback, explicit multiple choice, empty discovery, route degradation and exact-key recovery. The storefront retains guest browsing/recency; Flutter requires sign-in and account-only history.
+
+### G26 — Voucher names and default pairing (2026-10-09)
+
+Backend adds `name` to quote candidates, applied vouchers and frozen Batch vouchers. Permit one App discount plus one App shipping per batch and one of each benefit per Shop, regardless of stored stacking flags; replace only same-benefit selections. Parse/display names and caps, retain UUID/target requests and test snapshots/retries. See [contract delta](../api/voucher-selection-update.md). External Flutter adoption, Android/browser and live acceptance are unverified; prior implementation status remains unchanged.

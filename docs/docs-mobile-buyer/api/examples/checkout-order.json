@@ -232,7 +232,7 @@
           "feature": "checkout-order",
           "status": 422,
           "code": "APP_VOUCHER_LIMIT",
-          "message": "Only one App voucher may be used per checkout batch.",
+          "message": "Only one App voucher of each benefit type may be used per checkout batch.",
           "field": "vouchers"
         },
         {
@@ -240,13 +240,6 @@
           "status": 422,
           "code": "VOUCHER_BENEFIT_LIMIT",
           "message": "Only one voucher of each benefit type may apply to a Shop order.",
-          "field": "vouchers"
-        },
-        {
-          "feature": "checkout-order",
-          "status": 422,
-          "code": "VOUCHERS_NOT_STACKABLE",
-          "message": "The selected vouchers cannot be combined.",
           "field": "vouchers"
         },
         {
@@ -579,7 +572,7 @@
           "feature": "checkout-order",
           "status": 422,
           "code": "APP_VOUCHER_LIMIT",
-          "message": "Only one App voucher may be used per checkout batch.",
+          "message": "Only one App voucher of each benefit type may be used per checkout batch.",
           "field": "vouchers"
         },
         {
@@ -587,13 +580,6 @@
           "status": 422,
           "code": "VOUCHER_BENEFIT_LIMIT",
           "message": "Only one voucher of each benefit type may apply to a Shop order.",
-          "field": "vouchers"
-        },
-        {
-          "feature": "checkout-order",
-          "status": 422,
-          "code": "VOUCHERS_NOT_STACKABLE",
-          "message": "The selected vouchers cannot be combined.",
           "field": "vouchers"
         },
         {
@@ -907,7 +893,7 @@
           "feature": "checkout-order",
           "status": 422,
           "code": "APP_VOUCHER_LIMIT",
-          "message": "Only one App voucher may be used per checkout batch.",
+          "message": "Only one App voucher of each benefit type may be used per checkout batch.",
           "field": "vouchers"
         },
         {
@@ -915,13 +901,6 @@
           "status": 422,
           "code": "VOUCHER_BENEFIT_LIMIT",
           "message": "Only one voucher of each benefit type may apply to a Shop order.",
-          "field": "vouchers"
-        },
-        {
-          "feature": "checkout-order",
-          "status": 422,
-          "code": "VOUCHERS_NOT_STACKABLE",
-          "message": "The selected vouchers cannot be combined.",
           "field": "vouchers"
         },
         {
@@ -1508,10 +1487,10 @@
       "status": 422,
       "body": {
         "code": "APP_VOUCHER_LIMIT",
-        "message": "Only one App voucher may be used per checkout batch.",
+        "message": "Only one App voucher of each benefit type may be used per checkout batch.",
         "errors": {
           "vouchers": [
-            "Only one App voucher may be used per checkout batch."
+            "Only one App voucher of each benefit type may be used per checkout batch."
           ]
         }
       }

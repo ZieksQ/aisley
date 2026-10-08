@@ -116,6 +116,7 @@
 - Admin: /finance/remittances, /finance/remittances/invoices/:invoiceId, /finance/remittances/:batchId.
 - Admin: /finance/payouts, /finance/automation, /finance/sandbox.
 - Logistics: the same remittance/detail routes, /finance/payouts, /finance/payment-settings.
+- Logistics daily collection time uses its installed Flatpickr time-only control, preserving `HH:mm` and Asia/Manila semantics. Admin/Seller control rendering remains owned by those apps.
 - Seller: /finance/payouts and read-only /finance/payment-settings.
 - Existing /finance overview remains available through role-owned Finance navigation.
 - Role Finance APIs add GET /automation, /payout-history, /payout-obligations, /payout-history/{id}/receipt.

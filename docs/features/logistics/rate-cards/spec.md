@@ -48,3 +48,7 @@ API and frontend revision: 2026-10-03.
 - The rate-card form shows one row per Shop Category/service rule. Add and edit use a modal with field-level validation and concise circle-exclamation tooltips. The effective date and time use the existing Flatpickr calendar/time control.
 - Main-category coverage counts only rules using `shop_category_id`. Existing Product Category rule rows stay visible in card history and are labeled as legacy; they cannot price a new Shop Order.
 - Customer/Seller quote and checkout response shapes remain unchanged. Existing Orders continue using their frozen prices.
+
+## Regional development rates — 2026-10-08
+
+`PhilippinesLogisticsSeeder` creates missing published PHP cards for all current active Shop Categories using ₱35 first-mile, ₱15 per linehaul hop and ₱45 last-mile service bases, 1 kg included weight and documented per-500 g extras. Existing tariffs/surcharges, revoked acceptances and card history are preserved. Only the demo Shop receives missing provider links. See [the fixture pricing assumptions and credentials](../../../philippines-logistics-seeding.md); these are consolidated development rates, not carrier quotes.

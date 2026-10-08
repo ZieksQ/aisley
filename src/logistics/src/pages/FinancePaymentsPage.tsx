@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { request, apiUrl } from '../lib/api'
 
 import { FinanceNavigation } from '../components/FinanceNavigation'
+import { FlatpickrField } from '../components/FlatpickrInput'
 
 export function FinancePaymentsPage() {
   const location = useLocation()
@@ -14,6 +15,6 @@ export function FinancePaymentsPage() {
     : invoiceId ? <InvoiceView {...props} invoiceId={invoiceId} />
       : batchId ? <BatchView {...props} batchId={batchId} />
         : location.pathname.endsWith('/remittances') ? <RemittancesView {...props} />
-          : <SettingsView {...props} />
+          : <SettingsView {...props} renderCollectionTime={(field) => <FlatpickrField {...field} options={{ allowInput: true, enableTime: true, noCalendar: true, time_24hr: true, dateFormat: 'H:i', minuteIncrement: 1 }} required />} />
   return <><FinanceNavigation />{view}</>
 }

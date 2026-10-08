@@ -171,3 +171,8 @@ Production acceptance is not implied by mocked browser contracts. The separate P
 
 - Finance retains the overview and adds role-owned links to payout history and applicable payment settings. Admin and Logistics also have COD invoice/remittance pages; Admin owns automation and gateway simulation controls.
 - These workflows are specified in `../../shared/cod-automation/spec.md`; Dashboard aggregates and operational role boundaries remain unchanged.
+
+## Voucher navigation extension (2026-10-09)
+
+- Add Vouchers (`/vouchers`, `/vouchers/new`, `/vouchers/:id`) under **Platform**, preserving active-route expansion and mobile close behavior. The [voucher specification](../vouchers/spec.md) owns the workflow.
+- Navigation/reads require `vouchers.view`; mutations additionally require `vouchers.manage`. Read-only Admins can inspect terms, versions, actions and redemption reports. Provision permissions through the additive migration and `AdminPermissionSeeder`; grant them explicitly to the appropriate Admins.

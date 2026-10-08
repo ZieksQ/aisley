@@ -259,7 +259,7 @@ export function AccountPage() {
 
   if (loading) return <div className="max-w-5xl p-5 sm:p-7"><div aria-label="Loading account settings" className="h-44 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div>
 
-  if (loadingError || !account) return <div className="max-w-2xl p-5 sm:p-7"><section className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"><p>{loadingError ?? 'The account projection is unavailable.'}</p><button className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-current px-3 font-semibold" onClick={() => void load()} type="button"><FaArrowsRotate />Try again</button></section></div>
+  if (loadingError || !account) return <div className="max-w-2xl p-5 sm:p-7"><section role="alert" className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"><p>{loadingError ?? 'The account projection is unavailable.'}</p><button className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-current px-3 font-semibold" onClick={() => void load()} type="button"><FaArrowsRotate />Try again</button></section></div>
 
     const address = account.hub.address
   const hubAddress: HubAddress | undefined = address ? { addressLine1: address.address_line_1 ?? '', barangay: address.barangay ?? '', cityMunicipality: address.city_municipality ?? '', province: address.province ?? '', region: address.region ?? '', postalCode: address.postal_code ?? '', country: address.country ?? 'Philippines' } : undefined

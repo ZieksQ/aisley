@@ -435,6 +435,7 @@ class CheckoutService
     private function applyVouchers(User $customer, array &$groups, array $selections, bool $lock, array &$state): void
     {
         $voucherQuery = Voucher::query()
+            ->where('lifecycle', 'published')
             ->where(function ($query) use ($groups) {
                 $query->where('issuer_type', VoucherIssuerType::App->value)
                     ->orWhereIn('shop_id', array_keys($groups));
@@ -444,7 +445,7 @@ class CheckoutService
             $voucherQuery->lockForUpdate();
         }
         $vouchers = $voucherQuery->get()->keyBy('id');
-        $appCount = 0;
+        $appBenefits = [];
 
         foreach ($groups as $shopId => &$group) {
             foreach ($vouchers as $voucher) {
@@ -467,8 +468,12 @@ class CheckoutService
             if ($voucher->issuer_type === VoucherIssuerType::Shop && $voucher->shop_id !== $selection['target_shop_id']) {
                 throw CheckoutException::invalid('VOUCHER_SHOP_MISMATCH', 'A Shop voucher can only apply to its issuing Shop.', "vouchers.{$index}.voucher_id");
             }
-            if ($voucher->issuer_type === VoucherIssuerType::App && ++$appCount > 1) {
-                throw CheckoutException::invalid('APP_VOUCHER_LIMIT', 'Only one App voucher may be used per checkout batch.', 'vouchers');
+            if ($voucher->issuer_type === VoucherIssuerType::App) {
+                $benefit = $voucher->benefit_type->value;
+                if (isset($appBenefits[$benefit])) {
+                    throw CheckoutException::invalid('APP_VOUCHER_LIMIT', 'Only one App voucher of each benefit type may be used per checkout batch.', 'vouchers');
+                }
+                $appBenefits[$benefit] = true;
             }
             $reason = $this->voucherIneligibility($voucher, $customer, $group);
             if ($reason !== null) {
@@ -476,11 +481,6 @@ class CheckoutService
             }
             if (collect($groups[$selection['target_shop_id']]['applied_vouchers'])->contains('benefit_type', $voucher->benefit_type)) {
                 throw CheckoutException::invalid('VOUCHER_BENEFIT_LIMIT', 'Only one voucher of each benefit type may apply to a Shop order.', 'vouchers');
-            }
-            foreach ($groups[$selection['target_shop_id']]['applied_vouchers'] as $applied) {
-                if (! $this->canStack($voucher, $applied['voucher']) || ! $this->canStack($applied['voucher'], $voucher)) {
-                    throw CheckoutException::invalid('VOUCHERS_NOT_STACKABLE', 'The selected vouchers cannot be combined.', 'vouchers');
-                }
             }
 
             $basis = $voucher->benefit_type === VoucherBenefitType::Shipping
@@ -490,8 +490,20 @@ class CheckoutService
                 'voucher' => $voucher, 'benefit_type' => $voucher->benefit_type,
                 'basis_cents' => $basis, 'discount_cents' => $discount,
             ];
-            $state['vouchers'][] = [$voucher->id, $voucher->updated_at?->getTimestamp(), $voucher->redeemed_count, $selection['target_shop_id'], $basis, $discount];
+            $state['vouchers'][] = [$voucher->id, $voucher->version, $voucher->availability_revision, $this->voucherState($voucher), $voucher->redeemed_count, $selection['target_shop_id'], $basis, $discount];
         }
+    }
+
+    private function voucherState(Voucher $voucher): array
+    {
+        // Authoring metadata/draft saves do not change the terms selected by checkout.
+        // Include the full projection to also detect legacy imports and direct term changes.
+        return $voucher->only([
+            'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
+            'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
+            'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy',
+            'terms_summary', 'is_active', 'lifecycle',
+        ]);
     }
 
     /** @param array<string, mixed> $group */
@@ -575,11 +587,6 @@ class CheckoutService
         return max(0, min($saving, $basis));
     }
 
-    private function canStack(Voucher $voucher, Voucher $other): bool
-    {
-        return in_array($other->issuer_type->value.':'.$other->benefit_type->value, $voucher->stacking_policy['allow_with'] ?? [], true);
-    }
-
     /** @param array<string, mixed> $group */
     private function voucherPayload(Voucher $voucher, array $group, ?string $reason): array
     {
@@ -587,13 +594,13 @@ class CheckoutService
         $rules = $voucher->eligibility_rules ?? [];
 
         return [
-            'id' => $voucher->id, 'code' => $voucher->code, 'issuerType' => $voucher->issuer_type->value,
+            'id' => $voucher->id, 'name' => $voucher->name ?? $voucher->code, 'code' => $voucher->code, 'issuerType' => $voucher->issuer_type->value,
             'benefitType' => $voucher->benefit_type->value, 'valueType' => $voucher->value_type->value,
             'value' => $voucher->value, 'maximumDiscount' => $voucher->maximum_discount,
             'minimumSpend' => $voucher->minimum_spend, 'termsSummary' => $voucher->terms_summary,
             'validFrom' => $voucher->starts_at->toISOString(), 'validUntil' => $voucher->ends_at->toISOString(),
             'paymentMethod' => $voucher->payment_method?->value,
-            'stackableWith' => array_values(array_filter((array) ($voucher->stacking_policy['allow_with'] ?? []), 'is_string')),
+            'stackableWith' => ['app:'.($voucher->benefit_type === VoucherBenefitType::Discount ? 'shipping' : 'discount'), 'shop:'.($voucher->benefit_type === VoucherBenefitType::Discount ? 'shipping' : 'discount')],
             'scope' => [
                 'productIds' => array_values((array) ($rules['product_ids'] ?? [])),
                 'categoryIds' => array_values((array) ($rules['category_ids'] ?? [])),
@@ -678,7 +685,7 @@ class CheckoutService
             /** @var Voucher $voucher */
             $voucher = $entry['voucher'];
             $order->vouchers()->create([
-                'voucher_id' => $voucher->id, 'code' => $voucher->code, 'issuer_type' => $voucher->issuer_type,
+                'voucher_id' => $voucher->id, 'name' => $voucher->name ?? $voucher->code, 'code' => $voucher->code, 'issuer_type' => $voucher->issuer_type,
                 'benefit_type' => $voucher->benefit_type, 'qualifying_basis' => $this->money($entry['basis_cents']),
                 'discount_amount' => $this->money($entry['discount_cents']), 'currency' => $batch->currency,
                 'rule_version' => $voucher->version, 'terms_summary' => $voucher->terms_summary, 'redeemed_at' => $redeemedAt,
@@ -706,7 +713,7 @@ class CheckoutService
             ])->values(),
             'availableVouchers' => $group['available_vouchers'],
             'appliedVouchers' => collect($group['applied_vouchers'])->map(fn (array $entry) => [
-                'id' => $entry['voucher']->id, 'code' => $entry['voucher']->code,
+                'id' => $entry['voucher']->id, 'name' => $entry['voucher']->name ?? $entry['voucher']->code, 'code' => $entry['voucher']->code,
                 'issuerType' => $entry['voucher']->issuer_type->value, 'benefitType' => $entry['voucher']->benefit_type->value,
                 'qualifyingBasis' => $this->money($entry['basis_cents']), 'discountAmount' => $this->money($entry['discount_cents']),
             ])->values(),

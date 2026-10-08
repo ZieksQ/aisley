@@ -16,6 +16,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 Follow the [current Sort plan UI revision](versions-and-recovery.md#sort-plan-ui-revision--2026-10-07): lane Activate/Deactivate, confirmed automatic numbered duplication from each plan's three-dot menu, separate searchable published-version browser, visible mapping tables without disclosures, and dismissible five-second success messages. Postal-code and accepted linehaul destination checks and immutable assignments remain authoritative.
 
+The 2026-10-08 date/time control revision uses the installed Logistics Flatpickr wrapper for draft and published-version activation. Preserve `YYYY-MM-DDTHH:mm:00+08:00` payloads and explicit Asia/Manila labels; both picker locations remain usable inside their dialogs.
+
 ## Versions and recovery — 2026-10-06
 
 The [versions, lane controls and recovery contract](versions-and-recovery.md) supersedes historical live-plan editing, deletion of published plans, manual exception override, and exception-blocked session closure below. Use published versions for scans, preserve frozen physical assignments in both dispatch paths, and correct then rescan durable exceptions. Historical API Pause/Hold is selected-lane only; those controls are removed from the Sort plan web workspace by the 2026-10-07 revision. Offline captures require API confirmation.
@@ -99,6 +101,8 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 - Label rendering uses the existing barcode dependency and introduces no new package.
 
 ### Sort plans
+
+- Development seeder repair (2026-10-09): regional fixture plans map each active hub-supported postal code to a dedicated standard lane. Reruns complete missing mappings and separate shared destination lanes in the current active plan using an immutable successor snapshot validated by the activation service; retain existing dedicated lanes, next-hub mappings and immutable history. Preserve unfinished drafts independently while completing active coverage, and keep clean working copies aligned. Do not overwrite pending schedules, inactive coverage/accounts, or unavailable operational configuration; print a review warning when a repair is blocked. This fixture policy does not require production operators to allocate one lane per postal code.
 
 - Workspace redesign (2026-09-20): the main Sort plan page shows only the active plan's lane mappings, physical lanes, and supported postal codes, each in a compact eight-row paginated list ordered by lane number where applicable. Plan creation and editing use one viewport-bounded dialog; selected plan information and mappings occupy the left side, while the plan list and aligned Save/Activate/Delete controls occupy the right side. Narrow screens put the selector first. Linehaul partner requests have their own dialog; grouped departure and receipt controls appear in Sorting. The newer Linehaul contract in `docs/features/logistics/hub-to-hub-routing/specs.md` governs shared postal coverage and still-pending connection and postal-mapping enforcement changes.
 

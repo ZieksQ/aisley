@@ -74,11 +74,17 @@ export function ShopCheckoutGroup({
                   <span className="flex items-start justify-between gap-3">
                     <span>
                       <span className="block text-sm font-semibold">
-                        {voucher.code} · {voucher.issuerType === "app" ? "Aisley" : "Shop"} {voucher.benefitType}
+                        {voucher.name ?? voucher.code} · {voucher.issuerType === "app" ? "Aisley" : "Shop"} {voucher.benefitType}
                       </span>
+                      <span className="mt-1 block text-xs leading-5">Code: {voucher.code}</span>
                       <span className="mt-1 block text-xs leading-5">
                         {voucher.termsSummary || `${voucher.valueType === "percent" ? `${voucher.value}%` : formatAmount(voucher.value)} savings`}
                       </span>
+                      {voucher.maximumDiscount ? (
+                        <span className="mt-1 block text-xs leading-5">
+                          Capped at {formatAmount(voucher.maximumDiscount)}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="shrink-0 text-xs font-semibold">
                       {voucher.eligible ? `Save ${formatAmount(voucher.saving)}` : "Unavailable"}

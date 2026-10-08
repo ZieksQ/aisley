@@ -10,7 +10,7 @@ type ConsentState = 'checking' | 'allowed' | 'required' | 'error'
 export function ProtectedRoute() {
   const { logistics, loading } = useAuth()
   const location = useLocation()
-  const isConsentRoute = location.pathname === '/policy-consent'
+  const isConsentRoute = location.pathname === '/policy-consent' || location.pathname === '/settings/terms'
   const [consentState, setConsentState] = useState<ConsentState>('checking')
   const [consentError, setConsentError] = useState('')
 
@@ -51,6 +51,6 @@ export function ProtectedRoute() {
   if (isConsentRoute) return <Outlet />
   if (consentState === 'checking') return <div className="grid min-h-screen place-items-center bg-[#f7f7f8] text-sm dark:bg-[#101012] dark:text-white">Checking policy consent…</div>
   if (consentState === 'error') return <section className="grid min-h-screen place-items-center bg-[#f7f7f8] p-6 text-center text-zinc-950 dark:bg-[#101012] dark:text-white"><div className="max-w-md"><p className="text-sm text-zinc-600 dark:text-zinc-300" role="alert">{consentError}</p><button className="mt-4 inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-semibold dark:border-white/15" onClick={() => window.location.reload()} type="button">Try again</button></div></section>
-  if (consentState === 'required') return <Navigate replace state={{ from: `${location.pathname}${location.search}` }} to="/policy-consent" />
+  if (consentState === 'required') return <Navigate replace state={{ from: `${location.pathname}${location.search}` }} to="/settings/terms" />
   return <Outlet />
 }

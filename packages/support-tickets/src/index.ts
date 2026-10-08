@@ -1,4 +1,7 @@
 export { createTicketClient } from './client'
 export { SupportTicketsWorkspace } from './workspace'
+export { NewTicketForm } from './new-ticket-form'
+export { TicketDetailView } from './ticket-detail'
+export type { TicketDraftState } from './types'
 export type { TicketClient, TicketCategory, TicketDetail, TicketList, TicketMutation, TicketStatus, SupportTicket, SupportTicketEvent } from './types'
 export type { TicketTransport } from './client'

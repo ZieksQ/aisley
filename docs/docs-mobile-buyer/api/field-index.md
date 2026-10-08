@@ -540,6 +540,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
 | `id` | `UUID` | non-null; required |
+| `name` | `string` | non-null; required (2026-10-09 update) |
 | `code` | `string` | non-null; required |
 | `issuerType` | `string` | non-null; required |
 | `benefitType` | `string` | non-null; required |
@@ -571,6 +572,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
 | `id` | `UUID` | non-null; required |
+| `name` | `string` | non-null; required (2026-10-09 update) |
 | `code` | `string` | non-null; required |
 | `issuerType` | `string` | non-null; required |
 | `benefitType` | `string` | non-null; required |
@@ -675,6 +677,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
 | `id` | `UUID` | null allowed; required |
+| `name` | `string` | non-null; required (2026-10-09 update) |
 | `code` | `string` | non-null; required |
 | `issuerType` | `string` | non-null; required |
 | `benefitType` | `string` | non-null; required |
@@ -1271,3 +1274,5 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `businessName` | `string` | non-null; required |
 | `shippingFee` | `money` | non-null; required |
 | `routeStatus` | `string` | non-null; required |
+
+Voucher/AppliedVoucher/BatchVoucher `name` fields reflect the [2026-10-09 contract delta](voucher-selection-update.md), after the historical inspection. External Flutter parsing/display adoption remains unverified (G26).

@@ -1,3 +1,4 @@
+import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminLayout } from './layouts/AdminLayout'
@@ -33,6 +34,9 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<VouchersPage />} path="/vouchers" />
+          <Route element={<VouchersPage />} path="/vouchers/new" />
+          <Route element={<VouchersPage />} path="/vouchers/:voucherId" />
           <Route element={<FinancePage />} path="/finance" />
           <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances" />

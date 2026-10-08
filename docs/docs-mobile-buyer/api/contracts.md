@@ -38,7 +38,7 @@ For `buy_now`, send `mode`, `buy_now:{product_id,variant_id:null|UUID,quantity}`
 
 Placement adds `quote_id` and UUID `Idempotency-Key`; success is `200 {data:CheckoutBatch}` including replay. Defaults currently make quote lifetime 15 minutes; honor returned `expiresAt`. Retain exact key, quote and normalized intent after uncertainty. `409 IDEMPOTENCY_KEY_REUSED` means changed payload under one key; `QUOTE_ALREADY_PLACED` prevents another key for an already placed quote. `QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, `QUOTE_STALE` require reviewed refresh. No GET-by-key endpoint exists.
 
-Quote candidates contain voucher `id,code,issuerType,benefitType,valueType,value,maximumDiscount,minimumSpend,termsSummary,validFrom,validUntil,paymentMethod,stackableWith,scope,eligible,reason,saving`. Select UUIDs with target Shop, not typed voucher codes. Applied fields include qualifying basis and discount amount; placed snapshots retain terms. Zero-saving selected vouchers still redeem. Cancellation currently does not restore redemption capacity.
+Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,value,maximumDiscount,minimumSpend,termsSummary,validFrom,validUntil,paymentMethod,stackableWith,scope,eligible,reason,saving`. Select UUIDs with target Shop, not typed voucher codes. Applied fields include name, qualifying basis and discount amount; placed snapshots retain name and terms. Default pairing permits one discount and one shipping per Shop, and one App of each benefit per batch; see [voucher update](voucher-selection-update.md). Zero-saving selected vouchers still redeem. Cancellation currently does not restore redemption capacity.
 
 ## Mutation details
 

@@ -36,8 +36,9 @@ function csrfToken() {
   return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : null
 }
 
-export async function initializeCsrf() {
+export async function initializeCsrf(signal?: AbortSignal) {
   const response = await fetch(url('/sanctum/csrf-cookie'), {
+    signal,
     credentials: 'include',
     headers: { Accept: 'application/json' },
   })

@@ -4,6 +4,7 @@ export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size">
   error?: string;
   hint?: string;
   label: string;
+  labelHelp?: ReactNode;
   leadingIcon?: ReactNode;
   trailingElement?: ReactNode;
 };
@@ -14,6 +15,7 @@ export function TextField({
   hint,
   id,
   label,
+  labelHelp,
   leadingIcon,
   trailingElement,
   ...props
@@ -22,9 +24,18 @@ export function TextField({
 
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="block text-sm font-semibold text-[#31123F]">
-        {label}
-      </label>
+      {labelHelp ? (
+        <div className="flex items-center gap-1">
+          <label htmlFor={id} className="block text-sm font-semibold text-[#31123F]">
+            {label}
+          </label>
+          {labelHelp}
+        </div>
+      ) : (
+        <label htmlFor={id} className="block text-sm font-semibold text-[#31123F]">
+          {label}
+        </label>
+      )}
       <div className="relative">
         {leadingIcon ? (
           <span

@@ -6,6 +6,7 @@ import { SortingButton } from './SortingButton'
 import { PublishedVersions } from './PublishedVersions'
 import { TimedNotice } from './TimedNotice'
 import type { SortingLane, SortingPlan } from '../../types/sorting'
+import { FlatpickrInput } from '../FlatpickrInput'
 
 type Attempt = { action: string; body: string; key: string }
 
@@ -100,7 +101,7 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
 
           <label className="text-sm">
             One-time activation (Asia/Manila)
-            <input className={`${field} mt-1`} type="datetime-local" required value={time} disabled={blocked} onChange={(event) => setTime(event.target.value)} />
+            <FlatpickrInput className={`${field} mt-1`} required value={time} disabled={blocked} onChange={setTime} options={{ allowInput: true, enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', minuteIncrement: 1, minDate: 'today' }} placeholder="Select date and time" />
           </label>
 
           <SortingButton type="submit" disabled={blocked}>
@@ -115,7 +116,7 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
 
       <label className="text-sm">
         One-time activation (Asia/Manila)
-        <input className={`${field} mt-1`} type="datetime-local" required value={time} disabled={blocked} onChange={(event) => setTime(event.target.value)} />
+        <FlatpickrInput className={`${field} mt-1`} required value={time} disabled={blocked} onChange={setTime} options={{ allowInput: true, enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', minuteIncrement: 1, minDate: 'today' }} placeholder="Select date and time" />
       </label>
 
       <SortingButton type="submit" disabled={blocked}>

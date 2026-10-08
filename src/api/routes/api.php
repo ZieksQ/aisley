@@ -131,6 +131,15 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
+    Route::prefix('vouchers')->name('vouchers.')->middleware('admin.permission:vouchers.view')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\VoucherController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\Admin\VoucherController::class, 'store'])->middleware('admin.permission:vouchers.manage');
+        Route::get('/{voucher}', [\App\Http\Controllers\Admin\VoucherController::class, 'show'])->whereUuid('voucher');
+        Route::get('/{voucher}/{kind}', [\App\Http\Controllers\Admin\VoucherController::class, 'history'])->whereUuid('voucher')->where('kind', 'versions|actions|redemptions');
+        Route::put('/{voucher}/draft', [\App\Http\Controllers\Admin\VoucherController::class, 'save'])->whereUuid('voucher')->middleware('admin.permission:vouchers.manage');
+        Route::post('/{voucher}/{operation}', [\App\Http\Controllers\Admin\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end')->middleware('admin.permission:vouchers.manage');
+    });
+
     Route::prefix('support-tickets')->name('support-tickets.')->middleware('admin.permission:support-tickets.view')->group(function () {
         Route::get('/', [AdminSupportTicketController::class, 'index'])->middleware('admin.permission:support-tickets.view')->name('index');
         Route::get('/assignees', [AdminSupportTicketController::class, 'assignees'])->middleware('admin.permission:support-tickets.view')->name('assignees');
@@ -326,6 +335,15 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 });
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
+    Route::prefix('vouchers')->name('vouchers.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Seller\VoucherController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\Seller\VoucherController::class, 'store']);
+        Route::get('/{voucher}', [\App\Http\Controllers\Seller\VoucherController::class, 'show'])->whereUuid('voucher');
+        Route::get('/{voucher}/{kind}', [\App\Http\Controllers\Seller\VoucherController::class, 'history'])->whereUuid('voucher')->where('kind', 'versions|actions|redemptions');
+        Route::put('/{voucher}/draft', [\App\Http\Controllers\Seller\VoucherController::class, 'save'])->whereUuid('voucher');
+        Route::post('/{voucher}/{operation}', [\App\Http\Controllers\Seller\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end');
+    });
+
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');

@@ -1,7 +1,7 @@
 # Logistics Billing
 
 ## WHAT
-- Show the organization's simulated payment method at `/finance/billing`.
+- Show the organization's simulated payment method at `/settings/billing` in the dedicated [Settings workspace](../settings/spec.md). Legacy `/finance/billing` redirects there.
 - The local gateway is a fake account, not a bank/card integration or real money.
 
 ## MUST
@@ -16,5 +16,5 @@
 - GET `/api/v1/logistics/finance/billing` returns safe account metadata and simulator availability.
 - Additive migration provisions existing organizations without resetting accounts; organization creation provisions future accounts.
 - Account provisioning is also idempotent at the existing collection/payout entrypoints.
-- Follow docs/design.md and existing Finance navigation, themes and shared UI.
+- Follow docs/design.md and Settings navigation, themes and shared UI. Courier cash and payment schedules remain linked Finance operations.
 - Test zero funding, existing balance preservation, masking, ownership and disabled simulator behavior.

@@ -127,6 +127,15 @@ Users bring expectations from other applications. Familiar interaction patterns 
 - Show preserved destinations and mapping differences directly in tables or sections. Do not hide this content in dropdowns, disclosure controls or accordions. Contain table overflow and modal scrolling.
 - Success messages have an accessible X button and dismiss after five seconds. Keep actionable errors and uncertain-request verification visible until resolved. This rule applies to the Sort plan workspace and its version/copy actions.
 
+## Logistics Settings and Support tickets
+
+- Settings is reached from the sidebar account popup and replaces operational navigation with its own solid sidebar: Back to workspace, Account, Terms and conditions, Billing, Appearance. Keep operational Finance payment settings separate. The [Settings specification](features/logistics/settings/spec.md) owns routes and legacy redirects.
+- Appearance uses one labeled dropdown: System (default), Light, Dark. System responds to device changes; explicit preferences persist for this browser. Apply the theme across authentication and protected screens.
+- Logistics Support tickets uses a compact request list with subject, reference, status, update date and functional unread counts; select a ticket to read its plain-text conversation and reply. New ticket opens the creation form on demand. At narrow widths, show the list or content with an All tickets back action, rather than stacking the full list above the conversation.
+- Use the existing neutral surfaces and brand palette, ordinary headings and 6–8px control/container radii, simple borders, visible focus and restrained shadows. Keep loading, failed reads, empty tickets and failed mutations distinct. Confirm discarding drafts and retain exact uncertain retry payloads.
+- All Logistics date/time fields, including Finance collection time and sort-plan activation, use the installed Flatpickr wrapper with theme-aware styling. The newly converted Finance/activation fields allow keyboard entry and retain browser required-field validation. Preserve each field's API format and Asia/Manila schedule semantics.
+- Research references: [Linear preferences](https://linear.app/docs/account-preferences) for the explicit/system theme choice; [Zendesk request tracking](https://support.zendesk.com/hc/en-us/articles/4408846805530-Submitting-and-tracking-requests-in-the-help-center-Customer-Portal) for request metadata and conversation follow-up; [Flatpickr options](https://flatpickr.js.org/options/) for date/time and time-only picker configuration. These inform interaction patterns; Aisley workflows and palette remain authoritative.
+
 ## Next.js SEO, SSR, and CSR
 
 These rendering rules apply to the Customer Next.js storefront; the Admin, Seller, and Logistics React Router dashboards retain their existing SPA architecture.
@@ -143,3 +152,10 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 - Verify keyboard access, visible focus, readable status/error text, and the relevant loading/empty/failure states.
 - Run the affected package's configured type, lint, and build checks as appropriate. Report browser checks separately from static/build checks and identify checks that could not run.
 - Keep verification scoped to changed screens and shared-component consumers. Updating these rules does not mark existing feature acceptance criteria complete.
+
+## Admin and Seller voucher screens
+
+- Vouchers uses existing dashboard typography/themes, neutral surfaces, simple borders and 6–8px radii. Keep role navigation under Admin Platform and Seller Shop, permission-filtered where applicable. Use ordinary text statuses and compact contained tables with scoped headers/captions.
+- Use labeled voucher details (customer-visible name and separate code), benefit, conditions, Asia/Manila schedule, limits and plain-text terms sections. Put Savings cap (PHP, optional) in Conditions, and circle-exclamation help buttons beside the Saving/Percentage and Savings cap labels, outside the inputs. Tooltips support hover, focus, tap, Escape and viewport bounds. Remove configurable stacking; checkout permits one discount plus one shipping voucher by default. Show live terms and pending differences directly, compact redemption/savings totals and independently paginated history.
+- Publication confirmation presents exact terms, dates, limits and funding consequences. Native centered dialogs contain focus, accept Escape/cancel and restore focus. Confirm permanent ending, pause and unsaved-input discard. Role-owned data routers preserve existing route composition and block navigation/browser Back while mutation outcomes are uncertain, retaining exact retry identity. Clear drafts/history on authorization loss or account change.
+- Follow the [authoring specification](features/shared/voucher-authoring/spec.md) and uncodixfy constraints; no decorative hero, gradient, KPI grid or unnecessary status pill.

@@ -102,3 +102,7 @@ Format:
 - Imported external Buyer Phase 1–4, Phase 5 tooling and responsive/sign-in evidence with explicit attribution; all reported Flutter SDK/dependency/tests/builds/browser checks were not rerun here. Historical progress, manifests and validation remain preserved.
 - Inspected current Laravel 22b0a48: added op-096 logistics options, Shop-scoped provider selections, current quote/Batch shipping DTOs and nullable Order provider projections. Imported client adoption stays 57e9eb2; G25 and broad live/device/accessibility/signing/deployment gates remain open.
 - Standalone bundle/links/anchors/instructions, 22 spec lengths, route/request/DTO/fixture/error/retry checks and synthetic shipping scenarios are recorded separately in references/sync-validation.json. All 19 PSGC assets, imported snapshots and archives are preserved; no runtime/backend/dependency/configuration changes or application tests ran.
+
+## 2026-10-09
+
+- Synchronized the affected voucher contract sections with branch `feature/voucher-names-stacking-ux`: customer-visible names in quote/applied/Batch DTOs, frozen Order names with historical code fallback, default opposite-benefit pairing and one App voucher per benefit per batch. Updated error examples and recorded external client adoption gap G26 alongside retained G25. Prior Flutter implementation evidence/status is unchanged; no Flutter analyze/build/device/live verification ran.

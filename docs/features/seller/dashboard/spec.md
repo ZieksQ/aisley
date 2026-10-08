@@ -149,3 +149,8 @@ active Seller session
 
 - Finance retains the overview and adds role-owned links to payout history and applicable payment settings. Admin and Logistics also have COD invoice/remittance pages; Admin owns automation and gateway simulation controls.
 - These workflows are specified in `../../shared/cod-automation/spec.md`; Dashboard aggregates and operational role boundaries remain unchanged.
+
+## Voucher navigation extension (2026-10-09)
+
+- Add Vouchers (`/vouchers`, `/vouchers/new`, `/vouchers/:id`) under **Shop**, preserving active-route expansion and mobile close behavior. The [voucher specification](../vouchers/spec.md) owns the workflow.
+- The approved Seller session owns a single Shop. Voucher merchandise discounts reduce Seller proceeds before commission; publishing and reports remain tenant-scoped.

@@ -1,5 +1,6 @@
 export type TicketStatus = 'open' | 'in_progress' | 'waiting_for_requester' | 'resolved'
 export type TicketCategory = 'general' | 'account' | 'order' | 'delivery'
+export type TicketDraftState = { dirty: boolean; busy: boolean; uncertain: boolean }
 
 export type SupportTicket = {
   id: string

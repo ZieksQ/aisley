@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Button } from '@aisley/ui'
-import type { TicketCategory, TicketClient } from './types'
+import type { TicketCategory, TicketClient, TicketDraftState } from './types'
 
 const categories: { value: TicketCategory; label: string }[] = [
   { value: 'general', label: 'General' },
@@ -9,7 +9,7 @@ const categories: { value: TicketCategory; label: string }[] = [
   { value: 'delivery', label: 'Delivery' },
 ]
 
-export function NewTicketForm({ client, onCreated }: { client: TicketClient; onCreated: (id: string) => void }) {
+export function NewTicketForm({ client, onCreated, onCancel, onDraftChange }: { client: TicketClient; onCreated: (id: string) => void; onCancel?: () => void; onDraftChange?: (state: TicketDraftState) => void }) {
   const [subject, setSubject] = useState('')
   const [category, setCategory] = useState<TicketCategory>('general')
   const [body, setBody] = useState('')
@@ -17,6 +17,8 @@ export function NewTicketForm({ client, onCreated }: { client: TicketClient; onC
   const [uncertain, setUncertain] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const dirty = Boolean(subject || body || category !== 'general')
+  useEffect(() => { onDraftChange?.({ dirty, busy, uncertain }) }, [onDraftChange, dirty, busy, uncertain])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,7 +37,7 @@ export function NewTicketForm({ client, onCreated }: { client: TicketClient; onC
       onCreated(result.data.id)
     } catch (caught) {
       const status = (caught as { status?: number }).status
-      setUncertain(!status || status === 408)
+      setUncertain(!status || status === 408 || status >= 500)
       setError(caught instanceof Error ? caught.message : 'The ticket could not be saved.')
     } finally {
       setBusy(false)
@@ -66,7 +68,8 @@ export function NewTicketForm({ client, onCreated }: { client: TicketClient; onC
     {uncertain && <p className="support-ticket-hint">The result is unconfirmed. Retry the same submission, or discard this draft.</p>}
     <div className="support-ticket-actions">
       <Button disabled={busy || subject.trim().length === 0 || body.trim().length === 0} type="submit">{busy ? 'Sending…' : uncertain ? 'Retry submission' : 'Submit ticket'}</Button>
-      {uncertain && <button className="support-ticket-secondary" onClick={reset} type="button">Discard draft</button>}
+      {onCancel && <button className="support-ticket-secondary" disabled={busy || uncertain} onClick={onCancel} type="button">Cancel</button>}
+      {uncertain && <button className="support-ticket-secondary" onClick={() => { if (window.confirm('Discard this draft? The ticket may already have been submitted.')) reset() }} type="button">Discard draft</button>}
     </div>
   </form>
 }

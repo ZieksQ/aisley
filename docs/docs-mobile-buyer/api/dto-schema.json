@@ -390,7 +390,8 @@
       "scope": "VoucherScope",
       "eligible": "bool",
       "reason": "string?",
-      "saving": "money"
+      "saving": "money",
+      "name": "string"
     },
     "VoucherScope": {
       "productIds": "UUID[]",
@@ -404,7 +405,8 @@
       "issuerType": "string",
       "benefitType": "string",
       "qualifyingBasis": "money",
-      "discountAmount": "money"
+      "discountAmount": "money",
+      "name": "string"
     },
     "ShippingQuote": {
       "serviceable": "bool",
@@ -485,7 +487,8 @@
       "benefitType": "string",
       "qualifyingBasis": "money",
       "discountAmount": "money",
-      "termsSummary": "string"
+      "termsSummary": "string",
+      "name": "string"
     },
     "OrderVoucher": {
       "id": "UUID?",
@@ -913,5 +916,8 @@
       "routeStatus": "string"
     }
   },
-  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "contract_updates": {
+    "2026-10-09": "Voucher, AppliedVoucher and BatchVoucher add name; see voucher-selection-update.md. External Flutter adoption remains G26."
+  }
 }

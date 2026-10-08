@@ -13,7 +13,7 @@ class OrderVoucher extends Model
     use HasUuids;
 
     protected $fillable = [
-        'order_id', 'voucher_id', 'code', 'issuer_type', 'benefit_type', 'qualifying_basis',
+        'order_id', 'voucher_id', 'name', 'code', 'issuer_type', 'benefit_type', 'qualifying_basis',
         'discount_amount', 'currency', 'rule_version', 'terms_summary', 'redeemed_at',
     ];
 
