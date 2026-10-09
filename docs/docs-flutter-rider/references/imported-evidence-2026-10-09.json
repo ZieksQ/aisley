@@ -1,0 +1,205 @@
+{
+  "imported_on": "2026-10-09",
+  "source_snapshot": "docs/cabigan/docs-flutter-courier",
+  "source_paths_are_optional_provenance": true,
+  "client_adoption": {
+    "earlier_operations": "d7df220",
+    "auth": "4c3f504",
+    "maps": "51d96947569d1603fdfb6d264ebd2a04bf866280"
+  },
+  "attribution": "External Flutter source/test/build/provider reports; not rerun in this Laravel repository.",
+  "files": {
+    "PROGRESS.md": {
+      "sha256": "ccb7a91354bd726c3f8bda38878832d262f07c36c343af22d71bfa138a9ded18",
+      "bytes": 9836
+    },
+    "README.md": {
+      "sha256": "47d18b14eee96e9e5fe93cf20969fd488c6640044d1179225afc4a4071db6a15",
+      "bytes": 9477
+    },
+    "architecture.md": {
+      "sha256": "04bd27b2b9617fb902a77000288040af30e6bd16140506ae3b6243b8c19ce900",
+      "bytes": 20450
+    },
+    "courier-route-maps.md": {
+      "sha256": "039507319e87ca513a8de94e5e72b0759d4ed9135e0606a3135f36a363be623e",
+      "bytes": 8558
+    },
+    "design-courier.md": {
+      "sha256": "8baff1d9151cac41fe685c370588a9e81fd6a9e17ab056c44a893496f41721d3",
+      "bytes": 28991
+    },
+    "domain/Courier.md": {
+      "sha256": "4449c6919b18f68d53e990c708107dab20c08c28ce5ff6dee1a8527e49de91c5",
+      "bytes": 25848
+    },
+    "domain/Logistics.md": {
+      "sha256": "afc976a83ffbff45e64b2086fca02aa4632caf32a42f60654856af1c701d1b0f",
+      "bytes": 22567
+    },
+    "features/courier/README.md": {
+      "sha256": "95a9652112552d7973055d3d6362b67f5d1e2ec68c3065e3fceb2af19cc6e70e",
+      "bytes": 11812
+    },
+    "features/courier/accept-delivery-requests/specs.md": {
+      "sha256": "4b14f98f5ab0d9739ea1719a01994ad09002f2b644eae824ba82fd8a319f9c41",
+      "bytes": 22177
+    },
+    "features/courier/account-management/specs.md": {
+      "sha256": "fb146ed6b49491536d66e9ae0791bef89302dea29fbdcc493e1ca001f0ef593d",
+      "bytes": 19755
+    },
+    "features/courier/auth/spec.md": {
+      "sha256": "bcb1db54eb8ac1cceafd3bffe54272a3b7565cbd313371a1e9cb76144c23493d",
+      "bytes": 27319
+    },
+    "features/courier/chat-messaging/api-handoff.md": {
+      "sha256": "cf8152741b04f75723ecd1f816a89323413542e2a5f883e356fa21212dd2d048",
+      "bytes": 7176
+    },
+    "features/courier/chat-messaging/specs.md": {
+      "sha256": "dd65cdf8bef58dca8a9bcd369b643afa8f9be964c8d6cb186b1cf717a9d6b6fb",
+      "bytes": 17081
+    },
+    "features/courier/complete-delivery/specs.md": {
+      "sha256": "8d7aadceac6371eddd1cdde670fd79ac3d47df8af372ed893a079b23cdde42be",
+      "bytes": 18281
+    },
+    "features/courier/dashboard/specs.md": {
+      "sha256": "253454cf15502551420cf1459072693697baf2eaa5f2ead4d1a7f5ced88c6e15",
+      "bytes": 28796
+    },
+    "features/courier/delivery-history/specs.md": {
+      "sha256": "ac85f18b243bc8729d6f39aa9d5c8057432b3b5f5757c8756a194d9a56510947",
+      "bytes": 15386
+    },
+    "features/courier/delivery-order/specs.md": {
+      "sha256": "33f945f0f9279395aad0bd9bd2bcf2e12707968ec06bc1175b262434375a724e",
+      "bytes": 24478
+    },
+    "features/courier/flutter-handoff.md": {
+      "sha256": "846c83cce9f4b0c6161435642e16f04fb19b51ddabe500974512467417a763f0",
+      "bytes": 4764
+    },
+    "features/courier/incident-reporting/specs.md": {
+      "sha256": "b7a5521740ecf6e79675e47ca24fc17968e00ceb0e77ed666f795b0c0a194bc3",
+      "bytes": 27383
+    },
+    "features/courier/notification/specs.md": {
+      "sha256": "3301d6d1c2a89bac378207097abb2e241a9c6f3ab3a40dd6dc96e8849f0df1a4",
+      "bytes": 20248
+    },
+    "features/courier/pick-up-order/specs.md": {
+      "sha256": "6fd6f472b8e9a2d15f219a7584e21111f40e4d0fd8e1efda26969d7ed664b7c1",
+      "bytes": 32651
+    },
+    "features/courier/profit-dashboard/specs.md": {
+      "sha256": "2946479ea7c4c20121d8f82bfcade609c23c95a888dea73e99b89a7d2edad1e0",
+      "bytes": 24520
+    },
+    "features/courier/proof-of-delivery/specs.md": {
+      "sha256": "942c23091db03e56ff27d1f01892307984e9a876a6989775bb92e706e760057e",
+      "bytes": 22215
+    },
+    "features/courier/rules.md": {
+      "sha256": "c10995c41c6ab54446d73c6eb6141bc1a2631677ec5a5b4b657404dcb781054a",
+      "bytes": 17031
+    },
+    "features/courier/support-tickets/spec.md": {
+      "sha256": "96a1973b13f37a5fa785ea96e5d3057c18b963b1c43324b08dc68a1cc9609d13",
+      "bytes": 13588
+    },
+    "features/logistics/chat-messaging/specs.md": {
+      "sha256": "edf642f9c146afd525f5fcfd83eca767701662af2c75ad3fc7227619ace1de31",
+      "bytes": 14165
+    },
+    "features/logistics/courier-approval/spec.md": {
+      "sha256": "56a51079cafb7d838810589cbdcde9a06dd93bdd79d7faa189191d1f9c40cbe0",
+      "bytes": 12678
+    },
+    "features/logistics/deploy-rider/specs.md": {
+      "sha256": "6fbfc7f98df12eb7cc517e8a1fe3082ad69d4d9d91d2387fa1f0d74150989126",
+      "bytes": 15765
+    },
+    "features/logistics/rule.md": {
+      "sha256": "197bf975fc4180b2784292de5600e79bb77bc990182f4dc6b122fd0944b1c58d",
+      "bytes": 58
+    },
+    "features/logistics/vehicle-fleet-management/specs.md": {
+      "sha256": "b64d932d1e8f5c3c3bf1bfa329c5c90674eb29a594244b6667b0e041719532a6",
+      "bytes": 18838
+    },
+    "features/orders/logistics-pickups/spec.md": {
+      "sha256": "390d17bc8a72cd544ab3d084e8f43cdbd46b4aa191f33585b1c3da8b2e4adebd",
+      "bytes": 20406
+    },
+    "features/orders/waybill/spec.md": {
+      "sha256": "a414921cffca3152246ec6d05c9873a5eb7568d8ff1b220ee52468d84071bc53",
+      "bytes": 18517
+    },
+    "features/shared/policy-viewing-consent/spec.md": {
+      "sha256": "ab661dda678eebbdd0a62e8e687752b28121b7ecc8352100abb30af1dcb09f0c",
+      "bytes": 20542
+    },
+    "features/shared/shipment-fulfillment/spec.md": {
+      "sha256": "6ea8a224f70e7b7b9f3793524adf9c0cbd783c2fb870d2e4dd95d9d8f76f5bf6",
+      "bytes": 52152
+    },
+    "flutter-file-uploads.md": {
+      "sha256": "b4700385dd5dbb216d446396c485ff869c238a6d99479cfbb4f5736d84a5b89e",
+      "bytes": 7424
+    },
+    "logs/PROGRESS-2026-09-25.md": {
+      "sha256": "e20124e914077ea3f7b3352c9621fc8c7a7eb3a38878a07df5796b3cb76d9e42",
+      "bytes": 49186
+    },
+    "logs/PROGRESS-2026-10-03-2.md": {
+      "sha256": "0c26afddadb61c9c7764b50577f2e8638c25ac9f9a47db61def9bb9b1a8c8976",
+      "bytes": 40192
+    },
+    "logs/PROGRESS-2026-10-03.md": {
+      "sha256": "739d1029ff4f17a1ebcea24dbff7ff77b1fae083f539d96351b1556e11b9877b",
+      "bytes": 37526
+    },
+    "logs/logs/PROGRESS-2026-09-25.md": {
+      "sha256": "4dd636703b5a439a7da8535df22b7c9162b701f189d478a3998d50c3ed9acf27",
+      "bytes": 326
+    },
+    "logs/logs/PROGRESS-2026-10-03.md": {
+      "sha256": "f7cda3d90207bec85bdd310342e96f96535dea8913c03888cfc18eae1888e73a",
+      "bytes": 326
+    },
+    "maps-location-api.md": {
+      "sha256": "91bb24efa12836238d239e0a4ed3f93ae0a2475e443ca961f30867c4bb4f8ea2",
+      "bytes": 7362
+    },
+    "order-logistics-flow-decisions.md": {
+      "sha256": "e1b1cf40eec4059d0139785ee9bd0f246cf2f3065f7ce4631bd77415c9282d8f",
+      "bytes": 19837
+    },
+    "references/file-upload-requirements.md": {
+      "sha256": "c4fdc168e1dd80caa03f927e43ddcc3260e858a62b1176b929a828389cdbcb5b",
+      "bytes": 8872
+    },
+    "references/seller-shop-catagories.md": {
+      "sha256": "ceec990357de06313ec3102373149fa70b5fe72ee9814fc3b35ac36798f3fab0",
+      "bytes": 5753
+    },
+    "references/user-registration-requirements.md": {
+      "sha256": "6b7c6b142f15674df83b3b65632a43b84b4e2a07a3c260522d838af677577d61",
+      "bytes": 4370
+    },
+    "requirements.md": {
+      "sha256": "1e58a971eb7ba88da76ec1a8f98008847452f3ccda427e29220326ba08867344",
+      "bytes": 18633
+    },
+    "schema.md": {
+      "sha256": "f82923b061e9f139bfdf43563cdc90685cade7d703b42e18f0812c6c631beb77",
+      "bytes": 179563
+    },
+    "workspace.md": {
+      "sha256": "d0508278efe32e5bed24f707f7a2093b322bbe45655467bb113640fbe90bbf96",
+      "bytes": 45161
+    }
+  }
+}

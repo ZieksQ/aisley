@@ -70,7 +70,7 @@ Store uncertain supported operations as immutable `PendingMutation(key, payload,
 
 image_picker supplies XFile bytes/stream abstractions. Keep dart:io confined to conditional native adapters; web cannot use a native path. `retrieveLostData` must not attach a recovered file to a changed account/parent. Private images use authenticated byte fetch and in-memory display; only public review images use returned public URLs.
 
-PSGC assets ship in this bundle; the typed reader preserves actual hierarchy and requires explicit locality selection; failed assets block saving with Retry. Optional pinning uses flutter_map/latlong2 with an isolated Geoapify client; geolocator runs only after explicit user action/permission. Provider/GPS failure keeps text addresses usable. No background GPS or live Courier tracking. See [addresses/maps](maps-location-api.md).
+PSGC assets ship in this bundle; the typed reader preserves actual hierarchy and requires explicit locality selection; failed assets block saving with Retry. Optional pinning uses MapLibre (`maplibre_gl` 0.27.1) with an isolated Geoapify client; geolocator runs only after explicit user action/permission. Provider/GPS failure keeps text addresses usable. No background GPS or live Courier tracking. See [addresses/maps](maps-location-api.md).
 
 ## Setup and verification
 

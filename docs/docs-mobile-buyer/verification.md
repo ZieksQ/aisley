@@ -65,6 +65,10 @@ The older Phase 5 runbook mentions guest hints and no provider assignment. Its i
 
 Firefox touch-simulation modes, real browser text selection, controlled authenticated/API and installed Android/TalkBack/photo-picker acceptance remain unverified. The [October 5 checkout reports](references/integration-gaps.md#reported-checkout-provider-failures--2026-10-05) are historical deployment observations; their current resolution remains unverified. Synthetic quotes/cancelled placement and compilation do not prove live COD placement.
 
-- [ ] Adopt [private chat media](api/chat-media.md), including upload/readiness, ordered attachment binding, exact retries, authenticated private media reads and account cleanup; verify client integration/device behavior (G26).
+- [ ] Adopt [private chat media](api/chat-media.md), including upload/readiness, ordered attachment binding, exact retries, authenticated private media reads and account cleanup; verify client integration/device behavior (G27).
 
 [Current documentation checks](references/synchronization-2026-10-07.md) are separate from those externally reported Flutter results.
+
+## Imported map evidence — 2026-10-08
+
+[MapLibre](references/maplibre-verification.md) and [live Geoapify](references/geoapify-live-verification.md) report client checks performed in the external project. Preserve the pre-existing desktop checkout accessibility failure and distinguish live public-provider tiles/lookup from synthetic Laravel responses. Installed Android/GPS/TalkBack, production key/signing and real-account CRUD/shipping remain unverified. External `tool/` and test commands apply only when their reported files exist in the Flutter project; this bundle supplies documentation and PSGC/evidence assets.

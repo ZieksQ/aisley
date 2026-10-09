@@ -4,10 +4,10 @@ feature: courier-pick-up-order
 title: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.9
+version: 2.10
 status: Implemented first-mile identifier pickup and task-bound final-mile hub handoff
 implementation_status: First-mile Courier API and route-manifest API retain QR/tracking-ID/Order-reference verification; final-mile hub handoff uses an accepted task and revision without identifier entry; Flutter remains external
-flutter_status: First-mile pickup with bounded schedule filtering and task-bound final-mile handoff implemented locally; authenticated filter, Logistics validation, and installed-device verification remain open
+flutter_status: October 8 external report records first-mile pickup/filtering, task-bound hub handoff and MapLibre pickup routes against map baseline 51d9694; authenticated/device acceptance remains open
 canonical: true
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
 backend_contract_commit: d5c160d4a5a21272e487b6f46a82de35e81395cb
@@ -130,7 +130,7 @@ Seller packs Orders and requests one Logistics provider
 ### Embedded map visual
 - When the manifest is `ready`, the schedule detail map must show the Logistics hub as both start and end, numbered pickup points between them, and a visible ordered route line. Prefer road-following Routing API geometry and retain a clearly labelled straight-line fallback. A stop list remains available beside/below the map.
 - Use MapLibre GL JS in the existing Logistics React/Vite dashboard with a Geoapify `style.json`/map-tile source and a local GeoJSON source/layers. MapLibre GL JS is for the web dashboard, not the Flutter app.
-- The Courier API returns the same authorized ordered stops and GeoJSON. Flutter may render it with a free native map or an accessible ordered list; it must not depend on a Courier web page or paid map SDK.
+- The Courier API returns authorized ordered stops and GeoJSON. The October 8 external report adopts MapLibre on Android/local web; maps preserve server geometry with an accessible list fallback. See [transport/acceptance evidence](../../../docs-flutter-rider/courier-route-maps.md); no live/device checks were rerun here.
 - Keep Geoapify, OpenStreetMap, and OpenMapTiles attribution visible. Do not put full addresses, QR secrets, or Buyer/Seller PII in map-provider requests or client logs.
 - “Embedded map” means this authorized schedule-detail map panel; if WebGL is unavailable, the approved fallback is a quota-guarded Geoapify Static Maps image with the sanitized GeoJSON overlay, then the accessible stop list. Do not fabricate route lines or coordinates.
 
@@ -186,7 +186,7 @@ Seller packs Orders and requests one Logistics provider
 - The list is bounded and ordered by task creation time then UUID. A changed or expired page is refreshed from page one; Flutter must not synthesize missing tasks from notifications.
 - The pickup response is `{ "data": { "task_id", "order", "waybill", "task_status", "order_status", "picked_up_at", "next_step", "idempotent" } }`. `order_status` is the server-committed `picked_up` projection, not a client prediction.
 - The manifest response is `{ "data": { "status", "schedule", "revision", "coordinate_source", "summary", "stops", "geojson", "calculated_at", "reason", "map" } }`; `reason` is nullable only when `status = ready`.
-- `stops[]` includes sequence, `kind` (`hub` or `pickup`), grouped task/order/waybill references when applicable, safe address summary, latitude, longitude, coordinate source, leg distance/time, and reachability. GeoJSON properties use only opaque IDs, sequence, kind, and reachability.
+- `stops[]` includes `sequence`, `kind`, `address_summary`, nullable coordinates, `coordinate_source`, `reachable`, `leg_distance_metres`, `leg_duration_seconds`, and nested `tasks[]` (`task_id`, `order_id`, `order_reference`, `waybill_reference`, `tracking_id`). Do not infer flattened task arrays or differently spelled metric keys.
 - All reads are private and should send `Cache-Control: private, no-store`; client caches, if approved for offline display, are encrypted, bounded, and invalidated after logout or authorization failure.
 - Refresh/list/manifest reads are safe to retry. Pickup confirmation is safe to retry only with the same UUID idempotency key and identical identifier payload.
 - `422` includes stable field errors for malformed `identifier_type`, empty/oversized identifier, or malformed UUID header; `409` includes a stable transition/conflict code and current safe task state when the caller owns it.
@@ -228,7 +228,7 @@ Example GeoJSON geometry (first-mile manifest only):
 - Current route fixtures cover exact/default/missing coordinates, same-address parcel grouping, cache reuse, matrix metrics, road geometry with Logistics return, sanitized GeoJSON, attribution, credential hiding, and tenant scope. Null-route, 31-node boundary, quota circuit-breaker, and dedicated PostgreSQL concurrency fixtures remain rollout work.
 - Add Logistics map tests for GeoJSON layers, ordered markers, accessible list fallback, stale revisions, and no map mutation. Add Flutter contract/widget tests for scanner fallback and server-error mapping.
 - Production rollout still requires PostgreSQL verification, populated and reviewed address-coordinate defaults, and Geoapify usage monitoring; current list/accept/resolve behavior remains intact.
-- Open: schedule early/late pickup grace; native Flutter map versus list-only; turn-by-turn navigation; offline mutation queue; Courier push transport. Logistics receipt is implemented under Update Status, not a Courier action.
+- Open: schedule early/late pickup grace; authenticated/installed-device MapLibre acceptance; turn-by-turn navigation; offline mutation queue; Courier push transport. Logistics receipt is implemented under Update Status, not a Courier action.
 
 ### Sources
 - [Geoapify Route Matrix](https://apidocs.geoapify.com/docs/route-matrix/), [Routing](https://apidocs.geoapify.com/docs/routing/), and [map tiles](https://apidocs.geoapify.com/docs/maps/); [MapLibre GeoJSON](https://maplibre.org/maplibre-gl-js/docs/API/classes/GeoJSONSource/); and [mobile_scanner](https://pub.dev/packages/mobile_scanner).

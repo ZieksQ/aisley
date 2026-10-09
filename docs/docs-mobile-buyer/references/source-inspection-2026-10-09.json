@@ -1,0 +1,16 @@
+{
+  "reviewed_on": "2026-10-09",
+  "backend_checkout": "0a6aaa8096196e2c26822ac0281d5d30675511a8",
+  "execution": "Read-only source inspection and artisan route enumeration; no HTTP request or application test.",
+  "files": {
+    "src/api/routes/api.php": "e8e9e986a4352be4639dccad3f459dbc441304702d56d7e05e3304e19a2e1975",
+    "src/api/app/Http/Controllers/Courier/AuthController.php": "06a0292a64c246f414545a32fd27ff85cf5a25ff94babc015a9c9c7e64c5cd6f",
+    "src/api/app/Services/Courier/CourierAccessService.php": "0efb981fcc8e49199b3fbba49b70ffe27abc49ba92a7fbceb0e149dfdafb6d78",
+    "src/api/app/Http/Controllers/Courier/PickupRouteManifestController.php": "ed762b1404dc947e03972858f74b124b8a7176321b4195e379ece5a67e15325c",
+    "src/api/app/Http/Controllers/Courier/FinalMileBatchController.php": "3eb443ede103e645c5eb87304e652d0a37a301320a358c6561cda8a5ea7bd3a7",
+    "src/api/app/Services/Courier/FinalMileRouteService.php": "4d8d306f9dbbdbc05da47cef1e524d849328ac30e0106810acf2fbf686c65c11",
+    "src/api/app/Services/Logistics/BuildPickupRouteManifest.php": "60e5e73654df5420fdbd3c38cc85d6c4758c284930f94dd3330f53bd38e7c5e9",
+    "src/api/config/pickup_routes.php": "b3ae8f9208e391fa8558d94df11062ae4cff948b16f09df2371017a58d3c33a2",
+    "src/api/app/Enums/PaymentMethod.php": "dd16eff22ac070e8c2d7e02b910869df60f71cc14c44cb21de649c356edf9611"
+  }
+}

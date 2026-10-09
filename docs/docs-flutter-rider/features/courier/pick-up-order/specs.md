@@ -4,15 +4,16 @@ feature: courier-pick-up-order
 title: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.9
+version: 2.10
 status: Implemented first-mile identifier pickup and task-bound final-mile hub handoff
 implementation_status: First-mile Courier API and route-manifest API retain QR/tracking-ID/Order-reference verification; final-mile hub handoff uses an accepted task and revision without identifier entry; Flutter remains external
-flutter_status: First-mile pickup with explicit schedule filtering and task-bound final-mile hub handoff implemented locally; authenticated filtering, live Logistics validation, and installed-device acceptance remain unverified
+flutter_status: First-mile pickup, schedule filtering, task-bound hub handoff, and Android/web MapLibre pickup routes implemented locally; live API and installed-device/browser map acceptance remain unverified
 canonical: true
 copied_backend_checkout: 4c3f504
 scope: Laravel API, development-only React courier mockup, and external Flutter Courier mobile application
 backend_contract_commit: d5c160d4a5a21272e487b6f46a82de35e81395cb
 backend_contract_version: first-and-final-mile-pickup-v1-tracking-id
+map_contract_commit: 51d96947569d1603fdfb6d264ebd2a04bf866280
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md
 ---
 
@@ -132,7 +133,7 @@ Seller packs Orders and requests one Logistics provider
 ### Embedded map visual
 - When the manifest is `ready`, the schedule detail map must show the Logistics hub as both start and end, numbered pickup points between them, and a visible ordered route line. Prefer road-following Routing API geometry and retain a clearly labelled straight-line fallback. A stop list remains available beside/below the map.
 - Use MapLibre GL JS in the existing Logistics React/Vite dashboard with a Geoapify `style.json`/map-tile source and a local GeoJSON source/layers. MapLibre GL JS is for the web dashboard, not the Flutter app.
-- The Courier API returns the same authorized ordered stops and GeoJSON. Flutter may render it with a free native map or an accessible ordered list; it must not depend on a Courier web page or paid map SDK.
+- The external October 8 report records `maplibre_gl: ^0.27.1` on Android and localhost web above the accessible stop list; Linux retains the list. Label the hub start/return, pickup numbers, road geometry or server straight-line fallback, attribution, zoom controls, and **Fit route**.
 - Keep Geoapify, OpenStreetMap, and OpenMapTiles attribution visible. Do not put full addresses, QR secrets, or Buyer/Seller PII in map-provider requests or client logs.
 - “Embedded map” means this authorized schedule-detail map panel; if WebGL is unavailable, the approved fallback is a quota-guarded Geoapify Static Maps image with the sanitized GeoJSON overlay, then the accessible stop list. Do not fabricate route lines or coordinates.
 
@@ -141,9 +142,8 @@ Seller packs Orders and requests one Logistics provider
 - Use only free/open-source client dependencies and Geoapify's Free plan for the MVP; no Mapbox, Google Maps, Scanbot, Scandit, or paid fallback may be introduced.
 - The current Geoapify Free plan lists 3,000 credits/day and limited commercial use with attribution. Enforce one cached matrix calculation per schedule revision, bounded map loading, usage metrics, and a circuit breaker; quota exhaustion yields `unavailable`, never an automatic paid call.
 - Under the current Matrix pricing formula, a 31×31 request costs `max(31,31) × min(31,31,10) = 310` baseline credits before any distance/avoidance surcharges. The application must meter that estimate and keep a daily safety margin for map tiles.
-- Render the map on schedule-detail open, not through an unbounded polling loop. Cache the manifest and avoid reloading identical tiles/data when the user revisits the same revision.
+- Load on route open or explicit refresh. Route and tile bytes remain in per-map memory only and are released on leaving; failed tiles stop until explicit retry. No downloads, GPS, live tracking, or navigation are enabled.
 - Recommend `mobile_scanner` with its bundled Android ML Kit model for local QR/Code 128 decoding. Do not choose its unbundled model for MVP because first-use download would undermine offline scanning.
-- Free alternatives are `flutter_zxing` (MIT, ZXing C++/FFI) and `qr_code_dart_scan` (MIT, Dart decoder). Select one after testing the target Android/iOS devices; do not add all three.
 - Offline decoding may identify and display a candidate, but authoritative status mutation requires connectivity in MVP. A network failure must not show `picked_up_from_seller`; an offline queue is deferred and must use secure storage plus idempotency.
 
 ### Errors, privacy, and retry behavior
@@ -188,16 +188,16 @@ Seller packs Orders and requests one Logistics provider
 - The list is bounded and ordered by task creation time then UUID. A changed or expired page is refreshed from page one; Flutter must not synthesize missing tasks from notifications.
 - The pickup response is `{ "data": { "task_id", "order", "waybill", "task_status", "order_status", "picked_up_at", "next_step", "idempotent" } }`. `order_status` is the server-committed `picked_up` projection, not a client prediction.
 - The manifest response is `{ "data": { "status", "schedule", "revision", "coordinate_source", "summary", "stops", "geojson", "calculated_at", "reason", "map" } }`; `reason` is nullable only when `status = ready`.
-- `stops[]` includes sequence, `kind` (`hub` or `pickup`), grouped task/order/waybill references when applicable, safe address summary, latitude, longitude, coordinate source, leg distance/time, and reachability. GeoJSON properties use only opaque IDs, sequence, kind, and reachability.
+- `stops[]` includes `sequence`, `kind`, `address_summary`, nullable coordinate pairs, `coordinate_source`, `reachable`, `leg_distance_metres`, `leg_duration_seconds`, and nested `tasks[]` with `task_id`, `order_id`, `order_reference`, `waybill_reference`, and `tracking_id`; do not parse flattened task arrays or American-spelling metric keys.
+- `GET /api/v1/courier/map-style` returns a raw version-8 raster style without `data`; `GET /api/v1/courier/map-tiles/{z}/{x}/{y}.png` returns PNG bytes. Both are implemented bearer/active/approved/policy-gated private/no-store reads, without body, owner fields, idempotency key, or pagination. See [map transport contract](../../../courier-route-maps.md).
+- Validate exact API-origin Courier tile URLs and reject extra sources, glyphs, sprites, imports, query/fragment, and lookalike hosts/paths. Initialize a resource-free style and give the SDK only sanitized geometry and marker numbers.
+- MapLibre 0.27.1's Android header setter stores global credentials; its web setter is unimplemented. The security integration instead fetches tiles through `ApiClient`, refuses redirects, and supplies image bytes to per-map sources; no SDK bearer headers or provider keys. This documented transport exception preserves credential isolation.
+- Ignore obsolete manifests after refresh, schedule/route disposal, or session invalidation. Revalidate through the API after map failure; confirmed `401/403` follow existing auth/policy handling. Honor both route and tile `Retry-After` without automatic retry loops.
 - All reads are private and should send `Cache-Control: private, no-store`; client caches, if approved for offline display, are encrypted, bounded, and invalidated after logout or authorization failure.
 - Refresh/list/manifest reads are safe to retry. Pickup confirmation is safe to retry only with the same UUID idempotency key and identical identifier payload.
 - `422` includes stable field errors for malformed `identifier_type`, empty/oversized identifier, or malformed UUID header; `409` includes a stable transition/conflict code and current safe task state when the caller owns it.
 
-Example implemented first-mile confirmation request:
-
-```json
-{"identifier_type":"qr","identifier":"AISLEY:WB:1:WB-EXAMPLE"}
-```
+Example first-mile confirmation JSON: `{"identifier_type":"qr","identifier":"AISLEY:WB:1:WB-EXAMPLE"}`.
 
 `identifier_type = order_id` means the printed human-readable Order reference in the UI; it is not permission to submit an arbitrary database UUID. QR and manual input are normalized only for lookup, while the immutable waybill/order mapping remains authoritative.
 
@@ -221,7 +221,7 @@ Example GeoJSON geometry (first-mile manifest only):
 - Flutter stores tokens only in OS secure storage and sends Bearer auth. It implements loading, empty, assigned, accepted, manifest-pending, manifest-ready, map-unavailable, permission-denied, mismatch, not-found, offline, retry, success, and stale-task states.
 - Flutter filters Seller pickups through the existing `pickup_schedule_id` query using IDs from its latest authorized unfiltered page (at most 50 choices), not a complete schedule catalog. Selection/clear/retry reload only first-mile work; full refresh retains selection. Filtered empty/error states stay distinct; obsolete responses and logout/authorization loss cannot restore private choices. First-mile QR pickup and final-mile work remain independent.
 - The scanner requests camera permission at use time, exposes a manual-entry fallback, announces textual results, uses adequate touch targets, and never relies on camera preview/color alone.
-- Cache only bounded, encrypted, private task/manifest data; clear it on logout, denial, affiliation invalidation, or account switch. Cached data never authorizes pickup.
+- Routes remain in memory only and clear on disposal/logout/denial/affiliation invalidation/account switch. Pending, unavailable, partial/unreachable, unsupported, offline, timeout, forbidden, storage-failure, and retry states retain authorized text where permitted.
 
 ### Verification, rollout, and open decisions
 
@@ -229,6 +229,6 @@ Example GeoJSON geometry (first-mile manifest only):
 - Current route fixtures cover exact/default/missing coordinates, same-address parcel grouping, cache reuse, matrix metrics, road geometry with Logistics return, sanitized GeoJSON, attribution, credential hiding, and tenant scope. Null-route, 31-node boundary, quota circuit-breaker, and dedicated PostgreSQL concurrency fixtures remain rollout work.
 - Add Logistics map tests for GeoJSON layers, ordered markers, accessible list fallback, stale revisions, and no map mutation. Add Flutter contract/widget tests for scanner fallback and server-error mapping.
 - Production rollout still requires PostgreSQL verification, populated and reviewed address-coordinate defaults, and Geoapify usage monitoring; current list/accept/resolve behavior remains intact.
-- Open: schedule early/late pickup grace; native Flutter map versus list-only; turn-by-turn navigation; offline mutation queue; Courier push transport. Logistics receipt is implemented under Update Status, not a Courier action.
+- Open: schedule early/late pickup grace, installed Android/localhost authenticated map acceptance, turn-by-turn navigation, offline mutation queue, and Courier push transport. MapLibre is adopted; Logistics receipt remains a separate Logistics action.
 
 External Geoapify, MapLibre, and scanner references are maintained in the canonical backend copy of this specification.

@@ -1,0 +1,499 @@
+{
+  "imported_on": "2026-10-09",
+  "source_snapshot": "docs/cabigan/docs-flutter-customer",
+  "source_paths_are_optional_provenance": true,
+  "client_adoption": {
+    "buyer": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
+  },
+  "attribution": "External Flutter source/test/build/provider reports; not rerun in this Laravel repository.",
+  "files": {
+    "AGENTS.md": {
+      "sha256": "29798d9b2183852a962cd54489447fba0a004be08ded596f84acc31bed23295c",
+      "bytes": 16380
+    },
+    "PROGRESS.md": {
+      "sha256": "01e718a7d2465fb91aee1a5e5f8f97e12db0d34b1ce3f705a1fc49b8ba0a0465",
+      "bytes": 3300
+    },
+    "README.md": {
+      "sha256": "48a94aafbeec70a55a2caa8d3aae798c55cea8b64ed44e13fe56a635b0bb6594",
+      "bytes": 6421
+    },
+    "api/authentication.md": {
+      "sha256": "f34eb87d8384e1f8d046589ef3a5b3378416e510408349871629e467d4d57d77",
+      "bytes": 7798
+    },
+    "api/contracts.md": {
+      "sha256": "130914a1a8e8081777da99ffa73f4b2b6b0cd71db701a4e7c06e127cc837b4fb",
+      "bytes": 10044
+    },
+    "api/dto-schema.json": {
+      "sha256": "12c5a945b2057ca51ef0492bd7e12c590e1b970cd732d039d3dbc820183573d0",
+      "bytes": 22892
+    },
+    "api/endpoints.md": {
+      "sha256": "e14aaffb54e49a42c348e97d9b09d1ef07f418c2fdfc0aa0ff434ca8d2ed601b",
+      "bytes": 18921
+    },
+    "api/error-codes.json": {
+      "sha256": "659a5ac88c266f2edeae1ba05d74b93aeef1a0ac0871e0747809f8bfccd12677",
+      "bytes": 10567
+    },
+    "api/errors.md": {
+      "sha256": "f52e3b178e1532d664d0147307fd35faab1a11c12433ffc9e80d17c41ae98ae6",
+      "bytes": 3885
+    },
+    "api/examples/README.md": {
+      "sha256": "f0a39e4d28e4b08bb87cd8d1ef5a138d20cb79d59faad7b5d6c98f49c217f23f",
+      "bytes": 1658
+    },
+    "api/examples/account-management.json": {
+      "sha256": "1b7063758fe6c4106677f32c46b32ea98a10e9b712138823d10a5a8c0baa3008",
+      "bytes": 12169
+    },
+    "api/examples/address-book.json": {
+      "sha256": "8be7714772353e80d6067401466a79934a03677c977d47dc1f6293e9934559b4",
+      "bytes": 10095
+    },
+    "api/examples/address-options.json": {
+      "sha256": "c4d56c179e4842ede3890c2c7cae120125a4ab21cc58a9f2b7a92904bd40827c",
+      "bytes": 4378
+    },
+    "api/examples/browse-shop.json": {
+      "sha256": "215e9b806dc33c46cf131c90ddace8a3d07ced6d10fa8631c9356577ef3145b4",
+      "bytes": 6727
+    },
+    "api/examples/chat-messaging.json": {
+      "sha256": "7538e9de33afe1b1a8e34bf911e9cd12c2ffa091929863335a2fe6422ae416b7",
+      "bytes": 13934
+    },
+    "api/examples/checkout-order.json": {
+      "sha256": "dbdd3494f8195be71cf7446d4ee84151b5e001545d343d21022fd7dcf88d1a88",
+      "bytes": 33505
+    },
+    "api/examples/courier-messaging.json": {
+      "sha256": "62b3875419ee766c761d95983bbbd45d52bccf3e9e1ae386c2ec337f544c35cb",
+      "bytes": 20961
+    },
+    "api/examples/customer-auth.json": {
+      "sha256": "f467f080da4fa98c522894abaa8f599420f77e28fbd9155ec64e669d2714dcf3",
+      "bytes": 7873
+    },
+    "api/examples/customer-homepage.json": {
+      "sha256": "002f7cdc4a146c3d6b4cb1cf755f41322db41be15c470b7c8cc8bb0dc60dcb4c",
+      "bytes": 12029
+    },
+    "api/examples/customer_verify_auth.json": {
+      "sha256": "8adbc9f3ba118b7d3a2a44ceaf1120ba6de05d9544b05c1155291dfe5d5b8019",
+      "bytes": 1982
+    },
+    "api/examples/logistics-messaging.json": {
+      "sha256": "dbf6d2671de8f6b57de08bd3c19cfbe3f04b0dcee9da724d3d84407334d07d79",
+      "bytes": 18979
+    },
+    "api/examples/notifications.json": {
+      "sha256": "2db1205a82a5ef32e40e668568edbbcd03566ab5696bf09dcc23d327f447c4e3",
+      "bytes": 6827
+    },
+    "api/examples/order-modification-cancellation.json": {
+      "sha256": "9ca5134c8a8ac9c991919d4097215e38c3e8ef8a0f5a3c2e47c1198d9ee4a55c",
+      "bytes": 16275
+    },
+    "api/examples/order-status.json": {
+      "sha256": "92643a45f225c87ec7009c5cf6ae87ec62139d5bbc06bfbeb2b98f56493599a3",
+      "bytes": 11615
+    },
+    "api/examples/policy-viewing-consent.json": {
+      "sha256": "93f56b20b70a91ea025265a1f6387c7165c3aa4e998cd4fe3776941c16d4673f",
+      "bytes": 8202
+    },
+    "api/examples/product-qa.json": {
+      "sha256": "cf9322cbd43591de0a445b2b648f92b4cd0817c55cdcc9de0b6f45bfbbc36097",
+      "bytes": 7169
+    },
+    "api/examples/product-review-ratings.json": {
+      "sha256": "825da990ce59e244834e392d0524c38cded05f3e0c2b742e8d3327e6baeab5fe",
+      "bytes": 12164
+    },
+    "api/examples/recently-viewed-items.json": {
+      "sha256": "a4f43791bad673de6df0e34261f2061ed4072168ddd39f64bbb86750dcdb5b05",
+      "bytes": 10185
+    },
+    "api/examples/search.json": {
+      "sha256": "4d828a284871cf28df1a8b7c38949d7e7affede6d727435a535936e47c8b2eed",
+      "bytes": 4372
+    },
+    "api/examples/support-tickets.json": {
+      "sha256": "d553a623c4636483cd5cc8e8953c2a2044b585da6c9c32e8fa243946f1ac7080",
+      "bytes": 13132
+    },
+    "api/examples/view-cart.json": {
+      "sha256": "66222b4c4fa95217dc2c10380902ff3bad3655676bb17747373a84b687c212e5",
+      "bytes": 19452
+    },
+    "api/examples/view-product.json": {
+      "sha256": "ddf533c97d04258e805ee3e676e72856de33e71c40072383b0668ca99da9363a",
+      "bytes": 6408
+    },
+    "api/examples/wishlist.json": {
+      "sha256": "998aba6c38381131cd4541b7417db8ca81cc7d9d0ac3a35dc922cd6046685356",
+      "bytes": 6774
+    },
+    "api/field-index.md": {
+      "sha256": "d19799a887ccb285d3910664f8f9ac5ac4b15658ad5602f8b7bb4e3d09325f96",
+      "bytes": 44101
+    },
+    "api/messaging.md": {
+      "sha256": "5ab7843a7a8151877cb90256f4f7b090184d945ce9316eb6f5974db6ff29605e",
+      "bytes": 7220
+    },
+    "api/operation-index.json": {
+      "sha256": "b962234156d9a7f4843fe683f8514f6bc58fc3647662b64d69d9f0842d220ee0",
+      "bytes": 215838
+    },
+    "api/operations.md": {
+      "sha256": "d80242f273b47971d578a4839ca1c075583533d5374dec098d4b4c8435f2f252",
+      "bytes": 50176
+    },
+    "architecture.md": {
+      "sha256": "7d214616fed04b5261179ee5d9c5ebb9c0549c7b466f27665fe5863a6093f45e",
+      "bytes": 11952
+    },
+    "assets/psgc/0100000000-region-i-ilocos-region/addresses.json": {
+      "sha256": "f09d62d70d1d4b018ad08e870709326b3ec58c677904ea090e3d10656f961ac7",
+      "bytes": 1101156
+    },
+    "assets/psgc/0200000000-region-ii-cagayan-valley/addresses.json": {
+      "sha256": "1930cfe9915d28fd875f9086fedbf95f05e35fc8a22f0c61ea0149f6bea01d53",
+      "bytes": 783723
+    },
+    "assets/psgc/0300000000-region-iii-central-luzon/addresses.json": {
+      "sha256": "d6fc6b1e13e9d366503f43698c3e66e0fa9c2dd9f306c7e20cb0a7397a92b794",
+      "bytes": 1054349
+    },
+    "assets/psgc/0400000000-region-iv-a-calabarzon/addresses.json": {
+      "sha256": "9c5f50449257c9b585618f3e6868c168381721a02b81fcecae588dc0dcc146d7",
+      "bytes": 1355401
+    },
+    "assets/psgc/0500000000-region-v-bicol-region/addresses.json": {
+      "sha256": "4d7a3474b6ef1e681151db9d66ad9111623c1e71bc36351f378f120fb6c4b7f9",
+      "bytes": 1171928
+    },
+    "assets/psgc/0600000000-region-vi-western-visayas/addresses.json": {
+      "sha256": "b72874b1d7c30d6319c7ad54162f5e32dbb7b5e3631365f84504f992372e2cf8",
+      "bytes": 1126567
+    },
+    "assets/psgc/0700000000-region-vii-central-visayas/addresses.json": {
+      "sha256": "390c08758c09a98229eff1aec4aac29179128f21fec18bc95479142cd16594c2",
+      "bytes": 776377
+    },
+    "assets/psgc/0800000000-region-viii-eastern-visayas/addresses.json": {
+      "sha256": "e65f46401f7621af811e2cebe2edbb1d1d63309d283485362f11c0da5d5d4976",
+      "bytes": 1465378
+    },
+    "assets/psgc/0900000000-region-ix-zamboanga-peninsula/addresses.json": {
+      "sha256": "7c90b833618161a27897dd0a15f6b00e2093259225e78573e36e0a2493e788cd",
+      "bytes": 776963
+    },
+    "assets/psgc/1000000000-region-x-northern-mindanao/addresses.json": {
+      "sha256": "8f2602d35aa56aa3f96a38dd29bdf496baf75098c1296bd32254fae6044a724f",
+      "bytes": 685638
+    },
+    "assets/psgc/1100000000-region-xi-davao-region/addresses.json": {
+      "sha256": "9e012db9db3a3d8535de0d4c96ef3766cd0d5b48a2d40168b863981f57dfecab",
+      "bytes": 394500
+    },
+    "assets/psgc/1200000000-region-xii-soccsksargen/addresses.json": {
+      "sha256": "b3a748d29e58f4a00e661f62330dfb9b5c10f694815cd30edac49574357bcc17",
+      "bytes": 371204
+    },
+    "assets/psgc/1300000000-national-capital-region-ncr/addresses.json": {
+      "sha256": "3946ec0724f525146957dd3df6070fff3aa329b00e3d0bc4625b0050d5f15d65",
+      "bytes": 535403
+    },
+    "assets/psgc/1400000000-cordillera-administrative-region-car/addresses.json": {
+      "sha256": "6b5feffcd1f1265532569bae0e42e2e2181064a49a64501fecf8db26edb3e481",
+      "bytes": 406681
+    },
+    "assets/psgc/1600000000-region-xiii-caraga/addresses.json": {
+      "sha256": "40379cf14016cc697fbc7e539627d5521e255d4f2ffad25cd6fd324ebd0e075d",
+      "bytes": 450488
+    },
+    "assets/psgc/1700000000-mimaropa-region/addresses.json": {
+      "sha256": "a6433cb43fd2de88f2a73526627771d3fcf915f881e7abfd797a498be65caa66",
+      "bytes": 499638
+    },
+    "assets/psgc/1800000000-negros-island-region-nir/addresses.json": {
+      "sha256": "5e26416a482dbaea4e9999a2cc48beee3904d519418db0709b18b4f8c4c1c07e",
+      "bytes": 463104
+    },
+    "assets/psgc/1900000000-bangsamoro-autonomous-region-in-muslim-mindanao-barmm/addresses.json": {
+      "sha256": "0447ed101bca494fe0d9498ebbb432c541c39515307aa09d89bbca49c7e92bd6",
+      "bytes": 742050
+    },
+    "assets/psgc/README.md": {
+      "sha256": "5eafa96d90e12f1bf3fb11cb3a3488755987faf7ba7a80dcc8e69267940cb467",
+      "bytes": 1176
+    },
+    "assets/psgc/list-of-all-regions.json": {
+      "sha256": "b723e3fff95a9feee59c33f2c227d0c12f3ba72aa3d94427a3be61389b00c07a",
+      "bytes": 2711
+    },
+    "assets/psgc/manifest.json": {
+      "sha256": "5231d294a5feabb1c8114a9450e90a0c2b2eb748cb6ced862e01ac0fd7cb7d75",
+      "bytes": 3873
+    },
+    "assets/psgc/pubspec-assets.yaml": {
+      "sha256": "576df30874875e53bd1f2bfa7b7d941435efd3779bb434ff2861f89c7a2676f4",
+      "bytes": 1084
+    },
+    "design-buyer.md": {
+      "sha256": "3ca056d23f886576e7aa8296556c81e4479ae59fa62b0cb001d81718b48dfb8f",
+      "bytes": 9654
+    },
+    "features/README.md": {
+      "sha256": "35f1ca000e5cae907172390f90fb96dd731652106ef1de8d551aa1e77f9a2fb9",
+      "bytes": 6171
+    },
+    "features/customer/account-management/spec.md": {
+      "sha256": "d41a2749b60d0495f299fdc87a4eeb676cc6d1d85358ea04d9931642b3594bd8",
+      "bytes": 14822
+    },
+    "features/customer/address-book/spec.md": {
+      "sha256": "6da54fd8fe0e0ba0cb47733808c48dab61cd971d639f09285c3a567561e8de81",
+      "bytes": 15864
+    },
+    "features/customer/browse-shop/spec.md": {
+      "sha256": "9890a969dd09a702648c99fe67e7f7ed234f4e94bcc78fdf9110a8f8f41528c1",
+      "bytes": 12883
+    },
+    "features/customer/chat-messaging/spec.md": {
+      "sha256": "1d965be4f9fcb1ff66fc0b05597b22469784935a260f812be50a9472ad25ff62",
+      "bytes": 13899
+    },
+    "features/customer/checkout-order/spec.md": {
+      "sha256": "db0fc0babd50eabbd59cb513c335c37b31e9d82a3e1b484afd4860aecbc2e52c",
+      "bytes": 14214
+    },
+    "features/customer/courier-messaging/spec.md": {
+      "sha256": "51d81ac1cdd381736e59fc8cc8566d0da531b6efbe9901f7296e7b12bcd3624f",
+      "bytes": 14311
+    },
+    "features/customer/customer-auth/spec.md": {
+      "sha256": "d54856676c5751a6382415985efaf3dcb361c935e5407e170c78da2438a69a1c",
+      "bytes": 13654
+    },
+    "features/customer/customer-homepage/spec.md": {
+      "sha256": "433a0380364817cac04fdd466d8f043de57f72304dcea92d1d5688707174e5f3",
+      "bytes": 13562
+    },
+    "features/customer/customer_verify_auth/spec.md": {
+      "sha256": "cc917355b15fe3b4bc52c85edf2696eeb006f9d1415a3d6b517c33a8d72236f3",
+      "bytes": 12574
+    },
+    "features/customer/logistics-messaging/spec.md": {
+      "sha256": "d45d65beb6672901bcfe362946c11376bc9a42a475ce054bc1e9d0f7dd6f0d23",
+      "bytes": 13703
+    },
+    "features/customer/notifications/spec.md": {
+      "sha256": "3c5cf3d561fd9b011992f9007f8956d47b97c4fb4d5b8249d4e356087159cfe9",
+      "bytes": 13002
+    },
+    "features/customer/order-modification-cancellation/spec.md": {
+      "sha256": "b0d541c4e6336c6a67f55201106c65b396be09021f1333eeecb0d24b53781341",
+      "bytes": 13435
+    },
+    "features/customer/order-status/spec.md": {
+      "sha256": "c9c3877411dd1616050212c31cd2b78094963655f1a330ef2c6169f3f27709f3",
+      "bytes": 13532
+    },
+    "features/customer/product-qa/spec.md": {
+      "sha256": "9d61170f84f7a0e3f6535ae58aefc05f8a5392ae9552eb37835418cc00814f28",
+      "bytes": 11782
+    },
+    "features/customer/product-review-ratings/spec.md": {
+      "sha256": "57958bdede2f89e933fad914a1be00f2a54da1c8b2c47a6f1429ea3f00ba4394",
+      "bytes": 13026
+    },
+    "features/customer/recently-viewed-items/spec.md": {
+      "sha256": "1bca1cb61384c1846d5fa7d481129ab80c7553474a815c77479a2d98dc0ea15b",
+      "bytes": 13958
+    },
+    "features/customer/rule.md": {
+      "sha256": "153eb92fa86cc7e4518b0bac0394b3971a72c11057d984d18158ce53f14ef018",
+      "bytes": 15245
+    },
+    "features/customer/search/spec.md": {
+      "sha256": "fb3832994ee57cda3e1ad8a84e103b75c89e2ca81dc7f14350ae2fd9578a4074",
+      "bytes": 12434
+    },
+    "features/customer/support-tickets/spec.md": {
+      "sha256": "b51b922140ec193ded3d2a555687e85b805e3075b448c965453b6f4b8d8d00c7",
+      "bytes": 13661
+    },
+    "features/customer/view-cart/spec.md": {
+      "sha256": "dc09d64040bf6e6700fbf2402f1dda4c55f504afe0d3540ebb437a62a16cf49c",
+      "bytes": 13583
+    },
+    "features/customer/view-product/spec.md": {
+      "sha256": "ff2d2a5c802c5172672f7c0f1f883389e325a7e9caa08c65541c3a8db0224c57",
+      "bytes": 14389
+    },
+    "features/customer/voucher-usage/spec.md": {
+      "sha256": "3dba7978d8ad98c39ef0a358738a7cb5ee875faaa7075139bb1610ad8b0bbcd3",
+      "bytes": 13755
+    },
+    "features/customer/wishlist/spec.md": {
+      "sha256": "5887a71ab4437c1f7caac29e380e2d5dba87956c70503da7aa81b6a4a8fc563d",
+      "bytes": 13051
+    },
+    "features/shared/policy-viewing-consent/spec.md": {
+      "sha256": "bcf3b0529c89fad12aac93bab9970d8c09ae19101e01427850fac68951c7c577",
+      "bytes": 10849
+    },
+    "flutter-file-uploads.md": {
+      "sha256": "680e2515215843bc0a55734287855ab4c17403de9621e66608d87342dd5a8efb",
+      "bytes": 4724
+    },
+    "logs/PROGRESS-2026-10-08.md": {
+      "sha256": "0b6dd13ac8f73573849681948392d0269f96ed40b74061e229bdb8c7c4cea065",
+      "bytes": 35881
+    },
+    "logs/README.md": {
+      "sha256": "92f5fc63f865433cbf46e6ce4666b1193eb26606fd4af9cb0c325fe84306a206",
+      "bytes": 726
+    },
+    "maps-location-api.md": {
+      "sha256": "f81dcf0fc29ee46d25ce624b9e5c78bf0f66c5517d5768d2e3f4f61a415a80e1",
+      "bytes": 11247
+    },
+    "references/documentation-validation.md": {
+      "sha256": "685d31c70ab6931bbffe5a20c99512868af7ac4e8cdf95cf627f4161689479a2",
+      "bytes": 9161
+    },
+    "references/file-upload-requirements.md": {
+      "sha256": "f9c71e79df90e7831b1314a2cbd628379f5a8ad909a891568eb70419dc3853b3",
+      "bytes": 2824
+    },
+    "references/geoapify-live-verification.md": {
+      "sha256": "2e87c35bd72e52e286a30833a5cc4581f5db47e46837303f0d172b709068d995",
+      "bytes": 3616
+    },
+    "references/integration-gaps.md": {
+      "sha256": "e239c3ba9720eb19a4ff4138d8915bb986950afddf3ee192d39ba290eacbec83",
+      "bytes": 11297
+    },
+    "references/maplibre-verification.md": {
+      "sha256": "1508296bfd92679cd76f389d2f406d75e795a032c6361d8feb4b7cdcd58dc0f1",
+      "bytes": 6484
+    },
+    "references/marketplace-screenshots/cart-1440.png": {
+      "sha256": "7a09b05dd9294f25cfaf6fee6251c95130aff5ba03d10158d310b5dcfca622b1",
+      "bytes": 51315
+    },
+    "references/marketplace-screenshots/cart-390.png": {
+      "sha256": "86df6340e03e1d20a35ad4891cdff9b38ec3d63f6503b455f4da723750180575",
+      "bytes": 42120
+    },
+    "references/marketplace-screenshots/checkout-1440.png": {
+      "sha256": "e2c4328c71483a5e92583c63957a4460d4d7590b2b1aa74149781e1425427dfe",
+      "bytes": 88666
+    },
+    "references/marketplace-screenshots/checkout-390.png": {
+      "sha256": "378b2d787ec258e6753cc74ec293bbceffb7637daf867c2bc423ee5b0399aacd",
+      "bytes": 49772
+    },
+    "references/marketplace-screenshots/home-1440.png": {
+      "sha256": "6dce7670a638ffbd75a69dbdd4c13e1c8695a1974c4d2412bcd50aa4acf82e81",
+      "bytes": 43008
+    },
+    "references/marketplace-screenshots/home-390.png": {
+      "sha256": "c0b6fc0d7bb8ea3b36763655b86a1f5130033a8b1ca4a74164d58a271fd41a7e",
+      "bytes": 33459
+    },
+    "references/marketplace-screenshots/messages-1440.png": {
+      "sha256": "d91309fcfa5317d5128851577d75e3ee9a7c1bcdd366b1e199ca3f77d248620c",
+      "bytes": 46545
+    },
+    "references/marketplace-screenshots/messages-390.png": {
+      "sha256": "8ca1c4970c7ead6459b653022795a0a6ec47c71362b53e8cf37668ba2fae1a88",
+      "bytes": 25066
+    },
+    "references/marketplace-screenshots/product-1440.png": {
+      "sha256": "02de590518f4b41d6d924a6ad12a0fbc1e41455837f398076905bd5c7afc96c3",
+      "bytes": 54504
+    },
+    "references/marketplace-screenshots/product-390.png": {
+      "sha256": "28c399fcbb36c4492bf2c3a3ab0360292c14a417104cbeba64c7e89673512f3d",
+      "bytes": 23046
+    },
+    "references/marketplace-verification.md": {
+      "sha256": "5a3699cf3b4d48d137ee8dcc017445df0c3f1cb8d6c9afa519753a88395a78bd",
+      "bytes": 6584
+    },
+    "references/package-baseline.json": {
+      "sha256": "d48f4d82b60d7094e62c68f99b3e15f3051fe104ca97799aa5ef144eab7ade38",
+      "bytes": 9862
+    },
+    "references/phase-1-verification.md": {
+      "sha256": "5e94fe3dab9938361957b93af3c2a6dbd5d7f3248fdc6da688d5721052111027",
+      "bytes": 6876
+    },
+    "references/phase-2-verification.md": {
+      "sha256": "06b08525c3c4adb126ebacb9e4e5ed3a9758889fa274fd9b7dfaafb10b8f5ae5",
+      "bytes": 7109
+    },
+    "references/phase-3-verification.md": {
+      "sha256": "3b074a5dad2f3473911eb5dfa30a78b0aaba20fa8652253b8872b4a977ed8b0c",
+      "bytes": 6486
+    },
+    "references/phase-4-verification.md": {
+      "sha256": "665a46f62060c6bbf62c28ffe4ac1a9057bd3cc0a2f3002b156205a75685d96f",
+      "bytes": 8531
+    },
+    "references/phase-5-verification.md": {
+      "sha256": "6cb33070829586324d43cafad3ce1049a05db50e064cbac1b69b30d495140906",
+      "bytes": 14030
+    },
+    "references/responsive-signin-verification.md": {
+      "sha256": "cf54ad9bb7de42ea86eb6247cc357777eaceefdae7f8907cfa67069a0dc189e8",
+      "bytes": 5217
+    },
+    "references/routes-inspected.json": {
+      "sha256": "2867c6b143e4c46df8489b7220610650323117d916489c073fe264d6bcd3a22d",
+      "bytes": 48931
+    },
+    "references/source-inspection.json": {
+      "sha256": "83ffb4367a808ebeabc89aa5d0fbbf080bc6cdf5e693ef4b5b3ad7b405b04681",
+      "bytes": 27164
+    },
+    "references/source-provenance.md": {
+      "sha256": "ef7ec4d9456fdc4f9b5a698f17e22f7f73558c67ea0cc4487ee1a1db509afb15",
+      "bytes": 30329
+    },
+    "references/standalone-validation.json": {
+      "sha256": "5d7c543cf4a1a38329c7ee9cbdbc4a3793a2f8075be7aac8713edcaf8f161162",
+      "bytes": 440
+    },
+    "references/user-registration-requirements.md": {
+      "sha256": "a6eec002e592b8bf1eea4600b2923f3c4e08c56008171f84cb59490acecbbd56",
+      "bytes": 2257
+    },
+    "requirements.md": {
+      "sha256": "47b435400a351c8261b473e5117890cabe5b0300c88b7fba427a5d4ae89bd1c5",
+      "bytes": 7998
+    },
+    "setup.md": {
+      "sha256": "3f5245f290a8cbf6f2c05257b7100daca6aa203efe797e95295a01ac72159402",
+      "bytes": 13784
+    },
+    "verification.md": {
+      "sha256": "d724539545c104a0eea4b6eb96b3cbc9b0d2081b16c58514a016a1401f2834e1",
+      "bytes": 10011
+    },
+    "workspace.md": {
+      "sha256": "73028efe5482ef7dabff5f051535bb2fc91978e89502f96739fbd5ba4b139f45",
+      "bytes": 11159
+    }
+  }
+}

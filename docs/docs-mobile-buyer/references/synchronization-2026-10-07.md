@@ -2,7 +2,7 @@
 
 Reviewed Laravel **`a94669248c63525e44243327f4c25feca46c9c50`**. Client adoption remains **`57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` for Buyer**; historical baselines/manifests remain unchanged. [Source inspection](source-inspection-2026-10-07.json), [current routes](routes-2026-10-07.json) and [import provenance](imported-evidence-2026-10-07.json) record this review separately from earlier inspections. External source paths identify optional upstream audit material; they are not required local dependencies.
 
-Imported marketplace phone/tablet/desktop, navigation/retention/shopping/Profile-photo and selected-only PSGC evidence is Flutter-specific. The original report body and all ten synthetic PNGs are preserved with attribution. October 4–5 test counts remain attached to dated changes in the complete archived Progress log; none were rerun here. Storefront guest browsing/recency/address behavior is preserved. Provider-selection G25 and media G26 remain open. Historical October 5 missing-table and later storefront provider-quote failures have unverified current resolution.
+Imported marketplace phone/tablet/desktop, navigation/retention/shopping/Profile-photo and selected-only PSGC evidence is Flutter-specific. The original report body and all ten synthetic PNGs are preserved with attribution. October 4–5 test counts remain attached to dated changes in the complete archived Progress log; none were rerun here. Storefront guest browsing/recency/address behavior is preserved. Provider-selection G25 and media G27 remain open. Historical October 5 missing-table and later storefront provider-quote failures have unverified current resolution.
 
 ## Checks executed in this repository
 

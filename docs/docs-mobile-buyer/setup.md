@@ -28,9 +28,28 @@ synthetic credential or write to Laravel. Unknown API requests fail locally. It 
 certify deployed CORS, real-account commerce or installed-device acceptance. The existing
 live browser mode remains separate and needs the authorized API already running.
 
+## MapLibre address maps — external report, 2026-10-08
+
+Current optional map dependencies are `maplibre_gl: 0.27.1` and the existing
+`geolocator` constraint/lock. MapLibre replaces `flutter_map` and `latlong2`; the
+original table below remains historical compatibility evidence. JDK 21 is required
+for the MapLibre plugin; retain the project's current Flutter/Gradle/AGP stack.
+Web requires WebGL2 and the default plugin's pinned JS/CSS/worker host `unpkg.com`;
+no manual scripts are needed in `web/index.html`.
+
+Geoapify still supplies both forward geocoding and light raster tiles. Enable only
+with `--dart-define=MAPS_ENABLED=true` and an approved public
+`--dart-define=GEOAPIFY_PUBLIC_API_KEY=<public-key>`; these are public build inputs.
+Missing inputs keep maps disabled and manual address saving available. See
+[map guidance](maps-location-api.md) and [verification](references/maplibre-verification.md).
+
+The smoke harness accepts `--live-geoapify` for real public-landmark lookup/tiles
+while keeping Laravel responses synthetic. Use a public-key build and allow the
+exact local origin in the provider settings. See [live-key results](references/geoapify-live-verification.md).
+
 ## Current Phases 1–4 local development
 
-The ten approved package pins support implemented auth, discovery/account, commerce and communication.
+The seven core package pins support auth, discovery/account, commerce and communication; optional pinning now uses MapLibre and geolocator. The old ten-package table records the October 4 resolution before the October 8 map replacement.
 Maps/uploads/PSGC/preferences are implemented; no dependency was added for Phases 3–4. Preserve
 historical SDK/package checks; current results are in [Phase 4 evidence](references/phase-4-verification.md).
 
@@ -70,6 +89,8 @@ Preserve this project’s selected **Flutter 3.47.2 stable / Dart 3.13.2** (Flut
 
 For a fresh destination, select the same SDK through approved tooling and verify `flutter --version` and `flutter doctor -v`; preserve the selected SDK in the external Flutter project. Keep pubspec.lock committed. On 2026-10-04, `flutter pub get --enforce-lockfile` passed for the existing scaffold and `flutter analyze --no-pub` reported no issues. Separately, all ten package pins below resolved together with `sdk: ^3.13.2` in an isolated temporary manifest, including the optional map packages. The application’s dependencies and lockfile were unchanged. This proves dependency resolution, not feature implementation, plugin runtime behavior, Android/web builds or target acceptance; later phase reports separately record compilation and synthetic/browser checks; live/device and distribution gates remain open.
 
+The table records historical package compatibility; use the current MapLibre YAML below for new optional map setup. Preserve historical metadata/lockfile evidence.
+
 | Package | Pin | Purpose / constraint evidence |
 | --- | --- | --- |
 | [go_router](https://pub.dev/packages/go_router/versions/16.2.4) | 16.2.4 | Routes; Dart ^3.7 / Flutter≥3.29 |
@@ -106,9 +127,8 @@ dependencies:
   shared_preferences: 2.5.3
   url_launcher: 6.3.2
   flutter_markdown_plus: 1.0.12
-  # Optional pinning only; omit these three for a text-only delivery.
-  flutter_map: 8.2.2
-  latlong2: 0.9.1
+  # Optional pinning only; omit these two for a text-only delivery.
+  maplibre_gl: 0.27.1
   geolocator: 14.0.2
 flutter:
   uses-material-design: true
