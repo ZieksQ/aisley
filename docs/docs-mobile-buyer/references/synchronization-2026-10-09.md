@@ -4,7 +4,7 @@ Reviewed Laravel `0a6aaa8096196e2c26822ac0281d5d30675511a8`. [Source hashes](sou
 
 October 8 client reports were merged selectively with the current backend contract. Preserve shipping/provider selection, POD approval/rejection, COD/manual review and private chat-media guidance. Historical baselines/manifests, progress/archive bytes, PSGC assets and root/bundled instructions are preserved. Imported tests/builds retain their original dates and project attribution; no Flutter results were rerun here.
 
-Buyer adoption remains `57e9eb2`. Merge the MapLibre address-pin setup/lifecycle and public Geoapify report; retain the pre-existing desktop checkout accessibility failure. Only the tested public key/local origin has live-provider evidence; real-account CRUD/shipping, installed Android/GPS/TalkBack, signing/production restrictions and G25/G26 remain open. The complete October 8 Buyer archive is byte-identical to its supplied source and its historical links use ordinary forwarding pages.
+Buyer adoption remains `57e9eb2`. Merge the MapLibre address-pin setup/lifecycle and public Geoapify report; retain the pre-existing desktop checkout accessibility failure. Only the tested public key/local origin has live-provider evidence; real-account CRUD/shipping, installed Android/GPS/TalkBack, signing/production restrictions and G25/G27 remain open. The complete October 8 Buyer archive is byte-identical to its supplied source and its historical links use ordinary forwarding pages.
 
 ## Copy and merge
 
