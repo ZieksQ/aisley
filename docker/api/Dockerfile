@@ -16,6 +16,7 @@ FROM php:8.4-fpm-alpine
 WORKDIR /var/www/html
 
 RUN apk add --no-cache \
+        ffmpeg \
         freetype-dev \
         icu-dev \
         libjpeg-turbo-dev \

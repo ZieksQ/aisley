@@ -33,3 +33,5 @@ Before creating, revising or implementing a Customer feature, read [Customer spe
 | [Policies and consent](shared/policy-viewing-consent/spec.md) | 1 | Public versions/status/acceptance/enforcement implemented | Implemented; target acceptance pending |
 
 The first 19 entries cover all canonical Customer areas. Notifications, separate Logistics/Courier messaging and shared consent add four explicit contracts. No dedicated canonical Customer notification spec exists; its portable spec records actual API behavior and the source gap.
+
+Newer [marketplace evidence](../references/marketplace-verification.md) and dated October 5 [progress](../PROGRESS.md) report responsive desktop presentation, retained pages, shopping controls, embedded Profile photos and selected-only PSGC. These are external client results, not storefront changes or live/device certification. Laravel [private chat media](../api/chat-media.md) is implemented across the three channels; imported Flutter text-chat completion does not establish attachment adoption (G26).

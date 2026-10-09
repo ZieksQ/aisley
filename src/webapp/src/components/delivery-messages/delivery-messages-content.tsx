@@ -1,9 +1,10 @@
 "use client";
 
+import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/chat-ui";
+import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/chat-ui";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { deliveryMessages, type DeliveryMessage, type DeliveryThread } from "@/lib/delivery-messages";
@@ -153,14 +154,14 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     }
   }
 
-  async function send() {
+  async function send(attachmentIds: string[] = []) {
     if (busy || !navigator.onLine) { setError("Reconnect before sending a message."); return; }
     const body = pending?.body ?? draft.trim();
-    if (!body || body.length > 2000 || (!selectedId && !startingOrder)) return;
+    if ((!body && !attachmentIds.length) || body.length > 2000 || (!selectedId && !startingOrder)) return;
     const contextToken = selectedId ? null : `order:${startingOrder}`;
     const savedAttempt = readChatAttempt(draftKey);
-    const attempt = savedAttempt?.body === body && savedAttempt.context === contextToken
-      ? savedAttempt : { key: crypto.randomUUID(), body, context: contextToken };
+    const attempt = savedAttempt?.body === body && JSON.stringify(savedAttempt.attachmentIds ?? []) === JSON.stringify(attachmentIds) && savedAttempt.context === contextToken
+      ? savedAttempt : { key: crypto.randomUUID(), body, context: contextToken, attachmentIds };
     setPending(attempt);
     const targetDraftKey = draftKey;
     const targetConversationId = selectedId;
@@ -170,9 +171,9 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     setNotice("");
     try {
       const result = targetConversationId
-        ? await deliveryMessages.send(targetConversationId, attempt.body, attempt.key)
-        : await deliveryMessages.start(targetOrderId!, attempt.body, attempt.key);
-      writeChatDraft(targetDraftKey, "");
+        ? await deliveryMessages.send(targetConversationId, attempt.body, attempt.key, attempt.attachmentIds ?? [])
+        : await deliveryMessages.start(targetOrderId!, attempt.body, attempt.key, attempt.attachmentIds ?? []);
+      clearChatAttachments(targetDraftKey); writeChatDraft(targetDraftKey, "");
       writeChatAttempt(targetDraftKey, null);
       if (activeDraftKey.current !== targetDraftKey) { void refresh(); return; }
       setMessages((current) => mergeMessages(current, [result.message]));
@@ -220,16 +221,18 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       </header>
       {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
       <ChatHistory
+          mediaClient={chatMedia}
         key={selectedId ?? startingOrder ?? 'delivery-inbox'}
-        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : selected?.counterparty_label ?? 'Logistics', createdAt: message.created_at }))}
+        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : selected?.counterparty_label ?? 'Logistics', attachments: message.attachments, createdAt: message.created_at }))}
         olderCursor={Boolean(nextMessageCursor)} onLoadOlder={() => void loadOlderMessages()} loading={loading}
         emptyText={startingOrder ? 'Your first message creates a private Order conversation.' : 'No messages to show.'}
       />
       {selected || startingOrder ? <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { ...(selectedId ? { conversation_id: selectedId } : { channel: "logistics", context_type: "order", context_id: startingOrder ?? undefined }) } }}
         id="delivery-message" recipient="Logistics"
         value={draft}
         onChange={(value) => { setDraft(value); setError(""); setNotice(""); }}
-        onSubmit={() => void send()}
+        onSubmit={(ids) => void send(ids)}
         sendAllowed={selected?.send_allowed ?? true}
         readOnlyReason={selected?.read_only_reason ? 'The delivery relationship ended. This history is read only.' : null}
         online={typeof navigator === 'undefined' || navigator.onLine}

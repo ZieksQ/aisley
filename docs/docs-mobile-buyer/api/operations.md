@@ -4,6 +4,7 @@ Current inspected checkout `22b0a48f9575ead182d03c35ab87345711c23b90`; reported 
 
 Use [wire types](field-index.md), [schema](dto-schema.json), [examples](examples/README.md), [errors](errors.md) and [feature error codes](error-codes.json) together.
 JSON uses Accept/Content-Type application/json; multipart sets its own boundary. GET has no body. Private bearer is restricted to the trusted API origin.
+Address-options retry notes preserve historical generic fallback advice. Current Buyer locality forms require explicit hierarchical selections and failed assets block Save with Retry; those notes do not authorize custom locality text.
 Named types define all nested fields locally. Status201 replay semantics vary: Shop/Q&A/Support retain201; operational chat and Review creation replay200.
 
 ## op-001

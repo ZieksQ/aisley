@@ -243,3 +243,11 @@ Historical baseline/source manifests, route enumeration, package metadata and st
 The Courier import is byte-identical to its tracked counterpart except the tracked-only agent guide. Only shared shipping/pickup/pricing context is reconciled; Courier implementation statuses, task/COD/evidence contracts, guides and archives remain preserved. Required Flutter sign-in and account-only recency do not alter storefront guest behavior.
 
 [Snapshot and report hashes](imported-evidence.json) identify the untouched imported inputs and attribution-only verification copies. These preserve provenance without claiming direct inspection of external Flutter implementation code.
+
+## Scoped chat media addition — 2026-10-06
+
+Updated only messaging feature/API wording, DTO/index fields and synthetic examples from the implemented Laravel chat-media addition. Historical checkout hashes, imported snapshots and client adoption/test evidence remain preserved. The addition is separately identified by `chat_media_contract` metadata; it does not advance the external Flutter adoption baseline.
+
+## Newer client evidence and backend review — 2026-10-07
+
+[Current source/route review](synchronization-2026-10-07.md) records Laravel a946692 separately from Buyer-adopted 57e9eb2. [Import manifest](imported-evidence-2026-10-07.json) hashes the supplied `docs/cabigan/docs-mobile-customer/` and `docs/cabigan/docs-flutter-courier/` snapshots and the original marketplace report/ten synthetic screenshots. Source paths remain optional provenance after copying. Earlier report texts, original baseline manifests, SDK/package metadata and validation histories are preserved. New client presentation/PSGC evidence establishes neither current shipping/media adoption nor live/device release acceptance.

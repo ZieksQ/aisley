@@ -2,7 +2,7 @@
 
 > Implementation, SDK/package resolution, tests, builds and browser results in this guide are reports from the external Buyer Flutter project and were not rerun here. This bundle contains documentation; `lib/`, tests, tools, lockfiles and build reports belong to that project. Current shipping-contract adoption remains [G25](../references/integration-gaps.md).
 
-Backend and Buyer Flutter inboxes/composers implemented; [Phase 4 evidence](../references/phase-4-verification.md) records partial acceptance. Each route uses Sanctum, active Customer and consent; Laravel derives participants. Plain-text bodies are trimmed, nonempty and at most 2,000 characters. Starts/sends require UUID `Idempotency-Key`. Foreign IDs are scoped not-found; resource denial clears the affected history. No role's operational workflow becomes available through a conversation.
+Backend and Buyer Flutter inboxes/composers implemented; [Phase 4 evidence](../references/phase-4-verification.md) records partial acceptance. Each route uses Sanctum, active Customer and consent; Laravel derives participants. Text-only bodies are trimmed, nonempty and at most 2,000 characters. The additive [media contract](chat-media.md) allows an optional caption with ready private attachments. Starts/sends require UUID `Idempotency-Key`. Foreign IDs are scoped not-found; resource denial clears the affected history. No role's operational workflow becomes available through a conversation.
 
 ## Separate channels
 
@@ -40,10 +40,14 @@ Poll each visible online inbox/thread at a bounded interval (15 seconds follows 
 
 Disable duplicate sends. Freeze the pending body/context/key after uncertain network/timeout; exact retries reconcile the same logical message. Pending first-send context must survive polling until resolved. `409` can signal idempotency conflict or ended relationship; refresh state and explain, never silently create a new key. Preserve safe draft/key on throttle. Correctable `422` needs a deliberate corrected attempt, while uncertain previous writes require reconciliation first. Render committed messages as sent only after the response confirms them.
 
-No offline queue, attachments, calls, typing/presence, edits, deletes or blanket Admin transcript access is implemented. Message retention/abuse policy and task-chat two-worker races/live external exchange remain release gaps. Clear drafts/transcripts and stop timers on logout, identity change or scoped denial. New text must not steal focus or force scroll while reading older history.
+Laravel private media upload/checking and attachment DTOs are implemented with runtime gating; external Buyer Flutter media adoption remains pending. No offline queue, calls, typing/presence, edits, deletes or blanket Admin transcript access is implemented. Message retention/abuse policy and task-chat two-worker races/live external exchange remain release gaps. Clear drafts/transcripts and stop timers on logout, identity change or scoped denial. New text must not steal focus or force scroll while reading older history.
 
 Sources at baseline: `ConversationApi`, `ConversationService`, `CustomerLogisticsConversationService`, `CourierCounterpartyConversationService`, `CourierCounterpartyEligibility`, Messaging Requests, Customer controllers, `CustomerChatMessagingTest`, `CustomerCourierMessagingTest`, and `OperationalMessagingTest`. Their upstream paths are indexed in [provenance](../references/source-provenance.md).
 
 ## Newly inspected portable fixtures
 
 Checkout57e9eb2 reinspection confirmed current Customer-only routes, actor-scoped participants/replay/read state, exact envelopes and Courier order-context. [Operation contracts](operations.md), [wire types](field-index.md), [error codes](error-codes.json) and per-channel [synthetic examples](examples/README.md) are local implementation inputs. No upstream reader or live capture is required for initial authoring; live counterpart/device and two-worker race gates remain pending. Shop read sequence≥1 and operational last_read_sequence≥1 differ from support last_read_sequence≥0. Private cache/transcript cleanup rejects delayed errors as well as successes.
+
+## Media addition — 2026-10-06
+
+All three Customer conversation families accept ordered `attachment_ids` on start/reply and return `attachments` on messages. Use [private media](chat-media.md), [typed fields](field-index.md), and [examples](examples/chat-media.json). Existing Phase 4 text-chat evidence does not certify Flutter attachment rendering, upload or device behavior.

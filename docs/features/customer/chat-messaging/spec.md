@@ -13,7 +13,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Its rich cards, Seller sharing, and images are target enhancements; this role's existing text-only API and implementation status remain authoritative until separately revised.
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Rich cards and Seller sharing remain target enhancements. Private attachments follow the [media contract](../../shared/chat-media/spec.md) with explicit runtime readiness.
 - Let an authenticated Customer ask a Shop about a visible Product or an Order and continue the conversation in a private in-app inbox.
 - Shopee's [buyer chat guidance](https://help.shopee.ph/portal/4/article/82308-%5BChat%5D-How-do-I-chat-with-sellers) is a UX reference for a **Chat** entry point on a Shop and product/order questions; it is not a claim that AISLEY has Shopee's transport or policies.
 - The Shop is the conversation's public identity; the private Seller account is an authorization subject, not a displayed contact profile.
@@ -24,7 +24,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - Separate Courier–Buyer final-mile API and storefront screens are implemented for an accepted task on the Customer's owned Order. **Courier messages** in the Account menu opens `/courier-messages`; Order detail checks server eligibility before offering **Message delivery Courier**. See [Courier API handoff](../../courier/chat-messaging/api-handoff.md). The imported Flutter log (2026-10-02) records its task-scoped Buyer composer as locally implemented; live authenticated exchange remains a release check, not a claim established by this storefront release.
 - Product Q&A stays public and Product-scoped. Chat is private; it cannot change Orders, Inventory, delivery status, refunds, or complaint decisions.
 - Existing order tracking and seller-help links remain authoritative. A chat statement is not evidence that a delivery, refund, or policy action was committed.
-- No guest chat, file/image attachments, calls, typing indicators, online presence, message edits/deletion, AI replies, or WebSocket dependency in the first release.
+- No guest chat, calls, typing indicators, online presence, message edits/deletion, AI replies, or WebSocket dependency in the first release.
 
 ## MUST
 
@@ -45,7 +45,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - Starting from an Order reuses the Shop thread even when the Customer bought from several Shops in one Checkout; the selected Shop/Order relationship must be checked on every new context card.
 - A message has a server UUID, conversation ID, authenticated sender ID, plain-text body, server time, and monotonically increasing per-thread sequence.
 - A Seller reply uses the same sequence and history. It must not create a parallel Seller-only conversation.
-- Validate trimmed nonempty text up to 2,000 characters. Render as text, never HTML/MDX; reject unsupported attachments in the first release.
+- Validate a trimmed caption up to 2,000 characters and require text or ready attachment_ids. Render captions as text, never HTML/MDX; reject unsupported media under the shared media policy.
 - An optional Product or Order context reference is attached to the **message**, not used as a new conversation identity. Validate its Customer/Shop ownership at send time.
 - The server persists the message and thread activity atomically. A failed transaction produces no successful message, unread increment, or notification.
 - Require a UUID `Idempotency-Key` per send. Exact retries return the original message; key reuse with different content returns `409`.
@@ -69,6 +69,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 ### Privacy and misuse
 
 - Throttle conversation starts and sends per authenticated account; return `429` without changing persisted history.
+- Customer–Shop starts allow 15 requests/minute and replies allow 30 requests/minute, with separate named counters per authenticated Customer across all Shops. Browsing, inbox/history polling, and read acknowledgments do not consume these mutation allowances; Customer–Logistics uses its own counters. The overall 120-request/minute Customer API limit still applies, and throttled responses retain retry headers.
 - Do not expose an arbitrary user search, recipient picker, Seller email/phone, or raw Shop-owner ID in the Customer composer.
 - Log safe message/conversation IDs, actor, outcome and timing for operations; do not log message bodies by default.
 - Admin has no automatic right to inspect private chats. Any report/review access needs an approved complaint or moderation contract and audited scope.
@@ -145,3 +146,19 @@ Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passe
 External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
 
 Web UI adoption (2026-10-05): Customer–Shop, Customer–Courier, and Customer–Logistics views now use the shared presentation documented above. Existing Customer endpoints and text/context payloads are unchanged; Customer lint and TypeScript checks passed. Production build and Customer browser verification remain unconfirmed because the environment could not fetch the app's existing Google Fonts during build.
+
+## Private chat media extension — 2026-10-06
+
+- All existing role channels accept ordered `attachment_ids` on first-message and reply requests. Text-only requests and historical retry hashes remain compatible; attachment-only sends receive a readable string-body fallback.
+- [Shared Chat Media](../../shared/chat-media/spec.md) owns image/video/document formats, limits, scan/readiness, private delivery, cleanup and exact retry behavior. Existing participants, approvals, Store/Order/pickup/task/custody boundaries remain enforced at upload and send.
+- Use role-owned `/api/v1/{role}/chat-attachments` capabilities/upload/status/retry/remove/content/preview routes. Prospective uploads resolve existing start selectors and create no empty chat. Never attach another user's or another context's asset.
+- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. External Buyer/Courier attachment adoption and device acceptance are pending.
+- Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
+
+Customer–Courier mutations now use separate named per-account start (15/minute) and reply (30/minute) counters so browsing, upload/status and history do not consume those budgets. The overall 120 Customer requests/minute remains enforced. This matches existing Customer Shop/Logistics counter isolation.
+
+## Dedicated web chat notifications — 2026-10-06
+
+- The header Chat messages icon combines unread incoming messages across authorized Shop, Logistics Order, and final-mile Courier conversations, separately from the general notification bell. It previews up to five unread conversations and links directly to the existing role/channel thread.
+- Follow the [shared notification behavior and additive API contract](../../shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06): `GET /api/v1/customer/chat-notifications`, foreground 15-second refresh, participant-derived totals, private previews, and immediate refresh after successful read acknowledgment. Opening the dropdown does not mark read.
+- Existing channel routes, authorization, approval/tenant boundaries, read-only history, idempotency and media contracts remain authoritative. This web change does not establish external Flutter adoption or background push.

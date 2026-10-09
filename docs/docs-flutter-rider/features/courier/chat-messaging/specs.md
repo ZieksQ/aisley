@@ -31,12 +31,11 @@ backend_contract_version: courier-operational-messaging-v2
 - Chat coordinates pickup, access instructions, and delays. It cannot accept/reject a task,
   confirm a scan or delivery, change an address/route, create an Incident or SOS alert, or
   approve a Logistics action. Those features remain authoritative.
-- MVP is persisted plain text over authenticated HTTP with visible-screen polling. Masked
-  calling, files/photos, voice, live location, typing/presence, realtime transport, SMTP,
-  SMS, and mobile push per message are deferred.
+- Imported Flutter adoption is text over HTTP with visible-screen polling; current Laravel
+  private media is defined below and remains unadopted by Flutter. Masked calling, voice, live
+  location, typing/presence, realtime transport, SMTP, SMS and per-message push remain deferred.
 
 ## MUST
-
 ### Authorization and relationship
 
 - Every Courier route requires `auth:sanctum`, `courier.active`, and `policy.consent`.
@@ -66,7 +65,6 @@ backend_contract_version: courier-operational-messaging-v2
 - The thread's immutable organization/task context is not silently changed when a
   Shipment later moves by linehaul. Each new leg/organization needs its own context.
 - A guessed task, thread, message, or same-email account from another role/tenant receives a scoped denial without disclosing the foreign record.
-
 ### Thread, send, and read rules
 
 - The first valid message lazily creates one conversation for the organization, task,
@@ -96,7 +94,6 @@ backend_contract_version: courier-operational-messaging-v2
   thread to participants, avoid message-body logging, and do not rewrite the
   Customer checkout/address snapshot based on text.
 - Rate-limit start/send, log safe IDs/actor/outcome, and use private role-scoped projections. Admin has no automatic access to operational chat bodies.
-
 ### Flutter behavior and failures
 
 - Courier token is returned once at login, stored only in OS secure storage, and sent
@@ -119,7 +116,6 @@ backend_contract_version: courier-operational-messaging-v2
 - Handle `401` by clearing the session; `403` by showing status/consent gating;
   `404` as a scoped missing/foreign thread; `409` as a changed task or key conflict;
   `422` as field validation; `429` with retry guidance. No optimistic status edit.
-
 ### Acceptance criteria
 
 - [ ] Courier and owning Logistics share one task-scoped thread; Seller contact is first-mile accepted only, Buyer contact final-mile accepted only.
@@ -228,3 +224,7 @@ backend_contract_version: courier-operational-messaging-v2
 - Copy this API contract and `api-handoff.md` to Flutter. All three Courier channels and
   both web counterparts are implemented locally; live exchange remains unverified.
   Buyer starts refresh the final-mile task; replies refresh `send_allowed`. No counterpart Order-context calls are made by Flutter.
+
+## Additive media contract — 2026-10-06
+
+The Laravel backend now supports private image, MP4 and document attachments for existing role-authorized relationships. [Media API](media-api.md) supersedes text-only attachment restrictions in this copied snapshot, permits optional caption with ready attachment IDs, and defines limits, state and exact retry. External Flutter media adoption remains pending; prior client status and acceptance evidence are preserved.

@@ -1,3 +1,4 @@
+import { ChatNotifications } from '../components/ChatNotifications'
 import { useEffect, useRef, useState } from 'react'
 import { FaArrowRightFromBracket, FaBars, FaBell, FaChevronUp, FaGear, FaTruckFast, FaXmark } from 'react-icons/fa6'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -183,7 +184,7 @@ export function LogisticsLayout() {
     <section className="min-h-screen lg:pl-64">
       <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-white/10 dark:bg-[#171719] sm:px-6 lg:px-8">
         <div className="flex items-center gap-3"><button aria-controls="logistics-navigation" aria-expanded={open} aria-label="Open navigation" className="grid size-10 place-items-center rounded-md border border-zinc-300 dark:border-white/15 lg:hidden" onClick={() => setOpen(true)} ref={navigationButton} type="button"><FaBars /></button><h1 className="text-lg font-semibold">{title}</h1></div>
-        <div className="flex items-center gap-2"><NotificationBell /></div>
+        <div className="flex items-center gap-2"><ChatNotifications /><NotificationBell /></div>
       </header>
       <Outlet />
     </section>

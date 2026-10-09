@@ -53,7 +53,7 @@ class ConversationApi
         /** @var User $actor */
         $actor = $request->user();
         $conversation = $this->conversations->find($actor, $role, $id);
-        $page = $conversation->messages()->orderByDesc('sequence')->cursorPaginate(30);
+        $page = $conversation->messages()->with('attachments')->orderByDesc('sequence')->cursorPaginate(30);
 
         return $this->response([
             'items' => $page->getCollection()->reverse()->map(fn ($message) => $this->conversations->message($message, $conversation, $actor))->values()->all(),

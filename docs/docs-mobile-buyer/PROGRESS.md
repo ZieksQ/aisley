@@ -1,15 +1,11 @@
 # Progress
 
-Short, dated log for the standalone Buyer Flutter project. Append implementation and actual verification here after copying the bundle. Preserve history; archive complete logs after 150 physical lines.
+Short, dated log for the standalone Buyer Flutter project. Append actual implementation and verification after copying; preserve complete history and archive logs exceeding 150 physical lines.
 
-Format:
+## Backend and client snapshot
 
-```text
-## YYYY-MM-DD
-- Change, backend baseline, checks actually run, remaining gates.
-```
-
----
+- Historical backend 7b1a08a; Buyer adoption remains 57e9eb2. Documentation review: Laravel a946692, 2026-10-07. Phases 1–4, Phase 5 tooling and October 4–5 marketplace/control refinements are externally reported; no Flutter results were rerun here.
+- Provider selection G25, private media G27, historical checkout resolution, controlled authenticated/live, installed Android/TalkBack/picker, Firefox modes and distribution gates remain open.
 
 ## 2026-10-03
 
@@ -106,3 +102,19 @@ Format:
 ## 2026-10-09
 
 - Synchronized the affected voucher contract sections with branch `feature/voucher-names-stacking-ux`: customer-visible names in quote/applied/Batch DTOs, frozen Order names with historical code fallback, default opposite-benefit pairing and one App voucher per benefit per batch. Updated error examples and recorded external client adoption gap G26 alongside retained G25. Prior Flutter implementation evidence/status is unchanged; no Flutter analyze/build/device/live verification ran.
+
+## 2026-10-07 — Archive and synchronization
+
+- Archived the complete merged progress history unchanged in [PROGRESS-2026-10-07.md](logs/PROGRESS-2026-10-07.md), including all dated imported results and the synchronization entry. Forwarding pages under logs/references preserve historical links without rewriting the archive.
+- Selectively synchronized marketplace layout/navigation, page retention, shopping controls, embedded Profile photos and selected-only PSGC; imported [marketplace report/ten screenshots](references/marketplace-verification.md) with attribution. Current shipping/private-media contracts remain intact; storefront behavior and Courier client adoption are unchanged.
+- Independent portable-document/contract/evidence/preservation checks are in [synchronization](references/synchronization-2026-10-07.md). No application/Flutter tests/builds, live/device, dependency, configuration, migration or external-project changes ran here.
+
+## 2026-10-09 — Selective synchronization of October 8 Flutter reports
+
+- Imported the attributed [MapLibre](references/maplibre-verification.md), [live Geoapify](references/geoapify-live-verification.md) and [original current progress](references/imported-progress-2026-10-08.md) reports. Preserved the complete external [October 8 archive](logs/PROGRESS-2026-10-08.md) byte-for-byte alongside earlier archives; local forwarders keep historical links clickable.
+- Updated optional map setup, architecture, address spec and G07 guidance for reported MapLibre 0.27.1/geolocator behavior. Historical package metadata, selected-only PSGC and current shipping/private-media contracts remain preserved. Buyer adoption remains 57e9eb2; the reported checkout accessibility failure, G25/G26 and installed-device/real-account/production gates remain open.
+- [Documentation/source/portable-copy checks](references/synchronization-2026-10-09.md) ran here. External Flutter/provider checks were attributed only; no application, dependency, backend/Flutter runtime, browser/device or deployment operations ran here.
+
+## 2026-10-09 — Rebase reconciliation
+
+- Preserved upstream voucher names/default-pairing contracts and incoming shipping, sorting, private-media and reported client evidence. Voucher adoption retains G26; private chat media is G27, with historical media-G26 references explained in the integration-gap register. Existing archives and imported reports remain unchanged; Flutter implementation/adoption status is unchanged and no Flutter tests/builds or device checks ran for this merge.

@@ -32,7 +32,7 @@ ownership and capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -57,6 +57,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Missing thumbnail/ratings/discount renders safe Product card fallback with no invented sale.
 - Product purchase/add Cart eligibility is rechecked separately from saved status.
 - Empty list offers discovery; failed list keeps explicit retry and never calls it empty.
+- Put “View product” and “Remove from wishlist” text buttons at the right side of each row. Retain the
+  removal confirmation, show “Removing…” while pending, and keep 48px targets and visible focus.
+- On narrow screens or enlarged text, place both actions under item details, right aligned and
+  wrapping without clipping.
 - Logout/account change clears hearts, loaded cursor pages and all account-keyed saved hints.
 - Notification alerts for wishlist price/stock and voucher/Shop-follow capabilities remain
   deferred.
@@ -137,6 +141,9 @@ Private data is memory-only; token is secure-store only. Recently Viewed is acco
 Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not
 require a universal error envelope.
+
+Surround each complete Product entry and its item-specific actions with a white card and visible grey
+outline; wrapped actions remain inside the card.
 
 ## HOW
 

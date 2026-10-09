@@ -5,7 +5,7 @@ system: AISLEY
 type: Feature Specification
 version: 2.6
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
-implementation_status: Auth foundation implemented; supplied Flutter progress records registration, bearer session, and protected scaffold UI; live cross-repository verification remains separate
+implementation_status: Backend Auth v2.6 implemented; October 8 external Flutter report records response integration against 4c3f504; authenticated/device acceptance remains unverified
 canonical: true
 role: Courier / Rider
 scope: Laravel API consumed by an external Flutter mobile client
@@ -223,11 +223,8 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 
 ### Handoff checklist
 
-- The Flutter project copies this spec and records the backend commit or API version used for its fixtures.
-- The copied document must retain the exact route, field, status, response, and prohibition wording unless a newer backend contract supersedes it.
-- Any unavailable operational route is shown as unavailable in the Flutter project; no mock route is promoted to production behavior.
-- Flutter implementation review confirms secure-storage failure, app restart, token expiry, offline, timeout, and retry behavior.
-- Backend review confirms that every new Auth mutation remains server-owned, transactional, scoped, and covered by API tests.
-- A material contract change increments this spec version, updates the copied Flutter document, and appends `docs/PROGRESS.md`.
+- Copy the adopted backend version and exact fields, permissions and response contracts into Flutter docs; unavailable/conceptual routes stay unavailable.
+- October 8 external Flutter evidence reports 217 scoped Auth/network/policy/widget tests for denials, duplicate email, secure-storage failure, token cleanup/consent and guarded retries against Auth `4c3f504`; earlier operations remain `d7df220`. These results were not rerun here; recovery UI and authenticated/device gates remain open. See [imported evidence](../../../docs-flutter-rider/PROGRESS.md#2026-10-08--auth-v26-client-integration-verified).
+- Backend review requires server-owned, transactional, scoped mutations with API tests; material contract changes increment this spec version, update the copied Flutter document, and append `docs/PROGRESS.md`.
 
 **References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Courier.md`, `docs/domains/Logistics.md`, [`user-registration-requirements.md`](../../../references/user-registration-requirements.md), [`file-upload-requirements.md`](../../../references/file-upload-requirements.md), and [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities).

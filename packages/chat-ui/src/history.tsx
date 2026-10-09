@@ -1,9 +1,12 @@
+import { ChatMessageMedia } from "./media-history";
+import type { ChatMediaClient } from "./media-types";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatMessageItem } from "./types";
 
 const muted = "text-zinc-500 dark:text-zinc-400";
 
 export function ChatHistory({
+  mediaClient,
   messages,
   label = "Conversation messages",
   olderCursor,
@@ -12,6 +15,7 @@ export function ChatHistory({
   loading,
   emptyText = "No messages yet.",
 }: {
+  mediaClient?: ChatMediaClient;
   messages: ChatMessageItem[];
   label?: string;
   olderCursor?: boolean;
@@ -83,6 +87,7 @@ export function ChatHistory({
                 <article className={`max-w-[92%] border px-3 py-2.5 text-sm sm:max-w-[78%] ${message.mine ? "ml-auto border-[#4C1268]/20 bg-[#4C1268]/5 dark:bg-[#4C1268]/20" : "border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[0.04]"}`}>
                   <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{message.sender}</p>
                   <p className="mt-1 whitespace-pre-wrap [overflow-wrap:anywhere] text-zinc-900 dark:text-zinc-100">{message.body}</p>
+                  {mediaClient && message.attachments?.length ? <ChatMessageMedia attachments={message.attachments} client={mediaClient} /> : null}
                   {message.context ? <div className="mt-2 border-t border-zinc-200 pt-2 text-xs dark:border-white/10">{message.context}</div> : null}
                   <time className={`mt-2 block text-right text-xs ${muted}`} dateTime={message.createdAt} title={date.toLocaleString()}>{date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</time>
                   {message.status && message.mine ? <p className={`mt-1 text-right text-xs ${message.status === "unconfirmed" || message.status === "failed" ? "text-amber-700 dark:text-amber-300" : muted}`}>{message.status === "sent" ? "Sent" : message.status === "sending" ? "Sending…" : message.status === "failed" ? "Failed" : "Delivery unconfirmed"}</p> : null}

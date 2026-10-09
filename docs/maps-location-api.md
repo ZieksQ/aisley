@@ -10,7 +10,7 @@ This document defines the approved provider, privacy, fallback, and cost boundar
 | --- | --- | --- |
 | Philippine administrative hierarchy | Bundled PSA PSGC data in `packages/psgc-address-data/data` | Search, validate, and canonicalize Region, Province, City/Municipality, and Barangay. |
 | Forward geocoding | Geoapify Geocoding API | Resolve a completed, user-confirmed Philippine address after an intentional action. |
-| Interactive map and pin | Geoapify map tiles rendered with Leaflet | Display confirmed coordinates and let the user click or drag a local HTML pin. |
+| Interactive map and pin | Geoapify tiles with Leaflet in web apps; MapLibre in the external Buyer app | Display confirmed coordinates and let the user adjust a local pin with the app’s supported controls. |
 | Road-distance ranking | Geoapify Route Matrix API | Compare one Seller pickup coordinate with a bounded set of eligible Logistics hub coordinates server-side. |
 | Courier pickup route line | Geoapify Routing API | Build bounded road-following geometry through the server-authoritative hub → pickups → hub stop order. |
 | Current-device coordinates | Browser or mobile operating-system geolocation | Populate coordinates after explicit permission. |
@@ -27,7 +27,7 @@ Select cascading PSGC address
   -> complete street and postal fields
   -> intentionally choose Pin location
   -> one Geoapify forward-geocoding request
-  -> render a Geoapify map with Leaflet only after a result exists
+  -> render Geoapify tiles with the app’s approved renderer only after a reviewed result exists
   -> confirm or adjust the local pin
   -> Laravel validates and persists the address and coordinates
 ```
@@ -70,6 +70,12 @@ Final-mile dispatch route geometry uses the same server-only Geoapify key and a 
 ## Cost boundary
 
 Geoapify usage shares the configured account allowance. A 1×N matrix consumes N baseline matrix cells/credits under the current pricing model. Treat free capacity as a launch allowance, meter requests and failures, and recheck pricing and terms before release or capacity changes.
+
+## External Flutter map evidence — synchronized 2026-10-09
+
+The October 8 Buyer report replaces its earlier flutter_map/latlong2 renderer with MapLibre 0.27.1 and retains foreground geolocator, explicit candidate/pin confirmation and numeric/manual fallback. Its localhost Geoapify public-landmark lookup/tiles passed after an allowed-origin update; Laravel responses remained synthetic. See [Buyer setup and evidence](docs-mobile-buyer/maps-location-api.md). Installed Android/GPS/TalkBack, real-account shipping and production credential suitability remain open.
+
+The October 8 Courier report implements read-only pickup and accepted final-mile maps against map baseline `51d9694`, separate from Auth `4c3f504` and earlier operational `d7df220`. It consumes the existing private style/tile endpoints through authenticated API reads and passes bounded raster pixels to per-map image sources; the SDK receives no bearer headers or provider keys. Stops and route data remain in memory; server order and labelled geometry fallback stay authoritative. See [Courier transport and acceptance evidence](docs-flutter-rider/courier-route-maps.md). External tests/builds were not rerun here; live API/CORS/provider and installed-device acceptance remain open. These external renderers preserve the four web apps’ existing stack and server credential boundary.
 
 ## Official references
 

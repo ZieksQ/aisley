@@ -32,3 +32,5 @@ Read [operation contracts](../operations.md) and [wire definitions](../field-ind
 - [Current shipping-selection scenarios](shipping-selection-scenarios.json) cover empty/single/multiple options, invalid/unavailable providers, tariff/route failures, frozen/replayed/changed intent and nullable legacy providers. These are synthetic expected contracts; current client adoption remains G25.
 
 - [Voucher names/default pairing projection](voucher-default-pairing.json) illustrates two opposite App benefits and capped savings for the [2026-10-09 update](../voucher-selection-update.md). G26 adoption is unverified.
+
+- [Chat media](chat-media.json) provides synthetic upload/status/retry/removal/authorized-read and attachment-message examples for the additive 2026-10-06 contract; external Flutter media adoption remains pending.

@@ -1,0 +1,947 @@
+{
+  "checkout": "a94669248c63525e44243327f4c25feca46c9c50",
+  "inspected_on": "2026-10-07",
+  "execution": "Read-only route enumeration; no HTTP requests or client execution. Parameter placeholder names are normalized for operation comparison.",
+  "routes": [
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/account",
+      "name": "courier.account.show",
+      "action": "App\\Http\\Controllers\\Courier\\AccountController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PUT",
+      "uri": "api/v1/courier/account/password",
+      "name": "courier.account.password.update",
+      "action": "App\\Http\\Controllers\\Courier\\AccountController@updatePassword",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:courier-account-password"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/courier/account/profile",
+      "name": "courier.account.profile.update",
+      "action": "App\\Http\\Controllers\\Courier\\AccountController@updateProfile",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/account/profile-photo",
+      "name": "courier.account.profile-photo.update",
+      "action": "App\\Http\\Controllers\\Courier\\AccountController@uploadProfilePhoto",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:courier-profile-photo"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/account/profile-photo",
+      "name": "courier.account.profile-photo.show",
+      "action": "App\\Http\\Controllers\\Courier\\AccountController@profilePhoto",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/courier/account/profile-photo",
+      "name": "courier.account.profile-photo.destroy",
+      "action": "App\\Http\\Controllers\\Courier\\AccountController@removeProfilePhoto",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/auth/forgot-password",
+      "name": "courier.auth.password.email",
+      "action": "App\\Http\\Controllers\\Courier\\AuthController@forgotPassword",
+      "middleware": [
+        "api"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/auth/login",
+      "name": "courier.auth.login",
+      "action": "App\\Http\\Controllers\\Courier\\AuthController@login",
+      "middleware": [
+        "api"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/auth/logistics-options",
+      "name": "courier.auth.logistics-options",
+      "action": "App\\Http\\Controllers\\Courier\\AuthController@options",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/auth/logout",
+      "name": "courier.auth.logout",
+      "action": "App\\Http\\Controllers\\Courier\\AuthController@logout",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/auth/me",
+      "name": "courier.auth.me",
+      "action": "App\\Http\\Controllers\\Courier\\AuthController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/auth/register",
+      "name": "courier.auth.register",
+      "action": "App\\Http\\Controllers\\Courier\\AuthController@register",
+      "middleware": [
+        "api",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/chat-attachments",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@capabilities",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/chat-attachments",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@upload",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:chat-media-upload"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/chat-attachments/{attachment}",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "DELETE",
+      "uri": "api/v1/courier/chat-attachments/{attachment}",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@destroy",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/chat-attachments/{attachment}/content",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@content",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/chat-attachments/{attachment}/preview",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@preview",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/chat-attachments/{attachment}/retry",
+      "name": "courier.",
+      "action": "App\\Http\\Controllers\\Messaging\\ChatAttachmentController@retry",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:chat-media-upload"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/dashboard",
+      "name": "courier.dashboard.show",
+      "action": "App\\Http\\Controllers\\Courier\\DashboardController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/delivery-history",
+      "name": "courier.delivery-history.index",
+      "action": "App\\Http\\Controllers\\Courier\\DeliveryHistoryController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/delivery-history/{task}",
+      "name": "courier.delivery-history.show",
+      "action": "App\\Http\\Controllers\\Courier\\DeliveryHistoryController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/delivery-proofs/{proof}/photo",
+      "name": "courier.delivery-proofs.photo",
+      "action": "App\\Http\\Controllers\\Courier\\ProofOfDeliveryController@photo",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/final-mile-batches",
+      "name": "courier.final-mile-batches.index",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileBatchController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/final-mile-batches/{schedule}",
+      "name": "courier.final-mile-batches.show",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileBatchController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/final-mile-batches/{schedule}/accept",
+      "name": "courier.final-mile-batches.accept",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileBatchController@accept",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/final-mile-batches/{schedule}/route",
+      "name": "courier.final-mile-batches.route",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileBatchController@route",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/final-mile-tasks",
+      "name": "courier.final-mile-tasks.index",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/final-mile-tasks/{task}",
+      "name": "courier.final-mile-tasks.show",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/final-mile-tasks/{task}/accept",
+      "name": "courier.final-mile-tasks.accept",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@accept",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/final-mile-tasks/{task}/failed-attempts",
+      "name": "courier.final-mile-tasks.failed-attempts.store",
+      "action": "App\\Http\\Controllers\\Courier\\FailedDeliveryAttemptController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/final-mile-tasks/{task}/pickup",
+      "name": "courier.final-mile-tasks.pickup",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@pickup",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/final-mile-tasks/{task}/reject",
+      "name": "courier.final-mile-tasks.reject",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@reject",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/final-mile-tasks/{task}/status",
+      "name": "courier.final-mile-tasks.status",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@status",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/first-mile-tasks",
+      "name": "courier.first-mile-tasks.index",
+      "action": "App\\Http\\Controllers\\Courier\\FirstMileTaskController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/first-mile-tasks/{task}/accept",
+      "name": "courier.first-mile-tasks.accept",
+      "action": "App\\Http\\Controllers\\Courier\\FirstMileTaskController@accept",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/first-mile-tasks/{task}/pickup",
+      "name": "courier.first-mile-tasks.pickup",
+      "action": "App\\Http\\Controllers\\Courier\\FirstMileTaskController@pickup",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/linehaul-trips",
+      "name": "courier.linehaul-trips.index",
+      "action": "App\\Http\\Controllers\\Courier\\LinehaulTripController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/map-style",
+      "name": "courier.map.style",
+      "action": "App\\Http\\Controllers\\Courier\\PickupRouteManifestController@style",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/map-tiles/{z}/{x}/{y}.png",
+      "name": "courier.map.tiles",
+      "action": "App\\Http\\Controllers\\Courier\\PickupRouteManifestController@tile",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/notifications",
+      "name": "courier.notifications.index",
+      "action": "App\\Http\\Controllers\\Courier\\NotificationController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/notifications/unread-count",
+      "name": "courier.notifications.unread-count",
+      "action": "App\\Http\\Controllers\\Courier\\NotificationController@unreadCount",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/notifications/{notification}",
+      "name": "courier.notifications.show",
+      "action": "App\\Http\\Controllers\\Courier\\NotificationController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/notifications/{notification}/read",
+      "name": "courier.notifications.read",
+      "action": "App\\Http\\Controllers\\Courier\\NotificationController@markRead",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:120,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/operational-conversations",
+      "name": "courier.operational-conversations.index",
+      "action": "App\\Http\\Controllers\\Messaging\\OperationalConversationController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/operational-conversations",
+      "name": "courier.operational-conversations.start",
+      "action": "App\\Http\\Controllers\\Messaging\\OperationalConversationController@start",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:15,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/operational-conversations/{conversation}",
+      "name": "courier.operational-conversations.show",
+      "action": "App\\Http\\Controllers\\Messaging\\OperationalConversationController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/operational-conversations/{conversation}/messages",
+      "name": "courier.operational-conversations.messages",
+      "action": "App\\Http\\Controllers\\Messaging\\OperationalConversationController@messages",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/operational-conversations/{conversation}/messages",
+      "name": "courier.operational-conversations.send",
+      "action": "App\\Http\\Controllers\\Messaging\\OperationalConversationController@send",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/operational-conversations/{conversation}/read",
+      "name": "courier.operational-conversations.read",
+      "action": "App\\Http\\Controllers\\Messaging\\OperationalConversationController@read",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/pickup-schedules/{schedule}/route-manifest",
+      "name": "courier.pickup-schedules.route-manifest.show",
+      "action": "App\\Http\\Controllers\\Courier\\PickupRouteManifestController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/support-tickets",
+      "name": "courier.support-tickets.index",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@index",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/support-tickets",
+      "name": "courier.support-tickets.store",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/support-tickets/{ticket}",
+      "name": "courier.support-tickets.show",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/support-tickets/{ticket}/read",
+      "name": "courier.support-tickets.read",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@read",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/support-tickets/{ticket}/replies",
+      "name": "courier.support-tickets.replies.store",
+      "action": "App\\Http\\Controllers\\Support\\RequesterSupportTicketController@reply",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:30,1"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/tasks/{task}/completion",
+      "name": "courier.tasks.completion.show",
+      "action": "App\\Http\\Controllers\\Courier\\CompleteDeliveryController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/tasks/{task}/completion",
+      "name": "courier.tasks.completion.store",
+      "action": "App\\Http\\Controllers\\Courier\\CompleteDeliveryController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/tasks/{task}/delivery",
+      "name": "courier.tasks.delivery.show",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@delivery",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/tasks/{task}/pickup",
+      "name": "courier.tasks.pickup",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@pickup",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/tasks/{task}/proof-of-delivery",
+      "name": "courier.tasks.proof-of-delivery.store",
+      "action": "App\\Http\\Controllers\\Courier\\ProofOfDeliveryController@store",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/tasks/{task}/scan-events",
+      "name": "courier.tasks.scan-events",
+      "action": "App\\Http\\Controllers\\Courier\\FinalMileTaskController@pickup",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/vehicle",
+      "name": "courier.vehicle.show",
+      "action": "App\\Http\\Controllers\\Courier\\VehicleController@show",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "PATCH",
+      "uri": "api/v1/courier/vehicle",
+      "name": "courier.vehicle.update",
+      "action": "App\\Http\\Controllers\\Courier\\VehicleController@update",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/vehicle/documents/{kind}",
+      "name": "courier.vehicle.documents.store",
+      "action": "App\\Http\\Controllers\\Courier\\VehicleController@upload",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:courier-vehicle-documents"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "GET|HEAD",
+      "uri": "api/v1/courier/vehicle/documents/{kind}",
+      "name": "courier.vehicle.documents.show",
+      "action": "App\\Http\\Controllers\\Courier\\VehicleController@document",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent"
+      ],
+      "path": null
+    },
+    {
+      "domain": null,
+      "method": "POST",
+      "uri": "api/v1/courier/waybills/resolve",
+      "name": "courier.waybills.resolve",
+      "action": "App\\Http\\Controllers\\Courier\\FirstMileTaskController@resolveWaybill",
+      "middleware": [
+        "api",
+        "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+        "App\\Http\\Middleware\\Courier\\EnsureActiveCourier",
+        "App\\Http\\Middleware\\Policy\\EnsurePolicyConsent",
+        "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+      ],
+      "path": null
+    }
+  ]
+}

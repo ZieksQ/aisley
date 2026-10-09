@@ -217,3 +217,7 @@ No Flutter implementation checkbox is completed by documentation authoring or ro
 Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+## Additive media contract — 2026-10-06
+
+The Laravel backend now supports private image, MP4 and document attachments for existing role-authorized relationships. [Media API](../../../api/chat-media.md) supersedes text-only attachment restrictions in this copied snapshot, permits optional caption with ready attachment IDs, and defines limits, state and exact retry. External Flutter media adoption remains pending; prior client status and acceptance evidence are preserved.

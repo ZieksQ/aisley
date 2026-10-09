@@ -1,0 +1,36 @@
+{
+  "validated_on": "2026-10-09",
+  "backend_checkout": "0a6aaa8096196e2c26822ac0281d5d30675511a8",
+  "checks_executed_here": {
+    "isolated_docs_copy": true,
+    "markdown_files": 75,
+    "local_links_and_anchors": 792,
+    "json_files": 65,
+    "embedded_json_examples": 6,
+    "instruction_paths": 20,
+    "specs_checked": 22,
+    "spec_line_range": [
+      215,
+      230
+    ],
+    "unchanged_drafts": [],
+    "operations": 103,
+    "duplicated_fixtures": 103,
+    "named_types": 112,
+    "psgc_assets": 19
+  },
+  "preservation": {
+    "original_imports_archives_assets_and_instructions": true,
+    "progress_prefixes": true,
+    "application_scope_unchanged": true
+  },
+  "not_executed_here": [
+    "application/backend/Flutter tests",
+    "dependency installation/resolution",
+    "builds",
+    "HTTP/provider requests",
+    "browser/device checks",
+    "migrations/deployment"
+  ],
+  "errors": []
+}

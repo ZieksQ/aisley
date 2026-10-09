@@ -12,3 +12,11 @@ export {
   useChatAttempt,
   type ChatAttempt,
 } from "./private-state";
+
+export { createChatMediaClient } from "./media-client";
+export { clearChatAttachments } from "./media-state";
+export type { ChatAttachment, ChatMediaClient, ChatMediaContext, ChatMediaOptions } from "./media-types";
+
+export { ChatNotificationControl } from "./notification-control";
+export { acknowledgeChatRead } from "./notification-state";
+export type { ChatNotification, ChatNotificationPage } from "./notification-state";

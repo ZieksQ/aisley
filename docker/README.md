@@ -233,3 +233,36 @@ image upgrades. Do not publish ports `5432`, `8080`, or `9000` on the Azure VM.
 The VM needs outbound HTTPS for Cloudflare Tunnel, Azure Blob Storage, and mail.
 Restrict Azure inbound access to administration SSH (or Cloudflare Access); the
 production stack needs no inbound HTTP or HTTPS rule.
+
+## Private chat media
+
+Media defaults disabled. The approved FFmpeg/ffprobe tools are included in the API image; PHP GD/Zip are already included. The API build excludes all local storage and compiled bootstrap caches so private chat bytes/test fixtures or local cached settings are never image content. Use a current BuildKit/buildx-capable Docker setup to honor Dockerfile-specific ignore files. Rebuild PHP and Nginx images to apply per-file request ceilings: PHP upload 32 MiB, post 34 MiB, Nginx body 34 MiB. The application enforces stricter format limits, five assets and 50 MiB per message by uploading each file separately.
+
+Production requires **private Azure Blob storage** shared by API and workers (`CHAT_MEDIA_DISK=azure`, existing Azure connection/container values). Do not use container-local storage: independent API/worker filesystems would lose access across containers/redeployments. Keep the container private; do not publish raw object URLs or introduce a public storage link. Apply the additive migration before frontend activation.
+
+Set `COMPOSE_PROFILES=chat-media` in the production environment so normal deployment commands also start/retain `clamav` and `media-queue`, or pass `--profile chat-media` explicitly. Leave `CHAT_MEDIA_ENABLED=false` until the scanner health/signatures, private storage read/write, and worker have been verified. The scanner has no public port and persists signatures; FreshClam updates them. Reserve about 4 GiB for ClamAV plus additional API/Postgres/worker capacity. `CHAT_MEDIA_CLAMAV_HOST=clamav`, port 3310; the media worker uses the `media` connection/queue and a 180-second timeout with a 240-second retry lease. Keep the scheduler running for five-minute recovery/24-hour abandoned-upload cleanup. Then enable media and recreate API/worker/scheduler services so their environment agrees. Capability reads check explicit enablement and available tools/scanner; they do not prove Azure credentials or worker throughput.
+
+```sh
+docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml --profile chat-media up -d --build
+docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml logs media-queue clamav scheduler
+```
+
+Monitor scanner health/signature age, media queue depth/failed jobs, processing latency and storage/egress. Bound media follows current chat retention; no new history purge policy is introduced. Storage, downloads, Blob operations and scanner/worker compute all contribute to cost; [Azure cost guidance](https://learn.microsoft.com/en-us/azure/storage/common/storage-plan-manage-costs) explains the dimensions without assuming a region or price.
+
+For native local development, install the approved FFmpeg/ffprobe tools through your normal environment setup (do not install them on production hosts outside the image). Start the repository-owned scanner:
+
+```sh
+docker compose -f docker/chat-media.local.yml up -d
+```
+
+Set API `CHAT_MEDIA_ENABLED=true`, `CHAT_MEDIA_DISK=local`, `CHAT_MEDIA_CLAMAV_HOST=127.0.0.1`, `CHAT_MEDIA_CLAMAV_PORT=13310`. Wait for scanner health/signatures, run `php artisan migrate` from `src/api`, then run `pnpm dev:media` from the repository root alongside `pnpm dev`. `pnpm dev` continues to start its ordinary worker/scheduler. No database wipe or seed is needed to enable media locally. Disable uploads by setting the flag false and restarting API processes; existing authorized media/text continue to work.
+
+Focused verification from `src/api`:
+
+```sh
+php artisan test tests/Feature/Messaging/ChatMediaTest.php tests/Unit/ChatMediaInspectionTest.php
+CHAT_MEDIA_LIVE_SCANNER=1 php artisan test tests/Feature/Messaging/LiveChatMediaScannerTest.php
+php tests/Support/run-chat-media-postgres.php
+```
+
+The PostgreSQL runner creates/drops a uniquely named disposable database and never migrates the application's ordinary database. The live scanner test uses harmless antivirus test bytes. Browser checks use the separate fixtures described in `packages/chat-ui/tests/README.md`; they do not prove external Flutter adoption or live Azure delivery.

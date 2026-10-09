@@ -3,17 +3,28 @@
 namespace Tests\Feature\Messaging;
 
 use App\Enums\CategoryStatus;
+use App\Enums\ChatAttachmentState;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Jobs\ProcessChatAttachment;
+use App\Models\ChatAttachment;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
 use App\Services\Messaging\ConversationService;
+use App\Services\Messaging\Media\ChatAttachmentProcessor;
+use App\Services\Messaging\Media\ChatAttachmentService;
+use App\Services\Messaging\Media\ChatMediaScanner;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class PostgresChatConcurrencyTest extends TestCase
@@ -58,6 +69,81 @@ class PostgresChatConcurrencyTest extends TestCase
         $this->assertSame(1, Conversation::query()->count());
         $this->assertSame([1, 2, 3, 4], Message::query()->orderBy('sequence')->pluck('sequence')->all());
         $this->assertSame(4, $conversation->fresh()->last_sequence);
+    }
+
+    public function test_parallel_uploads_and_exact_sends_bind_one_attachment_once(): void
+    {
+        [$customer, $shop] = $this->mediaFixture();
+        $file = UploadedFile::fake()->image('image.png', 20, 10);
+        $key = (string) Str::uuid();
+        $upload = fn () => app(ChatAttachmentService::class)->upload(
+            User::findOrFail($customer->id), $file, ['channel' => 'shop', 'shop_id' => $shop->id], $key);
+        $this->parallel([$upload, $upload]);
+        $asset = ChatAttachment::query()->sole();
+        app(ChatAttachmentProcessor::class)->process($asset->id);
+        $key = (string) Str::uuid();
+        $send = fn () => app(ConversationService::class)->start(User::findOrFail($customer->id),
+            ['shop_id' => $shop->id, 'body' => '', 'attachment_ids' => [$asset->id]], $key);
+        $this->parallel([$send, $send]);
+        $this->assertSame(1, Message::count());
+        $this->assertSame(Message::query()->sole()->id, $asset->fresh()->message_id);
+    }
+
+    public function test_attachment_delete_and_send_are_serialized(): void
+    {
+        [$customer, $shop] = $this->mediaFixture();
+        $service = app(ChatAttachmentService::class);
+        $asset = $service->upload($customer, UploadedFile::fake()->image('image.png', 20, 10),
+            ['channel' => 'shop', 'shop_id' => $shop->id], (string) Str::uuid());
+        app(ChatAttachmentProcessor::class)->process($asset->id);
+        $this->parallel([
+            function () use ($customer, $shop, $asset): void {
+                try {
+                    app(ConversationService::class)->start(User::findOrFail($customer->id),
+                        ['shop_id' => $shop->id, 'body' => '', 'attachment_ids' => [$asset->id]], (string) Str::uuid());
+                } catch (ValidationException $error) {
+                    if (! isset($error->errors()['attachment_ids'])) {
+                        throw $error;
+                    }
+                }
+            },
+            function () use ($customer, $asset): void {
+                try {
+                    app(ChatAttachmentService::class)->remove(User::findOrFail($customer->id), $asset->id);
+                } catch (HttpException $error) {
+                    if ($error->getStatusCode() !== 409) {
+                        throw $error;
+                    }
+                }
+            },
+        ]);
+        $asset->refresh();
+        if ($asset->message_id) {
+            $this->assertSame(1, Message::count());
+            $this->assertSame(ChatAttachmentState::Ready, $asset->state);
+            Storage::disk('local')->assertExists($asset->path);
+        } else {
+            $this->assertSame(0, Message::count());
+            $this->assertSame(ChatAttachmentState::Deleted, $asset->state);
+            Storage::disk('local')->assertMissing($asset->path);
+        }
+    }
+
+    private function mediaFixture(): array
+    {
+        config(['chat_media.enabled' => true, 'chat_media.disk' => 'local']);
+        Storage::fake('local');
+        Queue::fake([ProcessChatAttachment::class]);
+        $this->mock(ChatMediaScanner::class, function ($mock): void {
+            $mock->shouldReceive('available', 'scan')->andReturn(true);
+        });
+        $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
+        $customer = User::factory()->create(['role' => UserRole::Customer, 'status' => UserStatus::Active]);
+        $category = ShopCategory::create(['name' => 'General', 'slug' => 'general', 'status' => CategoryStatus::Active]);
+        $shop = Shop::create(['seller_id' => $seller->id, 'shop_category_id' => $category->id,
+            'name' => 'Media Shop', 'slug' => 'media-shop', 'status' => ShopStatus::Active]);
+
+        return [$customer, $shop];
     }
 
     /** @param array<int, callable(): mixed> $workers */

@@ -1,7 +1,8 @@
 "use client";
 
+import { chatMedia } from "@/lib/chat-media";
 import { useEffect, useRef, useState } from 'react'
-import { ChatComposer, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
 import { ApiError } from "@/lib/api"
 import { courierMessages, type CourierSendResult } from "@/lib/courier-messages"
 import { courierError } from "./use-courier-access"
@@ -36,22 +37,22 @@ export function CourierComposer({ conversationId, orderId, allowed, onSaved, onC
     }
   }, [])
 
-  async function send() {
+  async function send(attachmentIds: string[] = []) {
     // Retry an uncertain send even after observed completion: the server can replay it.
-    if (busy.current || !online || (!allowed && !pending.current) || !body.trim()) return
-    pending.current ??= { body: body.trim(), key: crypto.randomUUID() }
+    if (busy.current || !online || (!allowed && !pending.current) || (!body.trim() && !attachmentIds.length)) return
+    pending.current ??= { body: body.trim(), key: crypto.randomUUID(), attachmentIds }
     writeChatAttempt(draftKey, pending.current)
     busy.current = true
     setSending(true)
     setError('')
     try {
-      const result = await courierMessages.send(conversationId, orderId, pending.current.body, pending.current.key)
+      const result = await courierMessages.send(conversationId, orderId, pending.current.body, pending.current.key, pending.current.attachmentIds ?? [])
       if (!alive.current) return
       pending.current = null
       writeChatAttempt(draftKey, null)
       setUncertain(false)
       setBody('')
-      writeChatDraft(draftKey, '')
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
       onSaved(result)
     } catch (reason) {
       if (!alive.current) return
@@ -68,11 +69,12 @@ export function CourierComposer({ conversationId, orderId, allowed, onSaved, onC
   }
 
   return <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { ...(conversationId ? { conversation_id: conversationId } : { channel: "courier", context_type: "order", context_id: orderId ?? undefined }) } }}
     id="courier-message"
     recipient="Courier"
     value={body}
     onChange={(value) => { setBody(value); setError(''); writeChatDraft(draftKey, value) }}
-    onSubmit={() => void send()}
+    onSubmit={(ids) => void send(ids)}
     sendAllowed={allowed}
     online={online}
     sending={sending}

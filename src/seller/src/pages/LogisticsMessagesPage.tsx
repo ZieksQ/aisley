@@ -1,6 +1,7 @@
+import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import { logisticsMessages, type LogisticsMessage, type LogisticsThread } from '../lib/logisticsMessages'
@@ -26,6 +27,7 @@ export function LogisticsMessagesPage() {
   const accountId = seller?.id ?? 'unknown'
   const [params, setParams] = useSearchParams()
   const pickupId = params.get('pickup_request_id')
+  const conversationId = params.get('conversation')
   const [threads, setThreads] = useState<LogisticsThread[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -80,10 +82,27 @@ export function LogisticsMessagesPage() {
     if (pickupId) setSelectedId(threads.find((item) => item.pickup_request_id === pickupId)?.id ?? null)
   }, [pickupId, threads])
 
+  useEffect(() => {
+    if (pickupId) return
+    let active = true
+    setSelectedId(conversationId)
+    if (conversationId) {
+      void logisticsMessages.show(conversationId).then(({ data }) => {
+        if (active) setThreads((current) => [data, ...current.filter((item) => item.id !== data.id)])
+      }).catch((reason) => {
+        if (!active) return
+        setSelectedId(null)
+        if (reason instanceof ApiError && [401, 403].includes(reason.status)) { clearChatPrivateState(); setThreads([]) }
+        setError(failure(reason))
+      })
+    }
+    return () => { active = false }
+  }, [conversationId, pickupId])
+
   function saved(thread: LogisticsThread) {
     setThreads((current) => [thread, ...current.filter((item) => item.id !== thread.id)])
     setSelectedId(thread.id)
-    setParams({})
+    setParams({ conversation: thread.id })
   }
 
   function backToInbox() {
@@ -100,7 +119,7 @@ export function LogisticsMessagesPage() {
     context: `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)}`,
     selected: selectedId === thread.id,
     readOnly: Boolean(thread.read_only_reason),
-    onSelect: () => { setSelectedId(thread.id); setParams({}) },
+    onSelect: () => { setSelectedId(thread.id); setParams({ conversation: thread.id }) },
   }))
 
   return (
@@ -206,14 +225,14 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
     }
   }, [selectedId, refresh])
 
-  async function send() {
+  async function send(attachmentIds: string[] = []) {
     if (!navigator.onLine) {
       setError('Reconnect before sending a message.')
       return
     }
     if (busy) return
-    const attempt = pending ?? { body: draft.trim(), key: crypto.randomUUID() }
-    if (!attempt.body || attempt.body.length > 2000) return
+    const attempt = pending ?? { body: draft.trim(), key: crypto.randomUUID(), attachmentIds }
+    if ((!attempt.body && !attachmentIds.length) || attempt.body.length > 2000) return
     setPending(attempt)
     setUncertain(true)
     writeChatAttempt(draftKey, attempt)
@@ -221,12 +240,12 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
     setError('')
     setNotice('')
     try {
-      const result = thread ? await logisticsMessages.send(thread.id, attempt.body, attempt.key)
-        : contextId ? await logisticsMessages.start(contextId, attempt.body, attempt.key) : null
+      const result = thread ? await logisticsMessages.send(thread.id, attempt.body, attempt.key, attempt.attachmentIds ?? [])
+        : contextId ? await logisticsMessages.start(contextId, attempt.body, attempt.key, attempt.attachmentIds ?? []) : null
       if (!result) return
       setPending(null)
       setDraft('')
-      writeChatDraft(draftKey, '')
+      clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
       writeChatAttempt(draftKey, null)
       setUncertain(false)
       setThread(result.conversation)
@@ -273,8 +292,9 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
         {thread?.read_only_reason && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">This pickup relationship ended. History is read-only.</p>}
       </header>
       <ChatHistory
+          mediaClient={chatMedia}
         key={selectedId ?? contextId ?? 'pickup-inbox'}
-        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : 'Logistics', createdAt: message.created_at }))}
+        messages={messages.map((message) => ({ id: message.id, sequence: message.sequence, body: message.body, mine: message.mine, sender: message.mine ? 'You' : 'Logistics', attachments: message.attachments, createdAt: message.created_at }))}
         olderCursor={Boolean(older)}
         onLoadOlder={() => void loadOlder()}
         loadingOlder={olderBusy}
@@ -282,11 +302,12 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
         emptyText="No messages yet. Your first message creates this private conversation."
       />
       <ChatComposer
+        media={{ client: chatMedia, draftKey, context: { ...(thread ? { conversation_id: thread.id } : { channel: "logistics", context_type: "pickup_request", context_id: contextId ?? undefined }) } }}
         id="logistics-message"
         recipient="Logistics"
         value={draft}
         onChange={(value) => { setDraft(value); writeChatDraft(draftKey, value); if (!uncertain) { setPending(null); writeChatAttempt(draftKey, null) } }}
-        onSubmit={() => void send()}
+        onSubmit={(ids) => void send(ids)}
         online={typeof navigator === 'undefined' || navigator.onLine}
         sending={busy}
         uncertain={uncertain && !busy}

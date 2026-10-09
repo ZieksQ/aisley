@@ -45,3 +45,5 @@ Artisan::command('sorting:activate-due', function () {
     }
 })->purpose('Recover overdue one-time sort-plan activations');
 Schedule::command('sorting:activate-due')->everyMinute()->timezone('Asia/Manila')->withoutOverlapping()->onOneServer();
+
+Schedule::command('chat:maintain-media')->everyFiveMinutes()->withoutOverlapping()->onOneServer();

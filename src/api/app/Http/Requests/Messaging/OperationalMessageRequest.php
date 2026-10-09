@@ -10,8 +10,8 @@ class OperationalMessageRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if (is_string($this->input('body'))) {
-            $this->merge(['body' => trim($this->input('body'))]);
+        if (is_string($this->input('body')) || $this->input('body') === null) {
+            $this->merge(['body' => trim((string) $this->input('body', ''))]);
         }
     }
 
@@ -22,7 +22,9 @@ class OperationalMessageRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['body' => ['required', 'string', 'min:1', 'max:2000']];
+        return ['body' => ['required_without:attachment_ids', 'nullable', 'string', 'max:2000'],
+            'attachment_ids' => ['sometimes', 'array', 'list', 'max:5'],
+            'attachment_ids.*' => ['required', 'uuid', 'distinct']];
     }
 
     protected function acceptedFields(): array
@@ -33,7 +35,7 @@ class OperationalMessageRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            foreach (array_diff(array_keys($this->all()), $this->acceptedFields()) as $field) {
+            foreach (array_diff(array_keys($this->all()), array_merge($this->acceptedFields(), ['attachment_ids'])) as $field) {
                 $validator->errors()->add($field, 'This field is not accepted.');
             }
             if (! Str::isUuid((string) $this->header('Idempotency-Key'))) {

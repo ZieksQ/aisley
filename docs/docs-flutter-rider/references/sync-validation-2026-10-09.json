@@ -1,0 +1,36 @@
+{
+  "validated_on": "2026-10-09",
+  "backend_checkout": "0a6aaa8096196e2c26822ac0281d5d30675511a8",
+  "checks_executed_here": {
+    "isolated_docs_copy": true,
+    "markdown_files": 53,
+    "local_links_and_anchors": 68,
+    "json_files": 11,
+    "embedded_json_examples": 21,
+    "instruction_paths": 12,
+    "specs_checked": 12,
+    "spec_line_range": [
+      203,
+      230
+    ],
+    "unchanged_drafts": [
+      "features/courier/profit-dashboard/specs.md",
+      "features/courier/incident-reporting/specs.md"
+    ],
+    "current_map_routes": 4
+  },
+  "preservation": {
+    "original_imports_archives_assets_and_instructions": true,
+    "progress_prefixes": true,
+    "application_scope_unchanged": true
+  },
+  "not_executed_here": [
+    "application/backend/Flutter tests",
+    "dependency installation/resolution",
+    "builds",
+    "HTTP/provider requests",
+    "browser/device checks",
+    "migrations/deployment"
+  ],
+  "errors": []
+}

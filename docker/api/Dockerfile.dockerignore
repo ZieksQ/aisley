@@ -12,8 +12,6 @@ src/api/.phpunit.cache
 src/api/.phpunit.result.cache
 src/api/node_modules
 src/api/vendor
-src/api/storage/logs
-src/api/storage/framework/cache
-src/api/storage/framework/sessions
-src/api/storage/framework/views
+src/api/storage
+src/api/bootstrap/cache/*.php
 src/api/tests

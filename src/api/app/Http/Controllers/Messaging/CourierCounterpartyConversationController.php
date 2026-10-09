@@ -35,7 +35,7 @@ abstract class CourierCounterpartyConversationController extends Controller
         $input = $request->validated();
 
         return $this->writeResponse($this->conversations->startFromOrder(
-            $request->user(), $this->role(), $input['context_id'], $input['body'], $request->idempotencyKey()
+            $request->user(), $this->role(), $input['context_id'], $input['body'], $request->idempotencyKey(), $request->validated('attachment_ids', [])
         ), $request->user());
     }
 
@@ -50,7 +50,7 @@ abstract class CourierCounterpartyConversationController extends Controller
     {
         $input = $request->validate(['cursor' => ['sometimes', 'string', 'max:2048'], 'limit' => ['sometimes', 'integer', 'min:1', 'max:50']]);
         $record = $this->conversations->find($request->user(), $this->role(), $conversation);
-        $page = $record->messages()->orderByDesc('sequence')->cursorPaginate($input['limit'] ?? 20);
+        $page = $record->messages()->with('attachments')->orderByDesc('sequence')->cursorPaginate($input['limit'] ?? 20);
 
         return $this->response(['data' => $page->getCollection()->reverse()->map(
             fn ($message) => $this->conversations->message($message, $record, $request->user())
@@ -60,7 +60,7 @@ abstract class CourierCounterpartyConversationController extends Controller
     public function send(OperationalMessageRequest $request, string $conversation): JsonResponse
     {
         return $this->writeResponse($this->conversations->send(
-            $request->user(), $this->role(), $conversation, $request->validated('body'), $request->idempotencyKey()
+            $request->user(), $this->role(), $conversation, $request->validated('body'), $request->idempotencyKey(), $request->validated('attachment_ids', [])
         ), $request->user());
     }
 

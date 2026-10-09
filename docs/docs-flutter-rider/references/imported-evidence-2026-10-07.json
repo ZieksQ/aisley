@@ -1,0 +1,24 @@
+{
+  "reviewed_on": "2026-10-07",
+  "backend_checkout": "a94669248c63525e44243327f4c25feca46c9c50",
+  "client_adoption": {
+    "buyer": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+    "courier": "d7df220"
+  },
+  "snapshots": [
+    {
+      "upstream_path": "docs/cabigan/docs-mobile-customer",
+      "files": 118,
+      "tree_sha256": "f3c7d5e80165909418e9e129c0e4518eeff6a29dc314c26f7eb07f4e5efa39cf",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; source bytes unchanged."
+    },
+    {
+      "upstream_path": "docs/cabigan/docs-flutter-courier",
+      "files": 47,
+      "tree_sha256": "78b802d8bdba1d16f7e0932eae9ceb7fe8449159773689654ee31fb4a5cdb269",
+      "definition": "Sorted relative path + NUL + file SHA-256 + newline; source bytes unchanged."
+    }
+  ],
+  "results_executed_here": false,
+  "courier_client_evidence": "Matches previously imported design/architecture/rules and archive bytes; 454 passes remain an attributed prior report, not a new run."
+}

@@ -104,7 +104,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 - Apply these thresholds to hand-written source. Exclude generated code, fixtures, SDK/build output and specifications; Customer specs use their own rule.
 - Organize by feature/responsibility. Promote shared code when reuse is demonstrated; avoid circular imports and another feature's private implementation.
 - Use readable configured `dart format` output. Consider coupling, nesting, complexity and responsibility as well as lines.
-- Keep `dart:io` in native-only conditional adapters. Use approved PSGC JSON assets with provenance, cascading selectors and manual fallback; Flutter cannot import npm data/selectors directly.
+- Keep `dart:io` in native-only conditional adapters. Use approved PSGC JSON assets with provenance and selected-only cascading locality dropdowns; typed text is not selection and failed data blocks save with Retry. Street/contact/postal fields remain manual; Flutter cannot import npm data/selectors directly.
 
 ## Shopping and communication boundaries
 

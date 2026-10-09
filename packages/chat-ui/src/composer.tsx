@@ -1,6 +1,10 @@
+import { ChatMediaSelection } from "./media-composer";
+import { useComposerMedia } from "./use-composer-media";
+import type { ChatMediaOptions } from "./media-types";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 export function ChatComposer({
+  media,
   value,
   onChange,
   onSubmit,
@@ -15,9 +19,10 @@ export function ChatComposer({
   id = "chat-message",
   placeholder = "Write a message…",
 }: {
+  media?: ChatMediaOptions;
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (attachmentIds: string[]) => void;
   recipient: string;
   sendAllowed?: boolean;
   online?: boolean;
@@ -29,6 +34,8 @@ export function ChatComposer({
   id?: string;
   placeholder?: string;
 }) {
+  const attachments = useComposerMedia(media);
+  const hasContent = Boolean(value.trim() || attachments.rows.length);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [browserOnline, setBrowserOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
   const [touchInput, setTouchInput] = useState(false);
@@ -49,11 +56,11 @@ export function ChatComposer({
   }, []);
 
   useEffect(() => {
-    if (!value.trim()) return;
+    if (!hasContent) return;
     const warnBeforeDiscard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", warnBeforeDiscard);
     return () => window.removeEventListener("beforeunload", warnBeforeDiscard);
-  }, [value]);
+  }, [hasContent]);
 
   useEffect(() => {
     const element = textarea.current;
@@ -64,14 +71,14 @@ export function ChatComposer({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if ((!sendAllowed && !uncertain) || !online || !browserOnline || sending || !value.trim()) return;
-    onSubmit();
+    if ((!sendAllowed && !uncertain) || !online || !browserOnline || sending || !hasContent || !attachments.ready) return;
+    onSubmit(attachments.ids);
   }
 
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (touchInput || event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
     event.preventDefault();
-    if (value.trim() && online && browserOnline && !sending && (sendAllowed || uncertain)) onSubmit();
+    if (hasContent && attachments.ready && online && browserOnline && !sending && (sendAllowed || uncertain)) onSubmit(attachments.ids);
   }
 
   const canSend = online && browserOnline && (sendAllowed || uncertain);
@@ -82,6 +89,7 @@ export function ChatComposer({
       {error ? <p className="mb-2 text-sm text-red-700 dark:text-red-300" role="alert">{error}</p> : null}
       {success ? <p className="mb-2 text-sm text-emerald-700 dark:text-emerald-300" role="status">{success}</p> : null}
       {uncertain ? <p className="mb-2 text-sm text-amber-800 dark:text-amber-300" role="status">Delivery is unconfirmed. Retry this same message to check whether it was saved.</p> : null}
+      {media ? <ChatMediaSelection disabled={sending || uncertain || !canSend} enabled={attachments.enabled} media={media} /> : null}
       <label className="sr-only" htmlFor={id}>Message {recipient}</label>
       <div className="flex items-end gap-2 border border-zinc-300 bg-white p-2 focus-within:border-[#4C1268] focus-within:ring-1 focus-within:ring-[#4C1268] dark:border-white/20 dark:bg-[#202024] dark:focus-within:border-purple-300 dark:focus-within:ring-purple-300">
         <textarea
@@ -97,7 +105,7 @@ export function ChatComposer({
           value={value}
           rows={1}
         />
-        <button className="min-h-11 shrink-0 border border-[#4C1268] bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]" disabled={!canSend || sending || !value.trim()} type="submit">{sending ? "Sending…" : uncertain ? "Retry" : "Send"}</button>
+        <button className="min-h-11 shrink-0 border border-[#4C1268] bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]" disabled={!canSend || sending || !hasContent || !attachments.ready} type="submit">{sending ? "Sending…" : uncertain ? "Retry" : "Send"}</button>
       </div>
       <div className="mt-1 flex items-center justify-between gap-3 px-1">
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{uncertain ? "Message locked until delivery is confirmed" : "Enter to send · Shift+Enter for a new line"}</p>

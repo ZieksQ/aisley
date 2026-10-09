@@ -13,8 +13,8 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Proposed media remains gated on a separate implementation contract; existing operational eligibility, text-only APIs, and Courier mobile contracts remain authoritative.
-- Provide private, text-only operational chat between one Logistics organization and a relevant
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Private attachments follow the [media contract](../../shared/chat-media/spec.md); operational eligibility and external client adoption remain separately authoritative.
+- Provide private operational chat between one Logistics organization and a relevant
   Seller, Courier, or Customer (called “Buyer” in the storefront). Each side may initiate and
   reply while its current relationship is authorized; Logistics is not the only initiator.
 - Seller contact is tied to a Seller-owned pickup request selecting that Logistics organization.
@@ -88,6 +88,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Rate-limit starts and sends; log message IDs, actor, outcome, and timing without body by default.
   Do not expose addresses, phone/email, payment secrets, private evidence, raw paths, or unrelated
   Order items in thread DTOs. Show only the minimum task/Order context needed by that participant.
+- Customer–Logistics starts allow 15 requests/minute and replies allow 30 requests/minute, with separate named counters per authenticated Customer across all Logistics recipients. Browsing, inbox/history polling, read acknowledgments, and Customer–Shop mutations do not consume these allowances. The overall 120-request/minute Customer API limit still applies; `429` preserves history and includes retry headers.
 - Admin has no automatic private-chat read privilege. Moderation, retention/deletion, abuse
   reporting, and exceptional access need separate approved policy before production release.
 
@@ -138,3 +139,19 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
 
 Web UI adoption (2026-10-05): The Logistics operational inbox and conversation view now use the shared presentation documented above; route, role-scoped API behavior, and task/Order/pickup context remain unchanged. Logistics lint, TypeScript, and production build passed. No Logistics-specific browser smoke was run.
+
+## Private chat media extension — 2026-10-06
+
+- All existing role channels accept ordered `attachment_ids` on first-message and reply requests. Text-only requests and historical retry hashes remain compatible; attachment-only sends receive a readable string-body fallback.
+- [Shared Chat Media](../../shared/chat-media/spec.md) owns image/video/document formats, limits, scan/readiness, private delivery, cleanup and exact retry behavior. Existing participants, approvals, Store/Order/pickup/task/custody boundaries remain enforced at upload and send.
+- Use role-owned `/api/v1/{role}/chat-attachments` capabilities/upload/status/retry/remove/content/preview routes. Prospective uploads resolve existing start selectors and create no empty chat. Never attach another user's or another context's asset.
+- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. External Buyer/Courier attachment adoption and device acceptance are pending.
+- Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
+
+The Logistics selected conversation is retained in `?conversation=<uuid>` after first send and inbox selection, so the existing consent recheck on query navigation can restore the same scoped thread. Back returns to the inbox.
+
+## Dedicated web chat notifications — 2026-10-06
+
+- The header Chat messages icon combines unread incoming messages across authorized Customer Order, Seller pickup, and Courier task conversations, separately from the general notification bell. It previews up to five unread conversations and links directly to the existing role/channel thread.
+- Follow the [shared notification behavior and additive API contract](../../shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06): `GET /api/v1/logistics/chat-notifications`, foreground 15-second refresh, participant-derived totals, private previews, and immediate refresh after successful read acknowledgment. Opening the dropdown does not mark read.
+- Existing channel routes, authorization, approval/tenant boundaries, read-only history, idempotency and media contracts remain authoritative. This web change does not establish external Flutter adoption or background push.

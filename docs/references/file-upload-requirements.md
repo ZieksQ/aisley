@@ -5,7 +5,7 @@
 - This is the shared policy for image uploads across AISLEY.
 - It applies to product gallery images, product-description images, shop logos and banners, profile photos, review media, registration evidence, and delivery proof when those features allow image uploads.
 - Each feature spec must reference this policy instead of defining conflicting image format, size, validation, storage, or access rules.
-- This policy covers images only. PDF, spreadsheet, video, and other file types require their own approved policies.
+- The image baseline below applies everywhere. Chat video/documents have the separately approved policy in [Private Chat Media](../features/shared/chat-media/spec.md); no other feature gains those formats.
 - **Terminology:** `WebP` is the intended standard image format for the requested “webimg” format.
 
 ## MUST
@@ -104,3 +104,12 @@
 - Add frontend tests for accepted-file messaging, early client feedback, upload progress, retry, server field errors, and accessible status announcements.
 - Referencing specs should use this policy and may add stricter limits only when the feature explicitly documents why.
 - **References:** [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) and [Laravel file validation](https://laravel.com/framework/docs/13.x/validation#validating-files).
+
+## Chat-specific video and document policy
+
+- Apply [Private Chat Media](../features/shared/chat-media/spec.md) for MP4 up to 30 MiB/180 seconds and documents up to 10 MiB, five files/50 MiB per message. Chat images retain the strict under-10-MiB baseline.
+- Allow only H.264 MP4 with optional AAC audio, PDF, DOCX/XLSX/PPTX, ODT/ODS/ODP, TXT and CSV. Reject malformed, encrypted, macro-enabled, embedded-active and unlisted formats; inspect ZIP contents within entry/expansion limits.
+- Chat images enforce 8,000 pixels per edge and 40 megapixels, and receive metadata rewriting/private previews. These chat-specific processing bounds do not silently change other image features.
+- Scan all chat files with private ClamAV before readiness; scan-limit/encryption/macro alerts reject content, and unavailable checks fail closed. ffprobe checks video metadata; FFmpeg generates a poster without transcoding.
+- Serve participant-scoped media privately, support video byte ranges, and force document downloads with safe Content-Disposition/nosniff. Upload/status/checking is distinct from committed message delivery.
+- Clean up unbound uploads after 24 hours; committed files follow existing message history without new purging. See deployment guidance for worker isolation and scanner sizing.

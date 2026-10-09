@@ -168,3 +168,7 @@ MVP responsibilities:
 - Future confirmed COD deliveries create immutable Courier/collector cash obligations. Courier Cash Remittance records physical cash received separately from platform COD invoices and payouts.
 - Billing exposes masked simulated account metadata only. New Logistics accounts start at zero, existing funded accounts are preserved, and cash receipts credit once when simulation is enabled.
 - Customer checkout remains COD-only; `prepaid` enables paid fulfillment/testing without implementing online payment or prepaid Seller preparation.
+
+## Chat media attachments
+
+Existing Customer, Seller, Logistics and Courier channels support private images, MP4 videos and documents with optional captions, scan/readiness, explicit Send and authorized viewing/download. Limits, runtime requirements, lifecycle and acceptance criteria are owned by [Shared Chat Media](features/shared/chat-media/spec.md). Admin chat/support-ticket media is excluded; external Flutter adoption is tracked separately.

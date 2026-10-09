@@ -256,3 +256,7 @@ Status-like database columns are stored as strings and cast to PHP enums. Operat
 - `docs/features/courier/*/specs.md` — feature-specific implementation contracts.
 
 **Current/future boundary:** `ConfirmFirstMilePickup` remains the compatibility writer for the accepted Courier's Seller handoff and Inventory fulfillment, then idempotently bridges shared physical records without replaying stock. Hub and final-mile transitions use the Logistics-authoritative `FulfillmentTransitionService`; final-mile photo POD is implemented, while signature proof, live location telemetry, and exceptional recovery remain future extensions.
+
+## External Courier evidence review — 2026-10-07
+
+The [portable synchronization record](../docs-flutter-rider/references/synchronization-2026-10-07.md) compares the supplied Courier snapshot with already imported client evidence. The reported 454-test/accessibility/workflow record is unchanged and was not rerun here. Reviewed Laravel `a946692`, historical documentation baseline `4c3f504` and client-adopted `d7df220` identify different evidence boundaries. Current shipping, POD rejection/automatic paid-prepaid approval and private chat-media contracts do not establish Flutter adoption. Auth integration/recovery presentation, batch routes, failed attempts, linehaul, authenticated chat/media and installed-device/browser acceptance remain open.

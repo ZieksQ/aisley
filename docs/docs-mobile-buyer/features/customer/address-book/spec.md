@@ -12,26 +12,28 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 
 ## WHAT
 
-Backend: Owned CRUD/defaults and checkout snapshots implemented; Dart assets/native pin integration
-pending.
+Backend: Owned CRUD/defaults and checkout snapshots implemented; live shipping coverage remains
+unverified. Reported Flutter PSGC/pin controls have partial acceptance.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
+Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md) and [MapLibre report](../../../references/maplibre-verification.md); live-account/device gates remain open.
 
-Addresses → cascading/manual form → optional pin → save/default → owned shipping selection.
+Addresses → selected cascading localities/manual street form → optional pin → save/default → owned shipping selection.
 
 - Requests use snake_case recipient/contact/address/locality/postal/country/type and optional label/line2/pair/is_default; DTO fields are camelCase. Type is shipping,billing,both and overlapping defaults clear transactionally through create/update, with no separate default route.
-- Use the bundled unchanged PSGC JSON, Region→Province→City/Municipality→Barangay and manual fallback; npm packages are not Dart dependencies. Preserve supplied NCR/independent-city hierarchy.
-- Intentional Geoapify pin clears stale pairs when text changes and never decides deliverability. Use optional flutter_map/latlong2/geolocator; suitable mobile public credentials remain a deployment gate; manual save stays usable. Confirm deletion. Address CRUD never reroutes a placed Order.
+- Use the bundled unchanged PSGC JSON for searchable Region→Province→City/Municipality→Barangay
+  dropdowns. Search text is separate from the selected entry; typing a matching name does not select
+  it. Preserve unmatched saved text for review but require a valid hierarchical selection to save.
+  Keep the supplied NCR/direct-city hierarchy; npm packages are not Dart dependencies.
+- Intentional Geoapify pin clears stale pairs when text changes and never decides deliverability. Use optional MapLibre/geolocator; suitable mobile public credentials remain a deployment gate; saving with selected locality options works without a pin. Confirm deletion. Address CRUD never reroutes a placed Order.
 
-The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
-Use this feature with its prerequisite session/consent boundary and the related shopping or communication
-repositories.
+The local bundle is authoritative; upstream paths are optional provenance. Follow the prerequisite
+session/consent boundary and related shopping or communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
 capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -46,27 +48,38 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Copy the nineteen unchanged assets and load the index before lazy-loading a selected region.
 - Nodes preserve code strings and geographic_level; provinces and direct city/municipality children are
   both real structures.
-- Parent changes clear invalid descendants; Barangay list belongs only to the selected city/municipality.
-- NCR contains direct cities and no Province node: keep required reviewed Province text and offer National Capital Region (NCR) as a compatibility suggestion.
-- For direct cities elsewhere follow the reviewed source selector convention and preserve required manual
-  Province entry when no real province exists.
+- Region, Province, City/Municipality and Barangay are searchable dropdowns with a visible affordance;
+  opening a ready selector shows choices and typing filters only its menu.
+- A user must choose an option. Typed arbitrary text, including an exact option name, fails validation
+  until that option is explicitly selected.
+- Parent changes clear dependent selected entries and text, and clear stale coordinates; Barangay
+  belongs only to the selected city/municipality.
+- NCR contains direct cities and no Province node: show the required Province selector with the single
+  `National Capital Region (NCR)` compatibility option. It remains a saved compatibility string, not a
+  claimed PSGC Province.
+- Show direct cities separately when present elsewhere, but do not invent a Province mapping. Explain
+  the unavailable mapping and block save when the selected hierarchy has no supported Province.
 - Codes remain local lookup state; saved API fields contain reviewed names. Postal code/street are
   manual.
-- Unavailable/incomplete dataset keeps every text field editable and clearly offers manual fallback.
+- Missing, corrupt or incomplete PSGC data shows Retry and blocks submission; do not accept custom
+  locality text as a fallback. Retry evicts failed loads and preserves the current safe draft.
+- Street/building, unit/additional line, recipient, contact and postal code remain text fields. Country
+  is a dropdown restricted to Philippines.
 - Pin location makes one intentional Philippines-filtered Geoapify request; no lookup on typing/cascade
   changes.
-- Show candidate and permit reviewed pin adjustment; save only finite valid coordinate pair after
-  explicit confirmation.
+- Review candidates, then show MapLibre tap/drag and numeric adjustment; explicitly confirm valid pairs.
+  Preparation failure exposes Retry and numeric/text fallback; see the MapLibre report for lifecycle limits.
 - Changing location text clears stale coordinates; GPS choice never silently overwrites
   recipient/locality text.
 - Use current location requests foreground permission once per deliberate action and allows denial/text
   fallback.
-- Maps need approved public credentials/attribution; manual save works without provider configuration.
+- Maps need approved public credentials/attribution; saving with valid locality selections works without provider configuration.
 - Delete requires confirmation; address deletion/edit does not mutate any placed Order snapshot.
 - Uncertain create rereads list before a deliberate resubmit; default updates refetch whole list to
   reflect cleared overlaps.
-- Test all region paths/checksums, NCR cascade/manual Province text, parent resets and corrupted/missing
-  asset fallback.
+- Test all region paths/checksums, opening/filtering/search-only text, explicit selection, exact-match
+  rejection, NCR compatibility, unsupported direct cities, parent resets and failed-asset Retry.
+- Test saved-address hydration for matching hierarchies and preservation/validation of unmatched text.
 - Test paired/ranged coordinates, incomplete address, defaults overlap, foreign UUID denial and immutable
   Order address.
 
@@ -147,8 +160,8 @@ universal error envelope.
   dependencies through AppDependencies.
 - `PsgcLoader` owns safe platform access without widget HTTP calls; inject dependencies through
   AppDependencies.
-- `PinViewModel` owns feature transitions, draft/query state and deliberate actions; inject dependencies
-  through AppDependencies.
+- `MapPinDialog` owns lookup/GPS/confirmation; `AddressPinMap` owns bounded preparation/lifecycle.
+  Injectable `AddressMapAdapter` owns the MapLibre view, draggable pin, camera updates and disposal.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().
@@ -183,7 +196,7 @@ universal error envelope.
 
 ### Verification scenarios
 
-- [ ] Cascade/manual/default/type/coordinate behavior works offline and across parent changes.
+- [ ] Selected-only cascade, failed-data Retry, defaults and coordinates work across parent changes.
 - [ ] Own CRUD and checkout selection preserve immutable Order snapshots; pin/GPS failure leaves text
   save usable.
 - [ ] Android and fixed-origin local browser verify loading/empty/errors, keyboard/back/focus, supported

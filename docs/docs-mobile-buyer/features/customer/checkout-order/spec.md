@@ -46,7 +46,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Quote computes fresh Product/variant stock, shipping serviceability/rate and voucher effects; no
   local payable authority.
 - Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall
-  orderCount summary.
+  orderCount summary. Product name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
 - Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee;
   unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
 - Select one provider per Shop; implicit single-option fallback is allowed, multiple options require choice.
@@ -168,7 +168,7 @@ universal error envelope.
   use injected fakes.
 
 ### Screen and interaction states
-
+- Defer initial address loading until after the first frame with a mounted guard; never notify during build.
 - Initial loading exposes progress and accessible labels without a private-data flash.
 - Empty success explains the next supported step; unavailable includes Retry and does not pretend there
   are zero records.

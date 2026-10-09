@@ -5,7 +5,7 @@ system: AISLEY
 type: Feature Specification
 version: 2.6
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
-implementation_status: Backend Auth v2.6 implemented per supplied snapshot; Flutter foundation adopted against d7df220; newer Auth integration and live acceptance outstanding
+implementation_status: Backend Auth v2.6 implemented per supplied snapshot; Flutter Auth response integration reported locally against 4c3f504; authenticated live acceptance outstanding; earlier operational adoption d7df220
 canonical: true
 role: Courier / Rider
 scope: Laravel API consumed by an external Flutter mobile client
@@ -125,7 +125,7 @@ GET active Logistics options
 - The development-only Courier mockup mirrors the Flutter consent lifecycle after login: it checks `/api/v1/policy-consent/status`, fetches the current public Terms/Privacy documents, displays only policies whose current version still requires acceptance, posts explicit acceptance for each exact version, and loads protected Courier data only after the status response confirms completion. A valid bearer token is preserved while consent is pending.
 - A `401` clears secure storage and returns to sign-in; a `403` preserves the reason-specific blocked state.
 - A timeout or offline error preserves unsent registration form data but never queues login or approval bypass actions.
-- A `429` honors `Retry-After`; retries must not submit duplicate registrations or passwords automatically.
+- A `429` honors positive `Retry-After` seconds with separate login, session-restore, and registration cooldowns; absent/invalid delays use one second. Disable buttons and guard direct/keyboard submissions until expiry; only explicit retry may issue another request.
 - A logout response is terminal for the current token; an already-invalid token may be cleared locally after a confirmed `401`.
 
 ### Acceptance criteria
@@ -140,10 +140,10 @@ Backend completion and verification below reflect recorded Laravel results throu
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
 - [x] Bearer login, `/me`, current-token logout, and DTO redaction exist.
 - [x] The recovery entry point returns the same explicit unavailability response for every valid email; it creates no reset/access token, sends no mail or notification, and leaves passwords unchanged. Email validation, normalization, and the existing limiter hit are preserved.
-- [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; external Flutter integration remains unverified.
+- [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; authenticated external Flutter integration remains unverified.
 - [ ] Complete password-recovery delivery and reset; the implemented entry point does not provide recovery.
 - [ ] Implement affiliation history and revocation workflows.
-- [x] Concurrent duplicate registration is verified with synchronized PostgreSQL endpoint workers after both negative prechecks, for the same and different Logistics organizations: one `201`, one exact duplicate `422`, one complete pending registration, two evidence files, no access token, and only the winning application notification. Deterministic SQLite collision and unrelated-failure cleanup tests also pass; external Flutter integration remains unverified.
+- [x] Concurrent duplicate registration is verified with synchronized PostgreSQL endpoint workers after both negative prechecks, for the same and different Logistics organizations: one `201`, one exact duplicate `422`, one complete pending registration, two evidence files, no access token, and only the winning application notification. Deterministic SQLite collision and unrelated-failure cleanup tests also pass; authenticated external Flutter integration remains unverified.
 - [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
 ## HOW
@@ -208,13 +208,13 @@ The supplied snapshot identifies the foundation baseline as commit `d1abeee73d01
 
 ### Data, Flutter handoff, and testing
 
-- Flutter has no forgot-password flow. Auth v2.6 denial/duplicate-response integration and recovery-unavailable presentation remain outstanding; existing client tests do not establish adoption.
+- Flutter has no forgot-password flow; recovery-unavailable presentation remains outstanding. The October 8 external report records Auth v2.6 repository/controller/widget tests (not rerun here): login/restoration denials, server account-first response fixtures, exact duplicate-email field errors, session/storage handling, and enforced retry delays. Authenticated backend/device/browser acceptance remains unverified.
 - Auth uses `users`, `courier_profiles`, `addresses`, `vehicles`, `registration_applications`, `documents`, `courier_logistics_affiliations`, and Sanctum tokens. The additive fulfillment migration also defines operational records; apply it before consuming final-mile APIs.
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.
 - Registration upload UI must show accepted formats and the under-10-MiB limit, progress/cancel/retry, and server field errors. Client checks are convenience only.
 - Flutter protects unsaved registration text, selections, and evidence on Back, Sign in, and Android system Back; untouched, reverted, and successfully submitted forms leave without a discard prompt, and in-flight submission retains its explicit cancel action.
-- Registration uses independent password visibility controls, logical Next/Done and keyboard traversal, and ordered scroll/focus for local/server field errors, including PSGC selectors and evidence controls. Passwords clear after server attempts and upload cancellation; browser/device acceptance remains separate.
+- Registration uses independent password visibility, logical keyboard traversal, and ordered error focus. Recoverable validation, throttling, offline, and timeout preserve text, selections, address labels, and both evidence files; passwords clear after server attempts and cancellation. Duplicate email displays exact `errors.email`; browser/device acceptance remains separate.
 - Flutter registration must retain both selected `XFile` contents until multipart submission on local web-server; browser paths cannot be passed to `MultipartFile.fromPath`. Keep Android's native upload behavior and the exact `government_id`/`vehicle_registration` parts; follow `docs/flutter-file-uploads.md` and verify both targets before claiming web upload support.
 - Do not reproduce Eloquent, SQL, enum implementation, or authorization logic in Dart. The API response is authoritative and all mutations need online revalidation.
 - Add API tests for role/status/affiliation/hub scope, prohibited fields, duplicate races, file spoofing/boundaries, transaction cleanup, token issuance/logout, throttling, DTO privacy, and Logistics organization isolation.
@@ -224,7 +224,7 @@ The supplied snapshot identifies the foundation baseline as commit `d1abeee73d01
 ### Handoff checklist
 
 - Keep exact route/field/status/response/prohibition wording, version fixtures against the adopted baseline, and record material version changes in `docs/PROGRESS.md`. Unavailable routes remain unavailable; no mock route is promoted to production behavior.
-- Flutter implementation review confirms secure-storage failure, app restart, token expiry, offline, timeout, and retry behavior.
+- Flutter verification must cover every documented login/restoration denial and account-first response fixture, `401` private-state cleanup, consent token/identity preservation, secure-storage read/write/delete failures, logout, `429` guards/expiry, offline, timeout, and explicit retry. Storage failure blocks access and clears memory without claiming deletion succeeded; fixture tests do not certify server enforcement.
 - Backend review confirms that every new Auth mutation remains server-owned, transactional, scoped, and covered by API tests.
 
 **References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, [`user-registration-requirements.md`](../../../references/user-registration-requirements.md), [`file-upload-requirements.md`](../../../references/file-upload-requirements.md), and [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities).

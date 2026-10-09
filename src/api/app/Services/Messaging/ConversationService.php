@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\User;
+use App\Services\Messaging\Media\ChatAttachmentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -30,6 +31,16 @@ class ConversationService
     public function find(User $actor, string $role, string $id): Conversation
     {
         return $this->scoped($actor, $role)->whereKey($id)->firstOrFail();
+    }
+
+    public function mediaContext(User $actor, array $input): Conversation
+    {
+        $shop = Shop::query()->findOrFail($input['shop_id']);
+        $this->assertCustomerSendAllowed($shop, $input['context_type'] ?? null, true);
+        $this->validateContext($actor, $shop, $input);
+
+        return new Conversation(['kind' => ConversationKind::CustomerShop,
+            'customer_user_id' => $actor->id, 'seller_user_id' => $shop->seller_id, 'shop_id' => $shop->id]);
     }
 
     public function unreadTotal(User $actor, string $role): int
@@ -172,6 +183,7 @@ class ConversationService
             'id' => $message->id,
             'sequence' => $message->sequence,
             'body' => $message->body,
+            'attachments' => app(ChatAttachmentService::class)->messages($message, $viewer),
             'mine' => $message->sender_user_id === $viewer->id,
             'sender_role' => $message->sender_user_id === $conversation->customer_user_id ? 'customer' : 'seller',
             'context' => $context,
@@ -216,7 +228,7 @@ class ConversationService
     /** @param array<string, mixed> $input */
     private function hash(string $shopId, array $input): string
     {
-        return hash('sha256', json_encode([$shopId, $input['body'], $input['context_type'] ?? null, $input['context_id'] ?? null], JSON_THROW_ON_ERROR));
+        return ChatAttachmentService::hash([$shopId, $input['body'], $input['context_type'] ?? null, $input['context_id'] ?? null], $input['attachment_ids'] ?? []);
     }
 
     /** @return array{conversation: Conversation, message: Message}|null */
@@ -244,10 +256,11 @@ class ConversationService
             'sequence' => $sequence,
             'idempotency_key' => $key,
             'payload_hash' => $hash,
-            'body' => $input['body'],
+            'body' => ChatAttachmentService::body($input['body'], $input['attachment_ids'] ?? []),
             'product_id' => ($input['context_type'] ?? null) === 'product' ? $input['context_id'] : null,
             'order_id' => ($input['context_type'] ?? null) === 'order' ? $input['context_id'] : null,
         ]);
+        app(ChatAttachmentService::class)->bind($message, $conversation, $actor, $input['attachment_ids'] ?? []);
         $conversation->update(['last_sequence' => $sequence, 'last_message_id' => $message->id, 'last_message_at' => $message->created_at]);
 
         return $message;

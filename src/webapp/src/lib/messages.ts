@@ -1,3 +1,5 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
+import type { ChatAttachment } from "@aisley/chat-ui";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from "@/lib/api";
 
 export type ConversationSummary = {
@@ -16,6 +18,7 @@ export type ConversationMessage = {
   id: string;
   sequence: number;
   body: string;
+  attachments?: ChatAttachment[];
   mine: boolean;
   sender_role: "customer" | "seller";
   context: { type: "product" | "order"; id: string | null; label: string; url: string | null } | null;
@@ -25,7 +28,7 @@ export type ConversationMessage = {
 export type ConversationPage = { items: ConversationSummary[]; next_cursor: string | null; unread_count: number };
 export type MessagePage = { items: ConversationMessage[]; next_cursor: string | null };
 export type SendResult = { conversation: ConversationSummary; message: ConversationMessage };
-export type MessageInput = { body: string; context_type?: "product" | "order"; context_id?: string };
+export type MessageInput = { body: string; attachment_ids?: string[]; context_type?: "product" | "order"; context_id?: string };
 
 const base = "/api/v1/customer/conversations";
 
@@ -55,9 +58,9 @@ export async function sendMessage(id: string, input: MessageInput, key: string) 
 
 export async function markConversationRead(id: string, sequence: number) {
   await initializeCsrf();
-  return apiRequest<{ data: ConversationSummary }>(`${base}/${id}/read`, {
+  return acknowledgeChatRead(apiRequest<{ data: ConversationSummary }>(`${base}/${id}/read`, {
     method: "POST", body: JSON.stringify({ sequence }),
-  });
+  }));
 }
 
 export function getConversationUnreadCount() {

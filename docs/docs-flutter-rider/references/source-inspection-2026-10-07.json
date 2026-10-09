@@ -1,0 +1,81 @@
+{
+  "reviewed_on": "2026-10-07",
+  "backend_checkout": "a94669248c63525e44243327f4c25feca46c9c50",
+  "execution": "Read-only source review and php src/api/artisan route:list --json; no application tests, requests, database or Flutter checks.",
+  "client_adoption": {
+    "buyer": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+    "courier": "d7df220"
+  },
+  "files": [
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Courier/CompleteDeliveryController.php",
+      "sha256": "bfc2a3528a2c83a6c61f39dd682a4f6181bdb4a9bddd42092f59b5968a52678a",
+      "bytes": 2441
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Customer/CheckoutController.php",
+      "sha256": "98c47569fb48ce39d83e94923e942862e3d1de6b055fa7423ea17fef9adebfa4",
+      "bytes": 1470
+    },
+    {
+      "upstream_path": "src/api/app/Http/Controllers/Messaging/ChatAttachmentController.php",
+      "sha256": "0365d68154b50715732463c419e14b2a5cc9966ecdf7c12f40bc0bf18818aab4",
+      "bytes": 2570
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Customer/CheckoutQuoteRequest.php",
+      "sha256": "1e98a3625812ba0ce8874a7bcbc20c5419fa04ee794e2b622606242e89d91f79",
+      "bytes": 2519
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/SendConversationMessageRequest.php",
+      "sha256": "d39acebbf5d1ba10b01617e98e54a1ba5efb7166edadb8bb886d5adfe0495c91",
+      "bytes": 1508
+    },
+    {
+      "upstream_path": "src/api/app/Http/Requests/Messaging/UploadChatAttachmentRequest.php",
+      "sha256": "b9dbba00e6c2fcc2ee9c6761d4e412916e5883ec895187b5b008b4ef83d0066d",
+      "bytes": 757
+    },
+    {
+      "upstream_path": "src/api/app/Http/Resources/Customer/CheckoutBatchResource.php",
+      "sha256": "585ecc40a00986d32d0c0261ec591d94f395106f554cf30600e12c5c9362fae1",
+      "bytes": 4069
+    },
+    {
+      "upstream_path": "src/api/app/Services/Finance/ShippingQuotationService.php",
+      "sha256": "0a33c360ed7c04bd9bfc291f1c370ddc0b4f94dad10398d611c8fe3dac64f818",
+      "bytes": 14506
+    },
+    {
+      "upstream_path": "src/api/app/Services/Fulfillment/DeliveryFinalizationService.php",
+      "sha256": "4b7ce4a2e7d7162af4b2e01d017039bb6876cda1c03badc22222e8a8abc190e5",
+      "bytes": 8761
+    },
+    {
+      "upstream_path": "src/api/app/Services/Logistics/AutomaticDeliveryApprovalService.php",
+      "sha256": "fe4e8bad0fd47c868d3b4ee0dff9bb71f4738a065b37e5447ae258a25c51fc2a",
+      "bytes": 3469
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/Media/ChatAttachmentDelivery.php",
+      "sha256": "b6a21f964143c390bcf31f79632f6d0b4170db3c8bfb1c22dfb4693f14381315",
+      "bytes": 3605
+    },
+    {
+      "upstream_path": "src/api/app/Services/Messaging/Media/ChatAttachmentService.php",
+      "sha256": "9a1a0af582c2388c62a4c362923703d385da3f7228361bc14fd2ea0f652adca6",
+      "bytes": 9528
+    },
+    {
+      "upstream_path": "src/api/database/migrations/2026_09_27_000001_add_route_based_shipping_rates.php",
+      "sha256": "e900097eb222d372b252fbffd6f58091f50b30c2ad3220313ba2bb8f5212f8b6",
+      "bytes": 6412
+    },
+    {
+      "upstream_path": "src/api/routes/api.php",
+      "sha256": "e8e9e986a4352be4639dccad3f459dbc441304702d56d7e05e3304e19a2e1975",
+      "bytes": 85792
+    }
+  ]
+}

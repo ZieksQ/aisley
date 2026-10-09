@@ -104,7 +104,7 @@ Label future routes conceptual and unavailable. Optional public personalization 
 - Use native/web conditional adapters: selected browser files use bytes/streams; OS paths stay native. Specify multipart/nested keys, type/size limits, cancellation and partial/uncertain upload outcomes.
 - Private media requires authenticated delivery and account-scoped cleanup. Never construct storage URLs or put tokens in URLs.
 - Copy the nineteen bundled source-identical PSGC JSON files with their revision/manifest into Dart assets. Preserve Region → Province → City/Municipality → Barangay cascading and fallback; Flutter cannot import workspace JavaScript data/selectors.
-- Apply Geoapify/map requirements, attribution, approved key boundaries and explicit GPS permission. Optional flutter_map/latlong2/geolocator rendering is selected in setup; public credential suitability remains a deployment gate; failed optional pins preserve manual address saving.
+- Apply Geoapify/map requirements, attribution, approved key boundaries and explicit GPS permission. Optional MapLibre/geolocator rendering is documented in setup; public credential suitability remains a deployment gate; failed optional pins preserve manual address saving.
 - Specify loading, empty, unavailable, forbidden, stale, partial, retry, success and offline states without fake records/success.
 - Apply light-only [Buyer design](../../design-buyer.md), 48×48 logical-pixel targets, labels/text scaling, keyboard focus/insets and predictable Android/browser back/cancel.
 

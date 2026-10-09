@@ -40,6 +40,7 @@ use App\Http\Controllers\Customer\AccountController as CustomerAccountController
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
+use App\Http\Controllers\Customer\ChatNotificationController as CustomerChatNotificationController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
 use App\Http\Controllers\Customer\CourierConversationController as CustomerCourierConversationController;
@@ -62,6 +63,7 @@ use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\BillingController;
+use App\Http\Controllers\Logistics\ChatNotificationController as LogisticsChatNotificationController;
 use App\Http\Controllers\Logistics\CompanyFleetController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
 use App\Http\Controllers\Logistics\CourierCashController;
@@ -86,6 +88,7 @@ use App\Http\Controllers\Logistics\ShippingRateController;
 use App\Http\Controllers\Logistics\SortingController;
 use App\Http\Controllers\Logistics\SortingExceptionController;
 use App\Http\Controllers\Logistics\SortingPlanController;
+use App\Http\Controllers\Messaging\ChatAttachmentController;
 use App\Http\Controllers\Messaging\OperationalConversationController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
@@ -94,6 +97,7 @@ use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
+use App\Http\Controllers\Seller\ChatNotificationController as SellerChatNotificationController;
 use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
 use App\Http\Controllers\Seller\CourierConversationController as SellerCourierConversationController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
@@ -344,6 +348,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::post('/{voucher}/{operation}', [\App\Http\Controllers\Seller\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end');
     });
 
+    Route::get('/chat-notifications', SellerChatNotificationController::class)->name('chat-notifications');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
@@ -351,6 +356,16 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
+    Route::prefix('chat-attachments')->group(function () {
+        Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+        Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+        Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+        Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+        Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+        Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+        Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+    });
+
     Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
         Route::get('/', [SellerCourierConversationController::class, 'index'])->name('index');
         Route::get('/order-context/{order}', [SellerCourierConversationController::class, 'orderContext'])->whereUuid('order')->name('order-context');
@@ -478,6 +493,7 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 });
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
+    Route::get('/chat-notifications', LogisticsChatNotificationController::class)->name('chat-notifications');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
@@ -485,6 +501,16 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
+    Route::prefix('chat-attachments')->group(function () {
+        Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+        Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+        Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+        Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+        Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+        Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+        Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+    });
+
     Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
         Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
         Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -644,6 +670,16 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
+    Route::prefix('chat-attachments')->group(function () {
+        Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+        Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+        Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+        Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+        Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+        Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+        Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+    });
+
     Route::prefix('operational-conversations')->name('operational-conversations.')->group(function () {
         Route::get('/', [OperationalConversationController::class, 'index'])->name('index');
         Route::post('/', [OperationalConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
@@ -740,6 +776,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::get('/chat-notifications', CustomerChatNotificationController::class)->name('chat-notifications');
         Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
             Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
             Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
@@ -747,30 +784,40 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
             Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
             Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
         });
+        Route::prefix('chat-attachments')->group(function () {
+            Route::get('/', [ChatAttachmentController::class, 'capabilities']);
+            Route::post('/', [ChatAttachmentController::class, 'upload'])->middleware('throttle:chat-media-upload');
+            Route::get('/{attachment}', [ChatAttachmentController::class, 'show'])->whereUuid('attachment');
+            Route::post('/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->whereUuid('attachment')->middleware('throttle:chat-media-upload');
+            Route::delete('/{attachment}', [ChatAttachmentController::class, 'destroy'])->whereUuid('attachment');
+            Route::get('/{attachment}/content', [ChatAttachmentController::class, 'content'])->whereUuid('attachment');
+            Route::get('/{attachment}/preview', [ChatAttachmentController::class, 'preview'])->whereUuid('attachment');
+        });
+
         Route::prefix('courier-conversations')->name('courier-conversations.')->group(function () {
             Route::get('/', [CustomerCourierConversationController::class, 'index'])->name('index');
             Route::get('/order-context/{order}', [CustomerCourierConversationController::class, 'orderContext'])->whereUuid('order')->name('order-context');
-            Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::post('/', [CustomerCourierConversationController::class, 'start'])->middleware('throttle:customer-courier-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerCourierConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerCourierConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
-            Route::post('/{conversation}/messages', [CustomerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/messages', [CustomerCourierConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:customer-courier-chat-send')->name('send');
             Route::post('/{conversation}/read', [CustomerCourierConversationController::class, 'read'])->whereUuid('conversation')->name('read');
         });
         Route::prefix('logistics-conversations')->name('logistics-conversations.')->group(function () {
             Route::get('/', [CustomerLogisticsConversationController::class, 'index'])->name('index');
-            Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::post('/', [CustomerLogisticsConversationController::class, 'start'])->middleware('throttle:customer-logistics-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerLogisticsConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
-            Route::post('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/messages', [CustomerLogisticsConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:customer-logistics-chat-send')->name('send');
             Route::post('/{conversation}/read', [CustomerLogisticsConversationController::class, 'read'])->whereUuid('conversation')->name('read');
         });
         Route::prefix('conversations')->name('conversations.')->group(function () {
             Route::get('/', [CustomerConversationController::class, 'index'])->name('index');
             Route::get('/unread-count', [CustomerConversationController::class, 'unreadCount'])->name('unread-count');
-            Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:15,1')->name('start');
+            Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:customer-shop-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerConversationController::class, 'show'])->whereUuid('conversation')->name('show');
             Route::get('/{conversation}/messages', [CustomerConversationController::class, 'messages'])->whereUuid('conversation')->name('messages');
-            Route::post('/{conversation}/messages', [CustomerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:30,1')->name('send');
+            Route::post('/{conversation}/messages', [CustomerConversationController::class, 'send'])->whereUuid('conversation')->middleware('throttle:customer-shop-chat-send')->name('send');
             Route::post('/{conversation}/read', [CustomerConversationController::class, 'read'])->whereUuid('conversation')->name('read');
         });
         Route::get('/notifications', [CustomerNotificationController::class, 'index'])->name('notifications.index');

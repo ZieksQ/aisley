@@ -3,7 +3,7 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.7
 status: Implemented photo POD completion intent and Logistics confirmation
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
 flutter_status: Photo-linked COD completion intent is implemented locally in Flutter; authenticated Logistics validation, rejected-photo retry, and installed-device acceptance remain unverified
@@ -13,14 +13,13 @@ scope: Laravel API and external Flutter application
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-completion-v1-qr
 backend_contract_version_status: Historical QR baseline; the photo-POD revision below is authoritative
+backend_contract_reviewed_commit: a94669248c63525e44243327f4c25feca46c9c50
 ---
 
 # Complete Delivery
-
 ## Final-mile photo and retry revision (2026-09-20)
 
 The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
-
 ## COD confirmation revision (2026-09-23)
 
 For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; refetch the task. The failed-attempt API exists, but its Flutter submission UI remains unadopted. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
@@ -48,7 +47,6 @@ out_for_delivery
 ```
 
 ## MUST
-
 ### Identity and authority
 
 - Courier requests require Sanctum bearer authentication, courier.active, and policy.consent; `POLICY_CONSENT_REQUIRED` opens acceptance without discarding a valid token.
@@ -61,7 +59,6 @@ out_for_delivery
 - Logistics may validate only tasks belonging to its sole hub and selected-provider context.
 - Preserve both the performing Courier and validating/recording Logistics actor.
 - No first-mile Courier gains final-mile completion authority merely by collecting the parcel.
-
 ### State and proof
 
 - Final-mile task and Shipment must be out_for_delivery before a new completion intent is accepted.
@@ -83,7 +80,6 @@ out_for_delivery
 - The completed first-mile task remains unchanged; final-mile completion does not reserve, release, or fulfill stock again.
 - Do not infer COD payment collection from delivered alone. For COD only, the Courier declaration plus Logistics confirmation authorizes an atomic `payment_status = paid` update with final delivery.
 - Post-pickup cancellation, failure recovery, returns, refunds, and partial fulfillment remain deferred.
-
 ### Reliability and history
 
 - Use a task/actor/organization/action-scoped Idempotency-Key and request hash.
@@ -99,7 +95,6 @@ out_for_delivery
 - Never delete proof/history when a notification is marked read.
 - Preserve original request/event IDs for uncertain-response recovery.
 - Do not call routing, email, push, or object-storage networks while holding completion locks.
-
 ### Notifications and consumers
 
 - Persist durable delivery-notification work with the completion transaction.
@@ -112,7 +107,6 @@ out_for_delivery
 - Delivery History reads the committed final-mile delivered event.
 - Earnings, settlement, tipping, reviews, and metrics require separate approved consumers.
 - Do not calculate or invent financial entitlements in this feature.
-
 ### Flutter and privacy
 
 - Production UI belongs in the external Flutter repository.
@@ -135,7 +129,6 @@ out_for_delivery
 - HTTP responses use Cache-Control: private, no-store.
 
 ## HOW
-
 ### Implemented endpoints
 - The development-only Courier API mockup may submit completion intent after proof submission and show the GET projection while Logistics validation is pending.
 
@@ -151,7 +144,7 @@ out_for_delivery
 - Read COD fields from `data.order.payment_method`, `data.order.payable_total`, and `data.order.currency`; declaration amount/currency/time remain server-derived and the Courier POST accepts no amount.
 - Reject unknown authority fields and unrelated evidence references.
 - GET has no body and no client-controlled ownership parameters.
-- New intent and matching replay return 202. Replay may reflect updated intent/task state but still returns `delivered_at: null`; use GET for the authoritative completion projection and timestamp.
+- New intent and matching replay return 202. Replay reflects current task/Order state and nullable `delivered_at`, including the actual timestamp after finalization; refetch GET for the full authoritative completion/rejection projection.
 - Finalization is visible through a fresh GET, not inferred from an earlier 202.
 - Initial GET may return `intent_id: null`, `completion_status: null`, `evidence_id: null`, and `delivered_at: null`; no intent is a valid state, not a parsing error.
 
@@ -169,7 +162,6 @@ out_for_delivery
 - The Laravel controller returns a `data` envelope for GET and POST. Flutter's direct-DTO/empty-202 fallback is defensive compatibility, not a new server guarantee; recover with GET and never fabricate an accepted intent.
 - After finalization GET returns delivered task/order states, `completion_status: validated`, and `delivered_at`; the task/Shipment/Order `delivered` state is authoritative.
 - The implementation must document its concrete throttling limit before release; no client relies on an invented limit.
-
 ### Proposed errors
 
 | HTTP | Code                      | Client action                                      |
@@ -188,7 +180,6 @@ out_for_delivery
 - Error envelopes use message, code, and optional field-addressable errors.
 - A missing route or unapplied migration is unavailable, not an empty completion response.
 - Network timeout does not prove either transaction failure or success.
-
 ### Implementation and verification gate
 
 - These records and routes exist through the additive fulfillment migration; deploy that migration before client integration rather than recreating the schema.
@@ -205,7 +196,6 @@ out_for_delivery
 - Test notification failures and retries independently from completion state.
 - Flutter tests cover pending 202 versus delivered 200, nullable fields, timeout retry, and secure-storage failures.
 - Record the actual backend commit and executed test results before updating copied Flutter contracts.
-
 ### Acceptance criteria
 
 - [x] Only the eligible final-mile Courier submits completion intent.
@@ -215,13 +205,11 @@ out_for_delivery
 - [x] Supplied Flutter tests distinguish pending evidence from confirmed delivery; authenticated Logistics validation and installed-device acceptance remain open.
 - [x] Private DTOs and history remain scoped and immutable.
 - [ ] Complete PostgreSQL release verification and external Flutter contract tests; recorded SQLite coverage alone does not satisfy this gate.
-
 ### Deferred extensions
 
 - Proof method combinations remain governed by the owning evidence policy.
 - Incident recovery, post-delivery chat, earnings, review/tipping, and external carrier callbacks are deferred.
 - No offline mutation, global realtime/push transport, or automatic evidence retention deletion is enabled here.
-
 ### References
 
 - Shared authority: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/features/shared/shipment-fulfillment/spec.md.

@@ -1,3 +1,5 @@
+import { acknowledgeChatRead } from "@aisley/chat-ui";
+import type { ChatAttachment } from "@aisley/chat-ui";
 import { csrf, requestWithTimeout } from './api'
 
 const base = '/api/v1/logistics/operational-conversations'
@@ -42,6 +44,7 @@ export type OperationalMessage = {
   sender_role: 'courier' | 'customer' | 'seller' | 'logistics'
   mine: boolean
   body: string
+  attachments?: ChatAttachment[];
   created_at: string
 }
 
@@ -53,24 +56,24 @@ export const operationalChat = {
   list: (cursor?: string) => requestWithTimeout<Page<OperationalThread>>(`${base}${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
   show: (id: string) => requestWithTimeout<ThreadResponse>(`${base}/${id}`),
   history: (id: string, cursor?: string) => requestWithTimeout<Page<OperationalMessage>>(`${base}/${id}/messages${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
-  async start(leg: 'first_mile' | 'final_mile', taskId: string, body: string, key: string) {
+  async start(leg: 'first_mile' | 'final_mile', taskId: string, body: string, key: string, attachmentIds: string[] = []) {
     await csrf()
-    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ leg, task_id: taskId, body }) })
+    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ leg, task_id: taskId, body, attachment_ids: attachmentIds }) })
   },
-  async startOrder(orderId: string, body: string, key: string) {
+  async startOrder(orderId: string, body: string, key: string, attachmentIds: string[] = []) {
     await csrf()
-    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'order', context_id: orderId, body }) })
+    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'order', context_id: orderId, body, attachment_ids: attachmentIds }) })
   },
-  async startPickup(pickupRequestId: string, body: string, key: string) {
+  async startPickup(pickupRequestId: string, body: string, key: string, attachmentIds: string[] = []) {
     await csrf()
-    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'pickup_request', context_id: pickupRequestId, body }) })
+    return requestWithTimeout<WriteResponse>(base, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ context_type: 'pickup_request', context_id: pickupRequestId, body, attachment_ids: attachmentIds }) })
   },
-  async send(id: string, body: string, key: string) {
+  async send(id: string, body: string, key: string, attachmentIds: string[] = []) {
     await csrf()
-    return requestWithTimeout<WriteResponse>(`${base}/${id}/messages`, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ body }) })
+    return requestWithTimeout<WriteResponse>(`${base}/${id}/messages`, { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify({ body, attachment_ids: attachmentIds }) })
   },
   async read(id: string, lastReadSequence: number) {
     await csrf()
-    return requestWithTimeout<ThreadResponse>(`${base}/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_sequence: lastReadSequence }) })
+    return acknowledgeChatRead(requestWithTimeout<ThreadResponse>(`${base}/${id}/read`, { method: 'POST', body: JSON.stringify({ last_read_sequence: lastReadSequence }) }))
   },
 }

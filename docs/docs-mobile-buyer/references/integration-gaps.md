@@ -17,8 +17,8 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G03 | Reset mail URL targets configured storefront; native links not configured | Use trusted storefront recovery; approve native app-link/reset handoff separately | Auth/deployment; 1 |
 | G04 | Historical CORS default omitted Buyer; local API now permits localhost:8766, verified 2026-10-04. Exposed headers remain absent | Public browser reads and Authorization preflight pass; backend owner must expose Retry-After. Authenticated cookie isolation remains a target gate | API/deployment; 1/5 |
 | G05 | Fresh-project SDK/package/architecture choices supplied and Phase 1 dependencies resolved | Flutter 3.47.2 / Dart 3.13.2, locked dependencies, Phase 1 analysis/tests and Android/web builds pass; installed-device and real-account gates remain open | Flutter; 1/5 |
-| G06 | All 19 source-identical PSGC assets/manifest copied/registered; Phase 2 Dart loaders and manual fallback implemented | Source checksums and all regional hierarchies pass; deployed NCR shipping coverage and installed-device acceptance remain open | Flutter/data; 2 |
-| G07 | Optional flutter_map/latlong2/geolocator chosen; native public credential suitability still external | Geoapify intentional pin only; keep text-only if credential/permission/provider gate unresolved | Maps/deployment; 2/5 |
+| G06 | All 19 source-identical PSGC assets/manifest copied/registered; Phase 2 Dart loaders implemented; newer selected-only locality dropdowns require valid listed entries and failed assets block save with Retry | Source checksums and all regional hierarchies pass; deployed NCR shipping coverage and installed-device acceptance remain open | Flutter/data; 2 |
+| G07 | MapLibre/geolocator implemented per October 8 external report; native public credential suitability still external | Geoapify intentional pin only; keep text-only if credential/permission/provider gate unresolved | Maps/deployment; 2/5 |
 | G08 | Portable Cart/Product contracts reconciled against source; historical canonical contradictions preserved upstream | Use local typed operations/specs; no backend/runtime fix implied | Current contract documented; G25 client adoption pending |
 | G09 | Portable checkout/fulfillment context reconciled with implemented downstream workflow | Customer selects a Seller-enabled provider per Shop Order; Seller pickup enforces it. Courier assignment stays outside Buyer; current adoption remains G25 | Contract documented; client adoption pending |
 | G10 | Homepage configured shortcuts include unavailable vouchers/listings; Bazaar/MoneyFest deferred | Omit enabled destinations without approved implemented result; Category cards are keyword search, not exact global Category filter | Discovery/product; 2 |
@@ -27,7 +27,7 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G13 | General notification list/detail/read exists; unread-count/read-all and push device registration absent | Per-page unread is not an exact global badge; no invented unread-count, native push/background guarantee | Notifications; 4 |
 | G14 | Wishlist alerts, voucher wallet/authoring, online payments, returns/refunds, live GPS/ETA and broader account controls deferred | Clear unavailable state or omit action; source enum value alone is not implemented workflow | Owning platform features; later |
 | G15 | Profile/review multipart lacks durable image replay; profile metadata inspection has no explicit numeric dimension cap or demonstrated bounded full decode/rewrite | Reconcile uncertainty, retain partial review progress; backend upload hardening/retention requires owner decision | Upload/security; 2/4/5 |
-| G16 | Three channels implemented; retention/abuse policy, operational two-worker races/live exchanges remain release gates | Foreground HTTP polling, scoped read-only state; no attachments/Admin blanket transcript access | Messaging/API/Flutter; 4/5 |
+| G16 | Three channels implemented; retention/abuse policy, operational two-worker races/live exchanges remain release gates | Foreground HTTP polling and scoped read-only state; Laravel private media is implemented, Flutter adoption remains G27; no Admin blanket transcript access | Messaging/API/Flutter; 4/5 |
 | G17 | Support ticket notifications/linked records/attachments deferred; requester UI says description but API uses body | Only subject/category/body create, revision-checked reply; pending/inactive Customers have no exception | Support; 4 |
 | G18 | Sanctum token expiration currently null; no refresh/revoke-all/session registry API | Secure restore and /me revalidation; current-token logout, documented password token effects; no invented refresh schedule | Security/Auth; 1/5 |
 | G19 | Portable contracts now cover inspected behavior; canonical historical wording remains optional evidence | Local specs/typed contracts govern implementation; log live contract differences separately | Documentation resolved; each phase |
@@ -42,7 +42,7 @@ Unavailable APIs must not be mocked into production success. Test fixtures may m
 | ID | New finding / treatment | Release evidence |
 | --- | --- | --- |
 | G22 | Support detail cursor uses Laravel’s global request-bound resolver; source confirms traversal is available. | Verify advancing older-event pages and no-progress guard with controlled live records; no backend gap claimed. |
-| G23 | NCR has direct cities/no Province nodes, but saved Address province remains required text. Flutter offers a reviewed compatibility suggestion, never a fictional PSGC Province. | Verify exact saved-text shipping coverage for NCR/direct cities with deployment data. |
+| G23 | NCR has direct cities/no Province nodes, but saved Address province remains required text. Flutter requires the `National Capital Region (NCR)` compatibility selection, never a fictional PSGC Province; other direct cities without a supported Province mapping block save. | Verify exact saved-text NCR shipping coverage; unsupported direct-city mappings remain blocked. |
 | G24 | Registration Resource exposes profile_photo_path (normally null); discard this field. No evidence upload endpoint exists. | Backend owner assesses privacy of any non-null path; Flutter never constructs URLs from it. |
 
 Corrected portable contract details: Account uses account envelope; Quote Address has label but no coordinates; Support write replay preserves201 and Customer reply automatically reopens waiting/resolved tickets. These were source inspections, not live exchanges. No additional routes or backend fixes are authorized.
@@ -72,3 +72,25 @@ Imported runtime sections above report checks performed in the external Flutter 
 ### G26 — Voucher names and default pairing (2026-10-09)
 
 Backend adds `name` to quote candidates, applied vouchers and frozen Batch vouchers. Permit one App discount plus one App shipping per batch and one of each benefit per Shop, regardless of stored stacking flags; replace only same-benefit selections. Parse/display names and caps, retain UUID/target requests and test snapshots/retries. See [contract delta](../api/voucher-selection-update.md). External Flutter adoption, Android/browser and live acceptance are unverified; prior implementation status remains unchanged.
+
+## Reported checkout provider failures — 2026-10-05
+
+Historical external-project user reports first described Buyer quote HTTP 500 / PostgreSQL SQLSTATE 42P01 for missing `shop_logistics_providers` while storefront checkout reportedly worked. Later on October 5, the user reported storefront failure too: “No shipping provider can quote this Shop order right now.” That later observation supersedes storefront success at that time; different responses do not establish a shared root cause.
+
+Current resolution, API origins, deployed revisions, database schema and enabled Shop-provider configuration remain unverified here. Current source contains the provider-selection contract and migration; its presence does not prove deployment. Keep COD placement gated on a valid server quote. Compare each deployed target/schema/provider configuration and verify quotes through both clients. These are attributed user reports, not live checks run during this sync, and do not establish a current platform outage or a Flutter code cause. No migration or repair ran here; never show database traces in the client.
+
+## Current contract review — 2026-10-07
+
+[Review and preservation record](synchronization-2026-10-07.md) distinguishes the current reviewed backend from Buyer adoption `57e9eb2`. New presentation evidence closes neither provider-selection G25 nor media adoption G27.
+
+| ID | Gap / required action | Owner / gate |
+| --- | --- | --- |
+| G27 | Laravel private chat attachments, additive message DTOs and runtime controls are implemented; the imported Flutter evidence demonstrates text-chat workflows only. Adopt upload/status/retry, explicit binding/send, authenticated image/video/document delivery and private lifecycle cleanup. | Buyer/API; communication/device acceptance |
+
+General-notification unread-count/read-all/native push remain unavailable under G13. The newer web chat-alert API is separate from that inbox; this synchronization claims no Flutter alert adoption.
+
+Gap IDs after the 2026-10-09 rebase: G26 covers voucher names/default pairing; G27 covers private chat media. Historical imported reports and archives that call media G26 retain their original IDs and refer to the gap now tracked as G27. Neither adoption gap is completed by this documentation merge.
+
+## Map acceptance update — imported 2026-10-08 evidence
+
+[MapLibre report](maplibre-verification.md) records analysis, focused synthetic tests, browser renderer checks and APK/web builds. The full suite reports one pre-existing desktop checkout accessibility failure; retain it until separately fixed and verified. [Live Geoapify report](geoapify-live-verification.md) records public-landmark lookup/tiles and localhost interaction after an allowed-origin change. Laravel responses stayed synthetic. These results narrow G07 only for that public key/local origin; installed Android/GPS/TalkBack, production restrictions/quotas, real-account CRUD/shipping, provider selection G25 and media G27 remain open. No Flutter/provider/runtime checks were rerun during this sync.

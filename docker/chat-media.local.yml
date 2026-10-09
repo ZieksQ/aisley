@@ -1,0 +1,22 @@
+name: aisley-chat-media-local
+
+services:
+  clamav:
+    image: clamav/clamav:stable
+    environment:
+      CLAMAV_NO_MILTER: "true"
+    ports:
+      - "127.0.0.1:13310:3310"
+    volumes:
+      - ./clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+      - chat-media-signatures:/var/lib/clamav
+    mem_limit: 4g
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+
+volumes:
+  chat-media-signatures:

@@ -72,10 +72,10 @@ backend_contract_version: courier-operational-messaging-v2
 - The first valid message lazily creates one conversation for the organization, task,
   Courier, and counterpart role/user. Opening a task screen creates no empty thread.
 - The Logistics-side task-start action and Courier-side start action resolve to the same Courier–Logistics thread, never parallel role-specific histories.
-- Trim nonempty body to 2,000 characters; store and render as untrusted plain text,
+- Trim text-only body to 2,000 characters; allow optional caption with ready attachments; store and render as untrusted plain text,
   not HTML or MDX. Message ID, sender, UTC time, and per-thread sequence are server-owned.
 - Send requires a UUID `Idempotency-Key`; exact retry returns the original committed
-  message. Reused key with different text/context returns `409`. A successful response
+  message. Reused key with different text/context/ordered attachment IDs returns `409`. A successful response
   means persistence, not merely a local optimistic bubble.
 - Lock the conversation and recheck task/participant eligibility when creating or
   sending. Concurrent starts create one thread; task reassignment before commit
@@ -230,3 +230,11 @@ backend_contract_version: courier-operational-messaging-v2
   Buyer starts refresh the final-mile task; replies refresh `send_allowed`. No counterpart Order-context calls are made by Flutter.
 
 External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
+
+## Private chat media extension — 2026-10-06
+
+- All existing role channels accept ordered `attachment_ids` on first-message and reply requests. Text-only requests and historical retry hashes remain compatible; attachment-only sends receive a readable string-body fallback.
+- [Shared Chat Media](../../shared/chat-media/spec.md) owns image/video/document formats, limits, scan/readiness, private delivery, cleanup and exact retry behavior. Existing participants, approvals, Store/Order/pickup/task/custody boundaries remain enforced at upload and send.
+- Use role-owned `/api/v1/{role}/chat-attachments` capabilities/upload/status/retry/remove/content/preview routes. Prospective uploads resolve existing start selectors and create no empty chat. Never attach another user's or another context's asset.
+- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. External Buyer/Courier attachment adoption and device acceptance are pending.
+- Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.

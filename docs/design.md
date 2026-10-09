@@ -88,7 +88,7 @@ Avoid creating duplicate components when an appropriate shared component already
 
 Users bring expectations from other applications. Familiar interaction patterns help them understand AISLEY without learning a new interface for each feature.
 
-- Messaging presentation follows the [shared Chat Messaging UI/UX specification](features/shared/chat-messaging/spec.md) alongside this guide. It governs web inboxes, threads, commerce context, and proposed media interactions; role specs retain authorization/workflow ownership, and proposed capabilities do not change current text-only API contracts.
+- Messaging presentation follows the [shared Chat Messaging UI/UX specification](features/shared/chat-messaging/spec.md) alongside this guide. It governs web inboxes, threads, commerce context, and media interactions; role specs retain authorization/workflow ownership. Private attachments follow the [Chat Media contract](features/shared/chat-media/spec.md) with runtime readiness; richer commerce cards remain future work.
 
 - Prefer established e-commerce conventions for navigation, search, filters, forms, checkout, messaging, and account settings. Reuse the app's existing patterns and compatible shared components rather than inventing new controls for familiar tasks.
 - Keep terminology, action labels, status meanings, and similar interactions consistent within each app. Share compatible presentation patterns across web apps without mixing role-specific screens, navigation, or authorization.
@@ -159,3 +159,15 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 - Use labeled voucher details (customer-visible name and separate code), benefit, conditions, Asia/Manila schedule, limits and plain-text terms sections. Put Savings cap (PHP, optional) in Conditions, and circle-exclamation help buttons beside the Saving/Percentage and Savings cap labels, outside the inputs. Tooltips support hover, focus, tap, Escape and viewport bounds. Remove configurable stacking; checkout permits one discount plus one shipping voucher by default. Show live terms and pending differences directly, compact redemption/savings totals and independently paginated history.
 - Publication confirmation presents exact terms, dates, limits and funding consequences. Native centered dialogs contain focus, accept Escape/cancel and restore focus. Confirm permanent ending, pause and unsaved-input discard. Role-owned data routers preserve existing route composition and block navigation/browser Back while mutation outcomes are uncertain, retaining exact retry identity. Clear drafts/history on authorization loss or account change.
 - Follow the [authoring specification](features/shared/voucher-authoring/spec.md) and uncodixfy constraints; no decorative hero, gradient, KPI grid or unnecessary status pill.
+
+## Chat attachment interactions
+
+- Use shared @aisley/chat-ui selection/progress/checking, bounded image previews, accessible image dialogs, explicit video controls without autoplay, and document filename/type/size/download cards. Preserve AISLEY themes and familiar Shopee/Lazada explicit-send behavior.
+- Keep selected media and optional caption beside the composer, provide Remove/Retry file, and block Send until every selection is ready. Preserve exact pending payloads after uncertain delivery; clear private file/draft state on authorization loss.
+- Media dialogs must contain focus, close with Escape, restore focus and fit narrow screens. Attachment errors remain actionable and cannot appear as successful sends. Verify 390/768/1280px, Customer light and dashboard light/dark alongside existing chat behavior.
+
+## Chat notification control
+
+- Customer, Seller, and Logistics headers use a dedicated chat icon beside the general notification bell, with an accessible aggregate unread-message count and `99+` visual cap. Follow the [shared Chat Messaging notification contract](features/shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06).
+- Use a compact, viewport-bounded dropdown with safe counterpart/channel labels, plain-text previews, timestamps and per-conversation unread text. Keep links to the role's existing separate inboxes and routes. Opening the dropdown leaves chat read markers unchanged.
+- Preserve theme contrast, keyboard link access, Escape/Close focus restoration and outside dismissal. Show loading/empty/error/offline feedback without concealing refresh failures or retaining private previews after authorization loss.

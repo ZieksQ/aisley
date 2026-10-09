@@ -13,7 +13,7 @@ scope: Seller React dashboard and shared Laravel messaging domain
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Its rich cards, Seller sharing, and images are target enhancements; this role's existing text-only API and implementation status remain authoritative until separately revised.
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Rich cards and Seller sharing remain target enhancements. Private attachments follow the [media contract](../../shared/chat-media/spec.md) with explicit runtime readiness.
 - An approved Seller can read and reply to private Customer conversations for the Shop they currently own. This is the Seller-side release dependency of [Customer Chat/Messaging](../../customer/chat-messaging/spec.md).
 - One Customer–Shop conversation and its messages serve both role apps. Seller replies do not create a Seller-only thread or separate message store.
 - The first release is persisted **text** over authenticated HTTP with bounded polling while the inbox/thread is visible. It is not instant realtime. Attachments, broadcasting, Seller-initiated outreach, archive/mute/report, typing, presence, and message deletion are deferred.
@@ -34,11 +34,11 @@ scope: Seller React dashboard and shared Laravel messaging domain
 ### Shared messages and read state
 
 - Seller inbox uses the same UUID `conversations`, `conversation_participants`, and `messages` tables as Customer chat; `(customer_user_id, shop_id)` is unique.
-- Message text is trimmed, nonempty, at most 2,000 characters, and rendered as untrusted text. Files, HTML rendering, and Markdown rendering are not supported in this release.
+- Message captions are trimmed and at most 2,000 characters, and rendered as untrusted text. HTML/Markdown rendering is unsupported; private files follow the shared media policy.
 - Every send requires a UUID `Idempotency-Key`. Exact retries return the committed message; key reuse with different content or thread returns `409`. Laravel allocates a monotonically increasing per-thread sequence under the conversation lock.
 - Seller can advance only their own `last_read_sequence` to a committed message in that thread. Stale read requests never move it backward. Only Customer-authored messages after that marker count as Seller unread.
 - Inbox and history use bounded cursor pagination, private `no-store` responses, and persisted unread counts. A message is not labelled sent until the API confirms persistence.
-- The Customer may attach a validated Product/Order reference to a message. Seller sees only currently safe context; an archived Product is shown as unavailable. A Seller reply in the first release is text-only.
+- The Customer may attach a validated Product/Order reference to a message. Seller sees only currently safe context; an archived Product is shown as unavailable. Seller replies may include ready private attachments when enabled.
 
 ### Delivery and UI
 
@@ -75,9 +75,23 @@ scope: Seller React dashboard and shared Laravel messaging domain
 - Shared `ConversationService` owns membership, status, Shop relationship, validated context, transactional sequence and idempotency, read marker, and safe projections. Role controllers only delegate into this authority.
 - Seller `/messages` and `/messages/:conversationId` use the existing React Router dashboard and authenticated API client; no Courier web UI is introduced.
 - Database fields are UUID-backed with string-independent message state; all schema changes are additive. SQLite and disposable PostgreSQL feature suites, two-worker races, and chat-migration rollback/reapply passed on 2026-09-24. The Chromium check covered both roles at 390px, reconnect/focus refresh, and bounded send timeout with retained draft/idempotency key.
-- Do not infer permission for Seller-started outreach, attachments, private broadcast channels, archive/mute/report, or Admin private-chat reading from this MVP. These need separate approved contracts and verification.
+- Do not infer permission for Seller-started outreach, private broadcast channels, archive/mute/report, or Admin private-chat reading from this MVP. These need separate approved contracts and verification.
 - The separate `/api/v1/seller/logistics-conversations` route family and `/logistics-messages` dashboard page support Seller-initiated pickup coordination only; this does not grant Seller-initiated Customer outreach. The pickup page links to its selected organization's thread, while Logistics uses its own operational inbox. The API derives both participants from the immutable request and preserves read-only history after the relationship ends.
 - Courier uses the existing `/api/v1/seller/courier-conversations` list/start/detail/history/send/read family plus the additive read-only Order-context endpoint. Its context DTO is `{ data: { order_id, order_reference, send_allowed, conversation_id } }`; foreign Orders are `404`. Seller screens are composed from focused `components/courier-messages/` components/hooks and the typed credentialed `lib/courierMessages.ts` client; no migration, new dependency, Courier web UI, or Flutter change is required.
 - Reusable mocked browser verification: start Seller on port 15174 and ChromeDriver on 19515, then run `node tests/courier-chat-browser.smoke.mjs` inside `src/seller`. Generated browser profiles/screenshots remain under ignored `node_modules/.cache/`; the check never uses seeded accounts or the database.
 
 Web UI adoption (2026-10-05): Seller–Shop, Seller–Courier, and Seller–Logistics screens now use the shared presentation documented above, with their existing API contracts unchanged. Seller lint, TypeScript, and production build passed. The mocked Seller Courier Chromium smoke passed at 390, 768, and 1280px in both themes, including desktop Enter-to-send, mobile newline preservation, and rate-limit recovery; it uses in-memory API fixtures.
+
+## Private chat media extension — 2026-10-06
+
+- All existing role channels accept ordered `attachment_ids` on first-message and reply requests. Text-only requests and historical retry hashes remain compatible; attachment-only sends receive a readable string-body fallback.
+- [Shared Chat Media](../../shared/chat-media/spec.md) owns image/video/document formats, limits, scan/readiness, private delivery, cleanup and exact retry behavior. Existing participants, approvals, Store/Order/pickup/task/custody boundaries remain enforced at upload and send.
+- Use role-owned `/api/v1/{role}/chat-attachments` capabilities/upload/status/retry/remove/content/preview routes. Prospective uploads resolve existing start selectors and create no empty chat. Never attach another user's or another context's asset.
+- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. External Buyer/Courier attachment adoption and device acceptance are pending.
+- Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
+
+## Dedicated web chat notifications — 2026-10-06
+
+- The header Chat messages icon combines unread incoming messages across authorized Customer, Logistics pickup, and first-mile Courier conversations, separately from the general notification bell. It previews up to five unread conversations and links directly to the existing role/channel thread.
+- Follow the [shared notification behavior and additive API contract](../../shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06): `GET /api/v1/seller/chat-notifications`, foreground 15-second refresh, participant-derived totals, private previews, and immediate refresh after successful read acknowledgment. Opening the dropdown does not mark read.
+- Existing channel routes, authorization, approval/tenant boundaries, read-only history, idempotency and media contracts remain authoritative. This web change does not establish external Flutter adoption or background push.

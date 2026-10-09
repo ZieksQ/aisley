@@ -20,7 +20,7 @@ For each phase record backend commit/configuration, target/origin, Flutter SDK/a
 - [ ] Registration collects only supported keys, returns pending/no token, handles duplicate/normalization/throttling, and avoids claiming address/evidence/email/status-polling features. Storefront recovery and reset-token invalidation are verified.
 - [ ] Public Products/Shops/Home omit hidden/restricted/vacation/inactive content; variant choices, literal wildcard search, pagination/end/error and public/private cache isolation behind verified app navigation match current APIs.
 - [ ] Shopping widgets never mount/fetch before verified identity/consent. Recently Viewed records account history only, never writes/merges guest hints, and removes only the legacy key without blocking sign-in.
-- [ ] PSGC JSON manifest/hierarchy and Region→Province→City/Municipality→Barangay cascading work offline with manual fallback. Optional pin/GPS uses approved provider/adapter, clears stale coordinates and handles denial/failure/attribution without blocking text save.
+- [ ] PSGC JSON manifest/hierarchy and searchable Region→Province→City/Municipality→Barangay selections work offline; typed text (even exact names) is not selection, unsupported mappings and failed assets block save with Retry. Optional pin/GPS uses approved provider/adapter, clears stale coordinates and handles denial/failure/attribution without blocking text save.
 - [ ] Profile/password/preference fields are allow-listed; current bearer survives account password change, other tokens are revoked, reset revokes all tokens; email remains read-only. Private avatar bytes cannot leak to another account/cache.
 - [ ] Android/browser multipart uses `photo`/`image`, exact under-10-MiB limit and allowed types; cancel/permission/corruption/spoof/size/throttle/consent/storage failure and uncertain response reconciliation work; review partial photos are not duplicated blindly.
 - [ ] Cart same-configuration merge/increment, separate variants, variation replacement/merge, server stock/visibility conflicts and unavailable lines work; uncertain additive writes do not auto-replay.
@@ -58,3 +58,17 @@ synthetic and live/device acceptance remain unchecked until the whole criterion 
 - [ ] Adopt [shipping selection](api/shipping-selection.md) at the current Laravel inspection: options read, per-Shop choice/fallback, quote invalidation/hashes, revised shipping projections and nullable legacy Order provider. Re-run affected client parsing/repository/UI checks and controlled commerce acceptance. Phase 1–5 reports do not resolve G25.
 
 The older Phase 5 runbook mentions guest hints and no provider assignment. Its imported scope is historical: current Buyer presentation has account-only recency, and current checkout requires provider selection. Keep installed-device, authenticated, accessibility, signing and deployment gates open.
+
+## Newer reported client evidence — 2026-10-04/05
+
+[Marketplace verification](references/marketplace-verification.md) and ten included synthetic screenshots report mobile/tablet/desktop layout, navigation, accessibility-guideline and resize checks. The October 5 [progress history](PROGRESS.md) records mouse/text actions, selected-only PSGC, page retention, profile-photo integration, equal categories, outlined items and checkout post-frame initialization. Preserve 273/286/281/287 reported suite counts by their individual dated change; they are not a combined total or results run here. The final outlined-card follow-up reports three focused widget cases.
+
+Firefox touch-simulation modes, real browser text selection, controlled authenticated/API and installed Android/TalkBack/photo-picker acceptance remain unverified. The [October 5 checkout reports](references/integration-gaps.md#reported-checkout-provider-failures--2026-10-05) are historical deployment observations; their current resolution remains unverified. Synthetic quotes/cancelled placement and compilation do not prove live COD placement.
+
+- [ ] Adopt [private chat media](api/chat-media.md), including upload/readiness, ordered attachment binding, exact retries, authenticated private media reads and account cleanup; verify client integration/device behavior (G27).
+
+[Current documentation checks](references/synchronization-2026-10-07.md) are separate from those externally reported Flutter results.
+
+## Imported map evidence — 2026-10-08
+
+[MapLibre](references/maplibre-verification.md) and [live Geoapify](references/geoapify-live-verification.md) report client checks performed in the external project. Preserve the pre-existing desktop checkout accessibility failure and distinguish live public-provider tiles/lookup from synthetic Laravel responses. Installed Android/GPS/TalkBack, production key/signing and real-account CRUD/shipping remain unverified. External `tool/` and test commands apply only when their reported files exist in the Flutter project; this bundle supplies documentation and PSGC/evidence assets.
