@@ -50,6 +50,7 @@ class CheckoutService
         private readonly LowStockAlertService $lowStockAlerts,
         private readonly ShippingQuotationService $shippingQuotation,
         private readonly OrderPricingService $orderPricing,
+        private readonly CheckoutAddressFingerprint $addressFingerprint,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -295,7 +296,7 @@ class CheckoutService
         $balances = $balanceQuery->get()->keyBy('inventory_sku_id');
 
         $groups = [];
-        $state = ['address' => [$address->id, $address->updated_at?->getTimestamp()], 'shipping' => [], 'lines' => [], 'vouchers' => []];
+        $state = ['address' => $this->addressFingerprint->state($address), 'shipping' => [], 'lines' => [], 'vouchers' => []];
         foreach ($lineIntents as $intent) {
             /** @var Product|null $product */
             $product = $products->get($intent['product_id']);

@@ -55,6 +55,7 @@ Buy Now or selected Cart lines
 - Accept one `address_id` that belongs to the authenticated Customer and is eligible for shipping (`shipping` or `both`). Revalidate completeness at quote and placement.
 - Copy recipient, contact, address lines, PSGC/manual locality names, country, and optional coordinates into one `order_addresses` row per Order inside the placement transaction.
 - Address Book edits/deletes never rewrite a placed Order snapshot.
+- Quote state includes the saved address ID/timestamp, type, label, recipient/contact, every delivery address field, and optional coordinates at the stored seven-decimal precision. A same-second change invalidates the reviewed quote; placement returns `409 QUOTE_STALE` before any Order, inventory, voucher, Cart, or notification effects.
 - Manual/PSGC address fields are authoritative. Optional coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
 - Return final-fee Logistics options per Shop from `POST /checkout/logistics-options`; accept one `logistics_selections` entry per Shop for quote and placement.
 - Show each Shop's eligible provider choices as radio options with only the provider name and final shipping fee. Requote server-side after a provider choice and use the returned shipping fee and COD totals for review and placement.
@@ -109,6 +110,7 @@ Buy Now or selected Cart lines
 
 - [Connected lifecycle verification](../../shared/shipment-fulfillment/verification.md) exercises real Cart checkout through Seller approval, first-mile stock fulfillment, local/company-truck delivery, Logistics POD validation and verified-purchase review. Independent PostgreSQL workers verify duplicate placement and competing Customers buying the last unit.
 - Quote: normalize intent → resolve Customer-owned inputs → group by Shop → calculate server totals/vouchers → save short-lived Customer-owned quote with state/request hashes.
+- Audit S03 fingerprint rollout: unplaced quotes using the old ID/whole-second-timestamp address fingerprint require refreshed review through the existing `QUOTE_STALE` response. Already committed exact-key requests replay their original batch before quote/address revalidation; no migration or client payload change is required.
 - Place: acquire the shared routing settings gate before Customer/quote/inventory/voucher rows → revalidate hashes and all rules → create Orders/snapshots/reservations → clear selected Cart lines → commit → queue after-commit notifications. This matches Seller pickup and sort-plan recovery lock ordering when they share inventory or routing resources.
 - Test ownership, one-/multi-Shop grouping, immutable snapshots, COD-only validation, restriction/availability changes, voucher targeting, rollback, stable locking, and idempotent retries on SQLite and PostgreSQL.
 - Do not add migrations by editing an executed migration. Add a new migration when the approved Logistics selection or shared operational records are ready.
