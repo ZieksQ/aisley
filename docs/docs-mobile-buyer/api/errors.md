@@ -49,6 +49,10 @@ For consent denial, `data:{required_policies:[{type:string,label:string,version:
 
 [Examples](examples/README.md) contain feature-specific request/success/null/empty/failure fixtures. [Operations](operations.md) decide whether exact replay is permitted. Cancelled transport can still commit. Retry supported UUID writes with identical frozen body/key; do not replay additive Cart/photo writes. All private failures are session-generation scoped, including stale401/403 from a previous account.
 
+## Legacy voucher funding — 2026-10-10
+
+For the 2026-10-10 [B06 legacy voucher funding delta](legacy-voucher-funding.md), quote `409 VOUCHER_FUNDING_INSUFFICIENT` binds to `vouchers` and requires changing the selection. Candidate reason uses the same code with zero displayed saving. Placement maps the shortfall to existing `409 QUOTE_STALE` on `vouchers` with no effects: refresh and require reviewed Place. Unknown/uncertain placement responses still retain the frozen request; committed exact-key replay remains valid.
+
 ## Current shipping selection failures — 2026-10-04
 
 Current source: `22b0a48f9575ead182d03c35ab87345711c23b90`; imported Buyer adoption gap G25 remains open.

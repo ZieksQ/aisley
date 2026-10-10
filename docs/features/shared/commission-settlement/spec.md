@@ -13,6 +13,9 @@
 
 - Customer COD is merchandise subtotal minus merchandise discounts plus quoted shipping minus shipping discounts. Commission never increases COD.
 - Seller commission base is merchandise after Seller-funded merchandise discounts. Seller proceeds subtract Seller commission and Seller-funded shipping discounts.
+- Legacy Shop shipping savings must be fully funded by that Shop's merchandise after Seller merchandise discounts and half-up rounded Seller commission. Equality permits zero Seller proceeds; excess savings are rejected before placement, never silently clamped, reduced or assigned to the platform/Logistics/another Shop. Current Seller shipping authoring remains forbidden.
+- Before accepting pricing, require COD plus App voucher expenses plus explicit shipping subsidy to equal Seller proceeds plus Seller/Logistics commissions plus the Logistics pool. Delivery independently requires a balanced ledger.
+- B06 prevents new unfunded Orders and rejects outstanding unfunded quotes. Already-placed shortfall Orders retain frozen facts and may still fail recognition; their funding requires separate authorized remediation. This change adds no historical rewrite, platform expense or Seller debt.
 - Platform-funded vouchers are platform expenses and preserve beneficiary proceeds.
 - New shipping uses Logistics service bases once per leg, destination surcharge, and one Shop main-category weight/size extra per Parcel/service leg, with no platform base. The extra uses the combined billable weight of all Product Category lines in that Shop Order. Frozen full leg charges (base plus extra) remain the allocation weights. Historical `platform_base_v1` snapshots retain their original totals; new `logistics_service_base_v1` snapshots separate aggregate service bases and extras. Finance drill-downs must label components according to this marker when showing them.
 - Logistics commission applies once to quoted shipping plus an explicitly funded subsidy.

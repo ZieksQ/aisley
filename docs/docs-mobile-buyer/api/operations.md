@@ -321,6 +321,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 
 - Access: Active Customer + consent.
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
+- Funding: [B06](legacy-voucher-funding.md) adds quote `409 VOUCHER_FUNDING_INSUFFICIENT` on `vouchers` and ineligible zero-saving candidates; change the selected legacy Shop shipping offer.
 - Response: HTTP 200; `{data:Quote}`.
 - Retry: No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.
 - Notes: Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.
@@ -332,6 +333,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 
 - Access: Active Customer + consent.
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
+- Funding: [B06](legacy-voucher-funding.md) maps a legacy shortfall to `409 QUOTE_STALE` on `vouchers` before any placement effects. Refresh/review; committed exact-key replay still succeeds.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
 - Notes: Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.

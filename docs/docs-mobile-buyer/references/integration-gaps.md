@@ -75,6 +75,8 @@ Imported runtime sections above report checks performed in the external Flutter 
 
 Backend adds `name` to quote candidates, applied vouchers and frozen Batch vouchers. Permit one App discount plus one App shipping per batch and one of each benefit per Shop, regardless of stored stacking flags; replace only same-benefit selections. Parse/display names and caps, retain UUID/target requests and test snapshots/retries. See [contract delta](../api/voucher-selection-update.md). External Flutter adoption, Android/browser and live acceptance are unverified; prior implementation status remains unchanged.
 
+The 2026-10-10 [B06 funding delta](../api/legacy-voucher-funding.md) adds `VOUCHER_FUNDING_INSUFFICIENT` candidate/quote feedback and placement `QUOTE_STALE` on `vouchers`. Include these cases in G26 adoption/recovery verification; no external-client gate is closed. Already-placed unfunded Orders need separate backend funding remediation.
+
 ## Reported checkout provider failures — 2026-10-05
 
 Historical external-project user reports first described Buyer quote HTTP 500 / PostgreSQL SQLSTATE 42P01 for missing `shop_logistics_providers` while storefront checkout reportedly worked. Later on October 5, the user reported storefront failure too: “No shipping provider can quote this Shop order right now.” That later observation supersedes storefront success at that time; different responses do not establish a shared root cause.

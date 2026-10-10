@@ -68,6 +68,7 @@ Buy Now or selected Cart lines
 - Apply Shop vouchers only to their Shop Order. An App voucher in a multi-Shop checkout requires one explicit eligible Shop target; never silently move it.
 - Use fixed-precision server money values. A discount cannot exceed its basis and shipping cannot become negative.
 - Store immutable financial snapshots and voucher/redemption records on each Order.
+- Reject a selected legacy Shop shipping voucher whose full saving exceeds that Shop's proceeds after Seller merchandise discounts and rounded commission. Quote returns `409 VOUCHER_FUNDING_INSUFFICIENT` on `vouchers`; placement returns `409 QUOTE_STALE` before any effects, requiring refreshed review. Committed exact-key requests still replay their batch.
 
 ### Inventory, transaction, and retry safety
 

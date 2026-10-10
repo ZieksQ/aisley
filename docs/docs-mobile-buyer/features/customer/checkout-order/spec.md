@@ -27,8 +27,8 @@ Buy Now or selected Cart → saved shipping + COD → per-Shop quote → reviewe
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
 imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
-Use this feature with its prerequisite session/consent boundary and the related shopping or
-communication repositories.
+[B06 legacy shipping funding](../../../api/legacy-voucher-funding.md): unaffordable candidates are disabled; quote uses 409 VOUCHER_FUNDING_INSUFFICIENT on vouchers.
+Placement shortfalls use 409 QUOTE_STALE before effects; refresh/review. Committed exact-key replay remains valid; Flutter adoption is unverified.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership
 and capabilities remain authoritative.
 

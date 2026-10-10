@@ -18,6 +18,7 @@ export const voucherReasons: Record<string, string> = {
   VOUCHER_NOT_STARTED: "This voucher is not available yet.",
   VOUCHER_PAYMENT_INELIGIBLE: "This voucher is not available for COD.",
   VOUCHER_TERMS_INVALID: "This voucher is temporarily unavailable.",
+  VOUCHER_FUNDING_INSUFFICIENT: "This Shop shipping voucher is unavailable for these items. Choose another voucher.",
 };
 
 export function amount(value: string) {
