@@ -100,9 +100,8 @@ reviewed: 2026-10-09
 
 - `/checkout` shows expandable per-Shop voucher candidates, name/code, visible savings cap, individual saving or readable ineligibility, selected state, and the explicit App target Shop.
 - Toggling replaces a same-benefit choice for that Shop and removes another selected App voucher of the same benefit; it requotes rather than calculating a local discount.
-- No choice is preselected. Selected intent and totals update only after a successful quote; controls are disabled while quoting/placing.
-- Existing `409` recovery attempts a fresh quote and may fall back to no vouchers; it requires another Place action, not automatic placement.
-- Removal/fallback must be clearly disclosed before confirmation. Current fallback can clear the prior message, so full stale-selection disclosure is not certified.
+- No choice is preselected. Selected intent and totals update only after a successful quote; controls are disabled while quoting/placing or awaiting uncertain placement recovery.
+- Storefront recovery freezes selected vouchers with the original placement payload/key. Only recognized quote-rejection codes release it for refreshed review; key collisions, unknown conflicts, throttling and uncertain transport retain exact replay. Refreshed review requires another Place action and preserves the rejection message.
 - Preserve safe input and distinguish validation/conflict, session/consent loss, throttling, timeout/offline, and service failure; existing Checkout error handling is not full coverage of every state.
 - Follow `docs/design.md`: light-only, mobile-first, familiar per-Shop savings, keyboard-operable disclosure/buttons, `aria-pressed`, visible focus, and announced feedback.
 - Checkout requests currently lack dedicated timeout/throttle recovery; candidate lists are not independently bounded/paginated. These remain scoped hardening gaps.

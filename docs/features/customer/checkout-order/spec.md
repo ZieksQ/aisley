@@ -129,3 +129,11 @@ Buy Now or selected Cart lines
 
 - The server now sums first-mile, each linehaul-hop, and last-mile Logistics service bases plus destination surcharge and category weight/size extras. No platform base applies to new quotations; local routes omit linehaul.
 - Customer payloads and final-fee projections are unchanged. Refresh pre-revision/stale quotes, verify provider switching and final totals, and keep internal components private. Existing Orders retain their original COD.
+
+### Storefront placement recovery — 2026-10-10 (B01)
+
+- Freeze the placement payload, quote ID and Customer-scoped idempotency key before sending. Block shipping refresh, provider/voucher changes and concurrent placement while pending or uncertain; expose an explicit Retry original order action after failure.
+- Retain the exact request through transport failures, throttling, server errors and unrecognized conflicts. Only `409 QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED` or `QUOTE_STALE` releases it for fresh shipping/totals review; key collisions and already-placed quote conflicts never trigger a new purchase.
+- Keep recovery IDs, quantities and selections (no address/contact snapshot) in same-tab session storage before transport. Returning to checkout or reloading prioritizes this record over any new Buy Now/Cart handoff. Storage failure prevents an unrecorded placement. Clear recovery on success, confirmed rejection, logout/authorization loss or account change; ignore late responses from departed checkout sessions.
+- Recovery uses the existing exact-key placement endpoint; it adds no API or Flutter contract. Cross-tab/device recovery, browser storage deletion and recovery after logout remain outside this session-scoped fix.
+- Regression tests execute the actual checkout handlers for both audit races and test lost-response replay, reload, conflict classification, 429/5xx, account cleanup and unavailable storage. Browser/layout verification is reported separately in the progress log.

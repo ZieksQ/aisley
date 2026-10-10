@@ -11,7 +11,7 @@ export function CheckoutSummary({
 }: {
   quote: CheckoutQuote | null;
   message: string | null;
-  status: "loading" | "ready" | "quoting" | "placing" | "error";
+  status: "loading" | "ready" | "quoting" | "placing" | "uncertain" | "error";
   onPlaceOrder: () => void;
   formatAmount: (value: string) => string;
 }) {
@@ -40,7 +40,9 @@ export function CheckoutSummary({
         </>
       ) : (
         <p className="mt-4 text-sm leading-6 text-[#746978]">
-          Choose a delivery address and shipping option for each Shop to calculate your totals.
+          {status === "uncertain" || status === "placing"
+            ? "Confirming the original checkout with its reviewed items, shipping and totals."
+            : "Choose a delivery address and shipping option for each Shop to calculate your totals."}
         </p>
       )}
 
@@ -57,11 +59,11 @@ export function CheckoutSummary({
 
       <button
         type="button"
-        disabled={!quote || status !== "ready"}
+        disabled={status !== "uncertain" && (!quote || status !== "ready")}
         onClick={onPlaceOrder}
         className="mt-5 min-h-12 w-full rounded-md bg-[#E6007A] px-4 text-sm font-semibold text-white hover:bg-[#C8006B] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:cursor-not-allowed disabled:bg-[#CFC6D2]"
       >
-        {status === "placing" ? "Placing order…" : "Place order"}
+        {status === "placing" ? "Placing order…" : status === "uncertain" ? "Retry original order" : "Place order"}
       </button>
       <p className="mt-3 flex gap-2 text-xs leading-5 text-[#746978]">
         <FiShield aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

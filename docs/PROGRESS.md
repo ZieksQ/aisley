@@ -16,3 +16,8 @@ Format:
 ## 2026-10-09
 
 - Archived the complete 179-line merged history at [PROGRESS-2026-10-09.md](logs/PROGRESS-2026-10-09.md) after completing the rebase onto `origin/main` (`ed2b482`). Logistics retains Settings appearance controls and top chat notifications; both histories, contract-gap reconciliation, verification and limits are preserved in the archive. Continue app-wide entries here.
+
+## 2026-10-10
+
+- Fixed audit B01: storefront Checkout freezes the original placement payload/quote/key, blocks shipping/provider/voucher edits and concurrent placement while unresolved, and retries the same request after lost responses, 409 key collisions, 429/5xx or malformed confirmations. Same-tab session storage restores recovery after navigation/reload; auth changes clear private recovery and late responses cannot affect another checkout session. Recognized quote rejections permit refreshed review. Updated Checkout/Voucher specs and added `test:checkout`; no API or Flutter contract changed.
+- Verification: 23 checkout regression/render tests and 11 existing session tests passed; storefront TypeScript, scoped ESLint and diff checks passed. Production `next build --webpack` passed (31 static pages); default Turbopack was blocked first by Google Fonts connectivity, then worker port-binding restrictions. Used installed tool binaries because the pnpm launcher could not open its database. Native button/error rendering is covered; real browser responsive, keyboard/focus and live API checks were not run. Recovery remains same-tab/session scoped and does not survive logout or browser storage deletion.
