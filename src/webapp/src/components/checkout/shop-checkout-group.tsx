@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronRight, FiTag } from "react-icons/fi";
 
 import type {
   CheckoutLogisticsOptions,
   CheckoutQuote,
-  CheckoutVoucher,
-  VoucherSelection,
 } from "@/lib/checkout/types";
 import { ProductImage } from "@/components/marketplace/product-image";
 import { ShippingProviderSelector } from "./shipping-provider-selector";
@@ -16,20 +14,14 @@ export function ShopCheckoutGroup({
   selectedProviderId,
   onSelectProvider,
   disabled,
-  onToggleVoucher,
-  selectedVouchers,
   formatAmount,
-  voucherReasons,
 }: {
   group: CheckoutQuote["groups"][number];
   shippingOptions: CheckoutLogisticsOptions["groups"][number];
   selectedProviderId: string | undefined;
   onSelectProvider: (providerId: string) => void;
   disabled: boolean;
-  onToggleVoucher: (voucher: CheckoutVoucher, shopId: string) => Promise<void>;
-  selectedVouchers: VoucherSelection[];
   formatAmount: (value: string) => string;
-  voucherReasons: Record<string, string>;
 }) {
   return (
     <section
@@ -72,80 +64,43 @@ export function ShopCheckoutGroup({
       </div>
 
       {group.availableVouchers.length ? (
-        <details className="border-t border-[#E6E0E8] px-4 py-4 sm:px-5">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[#4C1268] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
-            Shop and Aisley vouchers <FiChevronDown aria-hidden="true" />
-          </summary>
-          <div className="mt-3 space-y-2">
-            {group.availableVouchers.map((voucher) => {
-              const selected = selectedVouchers.some(
-                (item) =>
-                  item.voucher_id === voucher.id &&
-                  item.target_shop_id === group.shop.id,
-              );
-
-              return (
-                <div key={voucher.id}>
-                  <button
-                    type="button"
-                    disabled={disabled || !voucher.eligible}
-                    onClick={() => void onToggleVoucher(voucher, group.shop.id)}
-                    aria-pressed={selected}
-                    className={`w-full border p-3 text-left disabled:cursor-not-allowed ${selected ? "border-[#E6007A] bg-[#FFF7FB]" : "border-[#DDD5E0] bg-white"} disabled:bg-[#F5F2F5] disabled:text-[#8B808F]`}
-                  >
-                    <span className="flex items-start justify-between gap-3">
-                      <span>
-                        <span className="block text-sm font-semibold">
-                          {voucher.name ?? voucher.code} ·{" "}
-                          {voucher.issuerType === "app" ? "Aisley" : "Shop"}{" "}
-                          {voucher.benefitType}
-                        </span>
-                        <span className="mt-1 block text-xs leading-5">
-                          Code: {voucher.code}
-                        </span>
-                        <span className="mt-1 block text-xs leading-5">
-                          {voucher.termsSummary ||
-                            `${voucher.valueType === "percent" ? `${voucher.value}%` : formatAmount(voucher.value)} savings`}
-                        </span>
-                        {voucher.maximumDiscount ? (
-                          <span className="mt-1 block text-xs leading-5">
-                            Capped at {formatAmount(voucher.maximumDiscount)}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="shrink-0 text-xs font-semibold">
-                        {voucher.eligible
-                          ? `Save ${formatAmount(voucher.saving)}`
-                          : "Unavailable"}
-                      </span>
-                    </span>
-                    {!voucher.eligible && voucher.reason ? (
-                      <span className="mt-2 block text-xs text-[#765226]">
-                        {voucherReasons[voucher.reason] ??
-                          "This voucher is not eligible for this Shop order."}
-                      </span>
-                    ) : null}
-                    {voucher.issuerType === "app" ? (
-                      <span className="mt-2 block text-xs text-[#746978]">
-                        Applies only to {group.shop.name} when selected here.
-                      </span>
-                    ) : null}
-                  </button>
-                  {voucher.reason === "VOUCHER_NOT_CLAIMED" &&
-                  voucher.collectionUrl &&
-                  !disabled ? (
-                    <Link
-                      href={voucher.collectionUrl}
-                      className="inline-flex min-h-11 items-center text-sm font-semibold text-[#4C1268] underline focus-visible:outline-2 focus-visible:outline-[#E6007A]"
-                    >
-                      Collect this voucher
-                    </Link>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </details>
+        <div className="border-t border-[#E6E0E8] px-4 py-3 sm:px-5">
+          {disabled ? (
+            <span
+              aria-disabled="true"
+              className="flex min-h-11 items-center gap-3 text-sm text-[#665A6A]"
+            >
+              <FiTag aria-hidden="true" /> Vouchers
+            </span>
+          ) : (
+            <Link
+              href={`/checkout/vouchers?shop=${encodeURIComponent(group.shop.id)}`}
+              className="flex min-h-11 items-center gap-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
+              aria-label={`Select vouchers for ${group.shop.name}`}
+            >
+              <FiTag aria-hidden="true" className="shrink-0 text-[#E6007A]" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-[#4C1268]">
+                  Vouchers
+                </span>
+                {group.appliedVouchers.length ? (
+                  <span className="mt-0.5 block break-words text-xs text-[#665A6A]">
+                    {group.appliedVouchers
+                      .map((voucher) => voucher.name || voucher.code)
+                      .join(" · ")}
+                  </span>
+                ) : null}
+              </span>
+              <span className="shrink-0 font-medium text-[#E6007A]">
+                {group.appliedVouchers.length ? "Change" : "Select vouchers"}
+              </span>
+              <FiChevronRight
+                aria-hidden="true"
+                className="shrink-0 text-[#746978]"
+              />
+            </Link>
+          )}
+        </div>
       ) : null}
 
       <ShippingProviderSelector
