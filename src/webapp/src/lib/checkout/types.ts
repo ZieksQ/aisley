@@ -135,6 +135,7 @@ export type CheckoutQuote = {
       productId: string;
       variantId: string | null;
       productName: string;
+      imageUrl: string | null;
       sku: string;
       selectedOptions: Array<{ group: string; value: string }>;
       unitPrice: string;
@@ -181,6 +182,7 @@ export type CheckoutBatch = {
       variantName: string | null;
       sku: string;
       selectedOptions: Array<{ group: string; value: string }>;
+      imageUrl: string | null;
       unitPrice: string;
       quantity: number;
       lineSubtotal: string;

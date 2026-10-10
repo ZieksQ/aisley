@@ -4,6 +4,7 @@ namespace App\Http\Resources\Customer;
 
 use App\Services\Customer\CustomerOrderStatusMapper;
 use App\Support\MediaUrl;
+use App\Support\ProductImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -35,6 +36,7 @@ class OrderSummaryResource extends JsonResource
                 'productName' => $preview->product_name,
                 'variantName' => $preview->variant_name,
                 'quantity' => $preview->quantity,
+                'imageUrl' => ProductImageUrl::from($preview->product, $preview->variant),
             ],
             'lineCount' => $this->items->count(),
             'itemCount' => $this->items->sum('quantity'),

@@ -43,7 +43,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - One reviewed checkout intent uses Buy Now or selected Cart, an owned shipping address and COD.
 - Variant key is present nullable; Cart/Buy Now cannot coexist. Quantity and voucher selections follow operation validation.
 - Quote computes fresh Product/variant stock, shipping serviceability/rate and voucher effects; no local payable authority.
-- Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall orderCount summary. Product name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
+- Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall orderCount summary. Product image/name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
 - Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee; unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
 - Select one provider per Shop; implicit single-option fallback is allowed, multiple options require choice.
 - Empty options block quoting; provider failures never authorize substitution or a Courier selector.
@@ -65,7 +65,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - GET batch is available only with known owned batch ID; no placement GET-by-key recovery endpoint
   exists.
 - Process-death uncertainty stays G12 with memory-only pending state; do not claim automated recovery.
-- Batch result shows each Order reference and link; never report partial checkout success for an error.
+- Batch result shows each item's available image, Order reference and link; never report partial checkout success for an error.
 - Test one/multiple Shops, stale prices/stock/rates/address/vouchers and atomic rollback on any failing
   group.
 - Test lost-response exact replay, changed payload key conflict, Buy Now Cart preservation and owned
@@ -113,7 +113,7 @@ actions.
 | --- | --- |
 | `Quote` | `quoteId: UUID`, `expiresAt: timestamp`, `mode: string`, `paymentMethod: string`, `address: QuoteAddress`, `groups: QuoteGroup[]`, `summary: QuoteSummary` |
 | `QuoteGroup` | `shop: QuoteShop`, `items: QuoteItem[]`, `availableVouchers: Voucher[]`, `appliedVouchers: AppliedVoucher[]`, `shippingQuote: ShippingQuote`, `totals: Totals` |
-| `QuoteItem` | `cartItemId: UUID?`, `productId: UUID`, `variantId: UUID?`, `productName: string`, `sku: string?`, `selectedOptions: SelectedOption[]`, `unitPrice: money`, `quantity: int`, `lineSubtotal: money` |
+| `QuoteItem` | `cartItemId: UUID?`, `productId: UUID`, `variantId: UUID?`, `productName: string`, `imageUrl: URL?`, `sku: string?`, `selectedOptions: SelectedOption[]`, `unitPrice: money`, `quantity: int`, `lineSubtotal: money` |
 | `Batch` | `id: UUID`, `currency: string`, `placedAt: timestamp`, `orders: BatchOrder[]` |
 | `Totals` | `merchandiseSubtotal: money`, `shippingFee: money`, `discount: money`, `shippingDiscount: money`, `payable: money`, `currency: string` |
 

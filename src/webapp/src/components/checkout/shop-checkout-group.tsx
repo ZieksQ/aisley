@@ -7,6 +7,7 @@ import type {
   CheckoutVoucher,
   VoucherSelection,
 } from "@/lib/checkout/types";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { ShippingProviderSelector } from "./shipping-provider-selector";
 
 export function ShopCheckoutGroup({
@@ -45,9 +46,12 @@ export function ShopCheckoutGroup({
         {group.items.map((item) => (
           <div
             key={`${item.productId}:${item.variantId ?? "base"}`}
-            className="flex items-start justify-between gap-4 px-4 py-4 text-sm sm:px-5"
+            className="flex items-start gap-3 px-4 py-4 text-sm sm:gap-4 sm:px-5"
           >
-            <div className="min-w-0">
+            <div className="relative size-14 shrink-0 overflow-hidden border border-[#E3DDE5] bg-[#F7F4F7]">
+              <ProductImage src={item.imageUrl} alt={item.productName} sizes="56px" />
+            </div>
+            <div className="min-w-0 flex-1">
               <p className="font-medium text-[#302534]">{item.productName}</p>
               {item.selectedOptions.length ? (
                 <p className="mt-1 text-xs text-[#746978]">
@@ -60,7 +64,7 @@ export function ShopCheckoutGroup({
                 Qty {item.quantity} · SKU {item.sku}
               </p>
             </div>
-            <strong className="shrink-0 text-[#3A2E3E]">
+            <strong className="shrink-0 text-right text-[#3A2E3E]">
               {formatAmount(item.lineSubtotal)}
             </strong>
           </div>

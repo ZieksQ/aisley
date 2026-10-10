@@ -48,9 +48,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - pending_payment maps To Pay; out_for_delivery is its own group; delivered Completed; issues map
   Cancelled / Issue.
 - Enum return_requested/returned labels do not authorize a Customer returns/refund workflow.
-- Order Detail uses immutable items/address/payment/vouchers/totals, with explicit
-  deliveryAddress.version.
+- Order Detail uses immutable item/address/payment/voucher/financial snapshots with explicit
+  deliveryAddress.version; item and list-preview DTOs add nullable current Product-media `imageUrl`.
 - Historical productId/variantId/sku may be null; snapshots remain readable after Product removal.
+- A missing `imageUrl` is valid when Product media is unavailable; it does not change the immutable item snapshot.
 - TimelineCount/HasMore determine whether to load tracking pages; preserve returned chronology and
   deduplicate event IDs.
 - Tracking location omits unavailable hub/city; empty PHP array can arrive as [] and must normalize to

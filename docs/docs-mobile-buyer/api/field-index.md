@@ -531,6 +531,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `productId` | `UUID` | non-null; required |
 | `variantId` | `UUID` | null allowed; required |
 | `productName` | `string` | non-null; required |
+| `imageUrl` | `URL` | null allowed; required |
 | `sku` | `string` | null allowed; required |
 | `selectedOptions` | `SelectedOption[]` | non-null; required |
 | `unitPrice` | `money` | non-null; required |
@@ -657,6 +658,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `quantity` | `int` | non-null; required |
 | `lineSubtotal` | `money` | non-null; required |
 | `currency` | `string` | non-null; required |
+| `imageUrl` | `URL` | null allowed; required |
 
 ## ReviewableItem
 
@@ -673,6 +675,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `quantity` | `int` | non-null; required |
 | `lineSubtotal` | `money` | non-null; required |
 | `currency` | `string` | non-null; required |
+| `imageUrl` | `URL` | null allowed; required |
 | `canReview` | `bool` | non-null; required |
 | `reviewId` | `UUID` | null allowed; required |
 
@@ -807,6 +810,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `productName` | `string` | non-null; required |
 | `variantName` | `string` | null allowed; required |
 | `quantity` | `int` | non-null; required |
+| `imageUrl` | `URL` | null allowed; required |
 
 ## Tracking
 

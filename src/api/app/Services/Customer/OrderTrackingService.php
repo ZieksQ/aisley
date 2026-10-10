@@ -24,7 +24,10 @@ class OrderTrackingService
             ->with([
                 'shop:id,name,slug,logo_path',
                 'selectedLogisticsOrganization:id,business_name',
-                'items:id,order_id,product_id,product_name,variant_name,quantity',
+                'items:id,order_id,product_id,product_variant_id,product_name,variant_name,quantity',
+                'items.product:id,thumbnail_disk,thumbnail_path',
+                'items.product.galleryMedia:id,product_id,product_variant_id,disk,path,mime_type,is_default,scan_status',
+                'items.variant.primaryMedia:id,product_id,product_variant_id,disk,path,mime_type,scan_status',
             ])
             ->withMax('statusEvents as latest_tracking_at', 'occurred_at')
             ->orderByDesc('latest_tracking_at')
@@ -43,6 +46,9 @@ class OrderTrackingService
                 'shop:id,name,slug,logo_path',
                 'selectedLogisticsOrganization:id,business_name',
                 'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
+                'items.product:id,thumbnail_disk,thumbnail_path',
+                'items.product.galleryMedia:id,product_id,product_variant_id,disk,path,mime_type,is_default,scan_status',
+                'items.variant.primaryMedia:id,product_id,product_variant_id,disk,path,mime_type,scan_status',
                 'items.review:id,order_item_id',
                 'address',
                 'vouchers:id,order_id,voucher_id,code,issuer_type,benefit_type,discount_amount,currency,terms_summary',

@@ -369,6 +369,7 @@
       "productId": "UUID",
       "variantId": "UUID?",
       "productName": "string",
+      "imageUrl": "URL?",
       "sku": "string?",
       "selectedOptions": "SelectedOption[]",
       "unitPrice": "money",
@@ -467,7 +468,8 @@
       "unitPrice": "money",
       "quantity": "int",
       "lineSubtotal": "money",
-      "currency": "string"
+      "currency": "string",
+      "imageUrl": "URL?"
     },
     "ReviewableItem": {
       "id": "UUID",
@@ -481,6 +483,7 @@
       "quantity": "int",
       "lineSubtotal": "money",
       "currency": "string",
+      "imageUrl": "URL?",
       "canReview": "bool",
       "reviewId": "UUID?"
     },
@@ -581,7 +584,8 @@
       "productId": "UUID?",
       "productName": "string",
       "variantName": "string?",
-      "quantity": "int"
+      "quantity": "int",
+      "imageUrl": "URL?"
     },
     "Tracking": {
       "id": "UUID",

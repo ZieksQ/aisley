@@ -82,9 +82,10 @@ Buy Now or selected Cart lines
 ### Customer experience and acceptance
 
 - Buy Now and selected-Cart flows require an authenticated Customer; a guest is redirected to login and must intentionally retry.
-- Show one selected shipping-capable address, COD, each Shop group, items, current prices, voucher reasons, fees, savings, payable amount, loading, validation, stale, conflict, and retry states.
+- Show one selected shipping-capable address, COD, each Shop group, items with available Product images, current prices, voucher reasons, fees, savings, payable amount, loading, validation, stale, conflict, and retry states. Null or failed images use the storefront fallback.
 - Retrieve provider options for every Shop, keep a separate selection per Shop, and requote after each selection. Require a selection when multiple providers are available; automatically use the sole available provider. Hide route status, weights, parcel dimensions, tariff details, route legs, and internal pricing data.
 - A successful result lists every Order reference and links to Customer Order Status. Partial-success UI is forbidden because placement is atomic.
+- Quote and Batch item DTOs include a nullable image URL resolved from currently available public variant/Product media; image URLs do not change immutable Order snapshots.
 - Use semantic labels, keyboard-operable controls, field-level errors, and non-color-only stock/error cues.
 - [x] Buy Now creates a valid Order without adding a Cart line.
 - [x] Selected Cart lines group by Shop and produce one Order per Shop.
