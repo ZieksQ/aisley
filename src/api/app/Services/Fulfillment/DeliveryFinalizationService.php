@@ -27,6 +27,7 @@ use App\Notifications\Seller\SellerOrderDeliveredNotification;
 use App\Services\Finance\Automation\CodInvoiceService;
 use App\Services\Finance\CourierCashService;
 use App\Services\Finance\FinanceLifecycleService;
+use App\Services\Finance\OrderSnapshotFunding;
 use App\Services\OrderTransitionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -34,7 +35,7 @@ use Illuminate\Support\Str;
 
 class DeliveryFinalizationService
 {
-    public function __construct(private readonly OrderTransitionService $orderTransitions, private readonly FinanceLifecycleService $finance) {}
+    public function __construct(private readonly OrderTransitionService $orderTransitions, private readonly FinanceLifecycleService $finance, private readonly OrderSnapshotFunding $funding) {}
 
     // Caller holds the Shipment lock in a transaction. All completion paths use Shipment → Task → Proof → Intent → Order.
     public function finalize(?User $logistics, Shipment $shipment, ?DeliveryTask $task, ?ShipmentEvidence $evidence, string $requestHash, string $idempotencyKey, ?string $reason = null, ?string $expectedIntentId = null): array
@@ -82,6 +83,8 @@ class DeliveryFinalizationService
         if ($evidence->status !== ShipmentEvidenceStatus::AwaitingValidation && $evidence->status !== ShipmentEvidenceStatus::Validated) {
             throw FulfillmentException::conflict('PROOF_NOT_VALIDATED', 'The delivery proof has not passed validation.');
         }
+        $order->loadMissing('pricingSnapshot');
+        $this->funding->assertBalanced($order->pricingSnapshot);
         $method = $logistics === null ? DeliveryApprovalMode::Automatic : DeliveryApprovalMode::Manual;
         $evidence->update(['status' => ShipmentEvidenceStatus::Validated, 'validated_at' => now(),
             'validated_by_logistics_id' => $logistics?->id, 'review_method' => $method, 'rejection_reason' => null]);

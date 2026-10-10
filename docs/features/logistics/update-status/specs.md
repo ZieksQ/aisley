@@ -3,7 +3,7 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.7
+version: 1.8
 status: Implemented dedicated offline receiving/sorting, offline-first barcode Parcel search, and recovery UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
@@ -103,6 +103,8 @@ The deployed responses are safe for the Logistics dashboard and external Courier
 - Submit `POST /api/v1/logistics/update-status/transitions` with JSON `{ "reference": "waybill-or-order-reference", "target_state": "delivered", "expected_revision": 7, "evidence_id": "selected-proof-uuid" }` and a UUID `Idempotency-Key`. The example revision must be replaced by the fresh Shipment revision.
 - `COMPLETION_INTENT_REQUIRED` means no matching Courier intent. `COMPLETION_STATE_CONFLICT` may mean the task is not ready or the intent has an old task revision; refetch and have the Courier explicitly reconfirm with the current revision and a new attempt key if necessary.
 - `SHIPMENT_STATE_CONFLICT` requires fresh Logistics Shipment state/revision. `PROOF_NOT_FOUND`, `PROOF_NOT_VALIDATED`, and `ORDER_STATE_CONFLICT` require correcting the linked evidence/state, never bypassing validation.
+- `409 ORDER_FUNDING_HOLD` means frozen Order funding differs from its beneficiary proceeds/commissions. Keep pending proof/intent and custody intact; contact Admin for funding review. Refreshing or using a new key cannot fund the Order. The response is private/no-store with `code` and `message`; already-committed identical requests still replay normally.
+- Manual and automatic paid-prepaid finalization use the same funding check before any delivery mutation. COD rejection leaves payment pending and creates no ledger, allocation, invoice, cash obligation or delivered notification. Automatic review records `intent.automatic_review_error = ORDER_FUNDING_HOLD` through its existing fallback and leaves the delivery pending.
 - A notification read does not validate delivery. Investigate the selected proof, linked intent, task/Shipment/Order states, safe error code, and request correlation before attributing a live failure to documentation.
 
 ### Remaining policy questions

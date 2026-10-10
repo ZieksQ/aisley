@@ -7,7 +7,7 @@ use App\Models\Shipment;
 
 class FinanceLifecycleService
 {
-    public function __construct(private readonly LedgerService $ledger, private readonly LogisticsAllocationService $allocation) {}
+    public function __construct(private readonly LedgerService $ledger, private readonly LogisticsAllocationService $allocation, private readonly OrderSnapshotFunding $funding) {}
 
     public function recognizeDelivery(Order $order, Shipment $shipment, mixed $deliveredAt): void
     {
@@ -16,6 +16,7 @@ class FinanceLifecycleService
         if ($snapshot === null) {
             return;
         }
+        $this->funding->assertBalanced($snapshot);
         $allocation = $this->allocation->allocate($order, $shipment, $snapshot->logistics_pool_cents);
         $platformVoucherExpense = collect($snapshot->voucher_funding)
             ->where('issuer', 'app')->sum('amount_cents');

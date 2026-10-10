@@ -18,6 +18,7 @@
 ### Invoice issuance and ownership
 
 - Create one invoice per COD Order in the authoritative confirmed-delivery transaction.
+- Unbalanced frozen pricing returns `409 ORDER_FUNDING_HOLD` before delivery recognition, invoice issuance or Courier cash obligations. Inventory historical discrepancies with `finance:audit-order-funding`; separate authorized funding remediation is required. See `../commission-settlement/spec.md`.
 - Snapshot collector organization/name, Order reference, currency, and integer centavo amount.
 - Capture collector ownership from final-mile Shipment custody at delivery finalization.
 - Include the collector snapshot in the authoritative delivery event.
