@@ -43,6 +43,7 @@ class PhilippinesLogisticsSeeder extends Seeder
                 $network->configure($hub, $definition, $index + 1, $warn);
                 app(RegionalRateSeeder::class)->seed($hub->organization, $warn);
             }
+            $this->call(InitialSellerLogisticsSeeder::class);
         }, 3);
     }
 }

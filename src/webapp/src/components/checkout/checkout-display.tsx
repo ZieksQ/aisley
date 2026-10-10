@@ -8,6 +8,7 @@ const money = new Intl.NumberFormat("en-PH", {
 });
 
 export const voucherReasons: Record<string, string> = {
+  VOUCHER_NOT_CLAIMED: "Collect this voucher before selecting it at checkout.",
   VOUCHER_CUSTOMER_INELIGIBLE: "This voucher is not available for your account.",
   VOUCHER_CUSTOMER_LIMIT: "You have already used this voucher.",
   VOUCHER_EXHAUSTED: "This voucher has reached its usage limit.",

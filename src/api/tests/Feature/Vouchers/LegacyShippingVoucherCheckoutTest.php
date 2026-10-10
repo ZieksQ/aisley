@@ -72,6 +72,8 @@ class LegacyShippingVoucherCheckoutTest extends TestCase
             foreach ([[$shipping, $discount], [$discount, $shipping]] as $selections) {
                 $this->postJson('/api/v1/customer/checkout/quote', $this->legacyIntent($context, $selections))->assertConflict()->assertJsonPath('code', 'VOUCHER_FUNDING_INSUFFICIENT');
             }
+            $shipping->claims()->delete();
+            $discount->claims()->delete();
             $shipping->delete();
             $discount->delete();
         }

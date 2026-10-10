@@ -6,12 +6,12 @@ import { useEffect, useState } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
-  FiPackage,
   FiRefreshCw,
   FiShoppingBag,
 } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { ProductImage } from "@/components/marketplace/product-image";
 import { ApiError } from "@/lib/api";
 import { fetchOrders } from "@/lib/orders/client";
 import {
@@ -173,11 +173,12 @@ function OrderRow({ order }: { order: OrderSummary }) {
       </header>
 
       <div className="flex items-start gap-3 px-4 py-4 sm:gap-4 sm:px-5">
-        <div
-          aria-hidden="true"
-          className="flex size-14 shrink-0 items-center justify-center border border-[#E3DDE5] bg-[#F7F4F7] text-[#6E5F73] sm:size-16"
-        >
-          <FiPackage className="size-6" />
+        <div className="relative size-14 shrink-0 overflow-hidden border border-[#E3DDE5] bg-[#F7F4F7] sm:size-16">
+          <ProductImage
+            src={order.itemPreview?.imageUrl ?? null}
+            alt={order.itemPreview?.productName ?? "Order item"}
+            sizes="64px"
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-[#302534]">

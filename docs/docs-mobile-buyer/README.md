@@ -74,3 +74,11 @@ Audit B02 is fixed in Laravel and the storefront: correction accepts changed rec
 ## Customer profile photo validation — 2026-10-10
 
 Audit B04 is fixed locally in Laravel: profile photos require bounded full decode/rewrite with 8,000-pixel edges, 40,000,000 total pixels and strictly under 10 MiB for source/stored bytes. Invalid images and processing failures return safe `422 photo` errors while preserving the prior photo. See [operation](api/operations.md#op-011), [upload policy](references/file-upload-requirements.md) and [G15](references/integration-gaps.md). Endpoint/DTO/replay shapes remain unchanged. External Flutter adoption/status and live/deployed-runtime/device acceptance remain open.
+
+## Voucher collection contract — 2026-10-11
+
+[Discovery, collection and My Vouchers](api/voucher-collection.md) adds Customer APIs and claim requirements for platform claim-required/all Shop vouchers. Automatic legacy platform access and committed Checkout replay remain. Flutter adoption is pending G28; prior external implementation status and evidence remain unchanged.
+
+## Order Product image contract — 2026-10-11
+
+Order summary previews, Order items, Checkout Quote items and Batch items now include nullable `imageUrl` values resolved from available public Product media. Missing images remain valid and do not alter immutable item snapshots. This documents the Laravel/webapp contract; external Flutter adoption and verification status remain unchanged.

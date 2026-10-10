@@ -82,9 +82,10 @@ Buy Now or selected Cart lines
 ### Customer experience and acceptance
 
 - Buy Now and selected-Cart flows require an authenticated Customer; a guest is redirected to login and must intentionally retry.
-- Show one selected shipping-capable address, COD, each Shop group, items, current prices, voucher reasons, fees, savings, payable amount, loading, validation, stale, conflict, and retry states.
+- Show one selected shipping-capable address, COD, each Shop group, items with available Product images, current prices, voucher reasons, fees, savings, payable amount, loading, validation, stale, conflict, and retry states. Null or failed images use the storefront fallback.
 - Retrieve provider options for every Shop, keep a separate selection per Shop, and requote after each selection. Require a selection when multiple providers are available; automatically use the sole available provider. Hide route status, weights, parcel dimensions, tariff details, route legs, and internal pricing data.
 - A successful result lists every Order reference and links to Customer Order Status. Partial-success UI is forbidden because placement is atomic.
+- Quote and Batch item DTOs include a nullable image URL resolved from currently available public variant/Product media; image URLs do not change immutable Order snapshots.
 - Use semantic labels, keyboard-operable controls, field-level errors, and non-color-only stock/error cues.
 - [x] Buy Now creates a valid Order without adding a Cart line.
 - [x] Selected Cart lines group by Shop and produce one Order per Shop.
@@ -138,3 +139,17 @@ Buy Now or selected Cart lines
 - Keep recovery IDs, quantities and selections (no address/contact snapshot) in same-tab session storage before transport. Returning to checkout or reloading prioritizes this record over any new Buy Now/Cart handoff. Storage failure prevents an unrecorded placement. Clear recovery on success, confirmed rejection, logout/authorization loss or account change; ignore late responses from departed checkout sessions.
 - Recovery uses the existing exact-key placement endpoint; it adds no API or Flutter contract. Cross-tab/device recovery, browser storage deletion and recovery after logout remain outside this session-scoped fix.
 - Regression tests execute the actual checkout handlers for both audit races and test lost-response replay, reload, conflict classification, 429/5xx, account cleanup and unavailable storage. Browser/layout verification is reported separately in the progress log.
+
+### Collection requirement — 2026-10-11
+
+- Automatic App vouchers remain directly selectable. Claim-required App vouchers and all Shop vouchers require a Customer-owned collection, rechecked at quote/placement. Candidate `VOUCHER_NOT_CLAIMED` carries a `collectionUrl`; collect on the issuing surface, then return for deliberate selection.
+- Newly invalid `VOUCHER_*` placement eligibility returns `409 QUOTE_STALE` before effects. Existing exact-key committed replay and uncertain-placement recovery remain unchanged. See the [Customer voucher contract](../voucher-usage/spec.md).
+
+
+### Dedicated voucher selection — 2026-10-11
+
+- Each Shop's Checkout voucher row opens `/checkout/vouchers?shop=<UUID>`; it shows applied names and **Change** after a successful selection. Replace the former expandable candidate list.
+- The separate page uses compact ticket cards, All/Discount/Shipping filters and Aisley/Shop sections. Benefits, minimum spend, cap and expiry stay visible; Details exposes full terms and unavailable claims link to the issuing collection surface. Selection uses a highlighted border/background and checkmark with accessible pressed buttons, without radio controls.
+- Edits remain a draft until **Apply vouchers** obtains a server quote. Back retains the previously accepted selection. Failed quotes keep draft/error feedback; successful application returns to Checkout with the selected address, Logistics choices and full cross-Shop voucher allocation intact.
+- A shared review layout owns the Customer-keyed checkout state. These two views share the consent check to prevent navigation from unmounting reviewed intent; private API gates remain authoritative. Account changes invalidate state and pending replies. Frozen uncertain placement continues to block edits and voucher navigation, including direct page access.
+- This is a storefront-only interaction change. Checkout payloads, capacity, funding, collection requirements and external Buyer API/Flutter status remain unchanged.

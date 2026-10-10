@@ -3,6 +3,7 @@
 namespace Tests\Feature\Vouchers;
 
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -81,6 +82,7 @@ class VoucherNamesAndCapsTest extends TestCase
         $this->asLifecycleActor($context['seller']);
         $shopDiscount = $this->voucherAction($this->draftVoucher('seller'), 'publish', 'seller')->assertOk()->json('data');
         $this->asLifecycleActor($context['customer']);
+        VoucherClaim::create(['voucher_id' => $shopDiscount['id'], 'customer_id' => $context['customer']->id, 'collected_at' => now()]);
         foreach ([[$other, $shopDiscount], [$shopDiscount, $other]] as $pair) {
             $selection = array_map(fn ($voucher) => ['voucher_id' => $voucher['id'], 'target_shop_id' => $context['shop']->id], $pair);
             $this->postJson('/api/v1/customer/checkout/quote', [...$intent, 'vouchers' => $selection])

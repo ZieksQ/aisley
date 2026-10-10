@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiShoppingBag } from "react-icons/fi";
-
+import { FiMessageSquare, FiShoppingBag } from "react-icons/fi";
 import type { ShopDetail } from "@/lib/marketplace/types";
 
 export function ShopHeader({ shop }: { shop: ShopDetail }) {
+  const description = shop.description?.trim();
   return (
-    <header className="overflow-hidden rounded-lg border border-[#DED7E1] bg-white">
-      <div className="relative aspect-[4/1] min-h-28 max-h-56 border-b border-[#E7E1E9] bg-[#F2EEF3]">
+    <header className="shop-identity">
+      <div className="shop-banner">
         {shop.bannerUrl ? (
           <Image
             src={shop.bannerUrl}
@@ -18,13 +18,14 @@ export function ShopHeader({ shop }: { shop: ShopDetail }) {
             className="object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[#A092A5]">
-            <FiShoppingBag aria-hidden="true" className="size-10" />
+          <div className="shop-banner-fallback">
+            <FiShoppingBag aria-hidden="true" />
+            <span>{shop.name}</span>
           </div>
         )}
       </div>
-      <div className="flex items-start gap-4 px-4 py-5 sm:px-6">
-        <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#D9CFDC] bg-[#F7F4F8] text-2xl font-bold text-[#4C1268] sm:size-20">
+      <div className="shop-identity-content">
+        <div className="shop-logo">
           {shop.logoUrl ? (
             <Image
               src={shop.logoUrl}
@@ -37,25 +38,35 @@ export function ShopHeader({ shop }: { shop: ShopDetail }) {
             <span aria-hidden="true">{shop.name.charAt(0).toUpperCase()}</span>
           )}
         </div>
-        <div className="min-w-0 pt-1">
-          <h1
-            id="shop-page-heading"
-            tabIndex={-1}
-            className="text-2xl font-bold tracking-[-0.025em] text-[#2A1C2E] outline-none sm:text-3xl"
-          >
+        <div className="shop-identity-copy">
+          <h1 id="shop-page-heading" tabIndex={-1}>
             {shop.name}
           </h1>
-          {shop.category ? (
-            <p className="mt-1 text-sm font-medium text-[#785B7E]">{shop.category.name}</p>
-          ) : null}
-          {shop.description ? (
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#655969] sm:text-base">
-              {shop.description}
-            </p>
-          ) : null}
-          <Link className="mt-4 inline-flex min-h-10 items-center rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F7F1F8] focus-visible:outline-2 focus-visible:outline-[#E6007A]" href={`/messages/new?shop=${encodeURIComponent(shop.id)}`}>Chat with Shop</Link>
+          {shop.category && (
+            <p className="shop-category">{shop.category.name}</p>
+          )}
+          {description &&
+            (description.length > 240 ? (
+              <details className="shop-description">
+                <summary>About this shop</summary>
+                <p>{description}</p>
+              </details>
+            ) : (
+              <p className="shop-description">{description}</p>
+            ))}
         </div>
+        <Link
+          className="shop-chat-button"
+          href={`/messages/new?shop=${encodeURIComponent(shop.id)}`}
+        >
+          <FiMessageSquare aria-hidden="true" />
+          Chat with Shop
+        </Link>
       </div>
+      <nav className="shop-section-navigation" aria-label="Shop sections">
+        <a href="#vouchers">Vouchers</a>
+        <a href="#shop-products-heading">Products</a>
+      </nav>
     </header>
   );
 }

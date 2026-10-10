@@ -4,6 +4,7 @@ namespace Tests\Support;
 
 use App\Models\CommissionPolicy;
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -44,6 +45,8 @@ trait LegacyShippingVoucherFixtures
             $voucher->forceFill(['id' => $overrides['id']]);
         }
         $voucher->save();
+
+        VoucherClaim::create(['voucher_id' => $voucher->id, 'customer_id' => $context['customer']->id, 'collected_at' => now()]);
 
         return $voucher;
     }

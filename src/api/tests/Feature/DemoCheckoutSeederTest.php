@@ -12,15 +12,19 @@ use App\Models\ShippingRateVersion;
 use App\Models\Shop;
 use App\Models\ShopLogisticsProvider;
 use App\Models\User;
+use App\Models\Voucher;
 use Database\Seeders\AdminPermissionSeeder;
 use Database\Seeders\DemoCheckoutSeeder;
 use Database\Seeders\InitialAdminSeeder;
 use Database\Seeders\InitialCustomerSeeder;
 use Database\Seeders\InitialLogisticsSeeder;
 use Database\Seeders\InitialSellerSeeder;
+use Database\Seeders\PhilippinesLogisticsSeeder;
 use Database\Seeders\PlatformFeatureControlSeeder;
 use Database\Seeders\ProductSeeder;
+use Database\Seeders\VoucherSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -118,6 +122,47 @@ class DemoCheckoutSeederTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.logistics_organization_id', $organization->id)
             ->assertJsonCount(1, 'data.waybills');
+    }
+
+    public function test_initial_shop_uses_only_ncr_and_seeded_vouchers_can_be_selected_at_checkout(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake(['api.geoapify.com/v1/routematrix*' => Http::response(['sources_to_targets' => [[['distance' => 1000, 'time' => 100]]]])]);
+        config(['services.geoapify.server_key' => 'test-key']);
+        $this->seed([PhilippinesLogisticsSeeder::class, VoucherSeeder::class]);
+        $customer = User::where('email', 'customer@example.com')->firstOrFail();
+        Sanctum::actingAs($customer);
+        $shop = Shop::where('slug', 'aisley-demo-store')->firstOrFail();
+        $organization = User::where('email', 'logistics.luzon01@example.com')->firstOrFail()->logisticsOrganization;
+        $this->assertSame([$organization->id], $shop->logisticsProviders()->where('is_enabled', true)->pluck('logistics_organization_id')->all());
+        $intent = $this->buyNowPayload(Product::where('slug', 'compact-everyday-camera')->firstOrFail(), $customer->addresses()->sole());
+        $this->postJson('/api/v1/customer/checkout/logistics-options', $intent)->assertOk()
+            ->assertJsonCount(1, 'data.groups.0.options')->assertJsonPath('data.groups.0.options.0.organizationId', $organization->id);
+        $candidates = $this->postJson('/api/v1/customer/checkout/quote', $intent)->assertOk()->json('data.groups.0.availableVouchers');
+        $this->assertCount(6, $candidates);
+        $platform = Voucher::where('code', 'AIS-DEMO-PLATFORM-15')->firstOrFail();
+        $automaticShipping = Voucher::where('code', 'AIS-DEMO-SHIP-50')->firstOrFail();
+        $this->postJson('/api/v1/customer/checkout/quote', [...$intent, 'vouchers' => [
+            ['voucher_id' => $platform->id, 'target_shop_id' => $shop->id],
+            ['voucher_id' => $automaticShipping->id, 'target_shop_id' => $shop->id],
+        ]])->assertOk()->assertJsonPath('data.groups.0.totals.discount', '500.00')
+            ->assertJsonPath('data.groups.0.totals.shippingDiscount', '50.00');
+        $claimedOffer = Voucher::where('code', 'AIS-DEMO-SHOP-15')->firstOrFail();
+        $this->assertSame('VOUCHER_NOT_CLAIMED', collect($candidates)->firstWhere('id', $claimedOffer->id)['reason']);
+        $this->postJson('/api/v1/customer/shops/aisley-demo-store/vouchers/'.$claimedOffer->id.'/claim')->assertOk();
+        $shipping = Voucher::where('code', 'AIS-DEMO-SHIP-50')->firstOrFail();
+        $intent['vouchers'] = [
+            ['voucher_id' => $claimedOffer->id, 'target_shop_id' => $shop->id],
+            ['voucher_id' => $shipping->id, 'target_shop_id' => $shop->id],
+        ];
+        $quote = $this->postJson('/api/v1/customer/checkout/quote', $intent)->assertOk()
+            ->assertJsonPath('data.groups.0.totals.discount', '300.00')
+            ->assertJsonPath('data.groups.0.totals.shippingDiscount', '50.00')->json('data');
+        $order = $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/customer/checkout/place', [...$intent, 'quote_id' => $quote['quoteId']])
+            ->assertOk()->assertJsonPath('data.orders.0.totals.discount', '300.00')->json('data.orders.0.id');
+        $this->assertDatabaseHas('orders', ['id' => $order, 'selected_logistics_organization_id' => $organization->id]);
+        $this->assertDatabaseCount('voucher_claims', 1);
+        $this->assertDatabaseCount('voucher_redemptions', 2);
     }
 
     public function test_demo_checkout_seed_is_repeatable_and_preserves_operator_choices(): void

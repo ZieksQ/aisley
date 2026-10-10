@@ -38,7 +38,7 @@ trait VoucherAuthoringFixtures
 
     private function draftVoucher(string $role = 'admin', array $terms = []): array
     {
-        return $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/'.$role.'/vouchers', $this->voucherTerms($terms))->assertCreated()->json('data');
+        return $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/'.$role.'/vouchers', $this->voucherTerms([...($role === 'admin' ? ['distribution_mode' => 'automatic'] : []), ...$terms]))->assertCreated()->json('data');
     }
 
     private function voucherAction(array $voucher, string $action, string $role = 'admin', ?string $key = null)

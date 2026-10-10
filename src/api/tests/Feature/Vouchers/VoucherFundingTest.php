@@ -6,6 +6,7 @@ use App\Models\CommissionPolicy;
 use App\Models\FinanceJournalEntry;
 use App\Models\Order;
 use App\Models\SandboxGatewayAccount;
+use App\Models\VoucherClaim;
 use App\Services\Finance\Automation\CodInvoiceService;
 use App\Services\Finance\Automation\PaymentResultService;
 use App\Services\Finance\Automation\PayoutService;
@@ -47,6 +48,7 @@ class VoucherFundingTest extends TestCase
         $this->asLifecycleActor($role === 'seller' ? $context['seller'] : $admin);
         $voucher = $this->voucherAction($this->draftVoucher($role, ['benefit_type' => $benefit, 'value_type' => $valueType, 'value' => $value]), 'publish', $role)->assertOk()->json('data');
         $this->asLifecycleActor($context['customer']);
+        VoucherClaim::create(['voucher_id' => $voucher['id'], 'customer_id' => $context['customer']->id, 'collected_at' => now()]);
         $intent = [
             'mode' => 'buy_now', 'buy_now' => ['product_id' => $context['product']->id, 'variant_id' => null, 'quantity' => 2],
             'address_id' => $context['address']->id, 'payment_method' => 'cod',

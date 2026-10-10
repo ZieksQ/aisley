@@ -8,6 +8,14 @@ export function TermsView({ terms }: { terms: Terms }) {
       <dd>{terms.name ?? terms.code}</dd>
       <dt>Code</dt>
       <dd>{terms.code}</dd>
+      <dt>Distribution</dt>
+      <dd>
+        {terms.distribution_mode === 'automatic'
+          ? 'Automatically available'
+          : terms.distribution_mode === 'claim_required'
+            ? 'Claim required'
+            : 'Historical version — distribution not recorded'}
+      </dd>
       <dt>Benefit</dt>
       <dd>{benefit(terms)}</dd>
       <dt>Savings cap</dt>

@@ -171,3 +171,13 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 - Customer, Seller, and Logistics headers use a dedicated chat icon beside the general notification bell, with an accessible aggregate unread-message count and `99+` visual cap. Follow the [shared Chat Messaging notification contract](features/shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06).
 - Use a compact, viewport-bounded dropdown with safe counterpart/channel labels, plain-text previews, timestamps and per-conversation unread text. Keep links to the role's existing separate inboxes and routes. Opening the dropdown leaves chat read markers unchanged.
 - Preserve theme contrast, keyboard link access, Escape/Close focus restoration and outside dismissal. Show loading/empty/error/offline feedback without concealing refresh failures or retaining private previews after authorization loss.
+
+
+## Customer voucher and Shop design exception — 2026-10-11
+
+The user's explicit override grants layout/styling freedom for `/vouchers`, `/vouchers/[id]`, `/account/vouchers` and `/shops/[slug]`; prior visual/theory prescriptions do not constrain these surfaces. Retain primary pink `#E6007A`, secondary purple `#4C1268`, light background `#F7F5F7`, foreground `#231429`, responsive layouts and accessible interactions. Voucher benefit, conditions and action remain distinct; use one voucher column on phones, two on tablets and three on wide public discovery/Shop sections. Keep two Product columns on phones, contain long content and provide missing-imagery fallbacks. This exception leaves other role designs and the Shop directory unchanged.
+
+
+## Customer Checkout voucher selection exception — 2026-10-11
+
+The user's explicit Shopee/Lazada-reference request replaces the Checkout dropdown with a separate `/checkout/vouchers` page. Apply uncodixfy and the existing brand palette: compact ticket silhouettes, benefit panel separated by a dashed edge, ordinary headings, underline filters, white/light surfaces and concise conditions. Selected cards use pink border/background and a checkmark, never visible radio controls. Keep keyboard pressed states, visible focus, 44px actions, responsive wrapping and error/loading feedback. Other Checkout sections and role designs retain their existing rules. The [Shopee selection flow](https://help.shopee.ph/portal/4/article/82323) informs the explicit select/confirm interaction; AISLEY's collection, targeting and stacking rules remain authoritative.

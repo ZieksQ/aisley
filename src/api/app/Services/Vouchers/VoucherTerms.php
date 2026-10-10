@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class VoucherTerms
 {
-    public const FIELDS = ['name', 'code', 'benefit_type', 'value_type', 'value', 'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit', 'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy', 'terms_summary'];
+    public const FIELDS = ['name', 'code', 'distribution_mode', 'benefit_type', 'value_type', 'value', 'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit', 'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy', 'terms_summary'];
 
     public function normalize(array $data, ?string $code = null): array
     {
@@ -19,6 +19,7 @@ class VoucherTerms
 
         return [
             'name' => trim($data['name']),
+            'distribution_mode' => $data['distribution_mode'] ?? 'claim_required',
             'code' => $data['code'] ?? $code ?? 'AIS-'.strtoupper(Str::random(12)),
             'benefit_type' => $data['benefit_type'], 'value_type' => $data['value_type'],
             'value' => number_format((float) $data['value'], 2, '.', ''),
@@ -63,8 +64,8 @@ class VoucherTerms
 
     public function assertIdentity(Voucher $voucher, array $terms): void
     {
-        if ($voucher->lifecycle->value !== 'draft' && ($terms['code'] !== $voucher->code || $terms['benefit_type'] !== $voucher->benefit_type->value)) {
-            throw ValidationException::withMessages(['code' => 'Published code and benefit are fixed. Duplicate for an independent offer.']);
+        if ($voucher->lifecycle->value !== 'draft' && ($terms['distribution_mode'] !== $voucher->distribution_mode->value || $terms['code'] !== $voucher->code || $terms['benefit_type'] !== $voucher->benefit_type->value)) {
+            throw ValidationException::withMessages(['code' => 'Published distribution, code and benefit are fixed. Duplicate for an independent offer.']);
         }
     }
 }

@@ -6,6 +6,7 @@ use App\Exceptions\Customer\CheckoutException;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Services\Customer\CheckoutService;
+use App\Services\Customer\Vouchers\VoucherCollection;
 use App\Services\Vouchers\VoucherMutationService;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -142,6 +143,27 @@ class VoucherConcurrencyTest extends TestCase
         if ($uses) {
             $this->assertDatabaseHas('order_vouchers', ['voucher_id' => $voucher['id'], 'discount_amount' => '10.00', 'rule_version' => 1]);
         }
+    }
+
+    public function test_concurrent_collection_is_unique_without_reserving_last_redemption(): void
+    {
+        $context = $this->lifecycleContext(false);
+        $this->voucherActor();
+        $voucher = $this->voucherAction($this->draftVoucher('admin', ['distribution_mode' => 'claim_required', 'global_limit' => 1]), 'publish')->assertOk()->json('data');
+        $collect = function () use ($context, $voucher) {
+            $record = app(VoucherCollection::class)->collect(User::findOrFail($context['customer']->id), $voucher['id']);
+
+            return ['data' => ['id' => $record->claims->sole()->id, 'collected_at' => $record->claims->sole()->collected_at->toISOString()]];
+        };
+        $results = $this->workers([$collect, $collect]);
+        $this->assertSame([200, 200], array_column($results, 'status'));
+        $this->assertSame($results[0]['data'], $results[1]['data']);
+        $this->assertDatabaseCount('voucher_claims', 1);
+        $other = User::factory()->create(['role' => 'customer', 'status' => 'active']);
+        app(VoucherCollection::class)->collect($other, $voucher['id']);
+        $this->assertDatabaseCount('voucher_claims', 2);
+        $this->assertDatabaseCount('voucher_redemptions', 0);
+        $this->assertSame(0, Voucher::findOrFail($voucher['id'])->redeemed_count);
     }
 
     private function workers(array $operations): array

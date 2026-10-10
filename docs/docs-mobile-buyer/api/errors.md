@@ -68,3 +68,7 @@ Current source: `22b0a48f9575ead182d03c35ab87345711c23b90`; imported Buyer adopt
 | 409 ROUTE_RATE_LIMIT_EXCEEDED | no field; route participant parcel limit blocks quote |
 
 Options discovery omits quotation failures. Non-limit route participant tariff/rate/service/category failures degrade to unplanned and are not returned as direct HTTP errors; successful unplanned quotes can later be held at Seller pickup. See [shipping selection](shipping-selection.md). Changed selections produce QUOTE_INPUT_CHANGED, or IDEMPOTENCY_KEY_REUSED for a changed uncertain-placement payload. Synthetic scenarios and error records are not executed backend tests.
+
+## Voucher collection delta — 2026-10-11
+
+[Discovery, collection and wallet](voucher-collection.md) defines the new methods, safe DTO, bounds, private gates, natural claim replay and reasons. Quote adds distributionMode/collectionUrl and VOUCHER_NOT_CLAIMED. Newly invalid VOUCHER_* placement eligibility uses 409 QUOTE_STALE before effects; committed exact-key replay remains unchanged. External Flutter adoption is pending G28.

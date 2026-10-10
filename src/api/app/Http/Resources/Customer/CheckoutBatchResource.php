@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Customer;
 
+use App\Support\ProductImageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,7 @@ class CheckoutBatchResource extends JsonResource
                     'variantName' => $item->variant_name,
                     'sku' => $item->sku,
                     'selectedOptions' => $item->selected_options ?? [],
+                    'imageUrl' => ProductImageUrl::from($item->product, $item->variant),
                     'unitPrice' => $item->unit_price,
                     'quantity' => $item->quantity,
                     'lineSubtotal' => $item->line_subtotal,

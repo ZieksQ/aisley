@@ -66,6 +66,12 @@ Profile PATCH requires first_name, last_name, contact_number, sex and birth_date
 
 Current Quote shippingQuote exposes `serviceable,logisticsOrganizationId,logisticsBusinessName,routeStatus,shippingFee`. Batch shippingQuote omits serviceable and permits nullable provider ID/name; the whole projection is null without a pricing snapshot. Order list/detail/mutation include required nullable `shippingProvider:{id,businessName}|null`. No weight/tariff component/count fields remain. Use `POST /api/v1/customer/checkout/logistics-options` before quote; choices, fallback and G25 adoption boundaries are defined in [shipping selection](shipping-selection.md).
 
+Order summaries add nullable `itemPreview.imageUrl`; Order, Quote and Batch item DTOs add nullable `imageUrl`. The URL resolves available public variant media first, then the Product's default image. It is null when no usable public image is available; historical item names and prices remain readable independently.
+
 The typed tables and operation contracts include inherited validation and current semantic ownership/replay boundaries. Implement from this local bundle; controlled live API fixture refresh is a later integration check, not required upstream reading. Source tests were inspected, not rerun. Quote Address excludes coordinates and includes nullable label; Batch Address includes coordinates. Support writes replay their recorded201 status; Customer replies reopen waiting/resolved tickets. Support detail cursor traversal uses Laravel’s request-bound resolver and remains a target verification requirement.
 
 Current source inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from the imported client adoption baseline. Changing selections invalidates quote intent; only exact frozen placement payload/key may reconcile uncertainty.
+
+## Voucher collection delta — 2026-10-11
+
+[Discovery, collection and wallet](voucher-collection.md) defines the new methods, safe DTO, bounds, private gates, natural claim replay and reasons. Quote adds distributionMode/collectionUrl and VOUCHER_NOT_CLAIMED. Newly invalid VOUCHER_* placement eligibility uses 409 QUOTE_STALE before effects; committed exact-key replay remains unchanged. External Flutter adoption is pending G28.

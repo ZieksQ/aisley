@@ -13,6 +13,8 @@ class VoucherBackfillTest extends TestCase
 
     public function test_additive_migration_imports_legacy_baselines_without_rewriting_definitions(): void
     {
+        $collection = require database_path('migrations/2026_10_11_000001_add_voucher_collection.php');
+        $collection->down();
         $migration = require database_path('migrations/2026_10_08_000001_add_voucher_authoring.php');
         $migration->down();
         $voucher = Voucher::create([
@@ -29,6 +31,7 @@ class VoucherBackfillTest extends TestCase
         foreach ($before as $field => $value) {
             $this->assertSame($value, $after[$field], $field);
         }
+        $collection->up();
         $baseline = $voucher->fresh()->versions()->sole();
         $this->assertSame(7, $baseline->number);
         $this->assertSame('published', $baseline->state->value);

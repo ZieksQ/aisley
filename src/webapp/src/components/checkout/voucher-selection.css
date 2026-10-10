@@ -1,0 +1,234 @@
+.checkout-voucher-page {
+  --ticket-border: #ded7e1;
+  max-width: 760px;
+  margin-inline: auto;
+  color: #231429;
+}
+
+.checkout-voucher-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 4px 20px;
+}
+
+.checkout-voucher-header > a {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: #4c1268;
+  font-size: 20px;
+}
+
+.checkout-voucher-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+.checkout-voucher-header p {
+  margin-top: 4px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  color: #665a6a;
+}
+.checkout-voucher-filters {
+  display: flex;
+  border-bottom: 1px solid #ded7e1;
+  margin-bottom: 24px;
+}
+.checkout-voucher-filters button {
+  min-height: 44px;
+  padding: 8px 20px;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+}
+.checkout-voucher-filters button[aria-pressed="true"] {
+  border-color: #e6007a;
+  color: #b80062;
+  font-weight: 600;
+}
+.checkout-voucher-list {
+  display: grid;
+  gap: 24px;
+}
+.checkout-voucher-list h2 {
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.checkout-voucher-tickets {
+  display: grid;
+  gap: 12px;
+}
+.checkout-voucher-ticket {
+  background: white;
+  border: 1px solid var(--ticket-border);
+  border-radius: 6px;
+}
+.checkout-voucher-ticket[data-selected="true"] {
+  --ticket-border: #e6007a;
+  background: #fff4f9;
+  box-shadow: inset 0 0 0 1px #e6007a;
+}
+.checkout-voucher-ticket-button {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  width: 100%;
+  text-align: left;
+  border-radius: 6px 6px 0 0;
+}
+.checkout-voucher-ticket-button:disabled {
+  cursor: not-allowed;
+}
+.checkout-voucher-benefit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 8px;
+  border-right: 1px dashed var(--ticket-border);
+  background: #fff0f7;
+  color: #b80062;
+  border-top-left-radius: 6px;
+}
+.checkout-voucher-benefit[data-shipping="true"] {
+  color: #4c1268;
+  background: #f5edf8;
+}
+.checkout-voucher-benefit::before,
+.checkout-voucher-benefit::after {
+  content: "";
+  position: absolute;
+  right: -7px;
+  width: 13px;
+  height: 7px;
+  background: #f7f5f7;
+  border: 1px solid var(--ticket-border);
+}
+.checkout-voucher-benefit::before {
+  top: -1px;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+.checkout-voucher-benefit::after {
+  bottom: -1px;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+.checkout-voucher-benefit strong {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.checkout-voucher-benefit > span {
+  font-size: 12px;
+}
+.checkout-voucher-benefit svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+}
+.checkout-voucher-conditions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 14px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.checkout-voucher-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.checkout-voucher-expiry {
+  color: #665a6a;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.checkout-voucher-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #b80062;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.checkout-voucher-ticket[data-unavailable="true"] .checkout-voucher-benefit {
+  background: #f1edf2;
+  color: #665a6a;
+}
+.checkout-voucher-ticket[data-unavailable="true"] .checkout-voucher-conditions {
+  color: #665a6a;
+}
+.checkout-voucher-reason {
+  border-top: 1px solid #e6e0e8;
+  padding: 10px 14px 0;
+  font-size: 12px;
+  color: #765226;
+}
+.checkout-voucher-links {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 14px;
+  border-top: 1px solid #eee9ef;
+  font-size: 12px;
+  color: #4c1268;
+}
+.checkout-voucher-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: underline;
+}
+.checkout-voucher-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  margin-top: 24px;
+  border: 1px solid #ded7e1;
+  background: white;
+  font-size: 14px;
+}
+.checkout-voucher-footer .checkout-voucher-apply {
+  border-radius: 6px;
+  box-shadow: none;
+  padding-inline: 20px;
+}
+.checkout-voucher-error {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #a62435;
+}
+.checkout-voucher-page :is(button, a):focus-visible {
+  outline: 2px solid #e6007a;
+  outline-offset: 3px;
+}
+
+@media (min-width: 640px) {
+  .checkout-voucher-ticket-button {
+    grid-template-columns: 128px minmax(0, 1fr);
+  }
+  .checkout-voucher-benefit strong {
+    font-size: 30px;
+  }
+  .checkout-voucher-conditions {
+    padding: 20px;
+    font-size: 14px;
+  }
+  .checkout-voucher-name {
+    font-size: 16px;
+  }
+}

@@ -54,6 +54,7 @@ export type OrderSummary = {
     productName: string;
     variantName: string | null;
     quantity: number;
+    imageUrl: string | null;
   } | null;
   lineCount: number;
   itemCount: number;
@@ -127,6 +128,7 @@ export type OrderDetail = {
     variantName: string | null;
     sku: string | null;
     selectedOptions: Array<{ group: string; value: string }>;
+    imageUrl: string | null;
     unitPrice: string;
     quantity: number;
     lineSubtotal: string;

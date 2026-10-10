@@ -62,7 +62,9 @@ export function VoucherEditor({
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        onSubmit(payload(values, revision, initial))
+        const body = payload(values, revision, initial)
+        if (role === 'seller') delete body.distribution_mode
+        onSubmit(body)
       }}
     >
       <fieldset disabled={busy || uncertain}>
@@ -74,6 +76,24 @@ export function VoucherEditor({
             placeholder: 'e.g. Payday savings',
             hint: 'Customers see this name when choosing a voucher at checkout.',
           })}
+          {role === 'admin' && (
+            <SelectField
+              id="voucher-distribution_mode"
+              label="Distribution"
+              value={values.distribution_mode}
+              disabled={identityLocked}
+              error={error?.errors?.distribution_mode?.[0]}
+              onChange={(event) =>
+                update(
+                  'distribution_mode',
+                  event.target.value as FormValues['distribution_mode'],
+                )
+              }
+            >
+              <option value="claim_required">Claim required</option>
+              <option value="automatic">Automatically available</option>
+            </SelectField>
+          )}
           {field('code', 'Code', 'text', {
             maxLength: 64,
             disabled: identityLocked,
@@ -81,6 +101,11 @@ export function VoucherEditor({
             hint: 'Uppercase letters, digits and hyphens. Fixed after publication.',
           })}
         </div>
+        {role === 'admin' && (
+          <p className="mt-4">
+            Distribution is fixed after publication. Duplicate to change it.
+          </p>
+        )}
       </fieldset>
       <fieldset disabled={busy || uncertain}>
         <legend>Benefit</legend>

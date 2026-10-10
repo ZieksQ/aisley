@@ -5,6 +5,7 @@ namespace App\Http\Resources\Customer;
 use App\Enums\OrderStatus;
 use App\Services\Customer\CustomerOrderStatusMapper;
 use App\Support\MediaUrl;
+use App\Support\ProductImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -51,6 +52,7 @@ class OrderResource extends JsonResource
                 'variantName' => $item->variant_name,
                 'sku' => $item->sku,
                 'selectedOptions' => $item->selected_options ?? [],
+                'imageUrl' => ProductImageUrl::from($item->product, $item->variant),
                 'unitPrice' => $item->unit_price,
                 'quantity' => $item->quantity,
                 'lineSubtotal' => $item->line_subtotal,

@@ -41,7 +41,7 @@ class VoucherReadService
             'benefit_type' => $voucher->benefit_type->value, 'currency' => 'PHP', 'lifecycle' => $voucher->lifecycle->value,
             'status' => $this->status($voucher), 'revision' => $voucher->revision, 'version' => $voucher->version,
             'availability_revision' => $voucher->availability_revision, 'is_active' => $voucher->is_active,
-            'terms' => $this->safeTerms($terms->snapshot($voucher)), 'draft' => $draft ? ['id' => $draft->id, 'number' => $draft->number, 'terms' => $this->safeTerms($draft->terms)] : null,
+            'terms' => $this->safeTerms($terms->snapshot($voucher)), 'draft' => $draft ? ['id' => $draft->id, 'number' => $draft->number, 'terms' => $this->safeTerms([...$draft->terms, 'distribution_mode' => $draft->terms['distribution_mode'] ?? $voucher->distribution_mode->value])] : null,
             'authoring_supported' => $terms->supported($voucher), 'published_at' => $voucher->published_at?->toISOString(),
             'ended_at' => $voucher->ended_at?->toISOString(), 'redeemed_count' => $voucher->redeemed_count,
             'remaining_capacity' => $voucher->global_limit === null ? null : max(0, $voucher->global_limit - $voucher->redeemed_count),

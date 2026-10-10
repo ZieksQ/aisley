@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             DemoCheckoutSeeder::class,
             PhilippinesLogisticsSeeder::class,
+            VoucherSeeder::class,
         ]);
     }
 }

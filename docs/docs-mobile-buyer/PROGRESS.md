@@ -128,3 +128,14 @@ Short, dated log for the standalone Buyer Flutter project. Append actual impleme
 
 - Added the portable [funding delta](api/legacy-voucher-funding.md), affected Checkout/Voucher specs and API/error/operation notes. Unaffordable legacy Shop shipping candidates return `VOUCHER_FUNDING_INSUFFICIENT`/zero saving; selected quote rejects on `vouchers`, placement uses `409 QUOTE_STALE` before effects, and committed exact-key replay remains available. Flutter needs readable feedback and reviewed selection recovery; existing adoption/status/gates are preserved. Already-placed unfunded Orders require separate backend remediation.
 - Backend checks here: 89 scoped API tests passed (1,877 assertions, isolated SQLite), including 22 new funding/POD/rollback/settlement cases. Storefront: 25 checkout tests, TypeScript/scoped lint and production webpack build passed; synthetic Chromium checks passed at 390/768/1280px. Scoped Pint/syntax and portable spec-length/local-link checks passed. These are backend/web evidence; no external Flutter implementation/tests/builds, PostgreSQL concurrency, live API, deployment or Android/device checks ran.
+
+
+## 2026-10-11 — Customer voucher discovery and collection contract
+
+- Added the portable [voucher collection contract](api/voucher-collection.md): seven public/private Customer endpoints, safe definition/status/wallet DTOs, distribution and collection ownership, naturally idempotent nonreserving collection, paging/gates/errors and `VOUCHER_NOT_CLAIMED` Checkout links. Newly invalid placement eligibility uses reviewed `QUOTE_STALE` recovery while committed exact-key replay remains unchanged. Updated affected specifications, API/DTO indexes and G28; historical manifests, adopted `57e9eb2` baseline and reported Flutter implementation status remain unchanged.
+- Backend/web evidence here: 66 SQLite API tests/1,205 assertions plus 25 disposable PostgreSQL tests/324 assertions passed, including independent collection workers and migration preservation. Storefront/dashboard type/lint/build and synthetic responsive/browser checks passed; Buyer DTO JSON, all 22 specification lengths and revised local links passed. These checks certify no external Flutter implementation/tests/builds, real-account integration, deployment or installed-device behavior. Collection/wallet client adoption remains open in G28.
+
+## Order Product image contract — 2026-10-11
+
+- Synchronized nullable `imageUrl` fields for Order previews/items, Checkout Quote items and Batch items across the portable wire tables, DTO schema, examples and affected Customer specs. Laravel resolves available public variant media before the Product default image; missing media leaves immutable Order snapshots readable.
+- This is contract documentation for the Laravel/webapp update. No Buyer Flutter source, tests, builds, live API or device checks ran; the reported `57e9eb2` adoption baseline and external implementation status remain unchanged.

@@ -3,13 +3,13 @@ feature: voucher-usage
 title: Customer Voucher Usage
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: Implemented Checkout usage and Admin/Seller authoring; claiming deferred
+version: 3.0
+status: Implemented discovery, collection, wallet, Checkout usage and authoring
 implementation_status: Per-Shop selection, eligibility, calculation, snapshots, and transactional redemption implemented
 canonical: true
 role: Customer
-scope: Customer Checkout and existing Laravel voucher domain
-reviewed: 2026-10-10
+scope: Customer discovery, Shop collection, My Vouchers and Checkout
+reviewed: 2026-10-11
 ---
 
 # Customer Voucher Usage
@@ -26,13 +26,13 @@ reviewed: 2026-10-10
 | Area | Current status and owner |
 | --- | --- |
 | Checkout selection/redemption | Implemented; Customer Checkout owns intent, quote, placement, transaction, and result retrieval. |
-| Voucher claiming/wallet/discovery | Deferred; no claim requirement, claim table/API, saved-voucher wallet, or standalone `/vouchers` page exists. |
+| Voucher claiming/wallet/discovery | Public catalogue/detail and Shop reads; authenticated collection/status/My Vouchers, persisted collections and derived automatic offers. |
 | App voucher authoring | Implemented Admin authoring, publication, revision and availability controls; see [Admin vouchers](../../admin/vouchers/spec.md). |
 | Shop voucher authoring | Implemented Seller merchandise authoring, scoped to the authenticated Seller's Shop; see [Seller vouchers](../../seller/vouchers/spec.md). |
 | Shipping and funding | Existing Shipping Quotation/Finance services own rates, commission, and funding snapshots; usage must not duplicate them. |
 
 - Non-goals: claim-stock reservation, referral rewards, coins/cash redemption, automatic best-voucher selection, online payment, campaign publishing, or refund/reissue policy.
-- This spec owns Customer usage details and preserves the owning Checkout contract; it does not introduce separate eligibility/redemption services or routes.
+- This spec owns discovery/collection and preserves the owning Checkout calculation, redemption and replay contract.
 
 ## MUST
 
@@ -75,6 +75,7 @@ reviewed: 2026-10-10
 - Extend the normal `cart` or `buy_now` Checkout intent with optional `vouchers` (default empty), at most 20 selections:
   `vouchers: [{voucher_id: "<voucher UUID>", target_shop_id: "<participating Shop UUID>"}]`.
 - Each voucher UUID must be distinct and every selection must include a target Shop UUID. Displayed code is not an accepted code-entry/redemption input.
+- Customer-owned collection is required for every Shop voucher and `claim_required` App voucher. Automatic App vouchers need no collection. Quote returns `VOUCHER_NOT_CLAIMED` and `collectionUrl` for an otherwise eligible uncollected candidate.
 - Customer, Shop ownership, eligibility, price, saving, shipping quote, and status are server-derived; the target ID is an allocation request, not authorization proof.
 - Quote returns `data.groups[].availableVouchers[]` with `id`, customer-visible `name`, `code`, `issuerType`, `benefitType`, `valueType`, `value`, `maximumDiscount`, and `minimumSpend`.
 - Other fields: `termsSummary`, `validFrom/validUntil`, `paymentMethod`, `stackableWith`, `scope`, `eligible`, `reason`, and two-decimal `saving`.
@@ -100,12 +101,12 @@ reviewed: 2026-10-10
 
 ### Customer experience and integration gaps
 
-- `/checkout` shows expandable per-Shop voucher candidates, name/code, visible savings cap, individual saving or readable ineligibility, selected state, and the explicit App target Shop.
-- Toggling replaces a same-benefit choice for that Shop and removes another selected App voucher of the same benefit; it requotes rather than calculating a local discount.
-- No choice is preselected. Selected intent and totals update only after a successful quote; controls are disabled while quoting/placing or awaiting uncertain placement recovery.
+- `/checkout` shows a per-Shop **Select vouchers** (or **Change**) link to `/checkout/vouchers?shop=<UUID>`. The dedicated page shows ticket-shaped vouchers with benefit, minimum spend, cap, expiry, concise ineligibility and a Details link. The Shop heading identifies the explicit App target. Selected tickets use a pink outline/background, checkmark and `aria-pressed`; no radio controls.
+- Tapping a ticket edits a local draft, replaces a same-benefit choice for that Shop and removes another selected App voucher of the same benefit; opposite-benefit and unrelated Shop choices remain. **Apply vouchers** submits the complete draft for a server quote and returns to Checkout only after success. Back cancels the local draft. No discount is calculated locally.
+- No choice is preselected. Selected intent and totals update only after a successful quote; failures preserve the draft with readable feedback. The shared Checkout review layout retains shipping and applied vouchers across the page transition, with one consent gate for these two views and server consent enforcement on each private API call. Account/session changes clear private state and invalidate late replies. Controls are disabled while quoting/placing or awaiting uncertain placement recovery; the latter also blocks voucher navigation.
 - Storefront recovery freezes selected vouchers with the original placement payload/key. Only recognized quote-rejection codes release it for refreshed review; key collisions, unknown conflicts, throttling and uncertain transport retain exact replay. Refreshed review requires another Place action and preserves the rejection message.
 - Preserve safe input and distinguish validation/conflict, session/consent loss, throttling, timeout/offline, and service failure; existing Checkout error handling is not full coverage of every state.
-- Follow `docs/design.md`: light-only, mobile-first, familiar per-Shop savings, keyboard-operable disclosure/buttons, `aria-pressed`, visible focus, and announced feedback.
+- Customer voucher/Shop surfaces use the explicit 2026-10-11 design exception: freely chosen layouts with existing AISLEY colors, responsive behavior and accessibility. Checkout retains keyboard-operable disclosure/buttons, `aria-pressed`, visible focus and announced feedback.
 - Checkout requests currently lack dedicated timeout/throttle recovery; candidate lists are not independently bounded/paginated. These remain scoped hardening gaps.
 - Clear account-scoped quotes/selections and ignore obsolete responses on account/session changes; current quote sequencing is not proof of Customer-ID isolation.
 
@@ -113,7 +114,7 @@ reviewed: 2026-10-10
 
 Checked items reflect inspected implementation and existing test sources; unverified behavior remains unchecked.
 
-- [x] Customer Checkout lists relevant candidates with server eligibility/reasons and accepts UUID selections without a claim or code-entry API.
+- [x] Customer Checkout lists relevant candidates with server eligibility/reasons and accepts UUID selections with required collection checks and no code-entry API.
 - [x] Shop scope, explicit App targets, per-benefit limits, and default opposite-benefit pairing checks exist without cross-Shop threshold aggregation.
 - [x] Supported item/Customer rules, full-Shop minimum spend, integer-cent rounding, caps, and nonnegative totals follow the existing calculator.
 - [x] Placement stores per-Order snapshots/redemptions and increments capacity inside the Checkout transaction; same-key replay returns the same batch.
@@ -139,17 +140,48 @@ All routes require `auth:sanctum`, `customer.active`, and `policy.consent` withi
 - Invalid selections use `422`: `VOUCHER_TARGET_INVALID`, `VOUCHER_SHOP_MISMATCH`, `APP_VOUCHER_LIMIT`, `VOUCHER_BENEFIT_LIMIT`.
 - Selected ineligibility uses `409`: `VOUCHER_TERMS_INVALID`, `VOUCHER_INACTIVE`, `VOUCHER_NOT_STARTED`, `VOUCHER_EXPIRED`, `VOUCHER_PAYMENT_INELIGIBLE`, `VOUCHER_EXHAUSTED`, `VOUCHER_CUSTOMER_LIMIT`, `VOUCHER_MINIMUM_SPEND`, `VOUCHER_CUSTOMER_INELIGIBLE`, or `VOUCHER_ITEMS_INELIGIBLE`.
 - Checkout conflicts include `QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, and `QUOTE_STALE`; domain errors return `{code, message, errors?}` with selection fields where applicable.
-- A selected funding shortfall returns `409 VOUCHER_FUNDING_INSUFFICIENT` at quote with field `vouchers`. Placement revalidates and maps this specific rejection to `409 QUOTE_STALE` on `vouchers`, permitting reviewed refresh through the existing recovery contract. Rejected placement consumes nothing; committed exact-key replay bypasses new pricing checks.
+- A selected funding shortfall returns `409 VOUCHER_FUNDING_INSUFFICIENT` at quote with field `vouchers`. Placement revalidates and maps newly invalid `VOUCHER_*` eligibility to `409 QUOTE_STALE` on `vouchers`, permitting reviewed refresh through the existing recovery contract. Rejected placement consumes nothing; committed exact-key replay bypasses new pricing checks.
 - Standard auth/approval/consent and rate-limit errors remain owned by middleware; never substitute conceptual voucher routes or invented error codes.
 
 ### Components, deferred work, and verification
 
 - `CheckoutController`, quote/place Requests, `CheckoutService`, and `CheckoutBatchResource` implement this contract; private service methods own eligibility, saving, stacking, and redemption.
 - `checkout-page-content.tsx` and `lib/checkout/{client,types}.ts` implement candidates, targeting, requotes, and replay; result/Order views consume stored savings.
-- Preserve existing migration `2026_08_30_000125_create_checkout_orders_and_vouchers.php`; authoring adds `2026_10_08_000001_add_voucher_authoring.php` with published baseline backfill. Any future claiming schema requires a separate additive migration.
-- No `GET /api/v1/customer/vouchers/eligible` or `POST /api/v1/customer/vouchers/claim` is implemented. Admin/Seller management uses its isolated role prefixes and [authoring contract](../../shared/voucher-authoring/spec.md).
-- Claim capacity/retention, code-entry, discovery bounds and cancellation reissue remain deferred. Authoring permissions, publication/version history and mutation receipts are specified separately and do not change Customer DTOs or introduce claiming.
+- Preserve existing migration `2026_08_30_000125_create_checkout_orders_and_vouchers.php`; authoring adds `2026_10_08_000001_add_voucher_authoring.php` with published baseline backfill. Collection uses the separate additive migration documented below.
+- Customer catalogue/collection endpoints are documented below. Checkout candidates remain on the existing quote response; no `/vouchers/eligible` or code-entry endpoint is introduced. Admin/Seller management retains isolated role prefixes and the [authoring contract](../../shared/voucher-authoring/spec.md).
+- Collection does not reserve capacity; separate claim quotas, code-entry and cancellation reissue remain excluded. Authoring permissions, publication/version history and mutation receipts are specified separately; discovery/collection owns the additive Customer DTOs below.
 - `CustomerCheckoutTest` currently covers one Shop percentage redemption, explicit multi-Shop App quote targeting, generic placement replay, stale rollback, and ownership; this is not exhaustive voucher-specific verification.
 - PostgreSQL concurrency and live acceptance remain separate gates; scoped SQLite, Customer type/lint/build and synthetic browser results for each revision are recorded in the app-wide progress log.
 - B06 regressions cover funding boundaries/rounding, selected pairing/caps, App funding, zero shipping, tenant isolation, whole-batch rollback, pre-fix quotes and committed replay. Connected real POD approval, recognition failure rollback, remittance and sandbox payout tests cover funded legacy Orders. Actual commands/results and limits are in the app-wide progress log; already-placed unfunded snapshots require separate remediation.
 - Authority: `docs/schema.md` sections 9.10–9.14, Customer Checkout/Order Status/Modification specs, Buyer/Admin/Seller domains, shared Shipping Quotation/Finance contracts, and `docs/design.md`.
+
+
+## Discovery, collection and wallet — 2026-10-11
+
+- Flow: Collect → browse products → explicitly select at Checkout. Shop now never carries a selection into Checkout.
+- String-backed distribution modes are `automatic` and `claim_required`. Admin defaults new platform drafts to claim-required and may choose automatic before first publication. Distribution locks at first publication; duplication creates an independently editable draft. Seller vouchers always require collection and expose no distribution control.
+- Additive migration `2026_10_11_000001_add_voucher_collection.php` backfills existing App projections as automatic and Shop projections as claim-required. Historical versions/Orders remain immutable. The database default preserves imported platform definitions; authoring explicitly supplies its new default.
+- `voucher_claims` stores UUID, Customer, Voucher and `collected_at`, with a unique Customer/Voucher pair. Collection locks the Voucher row shared with authoring/redemption. It neither reserves nor increments redemption capacity; repeated/concurrent calls return the original collection.
+- First collection requires published, active, started, unexpired terms, compatible COD, Customer eligibility and remaining global/personal use. Start is inclusive and end exclusive. Already-collected replays retain the original timestamp even after publication/availability changes; the issuing Shop must remain storefront-visible for Shop endpoint access.
+- Automatic offers derive from current eligible published platform definitions. No fan-out grant job or fabricated receipt exists. Upcoming automatic offers appear in Upcoming. Uncollected expired automatic offers without committed redemption never appear in History.
+- Wallet includes persisted collections, committed redemption history and currently published eligible automatic offers. Available/Upcoming/History depend on current terms and committed counts; partial use stays available until personal allowance is exhausted. History includes expired, ended, globally exhausted and personally exhausted offers. Paused offers remain visible with an explanation. Hidden Shops reveal no identity and cannot accept new collection.
+
+| Method/path under `/api/v1/customer` | Access and envelope |
+| --- | --- |
+| `GET /vouchers` | Public untargeted definitions; `{items, pagination}`. |
+| `GET /vouchers/{voucher}` | Public published untargeted visible definition; `{data}`; otherwise 404. Expired published details remain readable. |
+| `GET /shops/{slug}/vouchers` | Public issuing-Shop list; invisible/missing Shop 404. |
+| `GET /my-vouchers` | Sanctum, active Customer, consent; `{items, pagination}`. |
+| `GET /voucher-statuses?ids[]=UUID` | Same private gates; 1–50 distinct UUIDs; `{items}`. Eligible definitions or retained personal records only; unknown/foreign IDs omitted. |
+| `POST /vouchers/{voucher}/claim` | Same gates; platform only; `{data}`. |
+| `POST /shops/{slug}/vouchers/{voucher}/claim` | Same gates; exact issuing visible Shop only; `{data}`. |
+
+- Collection accepts no body or owner/term fields and requires web CSRF or the existing Customer bearer flow. No mutation key is needed for a unique collection. Platform endpoint rejects Shop definitions; Shop endpoint rejects other Shops/platform definitions with 404. Ineligible new collections return 409 with `VOUCHER_*` availability reason; auth/consent and 429 are middleware-owned.
+- Lists validate `issuer=app|shop`, `benefit=discount|shipping`, `page=1..10000`, `limit=1..50` (default 20). Wallet also validates `status=available|upcoming|history` (default available). Reject unknown/repeated/scalar-invalid filters; order by end time then UUID. Public discovery lists future published offers, including upcoming/paused/exhausted states.
+- Safe DTO reuses customer-visible terms/scope and adds `currency`, `distributionMode`, `shop` (id/name/slug or null), `collectionUrl`, `collectedAt`, `collected`, `remainingPersonalUses`, `availabilityReason`, `canCollect`, `walletStatus`. Public personal fields are null. No Customer targeting lists, budgets, authoring drafts or internal funding fields appear. Private reads load only the current Customer's collections/counts.
+- Public reads use credential-free shared caching (60 seconds); all personal reads/collection responses use `private, no-store`. Public resources stay unpersonalized even with cookies. Customer item targeting is omitted from discovery entirely; private enrichment never enters server caches.
+- `/vouchers` provides issuer and benefit filters, pagination and expiry ordering. Shop discovery cards link to their issuing Shop; collection is available only on that Shop's section. `/vouchers/[id]` has explicit benefit/conditions/terms and collection action. Retained private history details use the bounded status read after public 404; guests see only unavailable feedback.
+- `/account/vouchers` provides Available, Upcoming and History views with Platform/Shop filters, pagination and account navigation/menu entries. Shop pages place vouchers before the existing scoped product search/categories/grid/pagination.
+- Guest Collect returns through login to the originating discovery/detail/Shop URL and requires another explicit click. No auto-collection or automatic application. Private state and pending replies are invalidated on Customer/session changes; malformed/offline/throttled reads never become empty successes.
+- Recheck collection at quote and placement. Newly invalid placement eligibility requests reviewed refresh while committed exact-key replay still returns the original batch. Funding, rounding, explicit targets, limits, snapshots and cancellation behavior above remain authoritative.
+- Deploy schema and API before dependent UI. No application database migration or production rollout is implied by source/tests. External Buyer adoption remains a separate documented gate.

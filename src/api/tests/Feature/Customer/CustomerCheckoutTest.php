@@ -29,6 +29,7 @@ use App\Models\SortingPlan;
 use App\Models\SortingPlanVersion;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -166,6 +167,7 @@ class CustomerCheckoutTest extends TestCase
             'terms_summary' => '10% off this Shop order.', 'stacking_policy' => [],
         ]);
         $payload = $this->buyNowPayload($product, $address);
+        VoucherClaim::create(['voucher_id' => $voucher->id, 'customer_id' => $customer->id, 'collected_at' => now()]);
         $payload['vouchers'] = [['voucher_id' => $voucher->id, 'target_shop_id' => $product->shop_id]];
 
         $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)

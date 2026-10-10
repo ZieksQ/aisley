@@ -98,3 +98,7 @@ Gap IDs after the 2026-10-09 rebase: G26 covers voucher names/default pairing; G
 ## Map acceptance update — imported 2026-10-08 evidence
 
 [MapLibre report](maplibre-verification.md) records analysis, focused synthetic tests, browser renderer checks and APK/web builds. The full suite reports one pre-existing desktop checkout accessibility failure; retain it until separately fixed and verified. [Live Geoapify report](geoapify-live-verification.md) records public-landmark lookup/tiles and localhost interaction after an allowed-origin change. Laravel responses stayed synthetic. These results narrow G07 only for that public key/local origin; installed Android/GPS/TalkBack, production restrictions/quotas, real-account CRUD/shipping, provider selection G25 and media G27 remain open. No Flutter/provider/runtime checks were rerun during this sync.
+
+## G28 — Voucher collection and wallet adoption (2026-10-11)
+
+Laravel adds [voucher discovery/collection/wallet](../api/voucher-collection.md). Claim-required platform and all Shop vouchers require Customer-owned collection for future Checkout; legacy platform offers retain automatic access. Adopt new DTOs/collection surfaces, readable VOUCHER_NOT_CLAIMED links, statuses and reviewed QUOTE_STALE recovery. Earlier Flutter status/adopted 57e9eb2 revision stays unchanged; no external client source/analyze/build/browser/device/live acceptance was performed here.

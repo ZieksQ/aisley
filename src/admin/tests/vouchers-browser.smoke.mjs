@@ -64,6 +64,7 @@ function fixture(role) {
   const start = new Date(Date.now() - 86400000).toISOString()
   const end = new Date(Date.now() + 7 * 86400000).toISOString()
   const terms = {
+    distribution_mode: 'claim_required',
     name: 'Payday savings',
     code: 'AIS-VOUCHER-1',
     benefit_type: 'discount',
@@ -152,7 +153,13 @@ function fixture(role) {
       })
     if (path.endsWith('/policy-consent/status'))
       return json({ data: { all_required_accepted: true, policies: [] } })
-    if (!path.includes('/vouchers')) return json({ data: [], unread_count: 0 })
+    if (!path.includes('/vouchers'))
+      return json({
+        data: [],
+        items: [],
+        unread_count: 0,
+        meta: { unread_count: 0, next_cursor: null },
+      })
     await new Promise((resolve) => setTimeout(resolve, state.delay))
     if (state.error === 'denied')
       return json({ message: 'Permission changed.' }, 403)
@@ -365,6 +372,43 @@ try {
         if (route.endsWith('/new')) {
           assert.equal(
             await js(
+              'Boolean(document.getElementById("voucher-distribution_mode"))',
+            ),
+            role === 'admin',
+          )
+          if (role === 'admin') {
+            assert.equal(
+              await js(
+                'document.getElementById("voucher-distribution_mode").value',
+              ),
+              'claim_required',
+            )
+            assert.deepEqual(
+              await js(
+                'Array.from(document.getElementById("voucher-distribution_mode").options).map(option => option.value)',
+              ),
+              ['claim_required', 'automatic'],
+            )
+            assert.equal(
+              await js(
+                'document.getElementById("voucher-distribution_mode").disabled',
+              ),
+              false,
+            )
+            await js(
+              'document.getElementById("voucher-distribution_mode").scrollIntoView({block:"center"})',
+            )
+            const distributionShot = await cdp('Page.captureScreenshot', {
+              format: 'png',
+            })
+            await writeFile(
+              `${shots}/${width}-${theme}-distribution.png`,
+              Buffer.from(distributionShot.data, 'base64'),
+            )
+          }
+
+          assert.equal(
+            await js(
               'document.querySelector("#voucher-maximum_discount").closest("fieldset").querySelector("legend").textContent',
             ),
             'Conditions',
@@ -559,6 +603,11 @@ try {
     await js('document.getElementById("voucher-code").disabled'),
     true,
   )
+  if (role === 'admin')
+    assert.equal(
+      await js('document.getElementById("voucher-distribution_mode").disabled'),
+      true,
+    )
   await fill('voucher-value', '35')
   await clickButton('Save draft')
   await until('document.body.innerText.includes("Pending draft differences")')
@@ -693,7 +742,7 @@ try {
       viewportThemeRouteStates: states,
       result: 'passed',
       checks:
-        'names, cap conditions, label tooltip hover/focus/tap/Escape/bounds, forms, tables, focus, publication, lifecycle, differences, pagination, errors, retained input, exact retries, access loss, permissions',
+        'distribution defaults/choices/publication lock and Seller exclusion, names, cap conditions, label tooltip hover/focus/tap/Escape/bounds, forms, tables, focus, publication, lifecycle, differences, pagination, errors, retained input, exact retries, access loss, permissions',
       screenshots: shots,
     }),
   )

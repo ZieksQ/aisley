@@ -39,6 +39,7 @@ export const funding = (role: 'admin' | 'seller') =>
     : 'Your Shop funds this discount through reduced merchandise proceeds before commission. Settlement applies no second deduction.'
 
 export type FormValues = {
+  distribution_mode: 'automatic' | 'claim_required'
   name: string
   code: string
   benefit_type: Terms['benefit_type']
@@ -54,6 +55,7 @@ export type FormValues = {
 }
 export function formValues(terms?: Terms): FormValues {
   return {
+    distribution_mode: terms?.distribution_mode ?? 'claim_required',
     name: terms?.name ?? terms?.code ?? '',
     code: terms?.code ?? '',
     benefit_type: terms?.benefit_type ?? 'discount',

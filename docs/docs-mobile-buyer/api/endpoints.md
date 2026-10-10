@@ -252,3 +252,17 @@ The current [95 typed operation records](operation-index.json) cover all invento
 ## Additive chat media endpoints — 2026-10-06
 
 [Private media](chat-media.md) defines Customer GET/POST `/api/v1/customer/chat-attachments`, GET/DELETE `/{id}`, POST `/{id}/retry`, GET `/{id}/content` and GET `/{id}/preview`. All three existing chat start/reply routes accept ordered `attachment_ids`; messages add `attachments`. Runtime gated; external Flutter adoption pending.
+
+## Customer / vouchers — additive 2026-10-11
+
+The [collection contract](voucher-collection.md) adds seven methods after the historical 96-route inventory; historical route manifests/adopted Flutter revision remain preserved.
+
+| Method | Path | Access | Throttle | Controller/action |
+| --- | --- | --- | --- | --- |
+| GET | `/api/v1/customer/vouchers` | Public | 120,1 | CustomerVoucherController@index |
+| GET | `/api/v1/customer/vouchers/{voucher}` | Public | 120,1 | CustomerVoucherController@show |
+| GET | `/api/v1/customer/shops/{slug}/vouchers` | Public | 120,1 | CustomerVoucherController@shop |
+| GET | `/api/v1/customer/my-vouchers` | Active Customer + consent | 120,1 | CustomerVoucherController@mine |
+| GET | `/api/v1/customer/voucher-statuses` | Active Customer + consent | 120,1 | CustomerVoucherController@statuses |
+| POST | `/api/v1/customer/vouchers/{voucher}/claim` | Active Customer + consent | 120,1 | CustomerVoucherController@claim |
+| POST | `/api/v1/customer/shops/{slug}/vouchers/{voucher}/claim` | Active Customer + consent | 120,1 | CustomerVoucherController@shopClaim |

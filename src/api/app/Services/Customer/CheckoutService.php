@@ -37,6 +37,7 @@ use App\Services\Finance\OrderPricingService;
 use App\Services\Finance\ShippingQuotationService;
 use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\Seller\LowStockAlertService;
+use App\Support\ProductImageUrl;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -145,7 +146,7 @@ class CheckoutService
             try {
                 $calculation = $this->calculate($customer, $input, true);
             } catch (CheckoutException $exception) {
-                if ($exception->errorCode !== 'VOUCHER_FUNDING_INSUFFICIENT') {
+                if (! str_starts_with($exception->errorCode, 'VOUCHER_')) {
                     throw $exception;
                 }
 
@@ -262,13 +263,21 @@ class CheckoutService
         if ($lock) {
             $productQuery->lockForUpdate();
         }
-        $products = $productQuery->with(['shop.seller', 'optionGroups', 'activeComplianceRestriction'])->get()->keyBy('id');
+        $products = $productQuery->with([
+            'shop.seller',
+            'optionGroups',
+            'activeComplianceRestriction',
+            'galleryMedia:id,product_id,product_variant_id,disk,path,mime_type,is_default,scan_status',
+        ])->get()->keyBy('id');
 
         $variantQuery = ProductVariant::query()->whereIn('id', $variantIds)->orderBy('id');
         if ($lock) {
             $variantQuery->lockForUpdate();
         }
-        $variants = $variantQuery->with('optionValues.optionGroup')->get()->keyBy('id');
+        $variants = $variantQuery->with([
+            'optionValues.optionGroup',
+            'primaryMedia:id,product_id,product_variant_id,disk,path,mime_type,scan_status',
+        ])->get()->keyBy('id');
 
         $skuRows = InventorySku::query()
             ->where(function ($query) use ($productIds, $variantIds) {
@@ -511,7 +520,7 @@ class CheckoutService
         // Authoring metadata/draft saves do not change the terms selected by checkout.
         // Include the full projection to also detect legacy imports and direct term changes.
         return $voucher->only([
-            'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
+            'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value', 'distribution_mode',
             'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
             'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy',
             'terms_summary', 'is_active', 'lifecycle',
@@ -557,6 +566,9 @@ class CheckoutService
         }
         if (in_array($customer->id, $rules['excluded_customer_ids'] ?? [], true)) {
             return 'VOUCHER_CUSTOMER_INELIGIBLE';
+        }
+        if ($voucher->requiresClaim() && ! $voucher->claims()->where('customer_id', $customer->id)->exists()) {
+            return 'VOUCHER_NOT_CLAIMED';
         }
         if ($this->eligibleMerchandiseBasis($voucher, $group['lines']) < 1) {
             return 'VOUCHER_ITEMS_INELIGIBLE';
@@ -619,6 +631,8 @@ class CheckoutService
                 'excludedProductIds' => array_values((array) ($rules['excluded_product_ids'] ?? [])),
                 'excludedCategoryIds' => array_values((array) ($rules['excluded_category_ids'] ?? [])),
             ],
+            'distributionMode' => $voucher->requiresClaim() ? 'claim_required' : 'automatic',
+            'collectionUrl' => $voucher->issuer_type === VoucherIssuerType::Shop ? '/shops/'.rawurlencode($group['shop']->slug).'#vouchers' : '/vouchers/'.$voucher->id,
             'eligible' => $reason === null, 'reason' => $reason,
             'saving' => $reason === null ? $this->money($this->voucherSaving($voucher, $basis)) : '0.00',
         ];
@@ -719,6 +733,7 @@ class CheckoutService
             'items' => collect($group['lines'])->map(fn (array $line) => [
                 'cartItemId' => $line['source_cart_item_id'], 'productId' => $line['product']->id,
                 'variantId' => $line['variant']?->id, 'productName' => $line['product']->name,
+                'imageUrl' => ProductImageUrl::from($line['product'], $line['variant']),
                 'sku' => $line['variant']?->sku ?? $line['sku']->code, 'selectedOptions' => $line['options'],
                 'unitPrice' => $this->money($line['unit_cents']), 'quantity' => $line['quantity'],
                 'lineSubtotal' => $this->money($line['subtotal_cents']),
@@ -789,7 +804,18 @@ class CheckoutService
 
     private function loadBatch(CheckoutBatch $batch): CheckoutBatch
     {
-        return $batch->fresh()->load(['orders' => fn ($query) => $query->orderBy('created_at')->orderBy('id'), 'orders.shop', 'orders.selectedLogisticsOrganization', 'orders.items', 'orders.address', 'orders.vouchers', 'orders.pricingSnapshot.rate']);
+        return $batch->fresh()->load([
+            'orders' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
+            'orders.shop',
+            'orders.selectedLogisticsOrganization',
+            'orders.items',
+            'orders.items.product:id,thumbnail_disk,thumbnail_path',
+            'orders.items.product.galleryMedia:id,product_id,product_variant_id,disk,path,mime_type,is_default,scan_status',
+            'orders.items.variant.primaryMedia:id,product_id,product_variant_id,disk,path,mime_type,scan_status',
+            'orders.address',
+            'orders.vouchers',
+            'orders.pricingSnapshot.rate',
+        ]);
     }
 
     private function hash(array $value): string

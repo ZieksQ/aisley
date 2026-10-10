@@ -14,13 +14,13 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Existing quote candidate/eligibility/selection/savings/snapshot/redemption implemented;
-wallet/claim deferred; Admin/Seller authoring exists outside Customer endpoints.
+discovery/collection/wallet added in the 2026-10-11 backend contract; Flutter adoption remains G28.
 
 Flutter (external project report): **implemented against 57e9eb2; newer shipping/voucher contracts unadopted (G25/G26)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 
-Quote candidates → explicit UUID/target Shop → requote → reviewed savings → placement redeems.
+Collect when required → browse → explicit UUID/target Shop → requote → reviewed placement redeems.
 
-- Selections vouchers:[{voucher_id,target_shop_id}] ≤20; code is display, not accepted code-entry. Candidates may be ineligible with reason. No automatic best selection/claim/wallet API.
+- Selections vouchers:[{voucher_id,target_shop_id}] ≤20; code is display, not accepted code-entry. Candidates may be ineligible with reason. No automatic best selection or promo-code entry. See the collection contract for new APIs.
 - One App voucher of each benefit per batch with explicit eligible Shop targets; Shop voucher only its Shop. At most one discount and one shipping benefit per group, combined by default. Minimum spend uses full target-Shop merchandise before discounts.
 - Server time/scopes/exclusions/capacity/customer limit and integer-cent calculation/caps decide saving. Selected zero-saving voucher still redeems; quote reserves nothing. Placement locks/rechecks/redempts atomically and snapshots terms; cancellation/rejection currently does not restore counters.
 - Disclose removed/stale choices before another Place action and reject previous-account selections/results.
@@ -40,20 +40,14 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 
 ### Feature behavior and boundaries
 
-- Voucher selection belongs to quote/checkout; no independent wallet, claim, code-entry or
-  voucher-authoring route exists.
+- Voucher selection belongs to quote/checkout; discovery/collection/wallet use the new Customer APIs. No Customer code-entry or voucher-authoring route exists.
 - Show existing availableVouchers from each Quote group and submit UUID plus target_shop_id.
-- Issuer types are app|shop and benefits discount|shipping; never rename wire values to
-  platform|seller.
-- Value fixed|percent, maximumDiscount nullable and minimumSpend apply to authoritative qualifying
-  basis.
-- Scope lists included/excluded Product/Category UUIDs; eligibility and savings remain server
-  decisions.
-- Candidate eligible/reason/saving are separate; ineligible candidates show reason and remain
-  unselectable.
+- Issuer types are app|shop and benefits discount|shipping; never rename wire values to platform|seller.
+- Value fixed|percent, maximumDiscount nullable and minimumSpend apply to authoritative qualifying basis.
+- Scope lists included/excluded Product/Category UUIDs; eligibility and savings remain server decisions.
+- Candidate eligible/reason/saving are separate; ineligible candidates show reason and remain unselectable.
 - Selections max20 with distinct voucher_id; target Shop must actually belong to the current checkout.
-- Opposite benefits combine by default, including old empty policies; stackableWith describes allowed
-  categories and the server enforces one of each benefit per group and one App of each benefit per batch.
+- Opposite benefits combine by default, including old empty policies; stackableWith describes allowed categories and the server enforces one of each benefit per group and one App of each benefit per batch.
 - Do not predict stacking solely from one candidate flag or reimplement a discount calculator in the
   view model.
 - Changing selection invalidates quote and obtains reviewed authoritative totals before placement.
@@ -68,7 +62,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Cancellation currently does not restore voucher redemption capacity; do not promise reuse or refund.
 - Shipping discount reduces the selected provider’s server shipping fee; changing provider requires reviewed
   requote and updated savings. Commission does not increase Customer COD.
-- No auto claim, code text injection, implicit promotion opt-in or other Customer’s eligibility
+- No automatic claim/application, code text injection, implicit promotion opt-in or other Customer’s eligibility
   inspection.
 - Candidate failures and checkout unavailable state are distinct from no available vouchers.
 - Test minimum spend, exclusions, exhausted/customer-limit/not-started/expired/payment-ineligible and
@@ -114,7 +108,7 @@ actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
-| `Voucher` | `id: UUID`, `name: string`, `code: string`, `issuerType: string`, `benefitType: string`, `valueType: string`, `value: money`, `maximumDiscount: money?`, `minimumSpend: money`, `termsSummary: string`, `validFrom: timestamp`, `validUntil: timestamp`, `paymentMethod: string?`, `stackableWith: string[]`, `scope: VoucherScope`, `eligible: bool`, `reason: string?`, `saving: money` |
+| `Voucher` | `distributionMode: automatic\|claim_required`, `collectionUrl: string?`, `id: UUID`, `name: string`, `code: string`, `issuerType: string`, `benefitType: string`, `valueType: string`, `value: money`, `maximumDiscount: money?`, `minimumSpend: money`, `termsSummary: string`, `validFrom: timestamp`, `validUntil: timestamp`, `paymentMethod: string?`, `stackableWith: string[]`, `scope: VoucherScope`, `eligible: bool`, `reason: string?`, `saving: money` |
 | `VoucherScope` | `productIds: UUID[]`, `categoryIds: UUID[]`, `excludedProductIds: UUID[]`, `excludedCategoryIds: UUID[]` |
 | `AppliedVoucher` | `id: UUID`, `name: string`, `code: string`, `issuerType: string`, `benefitType: string`, `qualifyingBasis: money`, `discountAmount: money` |
 | `QuoteGroup` | `shop: QuoteShop`, `items: QuoteItem[]`, `availableVouchers: Voucher[]`, `appliedVouchers: AppliedVoucher[]`, `shippingQuote: ShippingQuote`, `totals: Totals` |
@@ -228,3 +222,9 @@ Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline onl
 
 Spec revision 2026-10-09: [voucher names/default pairing](../../../api/voucher-selection-update.md)
 adds customer-visible names and frozen Order names. Client adoption remains unverified (G26).
+
+Spec revision 2026-10-11: [discovery/collection/wallet contract](../../../api/voucher-collection.md)
+adds public and private endpoints, naturally idempotent claims, distribution modes and live wallet statuses.
+Claim-required App/all Shop vouchers need owned collection; quote uses VOUCHER_NOT_CLAIMED with collectionUrl.
+Newly invalid placement VOUCHER_* eligibility becomes QUOTE_STALE; committed exact-key replay stays valid.
+External Flutter adoption and implementation status remain unchanged; G28 is pending.
