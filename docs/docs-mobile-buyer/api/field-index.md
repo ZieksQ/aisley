@@ -539,6 +539,8 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 
 ## Voucher
 
+2026-10-11 quote additions: `distributionMode: automatic|claim_required` and `collectionUrl: string?`, required in the current backend. Discovery/wallet uses the separate [CustomerVoucher DTO](voucher-collection.md#customervoucher-dto).
+
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
 | `id` | `UUID` | non-null; required |

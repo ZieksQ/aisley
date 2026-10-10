@@ -26,7 +26,7 @@ reviewed: 2026-10-02
 - Browse Shop owns the Shop-scoped search/filter contract. Customer Search owns separate marketplace-wide Product and Shop result records.
 - Share only compatible query normalization, literal wildcard escaping, public visibility, and pagination conventions—not query scope or ranking.
 - Product Detail owns configuration; Wishlist, Cart, and Checkout own mutations; Seller Account Management owns Shop content/vacation.
-- Exclude Shop/Product CRUD, Shop ratings, vouchers, following, quick-add, arbitrary sorting, autocomplete, and search-provider changes.
+- Exclude Shop/Product CRUD, Shop ratings, following, quick-add, arbitrary sorting, autocomplete, and search-provider changes.
 
 ## MUST
 
@@ -148,4 +148,10 @@ Keyword extension:
 - Authorities: `docs/requirements.md`, `docs/workspace.md`, `docs/domains/Buyer.md`, `docs/design.md`, and the Customer Search spec for ownership boundaries.
 - Evidence: `ShopBrowseController`, `ShopProductsRequest`, `ShopDirectoryRequest`, `ShopBrowseService`, Shop/Product Resources, `CustomerBrowseShopTest`, and `src/webapp/src/app/shops/`.
 - [Next.js URL search/pagination guidance](https://nextjs.org/learn/dashboard-app/adding-search-and-pagination) supports bookmarkable, server-consumable filter state.
-- Shop ratings, vouchers, following, configurable sorting, advanced keyword fields, and alternate search infrastructure remain deferred.
+- Shop ratings, following, configurable sorting, advanced keyword fields, and alternate search infrastructure remain deferred.
+
+## Shop redesign and voucher collection — 2026-10-11
+
+- Responsive Shop banner, compact identity/logo fallback, expandable long plain-text description, Chat action and in-page navigation precede Shop vouchers and Products. Product search remains issuing-Shop scoped; filters/pagination and two product columns on phones are preserved. The Shop directory is outside this redesign.
+- Voucher reads/collection and independently bounded voucher pagination follow the [Customer voucher contract](../voucher-usage/spec.md). Public cards never embed personalized collection state; a separate private bounded read enriches only the current account. Collect validates issuing ownership and Shop visibility in the API.
+- User-requested design freedom applies to this Shop page: retain AISLEY colors, responsive behavior and accessible controls; earlier layout/theory prescriptions are superseded for this surface.

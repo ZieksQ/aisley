@@ -171,3 +171,8 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 - Customer, Seller, and Logistics headers use a dedicated chat icon beside the general notification bell, with an accessible aggregate unread-message count and `99+` visual cap. Follow the [shared Chat Messaging notification contract](features/shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06).
 - Use a compact, viewport-bounded dropdown with safe counterpart/channel labels, plain-text previews, timestamps and per-conversation unread text. Keep links to the role's existing separate inboxes and routes. Opening the dropdown leaves chat read markers unchanged.
 - Preserve theme contrast, keyboard link access, Escape/Close focus restoration and outside dismissal. Show loading/empty/error/offline feedback without concealing refresh failures or retaining private previews after authorization loss.
+
+
+## Customer voucher and Shop design exception — 2026-10-11
+
+The user's explicit override grants layout/styling freedom for `/vouchers`, `/vouchers/[id]`, `/account/vouchers` and `/shops/[slug]`; prior visual/theory prescriptions do not constrain these surfaces. Retain primary pink `#E6007A`, secondary purple `#4C1268`, light background `#F7F5F7`, foreground `#231429`, responsive layouts and accessible interactions. Voucher benefit, conditions and action remain distinct; use one voucher column on phones, two on tablets and three on wide public discovery/Shop sections. Keep two Product columns on phones, contain long content and provide missing-imagery fallbacks. This exception leaves other role designs and the Shop directory unchanged.

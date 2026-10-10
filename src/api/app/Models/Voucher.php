@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PaymentMethod;
 use App\Enums\VoucherBenefitType;
+use App\Enums\VoucherDistributionMode;
 use App\Enums\VoucherIssuerType;
 use App\Enums\VoucherLifecycle;
 use App\Enums\VoucherValueType;
@@ -17,7 +18,7 @@ class Voucher extends Model
     use HasUuids;
 
     protected $fillable = [
-        'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
+        'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value', 'distribution_mode',
         'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
         'per_customer_limit', 'redeemed_count', 'payment_method', 'eligibility_rules',
         'stacking_policy', 'terms_summary', 'version', 'is_active',
@@ -28,6 +29,7 @@ class Voucher extends Model
     {
         return [
             'issuer_type' => VoucherIssuerType::class,
+            'distribution_mode' => VoucherDistributionMode::class,
             'benefit_type' => VoucherBenefitType::class,
             'value_type' => VoucherValueType::class,
             'payment_method' => PaymentMethod::class,
@@ -69,5 +71,16 @@ class Voucher extends Model
     public function redemptions(): HasMany
     {
         return $this->hasMany(VoucherRedemption::class);
+    }
+
+    public function claims(): HasMany
+    {
+        return $this->hasMany(VoucherClaim::class);
+    }
+
+    public function requiresClaim(): bool
+    {
+        return $this->issuer_type === VoucherIssuerType::Shop
+            || $this->distribution_mode === VoucherDistributionMode::ClaimRequired;
     }
 }

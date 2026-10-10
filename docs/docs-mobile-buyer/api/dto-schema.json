@@ -393,7 +393,9 @@
       "eligible": "bool",
       "reason": "string?",
       "saving": "money",
-      "name": "string"
+      "name": "string",
+      "distributionMode": "automatic|claim_required",
+      "collectionUrl": "string?"
     },
     "VoucherScope": {
       "productIds": "UUID[]",
@@ -932,12 +934,44 @@
       "duration_seconds": "number?",
       "content_url": "URL?",
       "preview_url": "URL?"
+    },
+    "CustomerVoucher": {
+      "id": "UUID",
+      "code": "string",
+      "issuerType": "string",
+      "benefitType": "string",
+      "valueType": "string",
+      "value": "money",
+      "maximumDiscount": "money?",
+      "minimumSpend": "money",
+      "termsSummary": "string?",
+      "validFrom": "timestamp",
+      "validUntil": "timestamp",
+      "paymentMethod": "string?",
+      "scope": "VoucherScope",
+      "name": "string",
+      "distributionMode": "automatic|claim_required",
+      "collectionUrl": "string?",
+      "currency": "PHP",
+      "shop": "VoucherShop?",
+      "collected": "bool?",
+      "collectedAt": "timestamp?",
+      "remainingPersonalUses": "int?",
+      "availabilityReason": "string?",
+      "canCollect": "bool",
+      "walletStatus": "available|upcoming|history?"
+    },
+    "VoucherShop": {
+      "id": "UUID",
+      "name": "string",
+      "slug": "string"
     }
   },
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
   "contract_updates": {
     "2026-10-09": "Voucher, AppliedVoucher and BatchVoucher add name; see voucher-selection-update.md. External Flutter adoption remains G26.",
-    "order_contact_correction": "2026-10-10 B02: recipient/contact-only corrections at identical complete trimmed location and seven-decimal pin; nullable Order coordinates added; external adopted baseline unchanged."
+    "order_contact_correction": "2026-10-10 B02: recipient/contact-only corrections at identical complete trimmed location and seven-decimal pin; nullable Order coordinates added; external adopted baseline unchanged.",
+    "voucher_collection": "2026-10-11 additive distribution, Customer catalogue/detail/Shop/My Vouchers/status/collection contract; see voucher-collection.md. External Flutter adoption remains G28."
   },
   "chat_media_contract": {
     "date": "2026-10-06",

@@ -145,7 +145,7 @@ class CheckoutService
             try {
                 $calculation = $this->calculate($customer, $input, true);
             } catch (CheckoutException $exception) {
-                if ($exception->errorCode !== 'VOUCHER_FUNDING_INSUFFICIENT') {
+                if (! str_starts_with($exception->errorCode, 'VOUCHER_')) {
                     throw $exception;
                 }
 
@@ -511,7 +511,7 @@ class CheckoutService
         // Authoring metadata/draft saves do not change the terms selected by checkout.
         // Include the full projection to also detect legacy imports and direct term changes.
         return $voucher->only([
-            'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value',
+            'name', 'code', 'issuer_type', 'shop_id', 'benefit_type', 'value_type', 'value', 'distribution_mode',
             'maximum_discount', 'minimum_spend', 'starts_at', 'ends_at', 'global_limit',
             'per_customer_limit', 'payment_method', 'eligibility_rules', 'stacking_policy',
             'terms_summary', 'is_active', 'lifecycle',
@@ -557,6 +557,9 @@ class CheckoutService
         }
         if (in_array($customer->id, $rules['excluded_customer_ids'] ?? [], true)) {
             return 'VOUCHER_CUSTOMER_INELIGIBLE';
+        }
+        if ($voucher->requiresClaim() && ! $voucher->claims()->where('customer_id', $customer->id)->exists()) {
+            return 'VOUCHER_NOT_CLAIMED';
         }
         if ($this->eligibleMerchandiseBasis($voucher, $group['lines']) < 1) {
             return 'VOUCHER_ITEMS_INELIGIBLE';
@@ -619,6 +622,8 @@ class CheckoutService
                 'excludedProductIds' => array_values((array) ($rules['excluded_product_ids'] ?? [])),
                 'excludedCategoryIds' => array_values((array) ($rules['excluded_category_ids'] ?? [])),
             ],
+            'distributionMode' => $voucher->requiresClaim() ? 'claim_required' : 'automatic',
+            'collectionUrl' => $voucher->issuer_type === VoucherIssuerType::Shop ? '/shops/'.rawurlencode($group['shop']->slug).'#vouchers' : '/vouchers/'.$voucher->id,
             'eligible' => $reason === null, 'reason' => $reason,
             'saving' => $reason === null ? $this->money($this->voucherSaving($voucher, $basis)) : '0.00',
         ];

@@ -138,3 +138,8 @@ Buy Now or selected Cart lines
 - Keep recovery IDs, quantities and selections (no address/contact snapshot) in same-tab session storage before transport. Returning to checkout or reloading prioritizes this record over any new Buy Now/Cart handoff. Storage failure prevents an unrecorded placement. Clear recovery on success, confirmed rejection, logout/authorization loss or account change; ignore late responses from departed checkout sessions.
 - Recovery uses the existing exact-key placement endpoint; it adds no API or Flutter contract. Cross-tab/device recovery, browser storage deletion and recovery after logout remain outside this session-scoped fix.
 - Regression tests execute the actual checkout handlers for both audit races and test lost-response replay, reload, conflict classification, 429/5xx, account cleanup and unavailable storage. Browser/layout verification is reported separately in the progress log.
+
+### Collection requirement — 2026-10-11
+
+- Automatic App vouchers remain directly selectable. Claim-required App vouchers and all Shop vouchers require a Customer-owned collection, rechecked at quote/placement. Candidate `VOUCHER_NOT_CLAIMED` carries a `collectionUrl`; collect on the issuing surface, then return for deliberate selection.
+- Newly invalid `VOUCHER_*` placement eligibility returns `409 QUOTE_STALE` before effects. Existing exact-key committed replay and uncertain-placement recovery remain unchanged. See the [Customer voucher contract](../voucher-usage/spec.md).

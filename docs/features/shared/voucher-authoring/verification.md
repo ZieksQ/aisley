@@ -73,3 +73,24 @@ Apply the new additive `2026_10_09_000001_add_voucher_names.php` migration after
 Customer TypeScript/lint checks passed. Its production build could not complete: the restricted attempt failed fetching existing Google Fonts; the network-enabled retry failed when Turbopack attempted a forbidden local port bind for existing Support Tickets CSS processing. No font/configuration workaround was committed. Interrupted final dashboard checks were restarted. Customer checkout browser/live integration and external Flutter checks were not run.
 
 Final rebuilt Admin/Seller Chromium runs passed all 36 route/viewport/theme states, including hover/focus/tap, label placement, viewport bounds and Escape for an unfocused hover tooltip. Mobile light/desktop dark cap-help screenshots were visually inspected. Browser APIs are mocked; the final Seller preview was supervised through completion and stopped afterward.
+
+
+## Customer discovery and collection revision — 2026-10-11
+
+Apply `2026_10_11_000001_add_voucher_collection.php` after existing migrations. Roll out additive schema/API before the dependent Admin/customer UI. Existing platform definitions gain automatic access, Shop definitions require collection, and immutable versions/Orders stay unchanged. No grant job or claim reservation is introduced. This source delivery does not run the application database migration or deploy production.
+
+Repeatable scoped checks:
+
+```sh
+php src/api/vendor/bin/phpunit --configuration src/api/phpunit.xml src/api/tests/Feature/Vouchers src/api/tests/Feature/Customer/CustomerCheckoutTest.php
+cd src/api
+php tests/Support/run-delivery-postgres.php 'CustomerVoucher|VoucherConcurrencyTest|VoucherBackfillTest'
+```
+
+The SQLite run passed 66 tests/1,205 assertions, with seven PostgreSQL-only skips. The disposable PostgreSQL run passed all 25 tests/324 assertions, including concurrent duplicate collection and nonreservation of the final redemption, authoring/redemption races, actual claim-required/automatic Checkout and rollback/replay, migration backfill preservation, wallet partial usage/history, targeting/privacy, consent/role/Shop boundaries and bounded filters. Invalid terms are rejected by PostgreSQL's existing CHECK constraints; SQLite exercises the service guard. Each disposable database was dropped in the runner's finally block.
+
+Customer browser command is `node src/webapp/tests/customer-vouchers-browser.mjs` after the production webpack build. It uses actual voucher/detail/wallet/Shop components and collection transport with synthetic HTTP/auth/storage and Product card adapters. Screenshots live under ignored `src/webapp/node_modules/.cache/customer-vouchers-browser/`. It does not prove real login/session cookies, deployed API integration or full storefront-shell behavior. Existing Admin/Seller browser smoke includes distribution choices/default/lock and Seller control exclusion in its light/dark matrix.
+
+Final Customer Chromium checks passed all 16 surface/viewport states (320/390/768/1440px), keyboard collection/description, explicit post-login click, Shop endpoint, paging, paused/upcoming/history/empty wallet states, offline/cooldown feedback and departed-account successful reply cleanup. Final Admin/Seller builds and all 36 browser route/theme/viewport states passed. Inspectable screenshots remain local ignored artifacts. Run `node src/webapp/tests/customer-vouchers.test.mjs` for five DTO/transport/session-race checks, alongside existing checkout/session tests. Storefront TypeScript/scoped lint and final production webpack build passed; see the progress log for counts and limits.
+
+Final frontend checks/browser outcomes are recorded in the app-wide progress log. External Buyer API adoption is documented as G28; historical Flutter implementation status remains unchanged.

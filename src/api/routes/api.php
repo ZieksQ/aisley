@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\UserAccountController;
+use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Courier\CompleteDeliveryController;
@@ -44,6 +45,7 @@ use App\Http\Controllers\Customer\ChatNotificationController as CustomerChatNoti
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
 use App\Http\Controllers\Customer\CourierConversationController as CustomerCourierConversationController;
+use App\Http\Controllers\Customer\CustomerVoucherController;
 use App\Http\Controllers\Customer\HomepageController;
 use App\Http\Controllers\Customer\LogisticsConversationController as CustomerLogisticsConversationController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
@@ -136,12 +138,12 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
     Route::prefix('vouchers')->name('vouchers.')->middleware('admin.permission:vouchers.view')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\VoucherController::class, 'index']);
-        Route::post('/', [\App\Http\Controllers\Admin\VoucherController::class, 'store'])->middleware('admin.permission:vouchers.manage');
-        Route::get('/{voucher}', [\App\Http\Controllers\Admin\VoucherController::class, 'show'])->whereUuid('voucher');
-        Route::get('/{voucher}/{kind}', [\App\Http\Controllers\Admin\VoucherController::class, 'history'])->whereUuid('voucher')->where('kind', 'versions|actions|redemptions');
-        Route::put('/{voucher}/draft', [\App\Http\Controllers\Admin\VoucherController::class, 'save'])->whereUuid('voucher')->middleware('admin.permission:vouchers.manage');
-        Route::post('/{voucher}/{operation}', [\App\Http\Controllers\Admin\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end')->middleware('admin.permission:vouchers.manage');
+        Route::get('/', [VoucherController::class, 'index']);
+        Route::post('/', [VoucherController::class, 'store'])->middleware('admin.permission:vouchers.manage');
+        Route::get('/{voucher}', [VoucherController::class, 'show'])->whereUuid('voucher');
+        Route::get('/{voucher}/{kind}', [VoucherController::class, 'history'])->whereUuid('voucher')->where('kind', 'versions|actions|redemptions');
+        Route::put('/{voucher}/draft', [VoucherController::class, 'save'])->whereUuid('voucher')->middleware('admin.permission:vouchers.manage');
+        Route::post('/{voucher}/{operation}', [VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end')->middleware('admin.permission:vouchers.manage');
     });
 
     Route::prefix('support-tickets')->name('support-tickets.')->middleware('admin.permission:support-tickets.view')->group(function () {
@@ -340,12 +342,12 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
 
 Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller.active', 'policy.consent'])->group(function () {
     Route::prefix('vouchers')->name('vouchers.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Seller\VoucherController::class, 'index']);
-        Route::post('/', [\App\Http\Controllers\Seller\VoucherController::class, 'store']);
-        Route::get('/{voucher}', [\App\Http\Controllers\Seller\VoucherController::class, 'show'])->whereUuid('voucher');
-        Route::get('/{voucher}/{kind}', [\App\Http\Controllers\Seller\VoucherController::class, 'history'])->whereUuid('voucher')->where('kind', 'versions|actions|redemptions');
-        Route::put('/{voucher}/draft', [\App\Http\Controllers\Seller\VoucherController::class, 'save'])->whereUuid('voucher');
-        Route::post('/{voucher}/{operation}', [\App\Http\Controllers\Seller\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end');
+        Route::get('/', [App\Http\Controllers\Seller\VoucherController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Seller\VoucherController::class, 'store']);
+        Route::get('/{voucher}', [App\Http\Controllers\Seller\VoucherController::class, 'show'])->whereUuid('voucher');
+        Route::get('/{voucher}/{kind}', [App\Http\Controllers\Seller\VoucherController::class, 'history'])->whereUuid('voucher')->where('kind', 'versions|actions|redemptions');
+        Route::put('/{voucher}/draft', [App\Http\Controllers\Seller\VoucherController::class, 'save'])->whereUuid('voucher');
+        Route::post('/{voucher}/{operation}', [App\Http\Controllers\Seller\VoucherController::class, 'action'])->whereUuid('voucher')->where('operation', 'discard|publish|duplicate|pause|resume|end');
     });
 
     Route::get('/chat-notifications', SellerChatNotificationController::class)->name('chat-notifications');
@@ -774,8 +776,15 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::get('/shops', [ShopBrowseController::class, 'index'])->name('shops.index');
     Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
+    Route::get('/vouchers', [CustomerVoucherController::class, 'index'])->name('vouchers.index');
+    Route::get('/vouchers/{voucher}', [CustomerVoucherController::class, 'show'])->whereUuid('voucher')->name('vouchers.show');
+    Route::get('/shops/{slug}/vouchers', [CustomerVoucherController::class, 'shop'])->name('shops.vouchers');
 
     Route::middleware(['auth:sanctum', 'customer.active', 'policy.consent'])->group(function () {
+        Route::get('/my-vouchers', [CustomerVoucherController::class, 'mine'])->name('vouchers.mine');
+        Route::get('/voucher-statuses', [CustomerVoucherController::class, 'statuses'])->name('vouchers.statuses');
+        Route::post('/vouchers/{voucher}/claim', [CustomerVoucherController::class, 'claim'])->whereUuid('voucher')->name('vouchers.claim');
+        Route::post('/shops/{slug}/vouchers/{voucher}/claim', [CustomerVoucherController::class, 'shopClaim'])->whereUuid('voucher')->name('shops.vouchers.claim');
         Route::get('/chat-notifications', CustomerChatNotificationController::class)->name('chat-notifications');
         Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
             Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');

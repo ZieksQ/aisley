@@ -4,6 +4,7 @@ namespace Tests\Feature\Vouchers;
 
 use App\Models\Order;
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -84,6 +85,7 @@ class VoucherCheckoutTest extends TestCase
         $shipping = $this->voucherAction($this->draftVoucher('admin', ['benefit_type' => 'shipping', 'value' => 5, 'stacking' => true, 'per_customer_limit' => 5]), 'publish')->assertOk()->json('data');
         $this->asLifecycleActor($context['seller']);
         $discount = $this->voucherAction($this->draftVoucher('seller', ['value_type' => 'percent', 'value' => 10]), 'publish', 'seller')->assertOk()->json('data');
+        VoucherClaim::create(['voucher_id' => $discount['id'], 'customer_id' => $context['customer']->id, 'collected_at' => now()]);
         $intent = $this->intent($context, [$shipping, $discount]);
         $this->asLifecycleActor($context['customer']);
         $this->postJson('/api/v1/customer/checkout/quote', $intent)->assertOk()->assertJsonPath('data.summary.payable', '185.00');

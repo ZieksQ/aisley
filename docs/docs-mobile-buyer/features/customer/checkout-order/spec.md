@@ -41,14 +41,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 ### Feature behavior and boundaries
 
 - One reviewed checkout intent uses Buy Now or selected Cart, an owned shipping address and COD.
-- Variant key is present nullable; Cart/Buy Now cannot coexist. Quantity and voucher selections follow
-  operation validation.
-- Quote computes fresh Product/variant stock, shipping serviceability/rate and voucher effects; no
-  local payable authority.
-- Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall
-  orderCount summary. Product name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
-- Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee;
-  unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
+- Variant key is present nullable; Cart/Buy Now cannot coexist. Quantity and voucher selections follow operation validation.
+- Quote computes fresh Product/variant stock, shipping serviceability/rate and voucher effects; no local payable authority.
+- Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall orderCount summary. Product name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
+- Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee; unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
 - Select one provider per Shop; implicit single-option fallback is allowed, multiple options require choice.
 - Empty options block quoting; provider failures never authorize substitution or a Courier selector.
 - Display returned expiresAt (default lifetime15min) and clear review validity when any intent input
@@ -145,6 +141,10 @@ Private data is memory-only; token is secure-store only. Recently Viewed is acco
 Never write or merge guest hints; legacy-key cleanup must not delay authentication.
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
+
+- Claim-required App and all Shop vouchers require owned collection; automatic App offers do not.
+- VOUCHER_NOT_CLAIMED links to collection; newly invalid placement VOUCHER_* uses QUOTE_STALE.
+- See [collection contract](../../../api/voucher-collection.md); G28 adoption is pending.
 
 ## HOW
 

@@ -62,7 +62,7 @@ async function publicApiRequest<T>(path: string): Promise<T | null> {
   }
 }
 
-async function publicApiResult<T>(
+export async function publicApiResult<T>(
   path: string,
   revalidate = 60,
 ): Promise<PublicApiResult<T>> {

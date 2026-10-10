@@ -86,6 +86,8 @@ export type CheckoutRequestPayload = {
 };
 
 export type CheckoutVoucher = {
+  distributionMode?: "automatic" | "claim_required";
+  collectionUrl?: string | null;
   id: string;
   name: string;
   code: string;

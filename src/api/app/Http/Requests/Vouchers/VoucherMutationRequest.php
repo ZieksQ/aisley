@@ -11,11 +11,14 @@ abstract class VoucherMutationRequest extends FormRequest
 {
     private ?string $publishedCode = null;
 
+    private ?string $distributionMode = null;
+
     protected function prepareForValidation(): void
     {
         $this->merge(['idempotency_key' => $this->header('Idempotency-Key')]);
         if ($id = $this->route('voucher')) {
             $record = app(VoucherReadService::class)->scope($this->user())->whereKey($id)->firstOrFail();
+            $this->distributionMode = $record->distribution_mode->value;
             $this->publishedCode = $record->lifecycle->value === 'draft' ? null : $record->code;
         }
         if ($this->has('code') && is_string($this->input('code')) && $this->input('code') !== $this->publishedCode) {
@@ -26,6 +29,7 @@ abstract class VoucherMutationRequest extends FormRequest
         }
         if ($this->hasTerms()) {
             $this->merge(array_replace([
+                ...($this->user()->role->value === 'admin' ? ['distribution_mode' => $this->distributionMode ?? 'claim_required'] : []),
                 'currency' => 'PHP', 'payment_method' => 'cod', 'minimum_spend' => '0.00',
                 'per_customer_limit' => 1, 'global_limit' => null, 'maximum_discount' => null, 'stacking' => true,
             ], $this->all()));
@@ -53,6 +57,7 @@ abstract class VoucherMutationRequest extends FormRequest
         }
 
         return [...$rules,
+            ...($this->user()->role->value === 'admin' ? ['distribution_mode' => ['required', Rule::in(['automatic', 'claim_required'])]] : []),
             'name' => ['required', 'string', 'max:120', 'not_regex:/[<>]/'],
             'code' => ['sometimes', 'nullable', 'string', 'max:64', ...($this->publishedCode !== null && $this->input('code') === $this->publishedCode ? [] : ['regex:/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/'])],
             'currency' => ['required', Rule::in(['PHP'])],

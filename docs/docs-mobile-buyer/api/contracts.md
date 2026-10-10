@@ -69,3 +69,7 @@ Current Quote shippingQuote exposes `serviceable,logisticsOrganizationId,logisti
 The typed tables and operation contracts include inherited validation and current semantic ownership/replay boundaries. Implement from this local bundle; controlled live API fixture refresh is a later integration check, not required upstream reading. Source tests were inspected, not rerun. Quote Address excludes coordinates and includes nullable label; Batch Address includes coordinates. Support writes replay their recorded201 status; Customer replies reopen waiting/resolved tickets. Support detail cursor traversal uses Laravel’s request-bound resolver and remains a target verification requirement.
 
 Current source inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from the imported client adoption baseline. Changing selections invalidates quote intent; only exact frozen placement payload/key may reconcile uncertainty.
+
+## Voucher collection delta — 2026-10-11
+
+[Discovery, collection and wallet](voucher-collection.md) defines the new methods, safe DTO, bounds, private gates, natural claim replay and reasons. Quote adds distributionMode/collectionUrl and VOUCHER_NOT_CLAIMED. Newly invalid VOUCHER_* placement eligibility uses 409 QUOTE_STALE before effects; committed exact-key replay remains unchanged. External Flutter adoption is pending G28.

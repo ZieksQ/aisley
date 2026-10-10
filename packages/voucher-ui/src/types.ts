@@ -1,4 +1,5 @@
 export type Terms = {
+  distribution_mode?: 'automatic' | 'claim_required'
   name: string
   code: string
   benefit_type: 'discount' | 'shipping'
