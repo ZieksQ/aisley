@@ -8,8 +8,11 @@ use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserSex;
 use App\Enums\UserStatus;
+use App\Models\AdminPermission;
 use App\Models\Category;
 use App\Models\Document;
+use App\Models\Permission;
+use App\Models\RegistrationApplication;
 use App\Models\SellerProfile;
 use App\Models\Shop;
 use App\Models\ShopCategory;
@@ -394,6 +397,26 @@ class SellerAuthenticationTest extends TestCase
         $this->postJson('/api/v1/seller/auth/reset-password', $payload)
             ->assertUnprocessable()
             ->assertJsonPath('code', 'INVALID_RESET_TOKEN');
+    }
+
+    public function test_fresh_registration_evidence_satisfies_admin_approval(): void
+    {
+        Notification::fake();
+        // The fake disk represents the configured private registration disk.
+        config()->set('filesystems.disks.registration-test', ['driver' => 'local', 'visibility' => 'private']);
+        $this->postRegistration($this->registrationPayload())->assertCreated();
+        $application = RegistrationApplication::where('application_type', UserRole::Seller)->sole();
+        $shopId = $application->user->shop->id;
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'status' => UserStatus::Active]);
+        $permission = Permission::create(['slug' => 'registrations.review', 'name' => 'Review registrations']);
+        AdminPermission::create(['admin_id' => $admin->id, 'permission_id' => $permission->id]);
+
+        $this->actingAs($admin)->postJson("/api/v1/admin/registrations/{$application->id}/approve")->assertOk();
+        $this->assertSame(ApplicationStatus::Approved, $application->fresh()->status);
+        $this->assertSame(UserStatus::Active, $application->user->fresh()->status);
+        $this->assertSame($shopId, $application->user->fresh()->shop->id);
+        $this->assertSame(ShopStatus::Active, $application->user->fresh()->shop->status);
+        $this->assertDatabaseCount('shops', 1);
     }
 
     /** @param array<string, mixed> $overrides */

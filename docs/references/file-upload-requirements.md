@@ -94,6 +94,12 @@
 - Define lifecycle cleanup: when an unreferenced upload is deleted, how long it remains recoverable, and who may restore it.
 - Add an audit event for sensitive document/proof access and mutation without copying the image itself into audit records.
 
+## Seller registration evidence at Admin approval
+
+- Admin approval revalidates the stored private Seller evidence, including both government ID and business permit, against the baseline format and strict byte-size policy. Missing/unreadable blobs, ownership/status inconsistencies, metadata mismatches, checksum mismatches when a checksum exists, and decoding failures prevent approval atomically.
+- Seller evidence approval enforces explicitly approved bounds of **8,000 pixels per edge and 40 megapixels** before full decoding. Reads are bounded to 10 MiB. Private original bytes remain unchanged. These approval bounds do not change other features or certify the existing registration-upload processing pipeline.
+- No new scan state or provider is introduced; registration evidence currently has review statuses only. Malware-scanning workflow remains subject to the shared deferred provider/lifecycle decisions.
+
 ## HOW
 
 - Laravel Form Requests should enforce the baseline extension/MIME/size allowlist; a dedicated upload service should perform image decoding, generated naming, storage, metadata persistence, and optional scanning.
