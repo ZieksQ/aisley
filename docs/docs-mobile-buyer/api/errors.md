@@ -23,6 +23,8 @@ Inspected checkout 57e9eb2. The envelope varies by Laravel handler; parse option
 
 Shop idempotency misuse can be a validation error; operational chat uses409 IDEMPOTENCY_CONFLICT. Never collapse all channels into one assumed error-code set. Unknown server codes still show safe HTTP-category recovery. Named limiters can change; exact Retry-After is the server timing authority, not a permanent retry schedule.
 
+As of the 2026-10-10 backend B05 fix, checked-in Laravel CORS explicitly exposes `Retry-After` for approved origins, including the default Buyer browser origin `http://localhost:8766`. Browser clients can read the original delta-seconds or HTTP-date value even on credentialed requests; native header behavior is unchanged. Local synthetic middleware/browser checks are separate from deployed API and actual Flutter cooldown acceptance. Deployment must refresh cached Laravel configuration and verify the header from the approved origin; an absent/invalid header still follows the existing unavailable-cooldown handling.
+
 ```json
 {"message":"Unauthenticated."}
 ```

@@ -4,8 +4,10 @@ Phase 5 local readiness adds [repeatable checks and the acceptance runbook](phas
 The 2026-10-04 API probe was initially unreachable, then the API recovered without
 Buyer starting/modifying Laravel. All 42 public/denial/preflight tests and extended
 localhost:8766 browser smoke passed. ADB reported no attached devices; CORS exposed
-headers remain absent. No new backend conflict was established.
-Controlled authentication/device gates, deployed revision, Retry-After exposure,
+headers were absent at that probe. No new backend conflict was established.
+The 2026-10-10 backend B05 fix explicitly exposes Retry-After in source; deployed
+exposure and actual Flutter cooldown acceptance still require verification.
+Controlled authentication/device gates, deployed revision, deployed Retry-After exposure,
 production application ID/signing and unresolved owner decisions remain open.
 
 Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification recorded separately; unverified live/device gates remain open. This register identifies unavailable platform behavior, source contradictions and integration/release decisions; it does not authorize backend changes.
@@ -15,7 +17,7 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G01 | Customer RegisterRequest/controller omit reference-required address/ID evidence | Profile/credentials-only pending registration; explain limitation; no copied Courier upload parts | Customer API/Admin review; 1 follow-up |
 | G02 | No pending-applicant read, rejection resubmission, appeal exception or email-verification policy | Informational pending/rejected state and later login; no protected applicant support | Customer Auth; 1 |
 | G03 | Reset mail URL targets configured storefront; native links not configured | Use trusted storefront recovery; approve native app-link/reset handoff separately | Auth/deployment; 1 |
-| G04 | Historical CORS default omitted Buyer; local API now permits localhost:8766, verified 2026-10-04. Exposed headers remain absent | Public browser reads and Authorization preflight pass; backend owner must expose Retry-After. Authenticated cookie isolation remains a target gate | API/deployment; 1/5 |
+| G04 | Historical CORS default omitted Buyer; local API permits localhost:8766, verified 2026-10-04. Backend B05 source fix on 2026-10-10 explicitly exposes Retry-After | Refresh deployed configuration and verify readable delta/date headers and actual Flutter cooldown handling. Authenticated cookie isolation remains a target gate; source completion does not close deployed/client acceptance | API/deployment/Flutter verification; 1/5 |
 | G05 | Fresh-project SDK/package/architecture choices supplied and Phase 1 dependencies resolved | Flutter 3.47.2 / Dart 3.13.2, locked dependencies, Phase 1 analysis/tests and Android/web builds pass; installed-device and real-account gates remain open | Flutter; 1/5 |
 | G06 | All 19 source-identical PSGC assets/manifest copied/registered; Phase 2 Dart loaders implemented; newer selected-only locality dropdowns require valid listed entries and failed assets block save with Retry | Source checksums and all regional hierarchies pass; deployed NCR shipping coverage and installed-device acceptance remain open | Flutter/data; 2 |
 | G07 | MapLibre/geolocator implemented per October 8 external report; native public credential suitability still external | Geoapify intentional pin only; keep text-only if credential/permission/provider gate unresolved | Maps/deployment; 2/5 |

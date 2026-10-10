@@ -57,6 +57,14 @@ This web design contract excludes the existing `src/couriermockup` harness and e
 
 * **Versioning Strategy:** All endpoints must be prefixed with `/api/v1/`.
 
+### Browser CORS and throttling
+
+Laravel's global CORS middleware applies to `api/*` and `sanctum/csrf-cookie`. `CORS_ALLOWED_ORIGINS` supplies the exact approved origins; credentials remain enabled. The default local list includes the Buyer Flutter browser origin `http://localhost:8766` and Courier Flutter browser origin `http://localhost:8765`, plus their `127.0.0.1` equivalents and existing web apps.
+
+`Access-Control-Expose-Headers: Retry-After` makes server cooldown headers readable by approved browser clients, including credentialed requests. Preserve the original `Retry-After` value (delta-seconds or HTTP-date); exposure does not invent a cooldown when the server omits it. Native clients receive the same response header. Unapproved origins receive no CORS authorization.
+
+Audit B05 regression commands, run from the repository root, are `php src/api/vendor/bin/phpunit --configuration src/api/phpunit.xml src/api/tests/Feature/CorsRetryAfterTest.php` and `node src/api/tests/cors-browser.smoke.mjs`. The browser check requires installed Chromium, PHP dependencies, socket access and free localhost ports 8765–8767; it uses synthetic responses through the checked-in configuration and actual Laravel CORS middleware, without application bootstrap, database or real credentials. These checks do not verify actual Flutter cooldown behavior or deployed headers. Refresh Laravel's cached configuration through the existing release process and verify deployed exposure from each approved client origin before closing live acceptance.
+
 ### Strict Namespacing Rules
 
 All role-specific classes MUST be scoped to their respective domains. **Do NOT cross-import role-specific classes** (e.g., never use `App\Enums\Admin\*` inside Customer logic).

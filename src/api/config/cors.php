@@ -9,7 +9,7 @@ return [
     )),
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
-    'exposed_headers' => [],
+    'exposed_headers' => ['Retry-After'],
     'max_age' => 0,
     'supports_credentials' => true,
 ];
