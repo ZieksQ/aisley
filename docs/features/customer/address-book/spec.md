@@ -3,7 +3,7 @@ feature: address-book
 title: Customer Address Book
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented Address Book and checkout integration; pre-Seller-processing Order address correction implemented through Customer Order Modification
 role: Customer
 scope: Customer storefront and Laravel API
@@ -68,7 +68,7 @@ Customer opens /account/addresses
 
 - Checkout accepts only a Customer-owned `address_id` with `shipping` or `both`, revalidates completeness/serviceability, and snapshots all required delivery fields plus optional coordinates into `order_addresses` in the same transaction as the Order.
 - The snapshot retains a nullable source-address reference for traceability but never reads the mutable source for delivery.
-- The Customer Order Modification feature, not Address Book, updates an already-placed Order snapshot during its approved pre-Seller-processing window. Its delivery-address endpoint accepts only an existing shipping-capable Address Book row; Address Book CRUD itself never edits an Order snapshot.
+- The Customer Order Modification feature, not Address Book, updates an already-placed Order snapshot during its approved pre-Seller-processing window. Its delivery-address endpoint accepts only an existing shipping-capable Address Book row with changed recipient/contact and identical trimmed location fields and coordinates; Address Book CRUD itself never edits an Order snapshot.
 - After Seller accepts an Order (`placed → seller_processing`), Address Book edits cannot reroute it; post-pickup changes and returns/refunds are deferred.
 
 ### UX, accessibility, and acceptance

@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\ProfilePhotoFixtures;
 use Tests\TestCase;
 
 class CustomerAccountManagementTest extends TestCase
@@ -346,7 +347,11 @@ class CustomerAccountManagementTest extends TestCase
             'photo' => UploadedFile::fake()->createWithContent('boundary.png', $image),
         ], ['Accept' => 'application/json'])->assertOk();
 
-        $this->assertSame((10 * 1024 * 1024) - 1, $customer->customerProfile->fresh()->profile_photo_size);
+        $profile = $customer->customerProfile->fresh();
+        $stored = Storage::disk('customer-profile-test')->get($profile->profile_photo_path);
+        $this->assertSame(strlen($stored), $profile->profile_photo_size);
+        $this->assertLessThan(1024, strlen($stored));
+        $this->assertNotFalse(imagecreatefromstring($stored));
     }
 
     public function test_profile_photo_accepts_each_approved_image_format(): void
@@ -421,10 +426,7 @@ class CustomerAccountManagementTest extends TestCase
 
     private function jpegBytes(): string
     {
-        return base64_decode(
-            '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPxB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPxB//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxB//9k=',
-            true,
-        );
+        return ProfilePhotoFixtures::image('jpg', 1, 1);
     }
 
     private function webpBytes(): string

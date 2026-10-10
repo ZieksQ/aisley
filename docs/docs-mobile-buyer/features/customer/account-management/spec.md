@@ -53,7 +53,7 @@ Phone/tablet/desktop padding, natural content heights and keyboard/text resizing
   revoked.
 - No email edit, MFA, device/session registry, revoke-all, deletion or export API is available.
 - Photo upload uses multipart photo and under 10 MiB JPEG/PNG/WebP; client hints never replace server
-  validation.
+  validation. Laravel also enforces ≤8,000 pixels per edge and ≤40,000,000 total pixels before decoding.
 - GET avatar fetches authorized private bytes; relative versioned URL retains /api path and cache-busting
   query.
 - Never pass bearer as URL parameter or use unauthenticated Image.network for private avatar.
@@ -64,8 +64,8 @@ Phone/tablet/desktop padding, natural content heights and keyboard/text resizing
 - Promotional preference is required boolean, default off and independent of required policy consent.
 - Preference read/update uses snake_case data; opted-in timestamp may be null.
 - Private forms/bytes/pending uploads are disposed on account change/authorization loss.
-- Backend profile dimension/decode hardening remains G15; do not certify global upload-policy parity from
-  client checks.
+- Audit B04: Laravel rejects incomplete/corrupt images and decoder warnings; isolated decode/rewrite verifies
+  stored bytes, strips metadata and preserves transparency/previous photo on failure. G15 replay/live gates remain.
 - Test complete profile and prohibited fields, wrong current password, unchanged current bearer and revoked
   other token.
 - Test missing avatar404, upload timeout/reread/remove, browser multipart bytes and preference default-off
@@ -90,7 +90,7 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
   Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
   Replay: Read retry after bounded backoff; reject obsolete session/query generations.
 - `POST /api/v1/customer/account/profile-photo` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
-  Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
+  Request: Multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; ≤8000 edge/40000000 pixels.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - `DELETE /api/v1/customer/account/profile-photo` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
   Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.

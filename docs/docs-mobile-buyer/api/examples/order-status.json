@@ -274,7 +274,9 @@
             "province": "Synthetic example",
             "region": "Synthetic example",
             "postalCode": "Synthetic example",
-            "country": "Synthetic example"
+            "country": "Synthetic example",
+            "latitude": null,
+            "longitude": null
           },
           "payment": {
             "method": "cod",
@@ -381,7 +383,9 @@
                 "province": "Synthetic example",
                 "region": "Synthetic example",
                 "postalCode": "Synthetic example",
-                "country": "Synthetic example"
+                "country": "Synthetic example",
+                "latitude": null,
+                "longitude": null
               },
               "payment": {
                 "method": "cod",
@@ -583,5 +587,6 @@
       }
     }
   ],
-  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "order_contact_contract": "2026-10-10 B02: contact-only server guard and nullable Order coordinates; external adopted baseline and historical metadata retained."
 }

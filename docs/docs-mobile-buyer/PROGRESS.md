@@ -118,3 +118,13 @@ Short, dated log for the standalone Buyer Flutter project. Append actual impleme
 ## 2026-10-09 — Rebase reconciliation
 
 - Preserved upstream voucher names/default-pairing contracts and incoming shipping, sorting, private-media and reported client evidence. Voucher adoption retains G26; private chat media is G27, with historical media-G26 references explained in the integration-gap register. Existing archives and imported reports remain unchanged; Flutter implementation/adoption status is unchanged and no Flutter tests/builds or device checks ran for this merge.
+
+## 2026-10-10 — Customer profile photo validation (audit B04)
+
+- Updated Account/upload/operation contracts and G15 for implemented Laravel profile-photo full decoding/rewrite: strictly under 10 MiB, 8,000 pixels per edge and 40,000,000 total pixels; corrupt containers/decoder warnings fail safely on `photo`, preserving the prior photo. Format/transparency remain, source metadata is removed, and endpoint/DTO/replay shapes are unchanged.
+- Backend verification here: 46 Customer account/photo/processing tests passed (374 assertions, isolated SQLite/fake storage), including real dimension boundaries and rollback/processing failures; scoped Pint/PHP syntax and portable document/spec-length checks passed. No external Flutter implementation/tests/builds, live API/storage, browser/device or deployment checks ran. Adopted revision, reported Flutter status, uncertain-upload reconciliation and remaining G15/live gates stay unchanged.
+
+## 2026-10-10 — Legacy Shop shipping voucher funding (audit B06)
+
+- Added the portable [funding delta](api/legacy-voucher-funding.md), affected Checkout/Voucher specs and API/error/operation notes. Unaffordable legacy Shop shipping candidates return `VOUCHER_FUNDING_INSUFFICIENT`/zero saving; selected quote rejects on `vouchers`, placement uses `409 QUOTE_STALE` before effects, and committed exact-key replay remains available. Flutter needs readable feedback and reviewed selection recovery; existing adoption/status/gates are preserved. Already-placed unfunded Orders require separate backend remediation.
+- Backend checks here: 89 scoped API tests passed (1,877 assertions, isolated SQLite), including 22 new funding/POD/rollback/settlement cases. Storefront: 25 checkout tests, TypeScript/scoped lint and production webpack build passed; synthetic Chromium checks passed at 390/768/1280px. Scoped Pint/syntax and portable spec-length/local-link checks passed. These are backend/web evidence; no external Flutter implementation/tests/builds, PostgreSQL concurrency, live API, deployment or Android/device checks ran.

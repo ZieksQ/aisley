@@ -14,7 +14,7 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Eligible placed COD mutations, locked reservations, new address snapshots and replay
-implemented; shipping-rate revalidation gap remains.
+implemented; the 2026-10-10 B02 fix enforces contact-only corrections at the frozen location.
 
 Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 
@@ -22,7 +22,7 @@ Owned eligible Order → confirm cancellation or select saved shipping row → l
 
 - Only server-eligible placed COD/pending-payment Orders with required records and no pickup/waybill/task may change. Seller processing closes the window; no invented grace timer.
 - Cancel uses optional reason ≤500 and UUID key, releases only its reserved stock once and makes no refund/payment-reversal promise. Modification uses address_id, optional expected_revision and UUID key, validating own complete shipping row and creating new immutable version/history.
-- The inspected service does not recalculate the saved shipping rate/coverage on address correction. Record G21 and coordinate material-location handling with backend owner; never derive a replacement fee or serviceability locally.
+- The 2026-10-10 B02 fix preserves frozen shipping/provider/route: Laravel rejects location changes with 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. Geographic repricing remains deferred; client adoption/live verification remain G21.
 - On 409 refetch capabilities; freeze uncertain key/payload for exact replay. No quantity/variant/voucher/price/status changes. Address Book edits do not modify Order snapshots.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
@@ -62,10 +62,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   repeat stock release.
 - Changing reason/address after uncertainty requires reconciliation before a new key.
 - Do not queue an offline correction/cancellation or optimistically advance Order status.
-- Address correction checks completeness/eligibility but does not demonstrate new
-  published-rate/coverage recalculation.
-- G21 permits only recipient/contact changes with identical trimmed street lines/localities/postal/country;
-  normalize empty optional line two to null and block differing or unverifiable locations.
+- Laravel permits only recipient/contact changes at identical trimmed street/locality/postal/country fields.
+  Empty optional line two equals null; incomplete snapshots and differing locations are rejected.
+- Nullable latitude/longitude must match at seven-decimal precision; both absent is valid, but added,
+  removed or partial pins are rejected. Adopt the new Order coordinate fields and field error under G21.
 - Address version in returned Order is refreshed along with actions/timeline/totals after success.
 - Another Shop Order in the same Batch has independent status/cancellation; never cancel Batch
   implicitly.
@@ -112,7 +112,7 @@ unsupported actions.
 | --- | --- |
 | `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `actions: OrderActions` |
 | `OrderActions` | `canCancel: bool`, `canModify: bool`, `canReview: bool`, `modifiableFields: string[]` |
-| `DeliveryAddress` | `version: int`, `recipientName: string`, `contactNumber: string`, `addressLine1: string`, `addressLine2: string?`, `barangay: string`, `cityMunicipality: string`, `province: string`, `region: string`, `postalCode: string`, `country: string` |
+| `DeliveryAddress` | `version: int`, `recipientName: string`, `contactNumber: string`, `addressLine1: string`, `addressLine2: string?`, `barangay: string`, `cityMunicipality: string`, `province: string`, `region: string`, `postalCode: string`, `country: string`, `latitude: coordinate?`, `longitude: coordinate?` |
 
 ### Errors, ownership and recovery
 

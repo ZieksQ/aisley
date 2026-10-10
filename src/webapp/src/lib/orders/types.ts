@@ -146,6 +146,8 @@ export type OrderDetail = {
     region: string;
     postalCode: string;
     country: string;
+    latitude: string | null;
+    longitude: string | null;
   };
   payment: { method: "cod"; status: string };
   vouchers: Array<{

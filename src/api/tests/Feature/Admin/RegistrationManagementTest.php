@@ -14,18 +14,19 @@ use App\Models\AdminPermission;
 use App\Models\Document;
 use App\Models\Permission;
 use App\Models\RegistrationApplication;
-use App\Models\Shop;
 use App\Models\User;
 use App\Notifications\Admin\RegistrationDecisionNotification;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\SellerApprovalFixtures;
 use Tests\TestCase;
 
 class RegistrationManagementTest extends TestCase
 {
     use RefreshDatabase;
+    use SellerApprovalFixtures;
 
     public function test_guest_non_admin_and_admin_without_permission_cannot_list_registrations(): void
     {
@@ -149,23 +150,8 @@ class RegistrationManagementTest extends TestCase
         Notification::fake();
         $admin = $this->adminWithPermissions('registrations.review');
         $registration = $this->application(UserRole::Seller, ApplicationStatus::Pending);
-        $shop = Shop::create([
-            'seller_id' => $registration->user_id,
-            'name' => 'Pending Seller Shop',
-            'slug' => 'pending-seller-shop',
-            'status' => ShopStatus::Pending,
-        ]);
-        $document = Document::create([
-            'user_id' => $registration->user_id,
-            'registration_application_id' => $registration->id,
-            'type' => DocumentType::GovernmentId,
-            'status' => DocumentStatus::Pending,
-            'disk' => 'local',
-            'path' => 'registration-evidence/id.jpg',
-            'original_name' => 'id.jpg',
-            'mime_type' => 'image/jpeg',
-            'size_bytes' => 1024,
-        ]);
+        $shop = $this->sellerApprovalEvidence($registration);
+        $document = $registration->documents()->where('type', DocumentType::GovernmentId)->firstOrFail();
 
         $this->actingAs($admin)
             ->postJson("/api/v1/admin/registrations/{$registration->id}/approve")
@@ -259,6 +245,7 @@ class RegistrationManagementTest extends TestCase
         $admin = $this->adminWithPermissions('registrations.review');
         $customer = $this->application(UserRole::Customer, ApplicationStatus::Pending, now(), 'shared@example.com');
         $seller = $this->application(UserRole::Seller, ApplicationStatus::Pending, now(), 'shared@example.com');
+        $this->sellerApprovalEvidence($seller);
 
         $this->actingAs($admin)
             ->postJson("/api/v1/admin/registrations/{$seller->id}/approve")

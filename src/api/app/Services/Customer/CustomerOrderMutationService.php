@@ -21,6 +21,7 @@ class CustomerOrderMutationService
     public function __construct(
         private readonly CustomerOrderInventory $inventory,
         private readonly OrderTrackingService $orders,
+        private readonly OrderAddressCorrection $addressCorrection,
     ) {}
 
     public function cancel(User $customer, string $orderId, string $idempotencyKey, ?string $reason): Order
@@ -161,32 +162,14 @@ class CustomerOrderMutationService
             }
             $this->assertCompleteAddress($address);
 
-            if ($currentAddress->source_address_id === $address->id) {
-                throw CheckoutException::conflict('ADDRESS_UNCHANGED', 'Select a different delivery address.', 'address_id');
-            }
-
-            $newAddress = $order->addressVersions()->create([
-                'version' => $currentAddress->version + 1,
-                'source_address_id' => $address->id,
-                'recipient_name' => $address->recipient_name,
-                'contact_number' => $address->contact_number,
-                'address_line_1' => $address->address_line_1,
-                'address_line_2' => $address->address_line_2,
-                'barangay' => $address->barangay,
-                'city_municipality' => $address->city_municipality,
-                'province' => $address->province,
-                'region' => $address->region,
-                'postal_code' => $address->postal_code,
-                'country' => $address->country,
-                'latitude' => $address->latitude,
-                'longitude' => $address->longitude,
-            ]);
+            $this->addressCorrection->assertAllowed($currentAddress, $address);
+            $newAddress = $order->addressVersions()->create($this->addressCorrection->snapshot($currentAddress, $address));
             $event = $order->statusEvents()->create([
                 'from_status' => OrderStatus::Placed,
                 'to_status' => OrderStatus::Placed,
                 'source' => 'customer_order_modification',
                 'public_metadata' => [
-                    'label' => 'Delivery address updated',
+                    'label' => 'Delivery contact corrected',
                     'event_type' => 'customer_order_modified',
                 ],
                 'occurred_at' => now(),

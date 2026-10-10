@@ -122,10 +122,10 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `POST /api/v1/customer/account/profile-photo`
 
 - Access: Active Customer + consent.
-- Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
+- Request: Multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; ≤8000 pixels per edge and ≤40000000 total pixels.
 - Response: HTTP 200; `{message:string,account:Account,customer:Navigation}`.
 - Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
-- Notes: GET Content-Type image MIME, private/no-store; missing photo 404. Binary fixture represented by metadata only.
+- Notes: Audit B04 (2026-10-10): isolated full decode/rewrite rejects malformed images/decoder warnings and processing failures with `422` errors on `photo`; prior photo survives rejection. Stored rewrite retains format/transparency, removes metadata and is strictly under 10 MiB. GET remains private/no-store. External client/live acceptance is pending.
 - [Synthetic examples](examples/account-management.json).
 
 ## op-012
@@ -321,6 +321,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 
 - Access: Active Customer + consent.
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
+- Funding: [B06](legacy-voucher-funding.md) adds quote `409 VOUCHER_FUNDING_INSUFFICIENT` on `vouchers` and ineligible zero-saving candidates; change the selected legacy Shop shipping offer.
 - Response: HTTP 200; `{data:Quote}`.
 - Retry: No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.
 - Notes: Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.
@@ -332,6 +333,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 
 - Access: Active Customer + consent.
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
+- Funding: [B06](legacy-voucher-funding.md) maps a legacy shortfall to `409 QUOTE_STALE` on `vouchers` before any placement effects. Refresh/review; committed exact-key replay still succeeds.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
 - Notes: Current provider selection/DTO contract is not established as adopted by the imported client (G25). Selections participate in normalized quote and placement hashes.
@@ -400,7 +402,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: address_id owned shipping UUID; expected_revision optional nullable int≥1 (send deliveryAddress.version); UUID header; placed COD only.
 - Response: HTTP 200; `{data:Order}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Laravel rechecks current ownership and visibility.
+- Notes: Only recipient/contact may change at the same complete trimmed location and seven-decimal pin; absent pins must remain absent. `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` identifies `address_id`; `409 ADDRESS_UNCHANGED` means no contact change. The edited original Address Book row is allowed; frozen pricing/provider/route remain unchanged.
 - [Synthetic examples](examples/order-modification-cancellation.json).
 
 ## op-037

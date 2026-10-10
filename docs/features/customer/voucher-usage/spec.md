@@ -9,7 +9,7 @@ implementation_status: Per-Shop selection, eligibility, calculation, snapshots, 
 canonical: true
 role: Customer
 scope: Customer Checkout and existing Laravel voucher domain
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # Customer Voucher Usage
@@ -67,6 +67,8 @@ reviewed: 2026-10-09
 - Selecting a zero-saving voucher still consumes one redemption on committed placement; automatic omission of zero-saving choices is not implemented.
 - Per-Shop payable is `max(0, merchandiseSubtotal - discount + shippingFee - shippingDiscount)`; return fixed two-decimal strings and currency, currently `PHP`.
 - Finance records issuer/benefit funding separately; platform commission does not increase Customer COD. Clients format amounts but never calculate authoritative totals.
+- Persisted legacy Shop shipping vouchers remain usable only when their full calculated saving is covered by the target Shop's merchandise less Seller merchandise discounts and half-up rounded Seller commission. App discounts do not reduce this capacity; other Shops cannot fund it. Equality allows zero Seller proceeds. Do not reduce the offered saving to fit funding.
+- Evaluate the complete selected pair before funding validation, independent of request/UUID ordering. Candidate shipping eligibility uses the selected merchandise voucher's funding effect; existing ineligibility reasons take precedence. Insufficient funding returns `eligible: false`, `reason: VOUCHER_FUNDING_INSUFFICIENT`, `saving: "0.00"` without exposing commissions or internal capacity.
 
 ### Actual selection and response contract
 
@@ -100,9 +102,8 @@ reviewed: 2026-10-09
 
 - `/checkout` shows expandable per-Shop voucher candidates, name/code, visible savings cap, individual saving or readable ineligibility, selected state, and the explicit App target Shop.
 - Toggling replaces a same-benefit choice for that Shop and removes another selected App voucher of the same benefit; it requotes rather than calculating a local discount.
-- No choice is preselected. Selected intent and totals update only after a successful quote; controls are disabled while quoting/placing.
-- Existing `409` recovery attempts a fresh quote and may fall back to no vouchers; it requires another Place action, not automatic placement.
-- Removal/fallback must be clearly disclosed before confirmation. Current fallback can clear the prior message, so full stale-selection disclosure is not certified.
+- No choice is preselected. Selected intent and totals update only after a successful quote; controls are disabled while quoting/placing or awaiting uncertain placement recovery.
+- Storefront recovery freezes selected vouchers with the original placement payload/key. Only recognized quote-rejection codes release it for refreshed review; key collisions, unknown conflicts, throttling and uncertain transport retain exact replay. Refreshed review requires another Place action and preserves the rejection message.
 - Preserve safe input and distinguish validation/conflict, session/consent loss, throttling, timeout/offline, and service failure; existing Checkout error handling is not full coverage of every state.
 - Follow `docs/design.md`: light-only, mobile-first, familiar per-Shop savings, keyboard-operable disclosure/buttons, `aria-pressed`, visible focus, and announced feedback.
 - Checkout requests currently lack dedicated timeout/throttle recovery; candidate lists are not independently bounded/paginated. These remain scoped hardening gaps.
@@ -138,6 +139,7 @@ All routes require `auth:sanctum`, `customer.active`, and `policy.consent` withi
 - Invalid selections use `422`: `VOUCHER_TARGET_INVALID`, `VOUCHER_SHOP_MISMATCH`, `APP_VOUCHER_LIMIT`, `VOUCHER_BENEFIT_LIMIT`.
 - Selected ineligibility uses `409`: `VOUCHER_TERMS_INVALID`, `VOUCHER_INACTIVE`, `VOUCHER_NOT_STARTED`, `VOUCHER_EXPIRED`, `VOUCHER_PAYMENT_INELIGIBLE`, `VOUCHER_EXHAUSTED`, `VOUCHER_CUSTOMER_LIMIT`, `VOUCHER_MINIMUM_SPEND`, `VOUCHER_CUSTOMER_INELIGIBLE`, or `VOUCHER_ITEMS_INELIGIBLE`.
 - Checkout conflicts include `QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, and `QUOTE_STALE`; domain errors return `{code, message, errors?}` with selection fields where applicable.
+- A selected funding shortfall returns `409 VOUCHER_FUNDING_INSUFFICIENT` at quote with field `vouchers`. Placement revalidates and maps this specific rejection to `409 QUOTE_STALE` on `vouchers`, permitting reviewed refresh through the existing recovery contract. Rejected placement consumes nothing; committed exact-key replay bypasses new pricing checks.
 - Standard auth/approval/consent and rate-limit errors remain owned by middleware; never substitute conceptual voucher routes or invented error codes.
 
 ### Components, deferred work, and verification
@@ -148,5 +150,6 @@ All routes require `auth:sanctum`, `customer.active`, and `policy.consent` withi
 - No `GET /api/v1/customer/vouchers/eligible` or `POST /api/v1/customer/vouchers/claim` is implemented. Admin/Seller management uses its isolated role prefixes and [authoring contract](../../shared/voucher-authoring/spec.md).
 - Claim capacity/retention, code-entry, discovery bounds and cancellation reissue remain deferred. Authoring permissions, publication/version history and mutation receipts are specified separately and do not change Customer DTOs or introduce claiming.
 - `CustomerCheckoutTest` currently covers one Shop percentage redemption, explicit multi-Shop App quote targeting, generic placement replay, stale rollback, and ownership; this is not exhaustive voucher-specific verification.
-- Future changes need focused SQLite/PostgreSQL and real concurrency tests plus Customer type/lint/build and browser checks; this revision reruns no application tests or database operations.
+- PostgreSQL concurrency and live acceptance remain separate gates; scoped SQLite, Customer type/lint/build and synthetic browser results for each revision are recorded in the app-wide progress log.
+- B06 regressions cover funding boundaries/rounding, selected pairing/caps, App funding, zero shipping, tenant isolation, whole-batch rollback, pre-fix quotes and committed replay. Connected real POD approval, recognition failure rollback, remittance and sandbox payout tests cover funded legacy Orders. Actual commands/results and limits are in the app-wide progress log; already-placed unfunded snapshots require separate remediation.
 - Authority: `docs/schema.md` sections 9.10–9.14, Customer Checkout/Order Status/Modification specs, Buyer/Admin/Seller domains, shared Shipping Quotation/Finance contracts, and `docs/design.md`.

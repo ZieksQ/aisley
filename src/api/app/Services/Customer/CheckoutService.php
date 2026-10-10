@@ -39,6 +39,7 @@ use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\Seller\LowStockAlertService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -141,7 +142,15 @@ class CheckoutService
                 throw CheckoutException::conflict('QUOTE_INPUT_CHANGED', 'Checkout details changed. Request a new quote.', 'quote_id');
             }
 
-            $calculation = $this->calculate($customer, $input, true);
+            try {
+                $calculation = $this->calculate($customer, $input, true);
+            } catch (CheckoutException $exception) {
+                if ($exception->errorCode !== 'VOUCHER_FUNDING_INSUFFICIENT') {
+                    throw $exception;
+                }
+
+                throw CheckoutException::conflict('QUOTE_STALE', $exception->getMessage().' Request a new quote.', 'vouchers');
+            }
             if (! hash_equals($quote->state_hash, $calculation['state_hash'])) {
                 throw CheckoutException::conflict('QUOTE_STALE', 'Price, stock, address, shipping, or voucher details changed. Request a new quote.', 'quote_id');
             }
@@ -348,12 +357,24 @@ class CheckoutService
         }
         unset($group);
 
-        $this->applyVouchers($customer, $groups, $input['vouchers'], $lock, $state);
-        foreach ($groups as &$group) {
+        $vouchers = $this->applyVouchers($customer, $groups, $input['vouchers'], $lock, $state);
+        foreach ($groups as $shopId => &$group) {
             $group['discount_cents'] = collect($group['applied_vouchers'])->where('benefit_type', VoucherBenefitType::Discount)->sum('discount_cents');
             $group['shipping_discount_cents'] = collect($group['applied_vouchers'])->where('benefit_type', VoucherBenefitType::Shipping)->sum('discount_cents');
             $group['payable_cents'] = max(0, $group['subtotal_cents'] - $group['discount_cents'] + $group['shipping_cents'] - $group['shipping_discount_cents']);
             $group['finance'] = $this->orderPricing->calculate($group);
+            foreach ($vouchers as $voucher) {
+                if ($voucher->issuer_type === VoucherIssuerType::Shop && $voucher->shop_id !== $shopId) {
+                    continue;
+                }
+                $reason = $this->voucherIneligibility($voucher, $customer, $group);
+                if ($reason === null && $voucher->issuer_type === VoucherIssuerType::Shop
+                    && $voucher->benefit_type === VoucherBenefitType::Shipping
+                    && $this->voucherSaving($voucher, $group['shipping_cents']) > $group['finance']['seller_shipping_capacity_cents']) {
+                    $reason = 'VOUCHER_FUNDING_INSUFFICIENT';
+                }
+                $group['available_vouchers'][] = $this->voucherPayload($voucher, $group, $reason);
+            }
             $state['shipping'][] = [
                 'seller_policy' => [$group['finance']['seller_policy']->id, $group['finance']['seller_policy']->revision],
                 'logistics_policy' => [$group['finance']['logistics_policy']->id, $group['finance']['logistics_policy']->revision],
@@ -431,8 +452,8 @@ class CheckoutService
         }
     }
 
-    /** @param array<string, array<string, mixed>> $groups @param list<array<string, string>> $selections @param array<string, mixed> $state */
-    private function applyVouchers(User $customer, array &$groups, array $selections, bool $lock, array &$state): void
+    /** @param array<string, array<string, mixed>> $groups @param list<array<string, string>> $selections @param array<string, mixed> $state @return Collection<string, Voucher> */
+    private function applyVouchers(User $customer, array &$groups, array $selections, bool $lock, array &$state): Collection
     {
         $voucherQuery = Voucher::query()
             ->where('lifecycle', 'published')
@@ -446,17 +467,6 @@ class CheckoutService
         }
         $vouchers = $voucherQuery->get()->keyBy('id');
         $appBenefits = [];
-
-        foreach ($groups as $shopId => &$group) {
-            foreach ($vouchers as $voucher) {
-                if ($voucher->issuer_type === VoucherIssuerType::Shop && $voucher->shop_id !== $shopId) {
-                    continue;
-                }
-                $reason = $this->voucherIneligibility($voucher, $customer, $group);
-                $group['available_vouchers'][] = $this->voucherPayload($voucher, $group, $reason);
-            }
-        }
-        unset($group);
 
         foreach ($selections as $index => $selection) {
             /** @var Voucher|null $voucher */
@@ -492,6 +502,8 @@ class CheckoutService
             ];
             $state['vouchers'][] = [$voucher->id, $voucher->version, $voucher->availability_revision, $this->voucherState($voucher), $voucher->redeemed_count, $selection['target_shop_id'], $basis, $discount];
         }
+
+        return $vouchers;
     }
 
     private function voucherState(Voucher $voucher): array

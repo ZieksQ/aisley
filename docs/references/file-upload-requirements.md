@@ -94,6 +94,20 @@
 - Define lifecycle cleanup: when an unreferenced upload is deleted, how long it remains recoverable, and who may restore it.
 - Add an audit event for sensitive document/proof access and mutation without copying the image itself into audit records.
 
+## Seller registration evidence at Admin approval
+
+- Admin approval revalidates the stored private Seller evidence, including both government ID and business permit, against the baseline format and strict byte-size policy. Missing/unreadable blobs, ownership/status inconsistencies, metadata mismatches, checksum mismatches when a checksum exists, and decoding failures prevent approval atomically.
+- Seller evidence approval enforces explicitly approved bounds of **8,000 pixels per edge and 40 megapixels** before full decoding. Reads are bounded to 10 MiB. Private original bytes remain unchanged. These approval bounds do not change other features or certify the existing registration-upload processing pipeline.
+- No new scan state or provider is introduced; registration evidence currently has review statuses only. Malware-scanning workflow remains subject to the shared deferred provider/lifecycle decisions.
+
+## Customer profile photos
+
+- Customer account photos enforce **8,000 pixels per edge and 40,000,000 pixels total** before full decoding, with bounded reads and the strict under-10-MiB baseline. These Customer-specific bounds do not silently change other roles or upload purposes.
+- An isolated PHP CLI/GD rewrite runs with a 15-second wall timeout and 512 MiB PHP memory ceiling. Reject incomplete/corrupt containers, decoder warnings, unavailable processing and invalid/oversized rewrites with safe field-addressable `422` errors on `photo`.
+- Rewrite JPEG/WebP at quality 90 and PNG at compression 6, preserving PNG/WebP transparency and removing source metadata/trailing data. Verify the rewritten image decodes; stored metadata describes the rewritten bytes. Existing stored photos are not retroactively processed.
+- Processing requires PHP CLI/GD JPEG/PNG/WebP support, subprocess execution and writable private staging storage. Temporary files are removed on success/failure. Store the new object before transactional replacement; failed storage/database writes preserve the prior photo and clean up the new object best-effort. Old-object deletion after commit remains best-effort.
+- This processing is validation, not a new malware scanner, derivative pipeline, public-media policy or upload replay contract.
+
 ## HOW
 
 - Laravel Form Requests should enforce the baseline extension/MIME/size allowlist; a dedicated upload service should perform image decoding, generated naming, storage, metadata persistence, and optional scanning.

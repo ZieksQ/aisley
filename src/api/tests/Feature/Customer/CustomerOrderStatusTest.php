@@ -168,6 +168,8 @@ class CustomerOrderStatusTest extends TestCase
             ->assertJsonPath('data.groupLabel', 'To Ship')
             ->assertJsonPath('data.items.0.productName', 'Snapshot Product')
             ->assertJsonPath('data.deliveryAddress.recipientName', 'Ada Buyer')
+            ->assertJsonPath('data.deliveryAddress.latitude', '14.5547000')
+            ->assertJsonPath('data.deliveryAddress.longitude', '121.0244000')
             ->assertJsonPath('data.payment.method', 'cod')
             ->assertJsonPath('data.totals.payable', '20.00')
             ->assertJsonPath('data.timeline.1.label', 'Scheduled for delivery')
@@ -182,8 +184,8 @@ class CustomerOrderStatusTest extends TestCase
         $this->assertStringNotContainsString('Do not expose this note', $payload);
         $this->assertStringNotContainsString('employee-123', $payload);
         $this->assertStringNotContainsString('internal_scanner_employee_123', $payload);
-        $this->assertStringNotContainsString('latitude', $payload);
-        $this->assertStringNotContainsString('longitude', $payload);
+        $this->assertStringNotContainsString('latitude', json_encode($response->json('data.map'), JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('longitude', json_encode($response->json('data.map'), JSON_THROW_ON_ERROR));
     }
 
     public function test_foreign_orders_are_not_disclosed_by_detail_or_tracking(): void

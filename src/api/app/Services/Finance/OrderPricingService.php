@@ -6,6 +6,7 @@ use App\Exceptions\Customer\CheckoutException;
 use App\Models\CommissionPolicy;
 use App\Models\Order;
 use App\Models\OrderPricingSnapshot;
+use LogicException;
 
 class OrderPricingService
 {
@@ -22,13 +23,22 @@ class OrderPricingService
             ->sum('discount_cents');
         $base = max(0, $group['subtotal_cents'] - $sellerMerchandiseDiscount);
         $sellerCommission = $this->percentage($base, $sellerPolicy->rate_basis_points);
+        $sellerShippingCapacity = $base - $sellerCommission;
+        if ($sellerShippingDiscount > $sellerShippingCapacity) {
+            throw CheckoutException::conflict(
+                'VOUCHER_FUNDING_INSUFFICIENT',
+                'This Shop shipping voucher cannot fund its full saving for these items. Remove it or choose another voucher.',
+                'vouchers',
+            );
+        }
         $shippingBudget = $group['shipping_cents'] + ($group['shipping_subsidy_cents'] ?? 0);
         $logisticsCommission = $this->percentage($shippingBudget, $logisticsPolicy->rate_basis_points);
 
-        return [
+        $pricing = [
             'seller_policy' => $sellerPolicy, 'logistics_policy' => $logisticsPolicy,
             'seller_commission_base_cents' => $base, 'seller_commission_cents' => $sellerCommission,
-            'seller_proceeds_cents' => max(0, $base - $sellerCommission - $sellerShippingDiscount),
+            'seller_shipping_capacity_cents' => $sellerShippingCapacity,
+            'seller_proceeds_cents' => $sellerShippingCapacity - $sellerShippingDiscount,
             'logistics_commission_cents' => $logisticsCommission,
             'logistics_pool_cents' => max(0, $shippingBudget - $logisticsCommission),
             'voucher_funding' => collect($group['applied_vouchers'])->map(fn (array $entry) => [
@@ -36,6 +46,18 @@ class OrderPricingService
                 'benefit' => $entry['voucher']->benefit_type->value, 'amount_cents' => $entry['discount_cents'],
             ])->values()->all(),
         ];
+
+        $discounts = collect($group['applied_vouchers'])->sum('discount_cents');
+        $payable = $group['payable_cents'] ?? $group['subtotal_cents'] + $group['shipping_cents'] - $discounts;
+        $funding = $payable + collect($pricing['voucher_funding'])->where('issuer', 'app')->sum('amount_cents')
+            + ($group['shipping_subsidy_cents'] ?? 0);
+        $obligations = $pricing['seller_proceeds_cents'] + $sellerCommission
+            + $pricing['logistics_pool_cents'] + $logisticsCommission;
+        if ($funding !== $obligations || $pricing['seller_proceeds_cents'] < 0 || $shippingBudget < $logisticsCommission) {
+            throw new LogicException('Order pricing funding must equal beneficiary proceeds and commissions.');
+        }
+
+        return $pricing;
     }
 
     /** @param array<string, mixed> $group */

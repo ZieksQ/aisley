@@ -4,8 +4,10 @@ Phase 5 local readiness adds [repeatable checks and the acceptance runbook](phas
 The 2026-10-04 API probe was initially unreachable, then the API recovered without
 Buyer starting/modifying Laravel. All 42 public/denial/preflight tests and extended
 localhost:8766 browser smoke passed. ADB reported no attached devices; CORS exposed
-headers remain absent. No new backend conflict was established.
-Controlled authentication/device gates, deployed revision, Retry-After exposure,
+headers were absent at that probe. No new backend conflict was established.
+The 2026-10-10 backend B05 fix explicitly exposes Retry-After in source; deployed
+exposure and actual Flutter cooldown acceptance still require verification.
+Controlled authentication/device gates, deployed revision, deployed Retry-After exposure,
 production application ID/signing and unresolved owner decisions remain open.
 
 Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification recorded separately; unverified live/device gates remain open. This register identifies unavailable platform behavior, source contradictions and integration/release decisions; it does not authorize backend changes.
@@ -15,7 +17,7 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G01 | Customer RegisterRequest/controller omit reference-required address/ID evidence | Profile/credentials-only pending registration; explain limitation; no copied Courier upload parts | Customer API/Admin review; 1 follow-up |
 | G02 | No pending-applicant read, rejection resubmission, appeal exception or email-verification policy | Informational pending/rejected state and later login; no protected applicant support | Customer Auth; 1 |
 | G03 | Reset mail URL targets configured storefront; native links not configured | Use trusted storefront recovery; approve native app-link/reset handoff separately | Auth/deployment; 1 |
-| G04 | Historical CORS default omitted Buyer; local API now permits localhost:8766, verified 2026-10-04. Exposed headers remain absent | Public browser reads and Authorization preflight pass; backend owner must expose Retry-After. Authenticated cookie isolation remains a target gate | API/deployment; 1/5 |
+| G04 | Historical CORS default omitted Buyer; local API permits localhost:8766, verified 2026-10-04. Backend B05 source fix on 2026-10-10 explicitly exposes Retry-After | Refresh deployed configuration and verify readable delta/date headers and actual Flutter cooldown handling. Authenticated cookie isolation remains a target gate; source completion does not close deployed/client acceptance | API/deployment/Flutter verification; 1/5 |
 | G05 | Fresh-project SDK/package/architecture choices supplied and Phase 1 dependencies resolved | Flutter 3.47.2 / Dart 3.13.2, locked dependencies, Phase 1 analysis/tests and Android/web builds pass; installed-device and real-account gates remain open | Flutter; 1/5 |
 | G06 | All 19 source-identical PSGC assets/manifest copied/registered; Phase 2 Dart loaders implemented; newer selected-only locality dropdowns require valid listed entries and failed assets block save with Retry | Source checksums and all regional hierarchies pass; deployed NCR shipping coverage and installed-device acceptance remain open | Flutter/data; 2 |
 | G07 | MapLibre/geolocator implemented per October 8 external report; native public credential suitability still external | Geoapify intentional pin only; keep text-only if credential/permission/provider gate unresolved | Maps/deployment; 2/5 |
@@ -26,13 +28,13 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G12 | Pending mutation keys/payloads are session memory; no GET placement-by-key | Same-key in-session reconciliation; process-death uncertainty needs approved recovery/storage design before unattended recovery claims | Checkout/security; 3/5 |
 | G13 | General notification list/detail/read exists; unread-count/read-all and push device registration absent | Per-page unread is not an exact global badge; no invented unread-count, native push/background guarantee | Notifications; 4 |
 | G14 | Wishlist alerts, voucher wallet/authoring, online payments, returns/refunds, live GPS/ETA and broader account controls deferred | Clear unavailable state or omit action; source enum value alone is not implemented workflow | Owning platform features; later |
-| G15 | Profile/review multipart lacks durable image replay; profile metadata inspection has no explicit numeric dimension cap or demonstrated bounded full decode/rewrite | Reconcile uncertainty, retain partial review progress; backend upload hardening/retention requires owner decision | Upload/security; 2/4/5 |
+| G15 | Profile/review multipart lacks durable image replay; Customer profile decode/rewrite and 8,000-edge/40M-pixel validation fixed locally by audit B04 (2026-10-10); deployed runtime, review processing and retention remain unverified | Reconcile uncertainty and retain partial review progress; profile rejects corrupt/warning-producing images with safe `422 photo` errors and preserves prior photo; verify live/Flutter adoption separately | Upload/security; 2/4/5 |
 | G16 | Three channels implemented; retention/abuse policy, operational two-worker races/live exchanges remain release gates | Foreground HTTP polling and scoped read-only state; Laravel private media is implemented, Flutter adoption remains G27; no Admin blanket transcript access | Messaging/API/Flutter; 4/5 |
 | G17 | Support ticket notifications/linked records/attachments deferred; requester UI says description but API uses body | Only subject/category/body create, revision-checked reply; pending/inactive Customers have no exception | Support; 4 |
 | G18 | Sanctum token expiration currently null; no refresh/revoke-all/session registry API | Secure restore and /me revalidation; current-token logout, documented password token effects; no invented refresh schedule | Security/Auth; 1/5 |
 | G19 | Portable contracts now cover inspected behavior; canonical historical wording remains optional evidence | Local specs/typed contracts govern implementation; log live contract differences separately | Documentation resolved; each phase |
 | G20 | Phase 1 Android builds, Chromium UI/transport and public localhost API checks now pass; installed Android and live authenticated flows remain unverified | See [Phase 1 evidence](phase-1-verification.md); preserve broad acceptance criteria until target/account checks pass | Flutter/release; 1/5 |
-| G21 | Address correction implementation does not fully demonstrate current published-rate/coverage revalidation | It checks owned shipping-address completeness and Order eligibility but does not recalculate the saved shipping quote; Phase 3 enables only recipient/contact changes at an identical trimmed, complete location (empty optional line two equals null); block location changes pending backend-owner rate/coverage revalidation | Order/Finance/API; 3/5 |
+| G21 | B02 server guard implemented 2026-10-10; external adoption/live verification pending | Laravel restricts corrections to recipient/contact at an identical complete trimmed location and seven-decimal coordinate pair, preserving frozen price/provider/route. Order deliveryAddress adds nullable latitude/longitude; adopt coordinate checks and ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. Geographic changes/repricing remain deferred. Prior Phase 3 client evidence and adopted 57e9eb2 baseline are unchanged. | Buyer/Order/API; 3/5 |
 
 Unavailable APIs must not be mocked into production success. Test fixtures may model future/denied states clearly, but future endpoint proposals need separate backend authorization and acceptance.
 
@@ -72,6 +74,8 @@ Imported runtime sections above report checks performed in the external Flutter 
 ### G26 — Voucher names and default pairing (2026-10-09)
 
 Backend adds `name` to quote candidates, applied vouchers and frozen Batch vouchers. Permit one App discount plus one App shipping per batch and one of each benefit per Shop, regardless of stored stacking flags; replace only same-benefit selections. Parse/display names and caps, retain UUID/target requests and test snapshots/retries. See [contract delta](../api/voucher-selection-update.md). External Flutter adoption, Android/browser and live acceptance are unverified; prior implementation status remains unchanged.
+
+The 2026-10-10 [B06 funding delta](../api/legacy-voucher-funding.md) adds `VOUCHER_FUNDING_INSUFFICIENT` candidate/quote feedback and placement `QUOTE_STALE` on `vouchers`. Include these cases in G26 adoption/recovery verification; no external-client gate is closed. Already-placed unfunded Orders need separate backend funding remediation.
 
 ## Reported checkout provider failures — 2026-10-05
 

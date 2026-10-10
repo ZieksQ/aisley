@@ -46,6 +46,8 @@ register → pending User/Application/Shop/evidence
 - Use UUIDs and the existing string-backed enum casts (`UserRole::Seller`, `UserStatus::Pending`, `ApplicationStatus::Pending`, `ShopStatus::Pending`).
 - Derive a server-owned unique Shop slug. Do not trust a submitted slug, Shop status, category status, or address ownership.
 - Admin approval atomically activates the existing User and Shop and approves the application/evidence. Rejection marks the application/evidence and deactivates the pending Shop; it does not create replacement records.
+- Approval revalidates the pending Seller and owned pending Shop and locks application evidence before changing state. Both `government_id` and `business_registration` (business permit) are required; every document being verified must belong to the applicant/application and be pending or already verified. Rejected evidence cannot be approved.
+- At approval, stored evidence must be available on a private disk and pass actual JPEG/PNG/WebP inspection, matching extension/MIME/byte-size metadata, optional checksum verification, strict under-10-MiB size, 8,000-pixel edge/40-megapixel bounds, and full decoding. Originals are preserved. Missing/invalid prerequisites or storage failures produce safe field-addressable `422` errors and no state, audit, or notification changes; incomplete applications can still be rejected. Conflicting decisions return `409`.
 - After approval, `SHOP_SETUP_REQUIRED` means required storefront fields are incomplete. Setup edits the existing Shop and must not create another Shop. Required publishing fields are defined by the shared Seller/domain contract.
 
 ### Login, session, and recovery

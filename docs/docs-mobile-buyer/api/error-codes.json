@@ -238,7 +238,7 @@
       "feature": "order-modification-cancellation",
       "status": 409,
       "code": "ADDRESS_UNCHANGED",
-      "message": "Select a different delivery address.",
+      "message": "Select a saved address with a corrected recipient name or contact number.",
       "field": "address_id"
     },
     {
@@ -468,7 +468,15 @@
       "code": "SHIPPING_DIMENSIONS_UNSUPPORTED",
       "message": "Synthetic Product exceeds the platform parcel dimensions.",
       "field": "items"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 422,
+      "code": "ADDRESS_LOCATION_CHANGE_NOT_ALLOWED",
+      "message": "Only the recipient name and contact number can be corrected. Select a saved address at the same location and map pin.",
+      "field": "address_id"
     }
   ],
-  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"
+  "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "order_contact_contract": "2026-10-10 B02: contact-only server guard and nullable Order coordinates; external adopted baseline and historical metadata retained."
 }

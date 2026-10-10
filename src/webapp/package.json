@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:auth": "node tests/auth-session.test.mjs"
+    "test:auth": "node tests/auth-session.test.mjs",
+    "test:checkout": "node --test tests/checkout-*.test.mjs",
+    "test:orders": "node --test tests/order-contact.test.mjs",
+    "test:orders:browser": "node tests/order-contact-browser.mjs"
   },
   "dependencies": {
     "@aisley/chat-ui": "workspace:*",

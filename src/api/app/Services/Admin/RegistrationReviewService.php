@@ -12,6 +12,7 @@ use App\Enums\UserStatus;
 use App\Models\RegistrationApplication;
 use App\Models\User;
 use App\Notifications\Admin\RegistrationDecisionNotification;
+use App\Services\Admin\RegistrationReview\SellerApprovalValidator;
 use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -20,7 +21,10 @@ use Throwable;
 
 class RegistrationReviewService
 {
-    public function __construct(private readonly AuditService $auditService) {}
+    public function __construct(
+        private readonly AuditService $auditService,
+        private readonly SellerApprovalValidator $sellerApprovalValidator,
+    ) {}
 
     public function decide(
         RegistrationApplication $registration,
@@ -45,7 +49,7 @@ class RegistrationReviewService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $application->load('user');
+            $application->setRelation('user', $application->user()->lockForUpdate()->firstOrFail());
 
             if (! in_array($application->application_type, [UserRole::Customer, UserRole::Seller, UserRole::Logistics], true)
                 || $application->user->role !== $application->application_type) {
@@ -66,6 +70,9 @@ class RegistrationReviewService
             if ($shop) {
                 $oldValues['shop_status'] = $shop->status->value;
             }
+            $validatedDocuments = $application->application_type === UserRole::Seller && $decision === ApplicationStatus::Approved
+                ? $this->sellerApprovalValidator->validate($application, $shop)
+                : null;
             $reviewedAt = now();
             $rejectionReason = $decision === ApplicationStatus::Rejected ? $reason : null;
 
@@ -89,14 +96,16 @@ class RegistrationReviewService
             ]);
 
             if (in_array($application->application_type, [UserRole::Seller, UserRole::Logistics], true)) {
-                $application->documents()->update([
-                    'status' => $decision === ApplicationStatus::Approved
-                        ? DocumentStatus::Verified
-                        : DocumentStatus::Rejected,
-                    'reviewer_id' => $reviewer->id,
-                    'reviewed_at' => $reviewedAt,
-                    'rejection_reason' => $rejectionReason,
-                ]);
+                $application->documents()
+                    ->when($validatedDocuments !== null, fn ($query) => $query->whereIn('id', $validatedDocuments->modelKeys()))
+                    ->update([
+                        'status' => $decision === ApplicationStatus::Approved
+                            ? DocumentStatus::Verified
+                            : DocumentStatus::Rejected,
+                        'reviewer_id' => $reviewer->id,
+                        'reviewed_at' => $reviewedAt,
+                        'rejection_reason' => $rejectionReason,
+                    ]);
             }
 
             $this->auditService->record(

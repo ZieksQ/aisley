@@ -1,4 +1,4 @@
-import type { CheckoutIntent, CheckoutRequestPayload } from "./types";
+import type { CheckoutIntent, CheckoutRequestPayload, LogisticsSelection, VoucherSelection } from "./types";
 
 const checkoutIntentKey = "aisley:checkout-intent";
 
@@ -69,4 +69,24 @@ export function checkoutPayloadForIntent(
 
 export function clearCheckoutIntent() {
   sessionStorage.removeItem(checkoutIntentKey);
+}
+
+export function checkoutPayload(
+  intent: CheckoutIntent,
+  addressId: string,
+  vouchers: VoucherSelection[],
+  logisticsSelections: LogisticsSelection[] = [],
+): CheckoutRequestPayload {
+  return {
+    ...checkoutPayloadForIntent(intent, addressId),
+    vouchers,
+    logistics_selections: logisticsSelections,
+  };
+}
+
+export function logisticsSelectionList(selected: Record<string, string>): LogisticsSelection[] {
+  return Object.entries(selected).map(([shop_id, logistics_organization_id]) => ({
+    shop_id,
+    logistics_organization_id,
+  }));
 }

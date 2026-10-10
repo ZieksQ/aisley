@@ -172,6 +172,9 @@ PENDING → REJECTED
   - record decision timestamp
   - commit atomically
 - Approval must grant whatever normal application access the registration/auth system defines for an approved account.
+- Seller approval additionally requires a pending Seller account and its existing pending owned Shop, plus both `government_id` and `business_registration` (business permit) evidence. Lock the application, account, Shop, and documents and validate before any decision mutation.
+- All Seller documents being verified must belong to that applicant and application, have `pending` or `verified` status, and resolve to available private stored images. Inspect actual bytes: permitted JPEG/PNG/WebP format and matching extensions/MIME/size metadata, strictly under 10 MiB, valid checksum when present, dimensions at most 8,000 pixels per edge and 40 megapixels, and successful full decoding. Preserve the originals; a legacy null checksum alone does not prevent approval.
+- Missing or invalid Seller prerequisites return `422` errors keyed to `shop`, `government_id`, `business_permit`, or `documents`. Storage errors also prevent approval. Failure preserves application/account/Shop/document states and decision metadata and produces no decision audit or applicant notification. Do not expose storage paths or provider errors. Rejection remains available for incomplete applications; already-reviewed applications retain `409` precedence.
 - Do not invent additional role privileges at approval time.
 - Any role-specific post-approval setup must be delegated to the owning registration/account feature.
 
@@ -310,6 +313,7 @@ PENDING → REJECTED
 - [ ] Arbitrary status assignment is rejected.
 - [ ] Two concurrent Admin decisions cannot overwrite each other.
 - [ ] Approval records Admin and decision timestamp.
+- [ ] Seller approval fails atomically for a missing/non-pending owned Shop or missing, foreign, rejected, unavailable, corrupt, or oversized required evidence.
 - [ ] Rejection records Admin and decision timestamp.
 - [ ] Approval/rejection is auditable.
 - [ ] Applicant notification is queued after commit.

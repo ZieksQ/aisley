@@ -2877,7 +2877,9 @@
             "province": "Synthetic example",
             "region": "Synthetic example",
             "postalCode": "Synthetic example",
-            "country": "Synthetic example"
+            "country": "Synthetic example",
+            "latitude": null,
+            "longitude": null
           },
           "payment": {
             "method": "cod",
@@ -2984,7 +2986,9 @@
                 "province": "Synthetic example",
                 "region": "Synthetic example",
                 "postalCode": "Synthetic example",
-                "country": "Synthetic example"
+                "country": "Synthetic example",
+                "latitude": null,
+                "longitude": null
               },
               "payment": {
                 "method": "cod",
@@ -3187,7 +3191,9 @@
             "province": "Synthetic example",
             "region": "Synthetic example",
             "postalCode": "Synthetic example",
-            "country": "Synthetic example"
+            "country": "Synthetic example",
+            "latitude": null,
+            "longitude": null
           },
           "payment": {
             "method": "cod",
@@ -3272,7 +3278,7 @@
           "feature": "order-modification-cancellation",
           "status": 409,
           "code": "ADDRESS_UNCHANGED",
-          "message": "Select a different delivery address.",
+          "message": "Select a saved address with a corrected recipient name or contact number.",
           "field": "address_id"
         },
         {
@@ -3351,7 +3357,9 @@
                 "province": "Synthetic example",
                 "region": "Synthetic example",
                 "postalCode": "Synthetic example",
-                "country": "Synthetic example"
+                "country": "Synthetic example",
+                "latitude": null,
+                "longitude": null
               },
               "payment": {
                 "method": "cod",
@@ -3406,12 +3414,12 @@
       "feature": "order-modification-cancellation",
       "method": "PATCH",
       "path": "/api/v1/customer/orders/{order}/modification",
-      "request_contract": "address_id owned shipping UUID; expected_revision optional nullable int\u22651 (send deliveryAddress.version); UUID header; placed COD only.",
+      "request_contract": "address_id owned complete shipping UUID with changed recipient/contact and identical trimmed location/seven-decimal coordinates (both pairs absent allowed); expected_revision optional nullable int\u22651 (send deliveryAddress.version); UUID header; placed COD only.",
       "response_contract": "{data:Order}",
       "status": 200,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
       "access": "Active Customer + consent",
-      "notes": "",
+      "notes": "2026-10-10 B02: frozen prices/provider/route preserved; edited original source row allowed; location changes return 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. External adoption/live verification pending G21.",
       "request_example": {
         "query": {},
         "headers": {
@@ -3472,7 +3480,9 @@
             "province": "Synthetic example",
             "region": "Synthetic example",
             "postalCode": "Synthetic example",
-            "country": "Synthetic example"
+            "country": "Synthetic example",
+            "latitude": null,
+            "longitude": null
           },
           "payment": {
             "method": "cod",
@@ -3557,7 +3567,7 @@
           "feature": "order-modification-cancellation",
           "status": 409,
           "code": "ADDRESS_UNCHANGED",
-          "message": "Select a different delivery address.",
+          "message": "Select a saved address with a corrected recipient name or contact number.",
           "field": "address_id"
         },
         {
@@ -3579,6 +3589,13 @@
           "status": 422,
           "code": "ADDRESS_INCOMPLETE",
           "message": "The selected address is incomplete.",
+          "field": "address_id"
+        },
+        {
+          "feature": "order-modification-cancellation",
+          "status": 422,
+          "code": "ADDRESS_LOCATION_CHANGE_NOT_ALLOWED",
+          "message": "Only the recipient name and contact number can be corrected. Select a saved address at the same location and map pin.",
           "field": "address_id"
         }
       ],
@@ -3636,7 +3653,9 @@
                 "province": "Synthetic example",
                 "region": "Synthetic example",
                 "postalCode": "Synthetic example",
-                "country": "Synthetic example"
+                "country": "Synthetic example",
+                "latitude": null,
+                "longitude": null
               },
               "payment": {
                 "method": "cod",
@@ -7576,5 +7595,6 @@
     "date": "2026-10-06",
     "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
     "client_adoption": "pending"
-  }
+  },
+  "order_contact_contract": "2026-10-10 B02: contact-only server guard and nullable Order coordinates; external adopted baseline and historical metadata retained."
 }

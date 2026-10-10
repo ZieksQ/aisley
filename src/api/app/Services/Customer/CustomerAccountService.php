@@ -4,6 +4,7 @@ namespace App\Services\Customer;
 
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Services\Customer\ProfilePhoto\PhotoProcessor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +17,8 @@ use Throwable;
 
 class CustomerAccountService
 {
+    public function __construct(private readonly PhotoProcessor $photos) {}
+
     /** @param array<string, mixed> $attributes */
     public function updateProfile(User $customer, array $attributes): User
     {
@@ -58,22 +61,20 @@ class CustomerAccountService
     /** @param array<string, mixed> $context */
     public function updateProfilePhoto(User $customer, UploadedFile $photo, array $context): User
     {
-        $metadata = $this->inspectImage($photo);
+        $processed = $this->photos->process($photo);
+        $bytes = $processed['bytes'];
+        unset($processed['bytes']);
+        $metadata = $processed;
         $disk = (string) config('filesystems.default', 'local');
-        $path = $photo->storeAs(
-            'customer-profile-photos/'.$customer->id,
-            Str::uuid().'.'.$metadata['extension'],
-            $disk,
-        );
-
-        if (! is_string($path) || $path === '') {
-            throw new RuntimeException('The profile photo could not be stored.');
-        }
+        $path = 'customer-profile-photos/'.$customer->id.'/'.Str::uuid().'.'.$metadata['extension'];
 
         $oldDisk = null;
         $oldPath = null;
 
         try {
+            if (! Storage::disk($disk)->put($path, $bytes)) {
+                throw new RuntimeException('The profile photo could not be stored.');
+            }
             DB::transaction(function () use ($customer, $disk, $path, $metadata, &$oldDisk, &$oldPath): void {
                 $profile = $customer->customerProfile()->lockForUpdate()->firstOrFail();
                 $oldDisk = $profile->profile_photo_disk;
@@ -88,7 +89,7 @@ class CustomerAccountService
                 ]);
             });
         } catch (Throwable $exception) {
-            Storage::disk($disk)->delete($path);
+            $this->deleteQuietly($disk, $path);
             throw $exception;
         }
 
@@ -134,47 +135,6 @@ class CustomerAccountService
     public function load(User $customer): User
     {
         return $customer->load('customerProfile');
-    }
-
-    /** @return array{mime: string, extension: string, size: int, width: int, height: int} */
-    private function inspectImage(UploadedFile $photo): array
-    {
-        $dimensions = @getimagesize($photo->getRealPath());
-        if ($dimensions === false || ! isset($dimensions['mime'])) {
-            throw ValidationException::withMessages([
-                'photo' => ['The profile photo is not a valid image.'],
-            ]);
-        }
-
-        $allowed = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-        ];
-        $mime = (string) $dimensions['mime'];
-        if (! isset($allowed[$mime])) {
-            throw ValidationException::withMessages([
-                'photo' => ['The profile photo must be a JPEG, PNG, or WebP image.'],
-            ]);
-        }
-
-        $clientExtension = strtolower($photo->getClientOriginalExtension());
-        if ($clientExtension === 'jpeg') {
-            $clientExtension = 'jpg';
-        }
-        if ($clientExtension !== $allowed[$mime]) {
-            throw ValidationException::withMessages([
-                'photo' => ['The profile photo extension does not match its image type.'],
-            ]);
-        }
-
-        return [
-            'mime' => $mime,
-            'extension' => $allowed[$mime],
-            'size' => (int) $photo->getSize(),
-            'width' => (int) $dimensions[0],
-            'height' => (int) $dimensions[1],
-        ];
     }
 
     private function deleteQuietly(?string $disk, ?string $path): void

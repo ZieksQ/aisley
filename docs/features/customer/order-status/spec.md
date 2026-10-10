@@ -3,7 +3,7 @@ feature: order-status
 title: Customer Order Monitoring and Logistics Tracking
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implemented read-only tracking and scheduled-delivery Courier projection; live map deferred
 role: Customer
 scope: Customer storefront and Laravel API
@@ -71,6 +71,7 @@ Account menu → Orders → paginated Customer-owned list
 - Sort deterministically by latest status activity, placement time, and UUID tie-breaker. Bound `page` and `per_page` using the API request rules.
 - List DTOs contain only Order reference, Shop summary, item preview/counts, fixed-precision totals, canonical status/group labels, latest activity, safe action flags, and detail URL.
 - Detail DTOs contain immutable item/price/voucher snapshots, delivery-address snapshot needed by the Customer, COD/payment summary, totals, timeline, map capability, and action flags. Do not expose Seller/Admin/Courier private data, payment secrets, raw storage paths, or another Order's IDs.
+- `deliveryAddress.latitude` and `longitude` expose only the owned Order's saved destination pin as nullable seven-decimal strings, enabling contact-only correction checks. They are independent of `map.currentPosition`; live Courier/parcel position remains unavailable.
 - Timeline events are immutable, UTC/ISO-8601, chronological, and limited to safe public label, event type, optional hub/city label, and occurrence time. Internal notes, employee IDs, scan payloads, and full hub addresses are excluded.
 - Historical cancelled/rejected Orders remain in the Customer's list and timeline.
 

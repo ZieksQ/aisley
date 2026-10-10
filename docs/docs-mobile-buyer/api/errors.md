@@ -23,6 +23,8 @@ Inspected checkout 57e9eb2. The envelope varies by Laravel handler; parse option
 
 Shop idempotency misuse can be a validation error; operational chat uses409 IDEMPOTENCY_CONFLICT. Never collapse all channels into one assumed error-code set. Unknown server codes still show safe HTTP-category recovery. Named limiters can change; exact Retry-After is the server timing authority, not a permanent retry schedule.
 
+As of the 2026-10-10 backend B05 fix, checked-in Laravel CORS explicitly exposes `Retry-After` for approved origins, including the default Buyer browser origin `http://localhost:8766`. Browser clients can read the original delta-seconds or HTTP-date value even on credentialed requests; native header behavior is unchanged. Local synthetic middleware/browser checks are separate from deployed API and actual Flutter cooldown acceptance. Deployment must refresh cached Laravel configuration and verify the header from the approved origin; an absent/invalid header still follows the existing unavailable-cooldown handling.
+
 ```json
 {"message":"Unauthenticated."}
 ```
@@ -46,6 +48,10 @@ Shop idempotency misuse can be a validation error; operational chat uses409 IDEM
 For consent denial, `data:{required_policies:[{type:string,label:string,version:int?,read_url:string,accept_url:string?}],status_url:string}` accompanies code/message. These are API paths subject to the same trusted-origin/type validation. Recheck status after acceptance; neither a local checkbox nor this denial descriptor opens private access.
 
 [Examples](examples/README.md) contain feature-specific request/success/null/empty/failure fixtures. [Operations](operations.md) decide whether exact replay is permitted. Cancelled transport can still commit. Retry supported UUID writes with identical frozen body/key; do not replay additive Cart/photo writes. All private failures are session-generation scoped, including stale401/403 from a previous account.
+
+## Legacy voucher funding — 2026-10-10
+
+For the 2026-10-10 [B06 legacy voucher funding delta](legacy-voucher-funding.md), quote `409 VOUCHER_FUNDING_INSUFFICIENT` binds to `vouchers` and requires changing the selection. Candidate reason uses the same code with zero displayed saving. Placement maps the shortfall to existing `409 QUOTE_STALE` on `vouchers` with no effects: refresh and require reviewed Place. Unknown/uncertain placement responses still retain the frozen request; committed exact-key replay remains valid.
 
 ## Current shipping selection failures — 2026-10-04
 

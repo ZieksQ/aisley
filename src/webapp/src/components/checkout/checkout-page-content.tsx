@@ -1,16 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  FiRefreshCw,
-  FiMapPin,
-} from "react-icons/fi";
+import { FiRefreshCw } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { ApiError } from "@/lib/api";
+import { checkoutPlacement } from "@/lib/checkout/placement";
 import {
   fetchAddresses,
   fetchCheckoutLogisticsOptions,
@@ -18,7 +15,8 @@ import {
   quoteCheckout,
 } from "@/lib/checkout/client";
 import {
-  checkoutPayloadForIntent,
+  checkoutPayload as payload,
+  logisticsSelectionList,
   clearCheckoutIntent,
   readCheckoutIntent,
 } from "@/lib/checkout/intent";
@@ -26,66 +24,29 @@ import type {
   CheckoutIntent,
   CheckoutLogisticsOptions,
   CheckoutQuote,
-  CheckoutRequestPayload,
   CheckoutVoucher,
   CustomerAddress,
-  LogisticsSelection,
   VoucherSelection,
 } from "@/lib/checkout/types";
 import { CheckoutDeliverySection, CheckoutPaymentSection } from "./checkout-delivery-sections";
+import { amount, voucherReasons, CheckoutLoading, MissingIntent } from "./checkout-display";
 import { CheckoutSummary } from "./checkout-summary";
 import { ShopCheckoutGroup } from "./shop-checkout-group";
 import { ShippingProviderSelector } from "./shipping-provider-selector";
 
-const money = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  maximumFractionDigits: 2,
-});
-
-const voucherReasons: Record<string, string> = {
-  VOUCHER_CUSTOMER_INELIGIBLE: "This voucher is not available for your account.",
-  VOUCHER_CUSTOMER_LIMIT: "You have already used this voucher.",
-  VOUCHER_EXHAUSTED: "This voucher has reached its usage limit.",
-  VOUCHER_EXPIRED: "This voucher has expired.",
-  VOUCHER_INACTIVE: "This voucher is currently inactive.",
-  VOUCHER_ITEMS_INELIGIBLE: "The selected products are not eligible.",
-  VOUCHER_MINIMUM_SPEND: "This Shop order does not meet the minimum spend.",
-  VOUCHER_NOT_STARTED: "This voucher is not available yet.",
-  VOUCHER_PAYMENT_INELIGIBLE: "This voucher is not available for COD.",
-  VOUCHER_TERMS_INVALID: "This voucher is temporarily unavailable.",
-};
-
-function amount(value: string) {
-  return money.format(Number(value));
-}
-
-function payload(
-  intent: CheckoutIntent,
-  addressId: string,
-  vouchers: VoucherSelection[],
-  logisticsSelections: LogisticsSelection[] = [],
-): CheckoutRequestPayload {
-  return {
-    ...checkoutPayloadForIntent(intent, addressId),
-    vouchers,
-    logistics_selections: logisticsSelections,
-  };
-}
-
-function logisticsSelectionList(selected: Record<string, string>): LogisticsSelection[] {
-  return Object.entries(selected).map(([shop_id, logistics_organization_id]) => ({
-    shop_id,
-    logistics_organization_id,
-  }));
-}
-
 export function CheckoutPageContent() {
+  const { auth } = useAuth();
+  return <CheckoutSession key={auth.status === "authenticated" ? auth.customer.id : auth.status} />;
+}
+
+function CheckoutSession() {
   const router = useRouter();
   const { auth } = useAuth();
   const { refresh: refreshCart } = useCart();
   const quoteSequence = useRef(0);
-  const idempotencyKey = useRef<string | null>(null);
+  const placementBusy = useRef(false);
+  const activeCustomer = useRef<string | null>(null);
+  const customerId = auth.status === "authenticated" ? auth.customer.id : null;
   const [intent, setIntent] = useState<CheckoutIntent | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -93,7 +54,7 @@ export function CheckoutPageContent() {
   const [logisticsOptions, setLogisticsOptions] = useState<CheckoutLogisticsOptions | null>(null);
   const [selectedLogistics, setSelectedLogistics] = useState<Record<string, string>>({});
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "quoting" | "placing" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "quoting" | "placing" | "uncertain" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
 
   const loadQuote = useCallback(async (
@@ -102,6 +63,7 @@ export function CheckoutPageContent() {
     vouchers: VoucherSelection[],
     logistics: Record<string, string>,
   ) => {
+    if (!customerId || checkoutPlacement.read(customerId)) return null;
     const sequence = ++quoteSequence.current;
     setStatus("quoting");
     setMessage(null);
@@ -114,7 +76,6 @@ export function CheckoutPageContent() {
       setSelectedVouchers(vouchers);
       setSelectedLogistics(logistics);
       setStatus("ready");
-      idempotencyKey.current = null;
       return nextQuote;
     } catch (caught) {
       if (sequence !== quoteSequence.current) return null;
@@ -127,7 +88,7 @@ export function CheckoutPageContent() {
       setStatus("error");
       return null;
     }
-  }, []);
+  }, [customerId]);
 
   const loadShippingOptions = useCallback(async (
     nextIntent: CheckoutIntent,
@@ -135,6 +96,7 @@ export function CheckoutPageContent() {
     vouchers: VoucherSelection[],
     preferredSelections: Record<string, string> = {},
   ) => {
+    if (!customerId || checkoutPlacement.read(customerId)) return null;
     const sequence = ++quoteSequence.current;
     setStatus("quoting");
     setMessage(null);
@@ -158,6 +120,7 @@ export function CheckoutPageContent() {
         }
       }
 
+      setAddresses((items) => items.length ? items : [result.address]);
       setLogisticsOptions(result);
       setSelectedLogistics(selections);
       const allSelected = result.groups.length > 0 && result.groups.every(
@@ -176,7 +139,15 @@ export function CheckoutPageContent() {
       setStatus("error");
       return null;
     }
-  }, [loadQuote]);
+  }, [customerId, loadQuote]);
+
+  useEffect(() => {
+    activeCustomer.current = customerId;
+    return () => {
+      activeCustomer.current = null;
+      quoteSequence.current += 1;
+    };
+  }, [customerId]);
 
   useEffect(() => {
     if (auth.status === "guest") {
@@ -185,6 +156,29 @@ export function CheckoutPageContent() {
     }
     if (auth.status !== "authenticated") return;
 
+    let pending;
+    try {
+      pending = checkoutPlacement.read(auth.customer.id);
+    } catch {
+      queueMicrotask(() => {
+        setStatus("error");
+        setMessage("Checkout recovery is unavailable. Enable browser session storage and reload before placing an order.");
+      });
+      return;
+    }
+    if (pending) {
+      queueMicrotask(() => {
+        setIntent(pending.intent);
+        setSelectedAddressId(pending.payload.address_id);
+        setSelectedVouchers(pending.payload.vouchers);
+        setSelectedLogistics(Object.fromEntries((pending.payload.logistics_selections ?? []).map(
+          (item) => [item.shop_id, item.logistics_organization_id],
+        )));
+        setStatus("uncertain");
+        setMessage("Your previous order is awaiting confirmation. Retry the original order before changing checkout.");
+      });
+      return;
+    }
     const nextIntent = readCheckoutIntent();
     if (!nextIntent) {
       let active = true;
@@ -201,6 +195,7 @@ export function CheckoutPageContent() {
     const controller = new AbortController();
     fetchAddresses(controller.signal)
       .then(async (items) => {
+        if (controller.signal.aborted) return;
         setIntent(nextIntent);
         const shippingAddresses = items.filter((item) => item.type !== "billing");
         setAddresses(shippingAddresses);
@@ -219,8 +214,8 @@ export function CheckoutPageContent() {
         setMessage(caught instanceof ApiError ? caught.message : "We could not load your saved addresses.");
       });
 
-    return () => controller.abort();
-  }, [auth.status, loadShippingOptions, router]);
+    return () => { controller.abort(); quoteSequence.current += 1; };
+  }, [auth, loadShippingOptions, router]);
 
   if (auth.status !== "authenticated" || status === "loading") {
     return <CheckoutLoading />;
@@ -240,7 +235,7 @@ export function CheckoutPageContent() {
     voucher: CheckoutVoucher,
     targetShopId: string,
   ) {
-    if (!intent || !selectedAddressId || !voucher.eligible) return;
+    if (!intent || !selectedAddressId || !voucher.eligible || !customerId || checkoutPlacement.read(customerId)) return;
     const alreadySelected = selectedVouchers.some(
       (item) =>
         item.voucher_id === voucher.id && item.target_shop_id === targetShopId,
@@ -274,7 +269,7 @@ export function CheckoutPageContent() {
   }
 
   async function selectLogisticsProvider(shopId: string, providerId: string) {
-    if (!intent || !selectedAddressId) return;
+    if (!intent || !selectedAddressId || !customerId || checkoutPlacement.read(customerId)) return;
     const next = { ...selectedLogistics, [shopId]: providerId };
     setSelectedLogistics(next);
     setQuote(null);
@@ -287,35 +282,38 @@ export function CheckoutPageContent() {
   }
 
   async function placeOrder() {
-    if (!intent || !selectedAddressId || !quote) return;
+    if (!customerId || placementBusy.current || !intent || !selectedAddressId) return;
+    if (status !== "ready" && status !== "uncertain") return;
+    if (!quote && !checkoutPlacement.read(customerId)) return;
+    placementBusy.current = true;
+    ++quoteSequence.current;
     setStatus("placing");
     setMessage(null);
-    idempotencyKey.current ??= crypto.randomUUID();
-
     try {
-      const batch = await placeCheckout(
-        {
+      const batch = await checkoutPlacement.submit(customerId, quote ? {
+        intent,
+        payload: {
           ...payload(intent, selectedAddressId, selectedVouchers, logisticsSelectionList(selectedLogistics)),
           quote_id: quote.quoteId,
         },
-        idempotencyKey.current,
-      );
+      } : null, placeCheckout);
+      if (activeCustomer.current !== customerId) return;
       clearCheckoutIntent();
-      try {
-        await refreshCart();
-      } catch {
-        // Placement is complete even when the navbar Cart refresh cannot finish.
-      }
+      checkoutPlacement.clear();
       router.replace(`/checkout/result/${batch.id}`);
+      void refreshCart().catch(() => {});
     } catch (caught) {
-      const error = caught instanceof ApiError ? caught : null;
-      if (error?.status === 409) {
-        setMessage(`${error.message} Shipping options and fees were refreshed for review.`);
+      if (activeCustomer.current !== customerId) return;
+      const error = caught instanceof Error ? caught.message : "Order confirmation is unavailable.";
+      if (!checkoutPlacement.read(customerId)) {
         await loadShippingOptions(intent, selectedAddressId, selectedVouchers, selectedLogistics);
+        setMessage(`${error} Review the refreshed shipping and totals before placing your order.`);
       } else {
-        setMessage(error?.message ?? "We could not place your order. You can safely try again.");
-        setStatus("ready");
+        setMessage(`${error} Retry the original order to confirm its outcome. Shipping and vouchers remain locked.`);
+        setStatus("uncertain");
       }
+    } finally {
+      placementBusy.current = false;
     }
   }
 
@@ -337,7 +335,7 @@ export function CheckoutPageContent() {
                 shippingOptions={group}
                 selectedProviderId={selectedLogistics[group.shop.id]}
                 onSelectProvider={(providerId) => void selectLogisticsProvider(group.shop.id, providerId)}
-                disabled={status === "quoting" || status === "placing"}
+                disabled={status === "quoting" || status === "placing" || status === "uncertain"}
                 selectedVouchers={selectedVouchers}
                 onToggleVoucher={toggleVoucher}
                 formatAmount={amount}
@@ -359,7 +357,7 @@ export function CheckoutPageContent() {
                 Shipping · {group.shop.name}
               </h2>
               <ShippingProviderSelector
-                disabled={status === "quoting" || status === "placing"}
+                disabled={status === "quoting" || status === "placing" || status === "uncertain"}
                 options={group}
                 selectedProviderId={selectedLogistics[group.shop.id]}
                 onSelect={(providerId) => void selectLogisticsProvider(group.shop.id, providerId)}
@@ -370,7 +368,7 @@ export function CheckoutPageContent() {
         })}
 
         {selectedAddress && status !== "quoting" && (logisticsOptions || status === "error") ? (
-          <button type="button" onClick={() => void loadShippingOptions(intent, selectedAddress.id, selectedVouchers, selectedLogistics)} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-4 text-sm font-semibold text-[#4C1268]">
+          <button type="button" disabled={status === "placing" || status === "uncertain"} onClick={() => void loadShippingOptions(intent, selectedAddress.id, selectedVouchers, selectedLogistics)} className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-4 text-sm font-semibold text-[#4C1268]">
             <FiRefreshCw aria-hidden="true" /> Refresh shipping options
           </button>
         ) : null}
@@ -386,7 +384,3 @@ export function CheckoutPageContent() {
     </div>
   );
 }
-
-function CheckoutLoading() { return <div aria-label="Loading checkout" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]"><div className="space-y-5">{[180, 130, 260].map((height) => <div key={height} style={{ height }} className="animate-pulse border border-[#DED7E1] bg-white" />)}</div><div className="h-72 animate-pulse border border-[#DED7E1] bg-white" /></div>; }
-
-function MissingIntent({ message }: { message: string | null }) { return <div className="border border-[#DED7E1] bg-white px-5 py-12 text-center"><FiMapPin aria-hidden="true" className="mx-auto size-9 text-[#8B7D90]" /><h2 className="mt-4 text-lg font-semibold text-[#2D2231]">Checkout could not be started</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#665A6A]">{message}</p><div className="mt-5 flex justify-center gap-3"><Link href="/cart" className="rounded-md bg-[#E6007A] px-4 py-2.5 text-sm font-semibold text-white">Return to cart</Link><Link href="/" className="rounded-md border border-[#CFC6D2] bg-white px-4 py-2.5 text-sm font-semibold text-[#4C1268]">Browse products</Link></div></div>; }
