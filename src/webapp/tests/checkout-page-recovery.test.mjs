@@ -12,7 +12,7 @@ const ts = require('typescript');
 const controllerSource = readFileSync(new URL('src/lib/checkout/placement.ts', root), 'utf8');
 const controllerJs = ts.transpileModule(controllerSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
 const { createPlacementController } = await import(`data:text/javascript;base64,${Buffer.from(controllerJs).toString('base64')}`);
-const source = readFileSync(new URL('src/components/checkout/checkout-page-content.tsx', root), 'utf8');
+const source = readFileSync(new URL('src/components/checkout/checkout-provider.tsx', root), 'utf8');
 const ast = ts.createSourceFile('checkout.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const printer = ts.createPrinter();
 function extract(name, env) {
@@ -60,7 +60,7 @@ function fixture() {
   env.loadQuote = extract('loadQuote', env);
   env.loadShippingOptions = extract('loadShippingOptions', env);
   env.placeOrder = extract('placeOrder', env);
-  env.toggleVoucher = extract('toggleVoucher', env);
+  env.applyVouchers = extract('applyVouchers', env);
   env.selectLogisticsProvider = extract('selectLogisticsProvider', env);
   return { env, requests };
 }
@@ -70,7 +70,7 @@ test('uncertain placement blocks shipping refresh and retries the original reque
   await env.placeOrder();
   const first = requests[0];
   assert.equal(env.status, 'uncertain');
-  await env.toggleVoucher({ id: 'voucher', eligible: true }, 'shop');
+  assert.equal(await env.applyVouchers([{ voucher_id: 'voucher', target_shop_id: 'shop' }]), false);
   await env.selectLogisticsProvider('shop', 'different-provider');
   assert.deepEqual(env.selectedVouchers, []);
   assert.equal(env.selectedLogistics.shop, 'provider');
@@ -114,4 +114,40 @@ test('late placement completion after leaving checkout does not navigate or clea
   await flight;
   assert.equal(navigated, false);
   assert.ok(env.checkoutPlacement.read('customer'));
+});
+
+test('voucher Apply updates selections only after a successful quote', async () => {
+  const { env } = fixture();
+  const original = env.quote;
+  const draft = [{ voucher_id: 'voucher', target_shop_id: 'shop' }];
+  env.quoteCheckout = async () => { throw new env.ApiError('Voucher expired'); };
+  assert.equal(await env.applyVouchers(draft), false);
+  assert.deepEqual(env.selectedVouchers, []);
+  assert.equal(env.quote, original);
+  assert.equal(env.status, 'error');
+  env.quoteCheckout = async () => ({ quoteId: 'accepted-quote' });
+  assert.equal(await env.applyVouchers(draft), true);
+  assert.deepEqual(env.selectedVouchers, draft);
+  assert.equal(env.selectedLogistics.shop, 'provider');
+  assert.equal(env.status, 'ready');
+});
+
+test('voucher Apply blocks a concurrent request and ignores departed-session replies', async () => {
+  const { env } = fixture();
+  let finish;
+  let count = 0;
+  env.quoteCheckout = async () => {
+    count++;
+    return new Promise(resolve => { finish = resolve; });
+  };
+  const draft = [{ voucher_id: 'voucher', target_shop_id: 'shop' }];
+  const flight = env.applyVouchers(draft);
+  assert.equal(env.status, 'quoting');
+  assert.equal(await env.applyVouchers([]), false);
+  assert.equal(count, 1);
+  env.quoteSequence.current++;
+  finish({ quoteId: 'obsolete' });
+  assert.equal(await flight, false);
+  assert.deepEqual(env.selectedVouchers, []);
+  assert.equal(env.quote.quoteId, 'original-quote');
 });

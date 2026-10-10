@@ -143,3 +143,12 @@ Buy Now or selected Cart lines
 
 - Automatic App vouchers remain directly selectable. Claim-required App vouchers and all Shop vouchers require a Customer-owned collection, rechecked at quote/placement. Candidate `VOUCHER_NOT_CLAIMED` carries a `collectionUrl`; collect on the issuing surface, then return for deliberate selection.
 - Newly invalid `VOUCHER_*` placement eligibility returns `409 QUOTE_STALE` before effects. Existing exact-key committed replay and uncertain-placement recovery remain unchanged. See the [Customer voucher contract](../voucher-usage/spec.md).
+
+
+### Dedicated voucher selection — 2026-10-11
+
+- Each Shop's Checkout voucher row opens `/checkout/vouchers?shop=<UUID>`; it shows applied names and **Change** after a successful selection. Replace the former expandable candidate list.
+- The separate page uses compact ticket cards, All/Discount/Shipping filters and Aisley/Shop sections. Benefits, minimum spend, cap and expiry stay visible; Details exposes full terms and unavailable claims link to the issuing collection surface. Selection uses a highlighted border/background and checkmark with accessible pressed buttons, without radio controls.
+- Edits remain a draft until **Apply vouchers** obtains a server quote. Back retains the previously accepted selection. Failed quotes keep draft/error feedback; successful application returns to Checkout with the selected address, Logistics choices and full cross-Shop voucher allocation intact.
+- A shared review layout owns the Customer-keyed checkout state. These two views share the consent check to prevent navigation from unmounting reviewed intent; private API gates remain authoritative. Account changes invalidate state and pending replies. Frozen uncertain placement continues to block edits and voucher navigation, including direct page access.
+- This is a storefront-only interaction change. Checkout payloads, capacity, funding, collection requirements and external Buyer API/Flutter status remain unchanged.

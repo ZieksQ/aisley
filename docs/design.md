@@ -176,3 +176,8 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 ## Customer voucher and Shop design exception — 2026-10-11
 
 The user's explicit override grants layout/styling freedom for `/vouchers`, `/vouchers/[id]`, `/account/vouchers` and `/shops/[slug]`; prior visual/theory prescriptions do not constrain these surfaces. Retain primary pink `#E6007A`, secondary purple `#4C1268`, light background `#F7F5F7`, foreground `#231429`, responsive layouts and accessible interactions. Voucher benefit, conditions and action remain distinct; use one voucher column on phones, two on tablets and three on wide public discovery/Shop sections. Keep two Product columns on phones, contain long content and provide missing-imagery fallbacks. This exception leaves other role designs and the Shop directory unchanged.
+
+
+## Customer Checkout voucher selection exception — 2026-10-11
+
+The user's explicit Shopee/Lazada-reference request replaces the Checkout dropdown with a separate `/checkout/vouchers` page. Apply uncodixfy and the existing brand palette: compact ticket silhouettes, benefit panel separated by a dashed edge, ordinary headings, underline filters, white/light surfaces and concise conditions. Selected cards use pink border/background and a checkmark, never visible radio controls. Keep keyboard pressed states, visible focus, 44px actions, responsive wrapping and error/loading feedback. Other Checkout sections and role designs retain their existing rules. The [Shopee selection flow](https://help.shopee.ph/portal/4/article/82323) informs the explicit select/confirm interaction; AISLEY's collection, targeting and stacking rules remain authoritative.
