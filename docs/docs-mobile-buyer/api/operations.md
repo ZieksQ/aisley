@@ -400,7 +400,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: address_id owned shipping UUID; expected_revision optional nullable int≥1 (send deliveryAddress.version); UUID header; placed COD only.
 - Response: HTTP 200; `{data:Order}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Laravel rechecks current ownership and visibility.
+- Notes: Only recipient/contact may change at the same complete trimmed location and seven-decimal pin; absent pins must remain absent. `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` identifies `address_id`; `409 ADDRESS_UNCHANGED` means no contact change. The edited original Address Book row is allowed; frozen pricing/provider/route remain unchanged.
 - [Synthetic examples](examples/order-modification-cancellation.json).
 
 ## op-037

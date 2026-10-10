@@ -72,6 +72,8 @@ class OrderResource extends JsonResource
                 'region' => $this->address->region,
                 'postalCode' => $this->address->postal_code,
                 'country' => $this->address->country,
+                'latitude' => $this->address->latitude,
+                'longitude' => $this->address->longitude,
             ],
             'payment' => [
                 'method' => $this->payment_method->value,

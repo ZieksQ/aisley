@@ -22,7 +22,7 @@ There is no universal casing/envelope. Account, catalog, Address and Order Resou
 | Wishlist/history | Cursor Resource collection `{data,links,meta}`; Wishlist items carry Product and saved time, history `{product,lastViewedAt}`. Guest resolver is `{items}`; merge result `{data:{mergedProductIds,mergedCount}}` |
 | Quote | `data:{quoteId,expiresAt,mode,paymentMethod,address,groups,summary}`; groups include lines, server totals, `shippingQuote`, `availableVouchers`, `appliedVouchers` |
 | Batch | `data:{id,currency,placedAt,orders}`; each Order has immutable items/address/vouchers/shipping/totals and its own reference/status/detailUrl |
-| Order | `data` with reference/status/group labels, safe Shop, items/review hints, `deliveryAddress.version`, payment, snapshots/totals, timeline/count/hasMore, trackingUrl, safe delivery Courier, unavailable `map`, server actions |
+| Order | `data` with reference/status/group labels, safe Shop, items/review hints, `deliveryAddress.version` and nullable seven-decimal-string `latitude`/`longitude`, payment, snapshots/totals, timeline/count/hasMore, trackingUrl, safe delivery Courier, unavailable `map`, server actions |
 | Q&A | Page collection `{data,links,meta}`; item `{id,question,askedAt,answer,answeredAt,sellerLabel}` with nullable unanswered fields |
 | Review | `data` Resource includes `id,rating,body,verifiedPurchase,authorLabel,createdAt,photos,sellerResponse`; author is a safe label; Seller response read-only |
 | Tracking | Page Resource collection `{data,links,meta}`; safe event keys are in OrderTrackingResource. Order list adds `filters:{selected,tabs}` alongside its Resource page |
@@ -50,7 +50,7 @@ Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,
 | Guest resolver | `productIds:[UUID]`, at most 12; public read through POST, no private history |
 | History merge | `items:[{productId,viewedAt?}]`, at most 12 by current config; timestamps not future and within configured age; malformed/duplicate input is validation, unavailable Products omitted |
 | Cancel | optional `reason` ≤500; UUID key; owned eligible `placed` Order |
-| Address correction | `address_id`, optional nullable integer `expected_revision` ≥1; UUID key; server state/serviceability lock |
+| Address correction | `address_id`, optional nullable integer `expected_revision` ≥1; UUID key; server state lock; recipient/contact only at identical trimmed location and seven-decimal pin, otherwise `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` |
 | Q&A create | `question`, UUID key; visible Product; current maximum 1,000 characters |
 | Review create | `rating` integer 1–5, `body` plain text ≤2,000; no UUID-header requirement; identical Order Item replay returns same Review, changed content conflicts |
 | Profile photo | multipart `photo`; no upload idempotency promise; authenticated private reread/removal |

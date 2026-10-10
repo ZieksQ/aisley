@@ -344,6 +344,8 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `region` | `string` | non-null; required |
 | `postalCode` | `string` | non-null; required |
 | `country` | `string` | non-null; required |
+| `latitude` | `decimal string` | null allowed; required (2026-10-10 B02) |
+| `longitude` | `decimal string` | null allowed; required (2026-10-10 B02) |
 
 ## Cart
 

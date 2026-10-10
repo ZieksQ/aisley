@@ -17,14 +17,12 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { OrderItemReviewForm } from "@/components/reviews/order-item-review-form";
 import { DeliveryPanel } from "./delivery-panel";
+import { OrderContactCorrection } from "./order-contact-correction";
 import { ApiError } from "@/lib/api";
-import { fetchAddresses } from "@/lib/checkout/client";
-import type { CustomerAddress } from "@/lib/checkout/types";
 import {
   cancelOrder,
   fetchOrder,
   fetchOrderTracking,
-  modifyOrderAddress,
   orderMutationKey,
 } from "@/lib/orders/client";
 import {
@@ -49,11 +47,6 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelKey, setCancelKey] = useState<string | null>(null);
-  const [addressOpen, setAddressOpen] = useState(false);
-  const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
-  const [addressesLoading, setAddressesLoading] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [addressKey, setAddressKey] = useState<string | null>(null);
   const [mutationBusy, setMutationBusy] = useState<"cancel" | "address" | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [mutationFieldError, setMutationFieldError] = useState<string | null>(null);
@@ -158,79 +151,6 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
         }
       } else {
         setMutationError("We could not cancel this Order. Check your connection and try again.");
-      }
-    } finally {
-      setMutationBusy(null);
-    }
-  }
-
-  async function openAddressChange() {
-    setAddressOpen(true);
-    setAddressesLoading(true);
-    setSelectedAddressId(null);
-    setAddressKey(orderMutationKey());
-    setMutationError(null);
-    setMutationFieldError(null);
-    setMutationSuccess(null);
-    try {
-      const saved = (await fetchAddresses()).filter((address) => address.type !== "billing");
-      setAddresses(saved);
-      setSelectedAddressId(saved[0]?.id ?? null);
-    } catch (caught: unknown) {
-      setMutationError(
-        caught instanceof ApiError
-          ? caught.message
-          : "We could not load your saved shipping addresses.",
-      );
-    } finally {
-      setAddressesLoading(false);
-    }
-  }
-
-  function closeAddressChange() {
-    if (mutationBusy !== null) return;
-    setAddressOpen(false);
-    setAddressKey(null);
-    setMutationFieldError(null);
-  }
-
-  async function submitAddressChange() {
-    if (!order || !selectedAddressId || mutationBusy !== null) {
-      if (!selectedAddressId) setMutationFieldError("Select a shipping address.");
-      return;
-    }
-    if (!navigator.onLine) {
-      setMutationError("You are offline. Reconnect before changing this Order's address.");
-      return;
-    }
-
-    setMutationBusy("address");
-    setMutationError(null);
-    setMutationFieldError(null);
-    try {
-      const updated = await modifyOrderAddress(
-        order.id,
-        selectedAddressId,
-        addressKey ?? orderMutationKey(),
-        order.deliveryAddress.version,
-      );
-      setOrder(updated);
-      setAddressOpen(false);
-      setAddressKey(null);
-      setMutationSuccess("Delivery address updated for this Order.");
-    } catch (caught: unknown) {
-      if (caught instanceof ApiError) {
-        setMutationError(caught.message);
-        setMutationFieldError(caught.errors.address_id?.[0] ?? caught.errors.expected_revision?.[0] ?? null);
-        if (caught.status === 409) {
-          try {
-            setOrder(await fetchOrder(order.id));
-          } catch {
-            // Keep the conflict message visible if the follow-up refresh is unavailable.
-          }
-        }
-      } else {
-        setMutationError("We could not update this Order. Check your connection and try again.");
       }
     } finally {
       setMutationBusy(null);
@@ -373,14 +293,21 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
             </div>
             <div className="flex flex-wrap gap-2">
               {order.actions.canModify && order.actions.modifiableFields.includes("delivery_address") ? (
-                <button
-                  type="button"
-                  onClick={() => void openAddressChange()}
+                <OrderContactCorrection
+                  key={`${auth.customer.id}:${order.id}`}
+                  order={order}
                   disabled={mutationBusy !== null}
-                  className="min-h-10 rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:opacity-60"
-                >
-                  Change delivery address
-                </button>
+                  onBusyChange={(busy) => setMutationBusy(busy ? "address" : null)}
+                  onUpdated={(updated) => {
+                    setOrder(updated);
+                    setMutationBusy(null);
+                  }}
+                  onSuccess={(message) => {
+                    setMutationError(null);
+                    setMutationFieldError(null);
+                    setMutationSuccess(message);
+                  }}
+                />
               ) : null}
               {order.actions.canCancel ? (
                 <button
@@ -420,32 +347,6 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={closeCancellation} disabled={mutationBusy !== null} className="min-h-10 rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] disabled:opacity-60">Keep Order</button>
               <button type="button" onClick={() => void submitCancellation()} disabled={mutationBusy !== null} className="min-h-10 rounded-md bg-[#9D174D] px-4 text-sm font-semibold text-white hover:bg-[#83143F] disabled:opacity-60">{mutationBusy === "cancel" ? "Cancelling…" : "Confirm cancellation"}</button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-
-      {addressOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#281E2C]/45 px-4 py-6" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="change-address-heading" className="w-full max-w-lg border border-[#DED7E1] bg-white p-5 shadow-[0_2px_8px_rgba(40,30,44,0.18)] sm:p-6">
-            <h2 id="change-address-heading" className="text-lg font-semibold text-[#2D2231]">Change delivery address</h2>
-            <p className="mt-2 text-sm leading-6 text-[#6B5F6F]">Choose a saved shipping address for Order {order.reference}. The current Order snapshot will remain in history.</p>
-            {addressesLoading ? <p className="mt-5 text-sm text-[#6B5F6F]">Loading saved addresses…</p> : addresses.length > 0 ? (
-              <fieldset className="mt-5 space-y-2">
-                <legend className="text-sm font-semibold text-[#3A2E3E]">Saved shipping addresses</legend>
-                {addresses.map((address) => (
-                  <label key={address.id} className="flex cursor-pointer items-start gap-3 border border-[#DED7E1] px-3 py-3 hover:bg-[#FAF7FB]">
-                    <input type="radio" name="order-address" value={address.id} checked={selectedAddressId === address.id} onChange={() => setSelectedAddressId(address.id)} className="mt-1 accent-[#4C1268]" />
-                    <span className="text-sm leading-5 text-[#514656]"><strong className="font-semibold text-[#302534]">{address.label || "Saved address"}</strong><br />{address.recipientName} · {address.addressLine1}, {address.barangay}, {address.cityMunicipality}, {address.province} {address.postalCode}</span>
-                  </label>
-                ))}
-              </fieldset>
-            ) : <p className="mt-5 border border-[#E3CFB5] bg-[#FFF9F0] px-3 py-3 text-sm text-[#765226]">No saved shipping addresses are available. Add one in your Address Book first.</p>}
-            {mutationError ? <p role="alert" className="mt-2 text-sm text-[#9D174D]">{mutationError}</p> : null}
-            {mutationFieldError && addressOpen ? <p className="mt-2 text-sm text-[#9D174D]">{mutationFieldError}</p> : null}
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={closeAddressChange} disabled={mutationBusy !== null} className="min-h-10 rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] disabled:opacity-60">Keep current address</button>
-              <button type="button" onClick={() => void submitAddressChange()} disabled={mutationBusy !== null || addressesLoading || selectedAddressId === null} className="min-h-10 rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#38104D] disabled:opacity-60">{mutationBusy === "address" ? "Updating…" : "Use this address"}</button>
             </div>
           </section>
         </div>
