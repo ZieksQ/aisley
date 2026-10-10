@@ -3,7 +3,7 @@ feature: account-management
 title: Customer Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 2.2
 status: Phase 1 implemented
 role: Customer
 scope: Customer web application and Laravel API
@@ -50,13 +50,16 @@ scope: Customer web application and Laravel API
 
 - Add `POST /api/v1/customer/account/profile-photo`, `GET /api/v1/customer/account/profile-photo`, and `DELETE /api/v1/customer/account/profile-photo` inside the active-Customer route group. Upload and removal derive ownership only from the authenticated Customer.
 - The POST accepts one `photo` under the shared upload policy: JPEG/JPG, PNG, or WebP only; strictly under `10 MiB`; decoded as a valid image; detected MIME/signature and normalized extension must agree; corrupt, double-extension, spoofed, and unlisted files are rejected with field-addressable `422` errors.
+- Customer photos are limited to **8,000 pixels per edge and 40,000,000 pixels total**, checked before decoding. Header-only files, incomplete containers, corrupt payloads and decoder warnings are rejected even when metadata inspection succeeds.
+- Decode and rewrite the photo in an isolated PHP CLI process with a 15-second wall timeout and 512 MiB PHP memory ceiling. The current runtime must provide PHP CLI with GD JPEG/PNG/WebP support, subprocess execution and writable private staging storage; unavailable processing fails closed with a safe `photo` validation error. These feature-specific bounds do not change other upload flows.
+- Store the validated rewrite in its original format (JPEG/WebP quality 90; PNG compression 6), stripping source metadata/trailing data while preserving PNG/WebP transparency. Verify the rewrite decodes and remains strictly under 10 MiB; persisted metadata describes stored bytes, not the original upload. Release image resources and remove staging files on success or failure.
 - Store bytes through Laravel's configured filesystem disk. Production uses the existing `FILESYSTEM_DISK=azure` Azure Blob disk; local/test environments may use their configured disk. Never hard-code a container URL, Azure credential, or disk name in Customer client code.
 - Generate a server-owned UUID filename beneath `customer-profile-photos/{customer UUID}/`. Store no client filename or browser blob URL as the object identity.
 - Add an additive Customer-profile migration for `profile_photo_disk`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height`. Retain `profile_photo_path` as the generated relative path; do not modify the executed Customer-profile creation migration.
 - The account DTO returns a safe owner-only `profilePhotoUrl` pointing to the authorized GET endpoint, optionally cache-busted by profile update time. It never returns disk, path, blob URL, credentials, raw upload metadata, or an Azure signed URL.
 - The GET endpoint streams the stored object only to its owning active Customer with `private, no-store` and `nosniff` headers. Profile photos are not public marketplace assets.
 - Replacement writes and validates the new object before atomically updating metadata. If the database update fails, remove the new object; after a committed replacement/removal, delete the old object best-effort without restoring stale metadata on deletion failure.
-- Apply focused upload throttling, safe operational logging, and the shared maximum-dimension/decompression-bomb protections when those policy values are approved. Do not claim malware scanning exists until a scanner and pending/quarantine lifecycle are implemented.
+- Apply focused upload throttling, safe operational logging, and the approved Customer-specific byte, edge, pixel and processing limits above. Do not claim malware scanning exists until a scanner and pending/quarantine lifecycle are implemented.
 
 ### Concurrency, errors, and privacy
 
@@ -106,7 +109,7 @@ scope: Customer web application and Laravel API
 - Load exactly the authenticated `User` and `customerProfile`; use a transaction and explicit allow-list for profile writes. Return `CustomerAccountResource` with camelCase fields aligned to Customer web types.
 - Validate password changes with Laravel's current-password validation and configured Password rule. Use the existing hash/session/token conventions rather than inventing an alternative credential store.
 - Set private cache headers, CSRF protection for the web session flow, and focused throttling for sensitive mutations. Record only redacted operational/security events if an approved Customer audit policy exists.
-- Mirror the existing Admin/Seller account-photo service pattern with a Customer-scoped service and Form Request, but use the shared upload reference as the authority. Inspect/decode the image server-side, generate the path, write it to `Storage::disk(config('filesystems.default'))`, persist metadata transactionally, and serve it only through the owner-authorized endpoint.
+- Keep Form Request hints separate from authoritative `ProfilePhoto` processing and account persistence. Bounded reads, MIME/signature/extension/dimension checks precede the isolated decode/rewrite worker; only verified rewritten bytes reach `Storage::disk(config('filesystems.default'))`. Persist metadata transactionally and serve it only through the owner-authorized endpoint.
 
 ### Customer application
 
@@ -120,8 +123,9 @@ scope: Customer web application and Laravel API
 
 - Laravel tests: active Customer self-read/update; guest/inactive/other-role denial; allow-list enforcement; same-email role isolation; validation; concurrent profile write behaviour; current-password failure; password policy/confirmation; rate limit; session/token outcome; safe resource/error payloads; and no-store headers.
 - Photo tests: accepted formats/exact byte boundary; MIME/extension/signature spoofing; corrupt/dimension failures; generated Azure/local path; metadata persistence; owner-only delivery/replacement/removal; rollback cleanup; old-object cleanup; throttling; and no raw storage-path response.
+- Audit B04 regression: the 33-byte PNG signature/IHDR passes header inspection but must return `422` on `photo`. Cover truncated JPEG/PNG/WebP and valid-header corrupt payloads, decoder warnings, exact edge/pixel boundaries, transparency, metadata stripping, processing timeout, and preservation of previous bytes/pointer/metadata on rejection or storage/database failure.
 - Customer tests: protected redirect/return; initial read-only state; profile/photo/password validation/success/failure; blocked file feedback; upload progress; private image refresh; disabled duplicate submits; navigation refresh; focus/keyboard behaviour; and responsive account navigation.
-- Run focused Customer API tests, storefront lint, strict TypeScript, and production build. Append a dated `docs/PROGRESS.md` implementation entry only when a phase is built; this revision is documentation-only.
+- Run focused Customer API tests for backend changes; add storefront lint, strict TypeScript, production build and affected interaction checks when frontend code changes. Append actual implementation/verification results to `docs/PROGRESS.md`, distinguishing backend checks from unverified browser or live-runtime behavior.
 
 ### Open implementation choices
 

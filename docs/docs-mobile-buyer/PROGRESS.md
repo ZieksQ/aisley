@@ -118,3 +118,8 @@ Short, dated log for the standalone Buyer Flutter project. Append actual impleme
 ## 2026-10-09 — Rebase reconciliation
 
 - Preserved upstream voucher names/default-pairing contracts and incoming shipping, sorting, private-media and reported client evidence. Voucher adoption retains G26; private chat media is G27, with historical media-G26 references explained in the integration-gap register. Existing archives and imported reports remain unchanged; Flutter implementation/adoption status is unchanged and no Flutter tests/builds or device checks ran for this merge.
+
+## 2026-10-10 — Customer profile photo validation (audit B04)
+
+- Updated Account/upload/operation contracts and G15 for implemented Laravel profile-photo full decoding/rewrite: strictly under 10 MiB, 8,000 pixels per edge and 40,000,000 total pixels; corrupt containers/decoder warnings fail safely on `photo`, preserving the prior photo. Format/transparency remain, source metadata is removed, and endpoint/DTO/replay shapes are unchanged.
+- Backend verification here: 46 Customer account/photo/processing tests passed (374 assertions, isolated SQLite/fake storage), including real dimension boundaries and rollback/processing failures; scoped Pint/PHP syntax and portable document/spec-length checks passed. No external Flutter implementation/tests/builds, live API/storage, browser/device or deployment checks ran. Adopted revision, reported Flutter status, uncertain-upload reconciliation and remaining G15/live gates stay unchanged.

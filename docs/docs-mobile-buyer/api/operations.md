@@ -122,10 +122,10 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `POST /api/v1/customer/account/profile-photo`
 
 - Access: Active Customer + consent.
-- Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
+- Request: Multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; ≤8000 pixels per edge and ≤40000000 total pixels.
 - Response: HTTP 200; `{message:string,account:Account,customer:Navigation}`.
 - Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
-- Notes: GET Content-Type image MIME, private/no-store; missing photo 404. Binary fixture represented by metadata only.
+- Notes: Audit B04 (2026-10-10): isolated full decode/rewrite rejects malformed images/decoder warnings and processing failures with `422` errors on `photo`; prior photo survives rejection. Stored rewrite retains format/transparency, removes metadata and is strictly under 10 MiB. GET remains private/no-store. External client/live acceptance is pending.
 - [Synthetic examples](examples/account-management.json).
 
 ## op-012

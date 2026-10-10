@@ -70,3 +70,7 @@ Copy this bundle’s complete contents into the Buyer project’s `docs/`, retai
 ## Order contact correction contract — 2026-10-10
 
 Audit B02 is fixed in Laravel and the storefront: correction accepts changed recipient/contact only at an identical complete trimmed location and seven-decimal map pin. Order deliveryAddress now includes nullable latitude/longitude; location differences return `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` on `address_id`. See [operation](api/operations.md#op-036), [feature](features/customer/order-modification-cancellation/spec.md) and [G21](references/integration-gaps.md). Frozen prices/provider/routes remain unchanged. External Flutter source, adopted `57e9eb2` revision, historical verification and live/device acceptance status are unchanged; coordinate/error adoption and live verification remain pending.
+
+## Customer profile photo validation — 2026-10-10
+
+Audit B04 is fixed locally in Laravel: profile photos require bounded full decode/rewrite with 8,000-pixel edges, 40,000,000 total pixels and strictly under 10 MiB for source/stored bytes. Invalid images and processing failures return safe `422 photo` errors while preserving the prior photo. See [operation](api/operations.md#op-011), [upload policy](references/file-upload-requirements.md) and [G15](references/integration-gaps.md). Endpoint/DTO/replay shapes remain unchanged. External Flutter adoption/status and live/deployed-runtime/device acceptance remain open.
