@@ -39,3 +39,8 @@ Verify role/consent/approval/permission and tenant boundaries, strict validation
 [Shopee Seller Voucher guide](https://cdngarenanow-a.akamaihd.net/shopee/seller/seller_cms/14cb32055fbf4e0148704c506d270f40/APP%20Seller%20Voucher%20User%20Guide.pdf) separates name/code, schedule, spend and fixed/percentage benefits with maximum discount. Its name is private; AISLEY names are customer-visible by explicit product requirement. [Lazada shipping guidance](https://www.lazada.com.ph/blog/free-shipping-home-appliances-guide/) shows voucher selection at checkout, minimum spend and delivery limits. These inform familiar field grouping; AISLEY’s requested one-per-benefit rule and role/funding boundaries are authoritative, rather than a claim that both marketplaces have identical stacking rules.
 
 Customer discovery/collection/wallet follows the [Customer voucher contract](../../customer/voucher-usage/spec.md). Existing platform projections backfill to automatic; existing Shop offers require collection for future orders. Collection never reserves redemption capacity or alters historical Orders.
+
+
+## Development fixtures
+
+The non-production `VoucherSeeder` publishes platform shipping offers, capped platform percentage discounts and capped initial-Shop percentage discounts through normal authoring/version workflows. Existing offers/history survive reruns and no Customer collection or redemption is fabricated. See [seeded offers and commands](seeding.md).

@@ -12,9 +12,7 @@ use App\Models\LogisticsRateRule;
 use App\Models\LogisticsServiceRate;
 use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\ShippingRateVersion;
-use App\Models\Shop;
 use App\Models\ShopCategory;
-use App\Models\ShopLogisticsProvider;
 use App\Models\User;
 
 class RegionalRateSeeder
@@ -58,13 +56,6 @@ class RegionalRateSeeder
             }
         }
 
-        // Only the repository's demo Shop gets automatic provider fixtures.
-        $shop = Shop::where('slug', 'aisley-demo-store')->first();
-        if ($shop !== null) {
-            ShopLogisticsProvider::firstOrCreate([
-                'shop_id' => $shop->id, 'logistics_organization_id' => $organization->id,
-            ], ['configured_by' => $shop->seller_id, 'is_enabled' => true]);
-        }
     }
 
     private function tariff(): ?ShippingRateVersion

@@ -43,3 +43,8 @@
 ### Pricing ownership revision — 2026-10-03
 
 Logistics now owns service base fees and one main Shop Category weight/size extra per Parcel/service leg; Admin owns only destination surcharges. Seller provider configuration and frozen pickup selection keep the same contracts. No Seller fee editor is required; verify checkout options and existing provider/Order-preparation enforcement against the revised pricing API.
+
+
+### Initial development Seller — 2026-10-11
+
+The regional fixture seeder runs `InitialSellerLogisticsSeeder` after provisioning the network. It explicitly enables only the regional NCR organization for the configured initial Seller's `aisley-demo-store`, disables that Shop's other existing providers and advances only changed configuration revisions. This fixture exception preserves unrelated Shops, production data and placed Order snapshots; normal Seller settings remain authoritative outside an explicit fixture rerun. Missing/inactive NCR fixtures leave the previous selection intact. See [fixture setup](../../shared/voucher-authoring/seeding.md).

@@ -137,7 +137,7 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $product->update(['shipping_weight_grams' => 1500]);
         $heavier = app(ShippingQuotationService::class)->quote($shop, $destination, $lines, $organization->id);
         $this->assertSame(1000 + 250 * count($quote['route_snapshot']['hops']), $heavier['additional_weight_fee_cents']);
-        $this->assertDatabaseCount('shop_logistics_providers', 18);
+        $this->assertDatabaseCount('shop_logistics_providers', 1);
         Http::assertNothingSent();
     }
 
