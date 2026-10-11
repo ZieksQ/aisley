@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Courier;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Courier\DashboardRequest;
+use App\Services\Courier\CourierDashboardService;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(DashboardRequest $request, CourierDashboardService $dashboard): JsonResponse
     {
+        if ((int) $request->query('version', 1) === 2) {
+            return response()->json($dashboard->snapshot($request->user()))
+                ->header('Cache-Control', 'private, no-store');
+        }
         $generatedAt = now()->toIso8601String();
         $unavailable = [
             'state' => 'unavailable',

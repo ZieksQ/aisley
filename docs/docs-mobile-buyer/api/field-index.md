@@ -531,7 +531,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `productId` | `UUID` | non-null; required |
 | `variantId` | `UUID` | null allowed; required |
 | `productName` | `string` | non-null; required |
-| `imageUrl` | `URL` | null allowed; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 | `sku` | `string` | null allowed; required |
 | `selectedOptions` | `SelectedOption[]` | non-null; required |
 | `unitPrice` | `money` | non-null; required |
@@ -658,7 +658,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `quantity` | `int` | non-null; required |
 | `lineSubtotal` | `money` | non-null; required |
 | `currency` | `string` | non-null; required |
-| `imageUrl` | `URL` | null allowed; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 
 ## ReviewableItem
 
@@ -675,7 +675,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `quantity` | `int` | non-null; required |
 | `lineSubtotal` | `money` | non-null; required |
 | `currency` | `string` | non-null; required |
-| `imageUrl` | `URL` | null allowed; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 | `canReview` | `bool` | non-null; required |
 | `reviewId` | `UUID` | null allowed; required |
 
@@ -810,7 +810,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `productName` | `string` | non-null; required |
 | `variantName` | `string` | null allowed; required |
 | `quantity` | `int` | non-null; required |
-| `imageUrl` | `URL` | null allowed; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 
 ## Tracking
 
@@ -1307,3 +1307,7 @@ Voucher/AppliedVoucher/BatchVoucher `name` fields reflect the [2026-10-09 contra
 | `preview_url` | `URL` | null allowed; required |
 
 See [private media](chat-media.md) for lifecycle, authorization and transport.
+
+## CustomerVoucher collection adoption — 2026-10-11
+
+The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto) and `VoucherShop` are typed in [DTO schema](dto-schema.json). All fields are required, including nullable values; public personalized fields are null. Quote names/distribution/collection URL are additive; older candidate fixtures remain supported without authorizing collection from missing metadata. `termsSummary` is nullable in current source. Private statuses are never stored in the public cache.

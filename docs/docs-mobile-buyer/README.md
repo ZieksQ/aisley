@@ -59,7 +59,7 @@ Historical shipping inspection: **2026-10-04**, `22b0a48f9575ead182d03c35ab87345
 
 Newer external Buyer evidence reports marketplace phone/tablet/desktop layouts, stable navigation/page retention, mouse/text shopping controls, embedded Profile photos and explicit selected-only PSGC dropdowns. [Marketplace report and ten synthetic screenshots](references/marketplace-verification.md) travel with this bundle; dated October 5 follow-ups remain in [Progress](PROGRESS.md). Tests/builds are attributed reports, not rerun here. Storefront guest browsing, recency and address behavior are unchanged.
 
-[Current backend review and portable checks](references/synchronization-2026-10-07.md) retain historical manifests and distinguish reviewed Laravel `a946692` from Buyer-adopted `57e9eb2`. Per-Shop provider selection (G25), private chat media adoption (G27), current resolution of historical checkout deployment failures, live/device/accessibility/signing/production gates remain unverified. External source paths are optional provenance; this complete bundle resolves locally after copying into `docs/`. Preserve active destination instructions and archive bytes during a selective merge.
+[Current backend review and portable checks](references/synchronization-2026-10-07.md) retain historical manifests and distinguish reviewed Laravel `a946692` from Buyer-adopted `57e9eb2`. Per-Shop provider selection (G25), video/document clients and live-image acceptance (G27; local image adoption implemented), current resolution of historical checkout deployment failures, live/device/accessibility/signing/production gates remain unverified. External source paths are optional provenance; this complete bundle resolves locally after copying into `docs/`. Preserve active destination instructions and archive bytes during a selective merge.
 
 ## Selective synchronization — 2026-10-09
 
@@ -77,8 +77,12 @@ Audit B04 is fixed locally in Laravel: profile photos require bounded full decod
 
 ## Voucher collection contract — 2026-10-11
 
-[Discovery, collection and My Vouchers](api/voucher-collection.md) adds Customer APIs and claim requirements for platform claim-required/all Shop vouchers. Automatic legacy platform access and committed Checkout replay remain. Flutter adoption is pending G28; prior external implementation status and evidence remain unchanged.
+[Discovery, collection and My Vouchers](api/voucher-collection.md) adds Customer APIs and claim requirements for platform claim-required/all Shop vouchers. Automatic legacy platform access and committed Checkout replay remain. Buyer G28 adoption is implemented; see the voucher adoption evidence below. Historical verification remains preserved and deployed/live/device gates remain open.
 
 ## Order Product image contract — 2026-10-11
 
 Order summary previews, Order items, Checkout Quote items and Batch items now include nullable `imageUrl` values resolved from available public Product media. Missing images remain valid and do not alter immutable item snapshots. This documents the Laravel/webapp contract; external Flutter adoption and verification status remain unchanged.
+
+## Buyer voucher adoption — 2026-10-11
+
+Buyer now implements [discovery, collection and wallet](api/voucher-collection.md) with explicit Checkout requote against Laravel `7e89b391`. [Verification](references/voucher-collection-verification.md) distinguishes source/synthetic checks from deployed/live/installed-device gates. Historical general and shipping baselines remain preserved.

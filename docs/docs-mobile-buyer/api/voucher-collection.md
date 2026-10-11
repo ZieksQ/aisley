@@ -1,6 +1,6 @@
 # Customer voucher discovery and collection — 2026-10-11
 
-Additive Laravel contract on `feature/customer-voucher-collection`, identified by migration `2026_10_11_000001_add_voucher_collection.php`. Deploy schema/API before adopting these calls. Confirm the deployed revision; this document does not certify production deployment. Buyer Flutter adoption remains `57e9eb2`; discovery, collection and wallet client implementation are pending (G28). Preserve earlier Phase 1–5 evidence/status.
+Additive Laravel contract on `feature/customer-voucher-collection`, identified by migration `2026_10_11_000001_add_voucher_collection.php`. Deploy schema/API before adopting these calls. Confirm the deployed revision; this document does not certify production deployment. Buyer discovery, collection, wallet and reviewed Checkout adoption are implemented against inspected Laravel `7e89b391`. General historical `57e9eb2` and shipping `22b0a48` baselines remain separate. See [client verification](../references/voucher-collection-verification.md); deployed and installed-device acceptance remain open.
 
 Collect → browse products → explicitly select at Checkout. A Shop-now link never selects a voucher or applies savings automatically. Codes remain display identifiers; Checkout submits UUID and explicit target Shop.
 
@@ -66,3 +66,9 @@ Newly invalid `VOUCHER_*` eligibility at placement maps to `409 QUOTE_STALE` bef
 - Test public/private separation, missing versus null, scoped status IDs, targeted/history details, Shop endpoint ownership, automatic versus claimed Checkout, partial use and paused/history reasons.
 - Test schedule/capacity conflicts, naturally idempotent collection after lost responses, 401/403/consent/404/409/422/429, malformed/offline/timeout and obsolete account replies.
 - Verify Android/local browser, large text, focus/back, readable conditions, explicit post-login click and no automatic Checkout selection. Backend/web evidence alone closes no Flutter gate.
+
+## Buyer route and transport adoption
+
+Buyer implements `/vouchers`, `/vouchers/:id`, `/account/vouchers` and an independent Shop voucher section. Shopping retains verified sign-in/consent. The scalar-only API client encodes status arrays as `ids[0]`, `ids[1]`, etc., equivalent to Laravel `ids[]`; 1–50 distinct IDs only. Detail checks private statuses first to retain eligible targeted/history access, then public detail if no private record exists.
+
+Checkout opens detail only while editable and invalidates review while retaining intent/address/provider/voucher choices. Returning requires explicit Review order, eligible selection and another reviewed quote. Collection never automatically selects, applies or places. Unresolved placement keeps its frozen original payload/key.

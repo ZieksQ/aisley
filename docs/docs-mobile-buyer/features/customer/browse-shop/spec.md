@@ -20,7 +20,7 @@ Shops directory → visible Shop → its Product category/keyword page → Produ
 
 - Directory shop_category is an active Shop business-category slug. Shop Product category options come only from that Shop’s visible active Product categories.
 - Shop Product q is optional, trimmed ≤100 and Product-name-only; accepted fields q,category,page,limit. Combine category/keyword with ownership/visibility, retain newest-publication order and independent category options.
-- Filter/clear changes reset page and preserve the other filter. Visible empty Shop is valid, unavailable Shop is 404. No global search then client filtering, Shop ratings/following/vouchers/arbitrary sort/quick-add. Chat uses its own channel.
+- Filter/clear changes reset page and preserve the other filter. Visible empty Shop is valid, unavailable Shop is 404. No global search then client filtering, Shop ratings/following/arbitrary sort/quick-add; vouchers use their independent collection API. Chat uses its own channel.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
@@ -62,7 +62,7 @@ Phone/tablet/desktop padding, natural content heights and keyboard/text resizing
 - Product Detail opens valid Product UUID, retaining the Shop filter state on Back.
 - Shop chat receives public Shop ID and optional Product context only through its own
   repository/eligibility.
-- No Seller dashboard, recipient lookup, Shop voucher wallet or arbitrary public Seller contact UI
+- No Seller dashboard, recipient lookup, arbitrary public Seller contact UI
   belongs here.
 - Buyer catalogue screens require verified active Customer/consent; public backend methods remain
   credential-free, with unchanged visibility and ownership rules.
@@ -220,3 +220,5 @@ Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) a
 history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).

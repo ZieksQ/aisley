@@ -22,7 +22,7 @@ Home sections → Products/Shops search or detail → bounded discovery load mor
 - Render eligible server-selected ads/categories/deals/top/history/feed; omit empty optional rails and unavailable destinations. Category cards use Products keyword search by Category name, not an exact global category filter.
 - Card numeric prices/compact availability never authorize purchase. Purchase rails use purchasable visibility; recency may show visible out-of-stock Products. Cart badge comes from Cart API, not the Home viewer.cartItemCount placeholder.
 - Backend public Home remains credential-free; Buyer Home mounts only after identity/consent verification. Clear viewer/history/feed immediately on account change, ignore old responses, deduplicate Product IDs, respect opaque cursor/end/client cap and preserve items on page errors. Impressions never record recency.
-- Bazaar/MoneyFest, voucher wallet and absent shortcut result pages remain deferred.
+- Home links to voucher discovery; Bazaar/MoneyFest and absent shortcut result pages remain deferred.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
@@ -54,8 +54,8 @@ Phone/tablet/desktop padding, natural content heights and keyboard/text resizing
 - Fallback campaign IDs are strings such as default-primary; do not require a UUID for every campaign.
 - Pause carousel rotation offscreen/background; provide accessible previous/next and avoid overriding
   keyboard focus.
-- Home quick actions expose Search only; Shops remains available through the main navigation.
-  Enable supported local shortcuts only, never voucher-wallet placeholders.
+- Home provides Search and voucher discovery; Shops remains in main navigation.
+  Only supported destinations are enabled.
 - Category cards use keyword search by Category name; they are not exact global Product-category
   filters. Initially show one width/text-scaled category row. Place Show all/Show less by the
   heading, wrapping beneath it when needed; hide it when all fit and retain expansion while Home
@@ -223,3 +223,5 @@ Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) a
 history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).

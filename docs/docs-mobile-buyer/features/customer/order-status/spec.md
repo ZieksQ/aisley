@@ -3,10 +3,11 @@ feature: order-status
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
+flutter_status: Implemented at 57e9eb2 plus G30 images; current shipping adoption pending G25
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
+current_contract_inspected_order_images: 5d55ecf379c7646dedcae5a3170cfcb61093db26
 ---
 
 # Owned Orders and tracking
@@ -51,7 +52,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Order Detail uses immutable item/address/payment/voucher/financial snapshots with explicit
   deliveryAddress.version; item and list-preview DTOs add nullable current Product-media `imageUrl`.
 - Historical productId/variantId/sku may be null; snapshots remain readable after Product removal.
-- A missing `imageUrl` is valid when Product media is unavailable; it does not change the immutable item snapshot.
+- Parse optional nullable `imageUrl` on ItemPreview and purchased items; older omission means unavailable.
+- Orders list/detail use 64px public Product thumbnails, wrapping facts and loading/unavailable fallbacks.
+- Trusted API media paths load without credentials; image failures never block Order facts/actions.
+- Images reflect current media, not frozen purchase evidence; see [G30 checks](../../../references/order-images-verification.md).
 - TimelineCount/HasMore determine whether to load tracking pages; preserve returned chronology and
   deduplicate event IDs.
 - Tracking location omits unavailable hub/city; empty PHP array can arrive as [] and must normalize to

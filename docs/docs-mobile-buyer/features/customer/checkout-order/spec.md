@@ -14,7 +14,7 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Quote/place/batch, per-Shop Orders, shipping/vouchers/reservations/snapshots and UUID replay
-implemented.
+implemented; nullable item imageUrl parsing is adopted from 5d55ecf; Checkout image rendering deferred.
 
 Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 
@@ -221,10 +221,10 @@ Historical backend baseline: 7b1a08a; newly inspected checkout:
 Source locators/hashes are optional audit evidence in
 [provenance](../../../references/source-provenance.md).
 No Flutter implementation checkbox is completed by documentation authoring or route/source inspection.
-Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior
-history.
-Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
-[verification](../../../verification.md).
+Append actual evidence to [Progress](../../../PROGRESS.md); preserve history.
+Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and [verification](../../../verification.md).
 
 Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
 [shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
+
+Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).

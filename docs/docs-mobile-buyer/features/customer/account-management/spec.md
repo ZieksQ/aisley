@@ -220,3 +220,5 @@ No Flutter implementation checkbox is completed by documentation authoring or ro
 Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).

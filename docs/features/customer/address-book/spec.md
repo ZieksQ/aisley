@@ -61,6 +61,7 @@ Customer opens /account/addresses
 - A Customer may create multiple rows. `is_default` is updated in the same transaction as the row; a shipping default clears overlapping `shipping`/`both` rows, a billing default clears `billing`/`both`, and a `both` default clears all other defaults.
 - There is no separate default route in the current API; create/update with `is_default` is the authoritative operation. The list returns defaults first, then newest rows.
 - Update/delete affect only the Address Book row. Deleting or editing a row never rewrites historical Order snapshots. Checkout detects a deleted/stale selected row and requires another eligible address.
+- Checkout fingerprints the saved recipient/contact, location fields, optional seven-decimal pin, type and label as well as ID/timestamp. Edits within the same second still require refreshed quote review; stale placement has no purchase effects and committed exact-key retries retain the original Order snapshot.
 - The protected account UI requires delete confirmation and displays type, label, recipient/contact, summary, and whether a pin is saved. Sensitive address data is not logged or exposed to unrelated users.
 - A Seller/Logistics/Courier may receive only the address snapshot required by an authorized Order/task. Do not expose a Customer's whole Address Book.
 

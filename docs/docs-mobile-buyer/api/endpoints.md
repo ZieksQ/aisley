@@ -244,7 +244,7 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 - Public media routes still check current owning Product/review/campaign visibility; route-public does not make hidden assets public. Private avatar requires authenticated Customer bytes and current consent.
 - Generic address-options routes are auxiliary upstream APIs; current Customer dropdowns use bundled PSGC data. See the Dart asset plan.
 - Platform policies expose only public Terms/Privacy and published/superseded history; Internal Rules are scoped unavailable.
-- There is no Buyer push-device registration, notification unread-count/read-all, voucher wallet/claim/code-entry, native-reset-link, applicant-status, live-location, delivery-POD, online-payment, returns/refunds or arbitrary-user messaging API promised by this inventory.
+- There is no Buyer push-device registration, notification unread-count/read-all, voucher code-entry, native-reset-link, applicant-status, live-location, delivery-POD, online-payment, returns/refunds or arbitrary-user messaging API promised by this inventory.
 - Customer methods differ from other roles: account password is PATCH, avatar part is photo, review part image, Q&A part question, support description part body, Shop read sequence versus operational read last_read_sequence.
 
 The current [95 typed operation records](operation-index.json) cover all inventory methods with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
