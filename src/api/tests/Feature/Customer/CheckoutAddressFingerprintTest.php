@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use App\Services\Customer\CheckoutAddressFingerprint;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -226,6 +227,7 @@ class CheckoutAddressFingerprintTest extends TestCase
             'minimum_spend' => '0.00', 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay(),
             'per_customer_limit' => 1, 'terms_summary' => 'Address regression voucher.', 'stacking_policy' => [],
         ]);
+        VoucherClaim::create(['voucher_id' => $voucher->id, 'customer_id' => $customer->id, 'collected_at' => now()]);
         $intent = [
             'mode' => $mode, 'address_id' => $addressId, 'payment_method' => 'cod',
             'vouchers' => [['voucher_id' => $voucher->id, 'target_shop_id' => $product->shop_id]],
@@ -256,7 +258,7 @@ class CheckoutAddressFingerprintTest extends TestCase
     {
         $effects = [];
         foreach (['checkout_batches', 'orders', 'order_items', 'order_addresses', 'order_pricing_snapshots',
-            'order_status_events', 'order_vouchers', 'voucher_redemptions', 'inventory_movements', 'cart_items', 'notifications'] as $table) {
+            'order_status_events', 'order_vouchers', 'voucher_claims', 'voucher_redemptions', 'inventory_movements', 'cart_items', 'notifications'] as $table) {
             $effects[$table] = DB::table($table)->orderBy('id')->get()->map(fn ($row) => (array) $row)->all();
         }
         $effects['balances'] = InventoryBalance::query()->orderBy('id')->get()->toArray();
