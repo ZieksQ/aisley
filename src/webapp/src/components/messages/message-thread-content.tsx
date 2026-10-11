@@ -2,9 +2,10 @@
 
 import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
+import { ShopChatHeader } from "./shop-chat-header";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/chat-ui";
+import { ChatLoadingThread, clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { getConversation, listConversations, listMessages, markConversationRead, sendMessage } from "@/lib/messages";
@@ -21,7 +22,7 @@ function errorText(reason: unknown) {
 
 export function MessageThreadContent({ id }: { id: string }) {
   const { auth } = useAuth();
-  if (auth.status === "loading") return <p role="status">Checking your account…</p>;
+  if (auth.status === "loading") return <ChatWorkspace entries={[]} selected><ChatLoadingThread status="Checking your account…" /></ChatWorkspace>;
   if (auth.status !== "authenticated") return <p>Please <Link className="font-semibold text-[#4C1268] underline" href={`/login?next=${encodeURIComponent(`/messages/${id}`)}`}>sign in</Link> to open this conversation.</p>;
 
   return <AuthenticatedMessageThread id={id} key={`${auth.customer.id}:${id}`} />;
@@ -215,13 +216,10 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
       }}
         onBack={() => router.push("/messages")}
     >
-      {loading && !thread ? <p className="p-5 text-sm text-[#655969]" role="status">Loading conversation…</p> : !thread ? (
+      {loading && !thread ? <ChatLoadingThread /> : !thread ? (
         <p className="m-4 border border-[#E8BBCD] bg-[#FFF5F8] p-4 text-sm text-[#8B204B]" role="alert">{error || "Conversation unavailable."} <button className="ml-2 underline" onClick={() => void refresh()} type="button">Retry</button></p>
       ) : <>
-        <header className="shrink-0 border-b border-zinc-200 px-4 py-3 dark:border-white/10 sm:px-6">
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{thread.shop.name}</h1>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Private Shop conversation · Messages are saved before they appear here.</p>
-        </header>
+        <ShopChatHeader shop={thread.shop} />
         {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error} <button className="ml-2 underline" onClick={() => void refresh()} type="button">Retry</button></p> : null}
         <ChatHistory
           mediaClient={chatMedia}

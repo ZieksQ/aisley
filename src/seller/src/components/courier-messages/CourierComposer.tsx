@@ -1,6 +1,6 @@
 import { chatMedia } from '../../lib/chat-media';
 import { useEffect, useRef, useState } from 'react'
-import { clearChatAttachments, ChatComposer, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/ui/chat'
 import { ApiError } from '../../lib/api'
 import { courierMessages, type CourierSendResult } from '../../lib/courierMessages'
 import { courierError } from './useCourierAccess'

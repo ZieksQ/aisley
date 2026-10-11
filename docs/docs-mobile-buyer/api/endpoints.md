@@ -73,12 +73,15 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 | Method | Existing path | Access | Throttle | Controller/action |
 | --- | --- | --- | --- | --- |
 | `GET` | `/api/v1/customer/conversations` | Active Customer + consent | 120,1 | `Customer\ConversationController@index` |
+| `GET` | `/api/v1/customer/conversations/shops/{shop}` | Active Customer + consent | 120,1 | `Customer\ConversationController@shopContext` |
 | `POST` | `/api/v1/customer/conversations` | Active Customer + consent | 120,1, 15,1 | `Customer\ConversationController@start` |
 | `GET` | `/api/v1/customer/conversations/unread-count` | Active Customer + consent | 120,1 | `Customer\ConversationController@unreadCount` |
 | `GET` | `/api/v1/customer/conversations/{conversation}` | Active Customer + consent | 120,1 | `Customer\ConversationController@show` |
 | `GET` | `/api/v1/customer/conversations/{conversation}/messages` | Active Customer + consent | 120,1 | `Customer\ConversationController@messages` |
 | `POST` | `/api/v1/customer/conversations/{conversation}/messages` | Active Customer + consent | 120,1, 30,1 | `Customer\ConversationController@send` |
 | `POST` | `/api/v1/customer/conversations/{conversation}/read` | Active Customer + consent | 120,1 | `Customer\ConversationController@read` |
+
+The Shop-context GET was added in iteration 03 after the 2026-10-04, 96-route inventory snapshot described above. The iteration 03 independent review passed D1–D13 for the frozen local verification contract; this does not establish deployed API behavior or external Buyer acceptance. Its additive `shop.availability` field is included on Shop chat summaries; see [messaging](messaging.md) and the [typed fields](field-index.md).
 
 ## Customer / courier-conversations
 

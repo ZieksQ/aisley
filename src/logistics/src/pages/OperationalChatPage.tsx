@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChatWorkspace, clearChatPrivateState, type ChatEntry } from '@aisley/chat-ui'
+import { ChatLoadingThread, ChatEmptyState, ChatWorkspace, clearChatPrivateState, type ChatEntry } from '@aisley/ui/chat'
 import { OperationalThreadPanel } from '../components/OperationalThreadPanel'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalThread } from '../lib/operationalChat'
@@ -111,8 +111,8 @@ export function OperationalChatPage() {
   }))
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6">
+      <div className={`${selectedId || context ? "hidden min-[800px]:flex" : "flex"} mb-3 flex-wrap items-end justify-between gap-3`}>
         <div>
           <h2 className="text-xl font-semibold">Operational messages</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
@@ -126,7 +126,7 @@ export function OperationalChatPage() {
       </div>
       <ChatWorkspace
         entries={entries}
-        selected={Boolean(selected || context)}
+        selected={Boolean(selectedId || context)}
         inboxTitle={`Inbox · ${unreadTotal} unread`}
         inboxStatus={loading && !threads.length ? <p className="p-4 text-sm text-zinc-500" role="status">Loading conversations…</p> : null}
         inboxError={error || undefined}
@@ -136,8 +136,8 @@ export function OperationalChatPage() {
         onLoadMore={() => { if (nextCursor) void load(true, nextCursor) }}
         onBack={backToInbox}
       >
-        {selected || context ? <OperationalThreadPanel context={context} onSaved={saved} selected={selected} /> : (
-          <div className="grid min-h-full place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Select a conversation, or open a pickup request, assigned task, or handled Order to start one.</div>
+        {selected || context ? <OperationalThreadPanel context={context} onSaved={saved} selected={selected} /> : selectedId ? <ChatLoadingThread /> : (
+          <ChatEmptyState title="Your messages" description="Select a conversation, or open a pickup request, assigned task, or handled Order to start one." />
         )}
       </ChatWorkspace>
     </div>

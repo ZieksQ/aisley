@@ -47,7 +47,9 @@ The workspace is managed via `pnpm-workspace`. Applications and shared resources
 | `src/seller` | React Router SPA | Mobile-first dashboard with light and dark themes |
 | `src/logistics` | React Router SPA | Mobile-first dashboard with light and dark themes |
 
-Reuse compatible `packages/ui` primitives and existing shared feature packages while keeping each app's role-specific screens and navigation separate. Shared presentation must support the consuming app's theme; it does not require moving the SPA dashboards to Next.js or applying storefront SEO rules to them.
+Place all new or extracted reusable UI components in `packages/ui` and export them through `@aisley/ui` or an appropriate subpath. Do not create standalone presentation packages. Keep one-off role compositions in their owning apps and leave existing feature-specific packages in place; this rule does not require migrating them. Shared presentation must support the consuming app's theme and preserve role-specific screens and navigation; it does not require moving the SPA dashboards to Next.js or applying storefront SEO rules to them.
+
+The shared chat presentation, generic clients, media state, and notification behavior are owned by `packages/ui/src/chat` and exported through `@aisley/ui/chat`. Customer, Seller, and Logistics web screens import that subpath; `@aisley/chat-ui` remains a workspace compatibility re-export facade that depends on `@aisley/ui`. Role-owned page composition, routes, authorization, and role API clients stay in their existing apps. Other existing feature packages remain in place. The chat-specific visual freedom and its color, theme, accessibility, privacy, and responsive constraints are defined in [Design System](design.md#messaging-visual-design-exception).
 
 This web design contract excludes the existing `src/couriermockup` harness and external Flutter documentation. It does not change their design rules or implementation scope.
 

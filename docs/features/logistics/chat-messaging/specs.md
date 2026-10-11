@@ -13,7 +13,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Private attachments follow the [media contract](../../shared/chat-media/spec.md); operational eligibility and external client adoption remain separately authoritative.
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md), including its scoped chat-first visual redesign. Preserve the existing brand colors, Logistics light/dark themes, accessibility, organization isolation, privacy, and operational workflows. Shared chat presentation and behavior come from `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export facade. Private attachments follow the [media contract](../../shared/chat-media/spec.md); operational eligibility and external client adoption remain separately authoritative.
 - Provide private operational chat between one Logistics organization and a relevant
   Seller, Courier, or Customer (called “Buyer” in the storefront). Each side may initiate and
   reply while its current relationship is authorized; Logistics is not the only initiator.
@@ -97,7 +97,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Logistics dashboard has an organization-scoped inbox, unread count, context-linked entry from pickup/task/Order detail, thread history, and text composer. Distinguish Seller, Courier, and Buyer threads with safe labels and operational references.
 - Seller opens **Contact Logistics** from its selected pickup request; Courier opens **Contact Logistics** from its active task in the external Flutter app; Buyer opens **Contact Logistics** from an eligible owned Order/tracking page. No Courier web UI is added to this repository.
 - Poll only visible/online inbox or thread views and refetch on focus/reconnect. Preserve a local draft and its idempotency key after an uncertain timeout; never silently queue offline mutations.
-- Show loading, empty, sending, saved, read-only, relationship-ended, validation, unauthorized, scoped not-found, conflict, throttling, timeout, and offline states. Screens are responsive, keyboard accessible, and use role-appropriate design; unread is not conveyed by color alone.
+- Keep the chat shell, history, and composer available while loading or refreshing; show local nonblocking progress. Show empty, sending, sent, read-only, relationship-ended, validation, unauthorized, scoped not-found, conflict, throttling, timeout, and offline states. Confirm persistence within the committed message and do not show persistent **Message Sent** or **Message Saved** banners. Screens are responsive and keyboard accessible in both Logistics themes; unread is not conveyed by color alone.
 - Return `401` for missing session, `403` for inactive/wrong role or required policy consent using the existing auth contract, scoped `404` for foreign/missing context or thread, `409` for idempotency/state conflict, `422` for invalid input, and `429` for throttling. Do not leak relationship existence through error detail.
 
 ### Acceptance criteria

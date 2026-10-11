@@ -80,9 +80,11 @@ Prefer consistent shared components for:
 
 Avoid creating duplicate components when an appropriate shared component already exists.
 
+- Place all new or extracted reusable UI components in `packages/ui` and export them through `@aisley/ui` or an appropriate subpath. Do not create standalone presentation packages. Keep one-off role compositions in their owning apps and leave existing feature-specific packages in place; this does not call for migrating them.
 - Keep feature-specific composition inside its owning app; share a component when it has compatible consumers and a clear responsibility.
 - Shared visual components must not carry another role's navigation, authorization, or private data assumptions.
 - Reuse established app typography, spacing, radius, and theme-aware styles. New colors or variants need a clear semantic purpose and must work in the consuming app's supported themes.
+- The scoped chat implementation is owned by `packages/ui/src/chat`, exported as `@aisley/ui/chat`. Customer, Seller, and Logistics web screens import that subpath. `@aisley/chat-ui` remains a compatibility re-export facade; do not add another chat package or migrate unrelated feature packages.
 
 ## UX and Jakob's Law
 
@@ -97,6 +99,20 @@ Users bring expectations from other applications. Familiar interaction patterns 
 - Preserve safe form input after recoverable failures and show actionable field-level validation. Never retain passwords, private evidence, or account-scoped drafts beyond their approved lifecycle; clear private state on logout or authorization loss.
 - Make back/cancel behavior predictable. Do not silently discard unsaved changes; confirm destructive actions with their consequences and a clear cancel path. Keep controls keyboard-accessible and feedback understandable without color alone.
 - Introduce an unfamiliar interaction only when it solves a specific user problem; document the reason and verify the affected workflow's usability. Familiarity must never override accessibility, privacy, authorization, or required business rules.
+
+## Messaging visual-design exception
+
+Customer, Seller, and Logistics Messages screens and the shared presentation components they use have explicit scope for a chat-first visual redesign. This scoped direction takes precedence over other layout and styling preferences in this guide for those screens. The exact page composition, pane arrangement, density, spacing, type scale, surface treatment, message-bubble shape, attachment/context-card presentation, and decorative details may be redesigned to suit messaging. The general storefront/dashboard appearance does not prescribe those choices. Keep familiar inbox-to-thread and compose/send actions so the workflow remains recognizable.
+
+- Existing brand and semantic color rules remain fixed: preserve the documented primary, secondary, error, and warning colors, meaningful status colors, contrast, and restrained color balance. Do not introduce a competing palette.
+- Customer chat stays light-only even when the device or browser requests dark mode. Preserve the storefront's root `color-scheme: light` and disabled Tailwind `dark:` variant so shared utilities cannot activate dark styling from the browser preference. Seller and Logistics chat must work in both light and dark modes through their existing theme behavior.
+- Customer message routes use `MarketplaceHeader`'s compact mode: retain the logo and account, cart, and notification controls while omitting marketplace search and category rows. Keep the **Back to store** action for Shops and **Orders** for operational conversations, plus separate **Shops**, **Logistics**, and **Couriers** channel tabs. This compact shell keeps the conversation and composer usable in short viewports.
+- On mobile with a conversation selected, hide the local **Messages** heading/return-link row and channel toolbar until the user returns **Back to inbox**. Keep the in-thread back control, thread header, history, and composer available; size the conversation workspace to the visual viewport so short screens and an open keyboard do not obscure essential chat controls.
+- Keep the role-owned routes, channel separation, labels, context, actions, authorization, tenant boundaries, safe DTOs, private-draft lifecycle, and message/media behavior in the applicable chat specifications. Visual freedom does not authorize new capabilities such as read receipts, presence, calls, or broader private-data access.
+- Keep chat history and the composer mounted while loading or refreshing; present local progress and recoverable feedback without blocking the conversation. Show confirmed sent state within the committed message, not in a persistent global **Message Sent** or **Message Saved** banner.
+- Design mobile-first and keep the inbox, selected thread, history, composer, attachment errors, and dialogs usable at 320, 390, 768, and 1440 CSS pixels and in a short viewport. Avoid page-wide horizontal scrolling. Keep focus visible, controls keyboard operable, content semantic, status understandable without color alone, and dialogs/viewers accessible.
+- Shared chat presentation and generic media/client/state/notification modules are owned by `packages/ui/src/chat` and exported as `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export. Keep role-specific navigation, authorization, API composition, and workflow logic in their current owners. This package change is limited to chat; other feature packages remain in place.
+- This exception applies only to Customer, Seller, and Logistics chat screens and directly used shared chat presentation; other screens and the external Courier app retain their existing design contracts.
 
 ## General Rules
 
@@ -162,9 +178,9 @@ These rendering rules apply to the Customer Next.js storefront; the Admin, Selle
 
 ## Chat attachment interactions
 
-- Use shared @aisley/chat-ui selection/progress/checking, bounded image previews, accessible image dialogs, explicit video controls without autoplay, and document filename/type/size/download cards. Preserve AISLEY themes and familiar Shopee/Lazada explicit-send behavior.
+- Use shared `@aisley/ui/chat` presentation for file selection/progress/checking, bounded image previews, accessible image dialogs, explicit video controls without autoplay, and document filename/type/size/download cards. Preserve AISLEY colors/themes and familiar explicit-send behavior; `@aisley/chat-ui` only re-exports the shared package.
 - Keep selected media and optional caption beside the composer, provide Remove/Retry file, and block Send until every selection is ready. Preserve exact pending payloads after uncertain delivery; clear private file/draft state on authorization loss.
-- Media dialogs must contain focus, close with Escape, restore focus and fit narrow screens. Attachment errors remain actionable and cannot appear as successful sends. Verify 390/768/1280px, Customer light and dashboard light/dark alongside existing chat behavior.
+- Put accepted file formats and limits in a keyboard-operable collapsed disclosure beside Attach; keep file-specific errors and retry/remove actions visible with the selected files. Media dialogs must contain focus, close with Escape, restore focus and fit narrow screens. Attachment errors remain actionable and cannot appear as successful sends. Verify 320/390/768/1440px and a short viewport, Customer light and dashboard light/dark alongside existing chat behavior.
 
 ## Chat notification control
 

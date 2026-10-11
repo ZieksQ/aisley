@@ -4,6 +4,7 @@ vendor
 dist
 build
 coverage
+docs/loop/
 .turbo
 .pnpm-store
 .DS_Store

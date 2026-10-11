@@ -8,7 +8,6 @@ export function ChatMessageMedia({ attachments, client }: { attachments: ChatAtt
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    setViewerFailed(false);
     if (viewing) dialog.current?.showModal();
     else dialog.current?.close();
   }, [viewing]);
@@ -17,7 +16,7 @@ export function ChatMessageMedia({ attachments, client }: { attachments: ChatAtt
     <>
       <ul aria-label="Message attachments" className="mt-2 space-y-2">
         {attachments.map((asset) => (
-          <ChatMediaItem asset={asset} client={client} key={asset.id} onView={() => setViewing(asset)} />
+          <ChatMediaItem asset={asset} client={client} key={asset.id} onView={() => { setViewerFailed(false); setViewing(asset); }} />
         ))}
       </ul>
       <dialog

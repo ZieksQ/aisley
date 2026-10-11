@@ -109,8 +109,11 @@ backend_contract_version: courier-operational-messaging-v2
 - Keep private message bodies in memory for MVP, not an unapproved persistent
   offline cache. Clear them and pending drafts on logout, account switch, loss of
   approval, or policy denial; refetch membership before showing old data.
-- Show checking-session, loading, empty, sending, saved, read-only, forbidden,
-  unavailable, validation, conflict, throttled, timeout, and offline states.
+- Keep the chat thread/history and composer available during loading or refresh,
+  with local nonblocking progress. Show checking-session, empty, sending, sent,
+  read-only, forbidden, unavailable, validation, conflict, throttled, timeout,
+  and offline states. Confirm persistence within the committed message; do not
+  show persistent global “Message Sent” or “Message Saved” banners.
   Screen-reader labels identify sender/status; controls have accessible targets,
   keyboard focus, and no color-only unread indication.
 - Handle `401` by clearing the session; `403` by showing status/consent gating;

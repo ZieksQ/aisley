@@ -13,7 +13,7 @@ scope: Seller React dashboard and shared Laravel messaging domain
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Rich cards and Seller sharing remain target enhancements. Private attachments follow the [media contract](../../shared/chat-media/spec.md) with explicit runtime readiness.
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md), including its scoped chat-first visual redesign. Preserve the existing brand colors, Seller light/dark themes, accessibility, privacy, tenant isolation, and Seller workflows. Shared chat presentation and behavior come from `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export facade. Rich cards and Seller sharing remain target enhancements. Private attachments follow the [media contract](../../shared/chat-media/spec.md) with explicit runtime readiness.
 - An approved Seller can read and reply to private Customer conversations for the Shop they currently own. This is the Seller-side release dependency of [Customer Chat/Messaging](../../customer/chat-messaging/spec.md).
 - One Customer–Shop conversation and its messages serve both role apps. Seller replies do not create a Seller-only thread or separate message store.
 - The first release is persisted **text** over authenticated HTTP with bounded polling while the inbox/thread is visible. It is not instant realtime. Attachments, broadcasting, Seller-initiated outreach, archive/mute/report, typing, presence, and message deletion are deferred.
@@ -43,7 +43,8 @@ scope: Seller React dashboard and shared Laravel messaging domain
 ### Delivery and UI
 
 - Seller dashboard has a Messages sidebar link, inbox, thread history, and reply composer. Poll visible/online views and refetch on focus/reconnect. Reconcile by server message ID and preserve the draft/idempotency key after an uncertain timeout.
-- Show loading, empty, older-history, sending, saved, validation, unavailable, forbidden/not-found, offline, retry, and disabled-send states. Controls must be keyboard-operable and responsive in both light and dark modes.
+- Keep Seller–Shop (`/messages`), Seller–Courier (`/courier-messages`), and Seller–Logistics pickup chat (`/logistics-messages`) as separate routes and histories; a shared visual component does not merge their eligibility or data.
+- Keep the chat shell, history, and composer available while loading or refreshing; show progress locally without blocking the conversation. Show empty, older-history, sending, sent, validation, unavailable, forbidden/not-found, offline, retry, and disabled-send states. Confirm persistence within the committed message and do not show persistent **Message Sent** or **Message Saved** banners. Controls must be keyboard-operable and responsive in both light and dark modes.
 - Chat unread is separate from the general Seller notification inbox. No email/SMS/push per message is sent by default. A future broadcast or notification must follow committed persistence and must not become chat history's source of truth.
 - Return `401` for no session, `403` for wrong role/status, scoped `404` for foreign/missing thread, `409` for conflicting send state/key, `422` for invalid input, and `429` for rate limits.
 

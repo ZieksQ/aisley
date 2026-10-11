@@ -4,10 +4,11 @@
 
 - Govern messaging presentation in Customer, Seller, and Logistics web apps, including their web conversations with Couriers. Courier mobile UI and external Flutter bundles are outside this web specification.
 - Follow the [web design contract](../../../design.md) for brand, typography, spacing, shared components, accessibility, and themes. Customer remains light-only; Seller and Logistics support light and dark.
+- Customer, Seller, and Logistics Messages screens have a scoped chat-first visual redesign exception. Layout, density, type scale, bubbles, surfaces, and media/context presentation are open to redesign within the existing color and theme rules; accessibility, privacy, authorization, and role workflows remain mandatory. Shared chat code is owned by `packages/ui/src/chat`, exported as `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export facade.
 - Role contracts own participants, initiation, navigation, authorization, and lifecycle: [Customer](../../customer/chat-messaging/spec.md), [Seller](../../seller/chat-messaging/spec.md), and [Logistics](../../logistics/chat-messaging/specs.md). This document supplies their common web presentation rules.
 - Current baseline is persisted chat with bounded polling, unread markers, Customer-originated Product/Order context, and runtime-gated private attachments under the [Chat Media contract](../chat-media/spec.md). Existing Customer–Shop commerce context contains type, ID, label, and URL; it does not promise commerce thumbnails/prices or recipient read receipts.
 - Rich commerce cards and Seller product sharing remain target enhancements. Private image/video/document attachments are implemented behind runtime readiness; see the owning media contract and actual verification log.
-- Use Messenger as interaction inspiration and marketplace chat as commerce inspiration. Use Shopee/Lazada attachment selection and explicit-send patterns under the media contract; retain AISLEY branding, supported capabilities and tenant boundaries.
+- Use familiar messaging interactions and marketplace chat as commerce inspiration. Use explicit-send attachment behavior under the media contract; visual references do not constrain the approved chat-first redesign. Retain AISLEY colors, supported capabilities, and tenant boundaries.
 
 ---
 
@@ -15,14 +16,18 @@
 
 ### Layout and visual hierarchy
 
-- Use a dedicated inbox and conversation view within each role's established app shell and routes. Preserve separate Shop, Logistics, and Courier channels rather than merging their histories.
-- At narrow widths show one pane at a time: inbox, then selected conversation. Back returns to the originating inbox with its position preserved; returning from a linked Product/Order should preserve the safe in-memory draft.
-- At desktop widths show inbox beside conversation when both fit comfortably. Put optional commerce details in a collapsible side panel; on mobile use an accessible details dialog. Never squeeze the composer to retain a third pane.
-- Keep the conversation header and composer visible within the available viewport; scroll history independently. The mobile keyboard must not cover Send, attachment errors, or the active input.
+- Keep a recognizable inbox-to-thread flow within each role's established app shell and routes. The visual composition is open to a chat-first redesign; preserve separate Shop, Logistics, and Courier channels rather than merging their histories.
+- At narrow widths, keep inbox and selected conversation usable with predictable Back behavior. Back returns to the originating inbox with its position preserved; returning from a linked Product/Order preserves the safe in-memory draft. The exact pane arrangement at wider widths is a design choice, provided the inbox and current conversation remain clear and usable.
+- On Customer message routes, a selected mobile conversation hides the outer **Messages** heading/return-link row and channel toolbar until **Back to inbox** is used. Keep the in-thread back control, conversation header, history, and composer available in a workspace sized to the visual viewport; restore the inbox and channel toolbar on return.
+- Optional commerce details may be inline, in a disclosure, side panel, or accessible dialog. Choose a layout that keeps the composer and primary message actions usable rather than reserving space for a fixed pane count.
+- Keep the conversation header, composer, Send action, attachment errors, and active input usable in the available viewport. History may scroll independently when that best supports reading; the mobile keyboard must not cover essential controls.
 - Inbox rows show safe counterpart identity, latest message preview, activity time, and a numeric unread badge with accessible text. Distinguish selection, unread, and read-only states without color alone.
+- Keep inbox rows compact. Use a text-based initials avatar, safe title/context, preview, activity time, and unread/read-only text; do not show presence dots or typing status because those capabilities are unsupported.
+- Use the shared `ChatThreadHeader` presentation with a safe counterpart title and optional authorized context; its initials avatar is not a presence indicator. Keep role-specific navigation and context actions in their owning screens.
 - Use the Shop's public identity for Customer–Shop headers; use safe Buyer labels for Sellers and role/context labels for operational conversations. Do not expose private Seller accounts, phone numbers, or email addresses.
-- Place incoming bubbles left and outgoing bubbles right, with readable maximum widths and wrapping for long content. Group consecutive messages from the same sender without hiding sender/status information from assistive technology.
-- Use neutral surfaces and restrained brand accents; preserve readable contrast in every supported theme. Do not copy Messenger blue or marketplace branding as a second visual system.
+- Customer web Shop identity controls may open a floating Shop card with an existing generic `@aisley/ui` modal primitive and a Customer-owned composition. Offer **View Shop** to the current public Shop route. Additive `ChatShop.availability` appears in Shop chat summaries and the Customer Shop context projection. It describes Shop business availability only: if Shop and Seller are active, `vacation` reflects the Shop's existing vacation flag and `online` means the flag is off; otherwise it is `offline`. Never describe or imply Seller/person connection presence. Labels do not change existing relationship or send rules; context-free preview `send_allowed` does not replace the authorized thread summary or start/send result, including the existing owned Order exception. The Shop card and route composition are Customer webapp-only; API availability does not promise this card in mobile clients.
+- Place incoming bubbles left and outgoing bubbles right. Size them to their contents with responsive maximum widths (about 88% of narrow history width and 75% at wider widths); wrap long content. Group consecutive messages from the same sender on the same day with tighter spacing, while keeping sender and status information available to assistive technology.
+- Use the existing AISLEY brand and semantic color rules with readable contrast in every supported theme. Do not copy another product's palette as a second visual system; visual layout and surface treatments remain open to the scoped redesign.
 - Separate days with localized date labels and make message time available without hover alone. Display server timestamps in the viewer's locale; sequence determines message order.
 
 ### Composer, reading, and message status
@@ -31,7 +36,8 @@
 - On desktop, Enter sends and Shift+Enter inserts a newline; never submit during input-method composition. On touch keyboards preserve newline entry and use the explicit Send action.
 - Hide unavailable feature actions rather than showing attachment, call, typing, presence, or read-receipt affordances that cannot work. Emoji entered as plain text needs no separate rich-message capability.
 - Preserve draft text per conversation in memory while navigating within the authenticated session. Confirm before an action would discard unsent input; clear private drafts/history on logout, account change, or authorization loss.
-- Distinguish Sending, Sent, Failed, and Unconfirmed states. Sent requires server persistence; an uncertain timeout keeps the original payload and idempotency key for an exact retry.
+- Distinguish Sending, Sent, Failed, and Unconfirmed states on the message itself. Sent requires server persistence; an uncertain timeout keeps the original payload and idempotency key for an exact retry. Do not show persistent global “Message Sent” or “Message Saved” banners; inline message status is the confirmation.
+- Keep the chat shell, history, and composer mounted during loading or refresh. Show progress or recoverable feedback locally without blocking the rest of the conversation or replacing the workspace with a full-page loading state.
 - Never infer Delivered or Seen from polling, elapsed time, the sender's read marker, or general notification state. Display recipient receipts only after an authorized API contract exposes their meaning and data.
 - Disable new sends offline or when relationship eligibility ends; show a clear reason and recovery action where available. Retain only history that the current participant remains authorized to read.
 - Scroll to new messages when the reader is already at the latest message. While reading older history, preserve position and offer a New messages control; loading older pages must also preserve the visible anchor.
@@ -57,7 +63,8 @@
 ### Private attachments — implemented with runtime gating
 
 - Apply the complete [file and image upload policy](../../../references/file-upload-requirements.md) to chat images, including validation, generated storage keys, metadata, processing, errors, and access rules; do not fork its allowlist.
-- Accept JPEG/JPG, PNG, and WebP only, strictly below 10 MiB (10,485,760 bytes) per image. Display accepted formats and the policy's 10 MB wording before selection; images at the exact byte boundary are rejected.
+- New JPEG/JPG, PNG, and WebP chat images are limited to 8,000,000 bytes inclusive. New MP4 videos use the same inclusive byte limit and retain the 180-second cap; documents remain at most 10 MiB each. Display the exact limits before selection.
+- Enforce the 8,000,000-byte image/video limit on new uploads, rewrites, and new-message bindings. An older unbound ready image/video above the limit cannot be newly attached. Authorized retrieval of already-committed media and an exact replay of its already-committed message remain available; do not apply the new limit retroactively to those cases.
 - Chat images are private participant content. Authorize upload, attachment, preview, and retrieval against the owning conversation or authorized prospective start context; never reuse public product-media access rules for uploaded chat photos.
 - A chat photo does not become formal delivery proof, dispute evidence, or a product gallery asset automatically; those workflows retain their own submission and authorization rules.
 - Client validation and local previews are convenience only. Laravel must verify size, extension, detected MIME/signature, and successful decoding; pending/rejected processing assets cannot be sent or delivered.
@@ -82,7 +89,9 @@
 ### Adoption and interfaces
 
 - Apply this guide as existing web chat screens are changed; a documentation update does not certify current visual compliance. Preserve current role routes, separate channel identities, and existing API behavior.
-- Reuse compatible `@aisley/ui` primitives and established theme tokens. Keep role navigation/API clients separate; share presentation components only where their responsibilities and consumers are compatible.
+- Shared chat presentation and generic client/state/notification behavior live in `packages/ui/src/chat` and are exported through `@aisley/ui/chat`. This includes inbox/thread pieces, message bubbles, composer, context/attachment presentation, and reusable status states. Customer, Seller, and Logistics screens import this subpath; `@aisley/chat-ui` remains a compatibility re-export facade. Role navigation, page composition, authorization, and role API clients stay in their existing owners.
+- Keep other feature packages in place. Do not add another chat package or broadly migrate unrelated feature-package code.
+- Reuse compatible `@aisley/ui` primitives and established theme tokens. Shared presentation must respect Customer light-only rendering and Seller/Logistics light/dark themes.
 - Keep pages focused on composition; place inbox rows, history, composer, context cards, picker, and media viewer in cohesive components. Keep request/retry/read state in hooks or services and API parsing in typed clients.
 - Preserve bounded foreground polling, focus/reconnect refresh, cursor pagination, server sequence ordering, and message-ID reconciliation. No new realtime service or library is required by this specification.
 - Rich cards need additive, role-safe context fields beyond today's type/ID/label/URL. Seller product sharing needs authorized selection/send support; attachments use the implemented private lifecycle defined in the media contract.
@@ -116,7 +125,7 @@ Document formats supported when media is enabled:
 
 ### Acceptance scenarios and verification
 
-- [ ] At 390px, 768px, and 1280px, inbox/thread navigation, long content, keyboard-open composer, dialogs, and context cards remain usable without page-wide horizontal scrolling; verify Customer light and dashboard light/dark themes.
+- [ ] At 320px, 390px, 768px, and 1440px and in a short viewport, inbox/thread navigation, long content, keyboard-open composer, dialogs, and context cards remain usable without page-wide horizontal scrolling; verify Customer light regardless of OS preference and dashboard light/dark themes.
 - [ ] Keyboard and screen-reader users can send, insert newlines, remove context, navigate history, and close viewers; input-method composition never triggers an unintended send.
 - [ ] Incoming messages and older-history loads preserve reading position/focus; only the visible active thread advances authorized unread state.
 - [ ] Repeated Product/Order entry reuses the correct Shop thread; Seller sharing rejects invisible/cross-Shop products and never exposes unrelated Buyer orders.
@@ -135,7 +144,8 @@ Document formats supported when media is enabled:
 
 ### Web adoption record (2026-10-05)
 
-- `@aisley/chat-ui` now supplies the shared inbox, conversation history, and composer across Customer–Shop, Customer–Courier, Customer–Logistics, Seller–Shop, Seller–Courier, Seller–Logistics, and Logistics operational chat. The role apps retain their existing routes, API clients, authorization, and separate channel identities. Product/Order context stays label-only or links to its existing route; this rollout adds no rich cards, attachments, receipts, or backend/mobile capability.
+- This dated entry records the original shared inbox, conversation-history, and composer adoption across Customer–Shop, Customer–Courier, Customer–Logistics, Seller–Shop, Seller–Courier, Seller–Logistics, and Logistics operational chat. The role apps retain their existing routes, API clients, authorization, and separate channel identities. Product/Order context stays label-only or links to its existing route; that rollout added no rich cards, attachments, receipts, or backend/mobile capability.
+- In the current scoped redesign, the shared implementation lives in `packages/ui/src/chat` and is exported as `@aisley/ui/chat`; `@aisley/chat-ui` re-exports it as a compatibility facade. Role-owned routes and API clients remain separate. This package update does not certify responsive, accessibility, browser, build, or feature acceptance checks.
 - ESLint/Oxlint and TypeScript checks passed for all three web apps; Seller and Logistics production builds passed. The mocked Seller Courier Chromium smoke passed at 390, 768, and 1280px in both dashboard themes, covering empty/eligible entry, exact first-send retry, history paging, desktop Enter-to-send, mobile newline preservation, read-only/access-denied states, offline, validation, and throttling. Confirmed 409/422/429 rejections preserve editable text without claiming delivery uncertainty; uncertain transport/server outcomes retain the original locked payload and key. The Customer production build could not complete because Next.js could not fetch its existing Geist fonts from Google Fonts in the restricted network environment; Customer browser smoke was not run. Existing large-chunk warnings remain in the Seller and Logistics builds.
 
 ## Dedicated web chat notifications — 2026-10-06

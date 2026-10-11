@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChatWorkspace, type ChatEntry } from '@aisley/chat-ui'
+import { ChatEmptyState, ChatWorkspace, type ChatEntry } from '@aisley/ui/chat'
 import { ApiError } from '../lib/api'
 import { listConversations, type Conversation } from '../lib/messages'
 
@@ -71,12 +71,12 @@ export function MessagesPage() {
   }))
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
-        <h2 className="text-2xl font-semibold">Messages</h2>
+    <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6">
+      <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-3 dark:border-white/10">
+        <h2 className="text-xl font-semibold">Messages</h2>
         <button className="text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" onClick={() => void refresh()} type="button">Refresh</button>
       </div>
-      <div className="mt-5">
+      <div className="mt-3">
         <ChatWorkspace
           entries={entries}
           selected={false}
@@ -88,7 +88,7 @@ export function MessagesPage() {
           loadingMore={busy}
           onLoadMore={() => void loadMore()}
         >
-          <div className="grid min-h-full place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">{items.length ? 'Select a conversation to read and reply.' : 'Customer conversations will appear here.'}</div>
+          <ChatEmptyState title="Your messages" description={items.length ? 'Select a conversation to read and reply.' : 'Customer conversations will appear here.'} />
         </ChatWorkspace>
       </div>
     </div>

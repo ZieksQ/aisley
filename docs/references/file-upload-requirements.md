@@ -121,7 +121,7 @@
 
 ## Chat-specific video and document policy
 
-- Apply [Private Chat Media](../features/shared/chat-media/spec.md) for MP4 up to 30 MiB/180 seconds and documents up to 10 MiB, five files/50 MiB per message. Chat images retain the strict under-10-MiB baseline.
+- Apply [Private Chat Media](../features/shared/chat-media/spec.md) for new chat images and MP4 up to 8,000,000 bytes inclusive (video retains the 180-second cap), documents up to 10 MiB, and five files/50 MiB per message. This chat-specific image limit does not change the general image-upload baseline. Existing committed media retrieval and exact committed-message replay remain compatible; historical unbound image/video assets over the new limit cannot be bound to a new message.
 - Allow only H.264 MP4 with optional AAC audio, PDF, DOCX/XLSX/PPTX, ODT/ODS/ODP, TXT and CSV. Reject malformed, encrypted, macro-enabled, embedded-active and unlisted formats; inspect ZIP contents within entry/expansion limits.
 - Chat images enforce 8,000 pixels per edge and 40 megapixels, and receive metadata rewriting/private previews. These chat-specific processing bounds do not silently change other image features.
 - Scan all chat files with private ClamAV before readiness; scan-limit/encryption/macro alerts reject content, and unavailable checks fail closed. ffprobe checks video metadata; FFmpeg generates a poster without transcoding.

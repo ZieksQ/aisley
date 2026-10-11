@@ -1,3 +1,5 @@
+"use client";
+
 import { ChatMessageMedia } from "./media-history";
 import type { ChatMediaClient } from "./media-types";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -65,8 +67,8 @@ export function ChatHistory({
   }
 
   return (
-    <div className="relative min-h-0 flex-1">
-      <div ref={view} aria-label={label} className="marketplace-scroll absolute inset-0 overflow-y-auto px-4 py-4 sm:px-6" tabIndex={0} onScroll={(event) => {
+    <div className="relative min-h-0 flex-1 bg-[#FAF8FB] dark:bg-[#141416]">
+      <div ref={view} aria-label={label} className="marketplace-scroll absolute inset-0 overflow-y-auto px-3 py-3 sm:px-5" tabIndex={0} onScroll={(event) => {
         const element = event.currentTarget;
         following.current = element.scrollHeight - element.scrollTop - element.clientHeight < 72;
         if (following.current) setNewCount(0);
@@ -74,23 +76,24 @@ export function ChatHistory({
         {olderCursor ? <button className="mb-4 min-h-10 text-sm font-semibold text-[#4C1268] underline focus-visible:outline-2 focus-visible:outline-[#E6007A] dark:text-purple-300" disabled={loadingOlder} onClick={loadOlder} type="button">{loadingOlder ? "Loading earlier messages…" : "Load earlier messages"}</button> : null}
         {loading && !messages.length ? <p className={`py-6 text-center text-sm ${muted}`} role="status">Loading messages…</p> : null}
         {!loading && !messages.length ? <p className={`py-8 text-center text-sm ${muted}`}>{emptyText}</p> : null}
-        <ol className="space-y-3">
+        <ol>
           {messages.map((message, index) => {
             const prior = messages[index - 1];
             const date = new Date(message.createdAt);
             const priorDate = prior ? new Date(prior.createdAt) : null;
             const day = new Intl.DateTimeFormat(undefined, { dateStyle: "full" }).format(date);
             const newDay = !priorDate || date.toDateString() !== priorDate.toDateString();
+            const grouped = prior && !newDay && prior.mine === message.mine && prior.sender === message.sender;
             return (
-              <li key={message.id}>
-                {newDay ? <p className="mb-3 mt-5 text-center text-xs text-zinc-500 dark:text-zinc-400"><span className="border border-zinc-200 bg-white px-2 py-1 dark:border-white/10 dark:bg-[#18181b]">{day}</span></p> : null}
-                <article className={`max-w-[92%] border px-3 py-2.5 text-sm sm:max-w-[78%] ${message.mine ? "ml-auto border-[#4C1268]/20 bg-[#4C1268]/5 dark:bg-[#4C1268]/20" : "border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[0.04]"}`}>
-                  <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{message.sender}</p>
-                  <p className="mt-1 whitespace-pre-wrap [overflow-wrap:anywhere] text-zinc-900 dark:text-zinc-100">{message.body}</p>
+              <li className={grouped ? "mt-1" : "mt-3"} key={message.id}>
+                {newDay ? <p className="mb-3 mt-2 text-center text-[11px] text-zinc-500 dark:text-zinc-400"><span className="px-2 py-1">{day}</span></p> : null}
+                <article className={`w-fit max-w-[88%] rounded-xl border px-3 py-2 text-sm sm:max-w-[75%] ${message.mine ? "ml-auto rounded-br-sm border-[#EBD8E8] bg-[#F4E7F1] dark:border-purple-300/15 dark:bg-[#34223e]" : "rounded-bl-sm border-zinc-200 bg-white dark:border-white/10 dark:bg-[#242428]"}`}>
+                  <p className={grouped || message.mine ? "sr-only" : "mb-1 text-xs font-semibold text-[#4C1268] dark:text-purple-200"}>{message.sender}</p>
+                  <p className="whitespace-pre-wrap [overflow-wrap:anywhere] text-zinc-900 dark:text-zinc-100">{message.body}</p>
                   {mediaClient && message.attachments?.length ? <ChatMessageMedia attachments={message.attachments} client={mediaClient} /> : null}
                   {message.context ? <div className="mt-2 border-t border-zinc-200 pt-2 text-xs dark:border-white/10">{message.context}</div> : null}
-                  <time className={`mt-2 block text-right text-xs ${muted}`} dateTime={message.createdAt} title={date.toLocaleString()}>{date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</time>
-                  {message.status && message.mine ? <p className={`mt-1 text-right text-xs ${message.status === "unconfirmed" || message.status === "failed" ? "text-amber-700 dark:text-amber-300" : muted}`}>{message.status === "sent" ? "Sent" : message.status === "sending" ? "Sending…" : message.status === "failed" ? "Failed" : "Delivery unconfirmed"}</p> : null}
+                  <time className={`mt-1 block text-right text-[10px] ${muted}`} dateTime={message.createdAt} title={date.toLocaleString()}>{date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</time>
+                  {message.status && message.mine ? <p className={`mt-0.5 text-right text-[10px] ${message.status === "unconfirmed" || message.status === "failed" ? "text-amber-700 dark:text-amber-300" : muted}`}>{message.status === "sent" ? "Sent" : message.status === "sending" ? "Sending…" : message.status === "failed" ? "Failed" : "Delivery unconfirmed"}</p> : null}
                 </article>
               </li>
             );

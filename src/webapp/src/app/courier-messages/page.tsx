@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { MessagePageShell } from "@/components/messages/message-page-shell";
 import { MarketplaceHeader, UtilityBar } from "@/components/marketplace/marketplace-header";
 import { HomeDataProvider } from "@/components/marketplace/home-data-provider";
 import { CourierMessagesContent } from "@/components/courier-messages/courier-messages-content";
@@ -23,15 +23,10 @@ export default async function CourierMessagesPage({ searchParams }: {
   return (
     <HomeDataProvider initialData={homepage} trackView={false}>
       <UtilityBar />
-      <MarketplaceHeader />
-      <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-7 sm:px-5 lg:px-8">
-        <nav aria-label="Message channels" className="mb-5 flex flex-wrap gap-x-5 text-sm text-[#4C1268]">
-          <Link className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-2" href="/orders">Orders</Link>
-          <Link className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-2" href="/messages">Shop messages</Link>
-          <Link className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-2" href="/delivery-messages">Logistics messages</Link>
-        </nav>
+      <MarketplaceHeader compact />
+      <MessagePageShell channel="courier" focusConversation={Boolean(value("conversation") || value("order"))}>
         <CourierMessagesContent conversationId={value("conversation")} orderId={value("order")} />
-      </main>
+      </MessagePageShell>
     </HomeDataProvider>
   );
 }

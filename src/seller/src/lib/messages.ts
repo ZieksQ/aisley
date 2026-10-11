@@ -1,10 +1,10 @@
-import { acknowledgeChatRead } from "@aisley/chat-ui";
-import type { ChatAttachment } from "@aisley/chat-ui";
+import { acknowledgeChatRead } from "@aisley/ui/chat";
+import type { ChatAttachment } from "@aisley/ui/chat";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from './api'
 
 export type Conversation = {
   id: string
-  shop: { id: string; name: string; slug: string | null }
+  shop: { id: string; name: string; slug: string | null; availability?: "online" | "offline" | "vacation" }
   customer_name: string | null
   last_message_preview: string | null
   last_message_at: string | null

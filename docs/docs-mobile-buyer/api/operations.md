@@ -1071,3 +1071,7 @@ Current shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; importe
 ### Voucher operation records
 
 Stable `voucher-collection-001` through `voucher-collection-007` in [operation index](operation-index.json) follow the endpoint order in [collection contract](voucher-collection.md). [Synthetic examples](examples/voucher-collection.json) include public nulls, private status and platform/Shop collection confirmations.
+
+## Iteration 03 Shop availability projection — 2026-10-11
+
+Iteration 03 adds `GET /api/v1/customer/conversations/shops/{shop}` to the source checkout. See the [Customer Shop availability contract](messaging.md#shop-relationship). This additive route is not part of the 2026-10-04, 96-route snapshot or the numbered operation index. The iteration 03 independent review passed D1–D13 for the frozen local verification contract; this does not establish deployed API behavior or external Buyer acceptance. The shared `ChatShop` DTO also gained required `availability`. A synthetic expected payload is kept in [chat-messaging examples](examples/chat-messaging.json).

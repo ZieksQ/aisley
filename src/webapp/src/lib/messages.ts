@@ -1,10 +1,10 @@
-import { acknowledgeChatRead } from "@aisley/chat-ui";
-import type { ChatAttachment } from "@aisley/chat-ui";
+import { acknowledgeChatRead } from "@aisley/ui/chat";
+import type { ChatAttachment } from "@aisley/ui/chat";
 import { apiRequest, apiWriteWithCsrfTimeout, initializeCsrf } from "@/lib/api";
 
 export type ConversationSummary = {
   id: string;
-  shop: { id: string; name: string; slug: string | null };
+  shop: { id: string; name: string; slug: string | null; availability?: "online" | "offline" | "vacation" };
   customer_name: string | null;
   last_message_preview: string | null;
   last_message_at: string | null;
@@ -65,4 +65,8 @@ export async function markConversationRead(id: string, sequence: number) {
 
 export function getConversationUnreadCount() {
   return apiRequest<{ unread_count: number }>(`${base}/unread-count`, { cache: "no-store" });
+}
+
+export function getShopChatContext(id: string) {
+  return apiRequest<{ data: { shop: ConversationSummary["shop"]; conversation_id: string | null; send_allowed: boolean } }>(`${base}/shops/${encodeURIComponent(id)}`, { cache: "no-store" });
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChatWorkspace, type ChatEntry } from '@aisley/chat-ui'
+import { ChatWorkspace, type ChatEntry } from '@aisley/ui/chat'
 import { useAuth } from '../auth/useAuth'
 import { CourierThread } from '../components/courier-messages/CourierThread'
 import { courierError, useCourierAccess } from '../components/courier-messages/useCourierAccess'
@@ -93,8 +93,8 @@ function CourierInbox() {
     onSelect: () => setParams({ conversation: thread.id }, { replace: true }),
   }))
   return (
-    <div className="mx-auto max-w-6xl space-y-5 px-4 py-7 sm:px-6 lg:px-8">
-      <header className="space-y-2">
+    <div className="mx-auto max-w-6xl space-y-3 px-2 py-3 sm:px-4 lg:px-6">
+      <header className={`${selected && !denied ? "hidden min-[800px]:block" : "block"} space-y-2`}>
         <h2 className="text-xl font-semibold sm:text-2xl">Courier messages</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Coordinate accepted first-mile pickups. Customer and Logistics conversations stay in their own inboxes.

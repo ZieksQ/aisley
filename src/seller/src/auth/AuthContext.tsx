@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { clearChatPrivateState } from '@aisley/chat-ui'
+import { clearChatPrivateState } from '@aisley/ui/chat'
 import type { PropsWithChildren } from 'react'
 import { ApiError, apiRequest, initializeCsrf } from '../lib/api'
 import type { AuthResponse, SellerUser } from '../types/auth'

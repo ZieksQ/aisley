@@ -32,7 +32,7 @@ export function ShopSummary({ shop, productId }: { shop: ProductDetail["shop"]; 
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Link href={`/messages/new?shop=${encodeURIComponent(shop.id)}&product=${encodeURIComponent(productId)}`} className="rounded-md bg-[#4C1268] px-4 py-2 text-sm font-semibold text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Message Seller</Link>
+        <Link href={`/messages?shop=${encodeURIComponent(shop.id)}&product=${encodeURIComponent(productId)}`} className="rounded-md bg-[#4C1268] px-4 py-2 text-sm font-semibold text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Message Seller</Link>
         <Link href={shop.storefrontUrl} className="rounded-md border border-[#BDAFC2] bg-white px-4 py-2 text-sm font-semibold text-[#4C1268] hover:border-[#7C6684] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">Visit shop</Link>
       </div>
     </section>

@@ -15,7 +15,7 @@ class UploadChatAttachmentRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['file' => ['required', 'file', 'max:30720'], 'context' => ['required', 'json', 'max:4096']];
+        return ['file' => ['required', 'file', 'max:10240'], 'context' => ['required', 'json', 'max:4096']];
     }
 
     public function after(): array

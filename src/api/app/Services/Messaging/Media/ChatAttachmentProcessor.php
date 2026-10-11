@@ -62,14 +62,18 @@ class ChatAttachmentProcessor
                     fclose($input);
                     fclose($output);
                 }
+                if (in_array($asset->kind, ['image', 'video'], true) && filesize($temporary) > 8_000_000) {
+                    throw ValidationException::withMessages(['file' => 'Media exceeds the 8 MB limit.']);
+                }
                 if (! $this->scanner->scan($temporary)) {
                     $asset->update(['state' => ChatAttachmentState::Rejected, 'error_code' => 'FILE_REJECTED']);
 
                     return false;
                 }
                 $metadata = $this->inspector->inspect($temporary, strtolower(pathinfo($asset->filename, PATHINFO_EXTENSION)), $preview);
-                if ($asset->kind === 'image' && filesize($temporary) >= 10 * 1024 * 1024) {
-                    throw ValidationException::withMessages(['file' => 'Processed image exceeds the image limit.']);
+                clearstatcache(true, $temporary);
+                if (in_array($asset->kind, ['image', 'video'], true) && filesize($temporary) > 8_000_000) {
+                    throw ValidationException::withMessages(['file' => 'Processed media exceeds the 8 MB limit.']);
                 }
                 $stream = fopen($temporary, 'rb');
                 try {

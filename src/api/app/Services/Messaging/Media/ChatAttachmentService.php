@@ -43,8 +43,7 @@ class ChatAttachmentService
         $size = $file->getSize();
         $mime = ChatMediaInspector::MIME[$extension];
         $kind = str_starts_with($mime, 'image/') ? 'image' : ($extension === 'mp4' ? 'video' : 'document');
-        if ($size <= 0 || $size > ($kind === 'video' ? 30 : 10) * 1024 * 1024
-            || ($kind === 'image' && $size >= 10 * 1024 * 1024)) {
+        if ($size <= 0 || $size > ($kind === 'document' ? 10 * 1024 * 1024 : 8_000_000)) {
             throw ValidationException::withMessages(['file' => 'This file exceeds the allowed size or is empty.']);
         }
         $checksum = hash_file('sha256', $file->getRealPath());
@@ -107,6 +106,7 @@ class ChatAttachmentService
             $asset = $rows[$id];
             $total += $asset->byte_size;
             if ($asset->uploader_id !== $actor->id || $asset->scope_hash !== $scope || $asset->message_id
+                || (in_array($asset->kind, ['image', 'video'], true) && $asset->byte_size > 8_000_000)
                 || $asset->state !== ChatAttachmentState::Ready || $asset->expires_at->isPast()
                 || ! Storage::disk($asset->disk)->exists($asset->path)) {
                 throw ValidationException::withMessages(['attachment_ids' => 'Every attachment must be ready and belong to this message context.']);

@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ChatWorkspace, clearChatPrivateState, type ChatEntry } from "@aisley/chat-ui";
+import { ChatLoadingThread, ChatEmptyState, ChatWorkspace, clearChatPrivateState, type ChatEntry } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { listConversations, type ConversationSummary } from "@/lib/messages";
 
 export function MessagesInboxContent() {
   const { auth } = useAuth();
-  if (auth.status === "loading") return <p role="status">Checking your account…</p>;
+  if (auth.status === "loading") return <ChatWorkspace entries={[]} selected><ChatLoadingThread status="Checking your account…" /></ChatWorkspace>;
   if (auth.status !== "authenticated") return <p>Please <Link className="font-semibold text-[#4C1268] underline" href="/login?next=%2Fmessages">sign in</Link> to see your messages.</p>;
 
   return <AuthenticatedMessagesInbox key={auth.customer.id} />;
@@ -98,7 +98,7 @@ function AuthenticatedMessagesInbox() {
       loadingMore={busy}
       selected={false}
     >
-      <div className="grid min-h-full place-items-center p-8 text-center text-sm text-[#655969]"><p>Select a conversation, or open a Shop or Product to contact its Seller.</p></div>
+      <ChatEmptyState title="Shop messages" description="Select a conversation, or contact a Seller from their Shop or Product." />
     </ChatWorkspace>
   );
 }

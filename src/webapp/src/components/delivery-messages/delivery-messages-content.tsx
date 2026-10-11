@@ -4,7 +4,7 @@ import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/chat-ui";
+import { ChatLoadingThread, clearChatAttachments, ChatThreadHeader, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { deliveryMessages, type DeliveryMessage, type DeliveryThread } from "@/lib/delivery-messages";
@@ -28,7 +28,7 @@ function mergeMessages(current: DeliveryMessage[], incoming: DeliveryMessage[]) 
 
 export function DeliveryMessagesContent({ orderId, conversationId }: { orderId: string | null; conversationId: string | null }) {
   const { auth } = useAuth();
-  if (auth.status === "loading") return <p role="status">Checking your account…</p>;
+  if (auth.status === "loading") return <ChatWorkspace entries={[]} selected><ChatLoadingThread status="Checking your account…" /></ChatWorkspace>;
   if (auth.status !== "authenticated") {
     const query = orderId ? `?order=${encodeURIComponent(orderId)}` : conversationId ? `?conversation=${encodeURIComponent(conversationId)}` : "";
     return <p>Please <Link className="font-semibold text-[#4C1268] underline" href={`/login?next=${encodeURIComponent(`/delivery-messages${query}`)}`}>sign in</Link> to see delivery messages.</p>;
@@ -54,7 +54,6 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const activeDraftKey = useRef(draftKey);
 
   const refresh = useCallback(async () => {
@@ -168,7 +167,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     const targetOrderId = startingOrder;
     setBusy(true);
     setError("");
-    setNotice("");
+
     try {
       const result = targetConversationId
         ? await deliveryMessages.send(targetConversationId, attempt.body, attempt.key, attempt.attachmentIds ?? [])
@@ -180,7 +179,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       setThreads((current) => [result.conversation, ...current.filter((thread) => thread.id !== result.conversation.id)]);
       activeDraftKey.current = `customer-logistics:${accountId}:${result.conversation.id}`;
       setSelectedId(result.conversation.id);
-      setNotice("Message saved.");
+
       router.replace(`/delivery-messages?conversation=${encodeURIComponent(result.conversation.id)}`);
     } catch (reason) {
       if (activeDraftKey.current !== targetDraftKey) return;
@@ -200,7 +199,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     activity: thread.last_message_at, unread: thread.unread_count,
     context: `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}`,
     selected: selectedId === thread.id, readOnly: Boolean(thread.read_only_reason),
-    onSelect: () => { activeDraftKey.current = `customer-logistics:${accountId}:${thread.id}`; setBusy(false); setLoading(true); setSelectedId(thread.id); setMessages([]); setNotice(""); setError(""); router.replace(`/delivery-messages?conversation=${encodeURIComponent(thread.id)}`); },
+    onSelect: () => { activeDraftKey.current = `customer-logistics:${accountId}:${thread.id}`; setBusy(false); setLoading(true); setSelectedId(thread.id); setMessages([]);  setError(""); router.replace(`/delivery-messages?conversation=${encodeURIComponent(thread.id)}`); },
   }));
 
   return <ChatWorkspace
@@ -215,10 +214,10 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     onBack={() => { activeDraftKey.current = `customer-logistics:${accountId}:${orderId ?? 'inbox'}`; setBusy(false); setSelectedId(null); setMessages([]); setError(""); router.replace('/delivery-messages'); }}
   >
     {selected || startingOrder || selectedId ? <>
-      <header className="shrink-0 border-b border-zinc-200 px-4 py-3 dark:border-white/10 sm:px-6">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{selected?.counterparty_label ?? (startingOrder ? 'Contact Logistics' : loading ? 'Loading conversation…' : 'Delivery conversation')}</h2>
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{selected ? `Order ${selected.order_reference ?? selected.order_id.slice(0, 8)}` : startingOrder ? `Order ${startingOrder.slice(0, 8)}` : 'Delivery coordination'}</p>
-      </header>
+      <ChatThreadHeader
+        title={selected?.counterparty_label ?? (startingOrder ? "Contact Logistics" : loading ? "Loading conversation…" : "Delivery conversation")}
+        description={selected ? `Order ${selected.order_reference ?? selected.order_id.slice(0, 8)}` : startingOrder ? `Order ${startingOrder.slice(0, 8)}` : "Delivery coordination"}
+      />
       {error ? <p className="m-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
       <ChatHistory
           mediaClient={chatMedia}
@@ -231,14 +230,13 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
         media={{ client: chatMedia, draftKey, context: { ...(selectedId ? { conversation_id: selectedId } : { channel: "logistics", context_type: "order", context_id: startingOrder ?? undefined }) } }}
         id="delivery-message" recipient="Logistics"
         value={draft}
-        onChange={(value) => { setDraft(value); setError(""); setNotice(""); }}
+        onChange={(value) => { setDraft(value); setError("");  }}
         onSubmit={(ids) => void send(ids)}
         sendAllowed={selected?.send_allowed ?? true}
         readOnlyReason={selected?.read_only_reason ? 'The delivery relationship ended. This history is read only.' : null}
         online={typeof navigator === 'undefined' || navigator.onLine}
         sending={busy} uncertain={Boolean(pending) && !busy} error={error || undefined}
-        success={notice ? 'Message saved.' : undefined}
-      /> : <p className="p-4 text-sm text-zinc-500" role="status">{loading ? 'Loading messages…' : error || 'This conversation is unavailable.'}</p>}
+      /> : loading ? <ChatLoadingThread showHeader={false} /> : <p className="p-4 text-sm text-zinc-500" role="status">{error || 'This conversation is unavailable.'}</p>}
     </> : <div className="grid min-h-full place-items-center p-8 text-center text-sm text-[#655969]">Select an Order conversation or open an eligible Order to contact Logistics.</div>}
   </ChatWorkspace>;
 }

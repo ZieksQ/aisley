@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChatWorkspace, type ChatEntry } from '@aisley/chat-ui'
+import { ChatLoadingThread, ChatWorkspace, type ChatEntry } from '@aisley/ui/chat'
 import { useAuth } from "@/components/auth/auth-provider"
 import { CourierThread } from "./courier-thread"
 import { courierError, useCourierAccess } from "./use-courier-access"
@@ -13,7 +13,8 @@ type Props = { conversationId: string | null; orderId: string | null }
 
 export function CourierMessagesContent(props: Props) {
   const { auth } = useAuth()
-  if (auth.status !== 'authenticated') return <p role="status">Checking your account…</p>
+  if (auth.status === 'loading') return <ChatWorkspace entries={[]} selected><ChatLoadingThread status="Checking your account…" /></ChatWorkspace>
+  if (auth.status !== 'authenticated') return <p>Sign in to open your Courier conversations.</p>
   return <CourierInbox key={auth.customer.id} {...props} />
 }
 
@@ -89,14 +90,8 @@ function CourierInbox({ conversationId, orderId }: Props) {
     onSelect: () => router.push(`/courier-messages?conversation=${encodeURIComponent(thread.id)}`),
   }))
   return (
-    <div className="space-y-5">
-      <header className="space-y-2">
-        <h1 className="text-xl font-semibold sm:text-2xl">Courier messages</h1>
-        <p className="text-sm text-zinc-600">
-          Coordinate accepted final-mile deliveries. Shop and Logistics conversations stay in their own inboxes.
-        </p>
-        <p className="text-sm">{unread} unread {unread === 1 ? 'message' : 'messages'}</p>
-      </header>
+    <div className="space-y-2">
+
       {!online && <p className="text-sm" role="status">You are offline. Messages will refresh when you reconnect.</p>}
       <ChatWorkspace
         entries={entries}

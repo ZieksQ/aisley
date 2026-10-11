@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FiMessageCircle } from "react-icons/fi";
-import { ChatNotificationControl, type ChatNotificationPage } from "@aisley/chat-ui";
+import { ChatNotificationControl, type ChatNotificationPage } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { apiRequest } from "@/lib/api";
 

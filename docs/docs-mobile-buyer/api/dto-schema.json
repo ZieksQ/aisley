@@ -667,7 +667,13 @@
     "ChatShop": {
       "id": "UUID",
       "name": "string",
-      "slug": "string?"
+      "slug": "string?",
+      "availability": "online|offline|vacation"
+    },
+    "ShopAvailabilityProjection": {
+      "shop": "ChatShop",
+      "conversation_id": "UUID?",
+      "send_allowed": "bool"
     },
     "ShopMessage": {
       "id": "UUID",

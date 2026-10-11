@@ -45,7 +45,7 @@ export function UtilityBar() {
   );
 }
 
-export function MarketplaceHeader({ initialQuery = "", searchMode = "products" }: { initialQuery?: string; searchMode?: SearchMode }) {
+export function MarketplaceHeader({ initialQuery = "", searchMode = "products", compact = false }: { initialQuery?: string; searchMode?: SearchMode; compact?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[#4C1268] bg-[#4C1268] shadow-[0_2px_8px_rgba(49,18,63,0.06)]">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-5 lg:px-8">
@@ -65,29 +65,29 @@ export function MarketplaceHeader({ initialQuery = "", searchMode = "products" }
             />
           </Link>
 
-          <div className="hidden min-w-0 flex-1 md:block">
+          {!compact && <div className="hidden min-w-0 flex-1 md:block">
             <MarketplaceSearch
               key={`desktop:${initialQuery}:${searchMode}`}
               id="marketplace-search-desktop"
               initialQuery={initialQuery}
               mode={searchMode}
             />
-          </div>
+          </div>}
 
-          <HeaderAccountControls />
+          <div className={compact ? "ml-auto" : "contents"}><HeaderAccountControls /></div>
         </div>
 
-        <div className="pb-3 md:hidden">
+        {!compact && <div className="pb-3 md:hidden">
           <MarketplaceSearch
             key={`mobile:${initialQuery}:${searchMode}`}
             id="marketplace-search-mobile"
             initialQuery={initialQuery}
             mode={searchMode}
           />
-        </div>
+        </div>}
       </div>
 
-      <nav
+      {!compact && <nav
         aria-label="Marketplace"
         className="border-t border-[#4C1268] bg-[#4C1268]"
       >
@@ -113,7 +113,7 @@ export function MarketplaceHeader({ initialQuery = "", searchMode = "products" }
             ))}
           </div>
         </div>
-      </nav>
+      </nav>}
     </header>
   );
 }
