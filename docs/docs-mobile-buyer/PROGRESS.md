@@ -144,3 +144,7 @@ Short, dated log for the standalone Buyer Flutter project. Append actual impleme
 
 - Reconciled portable AGENTS/status summaries with external Buyer `1f06c0d` Progress and verification evidence: Phases 1–4, Phase 5 tooling, MapLibre, shipping selection and voucher discovery/collection/wallet are implemented with partial acceptance. General `57e9eb2`, shipping `22b0a48` and voucher `7e89b391` adoption remain separate; deployment is unidentified. Replaced the universally unchecked assertion with evidence-based criteria guidance.
 - Portable-document links, instruction consistency, historical-entry preservation, progress line counts and Git whitespace checks pass. Flutter/API tests, builds, live/provider/device and deployment checks were not rerun; their acceptance gates and media G27 (Buyer G26) remain open. Historical entries/archives and feature checkboxes are preserved. These documentation changes remain unstaged and uncommitted in aisley.
+
+## 2026-10-11 — Image adoption (G27 partial)
+
+- Local Buyer source adopts private images in Shop/Logistics/Courier messaging with exact retries, authenticated viewing and scope cleanup; staged without commits. Full suite 606 passed/42 live opt-in skipped; final regressions 13 passed; analyzer/formatting, web/Android release builds and 13 synthetic Chromium checks passed. [Verification and limits](references/dashboard-chat-images-verification.md) records actual checks. G27 (client G26) remains open for video/document and deployed/device acceptance; no live account/API/database/provider/deployment operation ran.

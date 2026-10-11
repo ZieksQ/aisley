@@ -53,7 +53,7 @@ Until then, implement only a truthful scaffold or unavailable state for that mis
 - `GET /api/v1/platform/policies/{type}/history/{version}` (public exact history read)
 - `GET /api/v1/policy-consent/status` (authenticated Courier status)
 - `POST /api/v1/policy-consent/{type}/versions/{version}/accept` (authenticated exact-version acceptance)
-- `GET /api/v1/courier/dashboard` (authenticated private read scaffold; aggregate sections unavailable)
+- `GET /api/v1/courier/dashboard?version=2` (bounded private aggregate; default-v1 scaffold retained; [contract](dashboard/aggregate-api.md))
 - `GET /api/v1/courier/first-mile-tasks` (authenticated private task list)
 - `POST /api/v1/courier/first-mile-tasks/{task}/accept` (authenticated first-mile acceptance)
 - `POST /api/v1/courier/waybills/resolve` (authenticated read-only QR candidate resolution)

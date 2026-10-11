@@ -3,7 +3,7 @@ feature: courier-messaging
 role: Customer
 platform: Flutter / Dart
 phase: 4
-flutter_status: Implemented; acceptance partial
+flutter_status: Text and images implemented locally; video/document and live/device acceptance open G27
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ---
@@ -59,7 +59,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Uncertain first send survives polling and cannot rebind to replacement Courier silently.
 - History limit1–50 default 20; newest-first page selection with ascending output; merge by UUID/sequence.
 - Poll visible online 15s and focus/reconnect; no push/background guarantees or offline queue.
-- Text≤2,000, no attachments/edit/delete/presence/calls/proof sharing or Customer delivery completion.
+- Text≤2,000, images supported locally; video/document open G27; no edit/delete/presence/calls/proof sharing or Customer delivery completion.
 - Clear transcript/draft/key/timers on identity/scoped denial; keep safe readonly UI for ended relation.
 - Test accepted eligibility vs offer/unaccepted/invalid affiliation, foreign Order, reassignment privacy
   and delivery close.
@@ -222,4 +222,6 @@ Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 
 ## Additive media contract — 2026-10-06
 
-The implemented Laravel [private media API](../../../api/chat-media.md) adds ordered `attachment_ids` to start/reply and `attachments` to messages. Optional captions and existing scoped history rules apply. This scoped addition supersedes earlier text-only media exclusions without changing imported Flutter implementation/acceptance status; external media adoption remains pending.
+The implemented Laravel [private media API](../../../api/chat-media.md) adds ordered `attachment_ids` to start/reply and `attachments` to messages. Optional captions and existing scoped history rules apply. Flutter image upload, status/retry, explicit image-only send and authenticated rendering are implemented locally. Video/document and live/device acceptance remain open (G27).
+
+Local evidence: [image checks](../../../references/dashboard-chat-images-verification.md).

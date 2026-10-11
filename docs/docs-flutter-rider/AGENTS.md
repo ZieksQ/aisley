@@ -81,7 +81,7 @@ Do not commit secret files, generated credentials, local device data, or unrelat
 - Use only exact documented `/api/v1/...` paths, HTTP methods, content types, field names, response envelopes, and error codes.
 - For every consumed endpoint, the spec must provide authentication, role and affiliation gates, ownership scope, request fields, prohibited fields, response DTO/nullability, errors, retry/idempotency, pagination, ordering, and cache behavior.
 - Treat `implemented`, `scaffold-only`, `planned`, and `unavailable` as different states. A draft or conceptual route is not callable.
-- The current Courier Dashboard scaffold may return unavailable sections with a truthful freshness state. Render that state; do not replace it with fake tasks, notifications, counts, or statuses.
+- Courier Dashboard requests version=2 for bounded operational sections and retains the default-v1 scaffold fallback. Render validated per-section freshness and failure states; do not invent tasks, notifications or totals.
 - `GET /api/v1/courier/auth/me` is an identity check. Do not treat it as an operational task feed or as proof that a pending Courier is approved.
 - A `401` clears the local session and returns to sign-in. A `403` maps to the documented pending, rejected, suspended, deactivated, or invalid-affiliation state without exposing another account's existence.
 - A `409` is a server conflict, `422` is validation, `429` honors `Retry-After`, and timeout/offline/5xx responses are recoverable failures, not authoritative empty results.

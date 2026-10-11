@@ -1,6 +1,6 @@
 # Private chat attachment API — 2026-10-06
 
-This additive Laravel contract supports images, video and documents in existing chat relationships. External Flutter media selection, rendering, authenticated exchange and device acceptance remain **unimplemented/unverified in this repository**. Existing client text-chat evidence and adopted backend baselines are unchanged.
+This additive Laravel contract supports images, video and documents in existing chat relationships. Buyer and Courier Flutter image selection, upload/status/retry, image-only sends and authenticated rendering are implemented locally. Video/document clients, deployed media exchange and installed-device acceptance remain open. No packages were added.
 
 ## Selection and limits
 
