@@ -4,13 +4,14 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Implemented photo POD submission and Logistics validation; signature deferred
 implementation_status: Courier private photo submission and Logistics private preview/validation are implemented; former reference proof is retired for delivery
 flutter_status: Android capture/browser fallback, upload, COD confirmation, and in-memory authenticated Courier photo review are implemented locally; Logistics and device/browser acceptance remain unverified
 canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
+failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
 backend_contract_version: courier-epod-v2-photo
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/references/file-upload-requirements.md, docs/features/shared/shipment-fulfillment/spec.md
 ---
@@ -27,7 +28,7 @@ For COD Orders, show the authorized delivery context's `data.order.payable_total
 
 ## Final-mile photo revision (2026-09-20)
 
-The final-mile drop-off method is a private photo POD tied to the assigned task, replacing tracking ID, Order reference, and waybill QR as delivery proof. Hub pickup evidence remains a separate custody step. The Courier submits one JPEG, PNG, or WebP photo strictly under 10 MiB with `expected_revision` and a UUID `Idempotency-Key`, receives a pending `proof_id`, and then explicitly taps **Delivered** to submit intent. Logistics retrieves `GET /api/v1/logistics/delivery-proofs/{proof}/photo` under its organization/hub scope and validates the matching proof and intent before the task, Shipment, and Order become `delivered`. Logistics may reject a bad photo through `POST /api/v1/logistics/delivery-proofs/{proof}/reject` with a reason and current task revision; rejection also rejects its pending intent while leaving custody unchanged. The Courier can privately reread its own photo at `GET /api/v1/courier/delivery-proofs/{proof}/photo`. Failed drop-off attempts record a reason and time without changing custody or cancelling the assignment; the Courier may retry the next day with a new photo. A failed attempt after a photo invalidates that photo for completion; the next attempt needs fresh POD. Apply `docs/references/file-upload-requirements.md` to validation, storage, and private access. The older JSON identifier contract described below is historical and no longer accepted by the delivery-proof endpoint.
+The final-mile drop-off method is a private photo POD tied to the assigned task, replacing tracking ID, Order reference, and waybill QR as delivery proof. Hub pickup evidence remains a separate custody step. The Courier submits one JPEG, PNG, or WebP photo strictly under 10 MiB with `expected_revision` and a UUID `Idempotency-Key`, receives a pending `proof_id`, and then explicitly taps **Delivered** to submit intent. Logistics retrieves `GET /api/v1/logistics/delivery-proofs/{proof}/photo` under its organization/hub scope and validates the matching proof and intent before the task, Shipment, and Order become `delivered`. Logistics may reject a bad photo through `POST /api/v1/logistics/delivery-proofs/{proof}/reject` with a reason and current task revision; rejection also rejects its pending intent while leaving custody unchanged. The Courier can privately reread its own photo at `GET /api/v1/courier/delivery-proofs/{proof}/photo`. Failed drop-off attempts record a reason and time without changing custody or cancelling the assignment; the Courier may retry the next day with a new photo. A failed attempt after a photo invalidates that photo for completion; Flutter compares `failed_attempt_count` with matching completion `proof_failed_attempt_count`, blocks stale/unknown proof, and requires fresh POD. See the [failed-attempt handoff](../delivery-order/failed-attempts.md), verified at `4d8bfefa2a95007256e6616df415fa186d1b18eb`. Apply `docs/references/file-upload-requirements.md` to validation, storage, and private access. The older JSON identifier contract described below is historical and no longer accepted by the delivery-proof endpoint.
 
 ## WHAT
 
@@ -103,6 +104,7 @@ final-mile task
 ## HOW
 
 ### Implemented photo endpoint contract
+
 - The external Flutter Courier app captures or selects private photo POD, submits it, and shows its pending Logistics validation state. Signature controls remain unavailable.
 
 - `POST /api/v1/courier/tasks/{task}/proof-of-delivery` — accepts multipart `photo` and `expected_revision` plus a UUID `Idempotency-Key`. It creates awaiting-validation private evidence and never sets `delivered`. JSON identifier payloads return `422`.
@@ -169,11 +171,7 @@ Idempotency-Key: <UUID header>
 ```json
 {
   "data": {
-    "task_id": "task-uuid",
-    "proof_id": "evidence-uuid",
-    "evidence_status": "awaiting_validation",
-    "custody_state": "out_for_delivery",
-    "completion_eligible": false,
+    "task_id": "task-uuid", "proof_id": "evidence-uuid", "evidence_status": "awaiting_validation", "custody_state": "out_for_delivery", "completion_eligible": false,
     "submitted_at": "server-time"
   }
 }
@@ -196,8 +194,7 @@ Idempotency-Key: <UUID header>
 
 ### Tests, observability, and rollout
 
-- Test role/task/Order/organization isolation, cross-order reuse, invalid photos, upload limits/signatures, storage partial failure, private delivery, duplicate submissions, stale revisions, failed-attempt photo freshness, and actor preservation.
-- Test that Logistics records the Courier performer and Logistics recorder, that access/scan does not satisfy proof, and that notification failure cannot undo evidence.
+- Test role/task/Order/organization isolation, cross-order reuse, invalid photos, upload limits/signatures, storage partial failure, private delivery, duplicate submissions, stale revisions, failed-attempt photo freshness, and actor preservation. Test that Logistics records the Courier performer and Logistics recorder, that access/scan does not satisfy proof, and that notification failure cannot undo evidence.
 - Flutter tests cover capture permissions, file validation feedback, progress/retry, secure storage, offline/timeout/conflict states, and accessibility.
 - Log task/proof/event IDs, performing Courier, recording Logistics account, evidence state, result, revision, and timestamp; never log media bytes, raw paths, or QR tokens.
 - Keep signature controls unavailable until their policy and endpoint are deployed. Photo POD is live with the shared transition service; record Flutter camera/upload adoption separately from physical-device acceptance in progress.

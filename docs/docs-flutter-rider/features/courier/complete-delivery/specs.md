@@ -3,7 +3,7 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Implemented photo POD completion intent and Logistics confirmation
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
 flutter_status: Photo-linked COD completion intent is implemented locally in Flutter; authenticated Logistics validation, rejected-photo retry, and installed-device acceptance remain unverified
@@ -11,6 +11,7 @@ canonical: true
 role: Courier
 scope: Laravel API and external Flutter application
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
+failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
 backend_contract_version: courier-completion-v1-qr
 backend_contract_version_status: Historical QR baseline; the photo-POD revision below is authoritative
 backend_contract_reviewed_commit: a94669248c63525e44243327f4c25feca46c9c50
@@ -23,7 +24,7 @@ backend_contract_funding_revision: order-funding-hold-v1 (2026-10-11)
 The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
 ## COD confirmation revision (2026-09-23)
 
-For COD Orders, refetch the accepted-task `GET /api/v1/courier/tasks/{task}/delivery` projection and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal, not cash due. Require an explicit confirmation that this exact amount was collected before sending `cod_collected: true`. If payment fields are absent or the cash was not collected, do not submit a successful completion intent; refetch the task. The failed-attempt API exists, but its Flutter submission UI remains unadopted. The API derives declaration amount, currency, and time from the current Order and accepts no Courier-supplied amount. Logistics confirms the declaration and proof before atomically marking delivery and COD `payment_status` as `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
+For COD Orders, refetch the accepted-task `GET /api/v1/courier/tasks/{task}/delivery` projection and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal, not cash due. Require an explicit confirmation that this exact amount was collected before sending `cod_collected: true`. If payment fields are absent or the cash was not collected, do not submit a successful completion intent; refetch the task. Flutter adopts [failed-attempt reporting](../delivery-order/failed-attempts.md) and blocks Delivered intent for stale/unknown matching-photo attempt counts; source baseline `4d8bfefa2a95007256e6616df415fa186d1b18eb`, live/device acceptance remains open. The API derives declaration amount, currency, and time from the current Order and accepts no Courier-supplied amount. Logistics confirms the declaration and proof before atomically marking delivery and COD `payment_status` as `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
 
 ## WHAT
 
@@ -129,6 +130,7 @@ out_for_delivery
 
 ## HOW
 ### Implemented endpoints
+
 - The development-only Courier API mockup may submit completion intent after proof submission and show the GET projection while Logistics validation is pending.
 
 | Method and path                                  | Actor            | Purpose                                               |
@@ -186,9 +188,7 @@ out_for_delivery
 - Follow the first-mile migration bridge in docs/schema.md; do not replay historical fulfillment.
 - Use the shared transition service; controllers and Flutter never directly assign status.
 - Keep unavailable routes disabled until migrations and schema-health checks pass.
-- Test SQLite and PostgreSQL schema, foreign keys, uniqueness, and append-only constraints.
-- Test IDOR, role/status/affiliation denial, wrong leg, and unrelated evidence.
-- Test pending/rejected proof, premature completion, and duplicate intent.
+- Test SQLite and PostgreSQL schema, foreign keys, uniqueness, and append-only constraints. Test IDOR, role/status/affiliation denial, wrong leg, and unrelated evidence. Test pending/rejected proof, premature completion, and duplicate intent.
 - Test concurrent Logistics decisions and stale assignments without double completion.
 - Test rollback atomicity across task, Shipment, Order, event, and notification work.
 - Test that final delivery leaves Inventory unchanged; COD payment becomes `paid` only after Logistics validates proof and collection in the delivery transaction.
