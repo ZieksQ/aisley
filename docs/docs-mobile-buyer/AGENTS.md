@@ -19,7 +19,7 @@ The Buyer application is one Flutter/Dart client for AISLEY's external Laravel A
 
 The Flutter project owns Customer screens, navigation, typed networking, secure storage, local state and accessibility. Laravel owns identity, approval, consent enforcement, permissions, prices, shipping, vouchers, checkout eligibility, Order transitions, conversation permissions and support-ticket rules.
 
-The external Buyer project reports Phases 1–4 implementation and Phase 5 local verification tooling at adopted backend 57e9eb2; controlled authenticated/device and distribution acceptance remain open. This bundle contains documentation only; imported tests/builds/browser and SDK/dependency checks were not rerun here. Current provider-selection/DTO adoption is G25. Reconcile copied-contract conflicts with current backend evidence before enabling affected behavior.
+The external Buyer project reports Phases 1–4 implementation and Phase 5 local verification tooling, plus MapLibre address pinning, per-Shop shipping selection and voucher discovery/collection/wallet; acceptance remains partial. Consult `docs/PROGRESS.md`, `docs/features/README.md` and attributed verification records for actual implementation, adopted backend revisions and remaining work. Controlled live/deployed API, installed Android/GPS/TalkBack, production configuration/signing and private chat-media adoption remain open; this bundle tracks media as G27 (G26 in the Buyer project). This bundle contains documentation only; reported Flutter tests/builds/browser and SDK/dependency checks were not rerun here. Implemented Laravel/storefront behavior and imported Courier work do not establish Buyer mobile implementation or acceptance. Reconcile copied-contract conflicts with current backend evidence before enabling affected behavior.
 
 ## Git branch and commit rules
 
@@ -70,7 +70,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 - Distinguish implemented, scaffold-only, planned and unavailable backend behavior separately from pending or verified Buyer Flutter implementation.
 - Follow WHAT/MUST/HOW and **200–230 physical lines** in `docs/features/customer/rule.md` for new or revised Customer specs, including authentication.
 - This local rule overrides the `feature-spec` skill's 120–160-line preference and its instruction to prefer fewer lines for simple features. Dart source modularity thresholds remain separate.
-- All 22 Customer specs have been revised to the required range. Shared-policy specs, instructions and guides are outside this range. Every Flutter implementation criterion remains unchecked.
+- All 22 Customer specs have been revised to the required range. Shared-policy specs, instructions and guides are outside this range. Flutter implementation and acceptance criteria follow recorded evidence; preserve evidenced checked criteria and leave unverified live/device and release gates unchecked. Consult each spec's `flutter_status`, `docs/PROGRESS.md` and `docs/verification.md` rather than inferring completion from backend or documentation checks.
 - Preserve useful acceptance criteria, provenance and open decisions. Record material contract revisions and backend versions; mark completion only from actual implementation and verification evidence.
 - Never invent server fields, roles, approval paths, refresh tokens, native push or conceptual routes as usable APIs.
 

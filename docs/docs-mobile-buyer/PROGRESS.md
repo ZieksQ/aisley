@@ -4,8 +4,8 @@ Short, dated log for the standalone Buyer Flutter project. Append actual impleme
 
 ## Backend and client snapshot
 
-- Historical backend 7b1a08a; Buyer adoption remains 57e9eb2. Documentation review: Laravel a946692, 2026-10-07. Phases 1–4, Phase 5 tooling and October 4–5 marketplace/control refinements are externally reported; no Flutter results were rerun here.
-- Provider selection G25, private media G27, historical checkout resolution, controlled authenticated/live, installed Android/TalkBack/picker, Firefox modes and distribution gates remain open.
+- Historical backend `7b1a08a`; externally reported Buyer adoption: general `57e9eb2`, shipping `22b0a48`, voucher collection `7e89b391`. D01 status review: 2026-10-11, Buyer source `1f06c0d`. Phases 1–4, Phase 5 local verification tooling, MapLibre, per-Shop shipping selection and voucher collection are externally reported as implemented with partial acceptance; no Flutter results were rerun here.
+- Deployed API/schema/provider configuration, G25 controlled live/device shipping acceptance, private media G27 (Buyer G26), controlled real-account integration, installed Android/GPS/TalkBack/picker, Firefox modes and distribution gates remain open. See the dated records below and [voucher client evidence](references/voucher-collection-verification.md).
 
 ## 2026-10-03
 
@@ -139,3 +139,8 @@ Short, dated log for the standalone Buyer Flutter project. Append actual impleme
 
 - Synchronized nullable `imageUrl` fields for Order previews/items, Checkout Quote items and Batch items across the portable wire tables, DTO schema, examples and affected Customer specs. Laravel resolves available public variant media before the Product default image; missing media leaves immutable Order snapshots readable.
 - This is contract documentation for the Laravel/webapp update. No Buyer Flutter source, tests, builds, live API or device checks ran; the reported `57e9eb2` adoption baseline and external implementation status remain unchanged.
+
+## 2026-10-11 — Buyer implementation status (audit D01)
+
+- Reconciled portable AGENTS/status summaries with external Buyer `1f06c0d` Progress and verification evidence: Phases 1–4, Phase 5 tooling, MapLibre, shipping selection and voucher discovery/collection/wallet are implemented with partial acceptance. General `57e9eb2`, shipping `22b0a48` and voucher `7e89b391` adoption remain separate; deployment is unidentified. Replaced the universally unchecked assertion with evidence-based criteria guidance.
+- Portable-document links, instruction consistency, historical-entry preservation, progress line counts and Git whitespace checks pass. Flutter/API tests, builds, live/provider/device and deployment checks were not rerun; their acceptance gates and media G27 (Buyer G26) remain open. Historical entries/archives and feature checkboxes are preserved. These documentation changes remain unstaged and uncommitted in aisley.
