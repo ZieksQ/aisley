@@ -1,10 +1,12 @@
-# Private chat attachment API — 2026-10-06
+# Private chat attachment API — 2026-10-11
 
 This additive Laravel contract supports images, video and documents in existing chat relationships. Buyer and Courier Flutter image selection, upload/status/retry, image-only sends and authenticated rendering are implemented locally. Video/document clients, deployed media exchange and installed-device acceptance remain open. No packages were added.
 
 ## Selection and limits
 
-Select up to five files totaling at most 50 MiB. JPG/JPEG, PNG and WebP are strictly below 10 MiB each. MP4 is at most 30 MiB and 180 seconds, with one H.264 video stream and optional AAC audio; there is no transcoding. PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, UTF-8 TXT and CSV are at most 10 MiB each. Empty files, unsupported/double extensions, spoofed formats, unsafe/encrypted documents and failed malware checks are rejected. Images are decoded, bounded and rewritten without source metadata. Videos get a poster. File selection does not send a message.
+Select up to five files totaling at most 50 MiB. New JPG/JPEG, PNG and WebP images are at most 8,000,000 bytes (inclusive). New MP4 videos are at most 8,000,000 bytes (inclusive) and 180 seconds, with one H.264 video stream and optional AAC audio; there is no transcoding. PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, UTF-8 TXT and CSV remain at most 10 MiB each. Empty files, unsupported/double extensions, spoofed formats, unsafe/encrypted documents and failed malware checks are rejected. Images are decoded, bounded and rewritten without source metadata. Videos get a poster. File selection does not send a message.
+
+Apply the 8,000,000-byte limit to every new image/video upload, rewrite, and binding to a new message. A historical ready but unbound image/video over that limit cannot be attached to a new message. Keep authorized retrieval of media already committed to a message and exact replay of that already-committed message; this compatibility does not permit a changed retry payload or new binding. The revised contract does not itself establish external-client acceptance of the new boundary.
 
 ## Routes
 
@@ -20,7 +22,7 @@ Use the authenticated caller's `/api/v1/{role}/chat-attachments` base. All route
 | GET `/{id}/content` | Authorized conversation participants only, bound ready content; private/no-store/nosniff. Documents force download. MP4 supports one byte range (206), invalid ranges return 416. |
 | GET `/{id}/preview` | Authorized bound ready image thumbnail/video poster (JPEG). Missing/foreign/unbound content is scoped 404. |
 
-Uploads/retries are limited to 15 per minute per account, separately from message counters. Upload is at most one 30 MiB file per multipart request. Do not set multipart Content-Type manually; the transport adds the boundary. Error responses retain the existing Laravel message/errors envelope: 401 auth, 403 approval/account/consent, 404 scope, 409 conflict/ended relationship, 422 validation, 429 throttle, 503 media unavailable. There is no raw storage path or public blob URL in the DTO.
+Uploads/retries are limited to 15 per minute per account, separately from message counters. Upload one file per multipart request, at most 8,000,000 bytes for images/videos or 10 MiB for documents. Do not set multipart Content-Type manually; the transport adds the boundary. Error responses retain the existing Laravel message/errors envelope: 401 auth, 403 approval/account/consent, 404 scope, 409 conflict/ended relationship, 422 validation, 429 throttle, 503 media unavailable. There is no raw storage path or public blob URL in the DTO.
 
 ## DTO and state
 

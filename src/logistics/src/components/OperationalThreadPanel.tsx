@@ -1,6 +1,6 @@
 import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { clearChatAttachments, ChatComposer, ChatHistory, type ChatMediaContext, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/chat-ui'
+import { clearChatAttachments, ChatComposer, ChatHistory, type ChatMediaContext, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/ui/chat'
 import { ApiError } from '../lib/api'
 import { operationalChat, type OperationalMessage, type OperationalThread } from '../lib/operationalChat'
 
@@ -33,7 +33,6 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const pendingRef = useRef(readChatAttempt(draftKey))
   const activeIdRef = useRef(selected?.id ?? null)
   activeIdRef.current = selected?.id ?? null
@@ -65,7 +64,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     pendingRef.current = attempt
     setUncertain(Boolean(attempt))
     setError('')
-    setNotice('')
+
     if (!selected) return
     let cancelled = false
     setLoading(true)
@@ -127,7 +126,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
     setUncertain(true)
     setSending(true)
     setError('')
-    setNotice('')
+
     try {
       const result = thread
         ? await operationalChat.send(thread.id, attempt.body, attempt.key, attempt.attachmentIds ?? [])
@@ -144,7 +143,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
       setUncertain(false)
       setThread(result.conversation)
       setMessages((current) => mergeMessages(current, [result.message]))
-      setNotice('Message saved.')
+
       onSaved(result.conversation)
     } catch (caught) {
       setError(errorText(caught))
@@ -213,7 +212,6 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
         sendAllowed={thread?.send_allowed ?? true}
         readOnlyReason={thread?.read_only_reason ? 'This relationship ended. The conversation is read only.' : null}
         error={error || undefined}
-        success={notice || undefined}
       />
     </section>
   )

@@ -1,4 +1,4 @@
-import { createChatMediaClient } from '@aisley/chat-ui';
+import { createChatMediaClient } from '@aisley/ui/chat';
 import { request as apiRequest, csrf as initializeCsrf } from './api';
 
 export const chatMedia = createChatMediaClient({

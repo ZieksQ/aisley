@@ -13,7 +13,7 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md). Rich cards and Seller sharing remain target enhancements. Private attachments follow the [media contract](../../shared/chat-media/spec.md) with explicit runtime readiness.
+- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md), including its scoped chat-first visual redesign. Preserve the existing brand colors, Customer light-only behavior, accessibility, privacy, and Customer workflows. Shared chat presentation and behavior come from `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export facade. Rich cards and Seller sharing remain target enhancements. Private attachments follow the [media contract](../../shared/chat-media/spec.md) with explicit runtime readiness.
 - Let an authenticated Customer ask a Shop about a visible Product or an Order and continue the conversation in a private in-app inbox.
 - Shopee's [buyer chat guidance](https://help.shopee.ph/portal/4/article/82308-%5BChat%5D-How-do-I-chat-with-sellers) is a UX reference for a **Chat** entry point on a Shop and product/order questions; it is not a claim that AISLEY has Shopee's transport or policies.
 - The Shop is the conversation's public identity; the private Seller account is an authorization subject, not a displayed contact profile.
@@ -78,12 +78,18 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 ### Customer experience
 
 - Put **Chat** on an eligible Shop page, **Message Seller** on a visible Product Detail, and **Contact Seller** on an owned Order Detail; each resolves the same Shop thread. Do not replace public Product Q&A.
+- In the Customer webapp, selecting the Shop icon/profile in a chat opens a floating Shop card with **View Shop**. Use a generic modal primitive from `@aisley/ui`, with the Shop-specific composition, availability labels, and destination owned by the Customer app. This floating card is webapp-only; the API field does not claim a mobile UI change.
+- Show Shop business availability as **Shop online**, **Shop offline**, or **On vacation** from `shop.availability`; never show a person/connection presence indicator. If both Shop and Seller are active, `vacation` reflects the Shop's existing vacation flag and `online` means the flag is off. If either is unavailable, use `offline`; only an authorized existing thread can expose that unavailable Shop. These labels do not change the existing send rules: the context-free Shop preview is only an initial hint, and start/send remains authoritative. A valid owned Order context retains its existing exception during vacation.
+- Use `/messages?shop=<shopUUID>` as the Shop entry route, optionally retaining one message context as `&product=<productUUID>` or `&order=<orderUUID>`. `/messages/new` remains a compatibility route that redirects to this canonical route while preserving its valid Shop and Product/Order context. Open the normal ChatWorkspace for both an existing thread and a prospective first message; context stays staged until the first valid message, and route entry never persists an empty thread.
+- Keep the Customer Messages shell's **Shops** (`/messages`), **Logistics** (`/delivery-messages`), and **Couriers** (`/courier-messages`) destinations separate. Their histories and role/context rules do not merge when linked from the shared Messages shell.
+- Use the compact storefront header on message routes: keep the logo and account, cart, and notification controls; omit search and category rows to preserve room for chat on narrow or short viewports. Keep **Back to store** on Shops routes, **Orders** on Logistics/Courier routes, and the three channel tabs available above the active inbox or thread.
+- On mobile with a conversation selected, hide the local **Messages** heading/return-link row and channel tabs until the user selects the conversation's **Back to inbox** control. Keep the thread header, history, and composer in the available visual viewport; return to the inbox with its channel tabs when backing out.
 - `/messages` shows paginated Shop-labeled threads, last safe text preview, latest activity, and persisted unread counts. `/messages/{conversation}` shows bounded history, optional context cards, and composer.
 - Product/Order context cards link through their owning route and recheck visibility/ownership. A missing Product shows “Product unavailable,” not private metadata.
-- Show explicit loading, empty, sending, sent, validation, retry, forbidden/not-found, offline and stale-session states. On uncertain timeout, retry with the same key before composing a new message.
-- Keep a pending draft in the current browser while retrying, but do not label it “sent” until Laravel returns the committed message.
+- Keep the chat shell, history, and composer available while loading or refreshing; use local nonblocking progress feedback. Show empty, sending, sent, validation, retry, forbidden/not-found, offline and stale-session states. On uncertain timeout, retry with the same key before composing a new message.
+- Show committed status within its message only after Laravel confirms persistence. Do not show persistent **Message Sent** or **Message Saved** banners. Keep a pending draft in the current browser while retrying.
 - An unread badge links to `/messages`; opening one thread clears only that thread's authorized unread state.
-- The Customer UI follows the light storefront design, mobile-first layout, semantic message list, labeled controls, keyboard focus, and non-color-only unread indicators; new text does not steal focus or force scroll while reading older messages.
+- The Customer UI remains light-only regardless of the operating-system/browser dark preference. Preserve the storefront's root `color-scheme: light` and disabled Tailwind `dark:` variant so shared chat utilities cannot activate dark styling from the browser preference. Support a mobile-first chat redesign using the existing colors. Keep the message list semantic, controls labeled and keyboard accessible, unread state understandable without color alone, and new text from stealing focus or forcing scroll while reading older messages.
 
 ### Acceptance criteria
 
@@ -95,6 +101,8 @@ scope: Customer Next.js storefront and shared Laravel messaging domain
 - [ ] A committed message survives notification/polling failure, and a rolled-back send creates no visible success or recipient alert.
 - [x] Seller can reply through the shared authorized domain before Customer chat is enabled; no private Shop, Customer, or Order data leaks.
 - [x] A suspended Seller cannot newly receive/send while the Customer can still read the permitted historical thread.
+- [ ] The Customer Shop projection reports business-only availability and authorized existing-thread/send state without creating a conversation; the floating Shop card's **View Shop** action uses the public Shop route.
+- [ ] Canonical Shop/Product/Order entry preserves valid context through the `/messages/new` redirect and first-send retry, creates no empty thread, and opens the regular ChatWorkspace.
 - [ ] Customer screens handle unavailable contexts, offline/timeout, 401/403/404/409/422/429, keyboard use, and narrow viewports.
 
 ### Courier final-mile coordination
@@ -123,8 +131,9 @@ Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passe
 - Under a conversation lock, allocate the next message sequence, persist the message, and update last activity. Add unique `(conversation_id, sequence)` and sender/idempotency constraints plus indexes for participant inbox and cursor history.
 - Store nullable, validated `product_id`/`order_id` message references, not full Product or Order JSON. Serialize role-safe current context; historical unavailable records become placeholders.
 - Return thread ID, Shop public name/slug, safe last-message preview, last activity, unread count and pagination cursor in the inbox; do not return a User model.
-- Implemented Customer API under `/api/v1/customer/conversations`:
+- Customer API under `/api/v1/customer/conversations`:
   - `GET /`: cursor-paginated inbox and unread summaries.
+  - `GET /api/v1/customer/conversations/shops/{shop}`: source route added in iteration 03; returns `data:{shop:{id,name,slug,availability},conversation_id:string|null,send_allowed:boolean}` for the active Customer. The same `shop.availability` enum is included in Shop conversation summaries. This read finds only that Customer's existing Shop thread; without one, it returns an eligible Shop projection. It creates no thread. `availability` is `online|offline|vacation` and describes Shop business availability only. `send_allowed` is a context-free preview; the existing thread summary or start/send response remains authoritative for its validated thread/context. The iteration 03 independent review passed D1–D13 for the frozen local verification contract; deployed API, PostgreSQL contention, and external Buyer/mobile acceptance remain separate gates.
   - `POST /`: first message plus exactly one Shop/Product/Order entry context; returns existing-or-created thread and message.
   - `GET /{conversation}` and `GET /{conversation}/messages`: participant-scoped detail and cursor history.
   - `POST /{conversation}/messages`: text, optional validated context, `Idempotency-Key`.
@@ -136,6 +145,7 @@ Verification (2026-09-24): focused SQLite and disposable PostgreSQL suites passe
 - Use after-commit jobs only for optional recipient alerts; a failed job never rolls back a saved message. [Laravel queue guidance](https://laravel.com/docs/12.x/queues#jobs-and-database-transactions) supports this boundary.
 - Test SQLite and PostgreSQL authorization, two-worker initiation/send races, forged contexts, retries, sequence/read monotonicity, pagination, status/vacation changes, and notification failure.
 - Test repeated Product/Shop/Order entry into one Shop thread, multi-Shop Order separation, archived Product placeholder, and suspended Seller read/send boundary.
+- Test Shop availability values against active/approved Shop, Seller account, vacation flag, and unavailable existing-history states; verify the projection never exposes another Customer's thread or creates an empty one.
 - Test Customer and Seller UI entry points, empty/history/unread states, timeout retry, accessibility, and no duplicate messages after focus/refetch. Keep private responses `no-store`.
 - Roll out behind the shared API/Seller reply readiness gate. Decide message retention and abuse-reporting ownership before production release; do not invent a blanket Admin read privilege.
 - Remove or disable the existing storefront `/messages` header link until the real route is available, then route it to the protected inbox rather than a 404.

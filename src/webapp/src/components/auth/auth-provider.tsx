@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@aisley/ui";
 import { clearCheckoutPlacement } from "@/lib/checkout/placement";
-import { clearChatPrivateState } from "@aisley/chat-ui";
+import { clearChatPrivateState } from "@aisley/ui/chat";
 import { ApiError, apiRequest, initializeCsrf } from "@/lib/api";
 import type { AuthState, AuthenticatedCustomer } from "@/lib/auth/types";
 import { createSessionController } from "@/lib/auth/session-controller";

@@ -57,7 +57,7 @@ export function ShopHeader({ shop }: { shop: ShopDetail }) {
         </div>
         <Link
           className="shop-chat-button"
-          href={`/messages/new?shop=${encodeURIComponent(shop.id)}`}
+          href={`/messages?shop=${encodeURIComponent(shop.id)}`}
         >
           <FiMessageSquare aria-hidden="true" />
           Chat with Shop

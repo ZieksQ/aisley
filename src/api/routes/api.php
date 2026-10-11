@@ -822,6 +822,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         });
         Route::prefix('conversations')->name('conversations.')->group(function () {
             Route::get('/', [CustomerConversationController::class, 'index'])->name('index');
+            Route::get('/shops/{shop}', [CustomerConversationController::class, 'shopContext'])->whereUuid('shop')->name('shop-context');
             Route::get('/unread-count', [CustomerConversationController::class, 'unreadCount'])->name('unread-count');
             Route::post('/', [CustomerConversationController::class, 'start'])->middleware('throttle:customer-shop-chat-start')->name('start');
             Route::get('/{conversation}', [CustomerConversationController::class, 'show'])->whereUuid('conversation')->name('show');

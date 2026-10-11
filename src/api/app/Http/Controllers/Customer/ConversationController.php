@@ -8,11 +8,17 @@ use App\Http\Requests\Messaging\ReadConversationRequest;
 use App\Http\Requests\Messaging\SendConversationMessageRequest;
 use App\Http\Requests\Messaging\StartConversationRequest;
 use App\Services\Messaging\ConversationApi;
+use App\Services\Messaging\ShopChatContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ConversationController extends Controller
 {
+    public function shopContext(Request $request, string $shop, ShopChatContext $context): JsonResponse
+    {
+        return response()->json(['data' => $context->get($request->user(), $shop)])->header('Cache-Control', 'private, no-store');
+    }
+
     public function index(ListConversationsRequest $request, ConversationApi $api): JsonResponse
     {
         return $api->index($request, 'customer');

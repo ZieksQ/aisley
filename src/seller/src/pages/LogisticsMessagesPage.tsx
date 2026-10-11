@@ -1,7 +1,7 @@
 import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/chat-ui'
+import { ChatLoadingThread, clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/ui/chat'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import { logisticsMessages, type LogisticsMessage, type LogisticsThread } from '../lib/logisticsMessages'
@@ -123,8 +123,8 @@ export function LogisticsMessagesPage() {
   }))
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6">
+      <div className={`${selectedId || pickupId ? "hidden min-[800px]:flex" : "flex"} mb-3 flex-wrap items-end justify-between gap-3`}>
         <div>
           <h2 className="text-xl font-semibold">Logistics messages</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
@@ -137,7 +137,7 @@ export function LogisticsMessagesPage() {
       </div>
       <ChatWorkspace
         entries={entries}
-        selected={Boolean(selected || pickupId)}
+        selected={Boolean(selectedId || pickupId)}
         inboxTitle={`Pickup conversations · ${unread} unread`}
         inboxStatus={loading && !threads.length ? <p className="p-4 text-sm text-zinc-500" role="status">Loading conversations…</p> : null}
         inboxError={error || undefined}
@@ -147,7 +147,7 @@ export function LogisticsMessagesPage() {
         onLoadMore={() => { if (cursor) void load(true, cursor) }}
         onBack={backToInbox}
       >
-        {selected || pickupId ? <LogisticsMessageThread accountId={accountId} contextId={selected ? null : pickupId} onSaved={saved} selected={selected} /> : (
+        {selected || pickupId ? <LogisticsMessageThread accountId={accountId} contextId={selected ? null : pickupId} onSaved={saved} selected={selected} /> : selectedId ? <ChatLoadingThread /> : (
           <div className="grid min-h-full place-items-center p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Select a pickup conversation or open one of your pickup requests to contact Logistics.</div>
         )}
       </ChatWorkspace>
@@ -173,7 +173,6 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
   const [olderBusy, setOlderBusy] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const activeId = useRef(selectedId)
   activeId.current = selectedId
 
@@ -199,7 +198,7 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
     setPending(attempt)
     setUncertain(Boolean(attempt))
     setError('')
-    setNotice('')
+
     if (selectedId) {
       setLoading(true)
       void refresh(selectedId).catch((reason) => {
@@ -238,7 +237,7 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
     writeChatAttempt(draftKey, attempt)
     setBusy(true)
     setError('')
-    setNotice('')
+
     try {
       const result = thread ? await logisticsMessages.send(thread.id, attempt.body, attempt.key, attempt.attachmentIds ?? [])
         : contextId ? await logisticsMessages.start(contextId, attempt.body, attempt.key, attempt.attachmentIds ?? []) : null
@@ -250,7 +249,7 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
       setUncertain(false)
       setThread(result.conversation)
       setMessages((current) => merge(current, [result.message]))
-      setNotice('Message saved.')
+
       onSaved(result.conversation)
     } catch (reason) {
       setError(failure(reason))
@@ -314,7 +313,6 @@ function LogisticsMessageThread({ accountId, contextId, selected, onSaved }: {
         sendAllowed={thread?.send_allowed ?? true}
         readOnlyReason={thread?.read_only_reason ? 'This pickup relationship ended. History is read only.' : null}
         error={error || undefined}
-        success={notice || undefined}
         placeholder="Coordinate this pickup"
       />
     </section>

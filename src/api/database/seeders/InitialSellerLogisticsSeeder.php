@@ -20,8 +20,8 @@ class InitialSellerLogisticsSeeder extends Seeder
 {
     public function run(): void
     {
-        if (app()->environment('production')) {
-            $this->command?->warn('Initial Seller demo logistics were not configured in production.');
+        if (app()->environment('production') && ! config('demo.allow_seeders_in_production')) {
+            $this->command?->warn('Production demo fixtures are disabled; set ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true to allow seeding.');
 
             return;
         }

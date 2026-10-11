@@ -59,9 +59,14 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - 201 new and replay are successful; IDs/sequence deduplicate lost-response retry.
 - 409 idempotency or relationship conflict needs refresh/review; do not silently generate another key.
 - Seller inactive/permission loss disables sends while authorized scoped history remains readable.
+- Iteration 03 adds `GET /api/v1/customer/conversations/shops/{shop}` with `data:{shop:ChatShop,conversation_id:string|null,send_allowed:boolean}`. The shared `ChatShop` summary also now requires `availability: online|offline|vacation`, describing Shop business status only: `offline` if Shop or Seller is unavailable; otherwise `vacation` when the existing Shop flag is on, or `online`. It is never Seller/person presence. The endpoint finds only this Customer's existing Shop thread; without one, it returns safe fields only for a Shop that is not offline. It creates no thread. `send_allowed` is a context-free generic-start preview; the authorized thread summary and existing start/send endpoint remain authoritative for a validated context. The existing eligible owned Order exception during vacation is unchanged. The iteration 03 independent review passed D1–D13 for the frozen local verification contract. This does not certify deployed/live API behavior. Adoption of this additive route/DTO by the external Buyer client and mobile acceptance remain unverified; existing Buyer chat implementation status is unchanged.
 - Incoming messages do not steal input focus or force scrolling away from older history; expose
   new-message cue.
-- No attachments/edit/delete/presence/calls/offline queue/Admin transcript access is provided.
+- Keep the chat thread/history and composer available during loading or refresh, with local
+  nonblocking progress. Confirm committed status within the message; do not show persistent global
+  “Message Sent” or “Message Saved” banners. This is presentation guidance only and does not change
+  the recorded Flutter implementation or acceptance status.
+- Media follows the [chat attachment API contract](../../../api/chat-media.md); revised size-boundary acceptance remains unverified. No message editing/deletion, presence, calls, offline queue, or Admin transcript access is provided.
 - Test start reuse across Product/Order, foreign context, missing/changed UUID key, server plain text and
   readonly Seller.
 - Test late polling vs pending start, older-history gaps, monotonic read, throttled same-key retry and

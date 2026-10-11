@@ -1,0 +1,57 @@
+import assert from "node:assert/strict";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+export async function verifyMediaSend(browser, artifacts) {
+  const { evaluate: js, until, cdp } = browser;
+  const checks = [];
+  const submit = `document.querySelector('form button[type=submit]')`;
+  await js(`window.setMode('media')`);
+  await until(`window.mediaEnabled === true`, "committed media capability");
+  await js(`window.dispatchEvent(new Event('focus'))`);
+  await until(`Boolean(document.querySelector('input[type=file]'))`, "attachment picker");
+  await js(`document.querySelector('textarea').focus();document.querySelector('textarea').select()`);
+  await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+  await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+  await until(`document.querySelector('textarea').value === ''`, "optional empty caption");
+  const file = resolve(artifacts, "fixture-photo.png");
+  writeFileSync(file, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64"));
+  async function selectFile() {
+    const doc = await cdp("DOM.getDocument");
+    const { nodeId } = await cdp("DOM.querySelector", { nodeId: doc.root.nodeId, selector: "input[type=file]" });
+    await cdp("DOM.setFileInputFiles", { nodeId, files: [file] });
+    await until(`Boolean(document.querySelector('ul[aria-label="Selected attachments"]'))`, "selected file");
+  }
+  await js(`window.mediaUploadFails = true`);
+  await selectFile();
+  assert.equal(await js(`${submit}.disabled`), true, "Send blocked while uploading");
+  await until(`document.body.innerText.includes('Synthetic upload unavailable')`, "file error");
+  assert.equal(await js(`${submit}.disabled`), true, "Send blocked after upload failure");
+  await js(`window.mediaUploadFails=false;[...document.querySelectorAll('button')].find(button=>button.textContent.trim()==='Retry file').click()`);
+  await until(`!${submit}.disabled`, "retry file ready");
+  await js(`document.querySelector('button[aria-label^="Remove "]').click()`);
+  await until(`!document.querySelector('ul[aria-label="Selected attachments"]')`, "remove file");
+  assert.equal(await js(`${submit}.disabled`), true, "empty composer cannot send after Remove");
+  checks.push("upload failure blocks Send; Retry file recovers; Remove clears selection");
+  await selectFile();
+  await until(`!${submit}.disabled`, "attachment-only ready");
+  const before = await js(`window.checks.sends.length`);
+  await js(`window.loseMediaResponse=true;${submit}.click()`);
+  await until(`${submit}.textContent === 'Retry'`, "uncertain attachment-only send");
+  assert.equal(await js(`document.querySelector('textarea').disabled`), true);
+  assert.equal(await js(`document.querySelector('button[aria-label^="Remove "]').disabled`), true);
+  assert.deepEqual(await js(`window.checks.attachments[${before}]`), ["fixture-image"]);
+  assert.equal(await js(`window.checks.sends[${before}]`), "");
+  await browser.screenshot(resolve(artifacts, "attachment-only-uncertain.png"));
+  await js(`${submit}.click()`);
+  await until(`window.checks.sends.length === ${before + 2} && !document.querySelector('ul[aria-label="Selected attachments"]')`, "attachment-only retry confirmed");
+  assert.deepEqual(await js(`window.checks.attachments[${before + 1}]`), ["fixture-image"]);
+  assert.equal(await js(`window.checks.sends[${before + 1}]`), "");
+  checks.push("attachment-only Send and locked Retry preserve ready ID with an empty caption");
+  await selectFile();
+  await until(`!${submit}.disabled`, "private file ready");
+  await js(`window.chatExports.clearChatPrivateState()`);
+  await until(`!document.querySelector('ul[aria-label="Selected attachments"]')`, "private attachment cleanup");
+  checks.push("private-state cleanup removes selected attachments");
+  return checks;
+}

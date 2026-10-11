@@ -926,6 +926,15 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `id` | `UUID` | non-null; required |
 | `name` | `string` | non-null; required |
 | `slug` | `string` | null allowed; required |
+| `availability` | `online|offline|vacation` | non-null; required |
+
+## ShopAvailabilityProjection
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `shop` | `ChatShop` | non-null; required |
+| `conversation_id` | `UUID` | null allowed; required |
+| `send_allowed` | `bool` | non-null; required |
 
 ## ShopMessage
 

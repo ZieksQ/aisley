@@ -6,6 +6,7 @@
 - Apply to Customer, Seller and Logistics web chat, and the Courier/mobile API contracts. Admin private chat and support tickets are excluded.
 - Reuse the shared messaging store, Sanctum, current participants, approval gates and relationship eligibility. A chat attachment never changes an Order or becomes formal POD/dispute evidence automatically.
 - Follow the [shared chat guide](../chat-messaging/spec.md), [design contract](../../../design.md) and [upload policy](../../../references/file-upload-requirements.md).
+- Web presentation follows the scoped chat visual redesign in the shared guide. Its layout and appearance may change within the existing palette/themes; required file states, private delivery, accessible controls, and authorization boundaries remain fixed.
 - Use [Shopee's attachment selection and explicit Send](https://help.shopee.sg/portal/4/article/81973-%5BChat%5D-How-do-I-send-images/videos-via-Chat) and [Lazada's contextual image sharing](https://pages.lazada.com.ph/wow/i/ph/PHCampaign/im-launch%3Fhybrid%3D1) as interaction references; limits below are AISLEY choices.
 - External Flutter adoption must be recorded separately from Laravel/web implementation.
 
@@ -15,17 +16,18 @@
 
 ### Formats and limits
 
-- Images: JPEG/JPG, PNG and WebP, strictly below 10 MiB (10,485,760 bytes), following the shared image policy.
-- Videos: MP4, at most 30 MiB (31,457,280 bytes) and 180 seconds; H.264 video, optional AAC audio. No automatic transcoding in this release.
+- New images: JPEG/JPG, PNG and WebP, at most 8,000,000 bytes (inclusive), following the shared image policy's format and inspection rules.
+- New videos: MP4, at most 8,000,000 bytes (inclusive) and 180 seconds; H.264 video, optional AAC audio. No automatic transcoding in this release.
 - Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, TXT and CSV; at most 10 MiB each.
 - At most five attachments and 50 MiB combined per message. No audio, macro-enabled Office, legacy Office, encrypted documents, standalone archives or unlisted formats.
+- The 8,000,000-byte image/video cap applies to every new upload, rewrite, and binding to a new message. A ready but unbound historical image/video larger than this cannot be attached to a new message. Do not reject already committed historical media on retrieval or when replaying that exact already-committed message; this grandfathering does not permit a new binding or changed retry payload.
 - Filename, extension and browser MIME are hints. Verify actual content server-side; reject mismatched/double extensions, malformed content, unsafe packaged documents and expansion-limit violations.
 - Inspect images within configured dimension/pixel bounds; rewrite metadata before delivery. Inspect video duration, streams and codecs with ffprobe. Use bounded archive inspection for packaged documents.
 - Scan every file with ClamAV before it becomes ready. A scan failure or unavailable scanner must not bypass checks.
 
 ### Upload and message lifecycle
 
-- File selection shows previews/removable filename cards, accepted formats and limits. Each file has uploading, checking, ready or error state.
+- File selection shows previews/removable filename cards and each file's uploading, checking, ready, or error state. Place accepted formats/limits in a keyboard-operable collapsed disclosure beside Attach so it is available before selection without taking permanent composer space.
 - Upload one file per multipart request with a UUID Idempotency-Key. Scope it to an authorized existing conversation or a server-resolved prospective start context.
 - Prospective uploads create no empty conversation. Server resolves actual participants, Shop, organization, hub and task; client IDs never grant authority.
 - Return an attachment identifier and status; uploading alone does not send a message. Pending/rejected/failed files cannot be sent or retrieved.
@@ -46,7 +48,7 @@
 - Video delivery supports byte ranges; stream storage content without loading whole videos into PHP memory.
 - Ended threads retain authorized historical attachments. Replacement Couriers/organizations cannot inherit old media.
 - Show recoverable unavailable/retry placeholders. Media loading must preserve focus and reading position.
-- Web controls remain usable at 390/768/1280px, Customer light and Seller/Logistics light/dark, with accessible labels, errors and viewer focus restoration.
+- Web controls remain usable at 320/390/768/1440px and in a short viewport, Customer light regardless of OS preference and Seller/Logistics light/dark, with accessible labels, errors and viewer focus restoration.
 
 ### Retention and operations
 
@@ -72,11 +74,11 @@
 - Form Requests own shape validation; existing messaging services own relationship checks; focused attachment services own upload, inspection, scan, bind and delivery.
 - Reuse private Azure Blob in production and private local storage in development. Use a dedicated queue worker; recovery redispatches stale pending work and cleanup removes abandoned files.
 - Add FFmpeg/ffprobe to project images, a private ClamAV service and signature updates; existing production PHP ZIP support is reused.
-- Raise PHP/Nginx request ceilings for individual 30 MiB uploads; unrelated features still enforce their own existing limits.
+- Raise PHP/Nginx request ceilings for the largest accepted chat file (10 MiB), with suitable multipart overhead; unrelated features still enforce their own existing limits.
 
 ### Frontend and deployment
 
-- Extend @aisley/chat-ui with presentation, in-memory attachment drafts and typed media client helpers; keep role API origin/session/CSRF and navigation in each app.
+- Shared chat/media presentation, generic media clients, attachment state, and coordination now live in `packages/ui/src/chat`, exported through `@aisley/ui/chat`. Customer, Seller, and Logistics screens import this subpath; `@aisley/chat-ui` is a compatibility re-export facade. Keep role API origin/session/CSRF and navigation in each app, and leave unrelated feature packages in place.
 - Adopt all seven existing web chat surfaces, including prospective first sends. Preserve current polling, context cards, unread and exact retry behavior.
 - Deploy migration/backend before frontend activation. Keep media disabled until private storage, ffprobe, ClamAV and media worker are ready.
 - Do not install host packages or alter external services automatically. Configure approved tools through project deployment files and document local prerequisites.
@@ -96,4 +98,4 @@
 
 ## Implementation status — 2026-10-06
 
-Laravel attachment lifecycle and all seven web chat surfaces are implemented with default-off activation. Canonical/portable contracts document the additive payloads with local Buyer/Courier image adoption. Tests cover SQLite and disposable PostgreSQL, real ClamAV, production web builds and connected Chromium plus scoped Courier/Customer bearer transport. See the app-wide [progress log](../../../PROGRESS.md) for actual checks and [deployment instructions](../../../../docker/README.md#private-chat-media) for operator activation. Buyer/Courier images are locally implemented; video/document clients, Azure production delivery, deployed media exchange and installed-device acceptance remain open.
+Laravel attachment lifecycle and all seven web chat surfaces are implemented with default-off activation. Canonical/portable contracts document the additive payloads with local Buyer/Courier image adoption. Tests cover SQLite and disposable PostgreSQL, real ClamAV, production web builds and connected Chromium plus scoped Courier/Customer bearer transport. See the app-wide [progress log](../../../PROGRESS.md) for actual checks and [deployment instructions](../../../../docker/README.md#private-chat-media) for operator activation. Buyer/Courier image support was reported locally; video/document clients, Azure production delivery, deployed media exchange and installed-device acceptance remain open. The 2026-10-11 8,000,000-byte image/video limit is a revised contract; existing reports do not establish implementation or external-client acceptance of that boundary.

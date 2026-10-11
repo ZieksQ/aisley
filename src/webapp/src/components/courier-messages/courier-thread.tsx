@@ -3,7 +3,7 @@
 import { chatMedia } from "@/lib/chat-media";
 import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ChatHistory, clearChatPrivateState } from '@aisley/chat-ui'
+import { ChatLoadingThread, ChatHistory, clearChatPrivateState } from '@aisley/ui/chat'
 import { courierMessages, mergeCourierMessages, type CourierConversation, type CourierMessage, type CourierOrderContext, type CourierSendResult } from "@/lib/courier-messages"
 import { CourierComposer } from "./courier-composer"
 import { courierError, useCourierAccess } from "./use-courier-access"
@@ -26,7 +26,6 @@ export function CourierThread({ conversationId, orderId, onUpdated, onStarted }:
   const [olderLoading, setOlderLoading] = useState(false)
   const [error, setError] = useState('')
   const [readError, setReadError] = useState('')
-  const [saved, setSaved] = useState(false)
   const [denied, setDenied] = useState(false)
   const [revision, setRevision] = useState(0)
   const initialized = useRef(false)
@@ -113,24 +112,24 @@ export function CourierThread({ conversationId, orderId, onUpdated, onStarted }:
   function onSaved(result: CourierSendResult) {
     setThread(result.conversation)
     setMessages((current) => mergeCourierMessages(current, [result.message]))
-    setSaved(true)
+
     onUpdated()
     if (!conversationId) onStarted(result.conversation.id)
   }
 
   const order = thread?.order_id ?? context?.order_id
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" aria-label="Courier conversation">
-      <header className="shrink-0 space-y-2 border-b border-zinc-200 p-4 dark:border-white/10">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-[#18181b]" aria-label="Courier conversation">
+      <header className="shrink-0 space-y-1 border-b border-zinc-200 px-4 py-3 dark:border-white/10">
         <h3 className="font-semibold text-zinc-900 dark:text-white">Courier · Final-mile delivery</h3>
         {order && (
-          <Link className="inline-flex min-h-11 items-center break-all text-sm text-[#4C1268] underline underline-offset-4 focus-visible:outline-2" href={`/orders/${order}`}>
+          <Link className="inline-flex min-h-8 items-center break-all text-xs text-[#4C1268] underline underline-offset-4 focus-visible:outline-2" href={`/orders/${order}`}>
             Order {thread?.order_reference ?? context?.order_reference}
           </Link>
         )}
         <p className="text-xs text-zinc-500">Delivery coordination only. Messages do not confirm delivery or change the Order.</p>
       </header>
-      {loading && <p className="p-4 text-sm" role="status">Loading conversation…</p>}
+      {loading && <ChatLoadingThread title="Courier conversation" showHeader={false} />}
       {error && (
         <div className="space-y-2 p-4">
           <p className="text-sm text-red-700" role="alert">{error}</p>
@@ -150,7 +149,6 @@ export function CourierThread({ conversationId, orderId, onUpdated, onStarted }:
           loadingOlder={olderLoading}
           emptyText="No messages yet. Send a message to start delivery coordination."
         />
-        {saved && <p className="px-4 pb-3 text-sm" role="status">Message sent.</p>}
         <CourierComposer
           conversationId={conversationId}
           orderId={orderId}

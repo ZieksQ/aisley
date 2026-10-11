@@ -43,4 +43,4 @@ Customer discovery/collection/wallet follows the [Customer voucher contract](../
 
 ## Development fixtures
 
-The non-production `VoucherSeeder` publishes platform shipping offers, capped platform percentage discounts and capped initial-Shop percentage discounts through normal authoring/version workflows. Existing offers/history survive reruns and no Customer collection or redemption is fabricated. See [seeded offers and commands](seeding.md).
+The `VoucherSeeder` publishes platform shipping offers, capped platform percentage discounts and capped initial-Shop percentage discounts through normal authoring/version workflows. Production seeding is disabled by default; `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true` explicitly enables the demo fixture. Existing offers/history survive reruns and no Customer collection or redemption is fabricated. See [seeded offers and commands](seeding.md).

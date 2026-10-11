@@ -1,9 +1,9 @@
 {
   "provenance": "Synthetic expected media contracts, not live captures; external Flutter adoption pending.",
   "chat_media_contract": {
-    "date": "2026-10-06",
-    "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
-    "client_adoption": "pending"
+    "date": "2026-10-11",
+    "source": "Laravel chat-media contract limit update; historical checkout/adoption fields preserved",
+    "client_adoption": "existing image evidence predates revised limits; new-boundary acceptance pending"
   },
   "operations": [
     {

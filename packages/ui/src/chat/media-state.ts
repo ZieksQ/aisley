@@ -49,8 +49,8 @@ export function addChatFiles(key: string, files: File[], context: ChatMediaConte
     const extension = file.name.split(".").at(-1)?.toLowerCase();
     const image = ["jpg", "jpeg", "png", "webp"].includes(extension ?? "");
     const video = extension === "mp4";
-    if (!file.size || file.size > (video ? 30 : 10) * 1024 * 1024 || (image && file.size >= 10 * 1024 * 1024)) {
-      return `${file.name} exceeds its size limit or is empty.`;
+    if (!file.size || file.size > (image || video ? 8_000_000 : 10 * 1024 * 1024)) {
+      return `${file.name} exceeds its size limit (images/video: 8 MB) or is empty.`;
     }
     if (file.name.split(".").length !== 2 || !["jpg", "jpeg", "png", "webp", "mp4", "pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "txt", "csv"].includes(extension ?? "")) {
       return `${file.name} uses an unsupported filename or format.`;

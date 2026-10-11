@@ -1,6 +1,6 @@
 import { clearReceivingSession, offlineReceivingSession, rememberReceivingSession } from '../features/linehaulReceiving/offlineSession'
 import { clearLinehaulReceiving } from '../features/linehaulReceiving/db'
-import { clearChatPrivateState } from '@aisley/chat-ui'
+import { clearChatPrivateState } from '@aisley/ui/chat'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import { ApiError, csrf, request } from '../lib/api'

@@ -17,6 +17,7 @@ use App\Models\PickupSchedule;
 use App\Models\SellerPickupRequest;
 use App\Models\User;
 use App\Services\Messaging\Media\ChatAttachmentProcessor;
+use App\Services\Messaging\Media\ChatMediaInspector;
 use App\Services\Messaging\Media\ChatMediaScanner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -42,6 +43,63 @@ class ChatMediaTest extends TestCase
             $mock->shouldReceive('available')->andReturn(true);
             $mock->shouldReceive('scan')->andReturn(true);
         });
+    }
+
+    public function test_processing_checks_rewritten_byte_size_without_stale_stat_cache(): void
+    {
+        Cache::put('chat-media-runtime-ready', true, 3600);
+        [, , $task] = $this->finalTask();
+        $order = $task->shipment->parcel->order;
+        $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
+        foreach ([7_999_999, 8_000_000, 8_000_001] as $size) {
+            $id = $this->upload($order->customer, $context);
+            $this->mock(ChatMediaInspector::class, function ($mock) use ($size): void {
+                $mock->shouldReceive('inspect')->once()->andReturnUsing(function ($path) use ($size): array {
+                    file_put_contents($path, str_repeat('a', $size));
+
+                    return [];
+                });
+            });
+            app(ChatAttachmentProcessor::class)->process($id);
+            $asset = ChatAttachment::findOrFail($id);
+            $this->assertSame($size > 8_000_000 ? ChatAttachmentState::Rejected : ChatAttachmentState::Ready, $asset->state);
+            if ($size <= 8_000_000) {
+                $this->assertSame($size, $asset->byte_size);
+            }
+        }
+    }
+
+    public function test_image_video_exact_decimal_byte_limits_and_unbound_legacy_rejection(): void
+    {
+        Cache::put('chat-media-runtime-ready', true, 3600);
+        [, , $task] = $this->finalTask();
+        $order = $task->shipment->parcel->order;
+        $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
+        foreach (['jpg', 'mp4'] as $extension) {
+            foreach ([7_999_999, 8_000_000, 8_000_001] as $size) {
+                $response = $this->actingAs($order->customer)->post('/api/v1/customer/chat-attachments', [
+                    'context' => json_encode($context), 'file' => UploadedFile::fake()->createWithContent("edge.{$extension}", str_repeat('a', $size)),
+                ], $this->key());
+                if ($size > 8_000_000) {
+                    $response->assertUnprocessable();
+                } else {
+                    $response->assertCreated()->assertJsonPath('data.byte_size', $size);
+                }
+            }
+        }
+        $id = $this->upload($order->customer, $context);
+        app(ChatAttachmentProcessor::class)->process($id);
+        ChatAttachment::findOrFail($id)->update(['byte_size' => 8_000_001]);
+        $this->postJson('/api/v1/customer/conversations', ['shop_id' => $order->shop_id, 'body' => 'Legacy unbound', 'attachment_ids' => [$id]], $this->key())->assertUnprocessable();
+        $this->assertDatabaseCount('messages', 0);
+        ChatAttachment::findOrFail($id)->update(['byte_size' => 8_000_000]);
+        $key = $this->key();
+        $input = ['shop_id' => $order->shop_id, 'body' => 'Committed', 'attachment_ids' => [$id]];
+        $this->postJson('/api/v1/customer/conversations', $input, $key)->assertCreated();
+        ChatAttachment::findOrFail($id)->update(['byte_size' => 8_000_001]);
+        $this->postJson('/api/v1/customer/conversations', $input, $key)->assertCreated();
+        $this->getJson("/api/v1/customer/chat-attachments/{$id}/content")->assertOk();
+        $this->assertDatabaseCount('messages', 1);
     }
 
     public function test_private_first_message_image_and_caption_retry_and_cross_role_history(): void
@@ -228,11 +286,11 @@ class ChatMediaTest extends TestCase
         $this->postJson('/api/v1/customer/conversations', $input, $this->key())->assertUnprocessable();
         $input['attachment_ids'] = [$ids[0], $ids[1]];
         // Exercise authoritative combined-byte validation independently of inspection.
-        ChatAttachment::whereIn('id', $input['attachment_ids'])->update(['byte_size' => 30 * 1024 * 1024]);
+        ChatAttachment::whereIn('id', $input['attachment_ids'])->update(['kind' => 'document', 'byte_size' => 30 * 1024 * 1024]);
         $this->postJson('/api/v1/customer/conversations', $input, $this->key())->assertUnprocessable();
         $this->assertDatabaseCount('messages', 0);
         $this->assertNull(ChatAttachment::findOrFail($ids[0])->message_id);
-        ChatAttachment::whereIn('id', $ids)->update(['byte_size' => 100]);
+        ChatAttachment::whereIn('id', $ids)->update(['kind' => 'image', 'byte_size' => 100]);
         ChatAttachment::whereKey($ids[0])->update(['expires_at' => now()->subSecond()]);
         $this->postJson('/api/v1/customer/conversations', $input, $this->key())->assertUnprocessable();
         ChatAttachment::whereKey($ids[0])->update(['expires_at' => now()->addHour()]);

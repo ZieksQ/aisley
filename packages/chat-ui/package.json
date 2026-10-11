@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.17"
+  },
+  "dependencies": {
+    "@aisley/ui": "workspace:*"
   }
 }

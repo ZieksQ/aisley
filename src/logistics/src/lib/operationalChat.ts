@@ -1,5 +1,5 @@
-import { acknowledgeChatRead } from "@aisley/chat-ui";
-import type { ChatAttachment } from "@aisley/chat-ui";
+import { acknowledgeChatRead } from "@aisley/ui/chat";
+import type { ChatAttachment } from "@aisley/ui/chat";
 import { csrf, requestWithTimeout } from './api'
 
 const base = '/api/v1/logistics/operational-conversations'

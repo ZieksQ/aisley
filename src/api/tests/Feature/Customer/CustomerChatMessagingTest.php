@@ -29,6 +29,29 @@ class CustomerChatMessagingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_shop_context_is_read_only_scoped_and_reports_shop_availability(): void
+    {
+        $shop = $this->shop();
+        $customer = $this->customer();
+        $other = $this->customer();
+        $path = "/api/v1/customer/conversations/shops/{$shop->id}";
+        $this->getJson($path)->assertUnauthorized();
+        $this->actingAs($shop->seller)->getJson($path)->assertForbidden();
+        $this->actingAs($customer)->getJson($path)->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertJsonPath('data.shop.availability', 'online')->assertJsonPath('data.conversation_id', null)->assertJsonMissingPath('data.shop.contact_email');
+        $this->assertDatabaseCount('conversations', 0);
+        $this->assertDatabaseCount('messages', 0);
+        $id = $this->postJson('/api/v1/customer/conversations', ['shop_id' => $shop->id, 'body' => 'Hello'], ['Idempotency-Key' => (string) Str::uuid()])->assertCreated()->json('conversation.id');
+        $this->getJson($path)->assertOk()->assertJsonPath('data.conversation_id', $id);
+        $this->actingAs($other)->getJson($path)->assertOk()->assertJsonPath('data.conversation_id', null);
+        $shop->update(['is_on_vacation' => true]);
+        $this->getJson($path)->assertOk()->assertJsonPath('data.shop.availability', 'vacation')->assertJsonPath('data.send_allowed', false);
+        $shop->seller->update(['status' => UserStatus::Suspended]);
+        $this->getJson($path)->assertNotFound();
+        $this->actingAs($customer)->getJson($path)->assertOk()->assertJsonPath('data.shop.availability', 'offline')->assertJsonPath('data.conversation_id', $id);
+        $this->assertDatabaseCount('conversations', 1);
+        $this->assertDatabaseCount('messages', 1);
+    }
+
     public function test_customer_and_seller_share_one_private_thread_with_idempotent_messages_and_unread_state(): void
     {
         $shop = $this->shop();

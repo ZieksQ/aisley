@@ -151,7 +151,7 @@ class ConversationService
 
         return [
             'id' => $conversation->id,
-            'shop' => ['id' => $conversation->shop_id, 'name' => $conversation->shop?->name ?? 'Shop unavailable', 'slug' => $conversation->shop?->slug],
+            'shop' => ShopChatContext::shop($conversation->shop),
             'customer_name' => $role === 'seller' ? trim(($conversation->customer?->customerProfile?->first_name ?? 'Customer').' '.($conversation->customer?->customerProfile?->last_name ?? '')) : null,
             'last_message_preview' => $conversation->lastMessage ? mb_substr($conversation->lastMessage->body, 0, 120) : null,
             'last_message_at' => $conversation->last_message_at?->toIso8601String(),

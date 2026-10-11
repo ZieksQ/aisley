@@ -11,8 +11,10 @@ export function ChatMediaSelection({ media, disabled, enabled }: {
   const [error, setError] = useState<string | null>(null);
   const picker = useRef<HTMLInputElement>(null);
 
+  if (!enabled && !rows.length && !error) return null;
+
   return (
-    <div className="mb-3 space-y-2">
+    <div className="mb-2 space-y-2">
       {enabled ? (
         <>
           <button
@@ -37,9 +39,10 @@ export function ChatMediaSelection({ media, disabled, enabled }: {
             tabIndex={-1}
             type="file"
           />
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            {chatMediaHelp} Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, TXT, CSV.
-          </p>
+          <details className="text-xs text-zinc-600 dark:text-zinc-400">
+            <summary className="cursor-pointer py-1">Accepted files and limits</summary>
+            <p className="pt-1">{chatMediaHelp} Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, TXT, CSV.</p>
+          </details>
         </>
       ) : rows.length ? (
         <p className="text-xs text-amber-800 dark:text-amber-300">New uploads are temporarily unavailable.</p>
