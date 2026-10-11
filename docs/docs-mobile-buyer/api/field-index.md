@@ -1307,3 +1307,7 @@ Voucher/AppliedVoucher/BatchVoucher `name` fields reflect the [2026-10-09 contra
 | `preview_url` | `URL` | null allowed; required |
 
 See [private media](chat-media.md) for lifecycle, authorization and transport.
+
+## CustomerVoucher collection adoption — 2026-10-11
+
+The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto) and `VoucherShop` are typed in [DTO schema](dto-schema.json). All fields are required, including nullable values; public personalized fields are null. Quote names/distribution/collection URL are additive; older candidate fixtures remain supported without authorizing collection from missing metadata. `termsSummary` is nullable in current source. Private statuses are never stored in the public cache.

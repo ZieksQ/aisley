@@ -102,3 +102,9 @@ Gap IDs after the 2026-10-09 rebase: G26 covers voucher names/default pairing; G
 ## G28 — Voucher collection and wallet adoption (2026-10-11)
 
 Laravel adds [voucher discovery/collection/wallet](../api/voucher-collection.md). Claim-required platform and all Shop vouchers require Customer-owned collection for future Checkout; legacy platform offers retain automatic access. Adopt new DTOs/collection surfaces, readable VOUCHER_NOT_CLAIMED links, statuses and reviewed QUOTE_STALE recovery. Earlier Flutter status/adopted 57e9eb2 revision stays unchanged; no external client source/analyze/build/browser/device/live acceptance was performed here.
+
+## Voucher collection adoption — 2026-10-11
+
+| ID | Gap / required action | Owner / gate |
+| --- | --- | --- |
+| G28 | Buyer discovery/detail, Shop/platform collection, My Vouchers and deliberate Checkout requote are implemented. See [client evidence](voucher-collection-verification.md); deployed API/schema, controlled commerce and installed Android/TalkBack remain open. | Buyer/API; release acceptance |

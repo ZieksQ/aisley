@@ -74,4 +74,4 @@ Current source inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate
 
 ## Voucher collection delta — 2026-10-11
 
-[Discovery, collection and wallet](voucher-collection.md) defines the new methods, safe DTO, bounds, private gates, natural claim replay and reasons. Quote adds distributionMode/collectionUrl and VOUCHER_NOT_CLAIMED. Newly invalid VOUCHER_* placement eligibility uses 409 QUOTE_STALE before effects; committed exact-key replay remains unchanged. External Flutter adoption is pending G28.
+[Discovery, collection and wallet](voucher-collection.md) defines the new methods, safe DTO, bounds, private gates, natural claim replay and reasons. Quote adds distributionMode/collectionUrl and VOUCHER_NOT_CLAIMED. Newly invalid VOUCHER_* placement eligibility uses 409 QUOTE_STALE before effects; committed exact-key replay remains unchanged. Buyer adoption is implemented; see [verification](../references/voucher-collection-verification.md). Deployed/live/device gates remain open.

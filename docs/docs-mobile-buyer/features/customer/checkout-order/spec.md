@@ -221,10 +221,10 @@ Historical backend baseline: 7b1a08a; newly inspected checkout:
 Source locators/hashes are optional audit evidence in
 [provenance](../../../references/source-provenance.md).
 No Flutter implementation checkbox is completed by documentation authoring or route/source inspection.
-Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior
-history.
-Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
-[verification](../../../verification.md).
+Append actual evidence to [Progress](../../../PROGRESS.md); preserve history.
+Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and [verification](../../../verification.md).
 
 Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
 [shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
+
+Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).

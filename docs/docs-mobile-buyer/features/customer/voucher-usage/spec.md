@@ -3,7 +3,7 @@ feature: voucher-usage
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
+flutter_status: Discovery, collection, wallet and Checkout implemented; live/device gates open
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
@@ -14,9 +14,9 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Existing quote candidate/eligibility/selection/savings/snapshot/redemption implemented;
-discovery/collection/wallet added in the 2026-10-11 backend contract; Flutter adoption remains G28.
+discovery/collection/wallet adopted by Buyer against Laravel 7e89b391; live/device gates remain.
 
-Flutter (external project report): **implemented against 57e9eb2; newer shipping/voucher contracts unadopted (G25/G26)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
+Flutter: **discovery, collection, wallet and reviewed Checkout implemented**. See [G28 evidence](../../../references/voucher-collection-verification.md); live-account/device gates remain open.
 
 Collect when required → browse → explicit UUID/target Shop → requote → reviewed placement redeems.
 
@@ -29,8 +29,6 @@ The current [shipping contract](../../../api/shipping-selection.md) governs prov
 imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
 [B06 legacy shipping funding](../../../api/legacy-voucher-funding.md): unaffordable candidates are disabled; quote uses 409 VOUCHER_FUNDING_INSUFFICIENT on vouchers.
 Placement shortfalls use 409 QUOTE_STALE before effects; refresh/review. Committed exact-key replay remains valid; Flutter adoption is unverified.
-The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership
-and capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
@@ -87,10 +85,6 @@ authority.
   Request: Owned batch UUID; no body.
   Replay: Read retry after bounded backoff; reject obsolete session/query generations.
 
-Full per-operation access/status notes and synthetic bodies are in
-[operations](../../../api/operations.md) and
-[this feature’s examples](../../../api/examples/checkout-order.json).
-Examples are source-derived synthetic fixtures, not live captures or usable test accounts.
 
 ### Response fields and nesting
 
@@ -108,7 +102,7 @@ actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
-| `Voucher` | `distributionMode: automatic\|claim_required`, `collectionUrl: string?`, `id: UUID`, `name: string`, `code: string`, `issuerType: string`, `benefitType: string`, `valueType: string`, `value: money`, `maximumDiscount: money?`, `minimumSpend: money`, `termsSummary: string`, `validFrom: timestamp`, `validUntil: timestamp`, `paymentMethod: string?`, `stackableWith: string[]`, `scope: VoucherScope`, `eligible: bool`, `reason: string?`, `saving: money` |
+| `Voucher` | `distributionMode: automatic\|claim_required`, `collectionUrl: string?`, `id: UUID`, `name: string`, `code: string`, `issuerType: string`, `benefitType: string`, `valueType: string`, `value: money`, `maximumDiscount: money?`, `minimumSpend: money`, `termsSummary: string?`, `validFrom: timestamp`, `validUntil: timestamp`, `paymentMethod: string?`, `stackableWith: string[]`, `scope: VoucherScope`, `eligible: bool`, `reason: string?`, `saving: money` |
 | `VoucherScope` | `productIds: UUID[]`, `categoryIds: UUID[]`, `excludedProductIds: UUID[]`, `excludedCategoryIds: UUID[]` |
 | `AppliedVoucher` | `id: UUID`, `name: string`, `code: string`, `issuerType: string`, `benefitType: string`, `qualifyingBasis: money`, `discountAmount: money` |
 | `QuoteGroup` | `shop: QuoteShop`, `items: QuoteItem[]`, `availableVouchers: Voucher[]`, `appliedVouchers: AppliedVoucher[]`, `shippingQuote: ShippingQuote`, `totals: Totals` |
@@ -142,6 +136,13 @@ universal error envelope.
 ## HOW
 
 ### Responsibility and state ownership
+
+- [Collection contract](../../../api/voucher-collection.md) owns all seven methods, DTO fields, filters and natural replay.
+- Routes `/vouchers`, `/vouchers/:id`, `/account/vouchers` and Shop vouchers retain verified identity/consent.
+- Session-owned collection state rejects old-account replies; public definitions never hold personalized status.
+- Collect explicitly; uncertain responses offer same-endpoint Retry, with pending/cooldown duplicate protection.
+- Checkout collection invalidates review but preserves safe choices; explicitly requote/select/review afterward.
+- Unresolved placement disables collection navigation and preserves original payload/key for exact retry.
 
 - `CheckoutRepository` owns typed transport, parsing and owned cache access; inject dependencies
   through AppDependencies.
@@ -205,7 +206,7 @@ universal error envelope.
 - [ ] Keep release gates in [integration gaps](../../../references/integration-gaps.md) open until
   owning evidence resolves them.
 
-### Handoff and provenance
+### Provenance
 
 Historical backend baseline: 7b1a08a; newly inspected checkout:
 `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`.
@@ -222,9 +223,8 @@ Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline onl
 
 Spec revision 2026-10-09: [voucher names/default pairing](../../../api/voucher-selection-update.md)
 adds customer-visible names and frozen Order names. Client adoption remains unverified (G26).
-
 Spec revision 2026-10-11: [discovery/collection/wallet contract](../../../api/voucher-collection.md)
 adds public and private endpoints, naturally idempotent claims, distribution modes and live wallet statuses.
 Claim-required App/all Shop vouchers need owned collection; quote uses VOUCHER_NOT_CLAIMED with collectionUrl.
 Newly invalid placement VOUCHER_* eligibility becomes QUOTE_STALE; committed exact-key replay stays valid.
-External Flutter adoption and implementation status remain unchanged; G28 is pending.
+Buyer G28 source adoption is implemented; deployed/live/installed-device acceptance remains open.
