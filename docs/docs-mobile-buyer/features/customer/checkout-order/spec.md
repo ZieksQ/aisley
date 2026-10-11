@@ -14,7 +14,7 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Quote/place/batch, per-Shop Orders, shipping/vouchers/reservations/snapshots and UUID replay
-implemented.
+implemented; nullable item imageUrl parsing is adopted from 5d55ecf; Checkout image rendering deferred.
 
 Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
 

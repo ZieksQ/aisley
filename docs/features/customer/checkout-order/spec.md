@@ -11,6 +11,8 @@ scope: Customer storefront and Laravel API
 
 # Customer Checkout & Order Creation
 
+Order image response coverage is recorded in [G30/T02 verification](../../../references/order-images-verification.md); Buyer Order image adoption is separate from Checkout presentation.
+
 ## WHAT
 
 - **Purpose:** Turn an authenticated Customer's eligible Buy Now selection or selected Cart lines into one or more Shop Orders.

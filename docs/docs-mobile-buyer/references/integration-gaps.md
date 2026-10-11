@@ -108,3 +108,11 @@ Laravel adds [voucher discovery/collection/wallet](../api/voucher-collection.md)
 | ID | Gap / required action | Owner / gate |
 | --- | --- | --- |
 | G28 | Buyer discovery/detail, Shop/platform collection, My Vouchers and deliberate Checkout requote are implemented. See [client evidence](voucher-collection-verification.md); deployed API/schema, controlled commerce and installed Android/TalkBack remain open. | Buyer/API; release acceptance |
+
+## Order images — audit G30 / T02
+
+G30 is implemented locally in Buyer Order history/detail with nullable image parsing,
+public-media loading and safe fallbacks. T02 has Laravel endpoint coverage for image
+precedence/fallback/null projections across quote, placement/replay, history/detail
+and batch retrieval. [Verification](order-images-verification.md) distinguishes local
+checks from deployed media and installed Android/TalkBack acceptance, which stay open.
