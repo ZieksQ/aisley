@@ -102,7 +102,7 @@ Verification requires complete/partial/damaged/unexpected loads, wrong hubs, ret
 
 ### Sort plans
 
-- Development seeder repair (2026-10-09): regional fixture plans map each active hub-supported postal code to a dedicated standard lane. Reruns complete missing mappings and separate shared destination lanes in the current active plan using an immutable successor snapshot validated by the activation service; retain existing dedicated lanes, next-hub mappings and immutable history. Preserve unfinished drafts independently while completing active coverage, and keep clean working copies aligned. Do not overwrite pending schedules, inactive coverage/accounts, or unavailable operational configuration; print a review warning when a repair is blocked. This fixture policy does not require production operators to allocate one lane per postal code.
+- Regional demo seeder repair (2026-10-09): fixture plans map each active hub-supported postal code to a dedicated standard lane. Reruns complete missing mappings and separate shared destination lanes in the current active plan using an immutable successor snapshot validated by the activation service; retain existing dedicated lanes, next-hub mappings and immutable history. Preserve unfinished drafts independently while completing active coverage, and keep clean working copies aligned. Do not overwrite pending schedules, inactive coverage/accounts, or unavailable operational configuration; print a review warning when a repair is blocked. Production seeding is disabled by default and requires `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true`; this fixture policy does not require production operators to allocate one lane per postal code.
 
 - Workspace redesign (2026-09-20): the main Sort plan page shows only the active plan's lane mappings, physical lanes, and supported postal codes, each in a compact eight-row paginated list ordered by lane number where applicable. Plan creation and editing use one viewport-bounded dialog; selected plan information and mappings occupy the left side, while the plan list and aligned Save/Activate/Delete controls occupy the right side. Narrow screens put the selector first. Linehaul partner requests have their own dialog; grouped departure and receipt controls appear in Sorting. The newer Linehaul contract in `docs/features/logistics/hub-to-hub-routing/specs.md` governs shared postal coverage and still-pending connection and postal-mapping enforcement changes.
 
@@ -184,7 +184,7 @@ The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` adds 
 - Add typed PHP enums/casts, Eloquent relationships, Logistics requests/controller, and a tenant-scoped Sorting service.
 - Add a dedicated fulfillment method for the sort transition so lane/session metadata is written with the immutable Shipment event.
 - Reuse waybill resolution, first-mile task validation, Shipment revision checks, database transactions, and row locking.
-- Seed no production lanes; Logistics creates lanes explicitly because physical layouts differ.
+- Production demo lanes/plans are seeded only when `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true`; otherwise Logistics creates lanes explicitly because physical layouts differ.
 - Add a `sortingDb` Dexie database and a dedicated React page using the existing API/scanner/UI utilities.
 - Keep the generic Parcel search recovery action for compatibility, but direct normal sortation to the Sorting page.
 - Update Dispatch, Update Status, workspace/schema/domain/WIP contracts where Sorting ownership changes presentation.

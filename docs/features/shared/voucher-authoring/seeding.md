@@ -1,6 +1,6 @@
 # Development vouchers
 
-`VoucherSeeder` publishes these PHP/COD offers through the existing authoring service, including immutable versions and create/publication actions. It runs after initial accounts, demo products and regional logistics in `DatabaseSeeder` and is disabled in production.
+`VoucherSeeder` publishes these PHP/COD offers through the existing authoring service, including immutable versions and create/publication actions. It runs after initial accounts, demo products and regional logistics in `DatabaseSeeder`; production seeding is disabled unless `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true` is explicitly configured.
 
 | Code | Issuer | Benefit | Cap | Minimum spend | Distribution |
 | --- | --- | --- | --- | --- | --- |
@@ -22,9 +22,11 @@ Run from the repository root after existing migrations and initial fixture setup
 (cd src/api && php artisan db:seed --class=InitialSellerLogisticsSeeder)
 ```
 
+For a production demo environment, set `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true` in `src/api/.env` and refresh Laravel's cached configuration before running the desired seeder. The same opt-in permits `PhilippinesLogisticsSeeder` (regional Logistics/Courier accounts, network and sort plans, and initial-Shop provider setup), its nested `InitialSellerLogisticsSeeder`, and `VoucherSeeder`. Other demo seeders retain their own production gates. Turn this setting off after demo provisioning.
+
 Stable codes make voucher reruns additive. Existing offers—including paused, ended, expired, edited or redeemed offers—and immutable history remain unchanged. A conflicting existing code is preserved. Use normal Admin/Seller duplication for a new offer after expiry; reseeding does not renew it.
 
-`InitialSellerLogisticsSeeder` explicitly selects only the regional NCR organization (`logistics.luzon01@example.com`) for the initial development Shop and disables its other existing providers. Changed rows advance configuration revisions once; unchanged reruns do not. It preserves other Shops, missing/inactive NCR fixtures, production state, existing coverage decisions and placed Order snapshots. Regional rate seeding no longer enables all providers. The NCR hub receives missing postal coverage for the initial Seller/Customer's default NCR shipping addresses; existing postal-lane repair publishes a successor when needed without rewriting historical plans. See [regional fixtures](../../../philippines-logistics-seeding.md).
+`InitialSellerLogisticsSeeder` explicitly selects only the regional NCR organization (`logistics.luzon01@example.com`) for the initial development Shop and disables its other existing providers. Changed rows advance configuration revisions once; unchanged reruns do not. By default it preserves production provider state; the explicit demo opt-in above enables it with the regional fixtures. Existing coverage decisions and placed Order snapshots remain protected. Regional rate seeding no longer enables all providers. The NCR hub receives missing postal coverage for the initial Seller/Customer's default NCR shipping addresses; existing postal-lane repair publishes a successor when needed without rewriting historical plans. See [regional fixtures](../../../philippines-logistics-seeding.md).
 
 Checkout provides **Select vouchers** beneath each Shop, opening the dedicated `/checkout/vouchers?shop=<UUID>` page. Tap eligible tickets and **Apply vouchers** to review refreshed server totals. Claim-required offers link to **Collect voucher**; collect first, then return to Checkout and select. Automatic offers still require explicit selection.
 
