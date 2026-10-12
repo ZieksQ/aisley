@@ -3,7 +3,7 @@ feature: logistics-messaging
 role: Customer
 platform: Flutter / Dart
 phase: 4
-flutter_status: Text and images implemented locally; video/document and live/device acceptance open G27
+flutter_status: Text/images and received video/documents implemented locally; live/device acceptance open G27
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ---
@@ -21,7 +21,7 @@ Active owned Order → Order-context first message → current Logistics thread 
 
 - Use logistics-conversations and kind customer_logistics; first message body/context_type:order/context_id plus UUID key. API resolves current organization/hub from Shipment or compatible waybill, never Buyer recipient choice.
 - Payment-wait/placed/preprocessing/terminal and in-transfer/invalid-handler states cannot start/send; API eligibility is authoritative. Ended context retains original participant read-only history; replacement handler never inherits private text.
-- Use operational data/meta, send body only, read last_read_sequence; channel owns its cursor/unread/pending key. Bounded foreground polling/frozen uncertain sends; images supported locally; video/document open G27; no provider picker/task mutations/offline queue.
+- Use operational data/meta, send caption/ready image IDs, read last_read_sequence; channel owns its cursor/unread/pending key. Bounded foreground polling/frozen uncertain sends; images supported locally; receive-only video/document consumption implemented; uploads/live/device open G27; no provider picker/task mutations/offline queue.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
@@ -56,7 +56,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Poll visible online every 15s; pause background/offline and reject old Customer/session responses.
 - Keep pending first-send context during refresh and reachable older cursor when foreground gap
   appears.
-- Text only1–2000; images supported locally; video/document open G27; no GPS sharing, Order mutation, delivery proof or cash collection
+- Caption≤2,000 or ready images; images supported locally; receive-only video/document consumption implemented; uploads/live/device open G27; no GPS sharing, Order mutation, delivery proof or cash collection
   permission.
 - Retention/abuse policy and operational race/live exchange verification remain release gates.
 - Test owned active handler vs foreign/terminal/missing custody, handler replacement and read-only
@@ -221,6 +221,6 @@ Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 
 ## Additive media contract — 2026-10-06
 
-The implemented Laravel [private media API](../../../api/chat-media.md) adds ordered `attachment_ids` to start/reply and `attachments` to messages. Optional captions and existing scoped history rules apply. Flutter image upload, status/retry, explicit image-only send and authenticated rendering are implemented locally. Video/document and live/device acceptance remain open (G27).
+The implemented Laravel [private media API](../../../api/chat-media.md) adds ordered `attachment_ids` to start/reply and `attachments` to messages. Optional captions and existing scoped history rules apply. Flutter image upload, status/retry, explicit image-only send and authenticated rendering are implemented locally. Receive-only video/document consumption and 8,000,000-byte image selection are implemented locally; video/document uploads and live/device acceptance remain open (G27).
 
-Local evidence: [image checks](../../../references/dashboard-chat-images-verification.md).
+Local evidence: [private media checks](../../../references/private-media-verification.md) and [image checks](../../../references/dashboard-chat-images-verification.md).

@@ -1,12 +1,12 @@
-# Private chat attachment API — 2026-10-11
+# Private chat attachment API — 2026-10-12
 
-This additive Laravel contract supports images, video and documents in existing chat relationships. Buyer and Courier Flutter image selection, upload/status/retry, image-only sends and authenticated rendering are implemented locally. Video/document clients, deployed media exchange and installed-device acceptance remain open. No packages were added.
+This additive Laravel contract supports images, video and documents in existing chat relationships. Buyer and Courier Flutter image selection/send, authenticated images and receive-only MP4/document consumption are implemented locally. New uploads use the revised limits below; deployed media exchange and installed-device acceptance remain open.
 
 ## Selection and limits
 
 Select up to five files totaling at most 50 MiB. New JPG/JPEG, PNG and WebP images are at most 8,000,000 bytes (inclusive). New MP4 videos are at most 8,000,000 bytes (inclusive) and 180 seconds, with one H.264 video stream and optional AAC audio; there is no transcoding. PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, UTF-8 TXT and CSV remain at most 10 MiB each. Empty files, unsupported/double extensions, spoofed formats, unsafe/encrypted documents and failed malware checks are rejected. Images are decoded, bounded and rewritten without source metadata. Videos get a poster. File selection does not send a message.
 
-Apply the 8,000,000-byte limit to every new image/video upload, rewrite, and binding to a new message. A historical ready but unbound image/video over that limit cannot be attached to a new message. Keep authorized retrieval of media already committed to a message and exact replay of that already-committed message; this compatibility does not permit a changed retry payload or new binding. The revised contract does not itself establish external-client acceptance of the new boundary.
+Apply the 8,000,000-byte limit to every new image/video upload, rewrite, and binding to a new message. A historical ready but unbound image/video over that limit cannot be attached to a new message. Keep authorized retrieval of media already committed to a message and exact replay of that already-committed message; this compatibility does not permit a changed retry payload or new binding. Client selection now adopts this boundary; deployed/device acceptance remains separately tracked.
 
 ## Routes
 
@@ -41,3 +41,15 @@ Existing thread: `{conversation_id:"<uuid>"}`. Prospective Shop: `{channel:"shop
 [Messaging contracts](messaging.md), [DTO index](field-index.md), and [synthetic media examples](examples/chat-media.json) describe the same addition.
 
 Customer–Courier mutations now use separate named per-account start (15/minute) and reply (30/minute) counters so browsing, upload/status and history do not consume those budgets. The overall 120 Customer requests/minute remains enforced. This matches existing Customer Shop/Logistics counter isolation.
+
+## Flutter consumption — 2026-10-12 (audit G26)
+
+Buyer and Courier support receive-only MP4 playback and document download in every existing chat channel, with image-only selection/send. New image selections accept 8,000,000 bytes exactly and reject larger files before dispatch; permanent upload 422 requires removal/replacement. Count/aggregate and frozen uncertain-send identity remain unchanged.
+
+Content reads validate ready metadata, allowed kind/extension/MIME, exact attachment ID and role-relative path, response MIME and size before export/playback. Bounded streams reject redirects, empty/truncated/oversized bodies and obsolete scopes. Every read uses the existing bearer client; players and download adapters receive fetched bytes only. Historical committed reads remain supported up to the former image (<10 MiB), MP4 (30 MiB) and document (10 MiB) bounds; these retrieval limits grant no new upload/binding permission.
+
+Videos have an authorized poster and explicit View video, Play/Pause and seeking; no autoplay or background playback. Android uses generated private temporary playback files, removed on close/access loss and swept on next startup; web uses revocable blob URLs. Documents show filename/format/size and Download, without inline viewers. Android uses a two-phase system Save As picker that holds no bytes until a still-current choice is confirmed; cancellation/access loss suppresses writes and removes incomplete destinations. Web downloads from fetched bytes and revokes its blob URL. Download feedback reports the request, not unobservable browser completion. Explicitly saved document copies belong to the user and remain after sign-out.
+
+Cancel reads, evict images, dispose players, clear download buffers and remove temporary handles on identity/controller replacement, logout, consent/relationship loss or close. Ignore obsolete success/error replies. HTTP 429 respects Retry-After with manual retry; no offline queue or automatic unchanged upload retry is added. Playback uses pinned video_player 2.11.1, path_provider 2.1.6 and web 1.1.1; the initially evaluated file_saver was excluded because its byte/picker and blob lifecycle did not meet these boundaries. Android document export is a focused native channel; no broad storage permission is added.
+
+Adopted media baseline: Laravel `28fc740` and the 2026-10-11 decimal-byte limit revision. Local source/test/build/browser evidence belongs to the owning verification record. Private storage/worker/scanner readiness, deployed cross-role exchange and installed Android/TalkBack acceptance remain release gates. Mobile video/document upload is outside this receive-only release.

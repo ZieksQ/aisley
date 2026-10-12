@@ -86,3 +86,7 @@ Order summary previews, Order items, Checkout Quote items and Batch items now in
 ## Buyer voucher adoption — 2026-10-11
 
 Buyer now implements [discovery, collection and wallet](api/voucher-collection.md) with explicit Checkout requote against Laravel `7e89b391`. [Verification](references/voucher-collection-verification.md) distinguishes source/synthetic checks from deployed/live/installed-device gates. Historical general and shipping baselines remain preserved.
+
+## G26 private media adoption — 2026-10-12
+
+Buyer implements receive-only video/document consumption and inclusive 8 MB image selection against Laravel `28fc740`. [Verification](references/private-media-verification.md) separates local checks from storage/worker/scanner, deployed exchange and installed-device acceptance. Mobile video/document uploads remain outside this release.

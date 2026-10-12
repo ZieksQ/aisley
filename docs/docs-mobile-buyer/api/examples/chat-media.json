@@ -1,9 +1,10 @@
 {
-  "provenance": "Synthetic expected media contracts, not live captures; external Flutter adoption pending.",
+  "provenance": "Synthetic expected media contracts, not live captures; local image send/view and video/document receive adopted; deployed/device acceptance open.",
   "chat_media_contract": {
-    "date": "2026-10-11",
+    "date": "2026-10-12",
     "source": "Laravel chat-media contract limit update; historical checkout/adoption fields preserved",
-    "client_adoption": "existing image evidence predates revised limits; new-boundary acceptance pending"
+    "client_adoption": "receive-only video/documents plus inclusive 8 MB image selection implemented locally",
+    "media_baseline": "28fc740"
   },
   "operations": [
     {
@@ -16,7 +17,7 @@
       "status": 200,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -42,7 +43,7 @@
       "status": 201,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {
@@ -82,7 +83,7 @@
       "status": 200,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -117,7 +118,7 @@
       "status": 200,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -152,7 +153,7 @@
       "status": 200,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -174,7 +175,7 @@
       "status": 200,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -194,7 +195,7 @@
       "status": 200,
       "retry": "Upload retry uses same UUID, bytes, filename and context. Send retry freezes caption, ordered IDs, context and send key. Reads use bounded backoff.",
       "access": "Active Customer + consent; scoped bearer or web session/CSRF",
-      "notes": "Source-derived addition; external Flutter adoption pending. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
+      "notes": "Source-derived addition; local consumption adopted; live/device acceptance open. 401/403/404/409/422/429/503; MP4 ranges 206/416.",
       "request_example": {
         "query": {},
         "headers": {},

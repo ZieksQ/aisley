@@ -3,8 +3,8 @@ feature: courier-chat-messaging
 title: Courier Operational Messaging
 system: AISLEY
 type: Feature Specification
-version: 2.4
-status: Logistics, Seller and Buyer task-scoped text and images implemented locally; live exchange pending
+version: 2.5
+status: Logistics, Seller and Buyer task-scoped text/images plus video/document consumption implemented locally; live/device acceptance pending
 implementation_status: Courier Flutter Logistics/Seller/Buyer task chat and inbox implemented locally; Seller and Customer web counterparts implemented; live exchange unverified
 canonical: true
 role: Courier
@@ -16,8 +16,7 @@ backend_contract_version: courier-operational-messaging-v2
 
 ## WHAT
 
-- Enable a Courier to exchange private, task-linked text and images with the relevant Seller, Buyer
-  (`customer` in API), or Logistics organization while the relationship is active.
+- Enable a Courier to exchange private, task-linked text/images and receive video/documents with the relevant Seller, Buyer (`customer` in API), or Logistics organization while the relationship is active.
 - First mile is Seller → the selected organization's sole hub; final mile is that hub → Buyer.
   Each leg has a separate task, and the same Courier need not perform both legs.
 - Use separate bilateral conversations per task and counterparty; no group room, arbitrary recipient search, cross-task inbox, or access to Customer–Shop chat history.
@@ -32,7 +31,7 @@ backend_contract_version: courier-operational-messaging-v2
   confirm a scan or delivery, change an address/route, create an Incident or SOS alert, or
   approve a Logistics action. Those features remain authoritative.
 - MVP is persisted plain text over authenticated HTTP with visible-screen polling. Masked
-  calling, video/documents in Flutter, voice, live location, typing/presence, realtime transport, SMTP,
+  calling, mobile video/document uploads, voice, live location, typing/presence, realtime transport, SMTP,
   SMS, and mobile push per message are deferred.
 
 ## MUST
@@ -115,7 +114,7 @@ backend_contract_version: courier-operational-messaging-v2
   and offline states. Confirm persistence within the committed message; do not
   show persistent global “Message Sent” or “Message Saved” banners.
   Screen-reader labels identify sender/status; controls have accessible targets,
-  keyboard focus, and no color-only unread indication.
+  keyboard focus, and no color-only unread indication. Receive-only video/document behavior follows [Media API](media-api.md); new images accept 8,000,000 bytes inclusive.
 - Handle `401` by clearing the session; `403` by showing status/consent gating;
   `404` as a scoped missing/foreign thread; `409` as a changed task or key conflict;
   `422` as field validation; `429` with retry guidance. No optimistic status edit.
@@ -220,14 +219,12 @@ backend_contract_version: courier-operational-messaging-v2
 - Courier–Buyer contact requires an active Buyer account, its owned nonterminal
   Order, the accepted final-mile task, and that task's current handling organization;
   it cannot broaden the Customer–Logistics Order-chat authority.
-- Copy this API contract and `api-handoff.md` to Flutter. All three Courier channels and
-  both web counterparts are implemented locally; live exchange remains unverified.
-  Buyer starts refresh the final-mile task; replies refresh `send_allowed`. No counterpart Order-context calls are made by Flutter.
+- Copy this API contract and `api-handoff.md` to Flutter. All three Courier channels and both web counterparts are implemented locally; live exchange remains unverified. Buyer starts refresh the final-mile task; replies refresh `send_allowed`. No counterpart Order-context calls are made by Flutter.
 External Buyer client evidence (imported 2026-10-04): [Phase 4 report](../../../docs-mobile-buyer/references/phase-4-verification.md) records separate Shop/Logistics/Courier composition against adopted Laravel `57e9eb2`. Flutter commands/results were not rerun in this platform repository. Controlled authenticated exchange, terminal/reassignment behavior and installed-device acceptance remain open; role routes and authorization are unchanged.
 
 ## Private chat media extension — 2026-10-06
 - All existing role channels accept ordered `attachment_ids` on first-message and reply requests. Text-only requests and historical retry hashes remain compatible; attachment-only sends receive a readable string-body fallback.
 - [Shared Chat Media](../../shared/chat-media/spec.md) owns image/video/document formats, limits, scan/readiness, private delivery, cleanup and exact retry behavior. Existing participants, approvals, Store/Order/pickup/task/custody boundaries remain enforced at upload and send.
 - Use role-owned `/api/v1/{role}/chat-attachments` capabilities/upload/status/retry/remove/content/preview routes. Prospective uploads resolve existing start selectors and create no empty chat. Never attach another user's or another context's asset.
-- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. Buyer/Courier image selection, sending and private viewing are implemented locally; video/document adoption and live/device acceptance remain open.
+- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. Buyer/Courier image selection/send and receive-only video/document consumption are implemented locally; mobile video/document uploads and live/device acceptance remain open.
 - Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
