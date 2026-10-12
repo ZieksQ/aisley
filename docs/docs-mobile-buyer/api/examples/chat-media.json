@@ -2,7 +2,7 @@
   "provenance": "Synthetic expected media contracts, not live captures; local image send/view and video/document receive adopted; deployed/device acceptance open.",
   "chat_media_contract": {
     "date": "2026-10-12",
-    "source": "Laravel chat-media contract limit update; historical checkout/adoption fields preserved",
+    "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
     "client_adoption": "receive-only video/documents plus inclusive 8 MB image selection implemented locally",
     "media_baseline": "28fc740"
   },

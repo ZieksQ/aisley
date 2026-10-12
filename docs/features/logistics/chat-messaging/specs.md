@@ -31,7 +31,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 - Messages coordinate pickup, delivery, routing, and address clarification. They are not Order
   status changes, Courier offers/acceptance, scan validation, proof of delivery, Address Book
   edits, support decisions, or Admin campaigns.
-- MVP excludes group chat, guest access, files/images, location sharing, calls, typing/presence,
+- MVP excludes group chat, guest access, location sharing, calls, typing/presence,
   message edits/deletion, public broadcasting, and a new third-party messaging provider.
   Persisted HTTP plus bounded polling is sufficient.
 
@@ -145,7 +145,7 @@ Web UI adoption (2026-10-05): The Logistics operational inbox and conversation v
 - All existing role channels accept ordered `attachment_ids` on first-message and reply requests. Text-only requests and historical retry hashes remain compatible; attachment-only sends receive a readable string-body fallback.
 - [Shared Chat Media](../../shared/chat-media/spec.md) owns image/video/document formats, limits, scan/readiness, private delivery, cleanup and exact retry behavior. Existing participants, approvals, Store/Order/pickup/task/custody boundaries remain enforced at upload and send.
 - Use role-owned `/api/v1/{role}/chat-attachments` capabilities/upload/status/retry/remove/content/preview routes. Prospective uploads resolve existing start selectors and create no empty chat. Never attach another user's or another context's asset.
-- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. External Buyer/Courier attachment adoption and device acceptance are pending.
+- Web counterparts use shared selection/progress/checking, media viewing and document downloads. Courier remains API-only in this repository. External Buyer/Courier image upload/viewing and received MP4/documents are implemented locally; live runtime and installed-device acceptance remain open. See the portable client verification records.
 - Media availability requires configured private storage, scanner, FFmpeg and a separate media worker; text messaging remains usable when new uploads are disabled. See deployment/setup documentation and app-wide verification results.
 
 The Logistics selected conversation is retained in `?conversation=<uuid>` after first send and inbox selection, so the existing consent recheck on query navigation can restore the same scoped thread. Back returns to the inbox.

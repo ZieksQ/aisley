@@ -1,6 +1,6 @@
 {
   "inspected_on": "2026-10-03",
-  "executed_resolution": false,
+  "executed_resolution": true,
   "packages": [
     {
       "name": "go_router",
@@ -217,14 +217,65 @@
     }
   ],
   "sdk": {
-    "hash": "d693b4b9dbac2acd4477aea4555ca6dcbea44ba2",
+    "verified_on": "2026-10-04",
+    "source": "flutter --version --machine",
+    "hash": "d3b14c876900e553bc736ca19295fc09e3853e8e",
     "channel": "stable",
-    "version": "3.35.4",
-    "dart_sdk_version": "3.9.2",
+    "version": "3.47.2",
+    "dart_sdk_version": "3.13.2",
     "dart_sdk_arch": "x64",
-    "release_date": "2025-09-16T20:09:41.727296Z",
-    "archive": "stable/linux/flutter_linux_3.35.4-stable.tar.xz",
-    "sha256": "151c75539aa1c01b874954d7b6e0006a622a3f12c76fd7f1fcafad27e6a2d68a"
+    "pubspec_sdk_constraint": "^3.13.2"
   },
-  "sdk_metadata_url": "https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json"
+  "historical_sdk_inspection": {
+    "inspected_on": "2026-10-03",
+    "executed_resolution": false,
+    "sdk": {
+      "hash": "d693b4b9dbac2acd4477aea4555ca6dcbea44ba2",
+      "channel": "stable",
+      "version": "3.35.4",
+      "dart_sdk_version": "3.9.2",
+      "dart_sdk_arch": "x64",
+      "release_date": "2025-09-16T20:09:41.727296Z",
+      "archive": "stable/linux/flutter_linux_3.35.4-stable.tar.xz",
+      "sha256": "151c75539aa1c01b874954d7b6e0006a622a3f12c76fd7f1fcafad27e6a2d68a"
+    },
+    "sdk_metadata_url": "https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json"
+  },
+  "verification": {
+    "executed_on": "2026-10-04",
+    "project": {
+      "commands": [
+        {
+          "command": "flutter --version --machine",
+          "exit_code": 0,
+          "result": "Flutter 3.47.2 stable / Dart 3.13.2"
+        },
+        {
+          "command": "flutter pub get --enforce-lockfile",
+          "exit_code": 0,
+          "result": "Dependencies resolved; tracked pubspec.yaml and pubspec.lock unchanged."
+        },
+        {
+          "command": "flutter analyze --no-pub",
+          "exit_code": 0,
+          "result": "No issues found; existing counter scaffold only."
+        }
+      ]
+    },
+    "documented_packages": {
+      "working_directory": "isolated temporary project under /tmp",
+      "command": "flutter pub get",
+      "exit_code": 0,
+      "result": "All ten documented pins resolved together; no application dependencies added.",
+      "manifest": "name: buyer_package_baseline_check\npublish_to: none\nenvironment:\n  sdk: '^3.13.2'\ndependencies:\n  flutter:\n    sdk: flutter\n  cupertino_icons: ^1.0.8\n  go_router: 16.2.4\n  dio: 5.9.0\n  flutter_secure_storage: 10.0.0\n  image_picker: 1.2.0\n  shared_preferences: 2.5.3\n  url_launcher: 6.3.2\n  flutter_markdown_plus: 1.0.12\n  flutter_map: 8.2.2\n  latlong2: 0.9.1\n  geolocator: 14.0.2\ndev_dependencies:\n  flutter_test:\n    sdk: flutter\n  flutter_lints: ^6.0.0\n",
+      "resolved_package_count": 126,
+      "lockfile_sha256": "1a732204dc471d399c9b33b76735f9aaa8d0124b53a828ef9755a3693a8b8f7a"
+    },
+    "limits": [
+      "Package metadata remains the 2026-10-03 inspection; no new package metadata inspection was performed.",
+      "No feature code was analyzed for the documented packages; only the existing scaffold was analyzed.",
+      "No Flutter tests, Android/web builds, live API, installed-device or browser acceptance checks ran.",
+      "The sandboxed Flutter wrapper initially failed writing its SDK cache; commands subsequently passed with approved cache access."
+    ]
+  }
 }

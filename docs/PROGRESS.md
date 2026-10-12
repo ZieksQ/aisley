@@ -16,3 +16,9 @@ Format:
 ## 2026-10-12
 
 - Archived the complete 151-line progress log at [PROGRESS-2026-10-12.md](logs/PROGRESS-2026-10-12.md) after B08 verification. Both mobile apps already enforce the inclusive 8,000,000-byte limit and permanent 422 replacement recovery; fresh isolated Courier 78, Buyer 36 and Laravel 11 tests/276 assertions passed. See [B08 evidence](features/shared/chat-media/verification.md#b08-verification--2026-10-12); deployed/device acceptance remains open. Continue app-wide entries here.
+
+
+## 2026-10-12 — Three-project documentation synchronization
+
+- Audited Laravel/web and both Flutter sources; reconciled canonical/portable/client contracts, implementation status, API/DTO/examples, READMEs and source provenance. Preserved separate complete role histories and original archives/reports; corrected stale Cart/Admin/Seller summaries and retained explicit Buyer adoption gaps. See [audit](references/synchronization-2026-10-12.md).
+- Documentation validation passes for 111 Buyer operations, 34 bounded mobile specs, portable links/JSON/examples, preserved history and PSGC, paired copies and whitespace; existing Buyer bundle validator passes. Its pre-existing negative-test forwarding-path mismatch is recorded separately. No application tests/builds, live API/provider/device or deployment checks reran.

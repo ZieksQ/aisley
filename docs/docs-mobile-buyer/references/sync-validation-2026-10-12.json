@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-12",
+  "inspected_source_revisions": {
+    "aisley": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
+    "courier": "177eac1d1d132916cef25054cfc959e223fa409c",
+    "buyer": "7924cf06158817a2dcd709ec19a7442e3496dda5"
+  },
+  "execution": "Documentation-only validation; source-backed route inventory, no live HTTP or application test/build run.",
+  "checks": {
+    "markdown_documents": 103,
+    "local_links": 966,
+    "current_anchors": 3,
+    "json_documents": 72,
+    "bounded_specs": 22,
+    "preserved_progress_histories": [
+      {
+        "source": "docs/docs-mobile-buyer/PROGRESS.md",
+        "path": "logs/PROGRESS-2026-10-12.md",
+        "original_sha256": "f9181460f45769024caaf252d49210a05ff12d76af4b0841498d81a0bdf0df68",
+        "original_bytes": 31866,
+        "attribution": "platform"
+      },
+      {
+        "source": "../aisley_mobile_buyer/docs/PROGRESS.md",
+        "path": "logs/PROGRESS-2026-10-12-2.md",
+        "original_sha256": "9cff504e1c253f5034dc95fa5bfb690e18eb13c52aac25f7c51f1542be71f4a2",
+        "original_bytes": 27999,
+        "attribution": "client"
+      }
+    ],
+    "operation_records": 111,
+    "typed_success_fixtures": 44,
+    "typed_values": 1045,
+    "psgc_files": 19,
+    "embedded_json_blocks": 7
+  },
+  "errors": [],
+  "limits": [
+    "No deployed revision verified",
+    "No Flutter/API runtime tests or builds rerun",
+    "No installed-device acceptance"
+  ],
+  "existing_buyer_validator": "Passed after applying docs: 983 local links, 22 Customer specs, 19 PSGC checksums/registrations and Android boundaries.",
+  "existing_validator_unit_tests": "Pre-change 3 passed, 1 failed: ordinary-log negative fixture now resolves through existing logs/references forwarding pages. No tooling/source changes.",
+  "final_checks": {
+    "standalone_copies": "byte-for-byte identical",
+    "changed_document_links": "1884 destinations checked across three projects; no missing targets",
+    "whitespace": "git diff --check passed in all three repositories",
+    "scope": "documentation, project READMEs and Buyer instruction status only; application/dependency/schema sources unchanged"
+  }
+}

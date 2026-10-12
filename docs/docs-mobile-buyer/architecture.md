@@ -1,6 +1,7 @@
 # Buyer Flutter architecture
 
-> Implementation, SDK/package resolution, tests, builds and browser results in this guide are reports from the external Buyer Flutter project and were not rerun here. This bundle contains documentation; `lib/`, tests, tools, lockfiles and build reports belong to that project. Current shipping-contract adoption remains [G25](references/integration-gaps.md).
+> Current status and inspected revisions: [October 12 synchronization](references/synchronization-2026-10-12.md). Dated reports below retain their original verification scope; client sources belong to the corresponding standalone Flutter repository.
+
 
 Phases 1–4 implement this blueprint with partial acceptance. See [Phase 4 evidence](references/phase-4-verification.md) and [Phase 3 evidence](references/phase-3-verification.md). Android is the delivery target; responsive web includes desktop browsers, tested locally at localhost:8766; production browser release remains unverified. Existing repositories must merge these choices with their own instructions and record material differences before implementation. Backend contracts were inspected at checkout `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; the historical baseline remains in provenance.
 
@@ -82,4 +83,4 @@ Shared `MarketplaceScope` receives only verified-access and Cart badge display v
 
 Optional Cart Shop metadata is a private lifecycle-aware display view model using the existing Product-detail repository: unique Product IDs, four concurrent reads, ungrouped failure fallback and obsolete-session rejection. Cart/checkout controllers retain financial and mutation authority. Three message channels remain independent; desktop inbox panes mount on first desktop exposure, stay mounted across resizing and poll only while visible. No wire contract, dependency or backend change accompanies the marketplace redesign.
 
-Background identity/consent revalidation retains mounted route state after temporary errors and ignores obsolete results. Identity loss clears private data; renewed required consent gates shopping. Profile owns embedded photo presentation with independent upload state; legacy `/account/photo` navigates to Profile. Client evidence is dated in [marketplace verification](references/marketplace-verification.md) and [Progress](PROGRESS.md), against the reported adopted baseline, not newer backend adoption.
+Background identity/consent revalidation retains mounted route state after temporary errors and ignores obsolete results. Identity loss clears private data; renewed required consent gates shopping. Profile owns embedded photo presentation with independent upload state; legacy `/account/photo` navigates to Profile. Client evidence is dated in [marketplace verification](references/marketplace-verification.md) and [Progress](PROGRESS.md), against the implemented adopted baseline, not newer backend adoption.

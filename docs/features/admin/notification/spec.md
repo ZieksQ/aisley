@@ -4,14 +4,20 @@ title: Admin Notifications
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft
+status: Admin inbox/count/read/read-all implemented; realtime transport remains deferred
 role: Admin
 scope: Admin Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin Notifications
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+NotificationController, NotificationsPage and AdminNotificationBell implement list, unread-count, per-notification read and read-all under `/api/v1/admin/notifications`. Notification producers own event behavior; WebSocket/native-push delivery is not established by these endpoints. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - **Purpose:** Provide authenticated Admins with a persistent notification inbox/center for important platform events and pending Admin attention.
 - **Primary actor:** Authenticated `admin`.

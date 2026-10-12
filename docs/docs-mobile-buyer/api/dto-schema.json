@@ -462,20 +462,21 @@
       "productId": "UUID?",
       "variantId": "UUID?",
       "productName": "string",
+      "imageUrl": "URL?~",
       "variantName": "string?",
       "sku": "string?",
       "selectedOptions": "SelectedOption[]",
       "unitPrice": "money",
       "quantity": "int",
       "lineSubtotal": "money",
-      "currency": "string",
-      "imageUrl": "URL?~"
+      "currency": "string"
     },
     "ReviewableItem": {
       "id": "UUID",
       "productId": "UUID?",
       "variantId": "UUID?",
       "productName": "string",
+      "imageUrl": "URL?~",
       "variantName": "string?",
       "sku": "string?",
       "selectedOptions": "SelectedOption[]",
@@ -483,7 +484,6 @@
       "quantity": "int",
       "lineSubtotal": "money",
       "currency": "string",
-      "imageUrl": "URL?~",
       "canReview": "bool",
       "reviewId": "UUID?"
     },
@@ -583,9 +583,9 @@
     "ItemPreview": {
       "productId": "UUID?",
       "productName": "string",
+      "imageUrl": "URL?~",
       "variantName": "string?",
-      "quantity": "int",
-      "imageUrl": "URL?~"
+      "quantity": "int"
     },
     "Tracking": {
       "id": "UUID",
@@ -669,11 +669,6 @@
       "name": "string",
       "slug": "string?",
       "availability": "online|offline|vacation"
-    },
-    "ShopAvailabilityProjection": {
-      "shop": "ChatShop",
-      "conversation_id": "UUID?",
-      "send_allowed": "bool"
     },
     "ShopMessage": {
       "id": "UUID",
@@ -975,17 +970,23 @@
       "id": "UUID",
       "name": "string",
       "slug": "string"
+    },
+    "ShopAvailabilityProjection": {
+      "shop": "ChatShop",
+      "conversation_id": "UUID?",
+      "send_allowed": "bool"
     }
   },
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
-  "contract_updates": {
-    "2026-10-09": "Voucher, AppliedVoucher and BatchVoucher add name; see voucher-selection-update.md. External Flutter adoption remains G26.",
-    "order_contact_correction": "2026-10-10 B02: recipient/contact-only corrections at identical complete trimmed location and seven-decimal pin; nullable Order coordinates added; external adopted baseline unchanged.",
-    "voucher_collection": "2026-10-11: Buyer discovery, Shop/platform collection, wallet and explicit Checkout requote adopt Laravel 7e89b391; live/device/deployment gates remain open."
-  },
   "chat_media_contract": {
     "date": "2026-10-06",
     "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
     "client_adoption": "pending"
-  }
+  },
+  "contract_updates": {
+    "voucher_collection": "2026-10-11: Buyer discovery, Shop/platform collection, wallet and explicit Checkout requote adopt Laravel 7e89b391; live/device/deployment gates remain open.",
+    "2026-10-09": "Voucher, AppliedVoucher and BatchVoucher add name; see voucher-selection-update.md. External Flutter adoption remains G26.",
+    "order_contact_correction": "2026-10-10 B02: recipient/contact-only corrections at identical complete trimmed location and seven-decimal pin; nullable Order coordinates added; external adopted baseline unchanged."
+  },
+  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe"
 }

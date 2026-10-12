@@ -4,13 +4,19 @@ title: Admin System Audit Logs
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft
+status: Audit persistence/outbox and permission-gated viewer implemented; acceptance remains separate
 role: Admin
 scope: Admin Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin System Audit Logs
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+AuditLogController and AuditLogs/AuditLogDetail pages expose list/options/detail under `/api/v1/admin/audit-logs`. Audit/outbox migrations and services persist immutable history with queued recovery; no external logging service or unrestricted transcript access is implied. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 - **Purpose:** Provide an immutable, timestamped ledger of administrative actions for security, accountability, and post-incident investigation.
 - **Primary actor:** Authorized authenticated `admin` viewing audit history.
 - **Primary producers:** Administrative mutations performed across AISLEY Admin features.

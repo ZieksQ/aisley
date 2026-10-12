@@ -1,9 +1,9 @@
 # Per-Shop shipping selection — current platform contract
 
 Inspected 2026-10-04 at Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`.
-The external Buyer reports adoption of `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`.
-This newer contract is **not established as adopted by that client** (G25).
-Imported Phase 3 fixtures/tests do not verify these fields or provider UI.
+The Buyer retains historical `57e9eb2` evidence and adopts this shipping contract on 2026-10-09.
+[Client verification](../references/shipping-selection-verification.md) records options, selections,
+current projections and exact replay; live/device commerce remains open under G25.
 
 ## Options, quote and placement
 

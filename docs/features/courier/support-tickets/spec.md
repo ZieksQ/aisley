@@ -7,11 +7,15 @@ version: 1.1
 status: Courier API and external Flutter UI implemented; live acceptance pending
 implementation_status: Five protected requester routes, Flutter requester flow, and shared ticket persistence are implemented
 canonical: true
+file_state: copied_read_only
+canonical_source: docs/features/courier/support-tickets/spec.md
+copied_backend_checkout: 4c3f504
 role: Courier
 scope: Laravel API and external Flutter mobile application
 backend_contract_commit: 40c68de
 backend_contract_version: courier-support-tickets-v1
-source_coverage: docs/features/admin/support-ticket-system/spec.md, docs/schema.md, docs/domains/Courier.md
+source_coverage: docs/features/admin/support-ticket-system/spec.md, docs/schema.md, docs/domain/Courier.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Support Tickets
@@ -194,7 +198,7 @@ Mutation responses contain `data` with the full safe summary and `event` with th
 - Retain SQLite tests for Courier ownership, cross-role/cross-user IDOR, validation, create/reply retries, stale revision, reopen behavior, and read markers.
 - Verify PostgreSQL locking and exact-retry behavior before production release.
 - Add Flutter repository fixtures for all envelopes and nullable summary/event fields.
-- Add controller/widget tests for cursor continuation, unknown safe fields, conflicts, throttling, timeout reconciliation, offline blocking, and session cleanup.
+- Imported Flutter controller/widget tests cover cursor continuation, unknown safe fields, conflicts, throttling, timeout reconciliation, offline blocking and cleanup. Production-theme 320/390px, 1×/2× light/dark tests cover contrast/target/label guidelines, list/create/detail/reply, keyboard menus/focus and loading/stale/retry/draft states; device/screen-reader acceptance remains open.
 - Record the adopted Laravel commit/API version in Flutter `docs/PROGRESS.md`.
 - Flutter dashboard navigation exposes the implemented screens; live API availability and authenticated acceptance still require separate verification.
 - Retention, attachments, ticket notifications, linked business records, and ineligible-account appeals require separate approved revisions.

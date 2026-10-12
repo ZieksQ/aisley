@@ -16,15 +16,15 @@ backend_contract_version: courier-completion-v1-qr
 backend_contract_version_status: Historical QR baseline; the photo-POD revision below is authoritative
 backend_contract_reviewed_commit: a94669248c63525e44243327f4c25feca46c9c50
 backend_contract_funding_revision: order-funding-hold-v1 (2026-10-11)
+documentation_synced_on: 2026-10-12
 ---
 
 # Complete Delivery
 ## Final-mile photo and retry revision (2026-09-20)
-
 The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
 ## COD confirmation revision (2026-09-23)
 
-For COD Orders, refetch `GET /api/v1/courier/tasks/{task}/delivery` and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal. Require confirmation that this exact amount was collected before sending `cod_collected: true`. Missing fields or uncollected cash block successful intent; refetch the task. Flutter adopts [failed-attempt reporting](../delivery-order/failed-attempts.md) and blocks Delivered intent for stale/unknown matching-photo attempt counts; source baseline `4d8bfefa2a95007256e6616df415fa186d1b18eb`, live/device acceptance remains open. The API derives declaration amount, currency, and time and accepts no Courier-supplied amount. Logistics confirms proof and collection before atomically setting delivery and COD `payment_status` to `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
+For COD Orders, refetch the accepted-task `GET /api/v1/courier/tasks/{task}/delivery` projection and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal, not cash due. Require an explicit confirmation that this exact amount was collected before sending `cod_collected: true`. If payment fields are absent or the cash was not collected, do not submit a successful completion intent; refetch the task. Flutter adopts [failed-attempt reporting](../delivery-order/failed-attempts.md) and blocks Delivered intent for stale/unknown matching-photo attempt counts; source baseline `4d8bfefa2a95007256e6616df415fa186d1b18eb`, live/device acceptance remains open. The API derives declaration amount, currency, and time from the current Order and accepts no Courier-supplied amount. Logistics confirms the declaration and proof before atomically marking delivery and COD `payment_status` as `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
 
 ## WHAT
 
@@ -112,13 +112,13 @@ out_for_delivery
 - Production UI belongs in the external Flutter repository.
 - Store bearer tokens in OS secure storage and send Authorization: Bearer.
 - Use JSON model keys exactly as specified by the implemented API revision.
-- Load safe Order/task references, delivery state, proof status, and capability reasons; refetch delivery context before displaying COD due or requesting confirmation.
+- Load safe Order/task references, delivery state, proof status, and capability reasons; refetch the accepted delivery context before displaying the COD amount or requesting cash confirmation.
 - Show recipient/destination details only when returned by the authorized active-task contract.
 - Never expose registration documents, payment secrets, private reviewer notes, or raw paths.
 - Show “Awaiting Logistics validation” for accepted intent that is not finalized.
 - A successful submission acknowledgment must not show “Delivered.”
 - Disable duplicate taps during a request; retain its idempotency key after timeout.
-- Refetch completion status after an uncertain result before starting another action. The imported Flutter log (2026-10-03) records plain-language unconfirmed-update recovery and a secondary Refresh task read; retries retain the same pending action/key and response-field names stay internal.
+- Refetch completion status after an uncertain result before starting another action. Flutter recovery wording explains that the update is unconfirmed and provides a secondary **Refresh task** read before retrying the same pending action/key; response field names remain internal.
 - Do not optimistically remove a task before server-confirmed delivered state.
 - Offline completion queues are deferred; connectivity is required for submission.
 - Camera, signature, and file permissions belong to Proof of Delivery.
@@ -142,7 +142,7 @@ out_for_delivery
 - The Logistics route is owned by Update Status; this spec does not create a second validation endpoint.
 - Courier POST uses application/json plus a UUID Idempotency-Key header.
 - Request fields: expected_revision (integer at least 1), evidence_id (UUID), confirmed (must be true), and `cod_collected: true` for COD Orders only.
-- Read COD fields from `data.order.payment_method`, `data.order.payable_total`, and `data.order.currency`; declaration amount/currency/time remain server-derived and the Courier POST accepts no amount.
+- Read COD method/total/currency from `GET /api/v1/courier/tasks/{task}/delivery` at `data.order.payment_method`, `data.order.payable_total`, and `data.order.currency` (see Deliver Order's redacted example). Declaration amount/currency/time are server-derived and returned to Logistics; the Courier POST accepts no amount.
 - Reject unknown authority fields and unrelated evidence references.
 - GET has no body and no client-controlled ownership parameters.
 - New intent and matching replay return 202. Replay reflects current task/Order state and nullable `delivered_at`, including the actual timestamp after finalization; refetch GET for the full authoritative completion/rejection projection.
@@ -191,7 +191,7 @@ out_for_delivery
 - Test SQLite and PostgreSQL schema, foreign keys, uniqueness, and append-only constraints. Test IDOR, role/status/affiliation denial, wrong leg, and unrelated evidence. Test pending/rejected proof, premature completion, and duplicate intent.
 - Test concurrent Logistics decisions and stale assignments without double completion.
 - Test rollback atomicity across task, Shipment, Order, event, and notification work.
-- Test that final delivery leaves Inventory unchanged; COD payment becomes `paid` only after Logistics validates proof and collection.
+- Test that final delivery leaves Inventory unchanged; COD payment becomes `paid` only after Logistics validates proof and collection in the delivery transaction.
 - Test legacy pickup bridge records do not create false final-mile history.
 - Test notification failures and retries independently from completion state.
 - Flutter tests cover pending 202 versus delivered 200, nullable fields, timeout retry, and secure-storage failures.
@@ -202,7 +202,7 @@ out_for_delivery
 - [x] Logistics validation and required photo POD gate delivered.
 - [x] Task, Shipment, Order, history, and notification work commit atomically.
 - [x] Retries/concurrency cannot duplicate delivery or Inventory effects.
-- [x] Supplied Flutter tests distinguish pending evidence from confirmed delivery; authenticated Logistics validation and installed-device acceptance remain open.
+- [x] Flutter tests distinguish pending evidence from confirmed delivery; authenticated Logistics validation and installed-device acceptance remain open.
 - [x] Private DTOs and history remain scoped and immutable.
 - [ ] Complete PostgreSQL release verification and external Flutter contract tests; recorded SQLite coverage alone does not satisfy this gate.
 ### Deferred extensions

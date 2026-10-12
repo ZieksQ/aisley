@@ -12,6 +12,7 @@ scope: Laravel API plus external Flutter mobile client
 backend_contract_commit: 20afd9f (Courier profile-photo implementation)
 backend_contract_version: courier-account-management-v1 (photo extension implemented)
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md, file-upload-requirements.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Account Management
@@ -74,7 +75,6 @@ Non-goals:
 - Profile writes use a transaction and lock the authenticated Courier profile.
 
 ### Profile-photo extension (implemented)
-- The development-only Courier API mockup may exercise upload, private preview, and removal with its bearer token; server validation remains authoritative.
 
 - POST, GET, and DELETE /api/v1/courier/account/profile-photo are inside the active-Courier route group and covered by API tests.
 - POST is multipart/form-data with one required photo field. Ownership is derived from the bearer token; client IDs and storage paths are prohibited.
@@ -196,13 +196,13 @@ Example:
 
 ### Flutter handoff
 
-- Use bearer tokens through the approved secure-storage package: OS secure storage on Android and reviewed package-provided browser storage for localhost `web-server` testing only. Do not use browser cookies, shared preferences for tokens, or plaintext logs.
+- Use bearer tokens through the approved secure-storage package: OS secure storage on Android and reviewed package-provided browser storage for localhost web-server testing only. Do not use browser cookies, shared preferences for tokens, or plaintext logs.
 - Use Dart models matching the snake_case JSON names and call only the implemented photo routes.
 - Send multipart/form-data field photo, retain no Base64/blob URL as server identity, and refresh the private image only after 200.
-- For local Flutter `web-server`, send selected photo bytes through the shared multipart client; a browser file path cannot be passed to `MultipartFile.fromPath`. Preserve Android uploads and bearer-authenticated private reads. Follow the copied Flutter bundle's `docs/flutter-file-uploads.md`; browser acceptance remains unverified.
+- For local Flutter web-server, send the selected photo as browser-readable bytes through the shared multipart client; never submit its browser path through `fromPath`. Preserve the Android upload path, bearer-authenticated private reads, and uncertain-result reconciliation. Follow `docs/flutter-file-uploads.md`; browser acceptance remains unverified.
 - Keep local edits/previews separate from authoritative account state and never bypass server approval or revalidation.
-- The imported Flutter log (2026-10-03) records a discard confirmation for user-initiated Back/system Back when profile/password drafts or a selected photo would be lost; unchanged, reverted, and saved profiles leave without a prompt. Mutations/pickers block exit until their owning workflow resolves; reads remain navigable.
-- The same record reports profile/password validation that scrolls to the first affected field. Password change retains one consequence confirmation and required field clearing; account-scope loss clears local drafts/previews and dismisses discard prompts immediately, without waiting for consent to leave.
+- The imported Flutter log reports confirmation of user-initiated Back/system Back when profile/password drafts or a selected photo would be lost; unchanged, reverted, and saved profiles leave without a prompt. Mutations/pickers block exit until their owning workflow resolves; reads remain navigable.
+- Reported production-theme widget tests cover 320/390px, 1×/2× text, light/dark, contrast/target/label guidelines, keyboard controls, photo drafts, scrollable confirmations and loading/offline recovery. Device/screen-reader acceptance remains open. Profile/password validation scrolls to the first affected field. Password change retains one consequence confirmation and required field clearing; account-scope loss clears local drafts/previews and dismisses discard prompts immediately, without waiting for consent to leave.
 
 ### Tests and rollout
 

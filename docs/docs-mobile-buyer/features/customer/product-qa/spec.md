@@ -6,6 +6,7 @@ phase: 4
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Public Product questions
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Public Product Q&A, active-Customer ask, owning Seller official answer and
 after-commit alerts implemented.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
+Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
 
 Visible Product questions → ask after auth/consent → committed question → official answer/allowed notification.
@@ -143,12 +144,8 @@ require a universal error envelope.
 
 ### Responsibility and state ownership
 
-- `QuestionRepository` owns typed transport, parsing and owned cache access; inject
-  dependencies through AppDependencies.
-- `QuestionListViewModel` owns feature transitions, draft/query state and deliberate
-  actions; inject dependencies through AppDependencies.
-- `AskQuestionViewModel` owns feature transitions, draft/query state and deliberate actions;
-  inject dependencies through AppDependencies.
+- QuestionRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- QuestionListController and AskQuestionController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and
   forward callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses

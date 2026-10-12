@@ -4,14 +4,20 @@ title: Admin Account Management
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft
+status: Profile/email/password/private-photo foundation implemented; MFA/preferences/security extensions deferred
 role: Admin
 scope: Admin Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin Account Management
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+Admin AccountController and AccountPage implement current account GET, profile/email PATCH, password PUT and private profile-photo POST/GET/DELETE under `/api/v1/admin/account`. MFA, preferences and security-session APIs below remain conceptual. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - **Feature:** Admin Account Management for the AISLEY Admin web application.
 - **Purpose:** Let the currently authenticated Admin manage their own account information, login credentials, preferences, and security settings without exposing another user's account-management controls.
@@ -303,14 +309,14 @@ unique(email, role)
 ### Laravel API
 
 - Prefer current-account endpoints instead of arbitrary Admin IDs.
-- Conceptual API shape:
+- Implemented account/profile/password endpoints and explicitly unavailable extensions:
 
 ```http
-GET   /api/admin/account
-PATCH /api/admin/account/profile
-PUT   /api/admin/account/password
-PATCH /api/admin/account/preferences
-GET   /api/admin/account/security
+GET   /api/v1/admin/account
+PATCH /api/v1/admin/account/profile
+PUT   /api/v1/admin/account/password
+PATCH /api/v1/admin/account/preferences  # conceptual; unavailable
+GET   /api/v1/admin/account/security
 ```
 
 - Add 2FA-specific endpoints only when the repository's approved authentication package/mechanism defines them.

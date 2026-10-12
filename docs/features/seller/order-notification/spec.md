@@ -4,13 +4,19 @@ title: Seller Order Notifications
 system: AISLEY
 type: Feature Specification
 version: 1.0
-status: Draft
+status: Seller notification inbox/detail/read and Order entry implemented; realtime transport deferred
 role: Seller
 scope: Seller Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Seller Order Notifications
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+Seller NotificationController, NotificationBell and Notifications/NotificationDetail pages implement `/api/v1/seller/notifications` list/detail/read with links to owned Orders. Bounded HTTP reads do not establish WebSockets or native push. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 - **Purpose:** Alert a Seller when a new Seller-scoped Order becomes valid/actionable and provide the details needed to begin fulfillment.
 - **Canonical role:** `SELLER`.
 - User slug normalized:

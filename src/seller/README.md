@@ -1,32 +1,32 @@
-# React + TypeScript + Vite
+# AISLEY Seller dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Seller dashboard built with React, TypeScript, Vite, React Router and Tailwind. Role screens, routes and API access stay in this app; compatible presentation uses workspace packages, including `@aisley/ui` and `@aisley/ui/chat`.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Run commands from the monorepo root after workspace dependencies and the API environment are configured:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+pnpm dev:seller
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The local app runs at `http://localhost:5174`. Set `VITE_API_URL` from this app's `.env.example` to the API origin without `/api/v1`; the client uses versioned endpoint paths. Public frontend configuration must contain no server secrets.
+
+Use root `pnpm dev` to start the API, queue worker, scheduler and all four web apps. PostgreSQL must already be available. Private chat media has a separate worker; see the [root setup](../../README.md#local-chat-media).
+
+## Authentication and ownership
+
+Browser authentication uses Laravel Sanctum stateful sessions, HttpOnly cookies and CSRF protection. The API enforces active, Admin-approved Seller access and Store ownership. Mobile bearer flows and Courier screens belong to their external Flutter projects.
+
+## Design and contracts
+
+Light and dark themes, mobile-first responsive layouts and accessible controls follow [the web design contract](../../docs/design.md). Read the matching [role feature specifications](../../docs/features/seller) before feature changes. Shared UI does not merge role navigation, permissions or tenant data.
+
+## Checks
+
+```sh
+pnpm --dir src/seller lint
+pnpm --dir src/seller build
+```
+
+Commands come from the committed package scripts. This documentation update did not run application checks; [Progress](../../docs/PROGRESS.md) records actual verification and [architecture](../../docs/architecture.md) describes deployment.

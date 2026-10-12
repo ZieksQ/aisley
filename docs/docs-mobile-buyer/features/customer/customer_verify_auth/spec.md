@@ -6,6 +6,7 @@ phase: 1
 flutter_status: Implemented; target acceptance pending
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Auth-aware navigation
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: /me role/status and policy guards implemented; storefront session UX has its own separate
 implementation.
 
-Flutter (external project report): **implemented; target acceptance pending**. See the Phase 1 verification record for evidence.
+Flutter: **implemented; target acceptance pending**. See the Phase 1 verification record for evidence.
 
 App load → one deduplicated secure-token restoration → /me → signed-out/active/denied/retry → consent → private route.
 
@@ -31,7 +32,7 @@ capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -145,12 +146,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `SessionController` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `TokenStore` owns safe platform access without widget HTTP calls; inject dependencies through
-  AppDependencies.
-- `RouterGuard` owns feature transitions, draft/query state and deliberate actions; inject dependencies
-  through AppDependencies.
+- ApiAuthRepository and ApiPolicyRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- SessionController and go_router redirects owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().

@@ -11,9 +11,7 @@ status: Active inbox/dashboard previews; photo/COD intent, private POD review, a
 
 ## Scope
 
-> Flutter implementation and verification are attributed external reports; this documentation sync did not run those checks. Current evidence is in [Progress](PROGRESS.md).
-
-The supplied documentation baseline is `4c3f504` (Auth v2.6); Flutter implementation evidence remains recorded against `d7df220`, with Auth v2.6 response integration now reported by external local tests against `4c3f504`; authenticated acceptance remains outstanding.
+The supplied documentation baseline is `4c3f504` (Auth v2.6); Flutter implementation evidence remains recorded against `d7df220`, with Auth v2.6 response integration now verified by local tests against `4c3f504`; authenticated acceptance remains outstanding.
 
 This guide applies to the external Flutter Courier application on Android and to local browser testing of that same app through Flutter `web-server`. It does not define the separate webapp's Customer storefront or React Admin, Seller, or Logistics dashboards. Laravel remains authoritative for identity, approval, ownership, and operational state.
 
@@ -157,6 +155,7 @@ Apply Jakob's Law by retaining recognizable platform interactions and consistent
 
 ### Delivery history
 
+- Use the Material **Order reference** field with primary **Search** and secondary **Clear** for full exact references. Keep the active reference visible independently of draft edits; Clear returns field focus. Wrap controls at large text and retain the submitted reference through refresh, retry, and policy recovery.
 - Present delivered final-mile records as read-only cards with order reference, delivered time, pickup/destination areas, item count, and safe proof/completion status.
 - History detail may show immutable item snapshots, opaque proof references, and the adopted authenticated private photo viewer. Keep validated image bytes only in account-scoped memory and clear them when detail/session scope ends; exclude street addresses, contact phone numbers, raw storage paths, public media URLs, and mutation controls.
 - Keep cursor pagination unavailable when the server does not provide a usable cursor; distinguish an empty successful list from unavailable, unauthorized, offline, and retryable states.

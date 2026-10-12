@@ -1,7 +1,5 @@
 # MapLibre address-map verification — 2026-10-08
 
-> Imported external Buyer Flutter report dated 2026-10-08; checks below were not rerun in the Laravel repository. Flutter source, tools, build configuration and credentials are not included in this documentation bundle.
-
 Implementation branch: `feature/buyer-maplibre-address-map`. Adopted Laravel contract
 baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; no backend/wire changes.
 Flutter remains 3.47.2 / Dart 3.13.2. `maplibre_gl`, its platform interface and web

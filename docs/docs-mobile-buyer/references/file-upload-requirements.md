@@ -2,6 +2,12 @@
 
 Portable Buyer adaptation of upstream `docs/references/file-upload-requirements.md`. The backend and owning feature retain enforcement authority. Flutter adoption/acceptance pending; [transport guidance](../flutter-file-uploads.md) documents actual fields and targets.
 
+The image rules below cover profile/Review workflows and future registration evidence.
+[Private chat media](../api/chat-media.md) has its own implemented backend contract for images,
+MP4 and documents, with inspection/scanning/runtime controls and supported keyed upload replay.
+Buyer Flutter attachment adoption remains G26; those controls do not establish profile/Review
+scanning or change their image-only fields and uncertain-upload behavior.
+
 - Every source image must be **strictly under 10 MiB (10,485,760 bytes)**. UI may say “10 MB maximum”; reject the exact limit and above. JPEG/JPG (`image/jpeg`), PNG (`image/png`) and WebP (`image/webp`) only.
 - Reject GIF, SVG, AVIF, HEIC/HEIF, TIFF, BMP, PDF, archives and all unlisted types. Filename, extension, picker MIME and size are hints; Laravel inspects MIME/signature, validates matching extension and decodes. Double/multiple extensions and corrupt images are rejected.
 - The feature authorizes its owning Customer and parent resource. No client owner/path may attach media to another account/Review. Public registration evidence is currently unavailable, so no general upload exception is implied.
@@ -11,4 +17,6 @@ Portable Buyer adaptation of upstream `docs/references/file-upload-requirements.
 - Replacement/removal enforce ownership and transaction/cleanup boundaries. A cancelled request may have committed. [Transport](../flutter-file-uploads.md) handles reconciliation without invented upload replay.
 - Use field-addressable `422`, auth/role/resource denial and `429` feedback; show formats/limit before selection, progress while sending and committed success only after persistence. Keep safe IDs/outcomes in operational logs, excluding bytes/private URLs/evidence.
 
-Current feature-specific limits: reviews allow 5 images, at most 8,000 pixels per edge and 40,000,000 total pixels. Customer profile photos now enforce the same numeric dimension limits before isolated full decoding/rewrite (audit B04, 2026-10-10); both source and stored rewrite are strictly under 10 MiB. The worker uses a 15-second timeout and 512 MiB PHP memory ceiling; processing failure, incomplete/corrupt image data and decoder warnings return safe `422` errors on `photo`, preserving the prior photo. JPEG/WebP quality 90 and PNG compression 6 retain format and PNG/WebP transparency while removing metadata/trailing bytes. GET remains owner-authorized; no wire envelope or replay key changed. Deployed-runtime and external Flutter acceptance remain unverified. Scanning, per-purpose size changes, responsive derivatives, moderation, evidence retention and cleanup windows remain separate decisions.
+Current feature-specific config: review limit 5 images, edge limit 8,000 pixels and total 40,000,000; profile validation lacks the same explicit numeric dimension enforcement and its metadata inspection does not demonstrate bounded full decoding/rewrite. Treat that as a backend gap, not proof that a shared maximum is deployed. Scanning, per-purpose size changes, responsive derivatives, moderation, evidence retention and cleanup windows need owning decisions before release claims.
+
+Chat images use the separately approved inclusive 8,000,000-byte new-upload limit; general profile/registration/review rules above retain their owning limits. See [private chat media](../api/chat-media.md) for historical retrieval, received video/document consumption and image-only mobile selection.

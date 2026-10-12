@@ -55,6 +55,10 @@ This web design contract excludes the existing `src/couriermockup` harness and e
 
 ## Backend Architecture (Laravel)
 
+### Documentation ownership
+
+The external Courier and Buyer Flutter projects own their client source, setup and implementation evidence. Their portable documentation is tracked here at `docs/docs-flutter-rider` and `docs/docs-mobile-buyer`, and copied into each client's `docs/`. Synchronize maintained contracts and newer client evidence selectively; preserve historical logs/reports and project-specific root instructions. Laravel source establishes available server behavior, while client source establishes adoption; deployed/device acceptance needs separate evidence. The [October 12 audit](references/synchronization-2026-10-12.md) records the current reconciliation and remaining gaps.
+
 ### API Routing
 
 * **Versioning Strategy:** All endpoints must be prefixed with `/api/v1/`.

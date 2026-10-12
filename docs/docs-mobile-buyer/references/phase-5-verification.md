@@ -1,9 +1,3 @@
-> Imported report from the external Buyer Flutter project, synchronized 2026-10-04.
-> Commands/results below were reported there and were not rerun here. Referenced
-> `lib/`, `test/`, `tool/`, lockfiles and ignored `build/` reports belong to that project.
-> Its adopted backend baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`;
-> the current platform inspection and adoption gap are recorded in [provenance](source-provenance.md).
-
 # Phase 5 integration and local release readiness
 
 Date: 2026-10-04. Branch: `feature/buyer-phase-5-integration-release`, created

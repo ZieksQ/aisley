@@ -14,6 +14,7 @@ scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-first-and-final-mile-accept-v1
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Accept Delivery Requests
@@ -135,8 +136,7 @@ Logistics offer
       "destination_area": {
         "city_municipality": "Example",
         "province": "Example"
-      },
-      "schedule": {
+      }, "schedule": {
         "starts_at": "server-time",
         "ends_at": "server-time",
         "timezone": "UTC"

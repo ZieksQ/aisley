@@ -4,19 +4,23 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Implemented final-mile task, batch route, movement, and delivery-context API
 implementation_status: Final-mile tasks, batch acceptance, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
-flutter_status: October 8 external report records delivery context/movement and MapLibre batch routes against map baseline 51d9694; authenticated/device acceptance remains open
+flutter_status: Delivery context/movement and accepted-batch MapLibre routes implemented locally; live API and installed-device/browser map acceptance remain unverified
 canonical: true
+copied_backend_checkout: 4c3f504
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
 backend_contract_version: courier-delivery-v1-final-mile-task
+map_contract_commit: 51d96947569d1603fdfb6d264ebd2a04bf866280
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Deliver Order
+**Flutter adoption boundary:** Flutter now renders accepted final-mile batch routes with MapLibre on Android and localhost web, preserving server order, advisory metrics, and known-location fallback. Local tests/builds are client evidence; source inspection at `51d9694` does not establish deployed API, installed-APK, or browser acceptance. Pickup routing remains independent.
 
 ## Map and parcel-price revision (2026-09-21)
 
@@ -24,13 +28,11 @@ The accepted final-mile batch route must display the Logistics hub as a labelled
 
 ## Authorized COD amount read (verified against Laravel checkout `ca1487c`, 2026-09-25)
 
-After acceptance, `GET /api/v1/courier/tasks/{task}/delivery` returns `data.order.payment_method`, `data.order.payment_status`, `data.order.payable_total`, and `data.order.currency` inside the private, no-store task projection. The final-mile task detail read has the same `order` fields; use the accepted-task delivery read for the cash-collection screen. Redacted JSON excerpt:
-
+After acceptance, `GET /api/v1/courier/tasks/{task}/delivery` returns `data.order.payment_method`, `data.order.payment_status`, `data.order.payable_total`, and `data.order.currency` inside the private, no-store task projection. The final-mile task detail read has the same `order` fields; use the accepted-task delivery read for the cash-collection screen. Redacted JSON excerpt (other task and address fields omitted):
 ```json
 {"data":{"task_id":"<authorized-task-uuid>","revision":4,"order":{"payment_method":"cod","payment_status":"pending","payable_total":"115.00","currency":"PHP"},"parcel":{"price":"100.00","currency":"PHP"}}}
 ```
-
-`order.payable_total` is the amount to collect; `parcel.price` is only the merchandise subtotal. Do not infer a missing total or treat the example values as a live Order. Customer checkout remains COD-only; the backend also models paid-prepaid fulfillment under the POD policy. Prepaid delivery creates no COD cash claim.
+`order.payable_total` is the amount to collect; `parcel.price` is only the merchandise subtotal. Do not use the parcel price as COD due, infer a missing total, or treat the example values as a live Order. Customer checkout remains COD-only; the backend also models prepaid fulfillment. Paid-prepaid completion follows the current POD policy and creates no COD cash claim.
 
 ## Final-mile batch route revision (2026-09-20)
 
@@ -40,7 +42,7 @@ An accepted Courier dispatch schedule offers `GET /api/v1/courier/final-mile-bat
 
 - **Purpose:** Help an accepted final-mile Courier task travel from the sole Logistics hub to the authoritative Customer destination.
 - **Actor boundary:** Courier views task and route context in Flutter. Aisley validates task ownership and state; Logistics remains assignment/state authority; Complete Delivery owns finalization.
-- **Current implementation:** The API creates a final-mile task when Logistics dispatches a Shipment from its sole hub, supports Courier-scoped task listing/detail/accept/reject, task-bound hub-pickup confirmation submission without identifier input, `in_transit`/`out_for_delivery` movement, and an accepted-task delivery-context read with the immutable destination address/contact and hub context. An accepted dispatch schedule has an advisory Geoapify Matrix/Routing route; live Courier location telemetry remains deferred. Flutter failed-attempt reporting and exact retry are adopted locally against `4d8bfefa2a95007256e6616df415fa186d1b18eb`; see [failed-attempt handoff](failed-attempts.md). Live/device acceptance remains open.
+- **Current implementation:** The API creates a final-mile task when Logistics dispatches a Shipment from its sole hub, supports Courier-scoped task listing/detail/accept/reject, task-bound hub-handoff evidence submission, `in_transit`/`out_for_delivery` movement, and an accepted-task delivery-context read with the immutable destination address/contact and hub context. An accepted dispatch schedule has an advisory Geoapify Matrix/Routing route; live Courier location telemetry remains deferred. Flutter failed-attempt reporting and exact retry are adopted locally against `4d8bfefa2a95007256e6616df415fa186d1b18eb`; see [failed-attempt handoff](failed-attempts.md). Live/device acceptance remains open.
 - **Flow:** Logistics dispatches → final-mile task is offered → Courier accepts → Courier picks up from hub → `in_transit` → `out_for_delivery` → proof/Complete Delivery.
 - **Task boundary:** One Delivery Task represents one Order/Parcel and one leg. First-mile and final-mile assignments are independent and may use the same or a different Courier.
 - **Non-goals:** assignment, acceptance, pickup, scan/evidence recording, proof storage, completion, route-provider credentials, returns/refunds, or a production Courier web UI.
@@ -73,11 +75,11 @@ accepted final-mile task
 
 ### Provider-neutral route, distance, and ETA
 
-- Per-task `distance_km`, `estimated_duration_minutes`, and external-navigation payloads are deferred; the implemented accepted-batch route below supplies its own summary.
-- Per-task route metrics remain planned/unavailable. Implemented batch routes use `summary.stop_count`, `distance_metres`, and `duration_seconds`, without revision/calculation timestamps; label local receipt time **Last refreshed**.
+- Per-task distance/ETA and external-navigation payloads are deferred; implemented accepted-batch routes supply their own summary.
+- Task metrics remain advisory/optional. Batch routes instead use `summary.stop_count`, `distance_metres`, and `duration_seconds`, without revision/calculation timestamps; label local receipt time **Last refreshed**.
 - Missing/stale coordinates, routing timeout, quota exhaustion, or provider failure must return an honest unavailable state, never zero distance or a fabricated ETA.
 - Route metrics cannot decide assignment, eligibility, custody, delivery completion, or destination authority.
-- The approved read-only renderer uses `maplibre_gl: ^0.27.1`; calculation and Geoapify credentials remain server-side; client checks are attributed in [Progress](../../../docs-flutter-rider/PROGRESS.md). Map failures preserve authorized stops and the existing delivery-details workflow.
+- The approved read-only renderer uses `maplibre_gl: ^0.27.1`; calculation and Geoapify credentials remain server-side. Map failures preserve authorized stops and the existing delivery-details workflow.
 - If a map is rendered in Flutter, it is a presentation layer over the server-authorized destination/route data and must not become a state authority.
 
 ### Destination and operational data
@@ -99,7 +101,7 @@ accepted final-mile task
 
 - Route reads are safe to retry. Location mutations, if enabled, require an idempotency key and expected task revision; duplicate retries return the committed projection.
 - A stale revision or Logistics reassignment returns `409` with the latest safe state and blocks local delivery actions until refreshed.
-- Offline mode may show a bounded encrypted snapshot, but route/location writes and completion require online revalidation in the MVP.
+- Route snapshots remain in memory only, with explicit stale/offline feedback after recoverable failure; no persisted tile/route cache or downloads. Operational actions require their own online revalidation.
 - Communication, route-provider, or notification failure cannot roll back a committed Logistics decision or pickup state.
 - Handoff to Proof of Delivery occurs only at the destination; this feature does not accept evidence or mark `delivered`.
 
@@ -147,9 +149,7 @@ accepted final-mile task
 
 ```json
 {
-  "latitude": 14.5995,
-  "longitude": 120.9842,
-  "captured_at": "client-time",
+  "latitude": 14.5995, "longitude": 120.9842, "captured_at": "client-time",
   "expected_revision": 4,
   "idempotency_key": "location-attempt-uuid"
 }
@@ -157,7 +157,7 @@ accepted final-mile task
 
 ### Error and recovery details
 
-- A batch route provider timeout returns `status: unavailable` or a typed error; it never returns zero distance or a guessed duration.
+- A batch provider timeout returns `status: unavailable` or a typed error; it never returns zero distance or a guessed duration.
 - A stale location response returns `409` with the latest safe task projection. Flutter must refresh before sending another update.
 - A `422` response identifies invalid latitude, longitude, timestamp, or idempotency fields without echoing sensitive coordinates unnecessarily.
 - A `429` response includes retry-after; the client must not busy-loop or increase collection frequency after throttling.
@@ -165,8 +165,8 @@ accepted final-mile task
 
 ### Flutter handoff and navigation
 
-- The active screen shows the accepted task, destination, current state, distance/ETA freshness, route availability, and a clear next action.
-- Accepted/in-progress batch detail offers secondary **View delivery route**. Readable stops remain usable without tiles; offered batches have no route action. External navigation remains a separately deferred contract.
+- Notification entry first reauthorizes its ID through the scoped final-mile task-detail read, including offers absent from loaded lists. Current offers use batch review, accepted tasks use hub handoff, and picked-up/transit tasks use delivery context; terminal/unknown states are read-only. Refresh repeats the scoped read before rendering actions and never falls back to a withdrawn snapshot. The active delivery screen shows authorized destination, current state, advisory freshness, and one next action; Back returns to notification details without marking read or mutating work.
+- Accepted/in-progress batch detail offers secondary **View delivery route**, opening a read-only screen with hub start, numbered stops, road/fallback labels, attribution, zoom controls, and **Fit route**. Offered batches have no route action.
 - Returning from external navigation triggers a fresh task/route read rather than trusting a background callback.
 - Permission denial, GPS disabled, route unavailable, stale metrics, reassignment, and destination reached are distinct accessible states.
 - The app never displays a local arrival calculation as a server transition and never enables Complete Delivery solely because a route ended.
@@ -191,8 +191,8 @@ Example accepted batch response (synthetic; no calculation timestamp):
 
 ### Flutter states and UX
 
-- States include session check, loading, accepted, route available, route unavailable, stale metrics, GPS permission denied, offline, conflict/reassigned, retry, destination reached, and handoff to proof. The imported Flutter log (2026-10-03) records visible corrections/recovery, internal response-field names, and distinct failed-read versus unconfirmed-write wording; live/device acceptance remains separate.
-- Show batch distance/time with local receipt time **Last refreshed**, and explicit unavailable labels. Do not fabricate server calculation timestamps, metrics or coordinates.
+- States include session check, loading, accepted, route available, route unavailable, stale metrics, GPS permission denied, offline, conflict/reassigned, retry, destination reached, and handoff to proof. Flutter errors explain visible corrections and recovery; raw response fields/server errors stay out of Courier messages, and failed reads remain distinct from unconfirmed submissions.
+- Show textual distance/time with **Last refreshed** and unavailable labels when absent; never synthesize timestamps, zero distance, ETA, or missing markers. Partial routes and missing/unreachable locations include readable text.
 - Allow external navigation only from an authorized task response. Returning from navigation must refetch the task.
 - Use accessible map alternatives, semantic labels, large touch targets, and non-color-only route/state indicators.
 - Clear private snapshots and location queues on logout, account denial, affiliation revocation, or task removal.
@@ -216,12 +216,12 @@ Example accepted batch response (synthetic; no calculation timestamp):
 
 - Select the routing adapter and define coordinate precision, freshness threshold, route-cache lifetime, and provider quota fallback.
 - Decide whether foreground/background location is collected, its retention, and whether Buyer/Logistics receive live updates.
-- Read-only MapLibre rendering is reported locally; external navigation, location telemetry and installed-device/live acceptance remain separate decisions.
+- External navigation and location telemetry remain separate decisions; read-only MapLibre rendering is adopted under the map contract baseline.
 
 ### Acceptance criteria
 
 - [x] Only an accepted final-mile task can return delivery context; location updates remain unavailable until separately implemented.
-- [x] Implement final-mile batch route metrics and explicit missing-coordinate/provider fallback independently of first-mile pickup routing. External Flutter route rendering is reported locally on October 8; authenticated/device acceptance remains unverified.
+- [x] Implement final-mile batch route metrics and explicit missing-coordinate/provider fallback independently of first-mile pickup routing. Flutter rendering is implemented locally; authenticated/device acceptance remains unverified.
 - [x] Destination comes from the immutable checkout snapshot and cannot be changed by the Courier.
 - [x] Route/location capabilities cannot fabricate progress or mutate custody; stale revisions and reassignment are rejected by the implemented task transitions.
 - [x] First-mile and final-mile assignments remain independent and `delivered` remains owned by Complete Delivery.

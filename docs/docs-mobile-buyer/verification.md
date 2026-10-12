@@ -1,7 +1,5 @@
 # Buyer Flutter acceptance and release checks
 
-> Implementation, SDK/package resolution, tests, builds and browser results in this guide are reports from the external Buyer Flutter project and were not rerun here. This bundle contains documentation; `lib/`, tests, tools, lockfiles and build reports belong to that project. Current shipping-contract adoption remains [G25](references/integration-gaps.md).
-
 Phase 5 adds repeatable local checks and a controlled-authenticated/device runbook.
 See [Phase 5 evidence and gate matrix](references/phase-5-verification.md) and
 [current responsive/sign-in evidence](references/responsive-signin-verification.md).
@@ -20,12 +18,12 @@ For each phase record backend commit/configuration, target/origin, Flutter SDK/a
 - [ ] Registration collects only supported keys, returns pending/no token, handles duplicate/normalization/throttling, and avoids claiming address/evidence/email/status-polling features. Storefront recovery and reset-token invalidation are verified.
 - [ ] Public Products/Shops/Home omit hidden/restricted/vacation/inactive content; variant choices, literal wildcard search, pagination/end/error and public/private cache isolation behind verified app navigation match current APIs.
 - [ ] Shopping widgets never mount/fetch before verified identity/consent. Recently Viewed records account history only, never writes/merges guest hints, and removes only the legacy key without blocking sign-in.
-- [ ] PSGC JSON manifest/hierarchy and searchable Region→Province→City/Municipality→Barangay selections work offline; typed text (even exact names) is not selection, unsupported mappings and failed assets block save with Retry. Optional pin/GPS uses approved provider/adapter, clears stale coordinates and handles denial/failure/attribution without blocking text save.
+- [ ] PSGC JSON manifest/hierarchy and searchable Region→Province→City/Municipality→Barangay selections work offline; unselected text, exact typed matches, unavailable mappings and failed assets block saving with Retry. Optional pin/GPS uses the approved provider/adapter, clears stale coordinates and handles denial/failure/attribution without blocking the locality selectors.
 - [ ] Profile/password/preference fields are allow-listed; current bearer survives account password change, other tokens are revoked, reset revokes all tokens; email remains read-only. Private avatar bytes cannot leak to another account/cache.
 - [ ] Android/browser multipart uses `photo`/`image`, exact under-10-MiB limit and allowed types; cancel/permission/corruption/spoof/size/throttle/consent/storage failure and uncertain response reconciliation work; review partial photos are not duplicated blindly.
 - [ ] Cart same-configuration merge/increment, separate variants, variation replacement/merge, server stock/visibility conflicts and unavailable lines work; uncertain additive writes do not auto-replay.
-- [ ] Buy Now leaves Cart unchanged; selected Cart checkout creates atomic one-Order-per-Shop batches; address/serviceability/rate changes invalidate quotes; current per-Shop provider selection/DTO adoption (G25), single/multiple/empty options and frozen intent are verified; no local payable calculation appears.
-- [ ] Voucher UUID/targeting, one App of each benefit per batch, per-benefit limits/default opposite-benefit pairing and name snapshot parsing, zero-saving redemption, caps/rounding and limited-capacity conflicts are verified; no wallet/claim/code-entry endpoint is assumed.
+- [ ] Buy Now leaves Cart unchanged; selected Cart checkout creates atomic one-Order-per-Shop batches; address/serviceability/rate/provider changes invalidate quotes; current per-Shop provider options, choice/fallback and revised DTOs pass G25 adoption checks; no local payable calculation appears.
+- [ ] Voucher UUID/targeting, one App of each benefit per batch, per-benefit limits/default opposite-benefit pairing, zero-saving redemption, caps/rounding and limited-capacity conflicts are verified; collection/wallet follow the implemented contract; no code-entry endpoint is assumed.
 - [ ] Place response loss/timeouts and exact-key replay create one batch/reservation/redemption; changed payload/key conflicts, fresh quote review and process-death uncertainty follow documented limits.
 - [ ] Owned Orders/tracking hide foreign data; status tabs/capabilities match server; maps remain unavailable; cancellation/address correction races with Seller processing, releases/snapshots and revision/idempotency work without refund promises.
 - [ ] Shop/Logistics/Courier first send/reply/read/cursor flows work with live counterparts; channel identities/envelopes stay separate, unaccepted final-mile offers deny contact, ended custody/reassignment preserve scoped history and forbid sends.
@@ -53,22 +51,40 @@ Completed documentation-only checks are recorded in [documentation validation](r
 Phase-specific application evidence is linked above; broad criteria that combine
 synthetic and live/device acceptance remain unchecked until the whole criterion passes.
 
-## Current contract adoption gate — 2026-10-04
 
-- [ ] Adopt [shipping selection](api/shipping-selection.md) at the current Laravel inspection: options read, per-Shop choice/fallback, quote invalidation/hashes, revised shipping projections and nullable legacy Order provider. Re-run affected client parsing/repository/UI checks and controlled commerce acceptance. Phase 1–5 reports do not resolve G25.
+Responsive marketplace implementation and exact-viewport synthetic browser evidence are
+recorded in [marketplace verification](references/marketplace-verification.md), including
+mobile/desktop screenshots. Broad live/device/production criteria above remain open.
 
-The older Phase 5 runbook mentions guest hints and no provider assignment. Its imported scope is historical: current Buyer presentation has account-only recency, and current checkout requires provider selection. Keep installed-device, authenticated, accessibility, signing and deployment gates open.
+## Shopping boundaries and checkout initialization — 2026-10-05
 
-## Newer reported client evidence — 2026-10-04/05
+Regression coverage measures equal category cards with short/long labels and image/fallback
+states across 320–1440px, landscape and text scales 1/1.5/2. Checkout mount/reopen coverage
+keeps an existing controller listener mounted to detect build-phase notifications.
+Product dividers span the complete item, below wrapped actions. Manual localhost:8766
+browser inspection and installed Android/TalkBack remain unverified for this change.
+Historical user reports describe a missing-table quote HTTP 500 followed by storefront
+provider-quotation failure. Current resolution remains unverified; see the
+[integration gaps](references/integration-gaps.md#reported-checkout-provider-failures--2026-10-05).
+Builds and synthetic checks do not establish successful live quotes or COD placement.
 
-[Marketplace verification](references/marketplace-verification.md) and ten included synthetic screenshots report mobile/tablet/desktop layout, navigation, accessibility-guideline and resize checks. The October 5 [progress history](PROGRESS.md) records mouse/text actions, selected-only PSGC, page retention, profile-photo integration, equal categories, outlined items and checkout post-frame initialization. Preserve 273/286/281/287 reported suite counts by their individual dated change; they are not a combined total or results run here. The final outlined-card follow-up reports three focused widget cases.
+## New backend contract adoption gates — 2026-10-09
 
-Firefox touch-simulation modes, real browser text selection, controlled authenticated/API and installed Android/TalkBack/photo-picker acceptance remain unverified. The [October 5 checkout reports](references/integration-gaps.md#reported-checkout-provider-failures--2026-10-05) are historical deployment observations; their current resolution remains unverified. Synthetic quotes/cancelled placement and compilation do not prove live COD placement.
+- [ ] Verify controlled live/device [per-Shop shipping selection](api/shipping-selection.md). Current options, choice/fallback, frozen recovery and DTO adoption have [synthetic client evidence](references/shipping-selection-verification.md); deployed-provider/commerce and installed Android/TalkBack gates remain open (G25).
+- [ ] Verify adopted [private chat media](api/chat-media.md) against live/runtime/device acceptance: upload/readiness, ordered binding on Send, exact supported retries, authenticated content/preview delivery and private account cleanup. Verify Android/browser file handling and installed-device behavior (G26).
 
-- [ ] Adopt [private chat media](api/chat-media.md), including upload/readiness, ordered attachment binding, exact retries, authenticated private media reads and account cleanup; verify client integration/device behavior (G27).
+The handoff's reviewed backend revision is separate from current client adoption and the
+unidentified deployed API revision. Earlier Phase 3/4 checks certify their dated client scope;
+this documentation sync executes no live commerce, attachment exchange or Flutter acceptance.
+[Local sync evidence](references/webapp-docs-sync-2026-10-09.md) records preservation and document checks.
 
-[Current documentation checks](references/synchronization-2026-10-07.md) are separate from those externally reported Flutter results.
+## Accessibility across journeys — 2026-10-10
 
-## Imported map evidence — 2026-10-08
+Local widget, build and synthetic-browser results are recorded in
+[accessibility journeys verification](references/accessibility-journeys-verification.md).
+The installed Android/TalkBack and controlled live-API browser gates remain
+open; the synthetic run does not complete the broad device/API acceptance item.
 
-[MapLibre](references/maplibre-verification.md) and [live Geoapify](references/geoapify-live-verification.md) report client checks performed in the external project. Preserve the pre-existing desktop checkout accessibility failure and distinguish live public-provider tiles/lookup from synthetic Laravel responses. Installed Android/GPS/TalkBack, production key/signing and real-account CRUD/shipping remain unverified. External `tool/` and test commands apply only when their reported files exist in the Flutter project; this bundle supplies documentation and PSGC/evidence assets.
+## Current adoption and remaining checks — 2026-10-12
+
+Shipping, collection/wallet, Order/Checkout thumbnails and image/received MP4/document chat are implemented locally. See [current audit](references/synchronization-2026-10-12.md). Voucher names/pairing, Order coordinates and Shop-context adoption retain explicit gaps. All live/deployed/installed-device and signing checks require their own evidence.

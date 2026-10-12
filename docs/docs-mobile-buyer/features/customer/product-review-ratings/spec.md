@@ -5,7 +5,9 @@ platform: Flutter / Dart
 phase: 4
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
+upload_recovery_revision: 2026-10-10
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Verified reviews and ratings
@@ -15,7 +17,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Delivered own-item Review create/public list/photos and read-only official Seller response
 implemented; release/media concurrency checks incomplete.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
+Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
 
 Delivered owned Order Item → rating/body → canonical Review → independent photo uploads → public list/response.
@@ -61,7 +63,10 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - SellerResponse nullable; only published current response appears and Buyer cannot reply/edit it.
 - Official Seller response notification maps to Product review section without exposing another role
   UI.
-- Android picker process recovery confirms same Customer/Review; browser uses selected bytes.
+- Android interrupted files require deliberate reselection; browser uses bounded selected bytes/streams.
+- Cancel upload stops its request and clears selection; canonical-read failure keeps another upload blocked.
+- Obsolete canonical scans stop after identity loss; selection dismissal preserves a valid preview.
+- [Upload recovery evidence](../../../references/upload-recovery-verification.md) keeps live/native gates open.
 - Auth/consent/scoped denial clears private draft/bytes; shopping reading remains blocked until verification/consent resolves.
 - Media concurrent limit/cleanup/retention and live target validation remain release evidence
   requirements.
@@ -140,14 +145,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `ReviewRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
-- `ReviewListViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `ReviewComposerViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `ReviewPhotoViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
+- ReviewRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- ReviewListController and ReviewComposerController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in

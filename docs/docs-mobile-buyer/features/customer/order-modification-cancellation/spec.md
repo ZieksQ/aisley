@@ -3,10 +3,11 @@ feature: order-modification-cancellation
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
+flutter_status: Implemented including 22b0a48 shipping; live/device acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
+documentation_synced_on: 2026-10-12
 ---
 
 # Order cancellation and address correction
@@ -14,9 +15,9 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Eligible placed COD mutations, locked reservations, new address snapshots and replay
-implemented; the 2026-10-10 B02 fix enforces contact-only corrections at the frozen location.
+implemented; contact-only corrections preserve frozen location, shipping and prices (B02).
 
-Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
+Flutter: **implemented including current shipping selection/projections**. See [G25 evidence](../../../references/shipping-selection-verification.md); live-account/device gates remain open.
 
 Owned eligible Order → confirm cancellation or select saved shipping row → locked action → refreshed state/history.
 
@@ -26,7 +27,7 @@ Owned eligible Order → confirm cancellation or select saved shipping row → l
 - On 409 refetch capabilities; freeze uncertain key/payload for exact replay. No quantity/variant/voucher/price/status changes. Address Book edits do not modify Order snapshots.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
-imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
+current client checks are recorded in [G25 evidence](../../../references/shipping-selection-verification.md). Upstream paths remain optional provenance.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
 communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel
@@ -62,10 +63,11 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   repeat stock release.
 - Changing reason/address after uncertainty requires reconciliation before a new key.
 - Do not queue an offline correction/cancellation or optimistically advance Order status.
-- Laravel permits only recipient/contact changes at identical trimmed street/locality/postal/country fields.
-  Empty optional line two equals null; incomplete snapshots and differing locations are rejected.
-- Nullable latitude/longitude must match at seven-decimal precision; both absent is valid, but added,
-  removed or partial pins are rejected. Adopt the new Order coordinate fields and field error under G21.
+- Address correction checks completeness/eligibility but does not demonstrate new
+  published-rate/coverage recalculation.
+- G21 permits only recipient/contact changes with identical trimmed street lines/localities/postal/country;
+  normalize empty optional line two to null and block differing or unverifiable locations.
+- Server requires identical seven-decimal pins or both pairs absent; Buyer Order coordinates are not yet parsed (G21).
 - Address version in returned Order is refreshed along with actions/timeline/totals after success.
 - Another Shop Order in the same Batch has independent status/cancellation; never cancel Batch
   implicitly.
@@ -143,12 +145,8 @@ require a universal error envelope.
 
 ### Responsibility and state ownership
 
-- `OrderMutationRepository` owns typed transport, parsing and owned cache access; inject
-  dependencies through AppDependencies.
-- `CancelViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `AddressCorrectionViewModel` owns feature transitions, draft/query state and deliberate actions;
-  inject dependencies through AppDependencies.
+- OrderRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- OrderMutationController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in
@@ -184,7 +182,7 @@ require a universal error envelope.
 
 ### Verification scenarios
 
-- [ ] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
+- [x] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
 - [ ] Seller-processing race/stale revision/key replay yield one permissible outcome and release
   stock once.
 - [ ] Correction preserves previous address versions and shows current
@@ -221,5 +219,5 @@ history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
 
-Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
-[shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
+Shipping adoption 2026-10-09: [G25 evidence](../../../references/shipping-selection-verification.md) records current client checks.
+Live/device commerce and deployment configuration remain open under G25.

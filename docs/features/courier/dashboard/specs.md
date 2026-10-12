@@ -7,12 +7,13 @@ version: 2.8
 status: Versioned operational dashboard and Flutter adoption implemented locally; live/device acceptance open
 implementation_status: Protected v2 aggregate with bounded sections; legacy v1 scaffold retained
 flutter_status: Versioned aggregate parsing/cards, scoped freshness and legacy preview fallback implemented; live acceptance unverified
-canonical: true
+canonical: false
 role: Courier / Rider
 scope: External Flutter mobile client and Laravel read-only dashboard
 backend_contract_commit: 61f302c plus feature/courier-dashboard-chat-images
 backend_contract_version: courier-dashboard-v2; default courier-dashboard-scaffold-v1 retained
-source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domain/Courier.md, docs/domain/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Dashboard
@@ -224,6 +225,6 @@ approved Courier session
 - Keep Dashboard acceptance checks separate from Accept, Pickup, Deliver, and Complete feature checks.
 - Append material changes to the owning project’s progress log. Record this repository’s documentation reconciliation separately from Flutter runtime implementation or live acceptance.
 
-**References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Courier.md`, `docs/domains/Logistics.md`, `docs/features/courier/notification/specs.md`, `docs/features/courier/chat-messaging/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/delivery-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.
+**References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, `docs/features/courier/notification/specs.md`, `docs/features/courier/chat-messaging/specs.md`, `docs/features/courier/accept-delivery-requests/specs.md`, `docs/features/courier/pick-up-order/specs.md`, `docs/features/courier/delivery-order/specs.md`, and `docs/features/courier/complete-delivery/specs.md`.
 
 Local evidence: [dashboard and image checks](../../../references/dashboard-chat-images-verification.md).

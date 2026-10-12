@@ -16,11 +16,11 @@ backend_contract_version: courier-completion-v1-qr
 backend_contract_version_status: Historical QR baseline; the photo-POD revision below is authoritative
 backend_contract_reviewed_commit: a94669248c63525e44243327f4c25feca46c9c50
 backend_contract_funding_revision: order-funding-hold-v1 (2026-10-11)
+documentation_synced_on: 2026-10-12
 ---
 
 # Complete Delivery
 ## Final-mile photo and retry revision (2026-09-20)
-
 The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
 ## COD confirmation revision (2026-09-23)
 

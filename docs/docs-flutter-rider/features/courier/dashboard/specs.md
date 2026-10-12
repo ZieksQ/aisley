@@ -13,6 +13,7 @@ scope: External Flutter mobile client and Laravel read-only dashboard
 backend_contract_commit: 61f302c plus feature/courier-dashboard-chat-images
 backend_contract_version: courier-dashboard-v2; default courier-dashboard-scaffold-v1 retained
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domain/Courier.md, docs/domain/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Dashboard

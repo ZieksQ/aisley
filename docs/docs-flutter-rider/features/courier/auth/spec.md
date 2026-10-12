@@ -5,13 +5,14 @@ system: AISLEY
 type: Feature Specification
 version: 2.6
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
-implementation_status: Backend Auth v2.6 implemented per supplied snapshot; Flutter Auth response integration reported locally against 4c3f504; authenticated live acceptance outstanding; earlier operational adoption d7df220
+implementation_status: Backend Auth v2.6 implemented per supplied snapshot; Flutter Auth response integration verified locally against 4c3f504; authenticated live acceptance outstanding; earlier operational adoption d7df220
 canonical: true
 role: Courier / Rider
 scope: Laravel API consumed by an external Flutter mobile client
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 copied_backend_checkout: 4c3f504
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Authentication
@@ -100,8 +101,7 @@ GET active Logistics options
 
 - Login validates Courier credentials before access checks. Unknown email, wrong password, or another role's credentials return `422 INVALID_CREDENTIALS` with `The email or password is incorrect.`; no account or affiliation state is disclosed and no token is issued.
 - After valid credentials at login, and after bearer authentication and Courier-role checks on protected requests, check account status before affiliation. Login and protected requests use the same `403` payload for each inactive account status, even when its affiliation is also invalid:
-
-  | Account status | Error code | Message |
+ | Account status | Error code | Message |
   | --- | --- | --- |
   | `pending` | `ACCOUNT_PENDING_APPROVAL` | `This Courier account is not active.` |
   | `rejected` | `ACCOUNT_REJECTED` | `This Courier account is not active.` |
@@ -140,10 +140,10 @@ Backend completion and verification below reflect recorded Laravel results throu
 - [x] Logistics-only approval/rejection and protected status gating are implemented.
 - [x] Bearer login, `/me`, current-token logout, and DTO redaction exist.
 - [x] The recovery entry point returns the same explicit unavailability response for every valid email; it creates no reset/access token, sends no mail or notification, and leaves passwords unchanged. Email validation, normalization, and the existing limiter hit are preserved.
-- [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; authenticated external Flutter integration remains unverified.
+- [x] Login and bearer-authenticated `/me` share account-status mapping and precedence, affiliation denials, and messages; denied login creates no token. Focused SQLite tests also cover scoped issuance, current-token logout, credentials, wrong role, guests, throttling, prohibited scope fields, and consent boundaries; external Flutter integration remains unverified.
 - [ ] Complete password-recovery delivery and reset; the implemented entry point does not provide recovery.
 - [ ] Implement affiliation history and revocation workflows.
-- [x] Concurrent duplicate registration is verified with synchronized PostgreSQL endpoint workers after both negative prechecks, for the same and different Logistics organizations: one `201`, one exact duplicate `422`, one complete pending registration, two evidence files, no access token, and only the winning application notification. Deterministic SQLite collision and unrelated-failure cleanup tests also pass; authenticated external Flutter integration remains unverified.
+- [x] Concurrent duplicate registration is verified with synchronized PostgreSQL endpoint workers after both negative prechecks, for the same and different Logistics organizations: one `201`, one exact duplicate `422`, one complete pending registration, two evidence files, no access token, and only the winning application notification. Deterministic SQLite collision and unrelated-failure cleanup tests also pass; external Flutter integration remains unverified.
 - [x] First- and final-mile API availability is owned by the task/pickup/delivery specs, not blocked by obsolete Auth claims that the operational schema is absent.
 
 ## HOW
@@ -208,7 +208,7 @@ The supplied snapshot identifies the foundation baseline as commit `d1abeee73d01
 
 ### Data, Flutter handoff, and testing
 
-- Flutter has no forgot-password flow; recovery-unavailable presentation remains outstanding. The October 8 external report records Auth v2.6 repository/controller/widget tests (not rerun here): login/restoration denials, server account-first response fixtures, exact duplicate-email field errors, session/storage handling, and enforced retry delays. Authenticated backend/device/browser acceptance remains unverified.
+- Flutter has no forgot-password flow. Auth v2.6 response integration is verified by local repository/controller/widget tests: login/restoration denials, server account-first response fixtures, exact duplicate-email field errors, session/storage handling, and enforced retry delays. Authenticated backend/device/browser acceptance remains unverified.
 - Auth uses `users`, `courier_profiles`, `addresses`, `vehicles`, `registration_applications`, `documents`, `courier_logistics_affiliations`, and Sanctum tokens. The additive fulfillment migration also defines operational records; apply it before consuming final-mile APIs.
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.

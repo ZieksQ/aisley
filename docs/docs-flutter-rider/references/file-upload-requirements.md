@@ -104,3 +104,5 @@
 - Add frontend tests for accepted-file messaging, early client feedback, upload progress, retry, server field errors, and accessible status announcements.
 - Referencing specs should use this policy and may add stricter limits only when the feature explicitly documents why.
 - **References:** [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) and [Laravel file validation](https://laravel.com/framework/docs/13.x/validation#validating-files).
+
+Chat images use the separately approved inclusive 8,000,000-byte new-upload limit; general profile/registration/review rules above retain their owning limits. See [private chat media](../features/courier/chat-messaging/media-api.md) for historical retrieval, received video/document consumption and image-only mobile selection.

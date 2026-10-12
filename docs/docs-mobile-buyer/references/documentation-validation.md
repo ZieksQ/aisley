@@ -36,8 +36,6 @@ New inspection checkout: `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`, captured be
 
 The final machine-readable [check summary](standalone-validation.json) records the actual link/file counts and zero validation errors. These checks cover document portability and fixture consistency, not executable Dart DTOs or a live API. No Flutter scaffold, dependency installation/resolution, analyzer, unit/widget/integration tests, Android/web builds, backend tests, migrations, seeds, live exchange or installed-device acceptance ran. Open integration gates and all Flutter completion criteria remain pending.
 
-> Imported external Buyer Flutter results follow. “This repository” below means the external Flutter project; these commands were not rerun here.
-
 ## Registration fixture and project SDK correction — 2026-10-04
 
 The backend contract baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; no backend source or live exchange was revalidated. Historical validation entries above are unchanged.
@@ -50,22 +48,6 @@ The backend contract baseline remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`
 
 No feature-code analysis, Flutter tests, Android/web builds, installed-device/browser checks or live API acceptance ran. These dependency/scaffold checks do not complete any Buyer feature or resolve remaining storage, plugin runtime, deployment or release gates.
 
-## Selective platform synchronization — 2026-10-04
+## Selective webapp contract merge — 2026-10-09
 
-Current Laravel inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from reported external Buyer adoption `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`. Imported Phase 1–5/responsive evidence and SDK/package resolution were not rerun here; those report texts and earlier validation history remain preserved.
-
-- Copied Buyer and Courier bundles into isolated repository-local `docs/` layouts. Validated relative Markdown destinations/anchors, Buyer root-copy instruction paths, JSON parsing, evidence references and preserved Courier instructions. Courier AGENTS.md retains its README’s historical content/link exclusion; byte preservation was checked.
-- Checked all 22 Customer specs use WHAT/MUST/HOW, remain 200–230 lines and retain historical acceptance requirements except the explicit account-only recency revision. Imported checks complete only their evidenced adopted-baseline criteria; current shipping parsing/operation criteria are reopened under G25.
-- Compared 96 operation method/path pairs with actual current route enumeration; preserved existing IDs, assigned op-096, checked middleware and current Requests/Resources/source hashes. Validated 111 named nested types, required/nullable fields and all duplicated fixtures, pending/no-token/request-consistent registration and unchanged active login.
-- Reviewed snake_case selections, serviceable versus unplanned, nullable legacy provider fields, quote/placement hashing, exact-key replay and internal route failures versus client errors. Nineteen synthetic shipping scenarios supply expected contracts; they are not executed client/backend tests.
-- Checked all 19 PSGC manifest/hash/size records against unchanged tracked bytes, historical manifests/validation/progress prefixes, existing archive bytes, root instructions and unchanged Courier role contracts/client guides. Recorded snapshot/report provenance separately. Reviewed whitespace, privacy, contradictory provider/status wording and documentation-only scope.
-
-[Machine-readable results](sync-validation.json) report actual counts and limits. No application/Flutter/backend tests, SDK/dependency resolution, builds, authenticated API calls, browser/device or deployment acceptance ran in this checkout. G25 and controlled authenticated, installed-device, accessibility, signing and deployment gates remain open.
-
-## Selective client-evidence synchronization — 2026-10-07
-
-[Current check record](synchronization-2026-10-07.md) and [machine-readable results](sync-validation-2026-10-07.json) cover independent temporary Buyer/Courier copies with no monorepo source dependencies. Buyer validation checks links/anchors, 22 Customer specs (215–230 lines), 103 operation/route/duplicate fixtures, 112 named DTOs, 701 wire fields, successful nested examples and 19 synthetic shipping scenarios. All 19 PSGC asset hashes/source bytes and ten screenshot hashes/viewports are preserved. Courier validation checks its own routes/examples and 12 non-draft specs (203–230 lines); unrelated Incident/Profit drafts stay unchanged.
-
-The complete 161-line Buyer history was archived with its original prefix intact; forwarding pages preserve old relative evidence links. Existing archives, Cabigan files and root/Courier agent instructions remain byte-identical. The Buyer guide receives only a scoped PSGC instruction clarification. Historical source manifests/reports and original validation records remain unchanged. Reviewed Laravel a946692 is separate from adopted Buyer 57e9eb2/Courier d7df220; provider/media adoption and historical checkout resolution remain unverified.
-
-These are documentation checks and read-only route/source inspection. No Flutter/backend/application tests, dependency resolution, build, authenticated request, browser/device/accessibility/signing/production acceptance, migration or deployment repair ran here. Externally reported tests/builds/screenshots retain their dates and attribution.
+[Local sync evidence](webapp-docs-sync-2026-10-09.md) and its validation record distinguish the supplied newer shipping/media contracts from client adoption. Original dated checks/evidence remain preserved; no application or backend runtime verification is established by this merge.

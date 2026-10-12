@@ -1,7 +1,5 @@
 # Buyer shopping workflows
 
-> Implementation, SDK/package resolution, tests, builds and browser results in this guide are reports from the external Buyer Flutter project and were not rerun here. This bundle contains documentation; `lib/`, tests, tools, lockfiles and build reports belong to that project. Current shipping-contract adoption remains [G25](references/integration-gaps.md).
-
 Phases 1–4 Flutter flows are implemented with partial acceptance; controlled authenticated and installed-device gates remain open. See [Phase 4 evidence](references/phase-4-verification.md), [Phase 3 evidence](references/phase-3-verification.md). [API guides](api/endpoints.md) define existing backend calls; [feature index](features/README.md) assigns ownership.
 
 ## Navigation
@@ -26,7 +24,7 @@ Address Book → Region → Province → City/Municipality → Barangay, manual 
 
 Buy Now intent or selected Customer-owned Cart item IDs → saved shipping address + COD + optional voucher UUID/target Shop selections → provider options per Shop → explicit provider choice (single-option server fallback) → quote → display each Shop's lines, shipping, savings and exact collectible total → explicit Place order → same reviewed intent + `quote_id` + UUID `Idempotency-Key` → atomic server transaction → CheckoutBatch and one Order per Shop → confirmation/Orders.
 
-Changing items, address, vouchers or logistics selections requires a fresh quote. The provider option/choice and changed DTO flow is a current contract target, not established by imported Phase 3 client evidence (G25). A stale quote requires review and another Place action. A timeout after placement is uncertain: retain the exact key/payload and retry/reconcile; do not generate a second key or assume failure. The batch API needs a known batch UUID, so it is not an arbitrary lookup by idempotency key. Purchased selected Cart lines are removed after commit; Buy Now leaves the Cart unchanged.
+Changing items, address, vouchers or logistics selections requires a fresh quote. The provider option/choice and changed DTO flow is a current contract target, not established by earlier Phase 3 client evidence (G25). A stale quote requires review and another Place action. A timeout after placement is uncertain: retain the exact key/payload and retry/reconcile; do not generate a second key or assume failure. The batch API needs a known batch UUID, so it is not an arbitrary lookup by idempotency key. Purchased selected Cart lines are removed after commit; Buy Now leaves the Cart unchanged.
 
 ## Order lifecycle and permitted corrections
 
@@ -41,7 +39,7 @@ Changing items, address, vouchers or logistics selections requires a fresh quote
 
 COD begins `placed`/pending payment. Seller acceptance starts processing; prepared pickup freezes a shared waybill; accepted first-mile Courier confirms Seller handoff; Logistics receives/sorts/transfers/dispatches; accepted final-mile Courier performs delivery evidence/intent; Logistics validates and commits authoritative completion. Buyer reads safe projections only. An Order's `assigned` Courier display alone does not authorize Courier chat.
 
-While the server permits an owned `placed` Order, Customer can confirm cancellation with optional reason or correct its delivery address using an owned shipping/both row. Each write has a UUID key; modification may carry the expected revision. Seller processing closes this window. Correction produces a new immutable snapshot version and must preserve financial/serviceability rules; the 2026-10-10 B02 API guard rejects material-location changes and preserves frozen pricing/routes (G21 now tracks client adoption/live verification). Phase 3 permits only recipient/contact changes with identical trimmed street/locality/postal/country fields; empty optional line two is null and unverifiable locations are blocked. Current Laravel also requires identical seven-decimal coordinates or both pins absent; adopt the new Order coordinate fields. Changes to Address Book never reroute an Order automatically. Item, quantity, voucher, repricing, return and refund changes remain deferred.
+While the server permits an owned `placed` Order, Customer can confirm cancellation with optional reason or correct its delivery address using an owned shipping/both row. Each write has a UUID key; modification may carry the expected revision. Seller processing closes this window. Correction produces a new immutable snapshot version and must preserve financial/serviceability rules; current shipping-rate/coverage revalidation is a recorded backend gap (G21), requiring owner review for material-location changes. Phase 3 permits only recipient/contact changes with identical trimmed street/locality/postal/country fields; empty optional line two is null and unverifiable locations are blocked. Changes to Address Book never reroute an Order automatically. Item, quantity, voucher, repricing, return and refund changes remain deferred.
 
 ## Communication and after delivery
 
@@ -87,4 +85,6 @@ The desktop marketplace header replaces bottom navigation at 1024 pixels when te
 phone/tablet retain Home/Shops/Cart/Account. Shopping bounds are 1200 pixels; forms remain
 560. See [marketplace design](design-buyer.md) and [verification](verification.md).
 
-Background revalidation errors preserve the mounted route, scroll, drafts and dialogs with retry feedback; identity loss clears private state and renewed consent gates shopping. Profile includes private photo viewing/selection/upload/removal; `/account/photo` links redirect there. Home categories retain expansion, Cart Select all changes eligible lines once through its controller, and listing/detail purchase controls fetch current Product data before a deliberate write. These are reported Flutter presentation changes; current provider selection remains an adoption gate (G25).
+Background revalidation errors preserve the mounted route, scroll, drafts and dialogs with retry feedback; identity loss clears private state and renewed consent gates shopping. Profile includes private photo viewing/selection/upload/removal; `/account/photo` links redirect there. Home categories retain expansion, Cart Select all changes eligible lines once through its controller, and listing/detail purchase controls fetch current Product data before a deliberate write. These are implemented Flutter presentation changes; current provider selection is implemented; live/device gates remain G25.
+
+Voucher journey: Home discovery or Shop vouchers → explicit collection → My Vouchers Available/Upcoming/History → explicit Checkout selection and reviewed requote. Collection does not reserve capacity or automatically apply savings. See [contract](api/voucher-collection.md).

@@ -1,5 +1,8 @@
 # Courier Flutter documentation bundle
 
+> Current status and inspected revisions: [October 12 synchronization](references/synchronization-2026-10-12.md). Dated reports below retain their original verification scope; client sources belong to the corresponding standalone Flutter repository.
+
+
 This directory is a documentation snapshot for the external Courier Flutter application. Its destination is the Flutter repository's `docs/`: copy this folder's **contents** there, or copy the folder and rename `docs-flutter-rider` to `docs`. The result should contain `docs/README.md`, `docs/PROGRESS.md`, `docs/features/`, and `docs/logs/`, rather than an extra `docs/docs-flutter-rider/` layer. Do not copy Laravel, React, Next.js, or database source code into the Flutter project.
 
 ## Merge into an existing Flutter project
@@ -56,7 +59,7 @@ The [portable pickup spec](features/courier/pick-up-order/specs.md) now document
 
 ## Chat media contract refresh — 2026-10-06
 
-[Private chat media](features/courier/chat-messaging/media-api.md) documents the additive implemented Laravel upload/processing/delivery contract and counterpart web controls. Media is disabled until operators enable the prepared runtime. External Flutter attachment implementation, authenticated media exchange and device acceptance remain pending; imported adoption baselines and prior test evidence are unchanged. Only affected messaging contract sections and DTO/examples were refreshed.
+[Private chat media](features/courier/chat-messaging/media-api.md) documents the additive implemented Laravel upload/processing/delivery contract and counterpart web controls. Media is disabled until operators enable the prepared runtime. External Flutter image upload/viewing and receive-only video/document consumption are implemented; authenticated media exchange and device acceptance remain open; imported adoption baselines and prior test evidence are unchanged. Only affected messaging contract sections and DTO/examples were refreshed.
 
 ## Selective synchronization — 2026-10-07
 

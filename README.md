@@ -1,6 +1,6 @@
-# School E-Commerce
+# AISLEY
 
-Monorepo scaffold for a B2B2C e-commerce platform.
+Multi-tenant e-commerce platform with a Laravel API, Customer storefront, and Seller, Admin and Logistics dashboards. Separate Flutter applications serve Courier and Buyer mobile users.
 
 ## Structure
 
@@ -28,7 +28,13 @@ Customer, Admin, Seller, and Logistics frontend changes must follow [docs/design
 
 ## Notes
 
-The repository is scaffolded to match the architecture in `docs/architecture.md`. PostgreSQL must already be running before starting the development processes.
+Use pnpm for the web workspace and Composer for the API. See [architecture](docs/architecture.md) for the stack, authentication and environment boundaries, [requirements](docs/requirements.md) for intended behavior, [feature specifications](docs/features) for detailed contracts, and [Progress](docs/PROGRESS.md) for recorded implementation. PostgreSQL must already be running before starting development processes.
+
+## Mobile documentation
+
+The Courier project is `../aisley_app`; the Buyer project is `../aisley_mobile_buyer`. Each owns its Flutter source, setup and implementation evidence. The portable [Courier bundle](docs/docs-flutter-rider/README.md) and [Buyer bundle](docs/docs-mobile-buyer/README.md) mirror their documentation while retaining Laravel's authority over server contracts. Local browser tests use Courier port 8765 and Buyer port 8766.
+
+See the [October 12 synchronization audit](docs/references/synchronization-2026-10-12.md) for inspected revisions, validation and remaining adoption/release gaps. Documentation synchronization does not establish deployed API or installed-device acceptance.
 
 ## Local chat media
 

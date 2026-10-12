@@ -5,13 +5,14 @@ type: Client Architecture
 platform: Flutter / Dart
 role: Courier / Rider
 status: Flutter inbox, support tickets, dashboard previews, final-mile batch acceptance, photo-POD/COD intent, and Logistics/Seller/Buyer chat implemented; live acceptance remains open
-backend_contract_commit: 4c3f504 (Auth v2.6 response adoption reported; earlier operational adoption remains d7df220)
+backend_contract_commit: 4c3f504 (supplied documentation baseline; Flutter runtime adoption remains recorded against d7df220)
 map_contract_commit: 51d96947569d1603fdfb6d264ebd2a04bf866280
 ---
 
 # Scope
 
-> Client implementation, dependency behavior and checks are external Flutter reports, not rerun here. See [October 8 evidence](PROGRESS.md#2026-10-08--auth-v26-client-integration-verified). This bundle supplies documentation; Flutter source, tools and lockfiles belong to that project.
+> Current status and inspected revisions: [October 12 synchronization](references/synchronization-2026-10-12.md). Dated reports below retain their original verification scope; client sources belong to the corresponding standalone Flutter repository.
+
 
 This document describes the external Flutter application used by Couriers. Android APK is its mobile delivery target; a local Flutter `web-server` browser run of the same codebase is the camera and file-upload testing target. It is not the architecture of the Laravel monorepo and it does not authorize changes to the backend, the Customer/Seller/Admin/Logistics web applications, or the database.
 
@@ -19,7 +20,7 @@ The Laravel API remains the source of truth for identity, approval, role access,
 
 Flutter implements the notification inbox, private support-ticket list/create/detail/reply/read flow, separate read-only dashboard task previews, final-mile batch list/detail/atomic acceptance with state reconciliation, Android rear-camera POD/browser file fallback, photo upload and completion intent with COD cash confirmation, a task-chat inbox with Logistics/Seller/Buyer messaging, and read-only pickup/delivery MapLibre routes. Buyer starts revalidate the Courier final-mile task; existing replies require refreshed server sendability. No Seller/Customer Order-context route is called by Flutter. Installed-device/browser acceptance, authenticated support-ticket/batch/map API and COD/Logistics validation, and live chat exchange remain unverified. Failed-attempt reporting, exact retries and photo-freshness checks are implemented locally (G29); live/device acceptance remains open. Linehaul trip screens remain unadopted. See `docs/PROGRESS.md` for dated implementation evidence; Laravel remains authoritative for operational state.
 
-Auth v2.6 in the supplied `4c3f504` snapshot defines credential/account/affiliation error precedence, exact duplicate-email handling, and explicit recovery unavailability. The October 8 external report records Auth v2.6 response handling against `4c3f504`; authenticated acceptance and recovery-unavailable presentation remain outstanding. Flutter has no forgot-password flow. Local truck selection, first-mile schedule filtering, registration/account discard protection, keyboard/error focus, and plain-language recovery have implementation evidence against `d7df220`.
+Auth v2.6 in the supplied `4c3f504` snapshot defines credential/account/affiliation error precedence, exact duplicate-email handling, and explicit recovery unavailability. Flutter has no forgot-password flow; newer Auth integration remains outstanding. Local truck selection, first-mile schedule filtering, registration/account discard protection, keyboard/error focus, and plain-language recovery have implementation evidence against `d7df220`.
 
 ## Current implementation boundary
 
@@ -83,7 +84,6 @@ Dashboard v2 returns bounded operational sections with per-section freshness and
 - `mobile_scanner` decodes QR payloads and Code 128 waybill tracking IDs on its supported targets, then passes an untrusted candidate to the **first-mile pickup** controller. Final-mile POD never reuses that scanner: Android uses a separate rear-camera still-photo screen, while local web-server uses the file chooser.
 - Scanner and POD-camera lifecycle/permission feedback stay in Flutter presentation code; repositories continue to use the documented bearer-token endpoints. Linux and other unsupported platforms hide camera actions and retain manual input or file selection as appropriate.
 - The direct `dart:io` socket handling in `lib/core/networking/api_client.dart` is isolated behind a conditional adapter for web compilation. Browser authentication continues to use the existing `flutter_secure_storage` WebCrypto/LocalStorage implementation without a plaintext fallback; that browser token is same-origin and intended only for the reviewed localhost test boundary. API CORS must allow the exact fixed origin, and non-local browser camera tests need HTTPS.
-- The 2026-10-10 backend B05 fix explicitly exposes `Retry-After` for approved browser origins, including default `http://localhost:8765`. The original delta-seconds or HTTP-date header is readable on credentialed responses; native behavior is unchanged. Local synthetic middleware/browser verification does not prove deployed headers or actual Flutter cooldown behavior. Refresh Laravel's cached configuration during deployment, then verify exposure and client cooldown handling from the approved origin; preserve existing missing/invalid-header handling and client acceptance status.
 - Web and Android release builds are verified. Physical QR/Code 128 capture, Android POD still capture/permission denial, and browser file-selection acceptance still require an installed release APK and a localhost browser.
 
 ## File-upload targets
@@ -220,3 +220,7 @@ Reuse the app-wide Material theme in `lib/app/courier_app.dart`, feature-owned p
 ## Canonical documents
 
 Read the relevant sections of `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, the matching Courier feature specification (or the shared Logistics vehicle specification for Courier vehicle work), and the two registration/upload references. The decision worksheet is historical context only; it is not an implementation authority.
+
+## Browser cooldown headers
+
+- The 2026-10-10 backend B05 fix explicitly exposes `Retry-After` for approved browser origins, including default `http://localhost:8765`. The original delta-seconds or HTTP-date header is readable on credentialed responses; native behavior is unchanged. Local synthetic middleware/browser verification does not prove deployed headers or actual Flutter cooldown behavior. Refresh Laravel's cached configuration during deployment, then verify exposure and client cooldown handling from the approved origin; preserve existing missing/invalid-header handling and client acceptance status.

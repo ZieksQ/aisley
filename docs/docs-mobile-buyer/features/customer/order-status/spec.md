@@ -3,11 +3,12 @@ feature: order-status
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Implemented at 57e9eb2 plus G30 images; current shipping adoption pending G25
+flutter_status: Implemented including 22b0a48 shipping and G30 images; live/device acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 current_contract_inspected_order_images: 5d55ecf379c7646dedcae5a3170cfcb61093db26
+documentation_synced_on: 2026-10-12
 ---
 
 # Owned Orders and tracking
@@ -17,7 +18,7 @@ current_contract_inspected_order_images: 5d55ecf379c7646dedcae5a3170cfcb61093db2
 Backend: Owned list/detail/timeline, status mapper, immutable facts and safe assigned-Courier projection
 implemented; live maps deferred.
 
-Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
+Flutter: **implemented including current shipping selection/projections**. See [G25 evidence](../../../references/shipping-selection-verification.md); live-account/device gates remain open.
 
 Account Orders → All/status group → own detail/timeline → server-capable correction/contact/review.
 
@@ -27,7 +28,7 @@ Account Orders → All/status group → own detail/timeline → server-capable c
 - Responses are private; focus/reconnect/filter paging must discard obsolete account responses. Routine movement/first-mile scheduling does not imply Buyer notifications.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
-imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
+current client checks are recorded in [G25 evidence](../../../references/shipping-selection-verification.md). Upstream paths remain optional provenance.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
 communication repositories.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
@@ -49,8 +50,8 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - pending_payment maps To Pay; out_for_delivery is its own group; delivered Completed; issues map
   Cancelled / Issue.
 - Enum return_requested/returned labels do not authorize a Customer returns/refund workflow.
-- Order Detail uses immutable item/address/payment/voucher/financial snapshots with explicit
-  deliveryAddress.version; item and list-preview DTOs add nullable current Product-media `imageUrl`.
+- Order Detail uses immutable items/address/payment/vouchers/totals, with explicit
+  deliveryAddress.version.
 - Historical productId/variantId/sku may be null; snapshots remain readable after Product removal.
 - Parse optional nullable `imageUrl` on ItemPreview and purchased items; older omission means unavailable.
 - Orders list/detail use 64px public Product thumbnails, wrapping facts and loading/unavailable fallbacks.
@@ -150,14 +151,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `OrderRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
-- `OrderListViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `OrderDetailViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `TimelinePager` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
+- OrderRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- OrdersController and OrderDetailController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().
@@ -192,7 +187,7 @@ universal error envelope.
 
 ### Verification scenarios
 
-- [ ] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
+- [x] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
 - [ ] Foreign/role/account-state privacy and bounded group/list/timeline work.
 - [ ] Server actions/maps/labels and independent Shop Orders remain truthful through refresh/error/late
   replies.
@@ -226,5 +221,5 @@ Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) a
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
 
-Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
-[shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
+Shipping adoption 2026-10-09: [G25 evidence](../../../references/shipping-selection-verification.md) records current client checks.
+Live/device commerce and deployment configuration remain open under G25.

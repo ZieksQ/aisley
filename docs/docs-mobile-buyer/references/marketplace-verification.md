@@ -1,5 +1,3 @@
-> Imported external Buyer Flutter report, reviewed 2026-10-07. Commands/results below were reported for 2026-10-04 and were not rerun in this Laravel repository. Source: `docs/cabigan/docs-mobile-customer/references/marketplace-verification.md` (optional upstream provenance). The following original report text is unchanged. Current shipping selection (G25) and private chat media (G26) adoption remain open.
-
 # Marketplace UX verification — 2026-10-04
 
 Implemented on `feature/buyer-marketplace-ux`, branched from the active `main`.

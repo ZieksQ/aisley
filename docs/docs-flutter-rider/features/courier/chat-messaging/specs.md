@@ -10,6 +10,7 @@ canonical: true
 role: Courier
 scope: Laravel API and external Flutter client
 backend_contract_version: courier-operational-messaging-v2
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Chat / Messaging

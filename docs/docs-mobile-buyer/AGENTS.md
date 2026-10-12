@@ -19,7 +19,7 @@ The Buyer application is one Flutter/Dart client for AISLEY's external Laravel A
 
 The Flutter project owns Customer screens, navigation, typed networking, secure storage, local state and accessibility. Laravel owns identity, approval, consent enforcement, permissions, prices, shipping, vouchers, checkout eligibility, Order transitions, conversation permissions and support-ticket rules.
 
-The external Buyer project reports Phases 1–4 implementation and Phase 5 local verification tooling, plus MapLibre address pinning, per-Shop shipping selection and voucher discovery/collection/wallet; acceptance remains partial. Consult `docs/PROGRESS.md`, `docs/features/README.md` and attributed verification records for actual implementation, adopted backend revisions and remaining work. Controlled live/deployed API, installed Android/GPS/TalkBack, production configuration/signing and deployed/installed-device media acceptance remains open; private image send/view and receive-only video/document consumption are implemented locally. This bundle tracks media as G27 (G26 in the Buyer project). This bundle contains documentation only; dated verification records attribute local Flutter tests/builds/browser checks without claiming live or installed-device acceptance. Implemented Laravel/storefront behavior and imported Courier work do not establish Buyer mobile implementation or acceptance. Reconcile copied-contract conflicts with current backend evidence before enabling affected behavior.
+Buyer Phases 1–4 and Phase 5 local verification tooling are implemented, along with MapLibre address pinning, per-Shop shipping selection and voucher discovery/collection/wallet; acceptance remains partial. Consult `docs/PROGRESS.md`, `docs/features/README.md` and their verification records for actual implementation, adopted backend revisions and remaining work. Controlled live/deployed API, installed Android/GPS/TalkBack, production configuration/signing and G27 private chat-media live/device acceptance remain open. Image upload/viewing and received MP4/documents are implemented locally; G26 tracks incomplete voucher names/default pairing adoption. Implemented Laravel/storefront behavior and imported Courier work do not establish Buyer mobile implementation or acceptance. Reconcile copied-contract conflicts with current backend evidence before enabling affected behavior.
 
 ## Git branch and commit rules
 
@@ -104,7 +104,7 @@ Preserve unrelated work. Keep credentials, device data and private uploads out o
 - Apply these thresholds to hand-written source. Exclude generated code, fixtures, SDK/build output and specifications; Customer specs use their own rule.
 - Organize by feature/responsibility. Promote shared code when reuse is demonstrated; avoid circular imports and another feature's private implementation.
 - Use readable configured `dart format` output. Consider coupling, nesting, complexity and responsibility as well as lines.
-- Keep `dart:io` in native-only conditional adapters. Use approved PSGC JSON assets with provenance and selected-only cascading locality dropdowns; typed text is not selection and failed data blocks save with Retry. Street/contact/postal fields remain manual; Flutter cannot import npm data/selectors directly.
+- Keep `dart:io` in native-only conditional adapters. Use approved PSGC JSON assets with provenance, cascading selectors and manual fallback; Flutter cannot import npm data/selectors directly.
 
 ## Shopping and communication boundaries
 

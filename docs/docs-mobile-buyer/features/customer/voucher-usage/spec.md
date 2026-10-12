@@ -7,6 +7,7 @@ flutter_status: Discovery, collection, wallet and Checkout implemented; live/dev
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
+documentation_synced_on: 2026-10-12
 ---
 
 # Checkout voucher usage
@@ -26,7 +27,7 @@ Collect when required → browse → explicit UUID/target Shop → requote → r
 - Disclose removed/stale choices before another Place action and reject previous-account selections/results.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
-imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
+current client checks are recorded in [G25 evidence](../../../references/shipping-selection-verification.md); live/device gates remain open.
 [B06 legacy shipping funding](../../../api/legacy-voucher-funding.md): unaffordable candidates are disabled; quote uses 409 VOUCHER_FUNDING_INSUFFICIENT on vouchers.
 Placement shortfalls use 409 QUOTE_STALE before effects; refresh/review. Committed exact-key replay remains valid; Flutter adoption is unverified.
 
@@ -56,7 +57,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Voucher capacity expiry/race can make quote stale; refresh and preserve safe intent without
   automatic Place.
 - AppliedVouchers expose qualifyingBasis/discountAmount; Order snapshots retain committed
-  terms/name/code/amount.
+  terms/code/amount; Checkout Batch snapshots additionally retain name.
 - Cancellation currently does not restore voucher redemption capacity; do not promise reuse or refund.
 - Shipping discount reduces the selected provider’s server shipping fee; changing provider requires reviewed
   requote and updated savings. Commission does not increase Customer COD.
@@ -144,10 +145,8 @@ universal error envelope.
 - Checkout collection invalidates review but preserves safe choices; explicitly requote/select/review afterward.
 - Unresolved placement disables collection navigation and preserves original payload/key for exact retry.
 
-- `CheckoutRepository` owns typed transport, parsing and owned cache access; inject dependencies
-  through AppDependencies.
-- `VoucherSelectionViewModel` owns feature transitions, draft/query state and deliberate actions;
-  inject dependencies through AppDependencies.
+- CheckoutRepository and VoucherRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- CheckoutController and VoucherCollectionController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in
@@ -183,7 +182,7 @@ universal error envelope.
 
 ### Verification scenarios
 
-- [ ] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
+- [x] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
 - [ ] Targeting, stacking/reasons/zero-saving/current amount display are server-driven.
 - [ ] Voucher-bearing replay/rollback/capacity conflicts and account switch do not double-consume or
   silently retarget.
@@ -222,7 +221,7 @@ Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline onl
 [shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
 
 Spec revision 2026-10-09: [voucher names/default pairing](../../../api/voucher-selection-update.md)
-adds customer-visible names and frozen Order names. Client adoption remains unverified (G26).
+adds names/default pairing. Candidate names are parsed; applied/frozen names and same-benefit replacement remain unadopted (G26).
 Spec revision 2026-10-11: [discovery/collection/wallet contract](../../../api/voucher-collection.md)
 adds public and private endpoints, naturally idempotent claims, distribution modes and live wallet statuses.
 Claim-required App/all Shop vouchers need owned collection; quote uses VOUCHER_NOT_CLAIMED with collectionUrl.

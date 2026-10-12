@@ -6,17 +6,17 @@ type: Feature Specification
 version: 1.5
 status: Implemented read-only final-mile history API; advanced filters deferred
 implementation_status: Courier-scoped delivered task list/detail APIs are implemented; Flutter list/detail is reported implemented; cursor/date filters remain deferred
-flutter_status: Delivered-history list/detail and account-scoped in-memory private photo preview are implemented locally; authenticated API and device/browser acceptance remain unverified
+flutter_status: Delivered-history list/detail, exact-reference search, and account-scoped in-memory private photo preview are implemented locally; authenticated API and device/browser acceptance remain unverified
 canonical: true
 copied_backend_checkout: 4c3f504
 role: Courier
 scope: Laravel API and external Flutter application
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-delivery-history-v1
+documentation_synced_on: 2026-10-12
 ---
 
 # Delivery History
-
 **Flutter adoption boundary:** Existing read-only history screens and the authenticated in-memory private-photo preview are recorded in the external progress log. Current Laravel history derives only from Logistics-confirmed photo-POD deliveries. Keep proof ID/status read-only; the adopted preview independently reauthorizes through the Courier proof endpoint and clears bytes when detail or account scope ends.
 
 ## Photo POD revision (2026-09-20)
@@ -140,6 +140,11 @@ Courier intent + Logistics-validated proof
 - Distinguish unsupported backend feature from an empty successful history.
 - Disable pagination while one page is loading and deduplicate rows by task_id.
 - Reset cursor and rows whenever a filter changes.
+- Use a Material Order reference field, primary Search, secondary Clear, and keyboard Search; trim only outer whitespace and send exact `reference` with `limit=20`.
+- Keep draft text separate from the submitted reference; refresh, retry, reopening, and policy recovery retain the submitted reference in account-scoped memory.
+- Ignore obsolete search responses after newer searches, Clear, account cleanup, or disposal; clear both draft and submitted reference on logout/access loss.
+- Hide protected rows for policy consent while preserving the reference; filtered empty results explain that no completed deliveries match that reference.
+- Honor Retry-After for button/keyboard search, refresh, and retry; Clear may erase local search during cooldown without sending a request.
 - Use accessible filter labels, touch targets, textual statuses, and readable dates.
 - Support screen readers and text scaling without relying on maps or color.
 - No camera, microphone, GPS, or photo-storage permission is required for history.
@@ -213,6 +218,8 @@ Courier intent + Logistics-validated proof
 - Test identical delivered timestamps, cursor reuse, filter changes, and duplicate proof joins.
 - Test missing completion events, legacy pickup rows, null route metrics, and changed address-book data.
 - Test completion notification failure does not hide the committed delivery from history.
+- Flutter tests cover exact query/limit forwarding, Clear, refresh/retry/policy retention, response races, authorization cleanup, narrow large-text themes, and keyboard focus.
+- Live known-reference lookup, installed-device, browser, and assistive-technology acceptance remain unverified; automated fixtures do not prove server ownership enforcement.
 - Record actual backend commit and test results before copying the implemented contract to Flutter.
 
 ### References

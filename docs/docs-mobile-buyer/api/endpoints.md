@@ -1,6 +1,6 @@
 # Verified Buyer endpoint inventory
 
-Historical enumeration was at `7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`. Re-enumerated before editing on 2026-10-03 at `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` using `php src/api/artisan route:list --path=api/v1 --json`; all 95 historical relevant method/path records remain available. Current 2026-10-04 enumeration at `22b0a48f9575ead182d03c35ab87345711c23b90` adds checkout logistics-options (96 total); [current routes](../references/routes-current.json) preserve middleware. [Restricted route snapshot](../references/routes-inspected.json) preserves historical role/middleware evidence. This was read-only route inspection, not authenticated API execution. Every endpoint below is implemented in this Laravel checkout; the external Buyer reports Phases 1–4 integrations against its older adoption baseline, with G25 still open and [partial runtime acceptance](../references/phase-4-verification.md).
+Historical enumeration was at `7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0`. Re-enumerated before editing on 2026-10-03 at `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` using `php src/api/artisan route:list --path=api/v1 --json`; all 95 historical relevant method/path records remain available. Current 2026-10-04 enumeration at `22b0a48f9575ead182d03c35ab87345711c23b90` adds checkout logistics-options (96 total); [current routes](../references/routes-current.json) preserve middleware. [Restricted route snapshot](../references/routes-inspected.json) preserves historical role/middleware evidence. This was read-only route inspection, not authenticated API execution. The supplied source inspection reports the endpoints below as implemented; the Buyer implements Phases 1–4 integrations against its older adoption baseline, with G25 still open and [partial runtime acceptance](../references/phase-4-verification.md).
 
 **Public** needs no token. **Public/optional identity** personalizes only an active Customer, with any authenticated Home response private/no-store. **Active Customer** composes Sanctum and persisted role/status gate. **Active Customer + consent** adds the server policy gate and resource ownership. **Active policy actor** uses shared Sanctum/active-role policy authorization and remains exempt from consent blocking. Route/controller authorization and business rules still apply beyond middleware. GET routes also accept framework HEAD; the table shows the intended GET consumer method.
 
@@ -73,15 +73,12 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 | Method | Existing path | Access | Throttle | Controller/action |
 | --- | --- | --- | --- | --- |
 | `GET` | `/api/v1/customer/conversations` | Active Customer + consent | 120,1 | `Customer\ConversationController@index` |
-| `GET` | `/api/v1/customer/conversations/shops/{shop}` | Active Customer + consent | 120,1 | `Customer\ConversationController@shopContext` |
 | `POST` | `/api/v1/customer/conversations` | Active Customer + consent | 120,1, 15,1 | `Customer\ConversationController@start` |
 | `GET` | `/api/v1/customer/conversations/unread-count` | Active Customer + consent | 120,1 | `Customer\ConversationController@unreadCount` |
 | `GET` | `/api/v1/customer/conversations/{conversation}` | Active Customer + consent | 120,1 | `Customer\ConversationController@show` |
 | `GET` | `/api/v1/customer/conversations/{conversation}/messages` | Active Customer + consent | 120,1 | `Customer\ConversationController@messages` |
 | `POST` | `/api/v1/customer/conversations/{conversation}/messages` | Active Customer + consent | 120,1, 30,1 | `Customer\ConversationController@send` |
 | `POST` | `/api/v1/customer/conversations/{conversation}/read` | Active Customer + consent | 120,1 | `Customer\ConversationController@read` |
-
-The Shop-context GET was added in iteration 03 after the 2026-10-04, 96-route inventory snapshot described above. The iteration 03 independent review passed D1–D13 for the frozen local verification contract; this does not establish deployed API behavior or external Buyer acceptance. Its additive `shop.availability` field is included on Shop chat summaries; see [messaging](messaging.md) and the [typed fields](field-index.md).
 
 ## Customer / courier-conversations
 
@@ -250,11 +247,13 @@ The Shop-context GET was added in iteration 03 after the 2026-10-04, 96-route in
 - There is no Buyer push-device registration, notification unread-count/read-all, voucher code-entry, native-reset-link, applicant-status, live-location, delivery-POD, online-payment, returns/refunds or arbitrary-user messaging API promised by this inventory.
 - Customer methods differ from other roles: account password is PATCH, avatar part is photo, review part image, Q&A part question, support description part body, Shop read sequence versus operational read last_read_sequence.
 
-The current [95 typed operation records](operation-index.json) cover all inventory methods with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
+The current [111 typed operation records](operation-index.json) cover the 95 historical operations, logistics-options and seven chat-media operations with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
 
 ## Additive chat media endpoints — 2026-10-06
 
-[Private media](chat-media.md) defines Customer GET/POST `/api/v1/customer/chat-attachments`, GET/DELETE `/{id}`, POST `/{id}/retry`, GET `/{id}/content` and GET `/{id}/preview`. All three existing chat start/reply routes accept ordered `attachment_ids`; messages add `attachments`. Runtime gated; external Flutter adoption pending.
+[Private media](chat-media.md) defines Customer GET/POST `/api/v1/customer/chat-attachments`, GET/DELETE `/{id}`, POST `/{id}/retry`, GET `/{id}/content` and GET `/{id}/preview`. All three existing chat start/reply routes accept ordered `attachment_ids`; messages add `attachments`. Runtime gated; Buyer adoption implemented; live/device gates open.
+
+The 2026-10-09 [supplied route snapshot](../references/routes-2026-10-09.json) includes the media addition. Its review revision is separate from client adoption and the unidentified deployed API revision.
 
 ## Customer / vouchers — additive 2026-10-11
 
@@ -269,3 +268,12 @@ The [collection contract](voucher-collection.md) adds seven methods after the hi
 | GET | `/api/v1/customer/voucher-statuses` | Active Customer + consent | 120,1 | CustomerVoucherController@statuses |
 | POST | `/api/v1/customer/vouchers/{voucher}/claim` | Active Customer + consent | 120,1 | CustomerVoucherController@claim |
 | POST | `/api/v1/customer/shops/{slug}/vouchers/{voucher}/claim` | Active Customer + consent | 120,1 | CustomerVoucherController@shopClaim |
+
+
+## Current Shop context operation
+
+| Method | Path | Access | Throttle | Controller |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/customer/conversations/shops/{shop}` | Active Customer + consent | 120,1 | `Customer\ConversationController@shopContext` |
+
+This operation is included in the current operation index; historical route snapshots retain their original counts.
