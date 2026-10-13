@@ -26,3 +26,8 @@ Format:
 ## 2026-10-14 — Taste skill workspace
 
 - Created the isolated `.worktrees/taste-skill` workspace on `feature/install-taste-skill` from the active branch. Installed the default `design-taste-frontend` skill from `Leonxlnx/taste-skill` for Codex using `pnpm dlx skills add Leonxlnx/taste-skill --skill design-taste-frontend --agent codex --yes`; tracked its complete `.agents/skills` bundle and `skills-lock.json` source/hash. Verified skill metadata, bundled JSON, and JavaScript syntax; no application code changed.
+
+## 2026-10-14 — Unified web design guidance and Codex skills
+
+- Replaced `docs/design.md` with the supplied NovaSpark system adapted to AISLEY's colors, identity, declared stack, themes, and reusable `packages/ui` structure. Removed duplicate instruction-file styling and conflicting feature visual exceptions; preserved folder/modularity rules, role workflows, API contracts, historical records, and separate Flutter guidance. The revised guide takes priority over design skills.
+- Installed `gpt-taste` and `redesign-existing-projects` for Codex using `pnpm dlx skills add` in the isolated workspace on `feature/novaspark-design-guidance`, retaining the original Taste skill and tracking source hashes. Documentation links/source coverage, preserved structural rules, color contrasts, skill metadata/JSON, and bundled JavaScript syntax checked; application UI, builds, and browser checks were not run for these documentation/skill changes.

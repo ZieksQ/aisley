@@ -44,19 +44,10 @@ Database: Postgres (containerized)
 
 ## Web frontend design rules
 
-- `docs/design.md` owns the visual and interaction rules for `src/webapp`, `src/admin`, `src/seller`, `src/logistics`, and shared UI consumed by these apps. Feature specs own workflows, content, permissions, and role-specific navigation; they must follow the shared design rules.
-- Build mobile-first: make the smallest supported layout usable, then enhance it for tablet and desktop. Keep primary actions, forms, dialogs, and navigation usable at narrow widths; contain table overflow within the table region.
-- Customer storefront is light-only. Admin, Seller, and Logistics support both light and dark themes through their existing theme controls. Check all changed states in the app's supported themes.
-- Reuse the app's existing layout, typography, spacing, and compatible `packages/` components. Follow the documented brand colors and restrained 60/30/10 balance; do not create another design system inside a feature.
-- **UX and Jakob's Law:** Follow the UX guidance in `docs/design.md`. Users bring expectations from other applications; prefer familiar e-commerce patterns for navigation, search, filters, forms, checkout, messaging, and account settings.
-- **Messaging design freedom:** Customer, Seller, and Logistics Messages screens may use the scoped chat-first visual direction in `docs/design.md`, including a substantial layout and styling redesign. Keep the existing brand and semantic color rules, Customer light-only behavior, dashboard theme support, responsive usability, accessibility, role workflows, and privacy/security boundaries. Shared chat presentation and behavior use `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export, not a separate implementation target.
-- Keep terminology, action labels, and similar interactions consistent within each app. Reuse compatible established patterns without mixing role-specific screens, navigation, or authorization.
-- Make primary actions and next steps obvious. Give prompt loading/success/error feedback and actionable validation; preserve safe user input after recoverable failures, but clear private state on logout or authorization loss.
-- Use predictable back/cancel behavior, keyboard-accessible controls, and explicit confirmation for destructive actions. Do not silently discard unsaved changes or repeat an uncertain mutation as a new action.
-- Introduce unfamiliar interactions only to solve a specific user problem; explain the reason and verify usability. Familiarity must never override accessibility, privacy, authorization, or required business rules.
-- If an older feature spec or template README contradicts the design guide, reconcile its web-design wording within the task scope. An explicit user-requested design change should update the applicable guide as part of the work.
-- Verify the affected frontend's responsive behavior, keyboard/focus handling, and loading/empty/error states alongside its normal type/lint/build checks. Record what was actually checked; a documentation revision alone does not certify existing screens.
-- These rules do not revise `src/couriermockup`, Courier feature contracts, Flutter design/rules, or copied Flutter documentation.
+- `docs/design.md` is the single visual design contract for the four web apps and their shared UI. Keep palettes, typography, spacing, radii, motion, responsive behavior, themes, accessibility, and frontend verification guidance there rather than duplicating them in instruction files.
+- Feature specs own workflows, required content, permissions, role navigation, security, and API behavior. Reconcile conflicting visual prescriptions with `docs/design.md`; preserve those functional contracts.
+- Installed design skills, including Taste, GPT Taste, and Redesign, may help with design, but `docs/design.md` takes priority over conflicting skill instructions, visual bans, and inspector rules.
+- Preserve the folder, role, and modularity rules below. Reuse compatible components; reusable presentation with multiple app consumers belongs in `packages/ui`, exported through `@aisley/ui` or an appropriate subpath, as required by rule 17.
 
 ## Modularity and code organization
 

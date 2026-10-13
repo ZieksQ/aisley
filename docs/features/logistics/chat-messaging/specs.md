@@ -13,7 +13,7 @@ scope: Laravel API, Logistics React dashboard, and role-owned Customer/Seller/Co
 
 ## WHAT
 
-- Web presentation follows the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md), including its scoped chat-first visual redesign. Preserve the existing brand colors, Logistics light/dark themes, accessibility, organization isolation, privacy, and operational workflows. Shared chat presentation and behavior come from `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export facade. Private attachments follow the [media contract](../../shared/chat-media/spec.md); operational eligibility and external client adoption remain separately authoritative.
+- Messaging interactions follow the [shared Chat Messaging UI/UX specification](../../shared/chat-messaging/spec.md); appearance follows the [web design contract](../../../design.md). Preserve the existing brand colors, Logistics light/dark themes, accessibility, organization isolation, privacy, and operational workflows. Shared chat presentation and behavior come from `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export facade. Private attachments follow the [media contract](../../shared/chat-media/spec.md); operational eligibility and external client adoption remain separately authoritative.
 - Provide private operational chat between one Logistics organization and a relevant
   Seller, Courier, or Customer (called “Buyer” in the storefront). Each side may initiate and
   reply while its current relationship is authorized; Logistics is not the only initiator.

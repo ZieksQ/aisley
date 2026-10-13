@@ -6,7 +6,7 @@
 - Apply to Customer, Seller and Logistics web chat, and the Courier/mobile API contracts. Admin private chat and support tickets are excluded.
 - Reuse the shared messaging store, Sanctum, current participants, approval gates and relationship eligibility. A chat attachment never changes an Order or becomes formal POD/dispute evidence automatically.
 - Follow the [shared chat guide](../chat-messaging/spec.md), [design contract](../../../design.md) and [upload policy](../../../references/file-upload-requirements.md).
-- Web presentation follows the scoped chat visual redesign in the shared guide. Its layout and appearance may change within the existing palette/themes; required file states, private delivery, accessible controls, and authorization boundaries remain fixed.
+- Web appearance follows `docs/design.md`; the shared chat guide owns messaging interactions. Preserve required file states, private delivery, accessible controls, and authorization boundaries.
 - Use [Shopee's attachment selection and explicit Send](https://help.shopee.sg/portal/4/article/81973-%5BChat%5D-How-do-I-send-images/videos-via-Chat) and [Lazada's contextual image sharing](https://pages.lazada.com.ph/wow/i/ph/PHCampaign/im-launch%3Fhybrid%3D1) as interaction references; limits below are AISLEY choices.
 - External Flutter adoption must be recorded separately from Laravel/web implementation.
 

@@ -25,6 +25,6 @@ No API, approval, tenant ownership, financial permission, or policy acceptance c
 
 ## Experience and verification
 
-Follow [the web design contract](../../../design.md): solid sidebar, subtle active states, concise headings, visible labels, keyboard focus, responsive forms, supported light/dark states and mobile navigation closure. Menu keyboard behavior includes arrow navigation, Home/End and Escape with trigger focus restoration.
+Follow [the web design contract](../../../design.md) for appearance, responsive behavior, and supported themes. Preserve visible labels, keyboard focus, mobile navigation closure, and menu keyboard behavior including arrow navigation, Home/End and Escape with trigger focus restoration.
 
 Verify the four Settings routes at narrow, intermediate and desktop widths; legacy redirects; required-consent access; device theme changes, explicit overrides and reload persistence; Account/Billing/Terms loading and failure feedback. Browser fixtures establish frontend behavior, not live API integration.

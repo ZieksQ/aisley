@@ -1,199 +1,297 @@
-# Design System
+# AISLEY Design System
 
 ## Scope and authority
 
-This is the shared web design contract for `src/webapp` (Customer), `src/admin`, `src/seller`, and `src/logistics`, including reusable UI consumed by these applications. Read and follow it for frontend implementation and revisions.
+This is the single visual design contract for `src/webapp` (Customer), `src/admin`, `src/seller`, `src/logistics`, and the shared web UI they consume from `packages/ui`.
 
-- Feature specs define the feature's workflow, content, permissions, and navigation destinations. Their UI must follow this guide; older mockups and template READMEs do not establish competing design rules.
-- Reuse each app's established layout and theme implementation. This contract requires consistency within the shared brand while preserving the Customer storefront and dashboard roles.
-- An explicit design change must update this guide and any affected web guidance together. Describe existing inconsistencies truthfully rather than treating this document as proof that every screen already complies.
-- `src/couriermockup`, the external Courier Flutter app, Courier specifications, and copied Flutter documentation are outside this contract's scope.
+Adapted from the user-supplied `novaspark-design-system-DESIGN.md` on 2026-10-14. The typography, spacing, radii, shadows, components, motion, grid, dark-mode approach, and accessibility guidance below retain the source's structure, adapted to AISLEY's identity, colors, and declared stack.
 
-## Colors
+- Read this guide before changing web UI, layout, styling, accessibility, or client-side behavior. It replaces the previous visual prescriptions and styling exceptions for messaging, Finance, Sort plan, Settings, Shops, and vouchers.
+- Feature specifications own workflows, required content, permissions, navigation destinations, security, and API behavior. They do not establish separate visual systems or aesthetic exceptions. Preserve their required interactions when applying this guide.
+- The installed `design-taste-frontend`, `gpt-taste`, and `redesign-existing-projects` skills remain design aids. This guide takes priority over conflicting skill palettes, typography, layout rules, visual bans, and inspector preferences. Apply only compatible guidance; skill checks do not override this contract.
+- Retain the fonts and component tokens below when a skill proposes alternatives. Installing a design skill does not authorize adding GSAP, another framework, or other application dependencies; preserve the declared stack and approval rules.
+- Preserve the declared stack, folder structure, role boundaries, and responsibility-based modularity rules. This documentation update defines the target design; it does not automatically restyle or certify existing screens.
+- `src/couriermockup`, the external Buyer/Courier Flutter designs, copied mobile documentation, and historical progress/verification records retain their separate scope.
 
-- **Primary:** `#E6007A`
-- **Secondary:** `#4C1268`
-- **Error:** `#FF3B30`
-- **Warning:** `#FF8800`
-- Use additional contextual colors when they improve usability, accessibility, or meaning.
+## Brand identity
 
-## Color Ratio
+**Brand name:** AISLEY
+**Industry:** Multi-tenant e-commerce and delivery operations
 
-Use the **60/30/10 rule** as a visual balance, not a literal pixel quota:
+Use AISLEY's existing name, logo, and approved product language. Adapt NovaSpark's design patterns to marketplace and operational workflows.
 
-- **60%:** White / dark neutral backgrounds and surfaces
-- **30%:** Secondary/supporting colors, borders, muted surfaces, typography
-- **10%:** Primary and contextual accent colors
+---
 
-Avoid overusing the primary pink. It should guide attention rather than dominate the entire UI.
+## Color Palette
 
-## Applications
+### Brand and semantic colors
 
-### `src/webapp/`
+| Token | Hex | Usage |
+| --- | --- | --- |
+| Primary pink | `#E6007A` | Primary actions, selected states, brand accents |
+| Secondary purple | `#4C1268` | Supporting actions, links, emphasis |
+| Light page | `#F7F5F7` | Customer page background and branded light canvas |
+| Light foreground | `#231429` | Primary light-theme text |
+| Error | `#FF3B30` | Errors, destructive actions, validation |
+| Warning | `#FF8800` | Warnings and decisions needing attention |
+| Success | `#22C55E` | Success indicators and confirmations |
 
-Customer-facing e-commerce experience inspired by platforms such as Shopee, Amazon:
+Retain AISLEY's existing primary, secondary, error, warning, Customer background, and foreground colors. Pink and purple replace Nova Blue in actions, focus, badges, and navigation. Existing contextual status colors may remain where their meaning is consistent. Communicate status with text or icons as well as color.
 
-- Light mode only, including authentication, account, checkout, and shared feature screens rendered in the storefront
-- Clean, modern, highly visual interface
-- Product images and pricing are prominent
-- Strong search, category, cart, and checkout UX
-- Use cards, badges, filters, and clear calls-to-action
-- Optimize for responsive/mobile layouts
+### Neutral colors
 
-### `src/admin/`, `src/seller/`, `src/logistics/`
+| Token | Hex | Usage |
+| --- | --- | --- |
+| White | `#FFFFFF` | Light cards, dialogs, inputs |
+| Gray 900 | `#111827` | Neutral primary text where branded foreground is unnecessary |
+| Gray 600 | `#4B5563` | Secondary text |
+| Gray 400 | `#9CA3AF` | Nonessential placeholder hints; required instructions remain visible |
+| Gray 300 | `#D1D5DB` | Decorative borders and dividers |
+| Gray 200 | `#E5E7EB` | Quiet surface boundaries |
+| Gray 100 | `#F3F4F6` | Subtle backgrounds |
+| Dark page | `#0F172A` | Dashboard dark canvas and surfaces |
 
-Professional dashboard experience:
+Blend brand accents into neutral surfaces through clear hierarchy: pink marks the main action or selection, purple supports links and secondary emphasis, and semantic colors communicate outcomes. Use readable tints and contrast-safe foregrounds. Strengthen control boundaries when needed; decorative border tokens are not sufficient for every control's contrast.
 
-- Support both light and dark modes through each dashboard's existing theme control; dark mode is not the only supported appearance
-- Clean and information-dense without feeling cluttered
-- Sidebar navigation with clear active states
-- Dashboard cards, tables, filters, forms, charts, and status badges
-- Prioritize readability and efficient workflows
-- Use contextual colors for statuses, warnings, and errors
-- Keep Dashboard directly accessible and preserve the role's established sidebar groups, permission-filtered links, active-route expansion, and mobile close behavior. The matching Dashboard spec owns the exact groups and destinations.
+---
 
-## Mobile-first responsive behavior
+## Typography
 
-- Implement the smallest supported viewport first, then enhance the same workflow for tablet and desktop using the app's existing responsive conventions.
-- Keep labels, actions, validation messages, navigation, and dialogs usable without page-wide horizontal scrolling. Long references and user content must wrap or truncate accessibly.
-- Dense tables may use a labeled, contained horizontal scroll region or a readable narrow-screen presentation. Essential actions must remain reachable.
-- Use viewport-bounded dialogs and menus, allowing their content to scroll when needed. Preserve visible controls and focus when a mobile keyboard is open.
-- Admin commission policy creation and publication confirmation use centered, viewport-bounded modals with focus containment, Escape/cancel, focus restoration, and unsaved-input discard confirmation. Policy history actions use visible bordered buttons; sortable headers expose their direction and pagination shows at most ten rows.
-- A desktop layout alone is not completion. Check narrow, intermediate, and wide layouts, including the affected light/dark states for dashboards.
-- Admin Pricing & fees uses a compact Philippine vector selector: limit its map viewport to 300–360px tall and 360px wide, provide zoom/reset and accessible panning, and keep the conventional region dropdown alongside the same surcharge workflow.
+### Font Families
+
+- **Headings:** `Inter` (Bold 700, Semibold 600)
+- **Body:** `Inter` (Regular 400, Medium 500)
+- **Code/Mono:** `JetBrains Mono` for actual code and technical identifiers.
+- Keep system fallbacks and use available font assets during adoption; font delivery or new dependencies follow the existing stack and approval rules. Ordinary labels and body copy use the body font.
+
+### Type Scale
+
+| Name | Size | Line Height | Weight | Usage |
+|------|------|-------------|--------|-------|
+| Display | 48px | 1.1 | 700 | Hero headings |
+| H1 | 36px | 1.2 | 700 | Page titles |
+| H2 | 28px | 1.3 | 600 | Section headings |
+| H3 | 22px | 1.4 | 600 | Card headings |
+| H4 | 18px | 1.4 | 600 | Sub-sections |
+| Body LG | 18px | 1.6 | 400 | Lead text |
+| Body | 16px | 1.6 | 400 | Default body |
+| Body SM | 14px | 1.5 | 400 | Captions, labels |
+| Caption | 12px | 1.4 | 500 | Metadata, tags |
+
+---
+
+Scale large headings down at narrow widths while retaining semantic heading order, readable wrapping, and browser text zoom. Product information, prices, forms, and operational data determine hierarchy; display typography is optional.
+
+## Spacing System
+
+Based on a **4px base unit**.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `space-1` | 4px | Tight gaps |
+| `space-2` | 8px | Icon padding |
+| `space-3` | 12px | Small padding |
+| `space-4` | 16px | Default padding |
+| `space-6` | 24px | Card padding |
+| `space-8` | 32px | Section gaps |
+| `space-12` | 48px | Large sections |
+| `space-16` | 64px | Page sections |
+| `space-24` | 96px | Hero spacing |
+
+---
+
+Use smaller spacing tokens on phones and for dense operational content; increase spacing when the viewport and content allow it.
+
+## Border Radius
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `radius-sm` | 4px | Compact controls, small buttons |
+| `radius-md` | 8px | Inputs, buttons, compact cards |
+| `radius-lg` | 12px | Cards, modals, panels |
+| `radius-xl` | 16px | Feature cards |
+| `radius-full` | 9999px | Pills, avatars |
+
+---
+
+## Shadows
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
+| `shadow-md` | `0 4px 6px rgba(0,0,0,0.07)` | Cards |
+| `shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Dropdowns |
+| `shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Modals |
+
+---
 
 ## Components
 
-Use compatible workspace packages under `packages/` for shared presentation. `@aisley/ui` currently provides Button, TextField, and SelectField primitives; inspect their exports before assuming another component exists. Shared feature packages such as Finance and Support Tickets must also respect the consuming app's theme and layout.
+### Reuse and ownership
 
-Prefer consistent shared components for:
+- Inspect existing exports and reuse compatible components before adding another primitive.
+- Put new or extracted reusable UI that multiple apps can use in **`packages/ui`**, exported through **`@aisley/ui`** or an appropriate subpath. Declare workspace dependencies explicitly. Avoid duplicate shared primitives and standalone presentation packages.
+- Keep one-off screens, role navigation, authorization, API clients, and feature orchestration in their established owners under `src/`. Shared components accept safe presentation data and callbacks, without another role's private-data assumptions.
+- Keep existing feature-specific packages in place; this guide does not require migrating them. Their shared presentation follows these tokens in each consumer's supported theme.
+- Shared chat presentation and generic behavior stay in **`packages/ui/src/chat`**, exported through **`@aisley/ui/chat`**. **`@aisley/chat-ui`** remains a compatibility re-export facade.
+- Preserve the repository's folder structure and responsibility-based modularity rules. Pages compose independent components; hooks/services manage state and clients parse API data.
 
-- Buttons
-- Inputs and forms
-- Cards
-- Tables
-- Modals
-- Badges/status indicators
-- Navigation
-- Typography
-- Loading and empty states etc.
+### Buttons
 
-Avoid creating duplicate components when an appropriate shared component already exists.
+#### Variants
 
-- Place all new or extracted reusable UI components in `packages/ui` and export them through `@aisley/ui` or an appropriate subpath. Do not create standalone presentation packages. Keep one-off role compositions in their owning apps and leave existing feature-specific packages in place; this does not call for migrating them.
-- Keep feature-specific composition inside its owning app; share a component when it has compatible consumers and a clear responsibility.
-- Shared visual components must not carry another role's navigation, authorization, or private data assumptions.
-- Reuse established app typography, spacing, radius, and theme-aware styles. New colors or variants need a clear semantic purpose and must work in the consuming app's supported themes.
-- The scoped chat implementation is owned by `packages/ui/src/chat`, exported as `@aisley/ui/chat`. Customer, Seller, and Logistics web screens import that subpath. `@aisley/chat-ui` remains a compatibility re-export facade; do not add another chat package or migrate unrelated feature packages.
+- **Primary** — Filled, primary pink background with contrasting text
+- **Secondary** — Outlined, secondary purple border and text; use readable theme equivalents
+- **Ghost** — No border, transparent background
+- **Destructive** — Semantic error fill or emphasis with a contrasting foreground and explicit consequence label
+- **Link** — No background, underline on hover
 
-## UX and Jakob's Law
+#### Sizes
 
-Users bring expectations from other applications. Familiar interaction patterns help them understand AISLEY without learning a new interface for each feature.
+| Size | Height | Padding | Font Size |
+|------|--------|---------|-----------|
+| SM | 32px | 8px 12px | 14px |
+| MD | 40px | 10px 16px | 15px |
+| LG | 48px | 12px 24px | 16px |
 
-- Messaging presentation follows the [shared Chat Messaging UI/UX specification](features/shared/chat-messaging/spec.md) alongside this guide. It governs web inboxes, threads, commerce context, and media interactions; role specs retain authorization/workflow ownership. Private attachments follow the [Chat Media contract](features/shared/chat-media/spec.md) with runtime readiness; richer commerce cards remain future work.
+#### States
 
-- Prefer established e-commerce conventions for navigation, search, filters, forms, checkout, messaging, and account settings. Reuse the app's existing patterns and compatible shared components rather than inventing new controls for familiar tasks.
-- Keep terminology, action labels, status meanings, and similar interactions consistent within each app. Share compatible presentation patterns across web apps without mixing role-specific screens, navigation, or authorization.
-- Make the primary action and next step clear. Group secondary actions, use concise labels, and show workflow progress when relevant; do not hide required choices or confirmations to simplify a screen.
-- Give prompt loading, success, validation, and error feedback. Explain how to recover instead of showing generic failures or treating an uncertain mutation as successful; retry according to the owning API contract.
-- Preserve safe form input after recoverable failures and show actionable field-level validation. Never retain passwords, private evidence, or account-scoped drafts beyond their approved lifecycle; clear private state on logout or authorization loss.
-- Make back/cancel behavior predictable. Do not silently discard unsaved changes; confirm destructive actions with their consequences and a clear cancel path. Keep controls keyboard-accessible and feedback understandable without color alone.
-- Introduce an unfamiliar interaction only when it solves a specific user problem; document the reason and verify the affected workflow's usability. Familiarity must never override accessibility, privacy, authorization, or required business rules.
+- Default → Hover (10% darker) → Active (20% darker) → Disabled (40% opacity)
+- Focus: visible 2px ring with 2px offset in primary pink or a contrast-safe theme variant
 
-## Messaging visual-design exception
+---
 
-Customer, Seller, and Logistics Messages screens and the shared presentation components they use have explicit scope for a chat-first visual redesign. This scoped direction takes precedence over other layout and styling preferences in this guide for those screens. The exact page composition, pane arrangement, density, spacing, type scale, surface treatment, message-bubble shape, attachment/context-card presentation, and decorative details may be redesigned to suit messaging. The general storefront/dashboard appearance does not prescribe those choices. Keep familiar inbox-to-thread and compose/send actions so the workflow remains recognizable.
+Use theme-appropriate hover/active variants and verify contrast in every state. Disabled opacity must preserve readable labels and clear disabled semantics; use the actual disabled attribute where appropriate. Error red with white small text misses the body-text contrast target, so retain the semantic color with a contrasting foreground or darker interaction variant.
 
-- Existing brand and semantic color rules remain fixed: preserve the documented primary, secondary, error, and warning colors, meaningful status colors, contrast, and restrained color balance. Do not introduce a competing palette.
-- Customer chat stays light-only even when the device or browser requests dark mode. Preserve the storefront's root `color-scheme: light` and disabled Tailwind `dark:` variant so shared utilities cannot activate dark styling from the browser preference. Seller and Logistics chat must work in both light and dark modes through their existing theme behavior.
-- Customer message routes use `MarketplaceHeader`'s compact mode: retain the logo and account, cart, and notification controls while omitting marketplace search and category rows. Keep the **Back to store** action for Shops and **Orders** for operational conversations, plus separate **Shops**, **Logistics**, and **Couriers** channel tabs. This compact shell keeps the conversation and composer usable in short viewports.
-- On mobile with a conversation selected, hide the local **Messages** heading/return-link row and channel toolbar until the user returns **Back to inbox**. Keep the in-thread back control, thread header, history, and composer available; size the conversation workspace to the visual viewport so short screens and an open keyboard do not obscure essential chat controls.
-- Keep the role-owned routes, channel separation, labels, context, actions, authorization, tenant boundaries, safe DTOs, private-draft lifecycle, and message/media behavior in the applicable chat specifications. Visual freedom does not authorize new capabilities such as read receipts, presence, calls, or broader private-data access.
-- Keep chat history and the composer mounted while loading or refreshing; present local progress and recoverable feedback without blocking the conversation. Show confirmed sent state within the committed message, not in a persistent global **Message Sent** or **Message Saved** banner.
-- Design mobile-first and keep the inbox, selected thread, history, composer, attachment errors, and dialogs usable at 320, 390, 768, and 1440 CSS pixels and in a short viewport. Avoid page-wide horizontal scrolling. Keep focus visible, controls keyboard operable, content semantic, status understandable without color alone, and dialogs/viewers accessible.
-- Shared chat presentation and generic media/client/state/notification modules are owned by `packages/ui/src/chat` and exported as `@aisley/ui/chat`; `@aisley/chat-ui` is a compatibility re-export. Keep role-specific navigation, authorization, API composition, and workflow logic in their current owners. This package change is limited to chat; other feature packages remain in place.
-- This exception applies only to Customer, Seller, and Logistics chat screens and directly used shared chat presentation; other screens and the external Courier app retain their existing design contracts.
+SM/MD sizes describe visual heights; expand their hit areas to at least 44×44px without overlapping adjacent controls. Padding must fit the specified height and text line height.
 
-## General Rules
+### Inputs
 
-- Maintain consistent spacing, typography, radius, and component behavior.
-- Apply the mobile-first responsive behavior above to every new or changed web feature.
-- Use color for hierarchy and meaning, not decoration alone.
-- Maintain sufficient contrast and accessible focus/hover states.
-- Keep customer UI and professional dashboards visually distinct while sharing the same design system.
-- Favor simple, polished interfaces over unnecessary visual complexity.
-- Give icon-only actions accessible names, keep forms visibly labeled, and make navigation/dialog controls keyboard-operable with visible focus and appropriate expanded states.
-- Provide loading, empty, validation, error, disabled, and success states where the workflow needs them. Do not present failed requests as successful empty results or use color as the only status cue.
+- Height: **40px** (MD), **48px** (LG)
+- Border: `1px solid #D1D5DB`
+- Focus border: `2px solid #E6007A` or equivalent ring without layout shift
+- Border radius: `radius-md`
+- Padding: 16px horizontally, with vertical padding fitted to the control height; multiline fields use `12px 16px`
+- Placeholder color: `Gray 400`
+- Error state: Red border + error message below
 
-## Finance workflow pages
+---
 
-- The COD invoice, remittance, payout, automation/settings, and sandbox pages use the same centered 1280px content width, aligned page/navigation gutters, 24px page titles, and 14px body text. Preserve role-owned navigation and the existing dashboard shell.
-- Use a single page header with concise purpose text and grouped secondary actions. Navigation and view selectors use simple underline indicators, accessible current/pressed states, and contained horizontal scrolling on narrow screens. Reserve filled buttons for the next workflow action.
-- Show financial totals as a compact definition list rather than a decorative metric-card grid. Place selected order/invoice counts, beneficiary information, and totals beside the payment action. State waiting-period overrides and simulated-money status where they affect decisions.
-- Use compatible `@aisley/ui` fields/buttons with Finance-scoped theme styling. Labels sit above equally sized controls; filters align at their bottom edge. Group settings by COD collection, Seller payouts, and Logistics payouts. Preserve readable disabled states and plain labeled checkboxes.
-- Tables have captions and scoped column headers, tabular right-aligned amounts, readable references, and text status labels. Contain overflow within a focusable labeled table region; keep primary actions outside the table. Empty/error/loading states remain distinguishable.
-- Detail screens group references, amounts, dates, allocations, and attempts into predictable sections. Sandbox account editing is shown on demand; payment diagnostics and raw event payloads use disclosure controls.
-- These choices apply [NN/g's consistency, feedback, and error-prevention heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/), [GOV.UK button hierarchy](https://design-system.service.gov.uk/components/button/) and [table guidance](https://design-system.service.gov.uk/components/table/), and [W3C's semantic table guidance](https://www.w3.org/WAI/tutorials/tables/). Keep the AISLEY palette and role workflows authoritative rather than copying those sites' visual branding.
+Use persistent visible labels, associated error messages, and at least 44px touch targets. Strengthen control borders when necessary for contrast. Required instructions must not depend on low-contrast placeholder text.
 
-## Logistics Sort plan workspace
+### Cards
 
-- Use compact bordered lists and tables, the existing neutral surfaces and AISLEY palette, readable light/dark controls and visible keyboard focus. Keep the plan list on the right at desktop widths and before the editor on narrow screens.
-- Give each plan a vertical three-dot actions menu; use a copy icon with Duplicate plan text and a centered confirmation modal. Duplication has no name input; the server assigns the next numbered name.
-- Browse/search published versions in a separate viewport-bounded modal, with a visible version list and selected snapshot actions. Keep plan search within the plan list.
-- Show preserved destinations and mapping differences directly in tables or sections. Do not hide this content in dropdowns, disclosure controls or accordions. Contain table overflow and modal scrolling.
-- Success messages have an accessible X button and dismiss after five seconds. Keep actionable errors and uncertain-request verification visible until resolved. This rule applies to the Sort plan workspace and its version/copy actions.
+- Background: `#FFFFFF`
+- Border: `1px solid #E5E7EB`
+- Border radius: `radius-lg`
+- Padding: `space-6`
+- Shadow: `shadow-md`
+- Interactive-card hover: `shadow-lg` + slight translateY(-2px), with equivalent keyboard focus and reduced-motion support
+- Static information cards do not imply clickability through hover movement. Use semantic links/buttons for actions and mapped surfaces/borders in dark mode.
 
-## Logistics Settings and Support tickets
+---
 
-- Settings is reached from the sidebar account popup and replaces operational navigation with its own solid sidebar: Back to workspace, Account, Terms and conditions, Billing, Appearance. Keep operational Finance payment settings separate. The [Settings specification](features/logistics/settings/spec.md) owns routes and legacy redirects.
-- Appearance uses one labeled dropdown: System (default), Light, Dark. System responds to device changes; explicit preferences persist for this browser. Apply the theme across authentication and protected screens.
-- Logistics Support tickets uses a compact request list with subject, reference, status, update date and functional unread counts; select a ticket to read its plain-text conversation and reply. New ticket opens the creation form on demand. At narrow widths, show the list or content with an All tickets back action, rather than stacking the full list above the conversation.
-- Use the existing neutral surfaces and brand palette, ordinary headings and 6–8px control/container radii, simple borders, visible focus and restrained shadows. Keep loading, failed reads, empty tickets and failed mutations distinct. Confirm discarding drafts and retain exact uncertain retry payloads.
-- All Logistics date/time fields, including Finance collection time and sort-plan activation, use the installed Flatpickr wrapper with theme-aware styling. The newly converted Finance/activation fields allow keyboard entry and retain browser required-field validation. Preserve each field's API format and Asia/Manila schedule semantics.
-- Research references: [Linear preferences](https://linear.app/docs/account-preferences) for the explicit/system theme choice; [Zendesk request tracking](https://support.zendesk.com/hc/en-us/articles/4408846805530-Submitting-and-tracking-requests-in-the-help-center-Customer-Portal) for request metadata and conversation follow-up; [Flatpickr options](https://flatpickr.js.org/options/) for date/time and time-only picker configuration. These inform interaction patterns; Aisley workflows and palette remain authoritative.
+### Badges / Tags
 
-## Next.js SEO, SSR, and CSR
+| Variant | Background | Text |
+|---------|------------|------|
+| Default | `#E5E7EB` | `#374151` |
+| Primary | `#FFE4F1` | `#9E0054` |
+| Secondary | `#F1EAF4` | `#4C1268` |
+| Success | `#DCFCE7` | `#15803D` |
+| Warning | `#FEF3C7` | `#B45309` |
+| Danger | `#FEE2E2` | `#B91C1C` |
 
-These rendering rules apply to the Customer Next.js storefront; the Admin, Seller, and Logistics React Router dashboards retain their existing SPA architecture.
+---
 
-- Prefer SSR, SSG, or ISR for public, indexable content so meaningful page content and metadata are present in the initial HTML.
-- Give each indexable route unique title, description, canonical, Open Graph/Twitter, and relevant structured-data metadata; keep `robots.txt` and the sitemap aligned.
-- Use CSR for interactive or personalized state such as carts, authentication context, filters, and infinite scrolling, while keeping core content crawlable without JavaScript.
-- Keep server/client boundaries intentional: fetch public data on the server where practical, pass minimal props, never expose secrets, and avoid hydration mismatches.
-- Preserve semantic HTML, stable URLs, accessible links/headings, optimized images, and fast loading as part of SEO quality.
+Badge tints blend AISLEY's palette into the source pattern. Use readable dark-theme equivalents and meaningful text or accessible names; variant colors must not invent new status meanings.
 
-## Verification for frontend changes
+### Navigation
 
-- Check the affected routes and interactions at narrow, intermediate, and wide layouts; dashboards require light and dark checks, while Customer screens remain light-only.
-- Verify keyboard access, visible focus, readable status/error text, and the relevant loading/empty/failure states.
-- Run the affected package's configured type, lint, and build checks as appropriate. Report browser checks separately from static/build checks and identify checks that could not run.
-- Keep verification scoped to changed screens and shared-component consumers. Updating these rules does not mark existing feature acceptance criteria complete.
+- Sidebar width: **240px** (expanded), **64px** (collapsed)
+- Top navbar target height: **64px** per toolbar row; storefront search/category content may use additional responsive rows
+- Active item: primary-pink indicator (3px) + light pink background, with a dark-theme tint and accessible current state
+- Item padding: `12px 16px`
+- Icon size: `20px`
 
-## Admin and Seller voucher screens
+---
 
-- Vouchers uses existing dashboard typography/themes, neutral surfaces, simple borders and 6–8px radii. Keep role navigation under Admin Platform and Seller Shop, permission-filtered where applicable. Use ordinary text statuses and compact contained tables with scoped headers/captions.
-- Use labeled voucher details (customer-visible name and separate code), benefit, conditions, Asia/Manila schedule, limits and plain-text terms sections. Put Savings cap (PHP, optional) in Conditions, and circle-exclamation help buttons beside the Saving/Percentage and Savings cap labels, outside the inputs. Tooltips support hover, focus, tap, Escape and viewport bounds. Remove configurable stacking; checkout permits one discount plus one shipping voucher by default. Show live terms and pending differences directly, compact redemption/savings totals and independently paginated history.
-- Publication confirmation presents exact terms, dates, limits and funding consequences. Native centered dialogs contain focus, accept Escape/cancel and restore focus. Confirm permanent ending, pause and unsaved-input discard. Role-owned data routers preserve existing route composition and block navigation/browser Back while mutation outcomes are uncertain, retaining exact retry identity. Clear drafts/history on authorization loss or account change.
-- Follow the [authoring specification](features/shared/voucher-authoring/spec.md) and uncodixfy constraints; no decorative hero, gradient, KPI grid or unnecessary status pill.
+Keep role navigation groups, destinations, permissions, Settings routes, and active-route behavior from the feature specifications. Responsive drawers must remain usable on phones and restore focus when closed.
 
-## Chat attachment interactions
+## Iconography
 
-- Use shared `@aisley/ui/chat` presentation for file selection/progress/checking, bounded image previews, accessible image dialogs, explicit video controls without autoplay, and document filename/type/size/download cards. Preserve AISLEY colors/themes and familiar explicit-send behavior; `@aisley/chat-ui` only re-exports the shared package.
-- Keep selected media and optional caption beside the composer, provide Remove/Retry file, and block Send until every selection is ready. Preserve exact pending payloads after uncertain delivery; clear private file/draft state on authorization loss.
-- Put accepted file formats and limits in a keyboard-operable collapsed disclosure beside Attach; keep file-specific errors and retry/remove actions visible with the selected files. Media dialogs must contain focus, close with Escape, restore focus and fit narrow screens. Attachment errors remain actionable and cannot appear as successful sends. Verify 320/390/768/1440px and a short viewport, Customer light and dashboard light/dark alongside existing chat behavior.
+- **Library:** existing `react-icons`; use `react-icons/lu` for the source's Lucide outline treatment, without introducing a separate icon dependency
+- **Default size:** 20px (inline), 24px (standalone)
+- **Stroke width:** 1.5px
+- **Color:** Inherits from text color
 
-## Chat notification control
+---
 
-- Customer, Seller, and Logistics headers use a dedicated chat icon beside the general notification bell, with an accessible aggregate unread-message count and `99+` visual cap. Follow the [shared Chat Messaging notification contract](features/shared/chat-messaging/spec.md#dedicated-web-chat-notifications--2026-10-06).
-- Use a compact, viewport-bounded dropdown with safe counterpart/channel labels, plain-text previews, timestamps and per-conversation unread text. Keep links to the role's existing separate inboxes and routes. Opening the dropdown leaves chat read markers unchanged.
-- Preserve theme contrast, keyboard link access, Escape/Close focus restoration and outside dismissal. Show loading/empty/error/offline feedback without concealing refresh failures or retaining private previews after authorization loss.
+## Motion & Animation
 
+| Token | Duration | Easing | Usage |
+|-------|----------|--------|-------|
+| `anim-fast` | 100ms | ease-out | Hover states |
+| `anim-base` | 200ms | ease-in-out | Transitions |
+| `anim-slow` | 350ms | ease-in-out | Modals, drawers |
+| `anim-spring` | 400ms | cubic-bezier(0.34,1.56,0.64,1) | Scale-in effects |
 
-## Customer voucher and Shop design exception — 2026-10-11
+---
 
-The user's explicit override grants layout/styling freedom for `/vouchers`, `/vouchers/[id]`, `/account/vouchers` and `/shops/[slug]`; prior visual/theory prescriptions do not constrain these surfaces. Retain primary pink `#E6007A`, secondary purple `#4C1268`, light background `#F7F5F7`, foreground `#231429`, responsive layouts and accessible interactions. Voucher benefit, conditions and action remain distinct; use one voucher column on phones, two on tablets and three on wide public discovery/Shop sections. Keep two Product columns on phones, contain long content and provide missing-imagery fallbacks. This exception leaves other role designs and the Shop directory unchanged.
+Respect `prefers-reduced-motion`: remove movement and spring effects when requested and keep essential feedback immediate. Motion must not delay actions, steal focus, or obscure content.
 
+## Grid & Layout
 
-## Customer Checkout voucher selection exception — 2026-10-11
+- **Max standard content width:** 1280px; messaging and operational workspaces may use available width when needed by the workflow
+- **Gutter:** 24px, reduced to 16px at narrow widths
+- **Columns:** 12
+- **Breakpoints:**
 
-The user's explicit Shopee/Lazada-reference request replaces the Checkout dropdown with a separate `/checkout/vouchers` page. Apply uncodixfy and the existing brand palette: compact ticket silhouettes, benefit panel separated by a dashed edge, ordinary headings, underline filters, white/light surfaces and concise conditions. Selected cards use pink border/background and a checkmark, never visible radio controls. Keep keyboard pressed states, visible focus, 44px actions, responsive wrapping and error/loading feedback. Other Checkout sections and role designs retain their existing rules. The [Shopee selection flow](https://help.shopee.ph/portal/4/article/82323) informs the explicit select/confirm interaction; AISLEY's collection, targeting and stacking rules remain authoritative.
+| Name | Width |
+|------|-------|
+| `sm` | 640px |
+| `md` | 768px |
+| `lg` | 1024px |
+| `xl` | 1280px |
+| `2xl` | 1536px |
+
+---
+
+Build mobile-first from 320px. Collapse the grid according to content and viewport. Keep primary actions, forms, search, product information, and checkout usable before adding wider layouts. Contain wide tables in labeled scroll regions and keep essential actions reachable. Wrap or truncate long content accessibly. Bound dialogs/dropdowns to the viewport with internal scrolling; mobile keyboards must not hide chat composers or essential controls.
+
+## Dark Mode
+
+The Customer storefront is **light-only**, including authentication, account, checkout, and shared screens. Admin, Seller, and Logistics support **light and dark** through their existing theme controls. Retain Logistics System/Light/Dark preference behavior.
+
+| Light Token | Dark Equivalent |
+|-------------|-----------------|
+| `#FFFFFF` surface / `#F7F5F7` branded page | `#0F172A` |
+| `#F3F4F6` subtle bg | `#1E293B` |
+| `#111827` / `#231429` text | `#F1F5F9` |
+| `#4B5563` muted text | `#94A3B8` |
+| `#E5E7EB` / `#D1D5DB` border | `#334155` |
+
+---
+
+Keep primary pink and secondary purple as brand anchors. Use lighter pink/purple text tints or contrasting fills where the anchors are too dark for a dark surface. Check selected states, semantic badges, fields, overlays, and disabled controls in both dashboard themes. Shared UI follows its consumer's theme; browser dark preference must not activate dark styling in the storefront.
+
+## Accessibility
+
+- Minimum contrast ratio: **4.5:1** for body text, **3:1** for large text
+- All interactive elements have visible focus rings
+- Touch targets minimum: **44x44px**
+- Meaningful icons have visible labels or accessible names; hide decorative icons from assistive technology
+- Keyboard navigable: Tab and Enter, plus Escape and Arrow keys where appropriate for the control
+- Essential control boundaries, state indicators, and focus treatments have appropriate non-text contrast. Check actual foreground/background pairs in each state.
+- Use semantic headings, lists, tables, links, buttons, and form labels; keep text usable under zoom. Dialogs contain focus, provide Close/Cancel, and restore focus to their trigger.
+
+## Interaction and verification
+
+- Prefer familiar e-commerce and dashboard interactions. Keep terminology, action labels, and status meanings consistent, with a clear primary action and predictable Back/Cancel behavior.
+- Distinguish loading, empty, failed, successful, disabled, and read-only states. Give actionable validation and recovery feedback; failed reads must not appear as empty results.
+- Confirm destructive actions and unsaved-input discard. Preserve safe input after recoverable failures and exact retry identity after uncertain mutations. Clear private state on logout or authorization loss.
+- Preserve role authorization, store/organization isolation, approval gates, privacy, and required business rules in every visual treatment.
+- Apply tokens through compatible shared primitives as changed screens adopt this design system. Keep role pages focused on composition and avoid competing app-local visual systems.
+- For frontend implementation, verify narrow, intermediate, and wide layouts; keyboard/focus; loading/empty/error states; and each consumer's supported themes. Messaging also requires a short viewport and keyboard-open composer check.
+- Run the relevant package's configured type, lint, and build checks. Record actual browser and static checks separately, along with limitations.
+- Documentation changes alone do not establish browser, application, or Flutter acceptance. Preserve historical evidence and feature completion status.
