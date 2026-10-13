@@ -103,15 +103,15 @@ Label future routes conceptual and unavailable. Optional public personalization 
 - Buyer uses `http://localhost:8766`, separate from Courier `8765`. Document exact-origin CORS/method/header requirements through the backend owner; keep stateful cookies separate from token testing.
 - Use native/web conditional adapters: selected browser files use bytes/streams; OS paths stay native. Specify multipart/nested keys, type/size limits, cancellation and partial/uncertain upload outcomes.
 - Private media requires authenticated delivery and account-scoped cleanup. Never construct storage URLs or put tokens in URLs.
-- Copy the nineteen bundled source-identical PSGC JSON files with their revision/manifest into Dart assets. Preserve Region → Province → City/Municipality → Barangay cascading and fallback; Flutter cannot import workspace JavaScript data/selectors.
-- Apply Geoapify/map requirements, attribution, approved key boundaries and explicit GPS permission. Optional MapLibre/geolocator rendering is documented in setup; public credential suitability remains a deployment gate; failed optional pins preserve manual address saving.
+- Copy the nineteen bundled source-identical PSGC JSON files with their revision/manifest into Dart assets. Preserve selected-only Region → Province → City/Municipality → Barangay cascading, failed-data Retry and manual street/contact/postal fields; Flutter cannot import workspace JavaScript data/selectors.
+- Apply Geoapify/map requirements, attribution, approved key boundaries and explicit GPS permission. Optional maplibre_gl/geolocator rendering is selected in setup; public credential suitability remains a deployment gate; failed optional pins preserve manual address saving.
 - Specify loading, empty, unavailable, forbidden, stale, partial, retry, success and offline states without fake records/success.
 - Apply light-only [Buyer design](../../design-buyer.md), 48×48 logical-pixel targets, labels/text scaling, keyboard focus/insets and predictable Android/browser back/cancel.
 
 ## Privacy and reliability
 
 - Keep passwords, tokens, reset links, raw storage paths, evidence bytes and unnecessary PII out of DTOs, logs, screenshots, analytics and ordinary storage.
-- Separate public/guest caches from private/account caches. Buyer composition uses account-only recency; never write/merge guest hints. Remove only the retired key best-effort without blocking authentication. Public backend resolver/merge and storefront guest history remain separate contracts.
+- Separate public/guest caches from private/account caches. Buyer uses account-only recency; never write/merge guest hints. Retired-key removal is best-effort and cannot block authentication. Storefront guest history is separate.
 - Clear private drafts, quotes, uploads/previews, transcripts, history, read markers and pending keys on logout, identity switch or account loss. Ignore obsolete asynchronous responses.
 - Handle resource denial locally when identity stays valid. Consent gating differs from session loss; neither may expose another account's data.
 - Do not queue offline writes or blindly repeat uncertain actions. Follow the owning endpoint's replay/reconciliation contract.

@@ -4,14 +4,20 @@ title: Admin Homepage Advertisement Content Customization
 system: AISLEY
 type: Feature Specification
 version: 1.2
-status: Draft
+status: Homepage advertisement configuration and publishing implemented; release acceptance remains separate
 role: Admin
 scope: Admin Web Application and Customer Homepage Advertisement Layer
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin Homepage Advertisement Content Customization
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+HomepageAdvertisementController and Admin advertisement/editor screens implement configuration CRUD, publish/successor and authorized desktop/mobile image routes under `/api/v1/admin/platform-settings/homepage-advertisements`. Broader CMS behavior is outside this foundation. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - Authorized Admins manage the public advertisement layer at the top of the Customer homepage.
 - Admins can create, edit, order, schedule, activate, archive, and publish advertisements with:

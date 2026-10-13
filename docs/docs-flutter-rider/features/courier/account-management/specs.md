@@ -12,6 +12,7 @@ scope: Laravel API plus external Flutter mobile client
 backend_contract_commit: 20afd9f (Courier profile-photo implementation)
 backend_contract_version: courier-account-management-v1 (photo extension implemented)
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md, courier/auth/spec.md, courier/rules.md, file-upload-requirements.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Account Management

@@ -4,14 +4,20 @@ title: Admin Manage User Accounts
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft
+status: Account list/detail/history and suspend/restore/deactivate implemented; extended capabilities remain separate
 role: Admin
 scope: Admin Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin Manage User Accounts
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+UserAccountController and Users/UserDetail pages implement scoped account reads/history and the protected suspend/restore/deactivate routes under `/api/v1/admin/users`. Existing role/permission restrictions remain authoritative; this does not grant arbitrary account or finance mutations. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - **Purpose:** Let authorized Admins search, inspect, and manage existing AISLEY user accounts and their account lifecycle/status.
 - **Primary actor:** Authenticated `admin`.

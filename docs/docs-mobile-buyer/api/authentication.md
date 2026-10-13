@@ -1,6 +1,6 @@
 # Customer bearer authentication
 
-Backend implemented; Buyer Flutter pending. Sources: Customer Auth controller/Requests/Resources, `EnsureActiveCustomer`, Customer Account service, Sanctum configuration and `CustomerAuthenticationTest.php` at the [baseline](../references/source-provenance.md).
+Backend and Buyer Flutter Phase 1 implemented; live-account/device acceptance remains partial. See [Phase 1 evidence](../references/phase-1-verification.md). Sources: Customer Auth controller/Requests/Resources, `EnsureActiveCustomer`, Customer Account service, Sanctum configuration and `CustomerAuthenticationTest.php` at the [baseline](../references/source-provenance.md).
 
 ## Exact login path
 
@@ -20,7 +20,7 @@ Invalid/unknown/other-role-only credentials share `422 INVALID_CREDENTIALS`. Cre
 
 ## Restoration, consent and cleanup
 
-Secure read → token present → `GET /api/v1/customer/auth/me` with bearer → validate `customer.role = customer` and active status → `GET /api/v1/policy-consent/status` → enter private routes only when `all_required_accepted` is true. Deduplicate bootstrap and use identity/session generation to reject late responses. The Buyer app keeps all shopping screens blocked during recoverable verification failures; authentication/recovery and public Terms/Privacy remain reachable. Backend public read contracts are unchanged.
+Secure read → token present → `GET /api/v1/customer/auth/me` with bearer → validate `customer.role = customer` and active status → `GET /api/v1/policy-consent/status` → enter private routes only when `all_required_accepted` is true. Initial restoration keeps shopping screens blocked during recoverable verification failures; authentication/recovery and public Terms/Privacy remain reachable. After identity and consent have already been verified, background revalidation retains the current page on temporary network failure with retry feedback. Revocation clears private state, and newly required consent blocks shopping. Deduplicate checks and reject late responses by identity/session generation. Backend public read contracts are unchanged.
 
 Required policies use current `terms_of_service` and `privacy_policy`. Read public content and require explicit `POST /api/v1/policy-consent/{type}/versions/{version}/accept` with `{"confirmation":true}`. There is no acceptance idempotency header requirement: the User/version uniqueness makes exact acceptance replay safe. A stale version returns `409 POLICY_VERSION_STALE`; refresh content/status before renewed confirmation. Initial/re-consent enforcement follows the Admin platform control; `required`, exact `accepted` and `all_required_accepted` are distinct server fields.
 

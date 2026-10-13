@@ -6,7 +6,7 @@
       "feature": "chat-messaging",
       "method": "GET",
       "path": "/api/v1/customer/conversations",
-      "request_contract": "cursor opaque\u22642048; fixed20 inbox/fixed30 history; no limit field.",
+      "request_contract": "cursor opaque≤2048; fixed20 inbox/fixed30 history; no limit field.",
       "response_contract": "{items:ShopConversation[],next_cursor:string?,unread_count:int}",
       "status": 200,
       "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
@@ -57,7 +57,7 @@
       "feature": "chat-messaging",
       "method": "POST",
       "path": "/api/v1/customer/conversations",
-      "request_contract": "shop_id UUID; body optional trimmed string\u22642000 with attachments; text-only body1\u20132000; optional context_type product|order with context_id UUID; UUID header. Optional ordered distinct attachment_ids UUID[]\u22645, all ready and same scope, total\u226450 MiB.",
+      "request_contract": "shop_id UUID; body optional trimmed string≤2000 with attachments; text-only body1–2000; optional context_type product|order with context_id UUID; UUID header. Optional ordered distinct attachment_ids UUID[]≤5, all ready and same scope, total≤50 MiB.",
       "response_contract": "{conversation:ShopConversation,message:ShopMessage}",
       "status": 201,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation. Media retries preserve ordered attachment IDs.",
@@ -178,7 +178,7 @@
       "feature": "chat-messaging",
       "method": "GET",
       "path": "/api/v1/customer/conversations/{conversation}/messages",
-      "request_contract": "cursor opaque\u22642048; fixed20 inbox/fixed30 history; no limit field.",
+      "request_contract": "cursor opaque≤2048; fixed20 inbox/fixed30 history; no limit field.",
       "response_contract": "{items:ShopMessage[],next_cursor:string?}",
       "status": 200,
       "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
@@ -221,7 +221,7 @@
       "feature": "chat-messaging",
       "method": "POST",
       "path": "/api/v1/customer/conversations/{conversation}/messages",
-      "request_contract": "body optional trimmed\u22642000 with attachments; text-only body1\u20132000; UUID header; Shop allows optional validated product|order context_type/context_id; operational sends body and optional attachment_ids. Optional ordered distinct attachment_ids UUID[]\u22645, all ready and same scope, total\u226450 MiB.",
+      "request_contract": "body optional trimmed≤2000 with attachments; text-only body1–2000; UUID header; Shop allows optional validated product|order context_type/context_id; operational sends body and optional attachment_ids. Optional ordered distinct attachment_ids UUID[]≤5, all ready and same scope, total≤50 MiB.",
       "response_contract": "{conversation:ShopConversation,message:ShopMessage}",
       "status": 201,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation. Media retries preserve ordered attachment IDs.",
@@ -304,7 +304,7 @@
       "feature": "chat-messaging",
       "method": "POST",
       "path": "/api/v1/customer/conversations/{conversation}/read",
-      "request_contract": "sequence required int\u22651, cannot exceed committed history; monotonic.",
+      "request_contract": "sequence required int≥1, cannot exceed committed history; monotonic.",
       "response_contract": "{data:ShopConversation}",
       "status": 200,
       "retry": "State-idempotent exact request may be repeated; serialize writes and reread after uncertainty.",
@@ -430,35 +430,8 @@
     }
   ],
   "chat_media_contract": {
-    "date": "2026-10-11",
-    "source": "Laravel chat-media contract limit update; historical checkout/adoption fields preserved",
+    "date": "2026-10-06",
+    "source": "Laravel chat-media feature addition; historical checkout/adoption fields preserved",
     "client_adoption": "pending"
-  },
-  "iteration_03_additions": [
-    {
-      "feature": "chat-messaging",
-      "method": "GET",
-      "path": "/api/v1/customer/conversations/shops/{shop}",
-      "contract_status": "Source route and DTO field added in iteration 03; independent review passed D1–D13 for the frozen local verification contract. Deployed API and external Buyer acceptance remain unverified.",
-      "access": "Active Customer + consent",
-      "request_example": {
-        "path": {
-          "shop": "11111111-1111-4111-8111-111111111111"
-        }
-      },
-      "response_example": {
-        "data": {
-          "shop": {
-            "id": "11111111-1111-4111-8111-111111111111",
-            "name": "Synthetic Shop",
-            "slug": "synthetic-shop",
-            "availability": "online"
-          },
-          "conversation_id": null,
-          "send_allowed": true
-        }
-      },
-      "notes": "Shop availability is business-only (online|offline|vacation), never Seller/person presence. This read finds only the current Customer's existing Shop thread; otherwise it returns safe public fields only when the Shop is not offline. It creates no conversation. send_allowed is a context-free generic-start preview; existing thread and validated Product/Order start/send rules remain authoritative, including the existing owned Order exception during vacation."
-    }
-  ]
+  }
 }

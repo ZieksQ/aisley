@@ -1,6 +1,6 @@
 # Typed wire models
 
-Current inspected checkout `22b0a48f9575ead182d03c35ab87345711c23b90`; reported client adoption `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` (G25); synthetic examples, no live captures.
+Current inspected checkout `22b0a48f9575ead182d03c35ab87345711c23b90`; historical general client baseline `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; current shipping client adoption recorded in [G25 evidence](../references/shipping-selection-verification.md), live/device gate open; synthetic examples, no live captures.
 
 Every named type below is an immutable DTO definition. Fields are required unless marked `~`; `?` permits JSON null.
 `UUID` = UUID string; `timestamp` = ISO-8601 UTC string; `date` = YYYY-MM-DD string.
@@ -651,6 +651,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `productId` | `UUID` | null allowed; required |
 | `variantId` | `UUID` | null allowed; required |
 | `productName` | `string` | non-null; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 | `variantName` | `string` | null allowed; required |
 | `sku` | `string` | null allowed; required |
 | `selectedOptions` | `SelectedOption[]` | non-null; required |
@@ -658,7 +659,6 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `quantity` | `int` | non-null; required |
 | `lineSubtotal` | `money` | non-null; required |
 | `currency` | `string` | non-null; required |
-| `imageUrl` | `URL` | null allowed; older responses may omit |
 
 ## ReviewableItem
 
@@ -668,6 +668,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `productId` | `UUID` | null allowed; required |
 | `variantId` | `UUID` | null allowed; required |
 | `productName` | `string` | non-null; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 | `variantName` | `string` | null allowed; required |
 | `sku` | `string` | null allowed; required |
 | `selectedOptions` | `SelectedOption[]` | non-null; required |
@@ -675,7 +676,6 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `quantity` | `int` | non-null; required |
 | `lineSubtotal` | `money` | non-null; required |
 | `currency` | `string` | non-null; required |
-| `imageUrl` | `URL` | null allowed; older responses may omit |
 | `canReview` | `bool` | non-null; required |
 | `reviewId` | `UUID` | null allowed; required |
 
@@ -808,9 +808,9 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | --- | --- | --- |
 | `productId` | `UUID` | null allowed; required |
 | `productName` | `string` | non-null; required |
+| `imageUrl` | `URL` | null allowed; older responses may omit |
 | `variantName` | `string` | null allowed; required |
 | `quantity` | `int` | non-null; required |
-| `imageUrl` | `URL` | null allowed; older responses may omit |
 
 ## Tracking
 
@@ -927,14 +927,6 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `name` | `string` | non-null; required |
 | `slug` | `string` | null allowed; required |
 | `availability` | `online|offline|vacation` | non-null; required |
-
-## ShopAvailabilityProjection
-
-| Wire field | Type | Null / omission |
-| --- | --- | --- |
-| `shop` | `ChatShop` | non-null; required |
-| `conversation_id` | `UUID` | null allowed; required |
-| `send_allowed` | `bool` | non-null; required |
 
 ## ShopMessage
 
@@ -1294,11 +1286,9 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `shippingFee` | `money` | non-null; required |
 | `routeStatus` | `string` | non-null; required |
 
-Voucher/AppliedVoucher/BatchVoucher `name` fields reflect the [2026-10-09 contract delta](voucher-selection-update.md), after the historical inspection. External Flutter parsing/display adoption remains unverified (G26).
-
 ## ChatAttachment
 
-2026-10-06 addition; external Flutter adoption remains pending.
+2026-10-06 addition; Buyer Flutter adoption remains pending.
 
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
@@ -1320,3 +1310,11 @@ See [private media](chat-media.md) for lifecycle, authorization and transport.
 ## CustomerVoucher collection adoption — 2026-10-11
 
 The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto) and `VoucherShop` are typed in [DTO schema](dto-schema.json). All fields are required, including nullable values; public personalized fields are null. Quote names/distribution/collection URL are additive; older candidate fixtures remain supported without authorizing collection from missing metadata. `termsSummary` is nullable in current source. Private statuses are never stored in the public cache.
+
+## ShopAvailabilityProjection
+
+| Wire field | Type | Null / omission |
+| --- | --- | --- |
+| `shop` | `ChatShop` | non-null; required |
+| `conversation_id` | `UUID` | null allowed; required |
+| `send_allowed` | `bool` | non-null; required |

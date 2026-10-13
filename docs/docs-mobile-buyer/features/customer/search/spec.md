@@ -6,6 +6,7 @@ phase: 2
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Products and Shops search
@@ -14,7 +15,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 
 Backend: Separate public Product/Shop search endpoints and ranked result modes implemented.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
+Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
 
 Query → Products/Shops mode → current page → owning detail; mode/query change resets page.
 
@@ -143,12 +144,8 @@ require a universal error envelope.
 
 ### Responsibility and state ownership
 
-- `SearchRepository` owns typed transport, parsing and owned cache access; inject dependencies
-  through AppDependencies.
-- `SearchViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `SearchQueryParser` owns feature transitions, draft/query state and deliberate actions;
-  inject dependencies through AppDependencies.
+- DiscoveryRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- DiscoverySearchController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and
   forward callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in

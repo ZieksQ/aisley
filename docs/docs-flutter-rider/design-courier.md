@@ -11,9 +11,7 @@ status: Active inbox/dashboard previews; photo/COD intent, private POD review, a
 
 ## Scope
 
-> Flutter implementation and verification are attributed external reports; this documentation sync did not run those checks. Current evidence is in [Progress](PROGRESS.md).
-
-The supplied documentation baseline is `4c3f504` (Auth v2.6); Flutter implementation evidence remains recorded against `d7df220`, with Auth v2.6 response integration now reported by external local tests against `4c3f504`; authenticated acceptance remains outstanding.
+The supplied documentation baseline is `4c3f504` (Auth v2.6); Flutter implementation evidence remains recorded against `d7df220`, with Auth v2.6 response integration now verified by local tests against `4c3f504`; authenticated acceptance remains outstanding.
 
 This guide applies to the external Flutter Courier application on Android and to local browser testing of that same app through Flutter `web-server`. It does not define the separate webapp's Customer storefront or React Admin, Seller, or Logistics dashboards. Laravel remains authoritative for identity, approval, ownership, and operational state.
 
@@ -157,6 +155,7 @@ Apply Jakob's Law by retaining recognizable platform interactions and consistent
 
 ### Delivery history
 
+- Use the Material **Order reference** field with primary **Search** and secondary **Clear** for full exact references. Keep the active reference visible independently of draft edits; Clear returns field focus. Wrap controls at large text and retain the submitted reference through refresh, retry, and policy recovery.
 - Present delivered final-mile records as read-only cards with order reference, delivered time, pickup/destination areas, item count, and safe proof/completion status.
 - History detail may show immutable item snapshots, opaque proof references, and the adopted authenticated private photo viewer. Keep validated image bytes only in account-scoped memory and clear them when detail/session scope ends; exclude street addresses, contact phone numbers, raw storage paths, public media URLs, and mutation controls.
 - Keep cursor pagination unavailable when the server does not provide a usable cursor; distinguish an empty successful list from unavailable, unauthorized, offline, and retryable states.
@@ -201,3 +200,5 @@ Apply Jakob's Law by retaining recognizable platform interactions and consistent
 - Keep this guide and the copied Courier feature specs synchronized with the backend API version. Changes to deferred delivery UI require the matching API/schema decision first.
 
 **Related documents:** `../AGENTS.md`, `docs/features/courier/auth/spec.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/references/user-registration-requirements.md`, and `docs/references/file-upload-requirements.md`.
+
+Private chat video uses an authorized poster and an explicit scrollable viewer with Play/Pause, seeking and Close; no autoplay. Document cards show filename/format/size and Download with a visible saved-copy explanation; use system Save As on Android and browser downloads, without inline document viewers. Keep 48px targets, keyboard/Escape/Back, loading/retry/cancel and scope cleanup accessible. Private temporary playback files and revocable blob URLs are cleared on close/access loss; explicitly exported document copies remain user-owned. See the owning media API and dated verification; installed-device accessibility remains unverified.

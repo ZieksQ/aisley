@@ -5,7 +5,9 @@ platform: Flutter / Dart
 phase: 2
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
+upload_recovery_revision: 2026-10-10
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Profile, password, photo and preference
@@ -14,13 +16,13 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 
 Backend: Owned account/profile/password/private-photo and promotional preference APIs implemented.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
+Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
 
 Account → independent profile/photo/password form → confirmed change → refresh navigation; settings shows promotional preference.
 
 - Read private allow-listed account DTO; PATCH profile uses permitted names/contact/sex/birth_date. Email/role/status/approval are read-only; no client owner ID.
 - Password PATCH requires current_password and confirmed replacement; current bearer survives and other tokens are revoked. Email/MFA/device-list/delete/export remain deferred.
-- Photo multipart uses photo and authenticated bytes/private reread/remove; refetch uncertain replacement before another upload. Promotion PATCH uses promotional_in_app_opted_in boolean, default off and separate from consent. Clear private forms/media on identity loss.
+- Photo multipart uses photo and authenticated bytes/private reread/remove; refetch uncertain replacement before another upload. Promotion PATCH uses promotional_in_app_opted_in boolean, default off and separate from consent. Clear private forms/media on identity loss. Laravel bounds profile images to 8000 pixels per edge/40 million total, performs isolated full decode/rewrite, and rejects processing failures with 422 on photo while preserving the prior image (B04).
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or communication
@@ -30,7 +32,7 @@ capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -53,19 +55,21 @@ Phone/tablet/desktop padding, natural content heights and keyboard/text resizing
   revoked.
 - No email edit, MFA, device/session registry, revoke-all, deletion or export API is available.
 - Photo upload uses multipart photo and under 10 MiB JPEG/PNG/WebP; client hints never replace server
-  validation. Laravel also enforces ≤8,000 pixels per edge and ≤40,000,000 total pixels before decoding.
+  validation.
 - GET avatar fetches authorized private bytes; relative versioned URL retains /api path and cache-busting
   query.
 - Never pass bearer as URL parameter or use unauthenticated Image.network for private avatar.
 - Upload/remove success updates account and navigation snapshots together; invalidates old byte previews.
-- Uncertain photo replacement needs reread before a deliberate new upload; no invented replay key.
-- Android picker recovery must confirm original Customer/form context; web uses bytes rather than native file
-  path.
+- Cancel/uncertain photo writes stay session-owned across navigation; reread current account then photo before another upload.
+- Permission/account-read failure does not confirm absence; preview failure after confirmed upload does not invite replay.
+- Android interrupted files are discarded with select-again feedback; web uses bounded bytes/streams, never an OS path.
+- Picker dismissal preserves a valid selection; explicit removal/cancel/account loss clears previews.
+- [Upload recovery evidence](../../../references/upload-recovery-verification.md) separates synthetic checks from live/device gates.
 - Promotional preference is required boolean, default off and independent of required policy consent.
 - Preference read/update uses snake_case data; opted-in timestamp may be null.
 - Private forms/bytes/pending uploads are disposed on account change/authorization loss.
-- Audit B04: Laravel rejects incomplete/corrupt images and decoder warnings; isolated decode/rewrite verifies
-  stored bytes, strips metadata and preserves transparency/previous photo on failure. G15 replay/live gates remain.
+- Backend profile dimension/decode hardening remains G15; do not certify global upload-policy parity from
+  client checks.
 - Test complete profile and prohibited fields, wrong current password, unchanged current bearer and revoked
   other token.
 - Test missing avatar404, upload timeout/reread/remove, browser multipart bytes and preference default-off
@@ -90,7 +94,7 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
   Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
   Replay: Read retry after bounded backoff; reject obsolete session/query generations.
 - `POST /api/v1/customer/account/profile-photo` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
-  Request: Multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; ≤8000 edge/40000000 pixels.
+  Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - `DELETE /api/v1/customer/account/profile-photo` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
   Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
@@ -151,16 +155,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `AccountRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
-- `ProfileViewModel` owns feature transitions, draft/query state and deliberate actions; inject dependencies
-  through AppDependencies.
-- `PasswordViewModel` owns feature transitions, draft/query state and deliberate actions; inject dependencies
-  through AppDependencies.
-- `PhotoViewModel` owns feature transitions, draft/query state and deliberate actions; inject dependencies
-  through AppDependencies.
-- `PreferenceViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
+- ApiAccountRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- ProfileController, PasswordController, PhotoController and PromotionPreferenceController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().
 - Keep independent forms/actions separately busy and preserve safe input after recoverable validation/network

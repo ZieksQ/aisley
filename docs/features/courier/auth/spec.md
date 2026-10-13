@@ -5,12 +5,14 @@ system: AISLEY
 type: Feature Specification
 version: 2.6
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
-implementation_status: Backend Auth v2.6 implemented; October 8 external Flutter report records response integration against 4c3f504; authenticated/device acceptance remains unverified
+implementation_status: Backend Auth v2.6 implemented per supplied snapshot; Flutter Auth response integration verified locally against 4c3f504; authenticated live acceptance outstanding; earlier operational adoption d7df220
 canonical: true
 role: Courier / Rider
 scope: Laravel API consumed by an external Flutter mobile client
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
+copied_backend_checkout: 4c3f504
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Authentication
@@ -51,7 +53,7 @@ GET active Logistics options
 - Accept one `logistics_organization_id` UUID. Re-resolve an active Logistics organization with a hub inside the transaction; ignore any client `hub_id` or sub-hub field.
 - Accept nested `address` fields: `address_line_1`, optional `address_line_2`, `barangay`, `city_municipality`, `province`, `region`, and `postal_code` (maximum 10). Set country to `Philippines` server-side.
 - Use bundled PSGC Region → Province → City/Municipality → Barangay data and a manual fallback in Flutter. Current Courier registration stores labels/text only; it does not persist PSGC codes, coordinates, or provider IDs.
-- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration enforces uniqueness after duplicate preflight. This personal vehicle cannot satisfy a company-truck Linehaul assignment. The imported Flutter log (2026-10-02) records all four values in registration and vehicle editing; authenticated live acceptance remains unverified.
+- Accept `vehicle_type` values `motorcycle`, `car`, `van`, or `truck`, plus a required `plate_number` (maximum 64). MVP requires exactly one personal Vehicle per Courier; registration creates one and the additive Vehicle Fleet migration enforces uniqueness after duplicate preflight. This personal vehicle cannot satisfy a company-truck Linehaul assignment. The imported Flutter log reports all four values in registration and vehicle editing; authenticated live acceptance remains unverified.
 - Multiple/shared vehicles, maintenance, vehicle history, and capacity values/units/matching are deferred under the Logistics Vehicle Fleet Management spec. This does not remove existing registration/operational history or add a map-pin contract.
 
 ### Flutter registration field map
@@ -66,7 +68,7 @@ GET active Logistics options
 - `vehicle_type` is one of `motorcycle`, `car`, `van`, or `truck`; `plate_number` is required text.
 - `government_id` and `vehicle_registration` are separate multipart file parts, not Base64 JSON fields.
 - Do not send `age`, `country`, `role`, `status`, `hub_id`, `reviewer_id`, or a client-generated owner identifier.
-- Preserve the selected form values after a recoverable `422`, but clear password values before retrying.
+- Preserve the selected form values after a recoverable `422`, but clear password values before retrying. Reported Flutter registration tests use production light/dark themes at 320/390px and 1×/2× text, with contrast/target/label guidelines, keyboard/error focus, evidence and discard checks; device/screen-reader acceptance remains open.
 
 ### Evidence and transaction rules
 
@@ -99,8 +101,7 @@ GET active Logistics options
 
 - Login validates Courier credentials before access checks. Unknown email, wrong password, or another role's credentials return `422 INVALID_CREDENTIALS` with `The email or password is incorrect.`; no account or affiliation state is disclosed and no token is issued.
 - After valid credentials at login, and after bearer authentication and Courier-role checks on protected requests, check account status before affiliation. Login and protected requests use the same `403` payload for each inactive account status, even when its affiliation is also invalid:
-
-  | Account status | Error code | Message |
+ | Account status | Error code | Message |
   | --- | --- | --- |
   | `pending` | `ACCOUNT_PENDING_APPROVAL` | `This Courier account is not active.` |
   | `rejected` | `ACCOUNT_REJECTED` | `This Courier account is not active.` |
@@ -124,10 +125,12 @@ GET active Logistics options
 - The development-only Courier mockup mirrors the Flutter consent lifecycle after login: it checks `/api/v1/policy-consent/status`, fetches the current public Terms/Privacy documents, displays only policies whose current version still requires acceptance, posts explicit acceptance for each exact version, and loads protected Courier data only after the status response confirms completion. A valid bearer token is preserved while consent is pending.
 - A `401` clears secure storage and returns to sign-in; a `403` preserves the reason-specific blocked state.
 - A timeout or offline error preserves unsent registration form data but never queues login or approval bypass actions.
-- A `429` honors `Retry-After`; retries must not submit duplicate registrations or passwords automatically.
+- A `429` honors positive `Retry-After` seconds with separate login, session-restore, and registration cooldowns; absent/invalid delays use one second. Disable buttons and guard direct/keyboard submissions until expiry; only explicit retry may issue another request.
 - A logout response is terminal for the current token; an already-invalid token may be cleared locally after a confirmed `401`.
 
 ### Acceptance criteria
+
+Backend completion and verification below reflect recorded Laravel results through `4c3f504`; this documentation sync did not rerun those tests. Flutter coverage is reported by the imported client project.
 
 - [x] Registration creates one pending Courier foundation and no credential.
 - [x] Additive uniqueness and approval completeness checks fail closed on ambiguous vehicle cardinality; legacy Logistics review continues to use the combined OR/CR registration evidence until separate registration fields are rolled out.
@@ -147,13 +150,11 @@ GET active Logistics options
 
 ### Implemented API contract
 
-The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.6` supersedes its account/affiliation denial mapping, recovery availability messaging, and concurrent duplicate-registration handling. Focused SQLite regressions and disposable PostgreSQL registration-race verification do not certify external Flutter integration or unrelated PostgreSQL release gates.
+The supplied snapshot identifies the foundation baseline as commit `d1abeee73d0141e1fd7dda4bea0ee3fead370378`; contract version `2.6` supersedes its account/affiliation denial mapping, recovery availability messaging, and concurrent duplicate-registration handling. Its reported focused SQLite regressions and disposable PostgreSQL registration-race verification do not certify external Flutter integration or unrelated PostgreSQL release gates.
 
 #### `GET /api/v1/courier/auth/logistics-options` — implemented
 
-- The development-only Courier API mockup may use this public list to populate registration. It must still submit the current legacy combined `vehicle_registration` field until the separate OR/CR registration contract is implemented.
-
-- Public endpoint with `throttle:60,1`; optional query `search` is matched case-insensitively against `business_name`; maximum 50 rows.
+- The upstream development-only Courier mockup uses this list with the legacy combined `vehicle_registration` field; it does not authorize a production Courier web UI. Public endpoint with `throttle:60,1`; optional query `search` is matched case-insensitively against `business_name`; maximum 50 rows.
 - `200`: `{ "data": [{ "id": "uuid", "business_name": "Example Logistics" }] }`. No credentials, hub IDs, or private application data are returned.
 - Registration must revalidate organization activity and hub existence; a stale option is not an authorization grant. Network failure is retryable; no cache is authoritative.
 
@@ -182,9 +183,7 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 
 #### `POST /api/v1/courier/auth/forgot-password` — recovery entry point only
 
-- The development-only mockup may exercise this entry point, but must present its unavailability response without promising an actual reset email.
-
-- Public request `{ "email" }`; email is required, trimmed, lowercased, validated as an email, and limited to 255 characters. Missing or malformed emails return `422` validation errors.
+- The upstream development-only mockup may exercise this entry point but must present unavailability without promising a reset email. Public request `{ "email" }`; email is required, trimmed, lowercased, validated as an email, and limited to 255 characters. Missing or malformed emails return `422` validation errors.
 - Every valid email receives HTTP `200` with exactly `{ "message": "Courier password recovery is not available yet." }`, whether it belongs to a Courier, another role, or no account. The controller preserves the existing normalized-email/IP limiter hit with a 60-second decay.
 - No reset token or access token is created, no mail or notification is sent, and passwords remain unchanged. Recovery delivery/reset remains deferred. Flutter must show the unavailability message and must not promise an email or fabricate a reset route.
 
@@ -209,13 +208,14 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 
 ### Data, Flutter handoff, and testing
 
+- Flutter has no forgot-password flow. Auth v2.6 response integration is verified by local repository/controller/widget tests: login/restoration denials, server account-first response fixtures, exact duplicate-email field errors, session/storage handling, and enforced retry delays. Authenticated backend/device/browser acceptance remains unverified.
 - Auth uses `users`, `courier_profiles`, `addresses`, `vehicles`, `registration_applications`, `documents`, `courier_logistics_affiliations`, and Sanctum tokens. The additive fulfillment migration also defines operational records; apply it before consuming final-mile APIs.
 - Flutter must model nullable `middle_name`, affiliation/rejection states, and missing optional address line; it must not assume a hub ID exists in the Courier DTO.
 - Use explicit states: checking session, signed out, registration editing/submitting, pending approval, rejected, active, suspended, deactivated, invalid affiliation, offline, timeout, and retrying.
 - Registration upload UI must show accepted formats and the under-10-MiB limit, progress/cancel/retry, and server field errors. Client checks are convenience only.
-- The imported Flutter log (2026-10-03) records protection of unsaved registration text, selections, and evidence on Back, Sign in, and Android system Back; untouched, reverted, and successfully submitted forms leave without a discard prompt, and in-flight submission retains its explicit cancel action.
-- The same imported record reports registration using independent password visibility controls, logical Next/Done and keyboard traversal, and ordered scroll/focus for local/server field errors, including PSGC selectors and evidence controls. Passwords clear after server attempts and upload cancellation; browser/device acceptance remains separate.
-- Flutter registration must retain both selected `XFile` contents until multipart submission on local web-server; browser paths cannot be passed to `MultipartFile.fromPath`. Keep Android's native upload behavior and the exact `government_id`/`vehicle_registration` parts; follow the copied `docs/flutter-file-uploads.md` and verify both targets before claiming web upload support.
+- Flutter protects unsaved registration text, selections, and evidence on Back, Sign in, and Android system Back; untouched, reverted, and successfully submitted forms leave without a discard prompt, and in-flight submission retains its explicit cancel action.
+- Registration uses independent password visibility, logical keyboard traversal, and ordered error focus. Recoverable validation, throttling, offline, and timeout preserve text, selections, address labels, and both evidence files; passwords clear after server attempts and cancellation. Duplicate email displays exact `errors.email`; browser/device acceptance remains separate.
+- Flutter registration must retain both selected `XFile` contents until multipart submission on local web-server; browser paths cannot be passed to `MultipartFile.fromPath`. Keep Android's native upload behavior and the exact `government_id`/`vehicle_registration` parts; follow `docs/flutter-file-uploads.md` and verify both targets before claiming web upload support.
 - Do not reproduce Eloquent, SQL, enum implementation, or authorization logic in Dart. The API response is authoritative and all mutations need online revalidation.
 - Add API tests for role/status/affiliation/hub scope, prohibited fields, duplicate races, file spoofing/boundaries, transaction cleanup, token issuance/logout, throttling, DTO privacy, and Logistics organization isolation.
 - Add Flutter contract fixtures/tests for JSON parsing, multipart names, secure-storage failure, `401/403/409/422/429`, timeout/offline states, and redacted DTOs. Mocks supplement but do not replace backend verification.
@@ -223,8 +223,8 @@ The inspected foundation baseline is commit `d1abeee73d0141e1fd7dda4bea0ee3fead3
 
 ### Handoff checklist
 
-- Copy the adopted backend version and exact fields, permissions and response contracts into Flutter docs; unavailable/conceptual routes stay unavailable.
-- October 8 external Flutter evidence reports 217 scoped Auth/network/policy/widget tests for denials, duplicate email, secure-storage failure, token cleanup/consent and guarded retries against Auth `4c3f504`; earlier operations remain `d7df220`. These results were not rerun here; recovery UI and authenticated/device gates remain open. See [imported evidence](../../../docs-flutter-rider/PROGRESS.md#2026-10-08--auth-v26-client-integration-verified).
-- Backend review requires server-owned, transactional, scoped mutations with API tests; material contract changes increment this spec version, update the copied Flutter document, and append `docs/PROGRESS.md`.
+- Keep exact route/field/status/response/prohibition wording, version fixtures against the adopted baseline, and record material version changes in `docs/PROGRESS.md`. Unavailable routes remain unavailable; no mock route is promoted to production behavior.
+- Flutter verification must cover every documented login/restoration denial and account-first response fixture, `401` private-state cleanup, consent token/identity preservation, secure-storage read/write/delete failures, logout, `429` guards/expiry, offline, timeout, and explicit retry. Storage failure blocks access and clears memory without claiming deletion succeeded; fixture tests do not certify server enforcement.
+- Backend review confirms that every new Auth mutation remains server-owned, transactional, scoped, and covered by API tests.
 
-**References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Courier.md`, `docs/domains/Logistics.md`, [`user-registration-requirements.md`](../../../references/user-registration-requirements.md), [`file-upload-requirements.md`](../../../references/file-upload-requirements.md), and [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities).
+**References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, [`user-registration-requirements.md`](../../../references/user-registration-requirements.md), [`file-upload-requirements.md`](../../../references/file-upload-requirements.md), and [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities).

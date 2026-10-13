@@ -6,6 +6,7 @@ phase: 2
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Product Detail and configuration
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Product Detail Resource, media/valid variants and current purchase handoffs implemented;
 canonical checklist retains historical foundation wording.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open. Phase 3 now enables intentional Cart/Buy Now handoffs; see [commerce evidence](../../../references/phase-3-verification.md).
+Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open. Phase 3 now enables intentional Cart/Buy Now handoffs; see [commerce evidence](../../../references/phase-3-verification.md).
 
 Visible Product → gallery/description → complete valid variant + quantity → Cart or Buy Now.
 
@@ -31,7 +32,7 @@ capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -151,12 +152,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `ProductRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
-- `ProductViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `VariantSelector` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
+- DiscoveryRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- ProductDetailController and the feature-owned variant picker owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().

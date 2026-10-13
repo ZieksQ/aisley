@@ -6,6 +6,7 @@ phase: 2
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Address Book and defaults
@@ -13,9 +14,9 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 ## WHAT
 
 Backend: Owned CRUD/defaults and checkout snapshots implemented; live shipping coverage remains
-unverified. Reported Flutter PSGC/pin controls have partial acceptance.
+unverified. Flutter PSGC/pin controls have partial acceptance; live localhost provider checks passed.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md) and [MapLibre report](../../../references/maplibre-verification.md); live-account/device gates remain open.
+Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md) and [MapLibre evidence](../../../references/maplibre-verification.md); live-account/device gates remain open.
 
 Addresses → selected cascading localities/manual street form → optional pin → save/default → owned shipping selection.
 
@@ -68,7 +69,7 @@ Phone/tablet/desktop padding, natural content heights and keyboard/text resizing
 - Pin location makes one intentional Philippines-filtered Geoapify request; no lookup on typing/cascade
   changes.
 - Review candidates, then show MapLibre tap/drag and numeric adjustment; explicitly confirm valid pairs.
-  Preparation failure exposes Retry and numeric/text fallback; see the MapLibre report for lifecycle limits.
+  Preparation failure exposes Retry and numeric/text fallback; see the MapLibre evidence for lifecycle limits.
 - Changing location text clears stale coordinates; GPS choice never silently overwrites
   recipient/locality text.
 - Use current location requests foreground permission once per deliberate action and allows denial/text
@@ -152,16 +153,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `AddressRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
-- `AddressListViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `AddressFormViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `PsgcLoader` owns safe platform access without widget HTTP calls; inject dependencies through
-  AppDependencies.
-- `MapPinDialog` owns lookup/GPS/confirmation; `AddressPinMap` owns bounded preparation/lifecycle.
-  Injectable `AddressMapAdapter` owns the MapLibre view, draggable pin, camera updates and disposal.
+- AddressRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- AddressController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().

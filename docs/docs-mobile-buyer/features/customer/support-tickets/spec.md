@@ -6,6 +6,7 @@ phase: 4
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Admin support tickets
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Own-ticket APIs and Admin triage/status lifecycle implemented; linked
 records/attachments/notification fanout deferred.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
+Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
 
 Account Support → subject/category/description → ticket → Admin reply/status → revision-checked Customer reply/read.
@@ -139,14 +140,8 @@ universal error envelope.
 
 ### Responsibility and state ownership
 
-- `SupportRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
-- `TicketInboxViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `TicketDetailViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `TicketComposerViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
+- SupportRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- TicketInboxController and TicketController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().

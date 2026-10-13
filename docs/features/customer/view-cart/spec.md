@@ -3,8 +3,8 @@ feature: view-cart
 title: Customer View Cart
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Draft
+version: 1.2
+status: Cart API and storefront implemented; release acceptance remains separate
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -15,7 +15,7 @@ scope: Customer storefront and Laravel API
 
 - Authenticated Customers can add a selected Product configuration, review Cart items, change quantity or variation, and prepare selected items for checkout.
 - A Cart Item represents one purchasable configuration: Product + selected variant/SKU where applicable; it is not a saved client-side Color/Size string.
-- The feature enables the currently placeholder-only **Add to cart** control on `/products/{id}`.
+- The implemented feature powers **Add to cart** on `/products/{id}`.
 - Laravel owns Cart persistence, eligibility, variant validation, current prices, and stock checks. Next.js renders the projection and submits intent.
 - Cart is a staging area, not an inventory reservation or checkout/payment implementation.
 - Non-goals: guest Cart, Buy Now, vouchers, shipping, payments, Order creation, and seller inventory management.
@@ -46,7 +46,7 @@ scope: Customer storefront and Laravel API
 ### Product-page Add to Cart
 
 - Keep the existing product-page option selector as the only source of candidate configuration; it already derives valid combinations from the product-detail DTO.
-- Replace the current `aisley:product-purchase-intent` placeholder for `add_to_cart` with `POST /api/v1/customer/cart/items`.
+- The Product purchase panel sends Add to Cart through `POST /api/v1/customer/cart/items`.
 - Send only:
 ```json
 { "product_id": "UUID", "variant_id": "UUID or null", "quantity": 1 }
@@ -82,16 +82,16 @@ scope: Customer storefront and Laravel API
 
 ### Project evidence
 
-- `docs/schema.md` already documents the option-group/value, variant, pivot, and media relationships required for SKU-level Cart items. Cart tables remain deferred.
-- `src/api` exposes public product detail but has no Cart routes, models, or migrations.
-- `src/webapp/src/components/product/product-purchase-panel.tsx` selects valid configurations and bounded quantity, but Add to Cart currently dispatches a browser event and says the service is unavailable.
+- `docs/schema.md` already documents the option-group/value, variant, pivot, and media relationships required for SKU-level Cart items. Cart and Cart Item tables are implemented by the additive 2026_08_29_000121 migration.
+- `src/api` implements Cart routes, Cart/CartItem models, Customer Form Requests, CartService and CartResource/CartItemResource.
+- `src/webapp/src/components/product/product-purchase-panel.tsx` submits selected configurations through the Cart provider; `/cart` renders persisted rows and variation/quantity editing.
 - Current Customer APIs use `/api/v1/customer`, Sanctum cookies, and `customer.active`; use that convention instead of the older generic Buyer route names.
 
 ### Data and API
 
-- Add `carts`: UUID id, `customer_id`, timestamps; one active Cart per Customer for MVP.
-- Add `cart_items`: UUID id, `cart_id`, `product_id`, nullable `variant_id`, positive `quantity`, timestamps, the two partial unique indexes above, and normal foreign keys.
-- Create Form Requests, Customer-scoped queries/policies, a Cart service/action layer, and API Resources. Keep controllers thin.
+- Existing `carts`: UUID id, `customer_id`, timestamps; one active Cart per Customer for MVP.
+- Existing `cart_items`: UUID id, `cart_id`, `product_id`, nullable `variant_id`, positive `quantity`, timestamps, the two partial unique indexes above, and normal foreign keys.
+- Existing Form Requests, Customer-scoped CartService and API Resources separate validation, ownership and projection. Keep controllers thin.
 - Endpoints:
 ```text
 GET    /api/v1/customer/cart
@@ -100,14 +100,14 @@ PATCH  /api/v1/customer/cart/items/{item}
 DELETE /api/v1/customer/cart/items/{item}
 ```
 - `POST` upserts a configuration; `PATCH` changes quantity and/or variant atomically; every mutation returns the complete current Cart summary and count.
-- Cart resources expose current Product/variant fields plus display-only `selected_options: [{group, value}]`; they do not expose private Seller data or raw inventory beyond the selected configuration's safe availability.
+- Cart resources expose current Product/variant fields plus display-only `selectedOptions: [{group, value}]`; they do not expose private Seller data or raw inventory beyond the selected configuration's safe availability.
 
 ### Storefront
 
-- Add a typed Cart API client using the existing CSRF initializer and request wrapper.
-- Replace only the Add to Cart branch in `ProductPurchasePanel`; leave Buy Now as unavailable until its separate flow is specified.
+- The typed Cart API client uses the existing CSRF initializer and request wrapper.
+- ProductPurchasePanel implements Add to Cart and the separate Buy Now checkout handoff; Checkout owns pricing, placement and reservations.
 - Integrate Cart count refresh with the shared marketplace/home context, handle `401` login return, and use an aria-live status for success and recoverable errors.
-- Build `/cart` as an authenticated client-interactive route after the API resource exists; use the same DTO for row display and variation editing.
+- `/cart` is an authenticated client-interactive route; use the same DTO for row display and variation editing.
 
 ### Marketplace research
 
@@ -125,3 +125,8 @@ DELETE /api/v1/customer/cart/items/{item}
 
 - Define guest Cart merge semantics, Buy Now, Cart selection for checkout, multi-seller checkout partitioning, promotions, and reservations in their respective specs.
 - Define whether promotions can prevent merging the same SKU after per-variant limits are introduced.
+
+
+## Current implementation evidence — 2026-10-12
+
+The current routes, CartService, CartResource/CartItemResource, additive Cart migration, ProductPurchasePanel and Cart screens establish implementation. Backend tests exist under CustomerCartTest; no tests/builds or deployed interaction were rerun for this documentation revision. Existing unchecked criteria remain acceptance requirements. External Buyer Cart adoption is recorded separately in the portable Buyer spec.

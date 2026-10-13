@@ -60,6 +60,6 @@ Other safe thread fields include `last_message_preview` and `last_message_at`. T
 
 ## Private media contract addition — 2026-10-06
 
-[Media API](media-api.md) defines private per-file upload/checking, attachment DTOs and ordered `attachment_ids` for every existing Courier start/reply channel. Text-only hashes and send envelopes stay compatible. Exact media retry freezes body, context, IDs and key. Laravel and counterpart web controls are implemented; external Flutter attachment UI/transport, live client exchange and installed-device acceptance remain pending. Historical client evidence above is preserved.
+[Media API](media-api.md) defines private per-file upload/checking, attachment DTOs and ordered `attachment_ids` for every existing Courier start/reply channel. Text-only hashes and send envelopes stay compatible. Exact media retry freezes body, context, IDs and key. Laravel and counterpart web controls are implemented; Flutter image upload/viewing and receive-only video/document consumption are implemented; live exchange and installed-device acceptance remain open. Historical client evidence above is preserved.
 
 Customer–Courier mutations now use separate named per-account start (15/minute) and reply (30/minute) counters so browsing, upload/status and history do not consume those budgets. The overall 120 Customer requests/minute remains enforced. This matches existing Customer Shop/Logistics counter isolation.

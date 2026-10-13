@@ -1,7 +1,5 @@
 # Courier route-map integration
 
-> Imported external Courier Flutter report dated 2026-10-08. Client code, plugin behavior, tests and builds below are reported evidence, not rerun here. The current API read shapes were separately checked against Laravel source during the October 9 sync.
-
 Map-specific backend baseline: `51d96947569d1603fdfb6d264ebd2a04bf866280`.
 Other operational adoption remains `d7df220`, and copied Auth v2.6 documentation
 remains `4c3f504`. Source inspection proves DTO implementation, not deployment.
@@ -123,7 +121,7 @@ runtime/secure-storage behavior require an authorized API and device later.
 
 Use the same Flutter renderer in the isolated harness; its HTTP client returns
 synthetic DTOs and PNG bytes and never reads account storage or a live API.
-Keep the ordinary Courier app on localhost 8765. The isolated harness below uses 8766 temporarily; stop any Buyer test server occupying that port before running it. Serve the harness separately:
+Keep the ordinary Courier app on localhost 8765. The isolated harness uses 8766 temporarily; stop a Buyer server occupying that port before running it. Serve the harness separately:
 
 ```sh
 flutter run --no-pub -d web-server --web-hostname localhost --web-port 8766 -t test/manual/route_map_browser_fixture.dart

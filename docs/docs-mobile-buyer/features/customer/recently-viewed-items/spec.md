@@ -6,6 +6,7 @@ phase: 2
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Recently Viewed
@@ -14,7 +15,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 
 Backend: Owned record/merge/list/remove/clear and public Product resolver implemented.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
+Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../references/phase-2-verification.md); live-account/device gates remain open.
 
 Successful authenticated detail → server record → current visible account cards; no guest store/merge.
 
@@ -30,7 +31,7 @@ and capabilities remain authoritative.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
-Phone/tablet/desktop padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
+Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
 
@@ -150,12 +151,10 @@ outline; wrapped actions remain inside the card.
 
 ### Responsibility and state ownership
 
-- `RecentRepository` owns typed transport, parsing and owned cache access; inject dependencies through
-  AppDependencies.
 - `removeLegacyRecentHints` deletes only the retired key and catches preference failure independently
   of bootstrap; no guest store/coordinator participates in AppDependencies.
-- `RecentViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
+- RecentlyViewedRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- SavedProductsController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in

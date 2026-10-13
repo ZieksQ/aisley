@@ -15,6 +15,7 @@ scope: Laravel API and external Flutter mobile application
 backend_contract_commit: 40c68de
 backend_contract_version: courier-support-tickets-v1
 source_coverage: docs/features/admin/support-ticket-system/spec.md, docs/schema.md, docs/domain/Courier.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Courier Support Tickets

@@ -4,14 +4,20 @@ title: Admin Auth
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft
+status: Stateful Admin login/me/logout and web auth guard implemented; extended acceptance remains separate
 role: Admin
 scope: Admin Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin Authentication
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+Current `/api/v1/admin/auth/login`, `/me` and `/logout` routes use Admin AuthController and Sanctum stateful sessions; React AuthContext/login/guards consume them. Recovery/session extensions require their own implemented contracts. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - **Feature:** Admin Authentication for the AISLEY Admin web application.
 - **Purpose:** Establish and maintain a secure authenticated `admin` session before any protected Admin feature can be used.
@@ -38,7 +44,7 @@ Admin opens web app
 → unauthenticated
    → /login
    → GET /sanctum/csrf-cookie
-   → POST /login
+   → POST /api/v1/admin/auth/login
    → resolve email + admin
    → verify password
    → create Laravel session
@@ -53,7 +59,7 @@ authenticated request
 → allow protected action
 
 logout
-→ POST /logout
+→ POST /api/v1/admin/auth/logout
 → invalidate backend session
 → clear frontend auth state
 → /login
@@ -129,7 +135,7 @@ GET /sanctum/csrf-cookie
 - Credentials are then submitted through the Laravel login endpoint:
 
 ```http
-POST /login
+POST /api/v1/admin/auth/login
 ```
 
 - Successful login must create a Laravel authenticated session.
@@ -168,7 +174,7 @@ CHECKING
 - A current-Admin endpoint may be:
 
 ```http
-GET /api/admin/me
+GET /api/v1/admin/auth/me
 ```
 
 - If repository conventions already define a shared current-user endpoint, use that instead of introducing a duplicate endpoint.
@@ -226,7 +232,7 @@ authorization
 - Logout must use a state-changing backend request, conceptually:
 
 ```http
-POST /logout
+POST /api/v1/admin/auth/logout
 ```
 
 - Logout must invalidate the Laravel/backend session.
@@ -311,9 +317,9 @@ POST /logout
 - Keep business authority in Laravel; do not create a separate browser-side authentication implementation that bypasses Laravel.
 - Provide or reuse:
   - CSRF cookie endpoint: `GET /sanctum/csrf-cookie`
-  - Admin login endpoint: `POST /login`
-  - current Admin endpoint: `GET /api/admin/me` or existing equivalent
-  - logout endpoint: `POST /logout`
+  - Admin login endpoint: `POST /api/v1/admin/auth/login`
+  - current Admin endpoint: `GET /api/v1/admin/auth/me` or existing equivalent
+  - logout endpoint: `POST /api/v1/admin/auth/logout`
 - Login orchestration should:
   1. validate `email` and `password`
   2. normalize the email according to project convention
@@ -433,7 +439,7 @@ unique(email, role)
 - Exact bootstrap/seeder command or lifecycle hook.
 - Whether `.env` credentials ever re-sync an existing Admin.
 - Exact login success response shape.
-- Whether `/api/admin/me` or a shared current-user endpoint is preferred.
+- Current Admin identity uses `/api/v1/admin/auth/me`; no duplicate current-user endpoint is needed.
 - Exact session idle and absolute lifetime.
 - Concurrent Admin session/revocation policy.
 - Password-change session invalidation policy.

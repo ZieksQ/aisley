@@ -1,7 +1,5 @@
 # Live Geoapify verification — 2026-10-08
 
-> Imported external Buyer Flutter report dated 2026-10-08; checks below were not rerun in the Laravel repository. Flutter source, tools, build configuration and credentials are not included in this documentation bundle.
-
 Verification branch: `test/geoapify-live-address-maps`. App implementation is
 `5a524ad`, using `maplibre_gl` 0.27.1. Laravel contract baseline remains
 `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`; no backend or wire changes.

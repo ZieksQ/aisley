@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-12",
+  "inspected_source_revisions": {
+    "aisley": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
+    "courier": "177eac1d1d132916cef25054cfc959e223fa409c",
+    "buyer": "7924cf06158817a2dcd709ec19a7442e3496dda5"
+  },
+  "execution": "Documentation-only validation; source-backed route inventory, no live HTTP or application test/build run.",
+  "checks": {
+    "markdown_documents": 61,
+    "local_links": 110,
+    "current_anchors": 1,
+    "json_documents": 14,
+    "bounded_specs": 12,
+    "preserved_progress_histories": [
+      {
+        "source": "docs/docs-flutter-rider/PROGRESS.md",
+        "path": "logs/PROGRESS-2026-10-12.md",
+        "original_sha256": "d72a3e870dbb3204b8d522774cfe712a3ba9317228e47567ab357e80790a3267",
+        "original_bytes": 16083,
+        "attribution": "platform"
+      },
+      {
+        "source": "../aisley_app/docs/PROGRESS.md",
+        "path": "logs/PROGRESS-2026-10-12-2.md",
+        "original_sha256": "4060f4b3ba3ce12cb90066d3cc441c0dee5d2020a91380886c8a9d93f8d7cf9b",
+        "original_bytes": 22696,
+        "attribution": "client"
+      }
+    ],
+    "embedded_json_blocks": 24
+  },
+  "errors": [],
+  "limits": [
+    "No deployed revision verified",
+    "No Flutter/API runtime tests or builds rerun",
+    "No installed-device acceptance"
+  ],
+  "existing_buyer_validator": "Passed portable Courier links/JSON/spec/history checks; Buyer validator also passed.",
+  "existing_validator_unit_tests": "Pre-change 3 passed, 1 failed: ordinary-log negative fixture now resolves through existing logs/references forwarding pages. No tooling/source changes.",
+  "final_checks": {
+    "standalone_copies": "byte-for-byte identical",
+    "changed_document_links": "1884 destinations checked across three projects; no missing targets",
+    "whitespace": "git diff --check passed in all three repositories",
+    "scope": "documentation, project READMEs and Buyer instruction status only; application/dependency/schema sources unchanged"
+  }
+}

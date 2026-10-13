@@ -1073,7 +1073,9 @@
               "province": "Synthetic example",
               "region": "Synthetic example",
               "postalCode": "Synthetic example",
-              "country": "Synthetic example"
+              "country": "Synthetic example",
+              "latitude": null,
+              "longitude": null
             },
             "payment": {
               "method": "cod",

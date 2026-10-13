@@ -4,7 +4,7 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Implemented final-mile task, batch route, movement, and delivery-context API
 implementation_status: Final-mile tasks, batch acceptance, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
 flutter_status: Delivery context/movement and accepted-batch MapLibre routes implemented locally; live API and installed-device/browser map acceptance remain unverified
@@ -16,11 +16,11 @@ failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
 backend_contract_version: courier-delivery-v1-final-mile-task
 map_contract_commit: 51d96947569d1603fdfb6d264ebd2a04bf866280
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Deliver Order
-
-**Flutter adoption boundary:** Flutter now renders accepted final-mile batch routes with MapLibre on Android and localhost web, preserving server order, advisory metrics, and known-location fallback. Externally reported local tests/builds (not rerun here) are client evidence; source inspection at `51d9694` does not establish deployed API, installed-APK, or browser acceptance. Pickup routing remains independent.
+**Flutter adoption boundary:** Flutter now renders accepted final-mile batch routes with MapLibre on Android and localhost web, preserving server order, advisory metrics, and known-location fallback. Local tests/builds are client evidence; source inspection at `51d9694` does not establish deployed API, installed-APK, or browser acceptance. Pickup routing remains independent.
 
 ## Map and parcel-price revision (2026-09-21)
 
@@ -75,11 +75,11 @@ accepted final-mile task
 
 ### Provider-neutral route, distance, and ETA
 
-- Per-task `distance_km`, `estimated_duration_minutes`, and external-navigation payloads are deferred; the implemented accepted-batch route below supplies its own summary.
-- Per-task route metrics remain planned/unavailable. Implemented batch routes use `summary.stop_count`, `distance_metres`, and `duration_seconds`, without revision/calculation timestamps; label local receipt time **Last refreshed**.
+- Per-task distance/ETA and external-navigation payloads are deferred; implemented accepted-batch routes supply their own summary.
+- Task metrics remain advisory/optional. Batch routes instead use `summary.stop_count`, `distance_metres`, and `duration_seconds`, without revision/calculation timestamps; label local receipt time **Last refreshed**.
 - Missing/stale coordinates, routing timeout, quota exhaustion, or provider failure must return an honest unavailable state, never zero distance or a fabricated ETA.
 - Route metrics cannot decide assignment, eligibility, custody, delivery completion, or destination authority.
-- The approved read-only renderer uses `maplibre_gl: ^0.27.1`; calculation and Geoapify credentials remain server-side; client checks are attributed in [Progress](../../../PROGRESS.md). Map failures preserve authorized stops and the existing delivery-details workflow.
+- The approved read-only renderer uses `maplibre_gl: ^0.27.1`; calculation and Geoapify credentials remain server-side. Map failures preserve authorized stops and the existing delivery-details workflow.
 - If a map is rendered in Flutter, it is a presentation layer over the server-authorized destination/route data and must not become a state authority.
 
 ### Destination and operational data
@@ -165,7 +165,7 @@ accepted final-mile task
 
 ### Flutter handoff and navigation
 
-- The active screen shows the accepted task, destination, current state, distance/ETA freshness, route availability, and a clear next action.
+- Notification entry first reauthorizes its ID through the scoped final-mile task-detail read, including offers absent from loaded lists. Current offers use batch review, accepted tasks use hub handoff, and picked-up/transit tasks use delivery context; terminal/unknown states are read-only. Refresh repeats the scoped read before rendering actions and never falls back to a withdrawn snapshot. The active delivery screen shows authorized destination, current state, advisory freshness, and one next action; Back returns to notification details without marking read or mutating work.
 - Accepted/in-progress batch detail offers secondary **View delivery route**, opening a read-only screen with hub start, numbered stops, road/fallback labels, attribution, zoom controls, and **Fit route**. Offered batches have no route action.
 - Returning from external navigation triggers a fresh task/route read rather than trusting a background callback.
 - Permission denial, GPS disabled, route unavailable, stale metrics, reassignment, and destination reached are distinct accessible states.

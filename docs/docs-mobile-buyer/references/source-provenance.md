@@ -232,22 +232,21 @@ New source details include Account account envelope; nullable stored specificati
 
 No Flutter tests/builds, authenticated API exchanges, physical devices, provider requests, migrations, seeds or application database changes ran. See [documentation validation](documentation-validation.md) for completed handoff checks and [verification](../verification.md) for unexecuted release gates.
 
-## Imported client evidence and current inspection — 2026-10-04
+## Supplied webapp handoff review — 2026-10-09
 
-The external Buyer snapshot under upstream `docs/cabigan/docs-mobile-buyer-from-flutter-project/` reports Phases 1–4, Phase 5 verification tools, responsive phone/tablet layouts, required sign-in and account-only Recently Viewed. Six imported verification reports retain branch, adopted baseline, commands/results and open gates. Flutter/Dart, dependency resolution, analyzer/tests/builds and browser/API results are attributed to that external project; none were rerun here. Referenced application files and ignored reports are external, not included artifacts.
+This Buyer project selectively imports contracts from `cabigan/docs-mobile-buyer-from-webapp/`.
+The supplied [October 9 review](synchronization-2026-10-09.md) and
+[source hashes](source-inspection-2026-10-09.json) identify Laravel
+`0a6aaa8096196e2c26822ac0281d5d30675511a8`; the [October 7 review](synchronization-2026-10-07.md)
+records the preceding `a946692` inspection. These are upstream documentation/source reports,
+not Laravel source inspection or runtime checks performed during this local merge.
 
-Historical baseline/source manifests, route enumeration, package metadata and standalone validation remain unchanged. [Imported SDK/resolution baseline](imported-client-baseline.json) preserves historical metadata alongside reported Flutter 3.47.2 / Dart 3.13.2; it is not a local SDK inspection.
+[Shipping inspection](current-source-inspection.json) at `22b0a48f9575ead182d03c35ab87345711c23b90`
+and [historical shipping routes](routes-current.json) supply the provider-selection/DTO change.
+[Latest supplied routes](routes-2026-10-09.json) preserve the newer review; the October 6
+chat-media revision remains separate in schemas/operations. Client adoption stays `57e9eb2`.
+G25/G26 record pending implementation/verification without completing or erasing older evidence.
 
-[Current inspection](current-source-inspection.json) separately captures Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`, seven changed contract sources and shipping dependencies/Requests/Resources/enums/tests. [Current routes](routes-current.json) were enumerated here read-only; 96 Buyer-relevant operations include the new `op-096`. No backend tests or authenticated exchange ran here. Customer [shipping selection](../api/shipping-selection.md) governs current contracts; G25 records the external client adoption gap without changing its `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` baseline. No role-specific Courier source changed since that baseline in inspected controllers/Requests/Resources/services.
-
-The Courier import is byte-identical to its tracked counterpart except the tracked-only agent guide. Only shared shipping/pickup/pricing context is reconciled; Courier implementation statuses, task/COD/evidence contracts, guides and archives remain preserved. Required Flutter sign-in and account-only recency do not alter storefront guest behavior.
-
-[Snapshot and report hashes](imported-evidence.json) identify the untouched imported inputs and attribution-only verification copies. These preserve provenance without claiming direct inspection of external Flutter implementation code.
-
-## Scoped chat media addition — 2026-10-06
-
-Updated only messaging feature/API wording, DTO/index fields and synthetic examples from the implemented Laravel chat-media addition. Historical checkout hashes, imported snapshots and client adoption/test evidence remain preserved. The addition is separately identified by `chat_media_contract` metadata; it does not advance the external Flutter adoption baseline.
-
-## Newer client evidence and backend review — 2026-10-07
-
-[Current source/route review](synchronization-2026-10-07.md) records Laravel a946692 separately from Buyer-adopted 57e9eb2. [Import manifest](imported-evidence-2026-10-07.json) hashes the supplied `docs/cabigan/docs-mobile-customer/` and `docs/cabigan/docs-flutter-courier/` snapshots and the original marketplace report/ten synthetic screenshots. Source paths remain optional provenance after copying. Earlier report texts, original baseline manifests, SDK/package metadata and validation histories are preserved. New client presentation/PSGC evidence establishes neither current shipping/media adoption nor live/device release acceptance.
+Original local progress/archive bytes, package/SDK records, verification reports and PSGC assets
+are preserved. See [local synchronization evidence](webapp-docs-sync-2026-10-09.md) for this merge.
+Upstream paths/manifests are optional provenance; local API/spec/example documents remain portable.

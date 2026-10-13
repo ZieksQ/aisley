@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AISLEY Customer storefront
 
-## Getting Started
+Customer storefront built with Next.js, React, TypeScript and Tailwind. Role screens, routes and API access stay in this app; compatible presentation uses workspace packages, including `@aisley/ui` and `@aisley/ui/chat`.
 
-First, run the development server:
+## Development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Run commands from the monorepo root after workspace dependencies and the API environment are configured:
+
+```sh
+pnpm dev:webapp
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The local app runs at `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL` from this app's `.env.example` to the API origin without `/api/v1`; the client uses versioned endpoint paths. Public frontend configuration must contain no server secrets.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Use root `pnpm dev` to start the API, queue worker, scheduler and all four web apps. PostgreSQL must already be available. Private chat media has a separate worker; see the [root setup](../../README.md#local-chat-media).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Authentication and ownership
 
-## Learn More
+Browser authentication uses Laravel Sanctum stateful sessions, HttpOnly cookies and CSRF protection. The API enforces active Customer identity and required policy consent on protected shopping/account actions. Mobile bearer flows and Courier screens belong to their external Flutter projects.
 
-To learn more about Next.js, take a look at the following resources:
+## Design and contracts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Light-only, mobile-first responsive layouts and accessible controls follow [the web design contract](../../docs/design.md). Read the matching [role feature specifications](../../docs/features/customer) before feature changes. Shared UI does not merge role navigation, permissions or tenant data.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Checks
 
-## Deploy on Vercel
+```sh
+pnpm --dir src/webapp lint
+pnpm --dir src/webapp build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Checkout and Orders regressions: `pnpm --dir src/webapp test:checkout` and `pnpm --dir src/webapp test:orders`. Browser checks have their own documented fixture/server prerequisites.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Commands come from the committed package scripts. This documentation update did not run application checks; [Progress](../../docs/PROGRESS.md) records actual verification and [architecture](../../docs/architecture.md) describes deployment.

@@ -6,6 +6,7 @@ phase: 4
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
+documentation_synced_on: 2026-10-12
 ---
 
 # Inbox notifications and preference
@@ -15,7 +16,7 @@ contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 Backend: Allow-listed own list/detail/read and in-app promotion preference implemented;
 unread-count/read-all/native push absent.
 
-Flutter (external project report): **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
+Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
 
 Account Notifications → all/read/unread page → allowed target → mark read; settings controls in-app promotions.
@@ -143,12 +144,8 @@ a universal error envelope.
 
 ### Responsibility and state ownership
 
-- `NotificationRepository` owns typed transport, parsing and owned cache access; inject dependencies
-  through AppDependencies.
-- `NotificationInboxViewModel` owns feature transitions, draft/query state and deliberate actions;
-  inject dependencies through AppDependencies.
-- `NotificationDetailViewModel` owns feature transitions, draft/query state and deliberate actions;
-  inject dependencies through AppDependencies.
+- NotificationRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- NotificationInboxController and NotificationDetailController owns current feature state and deliberate actions.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward
   callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in

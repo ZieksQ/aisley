@@ -3,10 +3,11 @@ feature: checkout-order
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Implemented at 57e9eb2; current shipping adoption pending G25
+flutter_status: Implemented including shipping and G31 Checkout thumbnails; live/device acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
+documentation_synced_on: 2026-10-12
 ---
 
 # COD checkout and placement
@@ -14,9 +15,9 @@ current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
 ## WHAT
 
 Backend: Quote/place/batch, per-Shop Orders, shipping/vouchers/reservations/snapshots and UUID replay
-implemented; nullable item imageUrl parsing is adopted from 5d55ecf; Checkout image rendering deferred.
+implemented; nullable item imageUrl is supplied by 5d55ecf for Checkout review/results.
 
-Flutter (external project report): **implemented against 57e9eb2; newer shipping contract unadopted (G25)**. See [Phase 3 evidence](../../../references/phase-3-verification.md); live-account/device gates remain open.
+Flutter: **implemented including shipping and [G31 thumbnails](../../../references/checkout-images-verification.md)**. See [G25 evidence](../../../references/shipping-selection-verification.md); live-account/device gates remain open.
 
 Buy Now or selected Cart → saved shipping + COD → per-Shop quote → reviewed Place → atomic batch result.
 
@@ -26,9 +27,7 @@ Buy Now or selected Cart → saved shipping + COD → per-Shop quote → reviewe
 - Freeze uncertain key/payload for exact replay. Fresh quote needs review and deliberate Place; process-death recovery and missing GET-by-key remain gaps. Do not show partial success.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
-imported parser/operation checks do not complete G25. Upstream paths are optional provenance only.
-[B06 legacy shipping funding](../../../api/legacy-voucher-funding.md): unaffordable candidates are disabled; quote uses 409 VOUCHER_FUNDING_INSUFFICIENT on vouchers.
-Placement shortfalls use 409 QUOTE_STALE before effects; refresh/review. Committed exact-key replay remains valid; Flutter adoption is unverified.
+current client checks are recorded in [G25 evidence](../../../references/shipping-selection-verification.md). Upstream paths remain optional provenance.
 The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership
 and capabilities remain authoritative.
 
@@ -41,10 +40,14 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 ### Feature behavior and boundaries
 
 - One reviewed checkout intent uses Buy Now or selected Cart, an owned shipping address and COD.
-- Variant key is present nullable; Cart/Buy Now cannot coexist. Quantity and voucher selections follow operation validation.
-- Quote computes fresh Product/variant stock, shipping serviceability/rate and voucher effects; no local payable authority.
-- Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall orderCount summary. Product image/name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
-- Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee; unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
+- Variant key is present nullable; Cart/Buy Now cannot coexist. Quantity and voucher selections follow
+  operation validation.
+- Quote computes fresh Product/variant stock, shipping serviceability/rate and voucher effects; no
+  local payable authority.
+- Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall
+  orderCount summary. Product thumbnail/name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
+- Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee;
+  unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
 - Select one provider per Shop; implicit single-option fallback is allowed, multiple options require choice.
 - Empty options block quoting; provider failures never authorize substitution or a Courier selector.
 - Display returned expiresAt (default lifetime15min) and clear review validity when any intent input
@@ -65,7 +68,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - GET batch is available only with known owned batch ID; no placement GET-by-key recovery endpoint
   exists.
 - Process-death uncertainty stays G12 with memory-only pending state; do not claim automated recovery.
-- Batch result shows each item's available image, Order reference and link; never report partial checkout success for an error.
+- Batch result shows each Order reference, item thumbnail/name/quantity and link; never report partial success.
 - Test one/multiple Shops, stale prices/stock/rates/address/vouchers and atomic rollback on any failing
   group.
 - Test lost-response exact replay, changed payload key conflict, Buy Now Cart preservation and owned
@@ -113,7 +116,7 @@ actions.
 | --- | --- |
 | `Quote` | `quoteId: UUID`, `expiresAt: timestamp`, `mode: string`, `paymentMethod: string`, `address: QuoteAddress`, `groups: QuoteGroup[]`, `summary: QuoteSummary` |
 | `QuoteGroup` | `shop: QuoteShop`, `items: QuoteItem[]`, `availableVouchers: Voucher[]`, `appliedVouchers: AppliedVoucher[]`, `shippingQuote: ShippingQuote`, `totals: Totals` |
-| `QuoteItem` | `cartItemId: UUID?`, `productId: UUID`, `variantId: UUID?`, `productName: string`, `imageUrl: URL?`, `sku: string?`, `selectedOptions: SelectedOption[]`, `unitPrice: money`, `quantity: int`, `lineSubtotal: money` |
+| `QuoteItem` | `cartItemId: UUID?`, `productId: UUID`, `variantId: UUID?`, `productName: string`, `imageUrl: URL?~`, `sku: string?`, `selectedOptions: SelectedOption[]`, `unitPrice: money`, `quantity: int`, `lineSubtotal: money` |
 | `Batch` | `id: UUID`, `currency: string`, `placedAt: timestamp`, `orders: BatchOrder[]` |
 | `Totals` | `merchandiseSubtotal: money`, `shippingFee: money`, `discount: money`, `shippingDiscount: money`, `payable: money`, `currency: string` |
 
@@ -142,22 +145,14 @@ Never write or merge guest hints; legacy-key cleanup must not delay authenticati
 Local [failure contracts](../../../api/errors.md) define concrete codes and examples; do not require a
 universal error envelope.
 
-- Claim-required App and all Shop vouchers require owned collection; automatic App offers do not.
-- VOUCHER_NOT_CLAIMED links to collection; newly invalid placement VOUCHER_* uses QUOTE_STALE.
-- See [collection contract](../../../api/voucher-collection.md); G28 adoption is pending.
-
 ## HOW
 
 ### Responsibility and state ownership
 
-- `CheckoutRepository` owns typed transport, parsing and owned cache access; inject dependencies
-  through AppDependencies.
-- `CheckoutViewModel` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- `PendingPlacement` owns feature transitions, draft/query state and deliberate actions; inject
-  dependencies through AppDependencies.
-- Screens compose focused sections/forms/history; reusable widgets render typed state and forward
-  callbacks.
+- CheckoutRepository owns typed transport/parsing; AppDependencies supplies dependencies.
+- CheckoutController, CheckoutShippingController and PendingPlacement owns current feature state and deliberate actions.
+- Screens compose sections; shared ProductItemRow/CatalogImage use trusted public media without credentials.
+  Loading/fallbacks preserve item facts and actions; callbacks remain owned by their feature.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in
   build().
 - Keep independent forms/actions separately busy and preserve safe input after recoverable
@@ -191,7 +186,7 @@ universal error envelope.
 
 ### Verification scenarios
 
-- [ ] Current provider choice/fallback, shipping DTOs and frozen selection intent pass G25 client verification.
+- [x] Current provider choice/fallback, shipping DTOs and frozen selection intent pass G25 client verification.
 - [ ] Atomic one/multi-Shop placement and immutable current quote/totals/serviceability follow Laravel.
 - [ ] Lost-response same-key replay creates one batch/reservation/redemption; stale inputs require
   reviewed recovery.
@@ -221,10 +216,12 @@ Historical backend baseline: 7b1a08a; newly inspected checkout:
 Source locators/hashes are optional audit evidence in
 [provenance](../../../references/source-provenance.md).
 No Flutter implementation checkbox is completed by documentation authoring or route/source inspection.
-Append actual evidence to [Progress](../../../PROGRESS.md); preserve history.
-Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and [verification](../../../verification.md).
+Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior
+history.
+Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
+[verification](../../../verification.md).
 
-Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline only. Current
-[shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
-
+Shipping adoption 2026-10-09: [G25 evidence](../../../references/shipping-selection-verification.md) records current client checks.
+Live/device commerce and deployment configuration remain open under G25.
 Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).
+[B06 funding contract](../../../api/legacy-voucher-funding.md): quote rejects unaffordable legacy Shop shipping vouchers with 409 VOUCHER_FUNDING_INSUFFICIENT; placement uses QUOTE_STALE on vouchers before effects. Flutter-specific adoption checks remain open.

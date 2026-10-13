@@ -22,7 +22,7 @@ There is no universal casing/envelope. Account, catalog, Address and Order Resou
 | Wishlist/history | Cursor Resource collection `{data,links,meta}`; Wishlist items carry Product and saved time, history `{product,lastViewedAt}`. Guest resolver is `{items}`; merge result `{data:{mergedProductIds,mergedCount}}` |
 | Quote | `data:{quoteId,expiresAt,mode,paymentMethod,address,groups,summary}`; groups include lines, server totals, `shippingQuote`, `availableVouchers`, `appliedVouchers` |
 | Batch | `data:{id,currency,placedAt,orders}`; each Order has immutable items/address/vouchers/shipping/totals and its own reference/status/detailUrl |
-| Order | `data` with reference/status/group labels, safe Shop, items/review hints, `deliveryAddress.version` and nullable seven-decimal-string `latitude`/`longitude`, payment, snapshots/totals, timeline/count/hasMore, trackingUrl, safe delivery Courier, unavailable `map`, server actions |
+| Order | `data` with reference/status/group labels, safe Shop, items/review hints, `deliveryAddress.version` and nullable seven-decimal latitude/longitude, payment, snapshots/totals, timeline/count/hasMore, trackingUrl, safe delivery Courier, unavailable `map`, server actions |
 | Q&A | Page collection `{data,links,meta}`; item `{id,question,askedAt,answer,answeredAt,sellerLabel}` with nullable unanswered fields |
 | Review | `data` Resource includes `id,rating,body,verifiedPurchase,authorLabel,createdAt,photos,sellerResponse`; author is a safe label; Seller response read-only |
 | Tracking | Page Resource collection `{data,links,meta}`; safe event keys are in OrderTrackingResource. Order list adds `filters:{selected,tabs}` alongside its Resource page |
@@ -38,9 +38,7 @@ For `buy_now`, send `mode`, `buy_now:{product_id,variant_id:null|UUID,quantity}`
 
 Placement adds `quote_id` and UUID `Idempotency-Key`; success is `200 {data:CheckoutBatch}` including replay. Defaults currently make quote lifetime 15 minutes; honor returned `expiresAt`. Retain exact key, quote and normalized intent after uncertainty. `409 IDEMPOTENCY_KEY_REUSED` means changed payload under one key; `QUOTE_ALREADY_PLACED` prevents another key for an already placed quote. `QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, `QUOTE_STALE` require reviewed refresh. No GET-by-key endpoint exists.
 
-Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,value,maximumDiscount,minimumSpend,termsSummary,validFrom,validUntil,paymentMethod,stackableWith,scope,eligible,reason,saving`. Select UUIDs with target Shop, not typed voucher codes. Applied fields include name, qualifying basis and discount amount; placed snapshots retain name and terms. Default pairing permits one discount and one shipping per Shop, and one App of each benefit per batch; see [voucher update](voucher-selection-update.md). Zero-saving selected vouchers still redeem. Cancellation currently does not restore redemption capacity.
-
-The [B06 funding delta](legacy-voucher-funding.md) rejects unaffordable legacy Shop shipping choices. Candidate reason and quote rejection use `VOUCHER_FUNDING_INSUFFICIENT`; placement uses existing `409 QUOTE_STALE` on `vouchers` before effects. DTO/request shapes and committed exact-key replay remain unchanged; external Flutter adoption is unverified.
+Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,value,maximumDiscount,minimumSpend,termsSummary,validFrom,validUntil,paymentMethod,stackableWith,scope,eligible,reason,saving`. Select UUIDs with target Shop, not typed voucher codes. Applied fields include name, qualifying basis and discount amount; Checkout Batch snapshots retain name and terms. Default pairing permits one discount and one shipping per Shop, and one App of each benefit per batch; see [voucher update](voucher-selection-update.md). Zero-saving selected vouchers still redeem. Cancellation currently does not restore redemption capacity.
 
 ## Mutation details
 
@@ -66,15 +64,13 @@ Profile PATCH requires first_name, last_name, contact_number, sex and birth_date
 
 Current Quote shippingQuote exposes `serviceable,logisticsOrganizationId,logisticsBusinessName,routeStatus,shippingFee`. Batch shippingQuote omits serviceable and permits nullable provider ID/name; the whole projection is null without a pricing snapshot. Order list/detail/mutation include required nullable `shippingProvider:{id,businessName}|null`. No weight/tariff component/count fields remain. Use `POST /api/v1/customer/checkout/logistics-options` before quote; choices, fallback and G25 adoption boundaries are defined in [shipping selection](shipping-selection.md).
 
-Order summaries add nullable `itemPreview.imageUrl`; Order, Quote and Batch item DTOs add nullable `imageUrl`. The URL resolves available public variant media first, then the Product's default image. It is null when no usable public image is available; historical item names and prices remain readable independently.
-
 The typed tables and operation contracts include inherited validation and current semantic ownership/replay boundaries. Implement from this local bundle; controlled live API fixture refresh is a later integration check, not required upstream reading. Source tests were inspected, not rerun. Quote Address excludes coordinates and includes nullable label; Batch Address includes coordinates. Support writes replay their recorded201 status; Customer replies reopen waiting/resolved tickets. Support detail cursor traversal uses Laravel’s request-bound resolver and remains a target verification requirement.
 
-Current source inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from the imported client adoption baseline. Changing selections invalidates quote intent; only exact frozen placement payload/key may reconcile uncertainty.
+Current source inspection `22b0a48f9575ead182d03c35ab87345711c23b90` is separate from the implemented client adoption baseline. Changing selections invalidates quote intent; only exact frozen placement payload/key may reconcile uncertainty.
 
 ## Voucher collection delta — 2026-10-11
 
-[Discovery, collection and wallet](voucher-collection.md) defines the new methods, safe DTO, bounds, private gates, natural claim replay and reasons. Quote adds distributionMode/collectionUrl and VOUCHER_NOT_CLAIMED. Newly invalid VOUCHER_* placement eligibility uses 409 QUOTE_STALE before effects; committed exact-key replay remains unchanged. Buyer adoption is implemented; see [verification](../references/voucher-collection-verification.md). Deployed/live/device gates remain open.
+[Discovery, collection and wallet](voucher-collection.md) supplies the seven additive operations, DTO, availability, natural replay and Checkout collection gate.
 
 ## Order image adoption — 2026-10-11
 
@@ -86,3 +82,18 @@ Failed or unsupported URLs use the placeholder; no storage URL is constructed.
 The image reflects current approved variant media, Product default/first approved
 gallery media, or the existing legacy thumbnail projection; purchase facts stay frozen.
 Checkout presentation adoption is outside G30. See [verification](../references/order-images-verification.md).
+
+
+## Checkout image adoption — 2026-10-12 (G31)
+
+Buyer now also parses optional nullable `QuoteItem.imageUrl` and renders 64px
+Product thumbnails in Checkout review and batch results through the same shared
+`ProductItemRow`/`CatalogImage` public-media loader used by Orders. Older omitted
+fields, null/empty URLs and rejected/unavailable/corrupt media use the existing
+fallback. Images describe current media; authoritative prices, names, options,
+quantities, placement payloads and exact-retry keys retain their existing ownership.
+See [G31 verification](../references/checkout-images-verification.md) for actual
+client checks and separately open live/device acceptance.
+
+
+The [B06 funding delta](legacy-voucher-funding.md) rejects unaffordable legacy Shop shipping choices. Candidate reason and quote rejection use `VOUCHER_FUNDING_INSUFFICIENT`; placement uses existing `409 QUOTE_STALE` on `vouchers` before effects. DTO/request shapes and committed exact-key replay remain unchanged; external Flutter adoption is unverified.

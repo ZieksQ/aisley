@@ -1,7 +1,5 @@
 # Fresh Customer Flutter project setup
 
-> Implementation, SDK/package resolution, tests, builds and browser results in this guide are reports from the external Buyer Flutter project and were not rerun here. This bundle contains documentation; `lib/`, tests, tools, lockfiles and build reports belong to that project. Current shipping-contract adoption remains [G25](references/integration-gaps.md).
-
 ## Phase 5 local readiness
 
 Run `python3 tool/verify_release.py` for locked dependencies, formatting, analysis,
@@ -16,7 +14,7 @@ for report format, commands, signing limitations and remaining owner/device gate
 
 Android and responsive web share one Flutter app; phone/tablet/desktop layouts follow
 [Buyer design](design-buyer.md). No extra UI package, font or backend change is required.
-In the external Flutter project, with its Buyer web server running on localhost:8766, run the isolated synthetic smoke:
+With the Buyer web server above running on localhost:8766, run the isolated synthetic smoke:
 
 ```sh
 BUYER_SCREENSHOT_DIR=build/verification/marketplace-screenshots python3 tool/browser_smoke.py --synthetic-only
@@ -28,7 +26,7 @@ synthetic credential or write to Laravel. Unknown API requests fail locally. It 
 certify deployed CORS, real-account commerce or installed-device acceptance. The existing
 live browser mode remains separate and needs the authorized API already running.
 
-## MapLibre address maps — external report, 2026-10-08
+## MapLibre address maps — 2026-10-08
 
 Current optional map dependencies are `maplibre_gl: 0.27.1` and the existing
 `geolocator` constraint/lock. MapLibre replaces `flutter_map` and `latlong2`; the
@@ -49,7 +47,7 @@ exact local origin in the provider settings. See [live-key results](references/g
 
 ## Current Phases 1–4 local development
 
-The seven core package pins support auth, discovery/account, commerce and communication; optional pinning now uses MapLibre and geolocator. The old ten-package table records the October 4 resolution before the October 8 map replacement.
+Seven core package pins support auth, discovery/account, commerce and communication. Optional pinning uses MapLibre and geolocator; the old ten-package table records the October 4 resolution before the October 8 map replacement.
 Maps/uploads/PSGC/preferences are implemented; no dependency was added for Phases 3–4. Preserve
 historical SDK/package checks; current results are in [Phase 4 evidence](references/phase-4-verification.md).
 
@@ -85,11 +83,9 @@ Creation, build and runtime commands below are implementation instructions for a
 
 ## Selected project SDK and compatibility evidence
 
-Preserve this project’s selected **Flutter 3.47.2 stable / Dart 3.13.2** (Flutter revision `d3b14c876900e553bc736ca19295fc09e3853e8e`), verified with `flutter --version --machine` on 2026-10-04. Its existing pubspec.yaml requires `sdk: ^3.13.2`; the historical Dart 3.9.2 baseline cannot satisfy that constraint. Do not downgrade the SDK or loosen the project constraint to follow the old handoff. [package-baseline.json](references/package-baseline.json) preserves historical package metadata unchanged; [imported client baseline](references/imported-client-baseline.json) records the externally reported SDK verification and dependency resolution separately.
+Preserve this project’s selected **Flutter 3.47.2 stable / Dart 3.13.2** (Flutter revision `d3b14c876900e553bc736ca19295fc09e3853e8e`), verified with `flutter --version --machine` on 2026-10-04. Its existing pubspec.yaml requires `sdk: ^3.13.2`; the historical Dart 3.9.2 baseline cannot satisfy that constraint. Do not downgrade the SDK or loosen the project constraint to follow the old handoff. [package-baseline.json](references/package-baseline.json) retains the 2026-10-03 metadata inspection separately from current executed checks.
 
-For a fresh destination, select the same SDK through approved tooling and verify `flutter --version` and `flutter doctor -v`; preserve the selected SDK in the external Flutter project. Keep pubspec.lock committed. On 2026-10-04, `flutter pub get --enforce-lockfile` passed for the existing scaffold and `flutter analyze --no-pub` reported no issues. Separately, all ten package pins below resolved together with `sdk: ^3.13.2` in an isolated temporary manifest, including the optional map packages. The application’s dependencies and lockfile were unchanged. This proves dependency resolution, not feature implementation, plugin runtime behavior, Android/web builds or target acceptance; later phase reports separately record compilation and synthetic/browser checks; live/device and distribution gates remain open.
-
-The table records historical package compatibility; use the current MapLibre YAML below for new optional map setup. Preserve historical metadata/lockfile evidence.
+For a fresh destination, select the same SDK through approved tooling and verify `flutter --version` and `flutter doctor -v`; preserve the selected SDK in this existing repository. Keep pubspec.lock committed. On 2026-10-04, `flutter pub get --enforce-lockfile` passed for the existing scaffold and `flutter analyze --no-pub` reported no issues. Separately, all ten package pins below resolved together with `sdk: ^3.13.2` in an isolated temporary manifest, including the optional map packages. The application’s dependencies and lockfile were unchanged. This proves dependency resolution, not feature implementation, plugin runtime behavior, Android/web builds or target acceptance; those checks remain pending.
 
 | Package | Pin | Purpose / constraint evidence |
 | --- | --- | --- |
@@ -170,3 +166,13 @@ Disable Android auto backup or exclude secure-storage preferences using Android 
 - Map attribution/tile terms and trusted storefront reset-link deployment. Native reset app links and production browser security remain separate decisions.
 
 Do not modify server configuration to satisfy these inputs from the mobile task. The historical metadata inspection and current dependency-resolution/scaffold-analysis checks do not establish any build, live exchange, permission, device or browser acceptance result.
+
+## Current backend contract adoption
+
+The [webapp handoff sync](references/webapp-docs-sync-2026-10-09.md) imports newer shipping and
+private chat-media contracts. Flutter still adopts backend `57e9eb2`; G25/G27 retain live/device acceptance gates.
+Changing documentation does not change package pins, application behavior or deployed configuration.
+
+## Current media dependencies
+
+The committed pubspec/lockfile adds video_player 2.11.1, path_provider 2.1.6 and web 1.1.1 for private receive-only video/document consumption. Preserve those selected versions; the older package tables record historical resolution. No package installation or build was run for this synchronization.

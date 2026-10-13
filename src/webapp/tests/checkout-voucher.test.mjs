@@ -47,6 +47,22 @@ test("checkout opens a dedicated Shop-targeted page instead of a dropdown", () =
   assert.match(html, /href="\/checkout\/vouchers\?shop=shop"/);
   assert.match(html, /Select vouchers for Example Shop/);
   assert.doesNotMatch(html, /<details|aria-pressed/);
+  assert.match(html, /<img[^>]*src="\/aisley-logo\.svg"/);
+});
+
+test("checkout renders supplied Product thumbnails through the aliased component", () => {
+  const fixture = voucherFixture();
+  fixture.group.items[0].imageUrl = "/sample-product.webp";
+  const html = renderToStaticMarkup(
+    createElement(ShopCheckoutGroup, {
+      ...fixture,
+      onSelectProvider() {},
+      formatAmount: amount,
+    }),
+  );
+  assert.match(html, /<img[^>]*alt="Example product"/);
+  assert.match(html, /sample-product\.webp/);
+  assert.doesNotMatch(html, /aisley-logo\.svg/);
 });
 
 test("pending checkout removes the voucher navigation action", () => {

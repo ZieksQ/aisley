@@ -9,10 +9,12 @@ status: First-mile acceptance and final-mile dispatch batch acceptance implement
 implementation_status: First-mile listing/acceptance, atomic final-mile batch acceptance, and exceptional single-task reject/re-offer are implemented
 flutter_status: Atomic 1–15 parcel dispatch-batch list, detail, acceptance, and uncertain-result reconciliation implemented; live API acceptance unverified
 canonical: true
+copied_backend_checkout: 4c3f504
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 backend_contract_version: courier-first-and-final-mile-accept-v1
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
+documentation_synced_on: 2026-10-12
 ---
 
 # Accept Delivery Requests
@@ -21,7 +23,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ## Offer price revision (2026-09-21)
 
-An authorized final-mile task and batch projection includes `parcel.price` (the Order merchandise subtotal) and `parcel.currency`, alongside item count and destination area. The Courier can see the parcel's merchandise price before acceptance without receiving payment credentials, address details beyond the offer's safe area, or an identifier entry requirement. **Parcel price is not COD cash due**; the accepted-task delivery context separately returns `data.order.payable_total` and `data.order.currency`. The assigned task remains the server-side parcel identity for later handoff and POD.
+An authorized final-mile task and batch projection includes `parcel.price` (the Order merchandise subtotal) and `parcel.currency`, alongside item count and destination area. The Courier can see the parcel's merchandise price before acceptance without receiving payment credentials, address details beyond the offer's safe area, or an identifier entry requirement. The development mockup labels this value **Parcel price**; it is not the COD amount due, which the accepted-task delivery context exposes as `data.order.payable_total` and `data.order.currency`. The assigned task remains the server-side parcel identity for later handoff and POD.
 
 ## Final-mile dispatch batch revision (2026-09-20)
 
@@ -134,8 +136,7 @@ Logistics offer
       "destination_area": {
         "city_municipality": "Example",
         "province": "Example"
-      },
-      "schedule": {
+      }, "schedule": {
         "starts_at": "server-time",
         "ends_at": "server-time",
         "timezone": "UTC"
@@ -178,7 +179,7 @@ Logistics offer
 - Verify secure-token loading, logout invalidation, `401`/`403` mapping, `409` refresh, `422` field errors, throttling, timeout, and offline recovery.
 - Verify explicit acceptance confirmation, disabled duplicate taps, success navigation to Pick Up Order, and stale/rejected/re-offer copy.
 - Verify task IDs and machine statuses are preserved across pagination and refresh; never synthesize identity from labels.
-- Verify screen-reader labels, focus order, large touch targets, text alternatives to route/map context, and non-color-only status feedback.
+- Imported Flutter batch-detail tests cover production light/dark themes at 320/390px and 1×/2× text, contrast/target/label guidelines, parcel context, scrollable acceptance/error states, keyboard confirmation cancellation and focus restoration. Device/screen-reader acceptance remains open.
 
 ### Handoff and rollout
 

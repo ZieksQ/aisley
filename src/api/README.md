@@ -1,58 +1,34 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AISLEY Laravel API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Shared backend for Customer, Seller, Admin, Logistics and external Courier/Buyer Flutter clients. The committed manifest requires PHP ^8.3 and Laravel ^13.17; authentication uses Sanctum. PostgreSQL is the application database; private storage uses the configured local/Azure disk.
 
-## About Laravel
+## Development
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Run commands from the monorepo root. Install the committed Composer dependencies with `composer --working-dir=src/api install` and configure the API using `src/api/.env.example` and [architecture](../../docs/architecture.md). Existing database/environment setup must be available before starting workers.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```sh
+pnpm dev:api
+pnpm dev:queue
+pnpm dev:schedule
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Root `pnpm dev` starts those processes with all four web applications. `pnpm dev:media` starts the separate private attachment worker when media is enabled. See [media setup](../../docker/README.md#private-chat-media) for storage, scanner and processing prerequisites.
 
-## Contributing
+## Contract boundaries
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Versioned endpoints use `/api/v1`; [routes/api.php](routes/api.php) defines exact methods, middleware and paths.
+- Web apps use stateful Sanctum sessions with HttpOnly cookies/CSRF; mobile clients use scoped personal-access bearer tokens. Customer login chooses bearer authentication when `device_name` is supplied.
+- Protected routes enforce role/status/consent and ownership. Seller data is Store-scoped; Logistics data is organization/hub-scoped. Seller and Courier approval gates remain server-owned.
+- Store enum-like columns as strings with PHP enum casts. Schema changes use new migrations; previously executed migrations remain immutable.
+- Courier is mobile-only. The external Flutter projects own their screens and adoption evidence.
 
-## Code of Conduct
+## Inspection and checks
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```sh
+php src/api/artisan route:list --path=api/v1 --json
+php src/api/vendor/bin/phpunit --configuration src/api/phpunit.xml
+```
 
-## Security Vulnerabilities
+Route listing inspects available code without proving deployment. Tests require their documented isolated database/environment. Match focused tests to the feature; this documentation sync did not run API tests.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Read [requirements](../../docs/requirements.md), [schema](../../docs/schema.md), [feature specifications](../../docs/features), and [Progress](../../docs/PROGRESS.md). Portable [Courier](../../docs/docs-flutter-rider/README.md) and [Buyer](../../docs/docs-mobile-buyer/README.md) contracts distinguish server availability, client adoption and release acceptance.

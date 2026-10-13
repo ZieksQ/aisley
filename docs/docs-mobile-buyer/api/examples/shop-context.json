@@ -1,0 +1,36 @@
+{
+  "provenance": "Synthetic source-derived example; no live request.",
+  "operations": [
+    {
+      "id": "shop-context-001",
+      "feature": "chat-messaging",
+      "method": "GET",
+      "path": "/api/v1/customer/conversations/shops/{shop}",
+      "access": "Active Customer + consent; owned existing thread or available Shop; Sanctum bearer or stateful web session.",
+      "request_contract": "Shop UUID path; no body or mutation.",
+      "response_contract": "{data:ShopAvailabilityProjection}",
+      "status": 200,
+      "retry": "Read retry with bounded backoff and session/query guards.",
+      "notes": "Shop business availability is online|offline|vacation, never human presence. Missing Shop or unavailable prospective context returns scoped 404. Customer mobile adoption remains open.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": null
+      },
+      "response_example": {
+        "data": {
+          "shop": {
+            "id": "22222222-2222-4222-8222-222222222222",
+            "name": "Synthetic Shop",
+            "slug": "synthetic-shop",
+            "availability": "online"
+          },
+          "conversation_id": null,
+          "send_allowed": true
+        }
+      },
+      "errors": [],
+      "response_variants": []
+    }
+  ]
+}

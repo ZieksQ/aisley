@@ -4,14 +4,20 @@ title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
 version: 1.6
-status: Implementation-ready draft
+status: Seller Order approval/rejection and frozen-provider pickup/waybill implemented; release gates remain
 role: Seller
 scope: Seller Web Application and Laravel API
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Seller Order Approval
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+OrderController and Seller OrderApproval/OrderPickup pages implement owned reads, approve/reject, grouped pickup readiness and authorized waybills. Customer checkout freezes the provider; pickup groups only matching frozen-provider Orders and cannot substitute a provider. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - **Purpose:** Let an active Seller approve or reject a Seller-scoped Customer Order, monitor its lifecycle, and hand prepared Orders into Aisley Logistics.
 - **Canonical action:** The UI calls this **Order Approval**. Approve performs `placed → seller_processing`; reject performs `placed → rejected` and releases only that Order's Inventory reservation. There is no persisted `approved` Order status.
@@ -20,7 +26,7 @@ scope: Seller Web Application and Laravel API
   Customer checkout
   → Seller new-order notification
   → Seller approves / starts processing, or rejects before processing
-  → Seller packs, selects Logistics, requests pickup, and prints each waybill
+  → Seller packs, uses frozen checkout Logistics, requests pickup, and prints each waybill
   → selected Logistics is notified
   → first-mile Courier pickup, possibly in a bulk pickup run
   → Seller and selected Logistics can view the same authorized waybill
@@ -91,7 +97,7 @@ scope: Seller Web Application and Laravel API
 - [x] Seller readiness emits a committed Logistics handoff and supports downstream bulk pickup grouping without merging Orders.
 - [x] Pickup readiness creates immutable waybills; Seller and selected Logistics can view them only through role-scoped endpoints.
 - [x] The Seller can choose one owned saved pickup address for a solo or bulk pickup request, with the default address prefilled, and no foreign or missing address can be committed.
-- [x] Provider selection uses a searchable modal that exposes provider name, operational hub address, current distance evidence, and applicable Default/Suggested/Near-you tags without preventing another eligible selection.
+- [x] Pickup readiness groups Orders by their frozen checkout provider and displays that provider; Seller cannot substitute another organization.
 
 ## HOW
 

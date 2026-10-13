@@ -4,14 +4,20 @@ title: Admin Manage Account Registrations
 system: AISLEY
 type: Feature Specification
 version: 1.1
-status: Draft
+status: Customer/Seller/Logistics registration review implemented; Courier approval remains Logistics-owned
 role: Admin
 scope: Admin Web Application
+implementation_reviewed_on: 2026-10-12
 ---
 
 # Admin Manage Account Registrations
 
 ## WHAT
+
+### Current implementation — 2026-10-12
+
+RegistrationController, RegistrationReviewService and Registrations/RegistrationDetail pages implement list/detail/documents/approve/reject for Customer, Seller and Logistics applications. Courier affiliations are approved by their associated Logistics organization, never this Admin queue. Current persisted/API states are lowercase snake_case. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
 
 - **Purpose:** Let authorized Admins review pending account-registration applications and approve or reject them.
 - **Primary actor:** Authenticated `admin`.
