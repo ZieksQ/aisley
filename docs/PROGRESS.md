@@ -43,3 +43,8 @@ Format:
 ## 2026-10-14 — Design workspace merge
 
 - Merged the unified NovaSpark-based AISLEY web design guide and all three Codex design skills into the original workspace's active checkout branch. Preserved both progress histories and the committed delivery-review implementation; the new design guide remains authoritative. Checked documentation links, skill metadata/JSON/JavaScript, conflict resolution, and unchanged checkout/API/Flutter files; no application tests or browser checks reran for this documentation/skill merge.
+
+## 2026-10-14 — Role-specific gpt-taste design contract
+
+- Revised `docs/design.md` using gpt-taste: general purple Customer storefront, matching purple Admin/Seller dashboard portals, and a blue/slate Logistics portal. Replaced Inter with Geist; retained compatible component, accessibility, responsive, theme, interaction, and shared-ownership rules. Scoped cinematic AIDA, deterministic campaign choices, bento density, assets, and advanced motion to promotional content while keeping commerce and portal tasks practical; GSAP dependency adoption still requires approval.
+- Verified local documentation links, retained contracts, whitespace, and 12 new brand foreground/background pairs (all exceed 4.5:1). Documentation only; no application UI, dependencies, feature/API contracts, or Flutter files changed, and no browser/build checks ran.
