@@ -27,3 +27,7 @@ Brand assets live in `public/aisley-logo.svg` and `public/aisley-logo-with-title
 Run `node packages/ui/tests/portal-browser.mjs` from the repository root with the three Vite apps at ports 15175 (Admin), 15174 (Seller), and 15176 (Logistics). The browser checks load actual app routes with synthetic HTTP contracts. They cover desktop/rail/drawer layouts, responsive themes, focus, reduced motion, zero/error states, permissions, chart data, and read-only behavior. Screenshots are written to `node_modules/.cache/portal-browser`; these checks do not establish live API acceptance.
 
 Alternatively, `node packages/ui/tests/portal-browser.mjs --serve` starts isolated Vite servers on 16175/16174/16176 and stops those child processes after verification.
+
+`DashboardSkeleton` is exported from `@aisley/ui/portal` and mirrors the metric strip and chart/work panels. Render it inside the workspace rather than replacing `PortalShell`; the pulse respects reduced motion. Informational chart pointer focus is suppressed while keyboard focus and the chart data table remain accessible. Portal guards resolve identity before mounting the shell and gate role screens inside it.
+
+Use `--final-checks` alongside `--serve` to run only the final permission, required-consent and Logistics System-theme assertions when splitting a long browser run. Fixture flags reset at startup so interrupted runs cannot leave simulated denials behind.

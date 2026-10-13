@@ -158,3 +158,11 @@ active Seller session
 ## Shared portal presentation revision (2026-10-14)
 
 - Consume the shared purple/Geist `@aisley/ui/portal` shell and brand assets from `packages/ui/public`. `@aisley/ui/charts` visualizes existing Active/Draft/Archived catalog counts, with the original catalog/stock totals and accessible chart data. No revenue, traffic, or historic aggregate is invented; review filters and unavailable sections remain intact.
+
+## Operational dashboard revision (2026-10-14)
+
+- Replace the visible deferred-section list with current work, order activity, catalog, and review response charts. Keep unavailable server envelopes for compatibility; never present them as zeroes.
+- Add `sections.order_activity` to the existing private Seller dashboard response. Resolve the Shop from the authenticated Seller; no client owner selector or new endpoint. `available/empty` carries `metrics` (`awaiting_approval = placed`, `processing = seller_processing`, `ready_for_pickup`, `delivered`), all-time `by_status`, and 14 zero-filled `daily_placed` entries (`date`, `count`). A missing Shop returns `unavailable/SHOP_SETUP_REQUIRED`.
+- Source: committed `orders`, scoped by `shop_id`. Status metrics count current states across all dates. The trend covers UTC midnight thirteen days before `generated_at` through `generated_at`, inclusive; excludes `pending_payment`, includes later cancelled/rejected orders, and is labelled placement activity rather than sales or settled revenue. The existing Review date filter affects Reviews only. Do not hydrate Buyer/order rows or expose financial/personal fields. Use the existing `(shop_id, status, placed_at)` index and two grouped aggregate queries; no migration, write, or metric store. Unexpected Order-source failures fail the request rather than return successful zeroes.
+- Preserve the separate five-row approval preview, canonical order actions, stale/retry/session handling, and review filters. Key snapshots to Seller identity and abort obsolete reads. Verify Shop isolation, UTC boundaries, pending-payment exclusion, empty-day filling, DTO privacy and read-only behavior in `SellerDashboardTest`.
+- Use shared layout-matched `DashboardSkeleton` inside the portal workspace, accessible data tables, and chart pointer-focus suppression with keyboard focus retained. Follow `docs/design.md` in both themes.

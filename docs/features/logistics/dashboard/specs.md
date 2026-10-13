@@ -150,3 +150,9 @@ active Logistics session
 ## Shared portal presentation revision (2026-10-14)
 
 - Consume `@aisley/ui/portal` with blue/slate tokens and shared Geist/brand assets. `@aisley/ui/charts` visualizes the existing organization/hub-scoped `summary.by_status`; totals remain authoritative aggregates, not first-page lengths or scaffold zeroes. Empty/loading/error states remain explicit, and retained results after a failed refresh are marked stale. System/Light/Dark remains owned by Settings Appearance.
+
+## Operational dashboard revision (2026-10-14)
+
+- Present a summary strip, shipment pipeline, pending evidence/completion workload chart, and direct links to Parcel search, Receive at hub and Last-mile dispatch. Use the existing authoritative organization/hub queue summaries; pending evidence/completion counts may overlap and are labelled accordingly. Do not invent completed-history, on-time, capacity or revenue data.
+- Keep hub identity separate from queue aggregates. Preserve partial failures, zeroes, freshness/stale labels and explicit retry. Bound both reads to 15 seconds, abort obsolete/unmounted reads, key snapshots to account identity, and clear both sources on authentication/role/consent denial.
+- Use the shared workspace skeleton during initial reads and maintain portal navigation during consent checking. Pointer chart clicks show no outline; keyboard navigation and controls retain visible focus. No API, Courier or Flutter contract changes.

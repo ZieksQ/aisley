@@ -71,7 +71,7 @@ export function DataChart({
   const nonZero = data?.some((row) => series.some((item) => typeof row[item.key] === 'number' && row[item.key] !== 0))
   const vertical = layout === 'vertical'
   return (
-    <section aria-labelledby={id} aria-busy={loading} className={`${variant === 'panel' ? 'portal-panel' : ''} ${className}`} style={style}>
+    <section aria-labelledby={id} aria-busy={loading} className={`portal-chart ${variant === 'panel' ? 'portal-panel' : ''} ${className}`} style={style}>
       <h3 className="font-semibold" id={id}>{title}</h3>
       {description && <p className="portal-secondary mt-1 text-sm leading-6">{description}</p>}
       {loading && <p className="portal-secondary mt-3 text-sm" role="status">Refreshing chart…</p>}

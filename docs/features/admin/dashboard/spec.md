@@ -180,3 +180,9 @@ Production acceptance is not implied by mocked browser contracts. The separate P
 ## Shared portal presentation revision (2026-10-14)
 
 - Admin, Seller and Logistics consume `@aisley/ui/portal` and role-aware tokens; Admin/Seller use purple and Logistics uses blue/slate under `docs/design.md`. Brand SVGs and Geist assets live in `packages/ui/public`. Registration graphs use `@aisley/ui/charts` and the existing pending-by-role response; permissions, stale/empty/error states and filtered queue destinations remain unchanged.
+
+## Operational dashboard revision (2026-10-14)
+
+- Lead with authorized registration/support/compliance counts and the age of the oldest pending application, calculated in whole days from server `generated_at` and the first ordered action item. Show a dash with no pending application; unavailable counts remain unavailable.
+- Add a current-work comparison chart from authorized successful counts. Preserve the role distribution chart, oldest-first application actions, independent queue retries and filtered destinations. No finance/history metric or new Admin API is introduced.
+- Initial loading uses shared layout-matched skeletons within the persistent shell. Chart pointer clicks have no outline; keyboard chart navigation and interactive controls retain visible focus. Permission/account-keyed state and all existing fail-closed behavior remain intact.

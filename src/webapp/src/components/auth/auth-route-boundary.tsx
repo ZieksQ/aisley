@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { sessionRevision } from "@/lib/auth/session-events";
 import { ApiError } from "@/lib/api";
 import { fetchPolicyConsentStatus } from "@/lib/policies/client";
 import { useAuth } from "./auth-provider";
@@ -18,14 +19,12 @@ export function AuthRouteBoundary({ children, guestOnly = false }: { children: R
   const router = useRouter();
   const protectedRoute = !guestOnly && isProtectedCustomerPath(pathname);
   const isConsentRoute = pathname === "/account/policy-consent";
-  // Checkout, voucher and delivery views share an active checkout. Rechecking on a selection hop
-  // would unmount its provider and discard the Customer's reviewed selections.
-  // Each checkout API call still enforces current consent on the server.
-  const consentPath = pathname === "/checkout/vouchers" || pathname === "/checkout/delivery" ? "/checkout" : pathname;
   const consentKey = protectedRoute && !isConsentRoute && auth.status === "authenticated"
-    ? `${auth.customer.id}:${consentPath}`
+    ? `${auth.customer.id}:${sessionRevision()}:${isConsentRoute}`
     : "";
   const [consentResult, setConsentResult] = useState<ConsentResult | null>(null);
+  // Reset before committing a different boundary; returning from consent must verify again.
+  if (!consentKey && consentResult !== null) setConsentResult(null);
 
   useEffect(() => {
     if (!consentKey) return;
@@ -33,12 +32,16 @@ export function AuthRouteBoundary({ children, guestOnly = false }: { children: R
     const controller = new AbortController();
 
     fetchPolicyConsentStatus(controller.signal)
-      .then((response) => setConsentResult({
-        key: consentKey,
-        state: response.data.all_required_accepted ? "allowed" : "required",
-        error: "",
-      }))
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        setConsentResult({
+          key: consentKey,
+          state: response.data.all_required_accepted ? "allowed" : "required",
+          error: "",
+        });
+      })
       .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
         if (error instanceof DOMException && error.name === "AbortError") return;
         setConsentResult({
           key: consentKey,
@@ -73,14 +76,10 @@ export function AuthRouteBoundary({ children, guestOnly = false }: { children: R
 
   if ((protectedRoute && auth.status !== "authenticated") ||
       (guestOnly && auth.status !== "guest")) {
-    return <p role="status" className="mx-auto w-full max-w-[1180px] px-4 py-8 text-sm text-[#5E5262]">
-      {auth.status === "loading" ? "Checking your session…" : "Redirecting…"}
-    </p>;
+    return null;
   }
 
-  if (protectedRoute && !isConsentRoute && consentState === "checking") {
-    return <p role="status" className="mx-auto w-full max-w-[1180px] px-4 py-8 text-sm text-[#5E5262]">Checking policy consent…</p>;
-  }
+  if (protectedRoute && !isConsentRoute && (consentState === "checking" || consentState === "required")) return null;
 
   if (protectedRoute && !isConsentRoute && consentState === "error") {
     return <section className="mx-auto w-full max-w-[1180px] px-4 py-8"><div className="border border-[#E2DCE4] bg-white p-5"><p className="text-sm text-[#B42318]" role="alert">{consentError}</p><button className="mt-4 min-h-10 rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268]" onClick={() => window.location.reload()} type="button">Try again</button></div></section>;

@@ -3,7 +3,6 @@ import type { FormEvent } from 'react'
 import { FaArrowRight, FaEye, FaEyeSlash, FaLock, FaShieldHalved } from 'react-icons/fa6'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { LoadingScreen } from '../components/LoadingScreen'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { ApiError } from '../lib/api'
 
@@ -24,7 +23,7 @@ export function LoginPage() {
     document.title = 'Admin sign in | Aisley'
   }, [])
 
-  if (isLoading) return <LoadingScreen />
+  if (isLoading) return null
   if (admin) return <Navigate replace to="/dashboard" />
 
   const destination = (location.state as LocationState | null)?.from ?? '/dashboard'

@@ -1,3 +1,5 @@
+import { DashboardSkeleton } from '@aisley/ui/portal'
+import { DashboardSummary } from '../components/dashboard/DashboardSummary'
 import { useEffect } from 'react'
 import { Button } from '@aisley/ui'
 import { useAuth } from '../auth/useAuth'
@@ -26,7 +28,7 @@ function DashboardOverview({ permissions }: { permissions: string[] }) {
   return <div className="portal-page space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="portal-page-heading">Work queues</h2>
+        <h2 className="portal-page-heading">Administration overview</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current work available to your Admin account.</p>
         {data && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           {error || loading ? 'Last successful update (stale)' : 'Updated'} {formatDate(data.generated_at)}
@@ -41,15 +43,14 @@ function DashboardOverview({ permissions }: { permissions: string[] }) {
       {data && <p className="mt-2 text-sm">Previous results are stale. Refresh before relying on these counts.</p>}
       <Button className={`${dashboardButton} mt-3`} disabled={loading} onClick={refresh} variant="outline">Try again</Button>
     </div>}
-    {loading && <p className="text-sm text-slate-500 dark:text-slate-400" role="status">Loading dashboard…</p>}
-    {visibleQueues.length > 0 && <div className="grid gap-4 md:grid-cols-2">
+    {loading && !data && <DashboardSkeleton />}
+    {loading && data && <p className="portal-secondary text-sm" role="status">Refreshing dashboard…</p>}
+    {data && !empty && <DashboardSummary data={data} />}
+    {data && visibleQueues.length > 0 && <div className="grid gap-4 md:grid-cols-2">
       {visibleQueues.map((queue) => <DashboardQueueCard key={queue.key} title={queue.title}
         summary={data?.[queue.key] ?? null} loading={loading} destination={queue.destination} onRetry={refresh} />)}
     </div>}
     {data?.registrations && <RegistrationOverview overview={data.registrations} />}
-    {!data && loading && permissions.includes('registrations.view') && <section className={dashboardPanel} aria-label="Registration overview" aria-busy="true">
-      <h2 className="font-semibold">Registration overview</h2><p className="mt-3 text-sm" role="status">Loading registrations…</p>
-    </section>}
     {empty && <p className={dashboardPanel}>No dashboard queues are available with your current permissions.</p>}
   </div>
 }

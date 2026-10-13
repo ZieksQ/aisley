@@ -1,3 +1,4 @@
+import { DataChart } from '@aisley/ui/charts'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { DashboardPeriod, ReviewSection, UnavailableSection } from '../../types/dashboard'
@@ -84,6 +85,9 @@ export function DashboardReviews({ section, period, refreshing, onRefresh, onPer
             <div><dt className="text-sm text-zinc-600 dark:text-zinc-400">Answered</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{section.metrics.answered}</dd></div>
             <div><dt className="text-sm text-zinc-600 dark:text-zinc-400">Awaiting a response</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{section.metrics.unanswered}</dd></div>
           </dl>
+          <DataChart className="mt-5" variant="plain" title="Review response coverage" height={140} layout="vertical" labelWidth={122}
+            data={[{ label: 'Answered', count: section.metrics.answered }, { label: 'Awaiting response', count: section.metrics.unanswered }]}
+            series={[{ key: 'count', label: 'Published reviews' }]} emptyMessage="No published reviews in this period." />
         </div>
       ) : (
         <div className="border-t border-zinc-200 px-5 py-4 text-sm dark:border-white/10" role="alert">

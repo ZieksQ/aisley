@@ -144,3 +144,9 @@ public current policy/history read
 - [Laravel controller middleware](https://laravel.com/framework/docs/12.x/controllers)
 - [Laravel database transactions](https://laravel.com/framework/docs/12.x/database)
 - [OWASP Application Security Verification Standard](https://owasp.org/www-project-application-security-verification-standard/)
+
+## Web loading presentation revision (2026-10-14)
+
+- Session bootstrap and consent checking no longer show a full-screen spinner or “Checking” interstitial. Private screens remain gated until authenticated and consent-allowed; the portal shell remains mounted after identity resolution, with dashboard-shaped skeletons only for Dashboard content and no generic route loader elsewhere.
+- Within a mounted boundary, ordinary protected navigation reuses the current account/session's in-memory consent result. A newly mounted Customer boundary still verifies consent. Returning from consent rechecks; account/session changes invalidate the result. Storefront keys results to the Customer and session revision; portal guards key results to identity and consent boundary. No trusted consent is persisted to browser storage. Server policy middleware continues to enforce the current version on every protected action/read, including publication during an already-open session.
+- Preserve required-consent redirects, inline errors/retry, safe return paths and the existing Logistics offline receiving contract. This web presentation change does not alter the shared API or external Flutter behavior.

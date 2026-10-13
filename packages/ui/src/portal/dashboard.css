@@ -1,0 +1,37 @@
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(var(--metric-mobile, 2), minmax(0, 1fr));
+  border: 1px solid var(--portal-border);
+  border-radius: .75rem;
+  background: var(--portal-surface);
+  overflow: hidden;
+}
+.dashboard-metric {
+  min-width: 0;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--portal-border);
+}
+.dashboard-metric:nth-child(odd) { border-right: 1px solid var(--portal-border); }
+.dashboard-metric:nth-last-child(-n+2) { border-bottom: 0; }
+.dashboard-metric dt { color: var(--portal-muted); font-size: .8125rem; }
+.dashboard-metric dd { margin-top: .5rem; font-size: 1.875rem; font-weight: 600; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.dashboard-metric p { margin-top: .375rem; color: var(--portal-muted); font-size: .75rem; }
+.dashboard-columns { display: grid; gap: 1.5rem; min-width: 0; }
+.dashboard-skeleton { display: grid; gap: 1.5rem; }
+.skeleton-block { background: var(--portal-subtle); border-radius: .25rem; animation: dashboard-pulse 1.6s ease-in-out infinite; }
+.skeleton-label { width: 65%; height: .875rem; margin-bottom: .75rem; }
+.skeleton-value { width: 40%; height: 2rem; margin-bottom: .75rem; }
+.skeleton-chart { height: 15rem; margin: 1.5rem 0; }
+/* Pointer focus on informational charts is visual noise; keyboard navigation stays visible. */
+.portal-chart .recharts-wrapper:focus:not(:focus-visible),
+.portal-chart .recharts-surface:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+.portal-chart .recharts-wrapper:focus-visible,
+.portal-chart .recharts-surface:focus-visible { outline: 2px solid var(--brand-focus); outline-offset: 2px; }
+@keyframes dashboard-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .skeleton-block { animation: none; } }
+@media (min-width: 768px) {
+  .dashboard-metrics { grid-template-columns: repeat(var(--metric-count, 4), minmax(0, 1fr)); }
+  .dashboard-metric { border-bottom: 0; border-right: 1px solid var(--portal-border); }
+  .dashboard-metric:last-child { border-right: 0; }
+}
+@media (min-width: 1200px) { .dashboard-columns { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }

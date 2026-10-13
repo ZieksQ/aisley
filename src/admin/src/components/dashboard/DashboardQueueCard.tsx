@@ -15,7 +15,7 @@ export function DashboardQueueCard({ title, summary, loading, destination, onRet
 }) {
   return <section className={dashboardPanel} aria-label={title} aria-busy={loading}>
     <h3 className="font-semibold">{title}</h3>
-    {loading && !summary ? <p className="mt-3 text-sm text-slate-500 dark:text-slate-400" role="status">Loading count…</p>
+    {loading && !summary ? <div className="skeleton-block skeleton-value mt-3" role="status" aria-label="Loading count" />
       : summary?.state === 'ready' ? <>
         <p className="mt-3 text-3xl font-semibold tabular-nums">{summary.count}</p>
         {summary.count === 0 && <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">No open records.</p>}

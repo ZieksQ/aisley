@@ -1,10 +1,10 @@
+import { DashboardSkeleton } from '@aisley/ui/portal'
+import { OrderActivityOverview } from '../components/dashboard/OrderActivityOverview'
 import { useEffect, useState } from 'react'
 import {
-  FaChartLine,
   FaCircleExclamation,
   FaRotateRight,
   FaStore,
-  FaWallet,
 } from 'react-icons/fa6'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -15,12 +15,12 @@ import { fetchSellerDashboard, type DashboardPeriodFilter } from '../lib/dashboa
 import type { DashboardResponse } from '../types/dashboard'
 import { DashboardOrders } from '../components/orders/DashboardOrders'
 
-const deferredSections = [
-  { key: 'financial', name: 'Financial summary', detail: 'Revenue and settlement totals are not available in this view yet.', icon: FaWallet },
-  { key: 'traffic', name: 'Traffic and conversion', detail: 'Shop visit and conversion data is not available yet.', icon: FaChartLine },
-] as const
-
 export function DashboardPage() {
+  const { seller } = useAuth()
+  return seller ? <DashboardOverview key={seller.id} /> : null
+}
+
+function DashboardOverview() {
   const { seller, logout } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -42,7 +42,7 @@ export function DashboardPage() {
     setError(null)
 
     fetchSellerDashboard({ from, to, timezone }, controller.signal)
-      .then(setDashboard)
+      .then((response) => { if (!controller.signal.aborted) setDashboard(response) })
       .catch((caughtError: unknown) => {
         if (controller.signal.aborted) return
 
@@ -88,8 +88,8 @@ export function DashboardPage() {
     <div className="portal-page">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200 pb-5 dark:border-white/10">
         <div>
-          <h2 className="portal-page-heading">Welcome, {firstName}</h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Shop, order, catalog, and review status.</p>
+          <h2 className="portal-page-heading">{firstName}’s Shop overview</h2>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review orders, prepare pickups, and keep your catalog up to date.</p>
         </div>
         <div className="flex items-center gap-3">
           {dashboard ? <p className="text-xs portal-secondary">{error ? 'Last loaded' : 'Updated'} {formatTimestamp(dashboard.generated_at)}</p> : null}
@@ -104,7 +104,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {isLoading && !dashboard ? <DashboardSkeleton /> : null}
+      {isLoading && !dashboard ? <DashboardSkeleton className="mt-6" /> : null}
       {isLoading && dashboard ? <p className="mt-4 text-sm portal-secondary" role="status">Refreshing dashboard…</p> : null}
 
       {!isLoading && error ? (
@@ -145,6 +145,7 @@ export function DashboardPage() {
 
       {dashboard?.shop && 'metrics' in dashboard.sections.catalog ? (
         <>
+          <OrderActivityOverview activity={dashboard.sections.order_activity} />
           <DashboardOrders key={reloadKey} />
           <section className="mt-6 rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="shop-catalog-heading">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
@@ -167,35 +168,9 @@ export function DashboardPage() {
             section={dashboard.sections.reviews}
           />
 
-          <section className="mt-6 rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="future-sections-heading">
-            <div className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-              <h3 className="font-semibold" id="future-sections-heading">Other dashboard sections</h3>
-              <p className="mt-1 text-sm portal-secondary">These totals are not available in this view yet.</p>
-            </div>
-            <ul className="divide-y divide-zinc-200 dark:divide-white/10">
-              {deferredSections.map(({ detail, icon: Icon, key, name }) => (
-                <li className="flex gap-3 px-5 py-4" key={key}>
-                  <Icon aria-hidden="true" className="mt-0.5 shrink-0 text-zinc-400" />
-                  <div>
-                    <p className="text-sm font-medium">{name}</p>
-                    <p className="mt-1 text-sm leading-5 portal-secondary dark:text-zinc-400">Unavailable — {detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+
         </>
       ) : null}
-    </div>
-  )
-}
-
-function DashboardSkeleton() {
-  return (
-    <div aria-label="Loading dashboard" aria-live="polite" className="mt-6 space-y-4" role="status">
-      <span className="sr-only">Loading Seller dashboard</span>
-      <div className="h-16 animate-pulse rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" />
-      <div className="h-72 animate-pulse rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" />
     </div>
   )
 }
