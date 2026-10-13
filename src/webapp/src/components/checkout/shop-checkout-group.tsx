@@ -12,14 +12,12 @@ export function ShopCheckoutGroup({
   group,
   shippingOptions,
   selectedProviderId,
-  onSelectProvider,
   disabled,
   formatAmount,
 }: {
   group: CheckoutQuote["groups"][number];
   shippingOptions: CheckoutLogisticsOptions["groups"][number];
   selectedProviderId: string | undefined;
-  onSelectProvider: (providerId: string) => void;
   disabled: boolean;
   formatAmount: (value: string) => string;
 }) {
@@ -108,7 +106,6 @@ export function ShopCheckoutGroup({
         options={shippingOptions}
         selectedProviderId={selectedProviderId}
         selectedShippingFee={group.shippingQuote.shippingFee}
-        onSelect={onSelectProvider}
         formatAmount={formatAmount}
       />
 

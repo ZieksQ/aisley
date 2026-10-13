@@ -34,7 +34,7 @@ class ShippingServiceQuotationTest extends TestCase
     {
         parent::setUp();
         $this->seed(ProductSeeder::class);
-        $this->configureTestCheckoutFinance();
+        $this->configureTestCheckoutFinance(false);
         $this->origin = LogisticsOrganization::query()->with('hub')->firstOrFail();
         $this->tariff = ShippingRateVersion::query()->firstOrFail();
         $this->tariff->update(['base_fee_cents' => 99999]);

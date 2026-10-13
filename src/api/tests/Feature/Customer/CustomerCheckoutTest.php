@@ -17,7 +17,6 @@ use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\LogisticsOrganization;
 use App\Models\LogisticsRateCard;
-use App\Models\LogisticsShippingRateAcceptance;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -26,7 +25,6 @@ use App\Models\Shop;
 use App\Models\ShopLogisticsProvider;
 use App\Models\SortingLane;
 use App\Models\SortingPlan;
-use App\Models\SortingPlanVersion;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherClaim;
@@ -34,6 +32,7 @@ use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\ConfiguresCheckoutFinance;
 use Tests\TestCase;
 
@@ -250,34 +249,81 @@ class CustomerCheckoutTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_NOT_FOUND');
     }
 
-    public function test_unplanned_route_ignores_legacy_platform_base_and_uses_only_region_surcharge_privately(): void
+    public static function incompleteRoutes(): array
+    {
+        return [['coverage'], ['lane'], ['plan'], ['routing'], ['service']];
+    }
+
+    #[DataProvider('incompleteRoutes')]
+    public function test_no_complete_route_blocks_options_and_quote_including_explicit_selection(string $failure): void
     {
         $customer = $this->customer();
-        $address = $this->address($customer);
         $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
-        $organizationId = LogisticsShippingRateAcceptance::query()->value('logistics_organization_id');
-        $logisticsUserId = LogisticsOrganization::query()->findOrFail($organizationId)->user_id;
-        $rate = ShippingRateVersion::create([
-            'version_number' => 2, 'status' => 'published',
-            'base_fee_cents' => 15000, 'included_weight_grams' => 500, 'additional_weight_grams' => 500,
-            'additional_fee_cents' => 2500, 'volumetric_divisor' => 5000, 'max_weight_grams' => 100000,
-            'max_length_mm' => 2000, 'max_width_mm' => 2000, 'max_height_mm' => 2000,
-            'destination_surcharge_cents' => 0, 'currency' => 'PHP', 'effective_at' => now()->subHour(),
-            'published_at' => now()->subHour(), 'revision' => 1,
-        ]);
-        LogisticsShippingRateAcceptance::create([
-            'shipping_rate_version_id' => $rate->id, 'logistics_organization_id' => $organizationId,
-            'accepted_at' => now()->subHour(), 'accepted_by' => $logisticsUserId,
-        ]);
+        $payload = $this->buyNowPayload($product, $this->address($customer));
+        match ($failure) {
+            'coverage' => HubServiceArea::query()->update(['is_active' => false]),
+            'lane' => SortingLane::query()->update(['operational_state' => 'paused']),
+            'plan' => SortingPlan::query()->update(['is_active' => false]),
+            'routing' => config(['hub-routing.enabled' => false]),
+            'service' => LogisticsRateCard::query()->firstOrFail()->services()->where('service_type', 'last_mile')->delete(),
+        };
+        $this->postJson('/api/v1/customer/checkout/logistics-options', $payload)
+            ->assertOk()->assertJsonPath('data.groups.0.options', []);
+        $this->postJson('/api/v1/customer/checkout/quote', $payload)
+            ->assertConflict()->assertJsonPath('code', 'SHIPPING_COVERAGE_UNAVAILABLE');
+        $payload['logistics_selections'] = [['shop_id' => $product->shop_id,
+            'logistics_organization_id' => LogisticsOrganization::query()->value('id')]];
+        $this->postJson('/api/v1/customer/checkout/quote', $payload)
+            ->assertConflict()->assertJsonPath('code', 'SHIPPING_COVERAGE_UNAVAILABLE');
+        $this->assertDatabaseCount('checkout_quotes', 0);
+        $this->assertDatabaseCount('orders', 0);
+    }
 
-        $rate->regionSurcharges()->create(['destination_region' => 'NCR', 'normalized_region' => 'ncr', 'surcharge_cents' => 700]);
+    public function test_route_loss_at_placement_rolls_back_and_committed_requests_still_replay(): void
+    {
+        $customer = $this->customer();
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $other = $this->secondShopProduct();
+        $firstId = $this->postJson('/api/v1/customer/cart/items', ['product_id' => $product->id, 'variant_id' => null, 'quantity' => 1])->assertOk()->json('data.items.0.id');
+        $items = $this->postJson('/api/v1/customer/cart/items', ['product_id' => $other->id, 'variant_id' => null, 'quantity' => 1])->assertOk()->json('data.items');
+        $secondId = collect($items)->firstWhere('product.id', $other->id)['id'];
+        $payload = ['mode' => 'cart', 'cart_item_ids' => [$firstId, $secondId],
+            'address_id' => $this->address($customer)->id, 'payment_method' => 'cod', 'vouchers' => []];
+        $quoteId = $this->postJson('/api/v1/customer/checkout/quote', $payload)->assertOk()->json('data.quoteId');
+        $key = (string) Str::uuid();
+        $placement = [...$payload, 'quote_id' => $quoteId];
+        HubServiceArea::query()->update(['is_active' => false]);
+        $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/customer/checkout/place', $placement)
+            ->assertConflict()->assertJsonPath('code', 'QUOTE_STALE');
+        $this->assertDatabaseCount('checkout_batches', 0);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(0, InventoryMovement::where('movement_type', 'reserve')->count());
+        $this->assertSame(0, InventoryBalance::query()->sum('reserved'));
+        $this->assertDatabaseCount('voucher_redemptions', 0);
+        $this->assertDatabaseCount('cart_items', 2);
+        HubServiceArea::query()->update(['is_active' => true]);
+        $batchId = $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/customer/checkout/place', $placement)
+            ->assertOk()->json('data.id');
+        HubServiceArea::query()->update(['is_active' => false]);
+        $this->withHeader('Idempotency-Key', $key)->postJson('/api/v1/customer/checkout/place', $placement)
+            ->assertOk()->assertJsonPath('data.id', $batchId);
+        $this->assertDatabaseCount('orders', 2);
+        $this->assertDatabaseCount('cart_items', 0);
+        $this->assertSame(2, InventoryMovement::where('movement_type', 'reserve')->count());
+    }
 
-        $this->postJson('/api/v1/customer/checkout/quote', $this->buyNowPayload($product, $address, 2))
-            ->assertOk()
-            ->assertJsonMissingPath('data.groups.0.shippingQuote.billableWeightGrams')
-            ->assertJsonMissingPath('data.groups.0.shippingQuote.baseFee')
-            ->assertJsonPath('data.groups.0.totals.shippingFee', '7.00')
-            ->assertJsonPath('data.groups.0.totals.payable', '13507.00');
+    public function test_missing_route_service_rate_blocks_checkout(): void
+    {
+        $customer = $this->customer();
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $payload = $this->buyNowPayload($product, $this->address($customer));
+        LogisticsRateCard::query()->firstOrFail()->services()->where('service_type', 'last_mile')->delete();
+        $this->postJson('/api/v1/customer/checkout/logistics-options', $payload)
+            ->assertOk()->assertJsonPath('data.groups.0.options', []);
+        $payload['logistics_selections'] = [['shop_id' => $product->shop_id,
+            'logistics_organization_id' => LogisticsOrganization::query()->value('id')]];
+        $this->postJson('/api/v1/customer/checkout/quote', $payload)
+            ->assertConflict()->assertJsonPath('code', 'SHIPPING_COVERAGE_UNAVAILABLE');
     }
 
     public function test_rate_revision_after_quote_requires_customer_reconfirmation(): void
@@ -309,42 +355,9 @@ class CustomerCheckoutTest extends TestCase
             'normalized_region' => 'ncr',
             'surcharge_cents' => 500,
         ]);
-        HubServiceArea::create([
-            'logistics_hub_id' => $organization->hub->id,
-            'postal_code' => '1203',
-            'is_active' => true,
-            'created_by' => $logisticsUserId,
-        ]);
-        $lane = SortingLane::create([
-            'logistics_organization_id' => $organization->id,
-            'logistics_hub_id' => $organization->hub->id,
-            'created_by_logistics_id' => $logisticsUserId,
-            'code' => 'LOCAL',
-            'name' => 'Local delivery',
-            'type' => 'standard',
-            'is_active' => true,
-            'position' => 1,
-        ]);
-        $plan = SortingPlan::create([
-            'logistics_organization_id' => $organization->id,
-            'logistics_hub_id' => $organization->hub->id,
-            'created_by_logistics_id' => $logisticsUserId,
-            'name' => 'Active local plan',
-            'is_active' => true,
-        ]);
-        $plan->lanes()->create([
-            'sorting_lane_id' => $lane->id,
-            'destination_type' => 'postal_code',
-            'postal_code' => '1203',
-            'position' => 1,
-        ]);
-        $version = SortingPlanVersion::create(['sorting_plan_id' => $plan->id, 'number' => 1, 'name' => $plan->name,
-            'mappings' => $plan->lanes->map(fn ($mapping) => [...$mapping->only(['id', 'sorting_lane_id', 'postal_code', 'destination_hub_id', 'position']), 'destination_type' => $mapping->destination_type->value])->all(),
-            'differences' => [], 'published_by' => $plan->created_by_logistics_id, 'published_at' => now()]);
-        $plan->update(['active_version_id' => $version->id, 'draft_dirty' => false]);
         $card = LogisticsRateCard::create([
             'logistics_organization_id' => $organization->id,
-            'version_number' => 1,
+            'version_number' => 2,
             'status' => 'published',
             'currency' => 'PHP',
             'effective_at' => now()->subHour(),
@@ -439,7 +452,7 @@ class CustomerCheckoutTest extends TestCase
     private function secondShopProduct(): Product
     {
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
-        $shop = Shop::create(['seller_id' => $seller->id, 'name' => 'Second Store', 'slug' => 'second-store', 'status' => ShopStatus::Active]);
+        $shop = Shop::create(['seller_id' => $seller->id, 'shop_category_id' => Shop::query()->whereNotNull('shop_category_id')->value('shop_category_id'), 'name' => 'Second Store', 'slug' => 'second-store', 'status' => ShopStatus::Active]);
         ShopLogisticsProvider::create([
             'shop_id' => $shop->id,
             'logistics_organization_id' => LogisticsOrganization::query()->value('id'),

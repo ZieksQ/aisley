@@ -55,13 +55,13 @@ Current source: `22b0a48f9575ead182d03c35ab87345711c23b90`; Buyer adoption gap G
 | --- | --- |
 | 422 LOGISTICS_SELECTION_INVALID | logistics_selections; remove foreign-Shop choice or refresh disabled provider options |
 | 409 LOGISTICS_SELECTION_REQUIRED | logistics_selections; explicitly choose a provider for each multiple-option Shop |
-| 409 SHIPPING_COVERAGE_UNAVAILABLE | logistics_selections; no quoteable enabled option; change safe intent or retry later |
+| 409 SHIPPING_COVERAGE_UNAVAILABLE | logistics_selections; no complete delivery route, including an explicitly selected provider; change safe intent or retry later |
 | 409 LOGISTICS_PROVIDER_UNAVAILABLE / LOGISTICS_RATE_NOT_ACCEPTED | logistics_selections; refresh available options, never silently substitute |
 | 409 SHIPPING_RATE_UNAVAILABLE / PICKUP_ADDRESS_REQUIRED | address_id; platform/Seller configuration needs correction |
 | 409 SHIPPING_DATA_REQUIRED / SHIPPING_DIMENSIONS_UNSUPPORTED / SHIPPING_WEIGHT_UNSUPPORTED | items; parcel measurements/limits prevent quote |
 | 409 ROUTE_RATE_LIMIT_EXCEEDED | no field; route participant parcel limit blocks quote |
 
-Options discovery omits quotation failures. Non-limit route participant tariff/rate/service/category failures degrade to unplanned and are not returned as direct HTTP errors; successful unplanned quotes can later be held at Seller pickup. See [shipping selection](shipping-selection.md). Changed selections produce QUOTE_INPUT_CHANGED, or IDEMPOTENCY_KEY_REUSED for a changed uncertain-placement payload. Synthetic scenarios and error records are not executed backend tests.
+Options discovery omits quotation failures and all unplanned routes. Missing operational/commercial routes reject new quote with SHIPPING_COVERAGE_UNAVAILABLE; newly lost coverage at placement returns QUOTE_STALE on logistics_selections before effects. Historical unplanned Orders retain their fulfillment holds. See [shipping selection](shipping-selection.md). Changed selections produce QUOTE_INPUT_CHANGED, or IDEMPOTENCY_KEY_REUSED for a changed uncertain-placement payload. Synthetic scenarios and error records are not executed backend tests.
 
 
 As of the 2026-10-10 backend B05 fix, checked-in Laravel CORS explicitly exposes `Retry-After` for approved origins, including the default Buyer browser origin `http://localhost:8766`. Browser clients can read the original delta-seconds or HTTP-date value even on credentialed requests; native header behavior is unchanged. Local synthetic middleware/browser checks are separate from deployed API and actual Flutter cooldown acceptance. Deployment must refresh cached Laravel configuration and verify the header from the approved origin; an absent/invalid header still follows the existing unavailable-cooldown handling.

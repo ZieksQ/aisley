@@ -646,9 +646,9 @@
       "executed": false
     },
     {
-      "name": "route-participant-tariff-fallback",
+      "name": "route-participant-tariff-unavailable",
       "operation_id": "op-029",
-      "preconditions": "Selected provider accepted tariff; another route participant has not. All leg charges discarded; region surcharge 5.00.",
+      "preconditions": "Selected provider accepted tariff; another route participant has not. New checkout requires a complete commercially priced route.",
       "request": {
         "query": {},
         "headers": {},
@@ -671,79 +671,14 @@
         }
       },
       "expected": {
-        "status": 200,
+        "status": 409,
         "body": {
-          "data": {
-            "quoteId": "00000008-1111-4111-8111-111111111111",
-            "expiresAt": "2026-10-03T00:15:00.000000Z",
-            "mode": "buy_now",
-            "paymentMethod": "cod",
-            "address": {
-              "id": "11111111-1111-4111-8111-111111111111",
-              "recipientName": "Synthetic example",
-              "contactNumber": "Synthetic example",
-              "addressLine1": "Synthetic example",
-              "addressLine2": null,
-              "barangay": "Synthetic example",
-              "cityMunicipality": "Synthetic example",
-              "province": "Synthetic example",
-              "region": "Synthetic example",
-              "postalCode": "Synthetic example",
-              "country": "Synthetic example",
-              "label": null
-            },
-            "groups": [
-              {
-                "shop": {
-                  "id": "11111111-1111-4111-8111-111111111111",
-                  "name": "Synthetic example"
-                },
-                "items": [
-                  {
-                    "cartItemId": null,
-                    "productId": "11111111-1111-4111-8111-111111111111",
-                    "variantId": null,
-                    "productName": "Synthetic example",
-                    "sku": null,
-                    "selectedOptions": [
-                      {
-                        "group": "Synthetic example",
-                        "value": "Synthetic example"
-                      }
-                    ],
-                    "unitPrice": "100.00",
-                    "quantity": 1,
-                    "lineSubtotal": "100.00"
-                  }
-                ],
-                "availableVouchers": [],
-                "appliedVouchers": [],
-                "shippingQuote": {
-                  "serviceable": true,
-                  "logisticsOrganizationId": "22222222-2222-4222-8222-222222222222",
-                  "logisticsBusinessName": "Synthetic Logistics",
-                  "routeStatus": "unplanned",
-                  "shippingFee": "5.00"
-                },
-                "totals": {
-                  "merchandiseSubtotal": "100.00",
-                  "shippingFee": "5.00",
-                  "discount": "0.00",
-                  "shippingDiscount": "0.00",
-                  "payable": "105.00",
-                  "currency": "PHP"
-                }
-              }
-            ],
-            "summary": {
-              "orderCount": 1,
-              "merchandiseSubtotal": "100.00",
-              "shippingFee": "5.00",
-              "discount": "0.00",
-              "shippingDiscount": "0.00",
-              "payable": "105.00",
-              "currency": "PHP"
-            }
+          "message": "No complete delivery route is available for this Shop and address. Change your address or try again later.",
+          "code": "SHIPPING_COVERAGE_UNAVAILABLE",
+          "errors": {
+            "logistics_selections": [
+              "No complete delivery route is available for this Shop and address. Change your address or try again later."
+            ]
           }
         }
       },
@@ -1126,5 +1061,6 @@
       },
       "executed": false
     }
-  ]
+  ],
+  "eligibility_revision": "2026-10-14 complete-route checkout; client adoption remains unverified"
 }

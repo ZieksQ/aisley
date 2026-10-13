@@ -47,7 +47,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Quote groups are one per Shop; show each subtotal/shipping/discount/payable and the overall
   orderCount summary. Product thumbnail/name/quantity/options/total share an outlined card; Shop totals/vouchers stay outside.
 - Successful Quote shippingQuote exposes serviceable true, provider UUID/name, routeStatus and final fee;
-  unplanned is a commercial fallback, not operational readiness. No private tariff components remain.
+  new checkout accepts only complete local/planned routes; historical unplanned Orders remain readable. No private tariff components remain.
 - Select one provider per Shop; implicit single-option fallback is allowed, multiple options require choice.
 - Empty options block quoting; provider failures never authorize substitution or a Courier selector.
 - Display returned expiresAt (default lifetime15min) and clear review validity when any intent input
@@ -225,3 +225,7 @@ Shipping adoption 2026-10-09: [G25 evidence](../../../references/shipping-select
 Live/device commerce and deployment configuration remain open under G25.
 Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).
 [B06 funding contract](../../../api/legacy-voucher-funding.md): quote rejects unaffordable legacy Shop shipping vouchers with 409 VOUCHER_FUNDING_INSUFFICIENT; placement uses QUOTE_STALE on vouchers before effects. Flutter-specific adoption checks remain open.
+
+### Backend complete-route revision — 2026-10-14
+
+Discovery now omits incomplete routes; explicit quote rejects them with `409 SHIPPING_COVERAGE_UNAVAILABLE`. Route loss after review returns placement `409 QUOTE_STALE` on `logistics_selections` before effects. Empty options block checkout; refresh and deliberately review shipping/totals before a new placement. Existing uncertain intent keeps its exact key/payload and committed replay still succeeds after route loss. See [shipping contract](../../../api/shipping-selection.md). Storefront default selection, separate provider page and confirmation dialog are web implementation only; Flutter adoption/acceptance remains unverified.

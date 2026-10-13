@@ -156,8 +156,11 @@ function useCheckoutSession() {
           );
           if (stillAvailable) {
             selections[group.shop.id] = preferred;
-          } else if (group.options.length === 1) {
-            selections[group.shop.id] = group.options[0].organizationId;
+          } else if (group.options.length > 0) {
+            const cheapest = group.options.reduce((best, option) =>
+              Number(option.shippingFee) < Number(best.shippingFee) ? option : best,
+            );
+            selections[group.shop.id] = cheapest.organizationId;
           }
         }
 
@@ -173,6 +176,9 @@ function useCheckoutSession() {
           return await loadQuote(nextIntent, addressId, vouchers, selections);
         }
 
+        setMessage(
+          "Delivery is unavailable for one or more Shops at this address. Change your delivery address or refresh shipping options to try again.",
+        );
         setStatus("ready");
         return null;
       } catch (caught) {
@@ -309,19 +315,32 @@ function useCheckoutSession() {
       !intent ||
       !selectedAddressId ||
       !customerId ||
+      (status !== "ready" && status !== "error") ||
       checkoutPlacement.read(customerId)
     )
-      return;
+      return false;
+    const group = logisticsOptions?.groups.find((item) => item.shop.id === shopId);
+    if (!group?.options.some((option) => option.organizationId === providerId)) {
+      return false;
+    }
     const next = { ...selectedLogistics, [shopId]: providerId };
-    setSelectedLogistics(next);
-    setQuote(null);
     const allSelected = logisticsOptions?.groups.every(
       (group) => group.options.length > 0 && next[group.shop.id],
     );
     if (allSelected) {
-      await loadQuote(intent, selectedAddressId, selectedVouchers, next);
+      return Boolean(
+        await loadQuote(intent, selectedAddressId, selectedVouchers, next),
+      );
     }
+    return false;
   }
+
+  const cancelShippingChange = useCallback(() => {
+    if (!customerId || checkoutPlacement.read(customerId)) return;
+    ++quoteSequence.current;
+    setStatus("ready");
+    setMessage(null);
+  }, [customerId]);
 
   async function placeOrder() {
     if (!customerId || placementBusy.current || !intent || !selectedAddressId)
@@ -396,6 +415,7 @@ function useCheckoutSession() {
     message,
     loadShippingOptions,
     selectLogisticsProvider,
+    cancelShippingChange,
     placeOrder,
     applyVouchers,
   };

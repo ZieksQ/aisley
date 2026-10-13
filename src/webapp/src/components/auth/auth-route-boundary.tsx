@@ -18,10 +18,10 @@ export function AuthRouteBoundary({ children, guestOnly = false }: { children: R
   const router = useRouter();
   const protectedRoute = !guestOnly && isProtectedCustomerPath(pathname);
   const isConsentRoute = pathname === "/account/policy-consent";
-  // These two views share an active checkout. Rechecking on the voucher hop
+  // Checkout, voucher and delivery views share an active checkout. Rechecking on a selection hop
   // would unmount its provider and discard the Customer's reviewed selections.
   // Each checkout API call still enforces current consent on the server.
-  const consentPath = pathname === "/checkout/vouchers" ? "/checkout" : pathname;
+  const consentPath = pathname === "/checkout/vouchers" || pathname === "/checkout/delivery" ? "/checkout" : pathname;
   const consentKey = protectedRoute && !isConsentRoute && auth.status === "authenticated"
     ? `${auth.customer.id}:${consentPath}`
     : "";

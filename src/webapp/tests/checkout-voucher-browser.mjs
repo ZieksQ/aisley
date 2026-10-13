@@ -89,6 +89,8 @@ for (const name of [
   "checkout-provider",
   "checkout-page-content",
   "checkout-summary",
+  "checkout-confirmation",
+  "delivery-selection-content",
   "checkout-delivery-sections",
   "checkout-display",
   "shop-checkout-group",
@@ -114,10 +116,11 @@ const voucher={id:"platform-discount",name:"15% off your order",code:"SAVE15",is
 window.offers=(shop)=>window.mode==="empty"?[]:[voucher,{...voucher,id:"platform-shipping",name:"Shipping discount",benefitType:"shipping",valueType:"fixed",value:"50.00",saving:"50.00",minimumSpend:"300.00",maximumDiscount:null},{...voucher,id:shop+"-discount",name:"Shop discount",issuerType:"shop",value:"10.00",maximumDiscount:"300.00",saving:"100.00"},{...voucher,id:shop+"-claim",name:"Collect for your next order",issuerType:"shop",eligible:false,reason:"VOUCHER_NOT_CLAIMED",collectionUrl:"/shops/issuer#vouchers"},{...voucher,id:shop+"-minimum",name:"Extra savings",eligible:false,reason:"VOUCHER_MINIMUM_SPEND",minimumSpend:"5000.00"},{...voucher,id:shop+"-funding",name:"Shipping savings",issuerType:"shop",benefitType:"shipping",eligible:false,reason:"VOUCHER_FUNDING_INSUFFICIENT"}];
 window.longName=false;
 window.fetch=async(url,options={})=>{
- const body=options.body?JSON.parse(options.body):null;window.requests.push({url,body});
+ const body=options.body?JSON.parse(options.body):null;window.requests.push({url,body,key:new Headers(options.headers).get("Idempotency-Key")});
  if(url.includes("csrf-cookie"))return new Response(null,{status:204});
  if(url.includes("policy-consent"))return new Response(JSON.stringify({data:{all_required_accepted:true}}));
  if(url.includes("/addresses"))return new Response(JSON.stringify({data:[address]}));
+ if(url.includes("logistics-options")&&window.mode==="no-route")return new Response(JSON.stringify({data:{address,groups:[{shop:{id:"shop-a",name:"Example Shop"},options:[]}]}}));
  if(url.includes("logistics-options"))return new Response(JSON.stringify({data:{address,groups:[{shop:{id:"shop-a",name:"Example Shop"},options:[{organizationId:"ncr-1",businessName:"NCR Logistics",shippingFee:"40.00"},{organizationId:"ncr-2",businessName:"NCR Express",shippingFee:"50.00"}]},{shop:{id:"shop-b",name:"Second Shop"},options:[{organizationId:"ncr-1",businessName:"NCR Logistics",shippingFee:"40.00"}]}]}}));
  if(url.includes("/place"))throw new TypeError("Lost confirmation");
  if(window.mode==="pending")await new Promise(resolve=>window.finish=resolve);
@@ -128,7 +131,7 @@ window.fetch=async(url,options={})=>{
  const groups=["shop-a","shop-b"].map(id=>({shop:{id,name:window.longName?"A long shop name that must wrap comfortably on small screens ".repeat(3):id==="shop-a"?"Example Shop":"Second Shop"},items:[{productId:"product",variantId:null,productName:"Everyday essentials",sku:"PRODUCT",quantity:1,selectedOptions:[],lineSubtotal:"1000.00",imageUrl:null}],availableVouchers:window.offers(id),appliedVouchers:body.vouchers.filter(v=>v.target_shop_id===id).map(v=>window.offers(id).find(offer=>offer.id===v.voucher_id)),shippingQuote:{logisticsOrganizationId:body.logistics_selections.find(v=>v.shop_id===id).logistics_organization_id,logisticsBusinessName:"NCR Express",shippingFee:"50.00"},totals}));
  return new Response(JSON.stringify({data:{quoteId:"quote-"+window.requests.length,groups,address,summary:{...totals,orderCount:2}}}));
 };
-function View(){const path=require("next/navigation").usePathname();if(path==="/checkout/vouchers")return React.createElement(require("./voucher-selection-content").VoucherSelectionContent,{shopId:new URLSearchParams(window.route.split("?")[1]).get("shop")??undefined});if(path!=="/checkout")return React.createElement("p",null,"Departed checkout");return React.createElement(require("./checkout-page-content").CheckoutPageContent)}
+function View(){const path=require("next/navigation").usePathname();if(path==="/checkout/delivery")return React.createElement(require("./delivery-selection-content").DeliverySelectionContent,{shopId:new URLSearchParams(window.route.split("?")[1]).get("shop")??undefined});if(path==="/checkout/vouchers")return React.createElement(require("./voucher-selection-content").VoucherSelectionContent,{shopId:new URLSearchParams(window.route.split("?")[1]).get("shop")??undefined});if(path!=="/checkout")return React.createElement("p",null,"Departed checkout");return React.createElement(require("./checkout-page-content").CheckoutPageContent)}
 function App(){return React.createElement(require("./auth-route-boundary").AuthRouteBoundary,null,React.createElement(require("./checkout-provider").CheckoutProvider,null,React.createElement("main",{className:"mx-auto max-w-[1280px] px-4 py-6"},React.createElement(View))))}
 require("react-dom/client").createRoot(document.getElementById("root")).render(React.createElement(App));
 `;
@@ -262,13 +265,13 @@ try {
       key,
       code: key,
       ...(key === "Enter" ? { text: "\r", unmodifiedText: "\r" } : {}),
-      windowsVirtualKeyCode: key === "Enter" ? 13 : 0,
+      windowsVirtualKeyCode: { Enter: 13, Tab: 9, Escape: 27, ArrowDown: 40 }[key] ?? 0,
     });
     await command("Input.dispatchKeyEvent", {
       type: "keyUp",
       key,
       code: key,
-      windowsVirtualKeyCode: key === "Enter" ? 13 : 0,
+      windowsVirtualKeyCode: { Enter: 13, Tab: 9, Escape: 27, ArrowDown: 40 }[key] ?? 0,
     });
   };
   await command("Page.navigate", { url: "about:blank" });
@@ -277,8 +280,38 @@ try {
     frameId: frameTree.frame.id,
     html,
   });
-  await until('document.querySelector("input[value=ncr-2]")');
-  await evaluate('document.querySelector("input[value=ncr-2]").click()');
+  await until('Array.from(document.querySelectorAll("a")).some(a=>a.getAttribute("href")==="/checkout/delivery?shop=shop-a")');
+  assert.ok((await evaluate('window.requests.filter(r=>r.url.includes("/quote")).at(-1).body')).logistics_selections.some(item=>item.shop_id==="shop-a"&&item.logistics_organization_id==="ncr-1"));
+  await evaluate('window.router.push("/checkout/delivery?shop=shop-a")');
+  await until('document.querySelector("input[value=ncr-1]").checked');
+  for (const width of [320, 390, 768, 1440]) {
+    await command("Emulation.setDeviceMetricsOverride", {width, height:900, deviceScaleFactor:1, mobile:false});
+    assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+    const shot = await command("Page.captureScreenshot", {format:"png"});
+    writeFileSync(`${artifacts}/delivery-${width}.png`, Buffer.from(shot.data,"base64"));
+  }
+  await evaluate('document.querySelector("input[value=ncr-1]").focus()');
+  assert.equal(await evaluate('getComputedStyle(document.querySelector("input[value=ncr-1]").closest("label")).outlineStyle'), "solid");
+  await key("ArrowDown");
+  await until('document.querySelector("input[value=ncr-2]").checked');
+  await key("Tab");
+  await evaluate('window.mode="offline";Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Apply delivery")).click()');
+  await until('document.querySelector("[role=alert]")');
+  assert.equal(await evaluate('document.querySelector("input[value=ncr-2]").checked'), true);
+  assert.equal(await evaluate('window.route'), "/checkout/delivery?shop=shop-a");
+  await evaluate('window.mode="ready";Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Apply delivery")).click()');
+  await until('window.route === "/checkout"');
+  await evaluate('window.router.push("/checkout/delivery?shop=shop-a")');
+  await until('document.querySelector("input[value=ncr-2]").checked');
+  await evaluate('document.querySelector("input[value=ncr-1]").click()');
+  await evaluate('window.mode="pending";Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Apply delivery")).click()');
+  await until('window.finish && Array.from(document.querySelectorAll("button")).some(b=>b.disabled)');
+  await evaluate('window.router.push("/checkout")');
+  await until('Array.from(document.querySelectorAll("button")).some(b=>b.textContent==="Place order"&&!b.disabled)');
+  await evaluate('window.mode="ready";window.finish()');
+  await evaluate('window.router.push("/checkout/delivery?shop=shop-a")');
+  await until('document.querySelector("input[value=ncr-2]").checked');
+  await evaluate('window.router.push("/checkout")');
   await until(
     'document.querySelector("a[href=\\\"/checkout/vouchers?shop=shop-a\\\"]")',
   );
@@ -392,7 +425,7 @@ try {
   );
   await evaluate('window.mode="ready";window.finish()');
   await until(
-    'window.route === "/checkout" && document.querySelector("input[value=ncr-2]").checked',
+    'window.route === "/checkout" && Array.from(document.querySelectorAll("a")).some(a=>a.getAttribute("href")==="/checkout/delivery?shop=shop-a")',
   );
   assert.equal(
     await evaluate(
@@ -487,12 +520,10 @@ try {
   await evaluate(
     'window.mode="ready";window.setAuth("customer-b");window.finish()',
   );
-  await until(
-    'document.getElementById("root").textContent.includes("Return to checkout")',
-  );
+  await until('document.querySelector(".checkout-voucher-ticket") && document.querySelectorAll(".checkout-voucher-ticket[data-selected=true]").length === 0');
+  assert.deepEqual(await evaluate('window.requests.filter(r=>r.url.includes("/quote")).at(-1).body.vouchers'), []);
   await evaluate('window.router.push("/checkout")');
-  await until('document.querySelector("input[value=ncr-2]")');
-  await evaluate('document.querySelector("input[value=ncr-2]").click()');
+  await until('Array.from(document.querySelectorAll("a")).some(a=>a.getAttribute("href")==="/checkout/delivery?shop=shop-a")');
   await until(
     'document.querySelector("a[href=\\\"/checkout/vouchers?shop=shop-a\\\"]")',
   );
@@ -535,8 +566,27 @@ try {
     'document.getElementById("root").textContent.includes("Place order")',
   );
   await evaluate(
-    'Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="Place order").click()',
+    '(() => {const button=Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="Place order");button.focus();button.click()})()',
   );
+  await until('document.querySelector("dialog[open]")');
+  assert.equal(await evaluate('window.requests.filter(r=>r.url.includes("/place")).length'), 0);
+  for (const [width,height] of [[320,640],[390,430],[768,900],[1440,900]]) {
+    await command("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
+    assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"), true);
+    assert.ok(await evaluate('document.querySelector("dialog").getBoundingClientRect().bottom <= innerHeight'));
+    const shot = await command("Page.captureScreenshot", {format:"png"});
+    writeFileSync(`${artifacts}/confirm-${width}.png`, Buffer.from(shot.data,"base64"));
+  }
+  for (let i=0;i<5;i++) {
+    await key("Tab");
+    assert.equal(await evaluate('document.querySelector("dialog").contains(document.activeElement)'), true);
+  }
+  await key("Escape");
+  await until('!document.querySelector("dialog[open]")');
+  assert.equal(await evaluate('document.activeElement.textContent.trim()'), "Place order");
+  await evaluate('Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Place order").click()');
+  await until('document.querySelector("dialog[open]")');
+  await evaluate('Array.from(document.querySelectorAll("dialog button")).find(b=>b.textContent.includes("Confirm and place")).click()');
   await until(
     'document.getElementById("root").textContent.includes("Retry original order")',
   );
@@ -556,9 +606,21 @@ try {
     ),
     0,
   );
+  await evaluate('window.router.push("/checkout/delivery?shop=shop-a")');
+  await until('document.getElementById("root").textContent.includes("Confirm your previous order")');
+  await evaluate('window.router.push("/checkout")');
+  await until('Array.from(document.querySelectorAll("button")).some(b=>b.textContent.includes("Retry original order"))');
+  const original = await evaluate('window.requests.find(r=>r.url.includes("/place"))');
+  await evaluate('Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Retry original order")).click()');
+  await until('window.requests.filter(r=>r.url.includes("/place")).length===2');
+  const replay = await evaluate('window.requests.filter(r=>r.url.includes("/place")).at(-1)');
+  assert.deepEqual(replay, original);
+  await evaluate('window.mode="no-route";window.setAuth("customer-c")');
+  await until('document.getElementById("root").textContent.includes("Delivery is unavailable")');
+  assert.equal(await evaluate('Array.from(document.querySelectorAll("button")).find(b=>b.textContent==="Place order").disabled'), true);
   assert.deepEqual(await evaluate("window.errors"), []);
   console.log(
-    "Passed: real checkout/provider/consent flow, 320/390/768/1440px, keyboard/focus, ticket selection/no radios, draft cancellation, filters, empty/long content, exact Shop allocation, shipping retention, offline/429/stale retry, in-flight lock, account change/late reply cleanup and uncertain-placement navigation lock.",
+    "Passed: real checkout/provider/consent flow, 320/390/768/1440px, keyboard/focus and native confirmation containment/Escape restoration, default lowest-fee delivery, provider draft/apply/cancel, delivery-unavailable block, exact-key replay, ticket selection/no radios, draft cancellation, filters, empty/long content, exact Shop allocation, shipping retention, offline/429/stale retry, in-flight lock, account change/late reply cleanup and uncertain-placement navigation lock.",
   );
   console.log(`Screenshots: ${artifacts}`);
 } finally {

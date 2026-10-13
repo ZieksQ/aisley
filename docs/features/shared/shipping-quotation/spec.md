@@ -7,7 +7,7 @@
 - Let each Shop enable its accepted first-mile providers and let the Customer choose one provider per Shop Order.
 - Use the chosen provider's sole hub as the route origin and the Buyer postal code to find a destination hub.
 - Freeze a usable active-sort-plan route at checkout. Later tariff changes never alter Customer COD.
-- Fall back to buyer-region surcharge only when no complete route can be planned; this is a commercial fallback, not a promise that routing is already resolved.
+- Require a complete operational and commercially priced route for new checkout. Historical unplanned Orders retain their frozen totals and reconciliation workflow.
 
 ## MUST
 
@@ -33,13 +33,13 @@
   - active organizations that accepted the platform tariff and published a base fee and matching main Shop Category rule for each required service.
 - Charge first mile to the selected origin organization, each linehaul leg to the sending-hub organization, and last mile to the destination-hub organization.
 - Customer shipping is `first-mile base fee + sum(linehaul base fees per hop) + last-mile base fee + buyer-region surcharge + sum(main Shop Category parcel extras per leg)`. Each full quoted leg charge is its service base plus its one main-category extra; do not add that extra twice. A local route has first-mile and last-mile fees and no linehaul fee.
-- If no complete operational/commercial route exists, set route status `unplanned`, charge only buyer-region surcharge, and store no invented leg charges.
+- The internal quotation calculator may return `unplanned` with only the destination surcharge and no invented leg charges. Provider discovery excludes it and checkout rejects it with `409 SHIPPING_COVERAGE_UNAVAILABLE`; never create a new Order from this fallback. Route loss at placement returns `409 QUOTE_STALE` before effects.
 - Recompute all inputs at placement. Changed products, measurements, tariffs, commissions, provider settings, sort-plan route, or Logistics rate cards make the quote stale.
 - Store the chosen organization, addresses, line measurements, billable weights, platform tariff, route snapshot, Shop main category, rate card/rule IDs, per-leg quoted charges, and commission snapshots in `order_pricing_snapshots`.
 - Store only the final shipping fee and other Order totals in Customer responses. Finance/Admin projections may expose internal snapshots under role authorization.
 - Waybill creation materializes a planned/local route from the frozen checkout snapshot instead of predicting it again.
 - If a frozen connection or participant becomes unavailable before pickup, place an operational/financial hold and keep Customer pricing unchanged.
-- An `unplanned` order may be routed operationally later, but its Logistics payout remains held for Admin reconciliation.
+- A historical `unplanned` Order may be routed operationally later, but its Logistics payout remains held for Admin reconciliation.
 
 ## HOW
 
@@ -52,7 +52,7 @@
 - `CheckoutRoutePlanner` owns route previews from active coverage, connections, metrics, and sort-plan lanes.
 - `ShipmentRouteService` materializes frozen planned/local snapshots when the shared waybill is created.
 - Enum-like DB values remain string columns with PHP enum casts. The route baseline uses `2026_09_27_000001_add_route_based_shipping_rates.php`; service base fees and the pricing-model marker use `2026_10_03_000001_add_logistics_service_base_fees.php`; Shop Category rules use `2026_10_03_000002_use_shop_categories_for_logistics_rate_rules.php`.
-- Verify service-base/region pricing, one base per leg, one main-category extra per Parcel/service leg across multiple Product Categories, every linehaul hop, ignored legacy platform/category bases, exact Shop Category matches, weight increments, complete variant overrides, multi-line aggregation, explicit selection, stale quotes, local/multi-hop routes, fallback, frozen route materialization, and hidden Customer internals.
+- Verify service-base/region pricing, one base per leg, one main-category extra per Parcel/service leg across multiple Product Categories, every linehaul hop, ignored legacy platform/category bases, exact Shop Category matches, weight increments, complete variant overrides, multi-line aggregation, explicit selection, stale quotes, local/multi-hop routes, incomplete-route rejection, historical fallback, frozen route materialization, and hidden Customer internals.
 
 ## Ownership and compatibility revision — 2026-10-03
 
@@ -62,8 +62,8 @@
 - The additive migration derives one service base per existing card/service using the highest former category base. It never adds the old platform base. The maximum preserves the largest former single-category base while preventing repeated category bases. Logistics can publish a successor card to choose different service amounts; existing cards, rules, and Orders remain intact.
 - New Order snapshots store `shipping_pricing_model = logistics_service_base_v1`; pre-existing snapshots are marked `platform_base_v1`. On new snapshots, `base_fee_cents` is the sum of service bases and `additional_weight_fee_cents` is the sum of one main Shop Category extra per Parcel/service leg. Historical field meanings and totals stay unchanged.
 - Each new private leg input records `shop_category_id`, `service_rate_id`, `base_fee_cents`, `additional_weight_fee_cents`, and their sum in `quoted_charge_cents`, alongside card/rule IDs, owner, service, and endpoints. Allocation continues to use the complete frozen leg charge; commission is applied once to the overall shipping budget. Quotes created before a pricing-model change must be refreshed before placement.
-- Existing Product Category rules and cards are retained for historical review. They are not treated as main Shop Category rules: a route participant without a matching main-category rule invokes the existing unplanned fallback until it publishes a successor card. Already placed Orders and their pricing snapshots are untouched.
-- A route with missing commercial rates or routing configuration still follows the existing `unplanned` workflow: only destination surcharge is quoted (possibly zero), all partial leg charges are discarded, and later nonzero allocation requires Finance reconciliation. Parcel limit violations still reject quotation. This fallback does not imply free quoted Logistics services.
+- Existing Product Category rules and cards are retained for historical review. They are not treated as main Shop Category rules: a route participant without a matching main-category rule is unavailable for new checkout until it publishes a successor card. Already placed Orders and their pricing snapshots are untouched.
+- Historical calculator behavior (superseded for new checkout on 2026-10-14): a route with missing commercial rates or routing configuration follows the internal `unplanned` workflow: only destination surcharge is quoted (possibly zero), all partial leg charges are discarded, and later nonzero allocation requires Finance reconciliation. Parcel limit violations still reject quotation. This fallback does not imply free quoted Logistics services.
 - Admin and Logistics frontends now use the revised write contracts. Customer and Seller checkout/provider/pickup contracts remain unchanged.
 
 ### Frontend adoption — 2026-10-03
@@ -97,3 +97,8 @@ Example Logistics draft (UUID and numeric limits are illustrative):
   }]
 }
 ```
+
+### Checkout eligibility revision — 2026-10-14
+
+- Discovery omits all `unplanned` calculator results. Explicit quote requires a complete `local`/`planned` route; placement revalidates and maps newly unavailable coverage to `QUOTE_STALE` before transaction effects. Already committed exact-key placement replays remain available even after coverage loss. No API request/response shape changed. Historical Orders, internal fallback pricing and Finance reconciliation remain readable.
+- The storefront selects the lowest-fee available provider per Shop by default and offers a separate draft/Apply delivery selection page. It confirms the reviewed address, providers and COD totals before sending placement.

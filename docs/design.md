@@ -197,3 +197,10 @@ The user's explicit override grants layout/styling freedom for `/vouchers`, `/vo
 ## Customer Checkout voucher selection exception — 2026-10-11
 
 The user's explicit Shopee/Lazada-reference request replaces the Checkout dropdown with a separate `/checkout/vouchers` page. Apply uncodixfy and the existing brand palette: compact ticket silhouettes, benefit panel separated by a dashed edge, ordinary headings, underline filters, white/light surfaces and concise conditions. Selected cards use pink border/background and a checkmark, never visible radio controls. Keep keyboard pressed states, visible focus, 44px actions, responsive wrapping and error/loading feedback. Other Checkout sections and role designs retain their existing rules. The [Shopee selection flow](https://help.shopee.ph/portal/4/article/82323) informs the explicit select/confirm interaction; AISLEY's collection, targeting and stacking rules remain authoritative.
+
+
+## Customer Checkout delivery and confirmation — 2026-10-14
+
+The user's design freedom extends the separate selection-page pattern to `/checkout/delivery`. Use the existing light-only brand palette, compact bordered provider rows with name/final fee and an accessible selected radio/checkmark, a default lowest-fee selection, and explicit Apply/Cancel. Checkout shows only its accepted provider with Change. Do not display routing/pricing internals. Empty delivery options visibly block placement and offer address change or refresh.
+
+Place order opens a centered native dialog with the reviewed delivery contact/address, per-Shop providers/fees and payable amounts, Order count and total COD. Keep it scrollable in short/narrow viewports; contain keyboard focus, allow Cancel/Escape, restore focus and require Confirm and place order before transport. Existing uncertain requests retain their exact retry action and block provider/voucher edits.

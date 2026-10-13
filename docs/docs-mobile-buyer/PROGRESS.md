@@ -18,3 +18,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Reconciled server contracts with current Flutter sources, imported newer client evidence, corrected status summaries and retained explicit adoption/release gaps. Archived the two complete role histories separately with attribution; existing archives remain unchanged.
 - Validated portable links/anchors, JSON/examples, endpoint inventory, spec bounds, synchronized copies, preserved archive prefixes and PSGC bytes, plus Git whitespace. See [audit and validation](references/synchronization-2026-10-12.md). No application tests/builds or live/device checks were rerun.
+
+## 2026-10-14 — Backend complete-route checkout contract
+
+- Updated affected shipping/checkout contracts, error descriptions, field notes and synthetic examples: discovery omits incomplete routes, explicit quote rejects with `SHIPPING_COVERAGE_UNAVAILABLE`, and lost coverage at placement returns `QUOTE_STALE` before effects. Historical unplanned Orders and committed same-key replay retain their behavior.
+- The web storefront now defaults providers, uses a separate draft/Apply selection page and confirms before placement. These changes do not establish Flutter adoption; existing client/device/live acceptance remains open. Affected portable links and JSON validate; Laravel/web evidence is recorded in the canonical app progress log.

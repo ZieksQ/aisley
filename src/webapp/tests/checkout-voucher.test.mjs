@@ -40,7 +40,6 @@ test("checkout opens a dedicated Shop-targeted page instead of a dropdown", () =
   const html = renderToStaticMarkup(
     createElement(ShopCheckoutGroup, {
       ...voucherFixture(),
-      onSelectProvider() {},
       formatAmount: amount,
     }),
   );
@@ -56,7 +55,6 @@ test("checkout renders supplied Product thumbnails through the aliased component
   const html = renderToStaticMarkup(
     createElement(ShopCheckoutGroup, {
       ...fixture,
-      onSelectProvider() {},
       formatAmount: amount,
     }),
   );
@@ -70,7 +68,6 @@ test("pending checkout removes the voucher navigation action", () => {
     createElement(ShopCheckoutGroup, {
       ...voucherFixture(),
       disabled: true,
-      onSelectProvider() {},
       formatAmount: amount,
     }),
   );

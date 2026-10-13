@@ -11,6 +11,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Enums\ProductVariantStatus;
+use App\Enums\ShippingRoutePricingStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
@@ -147,11 +148,12 @@ class CheckoutService
             try {
                 $calculation = $this->calculate($customer, $input, true);
             } catch (CheckoutException $exception) {
-                if (! str_starts_with($exception->errorCode, 'VOUCHER_')) {
+                if (! str_starts_with($exception->errorCode, 'VOUCHER_') && $exception->errorCode !== 'SHIPPING_COVERAGE_UNAVAILABLE') {
                     throw $exception;
                 }
 
-                throw CheckoutException::conflict('QUOTE_STALE', $exception->getMessage().' Request a new quote.', 'vouchers');
+                $field = $exception->errorCode === 'SHIPPING_COVERAGE_UNAVAILABLE' ? 'logistics_selections' : 'vouchers';
+                throw CheckoutException::conflict('QUOTE_STALE', $exception->getMessage().' Request a new quote.', $field);
             }
             if (! hash_equals($quote->state_hash, $calculation['state_hash'])) {
                 throw CheckoutException::conflict('QUOTE_STALE', 'Price, stock, address, shipping, or voucher details changed. Request a new quote.', 'quote_id');
@@ -356,12 +358,15 @@ class CheckoutService
                 $options = $this->shippingQuotation->options($group['shop'], $address, $group['lines']);
                 if (count($options) !== 1) {
                     $code = $options === [] ? 'SHIPPING_COVERAGE_UNAVAILABLE' : 'LOGISTICS_SELECTION_REQUIRED';
-                    $message = $options === [] ? 'No enabled Logistics provider can quote this Shop order.' : 'Choose one Logistics provider for each Shop order.';
+                    $message = $options === [] ? 'No complete delivery route is available for this Shop and address. Change your address or try again later.' : 'Choose one Logistics provider for each Shop order.';
                     throw CheckoutException::conflict($code, $message, 'logistics_selections');
                 }
                 $organizationId = $options[0]['organization_id'];
             }
             $group['shipping_quote'] = $this->shippingQuotation->quote($group['shop'], $address, $group['lines'], $organizationId);
+            if ($group['shipping_quote']['route_snapshot']['status'] === ShippingRoutePricingStatus::Unplanned->value) {
+                throw CheckoutException::conflict('SHIPPING_COVERAGE_UNAVAILABLE', 'No complete delivery route is available for this Shop and address. Change your address or try again later.', 'logistics_selections');
+            }
             $group['shipping_cents'] = $group['shipping_quote']['shipping_cents'];
             $state['shipping'][] = $group['shipping_quote']['state'];
         }
