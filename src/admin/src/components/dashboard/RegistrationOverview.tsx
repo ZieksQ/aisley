@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { DataChart } from '@aisley/ui/charts'
 import { formatDate, roleLabel } from '../../lib/registrations'
 import type { DashboardRegistrationOverview } from '../../types/dashboard'
 import { dashboardLink, dashboardPanel } from './DashboardQueueCard'
@@ -19,6 +20,11 @@ export function RegistrationOverview({ overview }: { overview: DashboardRegistra
             <dd className="mt-1 font-semibold tabular-nums">{overview.pending.by_role[role]}</dd>
           </div>)}
         </dl>
+        <DataChart className="mt-5 border-t border-[var(--portal-border)] pt-4" variant="plain"
+          title="Applications by role" layout="vertical" height={176} labelWidth={76}
+          series={[{ key: 'count', label: 'Pending applications' }]}
+          data={(['customer', 'seller', 'logistics'] as const).map((role) => ({ label: roleLabel(role), count: overview.pending.by_role[role] }))}
+          emptyMessage="No applications awaiting review." />
         <Link className={`${dashboardLink} mt-3`} to="/registrations?status=pending">View pending registrations</Link>
       </article>
       <article className={dashboardPanel}>
@@ -30,7 +36,7 @@ export function RegistrationOverview({ overview }: { overview: DashboardRegistra
         {overview.action_items.length === 0 ? <p className="mt-4 text-sm">No applications awaiting review.</p>
           : <ol className="mt-3 divide-y divide-slate-200 dark:divide-white/10">
             {overview.action_items.map((application) => <li key={application.id}>
-              <Link className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-3 focus-visible:outline-2 focus-visible:outline-[#E6007A]" to={`/registrations/${application.id}`}>
+              <Link className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-3 focus-visible:outline-2 focus-visible:outline-[var(--brand-focus)]" to={`/registrations/${application.id}`}>
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{roleLabel(application.role)} application</p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Submitted {formatDate(application.submitted_at)}</p>

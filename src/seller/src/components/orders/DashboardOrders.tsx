@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useSellerOrders } from '../../lib/useSellerOrders'
 import { orderMoney, type SellerOrderPage } from '../../types/orders'
-import { OrderError, orderLink, orderPanel } from './OrderUi'
+import { OrderError, orderLink } from './OrderUi'
 
 export function DashboardOrders() {
   const { data, error, loading, refresh } = useSellerOrders<SellerOrderPage>('/api/v1/seller/orders?status=placed&per_page=5')
-  return <section className={`${orderPanel} mt-6`} aria-labelledby="dashboard-orders">
+  return <section className="mt-6 overflow-hidden rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="dashboard-orders">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-5 dark:border-white/10">
       <h3 className="font-semibold" id="dashboard-orders">Awaiting approval{data ? ` (${data.meta.total})` : ''}</h3>
       <Link className={`${orderLink} text-sm`} to="/orders/approval">Review orders</Link>

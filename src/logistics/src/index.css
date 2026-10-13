@@ -1,11 +1,12 @@
 @import "tailwindcss";
+@import "@aisley/ui/portal.css";
 @source "../../../packages/ui/src";
 @import "flatpickr/dist/flatpickr.min.css";
 @custom-variant dark (&:where(.dark, .dark *));
-:root { font-family: ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #f7f7f8; font-synthesis: none; text-rendering: optimizeLegibility; }
+:root { font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #f7f7f8; font-synthesis: none; text-rendering: optimizeLegibility; }
 html.dark { color-scheme: dark; background: #101012; }
 * { box-sizing: border-box; }
-body { min-width: 320px; min-height: 100vh; margin: 0; }
+body { min-width: 0; min-height: 100vh; margin: 0; }
 button, a, input, select { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease; }
 button:not(:disabled), a { cursor: pointer; }
 ::selection { color: white; background: #e6007a; }

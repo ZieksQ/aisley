@@ -90,7 +90,7 @@ async function until(script, label) {
   }
   throw new Error(`Timed out: ${label}`)
 }
-const refresh = 'main section > div > div > button'
+const refresh = '.portal-content > div > div > button'
 
 try {
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: `(${mockApi.toString()})();` })

@@ -1,0 +1,201 @@
+.portal-sidebar {
+  display: none;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: var(--portal-sidebar-width);
+  height: 100dvh;
+  flex-direction: column;
+  border-right: 1px solid var(--portal-border);
+  background: var(--portal-surface);
+}
+.portal-sidebar.is-open {
+  display: flex;
+}
+.portal-brand-row {
+  display: flex;
+  min-height: 5.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem .75rem .75rem 1rem;
+}
+.portal-brand {
+  min-width: 0;
+}
+.portal-logo-full {
+  display: block;
+  width: 7.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  filter: brightness(0);
+}
+.portal-logo-mark {
+  display: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+.portal-role {
+  display: block;
+  padding-left: .125rem;
+  font-size: .6875rem;
+  line-height: 1.5;
+  color: var(--portal-muted);
+}
+.dark .portal-logo-full {
+  filter: brightness(0) invert(1);
+}
+.portal-icon-button {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: .5rem;
+  color: var(--portal-muted);
+}
+.portal-icon-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 1.5;
+}
+.portal-icon-button:hover {
+  color: var(--portal-text);
+  background: var(--portal-subtle);
+}
+.portal-desktop-toggle {
+  display: none;
+}
+.portal-sidebar-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--portal-border);
+  padding: .75rem .5rem;
+}
+.portal-account {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: .625rem;
+  padding: 0 .75rem;
+}
+.portal-account > :first-child {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: .5rem;
+}
+.portal-account-copy {
+  min-width: 0;
+}
+.portal-account-copy p {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .8125rem;
+  font-weight: 600;
+}
+.portal-account-copy p + p {
+  font-size: .6875rem;
+  font-weight: 400;
+  color: var(--portal-muted);
+}
+.portal-signout {
+  display: flex;
+  min-height: 2.75rem;
+  width: 100%;
+  align-items: center;
+  gap: .75rem;
+  padding: .625rem .75rem;
+  border-radius: .5rem;
+  color: var(--portal-muted);
+  font-size: .8125rem;
+}
+.portal-signout svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 1.5;
+}
+.portal-signout:hover {
+  background: var(--portal-subtle);
+  color: var(--portal-text);
+}
+.portal-policy-links {
+  display: flex;
+  gap: 1rem;
+  padding: .5rem .75rem 0;
+  font-size: .6875rem;
+  color: var(--portal-muted);
+}
+.portal-policy-links a:hover {
+  color: var(--portal-accent);
+}
+.portal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(15 23 42 / .55);
+}
+@media (min-width: 1024px) {
+  .portal-sidebar {
+    display: flex;
+  }
+  .portal-workspace {
+    padding-left: var(--portal-sidebar-width);
+  }
+  .portal-desktop-toggle {
+    display: grid;
+  }
+  .portal-mobile-toggle, .portal-mobile-close, .portal-backdrop {
+    display: none;
+  }
+  .portal-shell.is-collapsed {
+    --portal-sidebar-width: 4rem;
+  }
+  .is-collapsed .portal-brand-row {
+    flex-direction: column;
+    gap: .375rem;
+    padding: .75rem .5rem;
+  }
+  .is-collapsed .portal-logo-full, .is-collapsed .portal-role, .is-collapsed .portal-nav-heading, .is-collapsed .portal-nav-beta, .is-collapsed .portal-account-copy, .is-collapsed .portal-policy-links {
+    display: none;
+  }
+  .is-collapsed .portal-logo-mark {
+    display: block;
+  }
+  .is-collapsed .portal-nav-link, .is-collapsed .portal-signout {
+    width: 2.75rem;
+    justify-content: center;
+    gap: 0;
+    padding: .625rem;
+  }
+  .is-collapsed .portal-account {
+    justify-content: center;
+    padding: 0;
+  }
+  .is-collapsed .portal-nav-label, .is-collapsed .portal-signout span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .is-collapsed .portal-nav-item:hover .portal-nav-tooltip, .is-collapsed .portal-nav-item:focus-within .portal-nav-tooltip {
+    position: fixed;
+    z-index: 40;
+    left: 4.5rem;
+    display: block;
+    max-width: 16rem;
+    transform: translateY(-100%);
+    border: 1px solid var(--portal-border);
+    border-radius: .375rem;
+    padding: .625rem .75rem;
+    background: var(--portal-surface);
+    color: var(--portal-text);
+    font-size: .8125rem;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgb(15 23 42 / .1);
+  }
+}

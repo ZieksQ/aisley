@@ -81,8 +81,8 @@ active Seller session
 
 - Render responsive light/dark layouts with keyboard focus, text labels, accessible chart summaries, and non-color-only states.
 - Keep Dashboard directly accessible and group the remaining sidebar routes as **Shop** (Products, Shipping providers, Inventory, Low-stock alerts, Finance), **Orders** (Monitoring, Approval, Pickup), **Communication** (Product Q&A, Product reviews, Customer/Logistics/Courier messages, Support tickets), and **My account** (Account settings, Policy consent). Courier messages links to `/courier-messages` and remains separate from Customer and Logistics inboxes; it adds no dashboard aggregate.
-- Show one expanded group at a time. On navigation or reload, automatically open the group containing the current route, including Product Q&A and Order detail/prepare routes. On Dashboard, groups begin collapsed.
-- Group buttons must be keyboard-operable, expose expanded state to assistive technology, and preserve clear active links in both themes and mobile navigation. Navigation grouping does not add new dashboard metrics or move actions between owning features.
+- Display every group as a static section label and its destinations as direct links; remove sidebar dropdowns. Preserve Product Q&A and Order detail/prepare active matching. Use the shared expanded 240px sidebar, opt-in 64px desktop icon rail with saved preference, and modal drawer below 1024px.
+- Sidebar open/close buttons must be keyboard-operable and expose expanded state. Preserve text labels, rail keyboard/hover tooltips, active states, 44px targets, mobile focus containment, Escape, navigation closure and trigger focus restoration. Navigation does not add new metrics or move actions between owning features.
 - Support loading, loaded, empty, setup-required, unavailable, partial-error, stale/refetch, session-expired, and retry states.
 - [x] Guests and inactive/non-Seller accounts cannot use the API or protected page.
 - [x] Every current catalog value and Shop identifier is authenticated-Seller scoped.
@@ -91,7 +91,7 @@ active Seller session
 - [x] The separate placed-Order panel reads the implemented Seller Order API without claiming `sections.orders` is available.
 - [x] Review `total`, `answered`, and `unanswered` reconcile with the Shop-scoped Review ledger for all-time and normalized periods, including hidden/archived Products and another Seller's data.
 - [x] Review empty, error, stale/refetch, consent/session, and responsive keyboard-accessible states are implemented; the card links to the existing queue without inventing a filtered period view. Browser interaction remains unverified.
-- [x] Seller sidebar groups preserve the existing feature routes and separate Monitoring, Approval, and Pickup links, with active-route expansion and keyboard/mobile controls.
+- [x] Seller sidebar groups preserve the existing feature routes and separate Monitoring, Approval, and Pickup links, with active-route highlighting and shared expanded/rail/drawer controls.
 - [ ] Inventory, finance, traffic, notification, report, and comparison metrics are enabled only after their owning contracts and reconciliation tests exist.
 
 ## HOW
@@ -154,3 +154,7 @@ active Seller session
 
 - Add Vouchers (`/vouchers`, `/vouchers/new`, `/vouchers/:id`) under **Shop**, preserving active-route expansion and mobile close behavior. The [voucher specification](../vouchers/spec.md) owns the workflow.
 - The approved Seller session owns a single Shop. Voucher merchandise discounts reduce Seller proceeds before commission; publishing and reports remain tenant-scoped.
+
+## Shared portal presentation revision (2026-10-14)
+
+- Consume the shared purple/Geist `@aisley/ui/portal` shell and brand assets from `packages/ui/public`. `@aisley/ui/charts` visualizes existing Active/Draft/Archived catalog counts, with the original catalog/stock totals and accessible chart data. No revenue, traffic, or historic aggregate is invented; review filters and unavailable sections remain intact.

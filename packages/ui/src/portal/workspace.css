@@ -1,0 +1,130 @@
+.portal-workspace {
+  min-width: 0;
+  min-height: 100dvh;
+}
+.portal-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  height: 4rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--portal-border);
+  background: var(--portal-surface);
+}
+.portal-toolbar-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .75rem;
+}
+.portal-toolbar-role, .portal-toolbar-divider {
+  display: none;
+  color: var(--portal-muted);
+  font-size: .8125rem;
+}
+.portal-toolbar h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .9375rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+.portal-toolbar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: .375rem;
+}
+.portal-toolbar-actions > button, .portal-toolbar-actions > div > button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-color: var(--portal-border);
+  border-radius: .5rem;
+  background: var(--portal-surface);
+  color: var(--portal-muted);
+  box-shadow: none;
+}
+.portal-content {
+  min-width: 0;
+}
+.portal-page {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+}
+.portal-page-heading {
+  font-size: clamp(1.375rem, 2vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.portal-panel {
+  min-width: 0;
+  border: 1px solid var(--portal-border);
+  border-radius: .75rem;
+  padding: 1.25rem;
+  background: var(--portal-surface);
+}
+.portal-secondary {
+  color: var(--portal-muted);
+}
+.portal-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .625rem .875rem;
+  border: 1px solid var(--portal-border);
+  border-radius: .5rem;
+  background: var(--portal-surface);
+  color: var(--portal-text);
+  font-size: .8125rem;
+  font-weight: 500;
+}
+.portal-button:hover {
+  background: var(--portal-subtle);
+}
+.portal-button-primary {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #fff;
+}
+.portal-button-primary:hover {
+  border-color: var(--brand-hover);
+  background: var(--brand-hover);
+}
+.portal-link {
+  color: var(--portal-accent);
+}
+.portal-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 389px) {
+  .portal-toolbar {
+    gap: .5rem;
+    padding: 0 .5rem;
+  }
+  .portal-toolbar-context {
+    gap: .5rem;
+  }
+}
+@media (min-width: 640px) {
+  .portal-toolbar {
+    padding: 0 1.5rem;
+  }
+  .portal-toolbar-role, .portal-toolbar-divider {
+    display: inline;
+  }
+  .portal-page {
+    padding: 2rem 1.5rem;
+  }
+}

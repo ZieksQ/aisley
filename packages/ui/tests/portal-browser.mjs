@@ -1,0 +1,151 @@
+// Start Admin/Seller/Logistics Vite on 15175/15174/15176, then run from the repo root:
+// node packages/ui/tests/portal-browser.mjs
+import assert from 'node:assert/strict'
+import { mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { spawn } from 'node:child_process'
+import { openChatBrowser } from './chat-browser-driver.mjs'
+import { installPortalFixtures } from './portal-fixtures.mjs'
+
+const artifacts = resolve('node_modules/.cache/portal-browser')
+mkdirSync(artifacts, { recursive: true })
+const browser = await openChatBrowser()
+const js = browser.evaluate
+// First Vite dependency compilation can take longer than an ordinary UI wait.
+browser.until = async (expression, label) => {
+  const deadline = Date.now() + 90000
+  while (Date.now() < deadline) {
+    if (await js(expression)) return
+    await new Promise((done) => setTimeout(done, 250))
+  }
+  throw new Error(`${label}: ${await js('document.body.innerText.slice(0, 3000)')}; ${JSON.stringify(browser.errors)}`)
+}
+const click = async (selector) => {
+  assert(await js(`!!document.querySelector(${JSON.stringify(selector)})`), `Missing ${selector}`)
+  await js(`document.querySelector(${JSON.stringify(selector)}).click()`)
+}
+const key = async (key, code = key, modifiers = 0) => {
+  await browser.cdp('Input.dispatchKeyEvent', { type: 'keyDown', key, code, modifiers })
+  await browser.cdp('Input.dispatchKeyEvent', { type: 'keyUp', key, code, modifiers })
+}
+const serve = process.argv.includes('--serve')
+const roles = [['admin', serve ? 16175 : 15175], ['seller', serve ? 16174 : 15174], ['logistics', serve ? 16176 : 15176]]
+const services = []
+const adminOrigin = `http://127.0.0.1:${roles[0][1]}`
+try {
+  if (serve) {
+    for (const [role, port] of roles) {
+      const service = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: resolve(`src/${role}`), stdio: ['ignore', 'pipe', 'pipe'] })
+      services.push(service)
+      service.stderr.on('data', (data) => process.stderr.write(`${role}: ${data}`))
+      service.stdout.resume()
+      const deadline = Date.now() + 60000
+      let ready = false
+      while (Date.now() < deadline) {
+        if (service.exitCode !== null) throw new Error(`${role} dev server exited ${service.exitCode}`)
+        if (await fetch(`http://127.0.0.1:${port}`).then((response) => response.ok).catch(() => false)) { ready = true; break }
+        await new Promise((done) => setTimeout(done, 250))
+      }
+      assert(ready, `${role} dev server ready`)
+    }
+  }
+  await browser.cdp('Page.addScriptToEvaluateOnNewDocument', { source: `(${installPortalFixtures.toString()})();` })
+  for (const [role, port] of roles) {
+    await browser.cdp('Emulation.setEmulatedMedia', { features: [] })
+    await browser.viewport(1440, 1000, false)
+    await browser.navigate(`http://127.0.0.1:${port}/dashboard`)
+    await browser.until("!!document.querySelector('.recharts-bar')", `${role} dashboard loaded`)
+    await js(`localStorage.removeItem('aisley-${role}-sidebar')`)
+    if (await js("document.querySelector('.portal-shell').classList.contains('is-collapsed')")) await click('.portal-desktop-toggle')
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-sidebar')).width"), '240px')
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-toolbar')).height"), '64px')
+    assert.equal(await js("document.querySelectorAll('.portal-nav button').length"), 0, 'No sidebar dropdowns')
+    assert.equal(await js("document.querySelectorAll('.portal-nav-link[aria-current=page]').length"), 1)
+    assert(await js("[...document.querySelectorAll('.portal-brand img')].every(img => img.complete && img.naturalWidth > 0)"), 'Brand assets loaded')
+    assert(await js("document.fonts.check('500 14px Geist')"), 'Geist loaded')
+    assert.equal(await js("document.documentElement.scrollWidth > innerWidth"), false)
+    await browser.screenshot(resolve(artifacts, `${role}-desktop-light.png`))
+
+    await js("document.documentElement.classList.add('dark')")
+    await js("new Promise(done => setTimeout(done, 220))")
+    await browser.screenshot(resolve(artifacts, `${role}-desktop-dark.png`))
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-shell')).getPropertyValue('--portal-page').trim()"), '#0f172a')
+    await click('.portal-desktop-toggle')
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-sidebar')).width"), '64px')
+    assert.equal(await js("document.querySelector('.portal-desktop-toggle').getAttribute('aria-expanded')"), 'false')
+    await js("document.querySelector('.portal-nav-link').focus()")
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-nav-tooltip')).display"), 'block', 'Rail tooltip on keyboard focus')
+    assert(await js("document.querySelector('.portal-nav-link').textContent.includes('Dashboard')"), 'Rail keeps accessible labels')
+    await browser.screenshot(resolve(artifacts, `${role}-rail-dark.png`))
+    await browser.navigate(`http://127.0.0.1:${port}/dashboard`)
+    await browser.until("!!document.querySelector('.portal-shell.is-collapsed')", `${role} rail persists`)
+
+    for (const width of [768, 390, 320]) {
+      await browser.viewport(width, 850, false)
+      await js("document.documentElement.classList.remove('dark')")
+      await browser.until("getComputedStyle(document.querySelector('.portal-sidebar')).display === 'none'", `${role} sidebar hidden on mobile`)
+      await browser.until("document.documentElement.scrollWidth <= document.documentElement.clientWidth", `${role} no overflow at ${width}`)
+      await click('.portal-mobile-toggle')
+      await browser.until("document.querySelector('.portal-sidebar').getAttribute('role') === 'dialog'", 'Mobile dialog opens')
+      assert.equal(await js("document.querySelector('.portal-workspace').inert"), true)
+      assert.equal(await js("getComputedStyle(document.querySelector('.portal-nav-label')).position"), 'static', 'Labels visible in mobile drawer even with saved rail')
+      await browser.until("document.activeElement.classList.contains('portal-mobile-close')", 'Focus enters visible drawer close button')
+      await key('Tab', 'Tab', 8)
+      assert.equal(await js("document.activeElement.closest('.portal-sidebar') !== null"), true, 'Focus stays in drawer')
+      await key('Escape')
+      await browser.until("!document.querySelector('.portal-sidebar.is-open')", 'Escape closes drawer')
+      await browser.until("document.activeElement.classList.contains('portal-mobile-toggle')", 'Focus restored')
+      assert.equal(await js("document.querySelector('.portal-workspace').inert"), false)
+      await browser.screenshot(resolve(artifacts, `${role}-${width}-light.png`))
+      await js("document.documentElement.classList.add('dark')")
+      await js("new Promise(done => setTimeout(done, 220))")
+      await browser.screenshot(resolve(artifacts, `${role}-${width}-dark.png`))
+    }
+    await click('.portal-mobile-toggle')
+    await click('.portal-nav-link[to="/dashboard"], .portal-nav-link[href="/dashboard"]')
+    await browser.until("!document.querySelector('.portal-sidebar.is-open')", 'Navigation closes drawer')
+    await browser.viewport(1440, 1000, false)
+    await click('.portal-desktop-toggle')
+    await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-nav-link')).transitionDuration"), '0s')
+    await click('details summary')
+    assert(await js("[...document.querySelectorAll('details')].some(d => d.open && d.querySelector('table'))"), 'Accessible chart data')
+    await js("window.portalFixture.empty = true")
+    await click('.portal-content button')
+    await browser.until("!document.querySelector('.recharts-bar')", `${role} authoritative zero shown`)
+    await js("window.portalFixture.failed = 'offline'")
+    await click('.portal-content button')
+    await browser.until("!!document.querySelector('.portal-content [role=alert]')", `${role} failed reads visible`)
+    assert(await js("/stale|last loaded/i.test(document.querySelector('.portal-content').textContent)"), 'Failed refresh marked stale')
+    assert.deepEqual(await js('window.portalFixture.writes'), [], 'Dashboard reads do not mutate')
+    console.log(`${role}: desktop, rail, mobile, light/dark, focus, reduced motion, charts, empty/error passed`)
+  }
+  await browser.navigate(`${adminOrigin}/dashboard`)
+  await browser.until("!!document.querySelector('.portal-shell')", 'Admin loaded')
+  await js("localStorage.setItem('portal-restricted', 'true')")
+  await browser.navigate(`${adminOrigin}/dashboard`)
+  await browser.until("!!document.querySelector('.portal-shell')", 'Restricted admin loaded')
+  await browser.until("document.body.innerText.includes('No dashboard queues are available')", 'Restricted dashboard settled')
+  assert.equal(await js("document.querySelectorAll('.portal-nav-link').length"), 3, 'Only dashboard and personal links for restricted Admin')
+  assert.equal(await js("document.querySelectorAll('.recharts-bar').length"), 0, 'No unauthorized chart')
+  await js("localStorage.removeItem('portal-restricted')")
+  const logisticsOrigin = `http://127.0.0.1:${roles[2][1]}`
+  await browser.navigate(`${logisticsOrigin}/settings/appearance`)
+  await browser.until("!!document.querySelector('#logistics-theme')", 'Logistics appearance settings')
+  await js("localStorage.setItem('logistics-theme', 'system'); window.dispatchEvent(new StorageEvent('storage', { key: 'logistics-theme', newValue: 'system' }))")
+  await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] })
+  await browser.until("document.documentElement.classList.contains('dark')", 'System dark theme')
+  await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] })
+  await browser.until("!document.documentElement.classList.contains('dark')", 'System light theme')
+  assert.equal(await js("document.querySelector('#logistics-theme').value"), 'system')
+  assert.equal(await js("document.querySelector('#logistics-account-menu')"), null)
+  console.log('Logistics Settings: direct navigation and System theme preserved')
+  assert.deepEqual(browser.errors, [])
+  console.log(`Portal browser checks passed; screenshots: ${artifacts}`)
+} catch (error) {
+  await browser.screenshot(resolve(artifacts, 'failure.png'))
+  throw error
+} finally {
+  browser.close()
+  for (const service of services) service.kill('SIGTERM')
+}

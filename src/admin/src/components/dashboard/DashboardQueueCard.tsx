@@ -2,9 +2,9 @@ import { Button } from '@aisley/ui'
 import { Link } from 'react-router-dom'
 import type { DashboardQueueSummary } from '../../types/dashboard'
 
-export const dashboardPanel = 'rounded-lg border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#17141b]'
-export const dashboardLink = 'inline-flex min-h-11 items-center text-sm font-semibold text-[#4C1268] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] dark:text-purple-200'
-export const dashboardButton = 'min-h-11! rounded-lg! border border-slate-300 px-4 py-2 text-sm shadow-none! focus-visible:outline-solid! focus-visible:outline-2! focus-visible:outline-offset-2! focus-visible:outline-[#E6007A]! dark:border-white/20 dark:bg-[#17141b]! dark:text-white! dark:hover:bg-white/10!'
+export const dashboardPanel = 'portal-panel'
+export const dashboardLink = 'inline-flex min-h-11 items-center text-sm font-semibold text-[#4C1268] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:text-purple-200'
+export const dashboardButton = 'min-h-11! rounded-lg! border border-slate-300 px-4 py-2 text-sm shadow-none! focus-visible:outline-solid! focus-visible:outline-2! focus-visible:outline-offset-2! focus-visible:outline-[var(--brand-focus)]! dark:border-white/20 dark:bg-[#1E293B]! dark:text-white! dark:hover:bg-white/10!'
 
 export function DashboardQueueCard({ title, summary, loading, destination, onRetry }: {
   title: string

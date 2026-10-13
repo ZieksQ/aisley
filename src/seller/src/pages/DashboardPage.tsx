@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  FaBox,
   FaChartLine,
   FaCircleExclamation,
   FaRotateRight,
@@ -10,14 +9,15 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
+import { CatalogSummary } from '../components/dashboard/CatalogSummary'
 import { DashboardReviews } from '../components/dashboard/DashboardReviews'
 import { fetchSellerDashboard, type DashboardPeriodFilter } from '../lib/dashboard'
-import type { CatalogSection, DashboardResponse } from '../types/dashboard'
+import type { DashboardResponse } from '../types/dashboard'
 import { DashboardOrders } from '../components/orders/DashboardOrders'
 
 const deferredSections = [
-  { key: 'financial', name: 'Financial summary', detail: 'Waiting for Orders, payments, fees, refunds, and settlement definitions.', icon: FaWallet },
-  { key: 'traffic', name: 'Traffic and conversion', detail: 'Waiting for Seller-scoped analytics event definitions.', icon: FaChartLine },
+  { key: 'financial', name: 'Financial summary', detail: 'Revenue and settlement totals are not available in this view yet.', icon: FaWallet },
+  { key: 'traffic', name: 'Traffic and conversion', detail: 'Shop visit and conversion data is not available yet.', icon: FaChartLine },
 ] as const
 
 export function DashboardPage() {
@@ -85,16 +85,16 @@ export function DashboardPage() {
   const firstName = seller?.profile?.first_name ?? 'Seller'
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+    <div className="portal-page">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200 pb-5 dark:border-white/10">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Welcome, {firstName}</h2>
+          <h2 className="portal-page-heading">Welcome, {firstName}</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Shop, order, catalog, and review status.</p>
         </div>
         <div className="flex items-center gap-3">
-          {dashboard ? <p className="text-xs text-zinc-500">{error ? 'Last loaded' : 'Updated'} {formatTimestamp(dashboard.generated_at)}</p> : null}
+          {dashboard ? <p className="text-xs portal-secondary">{error ? 'Last loaded' : 'Updated'} {formatTimestamp(dashboard.generated_at)}</p> : null}
           <button
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/[0.06]"
+            className="portal-button"
             disabled={isLoading}
             onClick={() => setReloadKey((value) => value + 1)}
             type="button"
@@ -105,7 +105,7 @@ export function DashboardPage() {
       </div>
 
       {isLoading && !dashboard ? <DashboardSkeleton /> : null}
-      {isLoading && dashboard ? <p className="mt-4 text-sm text-zinc-500" role="status">Refreshing dashboard…</p> : null}
+      {isLoading && dashboard ? <p className="mt-4 text-sm portal-secondary" role="status">Refreshing dashboard…</p> : null}
 
       {!isLoading && error ? (
         <section className="mt-6 rounded-lg border border-red-200 bg-red-50 p-5 dark:border-red-400/20 dark:bg-red-400/10" role="alert">
@@ -136,7 +136,7 @@ export function DashboardPage() {
             <div>
               <h3 className="font-semibold">Shop setup is required</h3>
               <p className="mt-1 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-                Your Seller account is active, but no Shop is connected yet. Shop onboarding has not been defined, so this dashboard will not create a placeholder shop or show marketplace-wide data.
+                Your Seller account is active. A Shop must be connected before you can manage its catalog and orders.
               </p>
             </div>
           </div>
@@ -146,11 +146,11 @@ export function DashboardPage() {
       {dashboard?.shop && 'metrics' in dashboard.sections.catalog ? (
         <>
           <DashboardOrders key={reloadKey} />
-          <section className="mt-6 rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="shop-catalog-heading">
+          <section className="mt-6 rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="shop-catalog-heading">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="font-semibold" id="shop-catalog-heading">{dashboard.shop.name}</h3>
-                <p className="mt-1 text-sm text-zinc-500">Catalog summary</p>
+                <p className="mt-1 text-sm portal-secondary">Catalog summary</p>
               </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-300">
                 Shop status: <span className="font-medium capitalize">{dashboard.shop.status}</span>{dashboard.shop.is_on_vacation ? ' · Vacation mode' : ''}
@@ -167,10 +167,10 @@ export function DashboardPage() {
             section={dashboard.sections.reviews}
           />
 
-          <section className="mt-6 rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="future-sections-heading">
+          <section className="mt-6 rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="future-sections-heading">
             <div className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
               <h3 className="font-semibold" id="future-sections-heading">Other dashboard sections</h3>
-              <p className="mt-1 text-sm text-zinc-500">These areas need an authoritative source before they can show totals.</p>
+              <p className="mt-1 text-sm portal-secondary">These totals are not available in this view yet.</p>
             </div>
             <ul className="divide-y divide-zinc-200 dark:divide-white/10">
               {deferredSections.map(({ detail, icon: Icon, key, name }) => (
@@ -178,7 +178,7 @@ export function DashboardPage() {
                   <Icon aria-hidden="true" className="mt-0.5 shrink-0 text-zinc-400" />
                   <div>
                     <p className="text-sm font-medium">{name}</p>
-                    <p className="mt-1 text-sm leading-5 text-zinc-500 dark:text-zinc-400">Unavailable — {detail}</p>
+                    <p className="mt-1 text-sm leading-5 portal-secondary dark:text-zinc-400">Unavailable — {detail}</p>
                   </div>
                 </li>
               ))}
@@ -190,43 +190,12 @@ export function DashboardPage() {
   )
 }
 
-function CatalogSummary({ catalog }: { catalog: CatalogSection }) {
-  const rows = [
-    ['Total products', catalog.metrics.total],
-    ['Active', catalog.metrics.active],
-    ['Draft', catalog.metrics.draft],
-    ['Archived', catalog.metrics.archived],
-    ['Zero-stock products without variants', catalog.metrics.zero_stock_products],
-    ['Zero-stock variant SKUs', catalog.metrics.zero_stock_skus],
-  ] as const
-
-  return (
-    <div className="px-5 py-2">
-      {catalog.state === 'empty' ? (
-        <p className="border-b border-zinc-200 py-4 text-sm text-zinc-600 dark:border-white/10 dark:text-zinc-400">No products are recorded for this Shop yet.</p>
-      ) : null}
-      <dl className="divide-y divide-zinc-200 dark:divide-white/10">
-        {rows.map(([label, value]) => (
-          <div className="flex items-center justify-between gap-4 py-3.5" key={label}>
-            <dt className="text-sm text-zinc-600 dark:text-zinc-400">{label}</dt>
-            <dd className="text-sm font-semibold tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="flex gap-2 border-t border-zinc-200 py-4 text-xs leading-5 text-zinc-500 dark:border-white/10">
-        <FaBox aria-hidden="true" className="mt-0.5 shrink-0" />
-        Catalog quantities are synchronized from the Inventory ledger. Use Inventory to review availability and record adjustments.
-      </div>
-    </div>
-  )
-}
-
 function DashboardSkeleton() {
   return (
     <div aria-label="Loading dashboard" aria-live="polite" className="mt-6 space-y-4" role="status">
       <span className="sr-only">Loading Seller dashboard</span>
-      <div className="h-16 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" />
-      <div className="h-72 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" />
+      <div className="h-16 animate-pulse rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" />
+      <div className="h-72 animate-pulse rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" />
     </div>
   )
 }

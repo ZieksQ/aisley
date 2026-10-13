@@ -83,9 +83,9 @@ active Logistics session
 ### Sidebar navigation
 
 - Keep Dashboard directly accessible. Group the other sidebar destinations into **Hub operations** (Parcel search, Pickups, Receive at hub, Sorting, Sort plan), **Transport & delivery** (Linehaul, Linehaul dispatch, Inbound linehaul, Last-mile dispatch, Delivery confirmations), **Pricing & rates** (Shipping rates), **Organization** (Courier applications, Vehicles, Company fleet, Finance), and **Communication** (Operational messages, Support tickets).
-- Show one expanded group at a time. Open the group containing the current route after navigation or reload, including pickup/application detail and `/couriers/:courierId/vehicle` under Vehicles. On Dashboard, groups begin collapsed.
-- Keep existing Beta labels on Sort plan, Linehaul, Linehaul dispatch, and Inbound linehaul. The separate account menu contains Settings, Notifications, and Log out. [Settings](../settings/spec.md) uses its own sidebar for Account, Terms and conditions, Billing, and Appearance. Shipping rates is a standalone operational sidebar destination.
-- Group controls must be keyboard-operable and expose expanded state; links must have visible active states in both themes and work in the mobile sidebar. This navigation change does not create new operational actions, queue data, or permissions.
+- Display task groups as static labels with direct destinations; remove dropdown controls. Preserve pickup/application detail and `/couriers/:courierId/vehicle` highlighting under Vehicles. Use the shared 240px expanded sidebar, opt-in persistent 64px desktop icon rail, and a modal drawer below 1024px with accessible labels, rail keyboard/hover tooltips and 44px targets.
+- Keep existing Beta labels on Sort plan, Linehaul, Linehaul dispatch, and Inbound linehaul. Settings and Notifications are direct My account links; Sign out is a persistent sidebar footer button. The account dropdown is removed. [Settings](../settings/spec.md) uses its own sidebar for Account, Terms and conditions, Billing, and Appearance. Shipping rates is a standalone operational sidebar destination.
+- Sidebar open/close controls must be keyboard-operable and expose expanded state; links must have visible active states in both themes and the rail. The mobile drawer contains focus, closes on Escape/navigation and restores trigger focus. This navigation change does not create new operational actions, queue data, or permissions.
 
 ### Acceptance criteria
 
@@ -96,7 +96,7 @@ active Logistics session
 - [x] Organization/sole-hub scoped queue rows, real counts, status/search/evidence filters, bounded pagination, authoritative freshness, and truthful empty/error states are implemented.
 - [x] Parcel search has tenant-scoped offline queue/detail cache, local barcode/QR decoding with online authoritative lookup, ten-row online pagination, camera scanning, and read-only cached fallback.
 - [x] Evidence status, completion intents, and recovery transitions remain visible in Hub operations; receipt, sorting, and scheduled dispatch are separated into their own navigation and pages.
-- [x] Sidebar groups and the account menu preserve all deployed Logistics destinations, including the standalone Shipping rates destination, Beta labels, detail-route active states, and keyboard/mobile navigation.
+- [x] Static sidebar groups and direct account links preserve all deployed Logistics destinations, including standalone Shipping rates, Beta labels, detail-route active states, and keyboard/mobile navigation.
 - [ ] A configured stale threshold, private realtime transport, advanced ranking, date filters, and automatic reassignment remain deferred.
 
 ## HOW
@@ -146,3 +146,7 @@ active Logistics session
 - `/delivery-confirmations` retains its Logistics navigation entry and adds Pending, History, and Approval settings views.
 - Finance navigation adds Courier cash (`/finance/courier-cash`). Billing moved to `/settings/billing` on 2026-10-08; `/finance/billing` remains a redirect. Existing platform Remittances and Payment settings remain separate.
 - Courier cash receipts show physical cash received; Billing shows masked simulated account details without balance or credentials.
+
+## Shared portal presentation revision (2026-10-14)
+
+- Consume `@aisley/ui/portal` with blue/slate tokens and shared Geist/brand assets. `@aisley/ui/charts` visualizes the existing organization/hub-scoped `summary.by_status`; totals remain authoritative aggregates, not first-page lengths or scaffold zeroes. Empty/loading/error states remain explicit, and retained results after a failed refresh are marked stale. System/Light/Dark remains owned by Settings Appearance.

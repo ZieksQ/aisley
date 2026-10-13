@@ -11,8 +11,8 @@ type Props = {
   onPeriodChange: (filters: DashboardPeriodFilter) => void
 }
 
-const linkClass = 'text-sm font-medium text-[#4C1268] underline-offset-2 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] dark:text-fuchsia-300'
-const inputClass = 'mt-1 block h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] dark:border-white/20 dark:bg-[#18181b] dark:text-zinc-100'
+const linkClass = 'text-sm font-medium text-[#4C1268] underline-offset-2 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:text-[#C4B5FD]'
+const inputClass = 'mt-1 block h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:border-white/20 dark:bg-[var(--portal-surface)] dark:text-zinc-100'
 
 export function DashboardReviews({ section, period, refreshing, onRefresh, onPeriodChange }: Props) {
   const [from, setFrom] = useState(period.from ?? '')
@@ -43,7 +43,7 @@ export function DashboardReviews({ section, period, refreshing, onRefresh, onPer
   }
 
   return (
-    <section aria-labelledby="dashboard-reviews-heading" className="mt-6 rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]">
+    <section aria-labelledby="dashboard-reviews-heading" className="mt-6 overflow-hidden rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
         <div>
           <h3 className="font-semibold" id="dashboard-reviews-heading">Product reviews</h3>
@@ -70,7 +70,7 @@ export function DashboardReviews({ section, period, refreshing, onRefresh, onPer
           </select>
         </label>
         <div className="flex gap-2">
-          <button className="h-10 rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] dark:border-white/20 dark:hover:bg-white/[0.06]" type="submit">Apply</button>
+          <button className="h-10 rounded-lg border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:border-white/20 dark:hover:bg-white/[0.06]" type="submit">Apply</button>
           {hasPeriod ? <button className="h-10 rounded-lg px-2 text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-300" onClick={() => onPeriodChange({ from: '', to: '', timezone })} type="button">Clear</button> : null}
         </div>
       </form>

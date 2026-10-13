@@ -23,10 +23,10 @@ function DashboardOverview({ permissions }: { permissions: string[] }) {
   ]
   const visibleQueues = queues.filter((queue) => data ? Boolean(data[queue.key]) : !denied && !error && permissions.includes(queue.permission))
 
-  return <div className="mx-auto max-w-7xl space-y-6 px-5 py-6 sm:px-8">
+  return <div className="portal-page space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-semibold">Work queues</h2>
+        <h2 className="portal-page-heading">Work queues</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current work available to your Admin account.</p>
         {data && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           {error || loading ? 'Last successful update (stale)' : 'Updated'} {formatDate(data.generated_at)}
