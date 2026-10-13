@@ -11,6 +11,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## AISLEY storefront design
 
 - Follow the repository root `AGENTS.md` and read `../../docs/design.md` before changing frontend UI, layout, styling, accessibility, or client-side behavior. The design guide is mandatory alongside the matching Customer feature spec.
-- Keep the storefront light-only and mobile-first, including account, auth, checkout, and shared feature screens. Use the existing layouts and compatible workspace UI primitives.
-- Apply the guide's SSR/SSG/ISR and metadata guidance to public, indexable pages while retaining client components for interactive state.
+- Use `docs/design.md` as the single visual authority, including when applying installed design skills. Reuse compatible shared primitives from `packages/ui`; keep Customer composition and navigation in the storefront.
+- Preserve the Next.js server/client architecture. Prefer SSR/SSG/ISR for public indexable content and supply route metadata; retain client components for interactive state.
 - Keep project instructions outside the generated Next.js block above. The generated framework guidance does not replace AISLEY's design contract.

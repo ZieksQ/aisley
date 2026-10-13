@@ -95,7 +95,7 @@ verified: 2026-10-02
 
 ### Web presentation and navigation
 
-- Follow `docs/design.md`: mobile-first layouts, existing typography/spacing, compatible shared primitives, and Admin light/dark themes.
+- Follow `docs/design.md` for visual tokens, mobile-first layouts, compatible shared primitives, and Admin light/dark themes.
 - The page must fetch permitted support/compliance sections even when `registrations.view` is absent.
 - Preserve registration cards and action links; replace misleading placeholder copy rather than declaring existing Finance features unimplemented.
 - Use clear card titles, textual counts, loading/zero/unavailable/forbidden states, and keyboard-accessible links and retry controls.

@@ -30,3 +30,16 @@ Format:
 - Updated checkout/shipping/design specs and the affected portable Buyer API contracts/examples; Flutter implementation and device/deployed acceptance remain unchanged.
 - Verification: checkout API 16 tests/151 assertions; adjacent address/image/order/quotation checks 78 passing tests; voucher suites 4 tests/72 assertions and 16 tests/303 assertions pass after avoiding duplicate route fixtures. Storefront checkout regressions, current TypeScript and scoped ESLint pass. Chromium checks 320/390/768/1440px and short dialogs, selection/defaults/cancellation, confirmation/Escape/focus, failed reads, unavailable delivery, account cleanup and exact-key retry pass; synthetic screenshots are under `.next/checkout-voucher-browser/`. No live checkout or PostgreSQL concurrency rerun.
 - Full storefront lint retains two existing `no-assign-module-variable` errors in `tests/customer-vouchers.test.mjs`. Default build hit font-fetch/Turbopack socket restrictions; Webpack compilation succeeded, but the full build was terminated during TypeScript (exit 143). Separate current `tsc --noEmit` passes.
+
+## 2026-10-14 — Taste skill workspace
+
+- Created the isolated `.worktrees/taste-skill` workspace on `feature/install-taste-skill` from the active branch. Installed the default `design-taste-frontend` skill from `Leonxlnx/taste-skill` for Codex using `pnpm dlx skills add Leonxlnx/taste-skill --skill design-taste-frontend --agent codex --yes`; tracked its complete `.agents/skills` bundle and `skills-lock.json` source/hash. Verified skill metadata, bundled JSON, and JavaScript syntax; no application code changed.
+
+## 2026-10-14 — Unified web design guidance and Codex skills
+
+- Replaced `docs/design.md` with the supplied NovaSpark system adapted to AISLEY's colors, identity, declared stack, themes, and reusable `packages/ui` structure. Removed duplicate instruction-file styling and conflicting feature visual exceptions; preserved folder/modularity rules, role workflows, API contracts, historical records, and separate Flutter guidance. The revised guide takes priority over design skills.
+- Installed `gpt-taste` and `redesign-existing-projects` for Codex using `pnpm dlx skills add` in the isolated workspace on `feature/novaspark-design-guidance`, retaining the original Taste skill and tracking source hashes. Documentation links/source coverage, preserved structural rules, color contrasts, skill metadata/JSON, and bundled JavaScript syntax checked; application UI, builds, and browser checks were not run for these documentation/skill changes.
+
+## 2026-10-14 — Design workspace merge
+
+- Merged the unified NovaSpark-based AISLEY web design guide and all three Codex design skills into the original workspace's active checkout branch. Preserved both progress histories and the committed delivery-review implementation; the new design guide remains authoritative. Checked documentation links, skill metadata/JSON/JavaScript, conflict resolution, and unchanged checkout/API/Flutter files; no application tests or browser checks reran for this documentation/skill merge.
