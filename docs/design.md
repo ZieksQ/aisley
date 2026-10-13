@@ -88,6 +88,10 @@ Before writing UI code, provide a `<design_plan>` with the role, page purpose, p
 
 Customer, Admin, and Seller share one purple brand family. Logistics uses its blue family over cool neutral surfaces. Resolve semantic presentation tokens such as `brand-primary`, `brand-hover`, `brand-active`, `brand-tint`, and `brand-focus` at the app/theme boundary; shared components consume these tokens. Pink is no longer the default action, focus, or selection color.
 
+### Dashboard graph colors
+
+Graph series and categories may use different colors. Role primary colors govern actions and selection; they do not limit all chart data to one color. Use the shared violet, blue, teal, amber, rose and slate graph tokens, with lighter dark-theme equivalents. Keep category labels/counts available so color is supplementary. Use semantic colors consistently when a series represents an outcome, and do not invent trends or targets to decorate a card.
+
 ### Semantic colors
 
 | Token | Hex | Usage |
@@ -220,7 +224,7 @@ Use smaller spacing tokens on phones and for dense operational content; increase
 #### States
 
 - Default → role hover token → role active token → clearly disabled treatment with readable text
-- Focus: visible 2px ring with 2px offset in the role's brand color or a contrast-safe theme variant
+- Keyboard focus (`:focus-visible`): visible 2px ring with 2px offset in the role's brand color or a contrast-safe theme variant
 
 ---
 
@@ -373,7 +377,7 @@ Admin/Seller retain purple and Logistics retains blue in both themes. Filled bra
 ## Accessibility
 
 - Minimum contrast ratio: **4.5:1** for body text, **3:1** for large text
-- All interactive elements have visible focus rings
+- Keyboard navigation has visible focus indicators. Pointer clicks on buttons, links and informational charts should not retain an unnecessary outline or ring; use `:focus-visible` for keyboard treatments. Inputs retain clear editing focus.
 - Touch targets minimum: **44x44px**
 - Meaningful icons have visible labels or accessible names; hide decorative icons from assistive technology
 - Keyboard navigable: Tab and Enter, plus Escape and Arrow keys where appropriate for the control

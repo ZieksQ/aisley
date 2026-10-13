@@ -25,8 +25,8 @@ function DashboardOverview({ permissions }: { permissions: string[] }) {
   ]
   const visibleQueues = queues.filter((queue) => data ? Boolean(data[queue.key]) : !denied && !error && permissions.includes(queue.permission))
 
-  return <div className="portal-page space-y-6">
-    <div className="flex flex-wrap items-start justify-between gap-3">
+  return <div className="portal-page dashboard-page">
+    <div className="dashboard-heading">
       <div>
         <h2 className="portal-page-heading">Administration overview</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current work available to your Admin account.</p>
@@ -44,7 +44,7 @@ function DashboardOverview({ permissions }: { permissions: string[] }) {
       <Button className={`${dashboardButton} mt-3`} disabled={loading} onClick={refresh} variant="outline">Try again</Button>
     </div>}
     {loading && !data && <DashboardSkeleton />}
-    {loading && data && <p className="portal-secondary text-sm" role="status">Refreshing dashboard…</p>}
+    {loading && data && <span className="sr-only" role="status">Refreshing dashboard…</span>}
     {data && !empty && <DashboardSummary data={data} />}
     {data && visibleQueues.length > 0 && <div className="grid gap-4 md:grid-cols-2">
       {visibleQueues.map((queue) => <DashboardQueueCard key={queue.key} title={queue.title}

@@ -82,3 +82,10 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Pointer clicks do not need keyboard rings. Preserve field focus and keyboard indicators. */
+.portal-shell :is(a, button, summary, [role='button'], [tabindex]):focus:not(:focus-visible) {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}

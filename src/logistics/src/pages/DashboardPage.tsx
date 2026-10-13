@@ -1,7 +1,7 @@
 import { useAuth } from '../auth/useAuth'
 import { DashboardSkeleton } from '@aisley/ui/portal'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LuRefreshCw, LuArrowRight } from 'react-icons/lu'
+import { LuRefreshCw, LuArrowRight, LuMapPin } from 'react-icons/lu'
 import { Link, useNavigate } from 'react-router-dom'
 import { ErrorNotice } from '../components/PickupUi'
 import { DashboardQueueOverview } from '../components/DashboardQueueOverview'
@@ -89,15 +89,15 @@ function DashboardOverview() {
     return () => activeRequest.current?.abort()
   }, [load])
 
-  return <div className="portal-page">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 className="portal-page-heading">Hub overview</h2><p className="portal-secondary mt-1 text-sm">Shipments and pending actions at your operational hub.</p></div>
+  return <div className="portal-page dashboard-page">
+    <div className="dashboard-heading">
+      <div><h2 className="portal-page-heading">Operations overview</h2><p className="portal-secondary mt-1 text-sm">Shipments and pending actions at your operational hub.</p></div>
       <button className="portal-button" disabled={loading || queueLoading} onClick={() => void load()} type="button"><LuRefreshCw aria-hidden="true" /> {loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
     {loading && !data && !queue ? <DashboardSkeleton className="mt-6" /> : null}
     {error ? <section className="mt-6"><ErrorNotice message={error} retry={() => void load()} /></section> : null}
-    {data ? <section className="portal-panel mt-6"><h3 className="font-semibold">{data.hub.name}</h3><p className="portal-secondary mt-1 text-sm">{[data.hub.address.barangay, data.hub.address.city_municipality, data.hub.address.province, data.hub.address.region].filter(Boolean).join(', ') || 'Hub address unavailable'}</p>{error && <p className="mt-2 text-sm text-red-700 dark:text-red-300">Showing the last loaded hub details.</p>}</section> : null}
+    {data ? <div className="dashboard-hub-context"><span className="dashboard-context-icon" aria-hidden="true"><LuMapPin size={17} /></span><div><strong>{data.hub.name}</strong><p>{[data.hub.address.barangay, data.hub.address.city_municipality, data.hub.address.province].filter(Boolean).join(', ') || 'Hub address unavailable'}</p></div>{error && <span className="text-xs text-red-700 dark:text-red-300">Showing the last loaded hub details.</span>}</div> : null}
 
     {queueError ? <div className="mt-6"><ErrorNotice message={queueError} retry={() => void load()} /></div> : null}
     {queue ? <DashboardQueueOverview queue={queue} stale={Boolean(queueError || queueLoading)} /> : null}

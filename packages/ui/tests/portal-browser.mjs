@@ -18,7 +18,7 @@ browser.until = async (expression, label) => {
     if (await js(expression)) return
     await new Promise((done) => setTimeout(done, 250))
   }
-  throw new Error(`${label}: ${await js('document.body.innerText.slice(0, 3000)')}; ${JSON.stringify(browser.errors)}`)
+  throw new Error(`${label}; overflow=${JSON.stringify(await js("[...document.querySelectorAll('*')].map(el=>({tag:el.tagName,cls:el.getAttribute('class'),right:el.getBoundingClientRect().right,width:el.getBoundingClientRect().width})).filter(r=>r.width>0 && r.right>document.documentElement.clientWidth+1).slice(-20)"))}: ${await js('document.body.innerText.slice(0, 3000)')}; ${JSON.stringify(browser.errors)}`)
 }
 const click = async (selector) => {
   assert(await js(`!!document.querySelector(${JSON.stringify(selector)})`), `Missing ${selector}`)
@@ -28,14 +28,20 @@ const key = async (key, code = key, modifiers = 0) => {
   await browser.cdp('Input.dispatchKeyEvent', { type: 'keyDown', key, code, modifiers })
   await browser.cdp('Input.dispatchKeyEvent', { type: 'keyUp', key, code, modifiers })
 }
+const pointerClick = async (selector) => {
+  const point = await js(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+  await browser.cdp('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point })
+  await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point })
+}
 const serve = process.argv.includes('--serve')
 const roles = [['admin', serve ? 16175 : 15175], ['seller', serve ? 16174 : 15174], ['logistics', serve ? 16176 : 15176]]
+const roleFilter = process.argv.find((arg) => arg.startsWith('--role='))?.split('=')[1]
 const services = []
 const adminOrigin = `http://127.0.0.1:${roles[0][1]}`
 try {
   if (serve) {
     for (const [role, port] of roles) {
-      const service = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: resolve(`src/${role}`), stdio: ['ignore', 'pipe', 'pipe'] })
+      const service = spawn(process.execPath, ['node_modules/vite/bin/vite.js', ...(process.argv.includes('--built') ? ['preview'] : []), '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: resolve(`src/${role}`), stdio: ['ignore', 'pipe', 'pipe'] })
       services.push(service)
       service.stderr.on('data', (data) => process.stderr.write(`${role}: ${data}`))
       service.stdout.resume()
@@ -53,7 +59,7 @@ try {
   await browser.navigate(`${adminOrigin}/dashboard`)
   await browser.until('!!window.portalFixture', 'Fixture controls ready')
   await js("localStorage.removeItem('portal-restricted'); localStorage.removeItem('portal-consent-required')")
-  for (const [role, port] of process.argv.includes('--final-checks') ? [] : roles) {
+  for (const [role, port] of process.argv.includes('--final-checks') ? [] : roles.filter(([role]) => !roleFilter || role === roleFilter)) {
     await browser.cdp('Emulation.setEmulatedMedia', { features: [] })
     await browser.viewport(1440, 1000, false)
     await browser.navigate(`http://127.0.0.1:${port}/dashboard`)
@@ -62,6 +68,7 @@ try {
     assert.equal(await js("document.querySelectorAll('.recharts-bar').length"), 0, 'No private dashboard before consent')
     await browser.screenshot(resolve(artifacts, `${role}-loading.png`))
     await browser.until("!!document.querySelector('.recharts-bar')", `${role} dashboard loaded`)
+    assert.equal(await js("!!document.querySelector('.recharts-default-tooltip')"), false, 'Custom inactive tooltips occupy no space')
     await js("window.keptPortalShell = document.querySelector('.portal-shell'); true")
     const consentRequests = await js('window.portalFixture.consentRequests')
     await click('.portal-nav-link[href="/support-tickets"]')
@@ -81,6 +88,15 @@ try {
     await js(`localStorage.removeItem('aisley-${role}-sidebar')`)
     if (await js("document.querySelector('.portal-shell').classList.contains('is-collapsed')")) await click('.portal-desktop-toggle')
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-sidebar')).width"), '240px')
+    await pointerClick('.portal-desktop-toggle')
+    assert.equal(await js("getComputedStyle(document.querySelector('.portal-desktop-toggle')).outlineStyle"), 'none', 'Pointer sidebar click has no outline')
+    await pointerClick('.portal-desktop-toggle')
+    await js("document.querySelector('.dashboard-card-action').addEventListener('click', event => event.preventDefault(), { once: true })")
+    await pointerClick('.dashboard-card-action')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-card-action')).outlineStyle"), 'none', 'Pointer metric action has no outline')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-card-action')).getPropertyValue('--tw-ring-shadow').trim()"), '0 0 #0000', 'Pointer metric action has no ring')
+    await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 10, y: 10 })
+
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-toolbar')).height"), '64px')
     assert.equal(await js("document.querySelectorAll('.portal-nav button').length"), 0, 'No sidebar dropdowns')
     assert.equal(await js("document.querySelectorAll('.portal-nav-link[aria-current=page]').length"), 1)
@@ -93,6 +109,32 @@ try {
     await js("new Promise(done => setTimeout(done, 220))")
     await browser.screenshot(resolve(artifacts, `${role}-desktop-dark.png`))
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-shell')).getPropertyValue('--portal-page').trim()"), '#0f172a')
+    if (process.argv.includes('--design-only')) {
+      for (const width of [768, 390, 320]) {
+        await browser.viewport(width, 850, false)
+        for (const dark of [false, true]) {
+          await js(`document.documentElement.classList.toggle('dark', ${dark})`)
+          await browser.until("document.documentElement.scrollWidth <= document.documentElement.clientWidth", `${role} no overflow at ${width}`)
+          await browser.screenshot(resolve(artifacts, `${role}-${width}-${dark ? 'dark' : 'light'}.png`))
+        }
+      }
+      assert.equal(await js("document.body.innerText.includes('View chart data')"), false)
+      assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4)
+      assert(await js("!!document.querySelector('.portal-chart .sr-only table')"), 'Screen-reader data')
+      assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
+      await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+      await js("window.portalFixture.empty = true")
+      await click('.portal-content button')
+      await browser.until("!document.querySelector('.recharts-bar') && !document.querySelector('.recharts-pie-sector')", `${role} zero state`)
+      await js("window.portalFixture.failed = 'offline'")
+      await click('.portal-content button')
+      await browser.until("!!document.querySelector('.portal-content [role=alert]')", `${role} error state`)
+      assert(await js("/stale|last loaded/i.test(document.querySelector('.portal-content').textContent)"))
+      assert.deepEqual(await js('window.portalFixture.writes'), [])
+      console.log(`${role}: redesigned cards, colors, pointer/keyboard focus, responsive themes, zero/error states passed`)
+      continue
+    }
+
     await click('.portal-desktop-toggle')
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-sidebar')).width"), '64px')
     assert.equal(await js("document.querySelector('.portal-desktop-toggle').getAttribute('aria-expanded')"), 'false')
@@ -131,8 +173,11 @@ try {
     await click('.portal-desktop-toggle')
     await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-nav-link')).transitionDuration"), '0s')
-    await click('details summary')
-    assert(await js("[...document.querySelectorAll('details')].some(d => d.open && d.querySelector('table'))"), 'Accessible chart data')
+    assert.equal(await js("document.body.innerText.includes('View chart data')"), false, 'No chart-data disclosure')
+    assert(await js("!!document.querySelector('.portal-chart .sr-only table')"), 'Chart data remains available to screen readers')
+    assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4, 'Four separate metric cards')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-metric-grid')).columnGap"), '16px', 'Metric cards have individual spacing')
+    assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
     await js("window.portalFixture.empty = true")
     await click('.portal-content button')
     await browser.until("!document.querySelector('.recharts-bar')", `${role} authoritative zero shown`)
@@ -143,6 +188,10 @@ try {
     assert.deepEqual(await js('window.portalFixture.writes'), [], 'Dashboard reads do not mutate')
     console.log(`${role}: desktop, rail, mobile, light/dark, focus, reduced motion, charts, empty/error passed`)
   }
+  if (roleFilter) {
+    assert.deepEqual(browser.errors, [])
+    console.log(`${roleFilter} browser checks passed; screenshots: ${artifacts}`)
+  } else {
   await browser.navigate(`${adminOrigin}/dashboard`)
   await browser.until("!!document.querySelector('.portal-shell')", 'Admin loaded')
   await js("localStorage.setItem('portal-restricted', 'true')")
@@ -171,6 +220,7 @@ try {
   console.log('Logistics Settings: direct navigation and System theme preserved')
   assert.deepEqual(browser.errors, [])
   console.log(`Portal browser checks passed; screenshots: ${artifacts}`)
+  }
 } catch (error) {
   await browser.screenshot(resolve(artifacts, 'failure.png'))
   throw error

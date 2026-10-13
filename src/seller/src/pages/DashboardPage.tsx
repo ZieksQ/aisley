@@ -85,13 +85,13 @@ function DashboardOverview() {
   const firstName = seller?.profile?.first_name ?? 'Seller'
 
   return (
-    <div className="portal-page">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200 pb-5 dark:border-white/10">
+    <div className="portal-page dashboard-page">
+      <div className="dashboard-heading">
         <div>
-          <h2 className="portal-page-heading">{firstName}’s Shop overview</h2>
+          <h2 className="portal-page-heading">{firstName}’s dashboard</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review orders, prepare pickups, and keep your catalog up to date.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="dashboard-heading-actions">
           {dashboard ? <p className="text-xs portal-secondary">{error ? 'Last loaded' : 'Updated'} {formatTimestamp(dashboard.generated_at)}</p> : null}
           <button
             className="portal-button"
@@ -105,7 +105,7 @@ function DashboardOverview() {
       </div>
 
       {isLoading && !dashboard ? <DashboardSkeleton className="mt-6" /> : null}
-      {isLoading && dashboard ? <p className="mt-4 text-sm portal-secondary" role="status">Refreshing dashboard…</p> : null}
+      {isLoading && dashboard ? <p className="sr-only" role="status">Refreshing dashboard…</p> : null}
 
       {!isLoading && error ? (
         <section className="mt-6 rounded-lg border border-red-200 bg-red-50 p-5 dark:border-red-400/20 dark:bg-red-400/10" role="alert">
@@ -147,7 +147,7 @@ function DashboardOverview() {
         <>
           <OrderActivityOverview activity={dashboard.sections.order_activity} />
           <DashboardOrders key={reloadKey} />
-          <section className="mt-6 rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="shop-catalog-heading">
+          <section className="overflow-hidden rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" aria-labelledby="shop-catalog-heading">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
               <div>
                 <h3 className="font-semibold" id="shop-catalog-heading">{dashboard.shop.name}</h3>
@@ -167,8 +167,6 @@ function DashboardOverview() {
             refreshing={isLoading}
             section={dashboard.sections.reviews}
           />
-
-
         </>
       ) : null}
     </div>

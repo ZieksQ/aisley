@@ -20,7 +20,7 @@ import { DataChart } from '@aisley/ui/charts'
 />
 ```
 
-Series support `bar`, `line`, and `area` with individual colors, labels and line dashes. Configure grid/legend visibility, curve, fill opacity, stroke width, bar radius, label width, height, number formatting, `className` and `style`. Portal tokens supply role-aware light/dark defaults; custom consumers can set the same variables or pass series colors. Text data is available alongside every successful chart, including all-zero data; unavailable, loading, error and retained stale states remain distinct. Chart values render immediately without motion.
+Series support `bar`, `line`, and `area` with individual colors, labels and line dashes. Configure grid/legend visibility, curve, fill opacity, stroke width, bar radius, label width, height, number formatting, `className` and `style`. Portal tokens supply role-aware light/dark defaults; custom consumers can set the same variables or pass series colors. A screen-reader table accompanies every successful Cartesian chart, including all-zero data; unavailable, loading, error and retained stale states remain distinct. Chart values render immediately without motion.
 
 Brand assets live in `public/aisley-logo.svg` and `public/aisley-logo-with-title.svg`, copied unchanged from the storefront. Import `aisleyLogo` or `aisleyLogoWithTitle` from `@aisley/ui/brand`; Vite bundles their URLs, so consumers do not need duplicate public folders. `public/fonts` contains the existing Geist Latin font and its SIL Open Font License. The wordmark uses a monochrome light/dark CSS treatment for contrast; original SVGs remain intact.
 
@@ -28,6 +28,10 @@ Run `node packages/ui/tests/portal-browser.mjs` from the repository root with th
 
 Alternatively, `node packages/ui/tests/portal-browser.mjs --serve` starts isolated Vite servers on 16175/16174/16176 and stops those child processes after verification.
 
-`DashboardSkeleton` is exported from `@aisley/ui/portal` and mirrors the metric strip and chart/work panels. Render it inside the workspace rather than replacing `PortalShell`; the pulse respects reduced motion. Informational chart pointer focus is suppressed while keyboard focus and the chart data table remain accessible. Portal guards resolve identity before mounting the shell and gate role screens inside it.
+`DashboardSkeleton` is exported from `@aisley/ui/portal` and mirrors the separate metric cards and chart/work panels. Render it inside the workspace rather than replacing `PortalShell`; the pulse respects reduced motion. Informational chart pointer focus is suppressed while keyboard focus and the chart data table remain accessible. Portal guards resolve identity before mounting the shell and gate role screens inside it.
 
 Use `--final-checks` alongside `--serve` to run only the final permission, required-consent and Logistics System-theme assertions when splitting a long browser run. Fixture flags reset at startup so interrupted runs cannot leave simulated denials behind.
+
+`DashboardMetricCard` presents a role-supplied label/value, icon, detail, optional action and contextual footer. Use `dashboard-metric-grid` for separate cards. `DistributionChart` from `@aisley/ui/charts` renders an authoritative category breakdown with a numerical legend and a zero state. Chart category colors come from the six shared `--chart-*` tokens; Cartesian rows can supply `color` and series can supply their own colors. Visible chart-data disclosures have been removed. Pointer-click rings are suppressed on portal links/buttons/charts; keyboard indicators and editing focus remain.
+
+For a bounded visual pass against production artifacts, add `--built --design-only --role=admin` (or `seller`/`logistics`) to `--serve`. This checks cards, multicolor graphs, click/keyboard focus, 320/390/768/1440px themes and empty/error states. The shared tooltip renders no inactive content to avoid hidden tooltip overflow on narrow pages.
