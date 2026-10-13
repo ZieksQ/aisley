@@ -1,6 +1,6 @@
 import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import { ProtectedRoute, SessionRoute } from './components/ProtectedRoute'
 import { AdminLayout } from './layouts/AdminLayout'
 import { AuditLogDetailPage } from './pages/AuditLogDetailPage'
 import { AccountPage } from './pages/AccountPage'
@@ -31,41 +31,43 @@ function App() {
     <Routes>
       <Route element={<Navigate replace to="/dashboard" />} path="/" />
       <Route element={<LoginPage />} path="/login" />
-      <Route element={<ProtectedRoute />}>
+      <Route element={<SessionRoute />}>
         <Route element={<AdminLayout />}>
-          <Route element={<DashboardPage />} path="/dashboard" />
-          <Route element={<VouchersPage />} path="/vouchers" />
-          <Route element={<VouchersPage />} path="/vouchers/new" />
-          <Route element={<VouchersPage />} path="/vouchers/:voucherId" />
-          <Route element={<FinancePage />} path="/finance" />
-          <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
-          <Route element={<FinancePaymentsPage />} path="/finance/remittances" />
-          <Route element={<FinancePaymentsPage />} path="/finance/remittances/invoices/:invoiceId" />
-          <Route element={<FinancePaymentsPage />} path="/finance/remittances/:batchId" />
-          <Route element={<FinancePaymentsPage />} path="/finance/automation" />
-          <Route element={<FinancePaymentsPage />} path="/finance/sandbox" />
-          <Route element={<PricingSettingsPage />} path="/pricing-and-fees" />
-          <Route element={<FinanceHoldsPage />} path="/finance-holds" />
-          <Route element={<FinanceHoldsPage />} path="/finance-holds/:holdId" />
-          <Route element={<AccountPage />} path="/account" />
-          <Route element={<PolicyConsentPage />} path="/policy-consent" />
-          <Route element={<PlatformSettingsPage />} path="/platform-settings" />
-          <Route element={<FeatureControlsPage />} path="/feature-controls" />
-          <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/new" />
-          <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/:configurationId/edit" />
-          <Route element={<RegistrationsPage />} path="/registrations" />
-          <Route element={<RegistrationDetailPage />} path="/registrations/:registrationId" />
-          <Route element={<AuditLogsPage />} path="/audit-logs" />
-          <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
-          <Route element={<NotificationsPage />} path="/notifications" />
-          <Route element={<NotificationCampaignsPage />} path="/notification-campaigns" />
-          <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/:campaignId" />
-          <Route element={<SupportTicketsPage />} path="/support-tickets" />
-          <Route element={<SupportTicketsPage />} path="/support-tickets/:ticketId" />
-          <Route element={<UsersPage />} path="/users" />
-          <Route element={<UserDetailPage />} path="/users/:userId" />
-          <Route element={<SellerCompliancePage />} path="/seller-compliance" />
-          <Route element={<SellerComplianceCasePage />} path="/seller-compliance/cases/:caseId" />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardPage />} path="/dashboard" />
+            <Route element={<VouchersPage />} path="/vouchers" />
+            <Route element={<VouchersPage />} path="/vouchers/new" />
+            <Route element={<VouchersPage />} path="/vouchers/:voucherId" />
+            <Route element={<FinancePage />} path="/finance" />
+            <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
+            <Route element={<FinancePaymentsPage />} path="/finance/remittances" />
+            <Route element={<FinancePaymentsPage />} path="/finance/remittances/invoices/:invoiceId" />
+            <Route element={<FinancePaymentsPage />} path="/finance/remittances/:batchId" />
+            <Route element={<FinancePaymentsPage />} path="/finance/automation" />
+            <Route element={<FinancePaymentsPage />} path="/finance/sandbox" />
+            <Route element={<PricingSettingsPage />} path="/pricing-and-fees" />
+            <Route element={<FinanceHoldsPage />} path="/finance-holds" />
+            <Route element={<FinanceHoldsPage />} path="/finance-holds/:holdId" />
+            <Route element={<AccountPage />} path="/account" />
+            <Route element={<PolicyConsentPage />} path="/policy-consent" />
+            <Route element={<PlatformSettingsPage />} path="/platform-settings" />
+            <Route element={<FeatureControlsPage />} path="/feature-controls" />
+            <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/new" />
+            <Route element={<HomepageAdvertisementEditorPage />} path="/platform-settings/homepage-ads/:configurationId/edit" />
+            <Route element={<RegistrationsPage />} path="/registrations" />
+            <Route element={<RegistrationDetailPage />} path="/registrations/:registrationId" />
+            <Route element={<AuditLogsPage />} path="/audit-logs" />
+            <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
+            <Route element={<NotificationsPage />} path="/notifications" />
+            <Route element={<NotificationCampaignsPage />} path="/notification-campaigns" />
+            <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/:campaignId" />
+            <Route element={<SupportTicketsPage />} path="/support-tickets" />
+            <Route element={<SupportTicketsPage />} path="/support-tickets/:ticketId" />
+            <Route element={<UsersPage />} path="/users" />
+            <Route element={<UserDetailPage />} path="/users/:userId" />
+            <Route element={<SellerCompliancePage />} path="/seller-compliance" />
+            <Route element={<SellerComplianceCasePage />} path="/seller-compliance/cases/:caseId" />
+          </Route>
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

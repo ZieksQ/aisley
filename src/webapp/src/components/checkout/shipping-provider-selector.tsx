@@ -1,75 +1,45 @@
+import Link from "next/link";
+import { FiChevronRight, FiTruck } from "react-icons/fi";
 import type { CheckoutLogisticsOptions } from "@/lib/checkout/types";
 
 type ShopOptions = CheckoutLogisticsOptions["groups"][number];
 
 export function ShippingProviderSelector({
-  disabled,
-  options,
-  selectedProviderId,
-  selectedShippingFee,
-  onSelect,
-  formatAmount,
+  disabled, options, selectedProviderId, selectedShippingFee, formatAmount,
 }: {
   disabled: boolean;
   options: ShopOptions | undefined;
   selectedProviderId: string | undefined;
   selectedShippingFee?: string;
-  onSelect: (providerId: string) => void;
   formatAmount: (value: string) => string;
 }) {
+  const provider = options?.options.find((item) => item.organizationId === selectedProviderId);
+  const content = (
+    <>
+      <FiTruck aria-hidden="true" className="size-5 shrink-0 text-[#4C1268]" />
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-[#302534]">Delivery provider</span>
+        <span className="mt-1 block break-words text-[#665A6A]">
+          {provider?.businessName ?? "Select a delivery provider"}
+        </span>
+      </span>
+      {provider ? <span className="shrink-0 font-semibold text-[#3A2E3E]">{formatAmount(selectedShippingFee ?? provider.shippingFee)}</span> : null}
+      {!disabled ? <><span className="shrink-0 font-medium text-[#E6007A]">{provider ? "Change" : "Select"}</span><FiChevronRight aria-hidden="true" className="shrink-0" /></> : null}
+    </>
+  );
   return (
-    <fieldset className="border-t border-[#E6E0E8] px-4 py-4 sm:px-5" disabled={disabled}>
-      <legend className="mb-3 text-sm font-semibold text-[#302534]">
-        Shipping option
-      </legend>
-      {!options ? (
-        <p className="text-sm text-[#665A6A]" role="status">
-          Loading shipping options…
+    <div className="border-t border-[#E6E0E8] px-4 py-4 text-sm sm:px-5">
+      {!options ? <p role="status">Loading delivery providers…</p> : !options.options.length ? (
+        <p className="border-l-2 border-[#FF8800] pl-3 leading-5 text-[#765226]" role="status">
+          Delivery is unavailable for this Shop at your address. Change your delivery address or refresh shipping options to try again.
         </p>
-      ) : options.options.length === 0 ? (
-        <p className="border-l-2 border-[#FF8800] pl-3 text-sm leading-5 text-[#765226]" role="status">
-          No shipping provider can quote this Shop order right now. Refresh checkout to try again.
-        </p>
+      ) : disabled ? (
+        <div aria-disabled="true" className="flex min-h-11 flex-wrap items-center gap-3">{content}</div>
       ) : (
-        <div className="space-y-2">
-          {options.options.map((provider) => {
-            const selected = provider.organizationId === selectedProviderId;
-            const inputId = `${options.shop.id}-${provider.organizationId}`;
-
-            return (
-              <label
-                key={provider.organizationId}
-                htmlFor={inputId}
-                className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 border px-3 py-2.5 text-sm transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#4C1268] ${
-                  selected
-                    ? "border-[#E6007A] bg-[#FFF7FB]"
-                    : "border-[#DDD5E0] bg-white hover:border-[#A99BAC]"
-                }`}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <input
-                    id={inputId}
-                    type="radio"
-                    name={`shipping-provider-${options.shop.id}`}
-                    value={provider.organizationId}
-                    checked={selected}
-                    onChange={() => onSelect(provider.organizationId)}
-                    className="size-4 shrink-0 accent-[#E6007A]"
-                  />
-                  <span className="min-w-0 break-words font-medium text-[#302534]">{provider.businessName}</span>
-                </span>
-                <span className="shrink-0 font-semibold text-[#3A2E3E]">
-                  {formatAmount(
-                    selected && selectedShippingFee
-                      ? selectedShippingFee
-                      : provider.shippingFee,
-                  )}
-                </span>
-              </label>
-            );
-          })}
-        </div>
+        <Link href={`/checkout/delivery?shop=${encodeURIComponent(options.shop.id)}`} aria-label={`Change delivery provider for ${options.shop.name}`} className="flex min-h-11 flex-wrap items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]">
+          {content}
+        </Link>
       )}
-    </fieldset>
+    </div>
   );
 }

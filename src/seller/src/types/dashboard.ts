@@ -1,3 +1,13 @@
+export type OrderActivity = {
+  state: 'available' | 'empty'
+  metrics: { awaiting_approval: number; processing: number; ready_for_pickup: number; delivered: number }
+  by_status: Record<string, number>
+  daily_placed: { date: string; count: number }[]
+  timezone: 'UTC'
+  from: string
+  to: string
+}
+
 export type CatalogSection = {
   state: 'available' | 'empty'
   metrics: {
@@ -48,6 +58,7 @@ export type DashboardResponse = {
   } | null
   period: DashboardPeriod
   sections: {
+    order_activity?: OrderActivity | UnavailableSection
     catalog: CatalogSection | UnavailableSection
     financial: UnavailableSection
     orders: UnavailableSection

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DashboardService
 {
-    public function __construct(private readonly ProductReviewService $reviews) {}
+    public function __construct(private readonly ProductReviewService $reviews, private readonly DashboardOrderActivity $orderActivity) {}
 
     /**
      * @param  array{from?: string|null, to?: string|null, timezone?: string|null}  $filters
@@ -33,7 +33,7 @@ class DashboardService
                 'sections' => array_merge(
                     ['catalog' => $this->unavailableSection('SHOP_SETUP_REQUIRED')],
                     $this->deferredSections(),
-                    ['reviews' => $this->unavailableSection('SHOP_SETUP_REQUIRED')],
+                    ['reviews' => $this->unavailableSection('SHOP_SETUP_REQUIRED'), 'order_activity' => $this->unavailableSection('SHOP_SETUP_REQUIRED')],
                 ),
                 'actions' => [],
                 'generated_at' => $snapshot->toIso8601String(),
@@ -48,7 +48,7 @@ class DashboardService
             'sections' => array_merge(
                 ['catalog' => $this->catalogSection($shop)],
                 $this->deferredSections(),
-                ['reviews' => $this->reviewSection($shop, $period, $snapshot)],
+                ['reviews' => $this->reviewSection($shop, $period, $snapshot), 'order_activity' => $this->orderActivity->forShop($shop, $snapshot)],
             ),
             'actions' => [],
             'generated_at' => $snapshot->toIso8601String(),

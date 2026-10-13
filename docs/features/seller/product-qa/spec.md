@@ -68,7 +68,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 ### Implemented Seller queue/detail UI
 
-- Seller UI is a React/Vite dashboard surface under the existing dark-mode Seller design system. Q&A screens remain outside the Customer storefront.
+- Seller UI is a React/Vite dashboard surface following `docs/design.md`, including both light and dark themes. Q&A screens remain outside the Customer storefront.
 - The implemented Seller list/detail endpoints are:
   ```http
   GET /api/v1/seller/product-questions?status=all|unanswered|answered&product=&per_page=&page=
@@ -78,7 +78,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - The detail view shows Product-safe context, question text, asked time, answer state, and the answer form. Customer email, phone, address, order/payment data, and registration evidence stay hidden.
 - The form uses the implemented answer endpoint, generates one UUID key per logical submit, preserves the key across retry, and never claims success before the committed response is returned.
 - Implemented UI states: loading, empty, answered/read-only, editable unanswered, validation, forbidden/not-found, throttled, session-expired, network/timeout retry, unavailable Product, and queued-notification success messaging.
-- Use labelled controls, visible focus, keyboard operation, screen-reader status announcements, non-color-only answer state, and accessible dark-mode contrast. Q&A text renders as escaped plain text.
+- Use labelled controls, visible focus, keyboard operation, screen-reader status announcements, non-color-only answer state, and accessible contrast in both supported themes. Q&A text renders as escaped plain text.
 
 ### Acceptance criteria
 

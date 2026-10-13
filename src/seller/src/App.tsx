@@ -1,6 +1,6 @@
 import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import { ProtectedRoute, SessionRoute } from './components/ProtectedRoute'
 import { SellerLayout } from './layouts/SellerLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -42,42 +42,44 @@ function App() {
       <Route element={<RegisterPage />} path="/register" />
       <Route element={<ForgotPasswordPage />} path="/forgot-password" />
       <Route element={<ResetPasswordPage />} path="/reset-password" />
-      <Route element={<ProtectedRoute />}>
+      <Route element={<SessionRoute />}>
         <Route element={<SellerLayout />}>
-          <Route element={<DashboardPage />} path="/dashboard" />
-          <Route element={<VouchersPage />} path="/vouchers" />
-          <Route element={<VouchersPage />} path="/vouchers/new" />
-          <Route element={<VouchersPage />} path="/vouchers/:voucherId" />
-          <Route element={<FinancePage />} path="/finance" />
-          <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
-          <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
-          <Route element={<MessagesPage />} path="/messages" />
-          <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
-          <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />
-          <Route element={<CourierMessagesPage />} path="/courier-messages" />
-          <Route element={<SupportTicketsPage />} path="/support-tickets" />
-          <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
-          <Route element={<OrdersPage />} path="/orders/monitoring" />
-          <Route element={<OrderApprovalPage />} path="/orders/approval" />
-          <Route element={<OrderPickupPage />} path="/orders/pickup" />
-          <Route element={<OrderDetailPage />} path="/orders/:orderId" />
-          <Route element={<OrderDetailPage preparation />} path="/orders/:orderId/prepare" />
-          <Route element={<NotificationsPage />} path="/notifications" />
-          <Route element={<NotificationDetailPage />} path="/notifications/:notificationId" />
-          <Route element={<ProductQuestionsPage />} path="/product-questions" />
-          <Route element={<ProductQuestionDetailPage />} path="/products/:productId/questions/:questionId" />
-          <Route element={<ProductReviewsPage />} path="/reviews" />
-          <Route element={<ProductReviewDetailPage />} path="/reviews/:reviewId" />
-          <Route element={<ProductsPage />} path="/products" />
-          <Route element={<ProductFormPage />} path="/products/new" />
-          <Route element={<ProductFormPage />} path="/products/:productId/edit" />
-          <Route element={<ShippingProvidersPage />} path="/shipping-providers" />
-          <Route element={<InventoryPage />} path="/inventory" />
-          <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
-          <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />
-          <Route element={<LowStockAlertDetailPage />} path="/low-stock-alerts/:alertId" />
-          <Route element={<AccountPage />} path="/account" />
-          <Route element={<PolicyConsentPage />} path="/policy-consent" />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardPage />} path="/dashboard" />
+            <Route element={<VouchersPage />} path="/vouchers" />
+            <Route element={<VouchersPage />} path="/vouchers/new" />
+            <Route element={<VouchersPage />} path="/vouchers/:voucherId" />
+            <Route element={<FinancePage />} path="/finance" />
+            <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
+            <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
+            <Route element={<MessagesPage />} path="/messages" />
+            <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
+            <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />
+            <Route element={<CourierMessagesPage />} path="/courier-messages" />
+            <Route element={<SupportTicketsPage />} path="/support-tickets" />
+            <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
+            <Route element={<OrdersPage />} path="/orders/monitoring" />
+            <Route element={<OrderApprovalPage />} path="/orders/approval" />
+            <Route element={<OrderPickupPage />} path="/orders/pickup" />
+            <Route element={<OrderDetailPage />} path="/orders/:orderId" />
+            <Route element={<OrderDetailPage preparation />} path="/orders/:orderId/prepare" />
+            <Route element={<NotificationsPage />} path="/notifications" />
+            <Route element={<NotificationDetailPage />} path="/notifications/:notificationId" />
+            <Route element={<ProductQuestionsPage />} path="/product-questions" />
+            <Route element={<ProductQuestionDetailPage />} path="/products/:productId/questions/:questionId" />
+            <Route element={<ProductReviewsPage />} path="/reviews" />
+            <Route element={<ProductReviewDetailPage />} path="/reviews/:reviewId" />
+            <Route element={<ProductsPage />} path="/products" />
+            <Route element={<ProductFormPage />} path="/products/new" />
+            <Route element={<ProductFormPage />} path="/products/:productId/edit" />
+            <Route element={<ShippingProvidersPage />} path="/shipping-providers" />
+            <Route element={<InventoryPage />} path="/inventory" />
+            <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
+            <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />
+            <Route element={<LowStockAlertDetailPage />} path="/low-stock-alerts/:alertId" />
+            <Route element={<AccountPage />} path="/account" />
+            <Route element={<PolicyConsentPage />} path="/policy-consent" />
+          </Route>
         </Route>
       </Route>
       <Route element={<Navigate replace to="/dashboard" />} path="*" />

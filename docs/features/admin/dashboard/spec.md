@@ -60,9 +60,9 @@ verified: 2026-10-02
 - Keep Dashboard directly accessible at the top of the Admin sidebar.
 - Group the remaining links by task: **Accounts** (registrations, user accounts, seller compliance), **Communication** (support tickets, notifications, campaigns), **Platform** (finance, pricing & fees, finance holds, audit logs, platform settings, feature controls), and **My account** (account settings, policy consent).
 - Show a group only when at least one of its destinations is visible to the current Admin. Each feature link still follows its existing permission; hiding a link never replaces backend authorization.
-- Keep groups collapsed by default on Dashboard, with one group expanded at a time. Open the group containing the current route, including detail and editor routes, so the active destination remains discoverable after navigation or reload.
-- Group controls must be keyboard-operable and expose expanded state to assistive technology. Keep child links and active states clear in both themes and on the mobile sidebar.
-- Do not add Dashboard widgets or duplicate destination-feature workflows as part of navigation grouping.
+- Render task groups as static section labels with all authorized destinations visible; remove group dropdown controls. Keep detail/editor routes highlighted. The shared portal shell starts expanded and supports an opt-in 64px desktop icon rail with a persistent role-specific preference, accessible open/close controls, labels and keyboard/hover tooltips; below 1024px use a modal drawer with focus containment, Escape, navigation closure and focus restoration.
+- Sidebar open/close controls are keyboard-operable and expose expanded state. Keep links and active states clear in both themes, the desktop rail, and the mobile drawer.
+- Do not duplicate destination-feature workflows. A registration-by-role chart may visualize the existing authorized pending counts, with textual totals and an accessible data table; do not add Finance, revenue, or fabricated history charts.
 
 ### Exact count and navigation rules
 
@@ -95,12 +95,12 @@ verified: 2026-10-02
 
 ### Web presentation and navigation
 
-- Follow `docs/design.md`: mobile-first layouts, existing typography/spacing, compatible shared primitives, and Admin light/dark themes.
+- Follow `docs/design.md` for visual tokens, mobile-first layouts, compatible shared primitives, and Admin light/dark themes.
 - The page must fetch permitted support/compliance sections even when `registrations.view` is absent.
 - Preserve registration cards and action links; replace misleading placeholder copy rather than declaring existing Finance features unimplemented.
 - Use clear card titles, textual counts, loading/zero/unavailable/forbidden states, and keyboard-accessible links and retry controls.
 - Preserve direct Dashboard navigation and existing Accounts, Communication, Platform, and My account groups.
-- Show only authorized links; keep current-route groups open, detail-route highlighting, one expanded group, and responsive navigation.
+- Show only authorized links in static task groups; retain detail-route highlighting and responsive expanded/rail/drawer navigation.
 - The notification bell retains its own API/read-state contract; Dashboard counts must not silently mark notifications read.
 - Verification below distinguishes mocked browser interaction and focused database tests from broader production acceptance.
 
@@ -176,3 +176,19 @@ Production acceptance is not implied by mocked browser contracts. The separate P
 
 - Add Vouchers (`/vouchers`, `/vouchers/new`, `/vouchers/:id`) under **Platform**, preserving active-route expansion and mobile close behavior. The [voucher specification](../vouchers/spec.md) owns the workflow.
 - Navigation/reads require `vouchers.view`; mutations additionally require `vouchers.manage`. Read-only Admins can inspect terms, versions, actions and redemption reports. Provision permissions through the additive migration and `AdminPermissionSeeder`; grant them explicitly to the appropriate Admins.
+
+## Shared portal presentation revision (2026-10-14)
+
+- Admin, Seller and Logistics consume `@aisley/ui/portal` and role-aware tokens; Admin/Seller use purple and Logistics uses blue/slate under `docs/design.md`. Brand SVGs and Geist assets live in `packages/ui/public`. Registration graphs use `@aisley/ui/charts` and the existing pending-by-role response; permissions, stale/empty/error states and filtered queue destinations remain unchanged.
+
+## Operational dashboard revision (2026-10-14)
+
+- Lead with authorized registration/support/compliance counts and the age of the oldest pending application, calculated in whole days from server `generated_at` and the first ordered action item. Show a dash with no pending application; unavailable counts remain unavailable.
+- Add a current-work comparison chart from authorized successful counts. Preserve the role distribution chart, oldest-first application actions, independent queue retries and filtered destinations. No finance/history metric or new Admin API is introduced.
+- Initial loading uses shared layout-matched skeletons within the persistent shell. Chart pointer clicks have no outline; keyboard chart navigation and interactive controls retain visible focus. Permission/account-keyed state and all existing fail-closed behavior remain intact.
+
+## Dashboard composition revision (2026-10-14)
+
+- Replace the joined metric strip with four separate shared metric cards, task icons, prominent values, contextual proportions and owning-workspace links. Omit unauthorized Admin cards; unavailable counts remain a dash rather than zero. Proportions describe the displayed cohort, never invented growth or targets.
+- Recompose charts into a large primary chart and a smaller labeled distribution chart, with distinct series/category colors. Admin uses authorized queue work/application mix; Seller uses the 14-day placement cohort and approval/preparation/pickup workload; Logistics uses active shipment stages. Restyle associated work lists and catalog health without changing source records or actions.
+- Remove visible “View chart data” controls. Keep a screen-reader table for Cartesian charts and labeled numerical legends for distribution charts. Pointer clicks suppress unnecessary outlines/rings while keyboard focus and text-field editing focus remain clear. Skeletons follow the separate-card layout and respect reduced motion.

@@ -5,7 +5,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { AuthShell } from '../components/AuthShell'
 import { FormField, SelectField } from '../components/FormField'
-import { LoadingScreen } from '../components/LoadingScreen'
 import { PsgcAddressFields } from '../components/PsgcAddressFields'
 import { ApiError, apiRequest, initializeCsrf } from '../lib/api'
 import type { AuthResponse, RegistrationOptionsResponse, ShopCategoryOption } from '../types/auth'
@@ -51,7 +50,7 @@ export function RegisterPage() {
     return () => controller.abort()
   }, [])
 
-  if (isLoading) return <LoadingScreen />
+  if (isLoading) return null
   if (seller) return <Navigate replace to="/dashboard" />
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

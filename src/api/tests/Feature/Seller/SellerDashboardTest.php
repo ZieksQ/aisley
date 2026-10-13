@@ -140,7 +140,10 @@ class SellerDashboardTest extends TestCase
             ->assertJsonPath('sections.catalog.state', 'empty')
             ->assertJsonPath('sections.catalog.metrics.total', 0)
             ->assertJsonPath('sections.catalog.metrics.zero_stock_products', 0)
-            ->assertJsonPath('sections.orders.state', 'unavailable');
+            ->assertJsonPath('sections.orders.state', 'unavailable')
+            ->assertJsonPath('sections.order_activity.state', 'empty')
+            ->assertJsonPath('sections.order_activity.metrics.awaiting_approval', 0)
+            ->assertJsonCount(14, 'sections.order_activity.daily_placed');
     }
 
     public function test_dashboard_validates_and_normalizes_optional_seller_local_periods(): void
@@ -207,7 +210,10 @@ class SellerDashboardTest extends TestCase
             ->assertJsonPath('sections.reviews.metrics.total', 5)
             ->assertJsonPath('sections.reviews.metrics.answered', 2)
             ->assertJsonPath('sections.reviews.metrics.unanswered', 3)
-            ->assertJsonPath('sections.orders.state', 'unavailable');
+            ->assertJsonPath('sections.orders.state', 'unavailable')
+            ->assertJsonPath('sections.order_activity.state', 'available')
+            ->assertJsonPath('sections.order_activity.metrics.awaiting_approval', 0)
+            ->assertJsonCount(14, 'sections.order_activity.daily_placed');
 
         $this->actingAs($seller)->getJson('/api/v1/seller/reviews?status=all')->assertJsonPath('meta.total', 5);
         $this->actingAs($seller)->getJson('/api/v1/seller/reviews?status=answered')->assertJsonPath('meta.total', 2);
@@ -262,6 +268,46 @@ class SellerDashboardTest extends TestCase
             ->assertJsonPath('sections.reviews.state', 'error')
             ->assertJsonPath('sections.reviews.reason', 'REVIEW_SUMMARY_UNAVAILABLE');
         $failed->assertJsonMissingPath('sections.reviews.metrics');
+    }
+
+    public function test_order_activity_is_shop_scoped_read_only_and_zero_fills_utc_days(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-14T12:00:00Z'));
+        $seller = $this->seller();
+        $shop = $this->shop($seller, 'Order activity Shop', 'activity-shop');
+        $product = $this->product($shop, ProductStatus::Active, 5, 'Activity product');
+        $statuses = [OrderStatus::Placed, OrderStatus::SellerProcessing, OrderStatus::ReadyForPickup, OrderStatus::Delivered, OrderStatus::Cancelled, OrderStatus::PendingPayment];
+        foreach ($statuses as $status) {
+            $review = $this->review($product, '2026-10-14T10:00:00Z');
+            Order::findOrFail($review->order_id)->update(['status' => $status, 'placed_at' => '2026-10-01T00:00:00Z']);
+        }
+        $old = $this->review($product, '2026-10-14T10:00:00Z');
+        Order::findOrFail($old->order_id)->update(['placed_at' => '2026-09-30T23:59:59Z']);
+        $future = $this->review($product, '2026-10-14T10:00:00Z');
+        Order::findOrFail($future->order_id)->update(['placed_at' => '2026-10-14T12:00:01Z']);
+        $other = $this->shop($this->seller(), 'Foreign activity', 'foreign-activity');
+        $foreignReview = $this->review($this->product($other, ProductStatus::Active, 3, 'Foreign activity product'), '2026-10-14T10:00:00Z');
+        $before = Order::orderBy('id')->get()->toArray();
+
+        $response = $this->actingAs($seller)->getJson('/api/v1/seller/dashboard')
+            ->assertOk()
+            ->assertJsonPath('sections.order_activity.metrics.awaiting_approval', 1)
+            ->assertJsonPath('sections.order_activity.metrics.processing', 1)
+            ->assertJsonPath('sections.order_activity.metrics.ready_for_pickup', 1)
+            ->assertJsonPath('sections.order_activity.metrics.delivered', 3)
+            ->assertJsonPath('sections.order_activity.by_status.cancelled', 1)
+            ->assertJsonPath('sections.order_activity.from', '2026-10-01')
+            ->assertJsonPath('sections.order_activity.to', '2026-10-14')
+            ->assertJsonPath('sections.order_activity.timezone', 'UTC')
+            ->assertJsonCount(14, 'sections.order_activity.daily_placed')
+            ->assertJsonPath('sections.order_activity.daily_placed.0.count', 5)
+            ->assertJsonPath('sections.order_activity.daily_placed.1.count', 0)
+            ->assertJsonPath('sections.order_activity.daily_placed.13.count', 0);
+        $this->assertSame($before, Order::orderBy('id')->get()->toArray());
+        $dto = json_encode($response->json('sections.order_activity'), JSON_THROW_ON_ERROR);
+        foreach ([$foreignReview->order_id, $foreignReview->customer_id, $shop->id, $product->id] as $privateValue) {
+            $this->assertStringNotContainsString($privateValue, $dto);
+        }
     }
 
     private function review(Product $product, string $publishedAt, string $status = ProductReview::STATUS_PUBLISHED): ProductReview

@@ -1,0 +1,91 @@
+@font-face {
+  font-family: Geist;
+  src: url('../../public/fonts/geist-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+.portal-shell {
+  --brand-primary: #4c1268;
+  --brand-hover: #3d0e54;
+  --brand-active: #300b42;
+  --brand-tint: #f1eaf4;
+  --brand-focus: #6d28d9;
+  --portal-accent: #4c1268;
+  --portal-page: #f7f5f7;
+  --portal-surface: #fff;
+  --portal-subtle: #f3f4f6;
+  --portal-text: #231429;
+  --portal-muted: #4b5563;
+  --portal-border: #e5e7eb;
+  --portal-sidebar-width: 15rem;
+  min-height: 100dvh;
+  background: var(--portal-page);
+  color: var(--portal-text);
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.portal-shell[data-role='logistics'] {
+  --brand-primary: #2563eb;
+  --brand-hover: #1d4ed8;
+  --brand-active: #1e40af;
+  --brand-tint: #eff6ff;
+  --brand-focus: #2563eb;
+  --portal-accent: #1e40af;
+  --portal-page: #f8fafc;
+  --portal-text: #0f172a;
+}
+.dark .portal-shell {
+  --brand-tint: #2e1b3b;
+  --brand-focus: #c4b5fd;
+  --portal-accent: #c4b5fd;
+  --portal-page: #0f172a;
+  --portal-surface: #1e293b;
+  --portal-subtle: #273449;
+  --portal-text: #f1f5f9;
+  --portal-muted: #94a3b8;
+  --portal-border: #334155;
+}
+.dark .portal-shell[data-role='logistics'] {
+  --brand-tint: #172d4a;
+  --brand-focus: #93c5fd;
+  --portal-accent: #93c5fd;
+}
+.portal-shell :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--brand-focus);
+  outline-offset: 2px;
+}
+.portal-shell button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.portal-shell svg {
+  flex-shrink: 0;
+}
+.portal-skip {
+  position: fixed;
+  z-index: 50;
+  top: .5rem;
+  left: .5rem;
+  padding: .75rem 1rem;
+  background: var(--portal-surface);
+  transform: translateY(-200%);
+}
+.portal-skip:focus {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-shell *, .portal-shell *::before, .portal-shell *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Pointer clicks do not need keyboard rings. Preserve field focus and keyboard indicators. */
+.portal-shell :is(a, button, summary, [role='button'], [tabindex]):focus:not(:focus-visible) {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}

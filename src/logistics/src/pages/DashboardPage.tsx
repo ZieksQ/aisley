@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
-import { FaArrowsRotate, FaArrowRight } from 'react-icons/fa6'
-import { Link } from 'react-router-dom'
-import { ErrorNotice, panel } from '../components/PickupUi'
-import { ApiError, request, requestWithTimeout } from '../lib/api'
+import { useAuth } from '../auth/useAuth'
+import { DashboardSkeleton } from '@aisley/ui/portal'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { LuRefreshCw, LuArrowRight, LuMapPin } from 'react-icons/lu'
+import { Link, useNavigate } from 'react-router-dom'
+import { ErrorNotice } from '../components/PickupUi'
+import { DashboardQueueOverview } from '../components/DashboardQueueOverview'
+import { ApiError, request } from '../lib/api'
 import type { FulfillmentQueueResponse } from '../types/fulfillment'
 
 type Dashboard = {
@@ -26,6 +29,16 @@ function messageFor(caught: unknown, fallback: string): string {
 }
 
 export function DashboardPage() {
+  const { logistics } = useAuth()
+  return logistics ? <DashboardOverview key={logistics.id} /> : null
+}
+
+function DashboardOverview() {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const logoutRef = useRef(logout)
+  logoutRef.current = logout
+  const activeRequest = useRef<AbortController | null>(null)
   const [data, setData] = useState<Dashboard | null>(null)
   const [queue, setQueue] = useState<FulfillmentQueueResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -34,15 +47,31 @@ export function DashboardPage() {
   const [queueLoading, setQueueLoading] = useState(true)
 
   const load = useCallback(async () => {
+    activeRequest.current?.abort()
+    const controller = new AbortController()
+    activeRequest.current = controller
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
     setLoading(true)
     setQueueLoading(true)
     setError(null)
     setQueueError(null)
 
     const [hubResult, queueResult] = await Promise.allSettled([
-      request<Dashboard>('/api/v1/logistics/dashboard'),
-      requestWithTimeout<FulfillmentQueueResponse>('/api/v1/logistics/dashboard/queue'),
+      request<Dashboard>('/api/v1/logistics/dashboard', { signal, cache: 'no-store' }),
+      request<FulfillmentQueueResponse>('/api/v1/logistics/dashboard/queue', { signal, cache: 'no-store' }),
     ])
+
+    if (controller.signal.aborted) return
+    const denial = [hubResult, queueResult].find((result) => result.status === 'rejected' && result.reason instanceof ApiError && [401, 403, 419].includes(result.reason.status))
+    if (denial?.status === 'rejected') {
+      setData(null)
+      setQueue(null)
+      setLoading(false)
+      setQueueLoading(false)
+      if (denial.reason.code === 'POLICY_CONSENT_REQUIRED') navigate('/settings/terms', { replace: true, state: { from: '/dashboard' } })
+      else void logoutRef.current().catch(() => undefined).finally(() => navigate('/login', { replace: true }))
+      return
+    }
 
     if (hubResult.status === 'fulfilled') setData(hubResult.value)
     else setError(messageFor(hubResult.reason, 'We could not load the Logistics hub.'))
@@ -52,29 +81,28 @@ export function DashboardPage() {
 
     setLoading(false)
     setQueueLoading(false)
-  }, [])
+  }, [navigate])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    document.title = 'Dashboard | Aisley Logistics'
+    void load()
+    return () => activeRequest.current?.abort()
+  }, [load])
 
-  if (loading) return <div className="p-6"><div className="h-24 animate-pulse border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div>
-
-  return <div className="max-w-5xl p-5 sm:p-7">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 className="text-lg font-semibold">Dashboard</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">A secure starting point for your sole operational hub.</p></div>
-      <button className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-white/10" onClick={() => void load()} type="button"><FaArrowsRotate aria-hidden="true" /> Refresh</button>
+  return <div className="portal-page dashboard-page">
+    <div className="dashboard-heading">
+      <div><h2 className="portal-page-heading">Operations overview</h2><p className="portal-secondary mt-1 text-sm">Shipments and pending actions at your operational hub.</p></div>
+      <button className="portal-button" disabled={loading || queueLoading} onClick={() => void load()} type="button"><LuRefreshCw aria-hidden="true" /> {loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
+    {loading && !data && !queue ? <DashboardSkeleton className="mt-6" /> : null}
     {error ? <section className="mt-6"><ErrorNotice message={error} retry={() => void load()} /></section> : null}
-    {data ? <section className={`${panel} mt-6 p-5`}><h3 className="font-semibold">{data.hub.name}</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{[data.hub.address.barangay, data.hub.address.city_municipality, data.hub.address.province, data.hub.address.region].filter(Boolean).join(', ') || 'Hub address unavailable'}</p></section> : null}
+    {data ? <div className="dashboard-hub-context"><span className="dashboard-context-icon" aria-hidden="true"><LuMapPin size={17} /></span><div><strong>{data.hub.name}</strong><p>{[data.hub.address.barangay, data.hub.address.city_municipality, data.hub.address.province].filter(Boolean).join(', ') || 'Hub address unavailable'}</p></div>{error && <span className="text-xs text-red-700 dark:text-red-300">Showing the last loaded hub details.</span>}</div> : null}
 
-    <section className={`${panel} mt-4 p-5`} aria-busy={queueLoading}>
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">Parcel records</h3><p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Authoritative Shipment, hub, task, and evidence records for this Logistics organization.</p></div><Link className="inline-flex h-10 items-center gap-2 rounded-md border border-[#4C1268] px-3 text-sm font-medium text-[#4C1268] hover:bg-purple-50 dark:border-purple-300 dark:text-purple-200 dark:hover:bg-purple-400/10" to="/operations">Search parcels <FaArrowRight aria-hidden="true" /></Link></div>
-      {queueError ? <div className="mt-4"><ErrorNotice message={queueError} retry={() => void load()} /></div> : null}
-      {queue ? <>
-        <dl className="mt-5 grid gap-4 border-y border-zinc-200 py-4 text-sm dark:border-white/10 sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-zinc-500">Active shipments</dt><dd className="mt-1 text-2xl font-semibold tabular-nums">{queue.summary.total}</dd></div><div><dt className="text-zinc-500">Evidence pending</dt><dd className="mt-1 text-2xl font-semibold tabular-nums">{queue.summary.pending_evidence}</dd></div><div><dt className="text-zinc-500">Completion intents</dt><dd className="mt-1 text-2xl font-semibold tabular-nums">{queue.summary.pending_completion}</dd></div><div><dt className="text-zinc-500">Out for delivery</dt><dd className="mt-1 text-2xl font-semibold tabular-nums">{queue.summary.by_status.out_for_delivery ?? 0}</dd></div></dl>
-        {queue.data.length ? <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">{queue.data.length} record{queue.data.length === 1 ? '' : 's'} on the first page. Search parcels to review custody, evidence, and final-mile details.</p> : <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">No authoritative fulfillment records are currently available for this hub.</p>}
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">Last checked {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(queue.freshness.generated_at))}. Counts are scoped to this organization and hub.</p>
-      </> : !queueLoading && !queueError ? <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">The queue returned no data.</p> : null}
+    {queueError ? <div className="mt-6"><ErrorNotice message={queueError} retry={() => void load()} /></div> : null}
+    {queue ? <DashboardQueueOverview queue={queue} stale={Boolean(queueError || queueLoading)} /> : null}
+    <section className="portal-panel mt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">Parcel records</h3><p className="portal-secondary mt-1 text-sm">Search tracking references and review custody, tasks, and evidence.</p></div><Link className="portal-button portal-button-primary" to="/operations">Search parcels <LuArrowRight aria-hidden="true" /></Link></div>
     </section>
   </div>
 }

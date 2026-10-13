@@ -49,7 +49,8 @@ function fixture() {
     setMessage() {}, setQuote(value) { env.quote = value; },
     setSelectedVouchers(value) { env.selectedVouchers = value; },
     setSelectedLogistics(value) { env.selectedLogistics = value; },
-    setLogisticsOptions() {}, setAddresses() {},
+    logisticsOptions: null,
+    setLogisticsOptions(value) { env.logisticsOptions = value; }, setAddresses() {},
     quoteCheckout: async () => ({ quoteId: `new-quote-${++quoteNumber}` }),
     fetchCheckoutLogisticsOptions: async () => ({ groups: [{ shop: { id: 'shop' }, options: [{ organizationId: 'provider' }] }] }),
     payload: (intent, address, vouchers, logistics) => ({ ...intent, address, vouchers, logistics }),
@@ -62,6 +63,7 @@ function fixture() {
   env.placeOrder = extract('placeOrder', env);
   env.applyVouchers = extract('applyVouchers', env);
   env.selectLogisticsProvider = extract('selectLogisticsProvider', env);
+  env.cancelShippingChange = extract('cancelShippingChange', env);
   return { env, requests };
 }
 
@@ -150,4 +152,73 @@ test('voucher Apply blocks a concurrent request and ignores departed-session rep
   assert.equal(await flight, false);
   assert.deepEqual(env.selectedVouchers, []);
   assert.equal(env.quote.quoteId, 'original-quote');
+});
+
+
+test('shipping discovery defaults each Shop to the cheapest provider and retains accepted available choices', async () => {
+  const { env } = fixture();
+  env.fetchCheckoutLogisticsOptions = async () => ({ groups: [
+    { shop: { id: 'shop' }, options: [
+      { organizationId: 'expensive', shippingFee: '100.00' },
+      { organizationId: 'cheap', shippingFee: '20.00' },
+    ] },
+    { shop: { id: 'second' }, options: [{ organizationId: 'free', shippingFee: '0.00' }] },
+  ] });
+  await env.loadShippingOptions(env.intent, env.selectedAddressId, []);
+  assert.deepEqual(env.selectedLogistics, { shop: 'cheap', second: 'free' });
+  assert.equal(env.status, 'ready');
+  await env.loadShippingOptions(env.intent, env.selectedAddressId, [], { shop: 'expensive', second: 'gone' });
+  assert.deepEqual(env.selectedLogistics, { shop: 'expensive', second: 'free' });
+});
+
+test('one Shop without delivery options blocks quoting and leaves placement disabled', async () => {
+  const { env } = fixture();
+  let quotes = 0;
+  env.quoteCheckout = async () => { quotes++; return { quoteId: 'bad' }; };
+  env.fetchCheckoutLogisticsOptions = async () => ({ groups: [
+    { shop: { id: 'shop' }, options: [{ organizationId: 'provider', shippingFee: '20.00' }] },
+    { shop: { id: 'second' }, options: [] },
+  ] });
+  await env.loadShippingOptions(env.intent, env.selectedAddressId, []);
+  assert.equal(quotes, 0);
+  assert.equal(env.quote, null);
+  await env.placeOrder();
+  assert.equal(env.checkoutPlacement.read('customer'), null);
+});
+
+test('provider Apply preserves accepted selections after failure, then commits a successful draft with vouchers intact', async () => {
+  const { env } = fixture();
+  env.logisticsOptions = { groups: [{ shop: { id: 'shop' }, options: [
+    { organizationId: 'provider' }, { organizationId: 'different-provider' },
+  ] }] };
+  env.selectedVouchers = [{ voucher_id: 'voucher', target_shop_id: 'shop' }];
+  const original = env.quote;
+  env.quoteCheckout = async () => { throw new env.ApiError('Delivery unavailable'); };
+  assert.equal(await env.selectLogisticsProvider('shop', 'different-provider'), false);
+  assert.equal(env.quote, original);
+  assert.equal(env.selectedLogistics.shop, 'provider');
+  env.quoteCheckout = async () => ({ quoteId: 'accepted-provider' });
+  assert.equal(await env.selectLogisticsProvider('shop', 'different-provider'), true);
+  assert.equal(env.selectedLogistics.shop, 'different-provider');
+  assert.equal(env.selectedVouchers[0].voucher_id, 'voucher');
+  assert.equal(await env.selectLogisticsProvider('shop', 'unavailable'), false);
+});
+
+
+test('leaving a pending provider Apply ignores its late quote and retains accepted shipping', async () => {
+  const { env } = fixture();
+  env.logisticsOptions = { groups: [{ shop: { id: 'shop' }, options: [
+    { organizationId: 'provider' }, { organizationId: 'different-provider' },
+  ] }] };
+  let finish;
+  env.quoteCheckout = () => new Promise(resolve => { finish = resolve; });
+  const original = env.quote;
+  const flight = env.selectLogisticsProvider('shop', 'different-provider');
+  assert.equal(env.status, 'quoting');
+  env.cancelShippingChange();
+  finish({ quoteId: 'departed-draft' });
+  assert.equal(await flight, false);
+  assert.equal(env.quote, original);
+  assert.equal(env.selectedLogistics.shop, 'provider');
+  assert.equal(env.status, 'ready');
 });

@@ -33,6 +33,9 @@ class ShippingQuotationService
         return $organizations->map(function (LogisticsOrganization $organization) use ($shop, $destination, $lines): ?array {
             try {
                 $quote = $this->quote($shop, $destination, $lines, $organization->id);
+                if ($quote['route_snapshot']['status'] === ShippingRoutePricingStatus::Unplanned->value) {
+                    return null;
+                }
 
                 return [
                     'organization_id' => $organization->id,

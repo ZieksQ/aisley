@@ -42,7 +42,7 @@ trait OrderLifecycleFixtures
             'code' => $product->base_sku, 'is_base' => true, 'status' => 'active',
         ]);
         $balance = InventoryBalance::create(['inventory_sku_id' => $sku->id, 'on_hand' => 10, 'reserved' => 0]);
-        $this->configureTestCheckoutFinance();
+        $this->configureTestCheckoutFinance(false);
         $organization = LogisticsOrganization::with('user', 'hub.address')->sole();
         $origin = [$organization->user, $organization, $organization->hub];
         $origin[2]->address->update(['latitude' => 14.60, 'longitude' => 120.98]);

@@ -1,10 +1,10 @@
 import { Button } from '@aisley/ui'
+import { LuArrowUpRight, LuMessagesSquare, LuStore } from 'react-icons/lu'
 import { Link } from 'react-router-dom'
 import type { DashboardQueueSummary } from '../../types/dashboard'
 
-export const dashboardPanel = 'rounded-lg border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#17141b]'
-export const dashboardLink = 'inline-flex min-h-11 items-center text-sm font-semibold text-[#4C1268] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] dark:text-purple-200'
-export const dashboardButton = 'min-h-11! rounded-lg! border border-slate-300 px-4 py-2 text-sm shadow-none! focus-visible:outline-solid! focus-visible:outline-2! focus-visible:outline-offset-2! focus-visible:outline-[#E6007A]! dark:border-white/20 dark:bg-[#17141b]! dark:text-white! dark:hover:bg-white/10!'
+export const dashboardPanel = 'portal-panel'
+export const dashboardButton = 'portal-button'
 
 export function DashboardQueueCard({ title, summary, loading, destination, onRetry }: {
   title: string
@@ -13,16 +13,17 @@ export function DashboardQueueCard({ title, summary, loading, destination, onRet
   destination: string
   onRetry: () => void
 }) {
-  return <section className={dashboardPanel} aria-label={title} aria-busy={loading}>
-    <h3 className="font-semibold">{title}</h3>
-    {loading && !summary ? <p className="mt-3 text-sm text-slate-500 dark:text-slate-400" role="status">Loading count…</p>
-      : summary?.state === 'ready' ? <>
-        <p className="mt-3 text-3xl font-semibold tabular-nums">{summary.count}</p>
-        {summary.count === 0 && <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">No open records.</p>}
-      </> : <>
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300" role="status">Count unavailable. Other sections may still be available.</p>
-        <Button className={`${dashboardButton} mt-3`} disabled={loading} onClick={onRetry} variant="outline">Retry count</Button>
-      </>}
-    <Link className={`${dashboardLink} mt-3`} to={destination}>View open queue</Link>
+  const support = destination.startsWith('/support-tickets')
+  const Icon = support ? LuMessagesSquare : LuStore
+  return <section className="portal-panel" aria-label={title} aria-busy={loading}>
+    <div className="dashboard-panel-header">
+      <span className="dashboard-work-icon" aria-hidden="true"><Icon size={19} /></span>
+      <h3 className="flex-1">{title}</h3>
+      {summary?.state === 'ready' && <strong className="text-lg tabular-nums">{summary.count}</strong>}
+    </div>
+    {loading && !summary ? <div className="skeleton-block skeleton-label mt-4" role="status" aria-label="Loading count" />
+      : summary?.state === 'ready' ? <p className="portal-secondary mt-4 text-sm">{summary.count === 0 ? 'The open queue is clear.' : support ? 'Review incoming tickets and route them to the right assignee.' : 'Review Seller cases and their supporting evidence.'}</p>
+        : <div className="mt-4" role="status"><p className="portal-secondary text-sm">Count unavailable. Other sections may still be available.</p><Button className={`${dashboardButton} mt-3`} disabled={loading} onClick={onRetry} variant="outline">Retry count</Button></div>}
+    <Link className="portal-link mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium" to={destination}>Open work queue <LuArrowUpRight aria-hidden="true" /></Link>
   </section>
 }

@@ -1,15 +1,10 @@
-import { ChatNotifications } from '../components/ChatNotifications'
 import { useState } from 'react'
-import {
-  FaArrowRightFromBracket,
-  FaBars,
-  FaStore,
-  FaXmark,
-} from 'react-icons/fa6'
+import { PortalShell } from '@aisley/ui/portal'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { SellerAvatar } from '../components/SellerAvatar'
+import { ChatNotifications } from '../components/ChatNotifications'
 import { NotificationBell } from '../components/notifications/NotificationBell'
 import { SellerSidebarNav } from '../components/SellerSidebarNav'
 
@@ -19,7 +14,6 @@ export function SellerLayout() {
   const { seller, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   const firstName = seller?.profile?.first_name ?? 'Seller'
@@ -37,86 +31,13 @@ export function SellerLayout() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-[#f7f7f8] text-zinc-950 dark:bg-[#101012] dark:text-white">
-      <aside className={`${isMenuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-30 w-64 flex-col overflow-hidden border-r border-zinc-200 bg-white px-4 py-5 dark:border-white/10 dark:bg-[#171719] lg:flex`}>
-        <div className="flex shrink-0 items-center justify-between px-1">
-          <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-lg bg-[#4C1268] text-white">
-              <FaStore aria-hidden="true" />
-            </div>
-            <div>
-              <p className="font-semibold">Aisley</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Seller workspace</p>
-            </div>
-          </div>
-          <button
-            aria-label="Close navigation"
-            className="grid size-9 place-items-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
-            onClick={() => setIsMenuOpen(false)}
-            type="button"
-          >
-            <FaXmark aria-hidden="true" />
-          </button>
-        </div>
+  const pageTitle = location.pathname.startsWith('/vouchers') ? 'Vouchers' : location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/shipping-providers') ? 'Shipping providers' : location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/courier-messages') ? 'Courier messages' : location.pathname.startsWith('/logistics-messages') ? 'Logistics messages' : location.pathname.startsWith('/messages') ? 'Messages' : location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/reviews') ? 'Product reviews' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'
 
-        <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-2">
-          <SellerSidebarNav onNavigate={() => setIsMenuOpen(false)} />
-        </div>
-
-        <div className="mt-5 shrink-0 border-t border-zinc-200 pt-4 dark:border-white/10">
-          <div className="flex items-center gap-3 px-2">
-            <SellerAvatar initials={initials} photoUrl={seller?.profile?.profile_photo_url} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{firstName}</p>
-              <p className="truncate text-xs text-zinc-500">{seller?.email}</p>
-            </div>
-          </div>
-          <button
-            className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
-            disabled={isSigningOut}
-            onClick={handleLogout}
-            type="button"
-          >
-            <FaArrowRightFromBracket aria-hidden="true" />
-            {isSigningOut ? 'Signing out…' : 'Sign out'}
-          </button>
-          <nav aria-label="Policy links" className="mt-3 flex gap-3 border-t border-zinc-200 px-2 pt-3 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-500">
-            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/terms_of_service`} rel="noreferrer" target="_blank">Terms</a>
-            <a className="hover:text-[#4C1268] dark:hover:text-white" href={`${storefrontUrl}/policies/privacy_policy`} rel="noreferrer" target="_blank">Privacy</a>
-          </nav>
-        </div>
-      </aside>
-
-      {isMenuOpen ? (
-        <button
-          aria-label="Close navigation overlay"
-          className="fixed inset-0 z-20 bg-black/55 lg:hidden"
-          onClick={() => setIsMenuOpen(false)}
-          type="button"
-        />
-      ) : null}
-
-      <section className="min-h-screen lg:pl-64">
-        <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-white/10 dark:bg-[#171719] sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              aria-label="Open navigation"
-              className="grid size-10 place-items-center rounded-lg border border-zinc-300 text-zinc-600 dark:border-white/15 dark:text-zinc-300 lg:hidden"
-              onClick={() => setIsMenuOpen(true)}
-              type="button"
-            >
-              <FaBars aria-hidden="true" />
-            </button>
-            <h1 className="truncate text-lg font-semibold">{location.pathname.startsWith('/vouchers') ? 'Vouchers' : location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/shipping-providers') ? 'Shipping providers' : location.pathname.startsWith('/finance') ? 'Finance' : location.pathname.startsWith('/courier-messages') ? 'Courier messages' : location.pathname.startsWith('/logistics-messages') ? 'Logistics messages' : location.pathname.startsWith('/messages') ? 'Messages' : location.pathname.startsWith('/orders') ? 'Orders' : location.pathname.startsWith('/notifications') ? 'Notifications' : location.pathname.startsWith('/product-questions') || location.pathname.includes('/questions/') ? 'Product Q&A' : location.pathname.startsWith('/reviews') ? 'Product reviews' : location.pathname.startsWith('/products') ? 'Products' : location.pathname.startsWith('/low-stock-alerts') ? 'Low-stock alerts' : location.pathname.startsWith('/inventory') ? 'Inventory' : location.pathname.startsWith('/account') ? 'Account settings' : location.pathname.startsWith('/policy-consent') ? 'Policy consent' : 'Dashboard'}</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <ChatNotifications /><NotificationBell />
-            <ThemeToggle />
-          </div>
-        </header>
-        <Outlet />
-      </section>
-    </main>
-  )
+  return <PortalShell role="seller" title={pageTitle} routeKey={location.pathname}
+    navigation={<SellerSidebarNav />}
+    account={{ name: firstName, email: seller?.email, avatar: <SellerAvatar initials={initials} photoUrl={seller?.profile?.profile_photo_url} /> }}
+    actions={<><ChatNotifications /><NotificationBell /><ThemeToggle /></>}
+    onLogout={() => void handleLogout()} signingOut={isSigningOut} policyBaseUrl={storefrontUrl}>
+    <Outlet />
+  </PortalShell>
 }

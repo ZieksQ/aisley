@@ -657,8 +657,8 @@
         {
           "feature": "checkout-order",
           "status": 409,
-          "code": "SHIPPING_COVERAGE_UNAVAILABLE",
-          "message": "No enabled Logistics provider can quote this Shop order.",
+          "code": "QUOTE_STALE",
+          "message": "No complete delivery route is available for this Shop and address. Change your address or try again later. Request a new quote.",
           "field": "logistics_selections"
         },
         {
@@ -1578,7 +1578,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1591,7 +1591,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1604,7 +1604,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1617,7 +1617,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1630,7 +1630,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1638,7 +1638,7 @@
         "code": "ROUTE_RATE_LIMIT_EXCEEDED",
         "message": "A parcel exceeds a route participant rate limit."
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 422,
@@ -1651,7 +1651,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1664,7 +1664,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1677,7 +1677,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1690,7 +1690,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1703,7 +1703,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     },
     {
       "status": 409,
@@ -1716,7 +1716,7 @@
           ]
         }
       },
-      "note": "Source-derived synthetic; route-participant failures except limits degrade to unplanned, and options omits failed candidates."
+      "note": "Source-derived synthetic; options omits failed and unplanned candidates; explicit quote requires a complete route and rejects unplanned with SHIPPING_COVERAGE_UNAVAILABLE. Route loss at placement returns QUOTE_STALE before effects."
     }
   ],
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50"

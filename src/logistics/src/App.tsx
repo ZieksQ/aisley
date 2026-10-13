@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import { ProtectedRoute, SessionRoute } from './components/ProtectedRoute'
 import { LogisticsLayout } from './layouts/LogisticsLayout'
 import { AccountPage } from './pages/AccountPage'
 import { CourierApplicationDetailPage } from './pages/CourierApplicationDetailPage'
@@ -42,46 +42,48 @@ export default function App() {
     <Route element={<RegisterPage />} path="/register" />
     <Route element={<ForgotPasswordPage />} path="/forgot-password" />
     <Route element={<ResetPasswordPage />} path="/reset-password" />
-    <Route element={<ProtectedRoute />}>
+    <Route element={<SessionRoute />}>
       <Route element={<LogisticsLayout />}>
-        <Route element={<DashboardPage />} path="/dashboard" />
-        <Route element={<FinancePage />} path="/finance" />
-        <Route element={<CourierCashPage />} path="/finance/courier-cash" />
-        <Route element={<Navigate replace to="/settings/billing" />} path="/finance/billing" />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<FinancePage />} path="/finance" />
+          <Route element={<CourierCashPage />} path="/finance/courier-cash" />
+          <Route element={<Navigate replace to="/settings/billing" />} path="/finance/billing" />
           <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances/invoices/:invoiceId" />
           <Route element={<FinancePaymentsPage />} path="/finance/remittances/:batchId" />
           <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
-        <Route element={<FulfillmentOperationsPage />} path="/operations" />
-        <Route element={<DeliveryConfirmationsPage />} path="/delivery-confirmations" />
-        <Route element={<ReceiveAtHubPage />} path="/receive-at-hub" />
-        <Route element={<LinehaulPage />} path="/linehaul" />
-        <Route element={<LinehaulDispatchPage />} path="/linehaul-dispatch" />
-        <Route element={<InboundLinehaulPage />} path="/inbound-linehaul" />
-        <Route element={<SortingPage />} path="/sorting" />
-        <Route element={<SortPlanPage />} path="/sort-plan" />
-        <Route element={<DispatchPage />} path="/dispatch" />
-        <Route element={<PickupsPage />} path="/pickups" />
-        <Route element={<PickupDetailPage />} path="/pickups/:pickupId" />
-        <Route element={<CourierApplicationsPage />} path="/courier-applications" />
-        <Route element={<CourierApplicationDetailPage />} path="/courier-applications/:affiliationId" />
-        <Route element={<FleetPage />} path="/fleet" />
-        <Route element={<CourierVehiclesPage />} path="/vehicles" />
-        <Route element={<CourierVehiclePage />} path="/couriers/:courierId/vehicle" />
-        <Route element={<NotificationsPage />} path="/notifications" />
-        <Route element={<NotificationsPage />} path="/notifications/:notificationId" />
-        <Route element={<OperationalChatPage />} path="/messages" />
-        <Route element={<SupportTicketsPage />} path="/support-tickets" />
-        <Route element={<Navigate replace to="/settings/account" />} path="/account" />
-        <Route element={<ShippingRatesPage />} path="/shipping-rates" />
-        <Route element={<Navigate replace to="/settings/account" />} path="/settings" />
-        <Route element={<AccountPage />} path="/settings/account" />
-        <Route element={<BillingPage />} path="/settings/billing" />
-        <Route element={<PolicyConsentPage />} path="/settings/terms" />
-        <Route element={<AppearancePage />} path="/settings/appearance" />
-        <Route element={<Navigate replace to="/settings/terms" />} path="/policy-consent" />
-        <Route element={<NotFoundPage />} path="*" />
+          <Route element={<FulfillmentOperationsPage />} path="/operations" />
+          <Route element={<DeliveryConfirmationsPage />} path="/delivery-confirmations" />
+          <Route element={<ReceiveAtHubPage />} path="/receive-at-hub" />
+          <Route element={<LinehaulPage />} path="/linehaul" />
+          <Route element={<LinehaulDispatchPage />} path="/linehaul-dispatch" />
+          <Route element={<InboundLinehaulPage />} path="/inbound-linehaul" />
+          <Route element={<SortingPage />} path="/sorting" />
+          <Route element={<SortPlanPage />} path="/sort-plan" />
+          <Route element={<DispatchPage />} path="/dispatch" />
+          <Route element={<PickupsPage />} path="/pickups" />
+          <Route element={<PickupDetailPage />} path="/pickups/:pickupId" />
+          <Route element={<CourierApplicationsPage />} path="/courier-applications" />
+          <Route element={<CourierApplicationDetailPage />} path="/courier-applications/:affiliationId" />
+          <Route element={<FleetPage />} path="/fleet" />
+          <Route element={<CourierVehiclesPage />} path="/vehicles" />
+          <Route element={<CourierVehiclePage />} path="/couriers/:courierId/vehicle" />
+          <Route element={<NotificationsPage />} path="/notifications" />
+          <Route element={<NotificationsPage />} path="/notifications/:notificationId" />
+          <Route element={<OperationalChatPage />} path="/messages" />
+          <Route element={<SupportTicketsPage />} path="/support-tickets" />
+          <Route element={<Navigate replace to="/settings/account" />} path="/account" />
+          <Route element={<ShippingRatesPage />} path="/shipping-rates" />
+          <Route element={<Navigate replace to="/settings/account" />} path="/settings" />
+          <Route element={<AccountPage />} path="/settings/account" />
+          <Route element={<BillingPage />} path="/settings/billing" />
+          <Route element={<PolicyConsentPage />} path="/settings/terms" />
+          <Route element={<AppearancePage />} path="/settings/appearance" />
+          <Route element={<Navigate replace to="/settings/terms" />} path="/policy-consent" />
+          <Route element={<NotFoundPage />} path="*" />
+        </Route>
       </Route>
     </Route>
     <Route element={<Navigate replace to="/dashboard" />} path="*" />

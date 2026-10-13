@@ -5,7 +5,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { AuthShell } from '../components/AuthShell'
 import { FormField } from '../components/FormField'
-import { LoadingScreen } from '../components/LoadingScreen'
 import { ApiError, apiRequest, initializeCsrf } from '../lib/api'
 
 type MessageResponse = { message: string }
@@ -21,7 +20,7 @@ export function ForgotPasswordPage() {
     document.title = 'Reset Seller password | Aisley'
   }, [])
 
-  if (isLoading) return <LoadingScreen />
+  if (isLoading) return null
   if (seller) return <Navigate replace to="/dashboard" />
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

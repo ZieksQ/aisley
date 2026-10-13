@@ -49,7 +49,7 @@ with a new key. Existing expiry, stale-state, atomicity and consent rules remain
 ## Eligibility and pricing failures
 
 Options are Seller-enabled providers ordered by business name whose account is
-active, sole hub has an address and shipping quotation succeeds. Quotation requires
+active, sole hub has an address and a complete `local`/`planned` route can be priced. Quotation requires
 Seller default pickup address, active effective published platform tariff, the
 provider's unrevoked acceptance, and valid Product/variant parcel measurements.
 The options service catches `CheckoutException` and omits failed candidates; empty
@@ -59,20 +59,13 @@ Explicit quote errors include `PICKUP_ADDRESS_REQUIRED`,
 `SHIPPING_RATE_UNAVAILABLE`, `LOGISTICS_RATE_NOT_ACCEPTED`, `SHIPPING_DATA_REQUIRED`,
 `SHIPPING_DIMENSIONS_UNSUPPORTED`, `SHIPPING_WEIGHT_UNSUPPORTED` and
 `ROUTE_RATE_LIMIT_EXCEEDED` (409). Exact fields/codes are in [errors](errors.md).
-Parcel limits from a route participant fail quotation. Other missing route
-participant tariff/rate-card/service/category charges become `unplanned`; all leg
-charges are discarded and the destination region surcharge remains. Routing
-disabled, uncovered postal code, incomplete sort plans or metric failure can also
-produce a successful `unplanned` quote. Do not translate it to a promised route,
-ETA or provider replacement. Seller pickup can then be held for unavailable frozen
-routes; the committed Customer price stays unchanged.
+Parcel limits from a route participant fail quotation. Missing participant tariff/rate-card/service/category charges, disabled routing, uncovered postal codes, incomplete sort plans or metric failures make the provider unavailable for new checkout. Discovery omits these providers; explicit quote returns `409 SHIPPING_COVERAGE_UNAVAILABLE` on `logistics_selections`. If coverage disappears after review, placement returns `409 QUOTE_STALE` on `logistics_selections` before any effects. Refresh options and obtain reviewed intent; never replace an uncertain request with a new key. Historical unplanned Orders keep their frozen totals and fulfillment holds.
 
 ## Wire projections and fulfillment
 
 Quote `shippingQuote` is required: `{serviceable:true,logisticsOrganizationId:UUID,
-logisticsBusinessName:string,routeStatus:local|planned|unplanned,shippingFee:money}`.
-`money` is an exact decimal string. `serviceable:true` means successful commercial
-quotation; it does not prove physical routing readiness.
+logisticsBusinessName:string,routeStatus:local|planned,shippingFee:money}`.
+`money` is an exact decimal string. `serviceable:true` requires a complete, commercially priced checkout route as of calculation. It does not reserve future capacity or promise an ETA.
 
 Batch Order `shippingQuote` is nullable when there is no pricing snapshot; otherwise
 `{logisticsOrganizationId:UUID?,logisticsBusinessName:string?,routeStatus:string,
@@ -94,3 +87,7 @@ Use [typed models](field-index.md), [operations](operations.md), and
 [synthetic scenarios](examples/shipping-selection-scenarios.json).
 The [inspection record](../references/current-source-inspection.json) hashes the
 source and test definitions. Those application tests were inspected, not executed.
+
+## Backend revision — 2026-10-14
+
+New checkout requires a complete route even with an explicit provider. Empty options block all-Shop atomic checkout; do not treat a zero-fee unplanned fallback as eligible. The storefront now uses a default lowest-fee provider, separate draft/Apply page and final confirmation dialog; these are web interactions, not evidence of Flutter adoption. Existing same-key committed replay still precedes route validation. G25 historical evidence and live/device acceptance remain unchanged; verify the revised rejection/review path in the owning Flutter client.

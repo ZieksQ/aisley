@@ -5,7 +5,6 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { AuthShell } from '../components/AuthShell'
 import { FormField } from '../components/FormField'
-import { LoadingScreen } from '../components/LoadingScreen'
 import { ApiError, readableAuthError } from '../lib/api'
 
 type LocationState = { from?: string; notice?: string }
@@ -25,7 +24,7 @@ export function LoginPage() {
     document.title = 'Seller sign in | Aisley'
   }, [])
 
-  if (isLoading) return <LoadingScreen />
+  if (isLoading) return null
   if (seller) return <Navigate replace to="/dashboard" />
 
   const destination = state?.from?.startsWith('/') ? state.from : '/dashboard'

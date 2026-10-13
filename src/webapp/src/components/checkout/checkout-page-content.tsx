@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import type { CheckoutQuote } from "@/lib/checkout/types";
+import { CheckoutConfirmation } from "./checkout-confirmation";
 import { FiRefreshCw } from "react-icons/fi";
 import { useCheckout } from "./checkout-provider";
 import {
@@ -24,9 +27,9 @@ export function CheckoutPageContent() {
     status,
     message,
     loadShippingOptions,
-    selectLogisticsProvider,
     placeOrder,
   } = useCheckout();
+  const [reviewedQuote, setReviewedQuote] = useState<CheckoutQuote | null>(null);
   if (!customerId || status === "loading") return <CheckoutLoading />;
   if (!intent) return <MissingIntent message={message} />;
 
@@ -51,9 +54,6 @@ export function CheckoutPageContent() {
                 group={quoteGroup}
                 shippingOptions={group}
                 selectedProviderId={selectedLogistics[group.shop.id]}
-                onSelectProvider={(providerId) =>
-                  void selectLogisticsProvider(group.shop.id, providerId)
-                }
                 disabled={
                   status === "quoting" ||
                   status === "placing" ||
@@ -84,9 +84,6 @@ export function CheckoutPageContent() {
                 }
                 options={group}
                 selectedProviderId={selectedLogistics[group.shop.id]}
-                onSelect={(providerId) =>
-                  void selectLogisticsProvider(group.shop.id, providerId)
-                }
                 formatAmount={amount}
               />
             </section>
@@ -118,9 +115,22 @@ export function CheckoutPageContent() {
         quote={quote}
         message={message}
         status={status}
-        onPlaceOrder={() => void placeOrder()}
+        onPlaceOrder={() => {
+          if (status === "uncertain") void placeOrder();
+          else if (status === "ready" && quote) setReviewedQuote(quote);
+        }}
         formatAmount={amount}
       />
+      {reviewedQuote && reviewedQuote === quote && status === "ready" ? (
+        <CheckoutConfirmation
+          quote={reviewedQuote}
+          onCancel={() => setReviewedQuote(null)}
+          onConfirm={() => {
+            setReviewedQuote(null);
+            void placeOrder();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

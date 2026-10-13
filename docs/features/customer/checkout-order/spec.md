@@ -3,8 +3,8 @@ feature: checkout-order
 title: Customer Checkout & Order Creation
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Implemented; storefront provider-selection flow added
+version: 1.3
+status: Implemented; complete-route gating, dedicated delivery selection and final confirmation
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -60,7 +60,7 @@ Buy Now or selected Cart lines
 - Quote state includes the saved address ID/timestamp, type, label, recipient/contact, every delivery address field, and optional coordinates at the stored seven-decimal precision. A same-second change invalidates the reviewed quote; placement returns `409 QUOTE_STALE` before any Order, inventory, voucher, Cart, or notification effects.
 - Manual/PSGC address fields are authoritative. Optional coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
 - Return final-fee Logistics options per Shop from `POST /checkout/logistics-options`; accept one `logistics_selections` entry per Shop for quote and placement.
-- Show each Shop's eligible provider choices as radio options with only the provider name and final shipping fee. Requote server-side after a provider choice and use the returned shipping fee and COD totals for review and placement.
+- Show the selected provider and final shipping fee per Shop, with Change opening `/checkout/delivery?shop=<UUID>`. Default to the lowest-fee eligible provider (ties retain API order), preserve available accepted choices on refresh, and apply draft changes only after a successful server quote. Back/Cancel retains the accepted selection.
 - Never expose billable weight, parcel dimensions, tariff components, route hops, Logistics rules, commission, or payout shares to the Customer.
 - Store the chosen Logistics organization on the Order and pricing snapshot. Seller pickup must match it; later route/rate changes never rewrite Customer COD.
 
@@ -86,7 +86,7 @@ Buy Now or selected Cart lines
 
 - Buy Now and selected-Cart flows require an authenticated Customer; a guest is redirected to login and must intentionally retry.
 - Show one selected shipping-capable address, COD, each Shop group, items with available Product images, current prices, voucher reasons, fees, savings, payable amount, loading, validation, stale, conflict, and retry states. Null or failed images use the storefront fallback.
-- Retrieve provider options for every Shop, keep a separate selection per Shop, and requote after each selection. Require a selection when multiple providers are available; automatically use the sole available provider. Hide route status, weights, parcel dimensions, tariff details, route legs, and internal pricing data.
+- Retrieve provider options for every Shop, keep a separate selection per Shop, and requote after each selection. The storefront explicitly sends the default or accepted provider for every Shop, including when multiple providers are available. The API retains implicit selection only when exactly one eligible option exists. Hide route status, weights, parcel dimensions, tariff details, route legs, and internal pricing data.
 - A successful result lists every Order reference and links to Customer Order Status. Partial-success UI is forbidden because placement is atomic.
 - Quote and Batch item DTOs include a nullable image URL resolved from currently available public variant/Product media; image URLs do not change immutable Order snapshots.
 - Use semantic labels, keyboard-operable controls, field-level errors, and non-color-only stock/error cues.
@@ -125,10 +125,10 @@ Buy Now or selected Cart lines
 
 ### Route-based shipping quotation and COD extension (2026-09-27)
 
-- `docs/features/shared/shipping-quotation/spec.md` is authoritative for Logistics service base fees and Admin region surcharges, item-based billable weight, Seller-enabled providers, Logistics rate cards, route fallback, quote expiry, and immutable rate inputs.
+- `docs/features/shared/shipping-quotation/spec.md` is authoritative for Logistics service base fees and Admin region surcharges, item-based billable weight, Seller-enabled providers, Logistics rate cards, complete-route eligibility, quote expiry, and immutable rate inputs.
 - Checkout returns an exact shipping fee and COD amount for every Shop Order and for the complete checkout before placement. Platform commissions never increase Customer COD.
 - Placement revalidates the address, contents, selected provider, rate revisions, acceptance, route, coverage, vouchers, and commission policies. A material change requires a refreshed quote and Customer confirmation.
-- Each placed Order stores its selected provider, platform tariff, frozen route/fallback status, private leg charges, discount funding, commissions, shipping fee, and collectible total. Rerouting and later rate changes cannot alter that total.
+- Each placed Order stores its selected provider, platform tariff, frozen complete route status, private leg charges, discount funding, commissions, shipping fee, and collectible total. Rerouting and later rate changes cannot alter that total.
 
 
 ### Service base-fee revision — 2026-10-03
@@ -155,5 +155,15 @@ Buy Now or selected Cart lines
 - Each Shop's Checkout voucher row opens `/checkout/vouchers?shop=<UUID>`; it shows applied names and **Change** after a successful selection. Replace the former expandable candidate list.
 - The separate page uses compact ticket cards, All/Discount/Shipping filters and Aisley/Shop sections. Benefits, minimum spend, cap and expiry stay visible; Details exposes full terms and unavailable claims link to the issuing collection surface. Selection uses a highlighted border/background and checkmark with accessible pressed buttons, without radio controls.
 - Edits remain a draft until **Apply vouchers** obtains a server quote. Back retains the previously accepted selection. Failed quotes keep draft/error feedback; successful application returns to Checkout with the selected address, Logistics choices and full cross-Shop voucher allocation intact.
-- A shared review layout owns the Customer-keyed checkout state. These two views share the consent check to prevent navigation from unmounting reviewed intent; private API gates remain authoritative. Account changes invalidate state and pending replies. Frozen uncertain placement continues to block edits and voucher navigation, including direct page access.
+- A shared review layout owns the Customer-keyed checkout state. Review and selection views share the consent check to prevent navigation from unmounting reviewed intent; private API gates remain authoritative. Account changes invalidate state and pending replies. Frozen uncertain placement continues to block edits and voucher navigation, including direct page access.
 - This is a storefront-only interaction change. Checkout payloads, capacity, funding, collection requirements and external Buyer API/Flutter status remain unchanged.
+
+
+### Complete-route gating and final confirmation — 2026-10-14
+
+- New checkout options include only fully priced `local` or `planned` routes. Missing coverage, active sort-plan lanes, routing metrics, or any required participant tariff/service/category rate removes that provider. Zero fees remain valid on complete routes.
+- Empty options block the entire checkout; explicit selection of an unplanned route returns `409 SHIPPING_COVERAGE_UNAVAILABLE` on `logistics_selections`. Show an actionable delivery-unavailable message and offer address change/refresh. No new fallback Orders are permitted; historical unplanned Orders keep their frozen contracts.
+- Recheck route completeness inside atomic placement. Coverage loss after review returns `409 QUOTE_STALE` on `logistics_selections`, with no Orders, reservations, voucher redemptions or Cart cleanup. Refresh shipping/totals and obtain fresh confirmation. Committed same-key requests still replay before route revalidation.
+- Place order opens a centered native confirmation dialog showing the reviewed recipient/address, Shop providers and fees, each Order's payable total, Order count and total COD. Cancel/Escape returns focus to Place order and sends no placement request. Confirm and place order submits once using the existing Customer-scoped UUID and exact-request recovery. Retry original order reconciles the frozen request directly.
+- `/checkout/delivery` shares the Customer-keyed review provider with Checkout/Vouchers; direct access blocks edits during pending/uncertain placement. Failed Apply preserves the draft and previously accepted provider; leaving a pending Apply invalidates its late response and retains the accepted provider; successful Apply keeps vouchers/address and returns to Checkout.
+- This API eligibility revision also applies to the external Buyer client. Its portable contracts are updated separately; no Flutter implementation or device acceptance is established by this web change.
