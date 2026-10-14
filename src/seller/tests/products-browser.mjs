@@ -125,6 +125,7 @@ try {
   await waitText('Add product')
   await until('return Boolean(document.querySelector("#product-name") && document.querySelector("#product-category option[value=category-home]"))', 'product fields and category options')
   await browser.viewport(390, 850, true)
+  await clickText('Rich text')
   await until('return Boolean(document.querySelector(".seller-product-editor [class*=placeholder_]"))', 'description placeholder rendered at mobile width')
   const mobileCopy = await evaluate(`(() => { const editor = document.querySelector('.seller-product-editor'); const placeholder = editor?.querySelector('[class*="placeholder_"]'); const range = document.createRange(); if (placeholder?.firstChild) range.selectNodeContents(placeholder.firstChild); const button = [...document.querySelectorAll('#variants button')].find(node => node.innerText.includes('Add option')); const text = [...(button?.childNodes ?? [])].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim()); const labelRange = document.createRange(); if (text) labelRange.selectNodeContents(text); return { editorRight: editor?.getBoundingClientRect().right, placeholderRight: placeholder?.getBoundingClientRect().right, placeholderLines: range.getClientRects().length, actionLabelLines: labelRange.getClientRects().length, viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth } })()`)
   assert.ok(mobileCopy.placeholderLines >= 2, `Description placeholder should wrap across lines at 390px: ${JSON.stringify(mobileCopy)}`)

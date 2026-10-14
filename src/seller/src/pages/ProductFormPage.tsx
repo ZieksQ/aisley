@@ -117,7 +117,7 @@ function ProductEditor({ productId }: { productId?: string }) {
             <PortalSection
               id="description"
               title="Description"
-              description="Describe materials, fit, care instructions, and other useful details. Rich text is saved as safe Markdown.">
+              description="Write Markdown, format in Rich text, or compare your changes in Diff. Your description is saved as safe Markdown.">
               <ProductDescriptionEditor
                 markdown={state.form.description_markdown}
                 onAsset={state.addDescriptionAsset}

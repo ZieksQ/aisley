@@ -28,8 +28,11 @@ Light and dark themes, mobile-first responsive layouts and accessible controls f
 pnpm --dir src/seller lint
 pnpm --dir src/seller build
 pnpm --dir src/seller test:products:browser
+pnpm --dir src/seller test:description:browser
 ```
 
 Commands come from the committed package scripts. This documentation update did not run application checks; [Progress](../../docs/PROGRESS.md) records actual verification and [architecture](../../docs/architecture.md) describes deployment.
 
 The product browser regression requires the production build and the existing Chromium installation. It starts and stops its own local preview on port 15174, uses synthetic HTTP without real accounts or database writes, and writes screenshots under `node_modules/.cache/seller-products`. Run it from the repository root with `node src/seller/tests/products-browser.mjs --serve` or use the package script above.
+
+The description regression starts its own preview on port 15175 and checks Source/Rich text/Diff switching, the loaded-description comparison baseline, tables, image uploads, source save/recovery, caret and toolbar geometry, and both themes at narrow and wide widths. Run `node src/seller/tests/description-editor-browser.mjs --serve`; screenshots are written under `node_modules/.cache/seller-products/description-editor`.

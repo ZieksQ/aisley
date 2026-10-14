@@ -6,6 +6,7 @@ export function installProductFixtures() {
   const variantId = '70000000-0000-4000-8000-000000000001'
   const optionId = '80000000-0000-4000-8000-000000000001'
   const valueId = '90000000-0000-4000-8000-000000000001'
+  const previewUrl = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="#7c3aed"/></svg>')
   const state = window.productFixture = {
     productId, writes: [], reads: [], requests: [], uploads: [], mode: 'normal', delaySearch: 0, empty: false, uploadFailure: false,
     products: [
@@ -30,7 +31,8 @@ export function installProductFixtures() {
         const progress = new Event('progress'); Object.assign(progress, { lengthComputable: true, loaded: 50, total: 100 }); this.upload.dispatchEvent(progress)
       }, 25)
       setTimeout(() => {
-        const result = state.uploadFailure ? { status: 422, payload: { message: 'Upload rejected.', errors: { image: ['Synthetic image rejection.'] } } } : { status: 201, payload: { data: { id: upload.id, preview_url: '/assets/preview.jpg', url: '/assets/image.jpg' } } }
+        const descriptionUrl = `/api/v1/product-description-assets/${upload.id}`
+        const result = state.uploadFailure ? { status: 422, payload: { message: 'Upload rejected.', errors: { image: ['Synthetic image rejection.'] } } } : { status: 201, payload: { data: { id: upload.id, preview_url: previewUrl, url: upload.purpose === 'description' ? descriptionUrl : '/assets/image.jpg' } } }
         this.status = result.status; this.responseText = JSON.stringify(result.payload)
         this.dispatchEvent(new Event('load'))
       }, 250)
@@ -64,7 +66,7 @@ export function installProductFixtures() {
       return json(page(state.empty ? [] : visible, url.searchParams))
     }
     if (path === '/api/v1/seller/products' && options.method === 'POST') {
-      if (state.mode === 'save-error') return json({ message: 'Please correct the product details.', errors: { name: ['Product name is already in use.'] } }, 422)
+      if (state.mode === 'save-error') { await new Promise((done) => setTimeout(done, 350)); return json({ message: 'Please correct the product details.', errors: { name: ['Product name is already in use.'] } }, 422) }
       state.product = JSON.parse(options.body)
       return json({ data: { ...state.products[0], ...state.product, id: productId } }, 201)
     }
@@ -76,7 +78,7 @@ export function installProductFixtures() {
       return json({ message: 'Not found.' }, 404)
     }
     if (detail && options.method === 'PATCH') {
-      if (state.mode === 'save-error') return json({ message: 'Please correct the product details.', errors: { name: ['Product name is already in use.'] } }, 422)
+      if (state.mode === 'save-error') { await new Promise((done) => setTimeout(done, 350)); return json({ message: 'Please correct the product details.', errors: { name: ['Product name is already in use.'] } }, 422) }
       state.product = JSON.parse(options.body)
       return json({ data: { ...state.products[0], ...state.product, id: detail[1] } })
     }

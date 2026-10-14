@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test:orders": "node tests/order-actions.test.mjs",
     "test:products:browser": "node tests/products-browser.mjs --serve",
+    "test:description:browser": "node tests/description-editor-browser.mjs --serve",
     "preview": "vite preview"
   },
   "dependencies": {

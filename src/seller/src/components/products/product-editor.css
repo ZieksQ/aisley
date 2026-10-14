@@ -456,23 +456,6 @@
     margin-left: auto;
   }
 }
-.product-description-surface {
-  min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--portal-muted) 70%, var(--portal-surface));
-  border-radius: .5rem;
-  background: var(--portal-surface);
-}
-.product-description-surface .seller-product-editor {
-  border-radius: .5rem;
-}
-.product-description-surface:focus-within {
-  outline: 2px solid var(--brand-focus);
-  outline-offset: 2px;
-}
-.product-description-surface .mdxeditor-root-contenteditable {
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 639px) {
   .product-save-bar > div {
     margin-left: auto;
