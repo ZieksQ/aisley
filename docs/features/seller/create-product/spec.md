@@ -144,6 +144,7 @@
 ### Description editor modes and tables (2026-10-14)
 
 - Open both new and existing products in Source mode. Source edits update `description_markdown` immediately, including when saved without first switching views. Rich text keeps the existing formatting, canonical image upload/paste/drop, links, and Markdown conversion.
+- Place the Rich text, Diff and Source icon toggles in the same toolbar as formatting controls, matching [MDXEditor's demo](https://mdxeditor.dev/editor/demo). Use the editor's native mode icons with accessible names, hover/focus tooltips, exclusive selected states and keyboard navigation; disable mode changes during saves/uploads. Source table insertion uses a labeled icon in that toolbar too. Wrap toolbar groups within narrow editor bounds.
 - Diff is a read-only comparison of the description loaded when the editor mounted (empty for a new product) with the current draft. Keep this baseline fixed during typing, mode changes and recoverable save failures; do not fabricate revision history.
 - Enable GFM table insertion in Rich text using MDXEditor's table plugin and `InsertTable`. Source also inserts an editable GFM table template at the current insertion point; switching views preserves the table and existing content. HTML tables, arbitrary HTML and executable MDX remain prohibited by existing server validation.
 - Preserve source text when Rich text cannot parse a node or Markdown syntax. Keep Source available to correct it, retain the current draft after failed saves, and keep server validation authoritative.

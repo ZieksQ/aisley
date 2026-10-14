@@ -14,6 +14,7 @@ const driverPath = resolve(artifacts, 'chat-browser-driver.mjs')
 const driverSource = (await readFile(resolve(repoRoot, 'packages/ui/tests/chat-browser-driver.mjs'), 'utf8'))
   .replace('node_modules/.cache/messages-ui', 'node_modules/.cache/seller-products/browser')
   .replace('.next/mu', '.next/pb')
+  .replace('close: () => browser.kill(),', 'close: () => new Promise(resolve => { if (browser.exitCode !== null || browser.signalCode !== null) return resolve(); browser.once("exit", resolve); browser.kill(); }),')
 await writeFile(driverPath, driverSource)
 const { openChatBrowser } = await import(pathToFileURL(driverPath))
 const origin = process.env.SELLER_PRODUCTS_ORIGIN ?? 'http://127.0.0.1:15174'
@@ -219,7 +220,7 @@ try {
   await until('return location.pathname === "/products"', 'discard leaves the editor')
   console.log('Seller Product browser regression passed: synthetic API states, list/filter/pagination/stale search, icon actions and confirmations, create/edit payloads, upload progress/failure/default, variant package inheritance, stock guards, save errors and unsaved cancellation.')
 } finally {
-  browser.close()
+  await browser.close()
   preview?.kill()
   await rm(resolve(process.cwd(), '.next/pb'), { recursive: true, force: true })
 }

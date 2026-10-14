@@ -15,6 +15,7 @@ const driverPath = resolve(artifacts, 'chat-browser-driver.mjs')
 const driverSource = (await readFile(resolve(repoRoot, 'packages/ui/tests/chat-browser-driver.mjs'), 'utf8'))
   .replace('node_modules/.cache/messages-ui', 'node_modules/.cache/seller-products/description-editor/browser')
   .replace('.next/mu', '.next/de')
+  .replace('close: () => browser.kill(),', 'close: () => new Promise(resolve => { if (browser.exitCode !== null || browser.signalCode !== null) return resolve(); browser.once("exit", resolve); browser.kill(); }),')
 await writeFile(driverPath, driverSource)
 const { openChatBrowser } = await import(pathToFileURL(driverPath))
 const previewPort = process.env.SELLER_DESCRIPTION_PORT ?? '15175'
@@ -48,10 +49,12 @@ async function clickControl(name) {
   assert.equal(found, true, `Control exists: ${name}`)
 }
 async function mode(name) {
-  const value = ({ Source: 'source', 'Rich text': 'rich-text', Diff: 'diff' })[name]
-  await until(`return Boolean(document.querySelector('[data-editor-mode="${value}"]'))`, `${name} mode control is mounted`)
+  const selector = `.product-description-modes [aria-label="${name}"]`
+  const selectedSelector = `${selector}[data-state="on"]`
+  await until(`return Boolean(document.querySelector(${JSON.stringify(selector)}))`, `${name} mode control is mounted`)
+  await until(`return !document.querySelector(${JSON.stringify(selector)})?.disabled`, `${name} mode control is enabled`)
   await clickControl(name)
-  await until(`return document.querySelector('[data-editor-mode="${value}"][aria-pressed="true"]') !== null`, `${name} editor mode`)
+  await until(`return document.querySelector(${JSON.stringify(selectedSelector)}) !== null`, `${name} editor mode`)
 }
 async function typeSource(markdown) {
   await until('return Boolean(document.querySelector(".seller-product-editor .mdxeditor-source-editor .cm-content"))', 'CodeMirror source editor')
@@ -78,12 +81,36 @@ try {
   await browser.viewport(1440, 1000, false)
   await browser.navigate(`${origin}/products/50000000-0000-4000-8000-000000000001/edit`)
   await until('return document.querySelector("#product-name")?.value === "Cedar Storage Basket"', 'loaded product editor')
-  assert.equal(await evaluate(`return document.querySelector('[data-editor-mode][aria-pressed="true"]')?.getAttribute('data-editor-mode')`), 'source', 'Source is the initial editor mode')
+  await until(`return Boolean(document.querySelector('.product-description-modes [aria-label="Source"]'))`, 'accessible mode buttons')
+  assert.equal(await evaluate(`return document.querySelector('.product-description-modes [data-state="on"]')?.getAttribute('aria-label')`), 'Source', 'Source is the initial editor mode')
   await until('return Boolean(document.querySelector(".seller-product-editor .mdxeditor-source-editor .cm-content"))', 'source CodeMirror surface')
-  await evaluate(`document.querySelector('.seller-product-toolbar')?.scrollIntoView({block:'center'})`)
   await mode('Rich text')
-  await evaluate(`document.querySelector('.seller-product-toolbar')?.scrollIntoView({block:'center'})`)
-  const actionGeometry = await evaluate(`(() => [...document.querySelectorAll('.seller-product-editor .seller-product-toolbar button[data-toolbar-item]:not([aria-label="Block type"])')].map(button=>({label:button.getAttribute('aria-label')||button.title||button.innerText,disabled:button.disabled,rect:button.getBoundingClientRect().toJSON(),icon:button.querySelector('svg')?.getBoundingClientRect().toJSON(),tooltip:button.title||button.getAttribute('aria-label'),trigger:button.querySelector('span')?.getBoundingClientRect().toJSON()})).filter(item=>item.icon))()`)
+  await evaluate(`document.querySelector('.product-description-toolbar-row')?.scrollIntoView({block:'center'})`)
+  const modeControls = await evaluate(`(() => {const row=document.querySelector('.product-description-toolbar-row');const group=row?.querySelector('.product-description-modes');const formatting=[...(row?.querySelectorAll('button')||[])].map(button=>({label:button.getAttribute('aria-label')||button.title,rect:button.getBoundingClientRect().toJSON()})).filter(item=>item.label);return {row:row?.getBoundingClientRect().toJSON(),group:group?.getBoundingClientRect().toJSON(),controls:[...(group?.querySelectorAll('button')||[])].map(button=>({label:button.getAttribute('aria-label')||button.title,selected:button.getAttribute('data-state'),checked:button.getAttribute('aria-checked'),disabled:button.disabled,text:button.innerText.trim(),rect:button.getBoundingClientRect().toJSON(),icon:button.querySelector('svg')?.getBoundingClientRect().toJSON()})),formatting}})()`)
+  assert.deepEqual(modeControls.controls.map(control=>control.label), ['Rich text', 'Diff', 'Source'], `Icon-only mode controls have stable accessible names: ${JSON.stringify(modeControls)}`)
+  for (const control of modeControls.controls) {
+    assert.ok(control.rect.width >= 44 && control.rect.height >= 44, `Mode control has a 44px hit target: ${control.label}`)
+    assert.ok(control.icon, `Mode control has an icon: ${control.label}`)
+    assert.equal(control.text, '', `Mode control is icon-only: ${control.label}`)
+    assert.ok(Math.abs((control.rect.left + control.rect.right - control.icon.left - control.icon.right) / 2) < 2, `Mode icon is horizontally centered: ${control.label}`)
+    assert.ok(Math.abs((control.rect.top + control.rect.bottom - control.icon.top - control.icon.bottom) / 2) < 2, `Mode icon is vertically centered: ${control.label}`)
+  }
+  assert.ok(modeControls.formatting.some(control=>/^Bold/i.test(control.label)), 'Mode controls share a toolbar row with formatting actions')
+  const sourceControl = modeControls.controls.find(control=>control.label==='Source')
+  const boldControl = modeControls.formatting.find(control=>/^Bold/i.test(control.label))
+  assert.ok(boldControl && Math.abs((sourceControl.rect.top + sourceControl.rect.bottom - boldControl.rect.top - boldControl.rect.bottom) / 2) < 2, `At 1440px Source and Bold share one visible toolbar row: ${JSON.stringify(modeControls)}`)
+  await evaluate(`document.querySelector('.product-description-modes [aria-label="Source"]')?.focus()`)
+  await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight' })
+  await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight' })
+  await until(`return document.querySelector('.product-description-modes [data-state="on"]')?.getAttribute('aria-label') === 'Rich text'`, 'arrow-key mode navigation')
+  await mode('Source')
+  const sourceModeButton = modeControls.controls.find(control=>control.label==='Source')
+  const sourceModePoint = await evaluate(`(() => {const button=document.querySelector('.product-description-modes [aria-label="Source"]');button?.scrollIntoView({block:'center'});const rect=button?.getBoundingClientRect();return rect?{x:rect.left+rect.width/2,y:rect.top+rect.height/2}:null})()`)
+  assert.ok(sourceModePoint && sourceModeButton, 'Source mode button can receive a tooltip hover')
+  await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: sourceModePoint.x, y: sourceModePoint.y })
+  await until(`return [...document.querySelectorAll('[class*=tooltipContent_]')].some(node=>node.innerText.trim()==='Source')`, 'Source mode tooltip appears on hover', 5000)
+  await mode('Rich text')
+  const actionGeometry = await evaluate(`(() => [...document.querySelectorAll('.seller-product-editor .product-description-toolbar-row button:not([aria-label="Block type"])')].map(button=>({label:button.getAttribute('aria-label')||button.title||button.innerText,disabled:button.disabled,rect:button.getBoundingClientRect().toJSON(),icon:button.querySelector('svg')?.getBoundingClientRect().toJSON(),tooltip:button.title||button.getAttribute('aria-label'),trigger:button.querySelector('span')?.getBoundingClientRect().toJSON()})).filter(item=>item.icon))()`)
   assert.ok(actionGeometry.length >= 5, `Rich toolbar has named icon controls: ${JSON.stringify(actionGeometry)}`)
   for (const action of actionGeometry) {
     assert.ok(action.rect.width >= 44 && action.rect.height >= 44, `Editor control has a 44px hit target: ${action.label}`)
@@ -145,9 +172,9 @@ try {
   assert.ok(uploadAction, `Description image dialog starts upload: ${JSON.stringify(fileSelected)}`)
   await until('return productFixture.uploads.length === 1', 'canonical description upload request')
   const descriptionUpload = await evaluate('return productFixture.uploads[0]')
-  assert.equal(await evaluate(`return [...document.querySelectorAll('[data-editor-mode]')].every(button=>button.disabled)`), true, 'Mode changes are guarded while a description image upload is active')
+  assert.equal(await evaluate(`return [...document.querySelectorAll('.product-description-modes button')].every(button=>button.disabled)`), true, 'Mode changes are guarded while a description image upload is active')
   await until(`return document.body.innerText.includes('Description image uploaded.')`, 'description image upload completed')
-  assert.equal(await evaluate(`return [...document.querySelectorAll('[data-editor-mode]')].every(button=>!button.disabled)`), true, 'Mode changes return when the image upload completes')
+  assert.equal(await evaluate(`return [...document.querySelectorAll('.product-description-modes button')].every(button=>!button.disabled)`), true, 'Mode changes return when the image upload completes')
   await until('return !document.querySelector("input[name=src]") && Boolean(document.querySelector(".seller-product-editor .mdxeditor-rich-text-editor img"))', 'single image save uploads and inserts preview')
   const insertedImage = await evaluate(`return document.querySelector('.seller-product-editor .mdxeditor-rich-text-editor img')?.getAttribute('src')`)
   assert.ok(insertedImage?.startsWith('data:image/svg+xml,'), `Uploaded image displays its synthetic preview: ${insertedImage}`)
@@ -213,7 +240,7 @@ try {
 
   console.log(`Description editor browser regression passed: source default, mode switching and frozen diff baseline, source draft/error recovery and save payload, centered named toolbar actions, and 24 light/dark responsive screenshots (${artifacts}).`)
 } finally {
-  browser.close()
+  await browser.close()
   preview?.kill()
   await rm(resolve(repoRoot, '.next/de'), { recursive: true, force: true })
 }
