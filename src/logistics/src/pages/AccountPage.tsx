@@ -1,3 +1,5 @@
+import { PasswordChangeForm } from "@aisley/ui/password-change";
+import { requestPasswordCode, updatePassword } from "../lib/password-change";
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { FaArrowsRotate, FaCamera, FaFloppyDisk, FaLock, FaTrashCan } from 'react-icons/fa6'
@@ -20,12 +22,10 @@ type ProfileForm = {
 }
 
 type OrganizationForm = { business_name: string; hub_name: string }
-type PasswordForm = { current_password: string; password: string; password_confirmation: string }
 type Errors = Record<string, string[]>
 
 const emptyProfile: ProfileForm = { first_name: '', middle_name: '', last_name: '', contact_number: '', sex: '', birth_date: '' }
 const emptyOrganization: OrganizationForm = { business_name: '', hub_name: '' }
-const emptyPassword: PasswordForm = { current_password: '', password: '', password_confirmation: '' }
 
 function errorFor(errors: Errors, field: string): string | undefined {
   return errors[field]?.[0]
@@ -48,16 +48,12 @@ export function AccountPage() {
   const [loadingError, setLoadingError] = useState<string | null>(null)
   const [profile, setProfile] = useState<ProfileForm>(emptyProfile)
   const [organization, setOrganization] = useState<OrganizationForm>(emptyOrganization)
-  const [password, setPassword] = useState<PasswordForm>(emptyPassword)
   const [profileErrors, setProfileErrors] = useState<Errors>({})
   const [organizationErrors, setOrganizationErrors] = useState<Errors>({})
-  const [passwordErrors, setPasswordErrors] = useState<Errors>({})
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
   const [organizationMessage, setOrganizationMessage] = useState<string | null>(null)
-  const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [profileSaving, setProfileSaving] = useState(false)
   const [organizationSaving, setOrganizationSaving] = useState(false)
-  const [passwordSaving, setPasswordSaving] = useState(false)
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoProgress, setPhotoProgress] = useState(0)
   const [photoBusy, setPhotoBusy] = useState(false)
@@ -240,28 +236,11 @@ export function AccountPage() {
     } finally { setHubLocationSaving(false) }
   }
 
-  async function savePassword(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setPasswordErrors({})
-    setPasswordMessage(null)
-    setPasswordSaving(true)
-    try {
-      const data = await request<{ message?: string }>('/api/v1/logistics/account/password', { method: 'PUT', body: JSON.stringify(password) })
-      setPassword(emptyPassword)
-      setPasswordMessage(data.message ?? 'Password updated successfully.')
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 401) { await logout().catch(() => undefined); navigate('/login', { replace: true }); return }
-      const result = formError(caught, 'We could not update your password. Try again.')
-      setPasswordErrors(result.errors)
-      setPasswordMessage(result.message)
-    } finally { setPasswordSaving(false) }
-  }
-
   if (loading) return <div className="max-w-5xl p-5 sm:p-7"><div aria-label="Loading account settings" className="h-44 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div>
 
   if (loadingError || !account) return <div className="max-w-2xl p-5 sm:p-7"><section role="alert" className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300"><p>{loadingError ?? 'The account projection is unavailable.'}</p><button className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-current px-3 font-semibold" onClick={() => void load()} type="button"><FaArrowsRotate />Try again</button></section></div>
 
-    const address = account.hub.address
+  const address = account.hub.address
   const hubAddress: HubAddress | undefined = address ? { addressLine1: address.address_line_1 ?? '', barangay: address.barangay ?? '', cityMunicipality: address.city_municipality ?? '', province: address.province ?? '', region: address.region ?? '', postalCode: address.postal_code ?? '', country: address.country ?? 'Philippines' } : undefined
   const initials = `${account.profile.first_name?.[0] ?? ''}${account.profile.last_name?.[0] ?? ''}` || 'L'
 
@@ -308,14 +287,10 @@ export function AccountPage() {
 
     <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b] sm:p-6">
       <div className="flex items-start gap-3"><span className="mt-0.5 text-[#4C1268] dark:text-pink-300"><FaLock /></span><div><h3 className="font-semibold">Security</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Email changes and multi-factor authentication are not part of this release.</p></div></div>
-      <form className="mt-5 space-y-5" onSubmit={(event) => void savePassword(event)}>
-        {passwordMessage ? <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.04]" role="status">{passwordMessage}</p> : null}
-        <Field disabled id="email" label="Email address" value={account.email} />
-        <div className="grid gap-4 sm:grid-cols-2"><Field autoComplete="current-password" error={errorFor(passwordErrors, 'current_password')} id="current_password" label="Current password" onChange={(event) => setPassword((current) => ({ ...current, current_password: event.target.value }))} required type="password" value={password.current_password} /><div /></div>
-        <div className="grid gap-4 sm:grid-cols-2"><Field autoComplete="new-password" error={errorFor(passwordErrors, 'password')} id="password" label="New password" minLength={8} onChange={(event) => setPassword((current) => ({ ...current, password: event.target.value }))} required type="password" value={password.password} /><Field autoComplete="new-password" error={errorFor(passwordErrors, 'password_confirmation')} id="password_confirmation" label="Confirm new password" minLength={8} onChange={(event) => setPassword((current) => ({ ...current, password_confirmation: event.target.value }))} required type="password" value={password.password_confirmation} /></div>
-        <p className="text-xs text-zinc-500">Use at least 8 characters with uppercase, lowercase, and a number. Changing the password signs out other API sessions.</p>
-        <button className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 px-4 text-sm font-semibold hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:hover:bg-white/10" disabled={passwordSaving} type="submit"><FaLock />{passwordSaving ? 'Updating…' : 'Update password'}</button>
-      </form>
+      <div className="mt-5 space-y-4">
+        <Field disabled id="account-password-email" label="Email address" value={account.email} />
+        <PasswordChangeForm accent="blue" key={account.id} onError={(caught) => { if (caught instanceof ApiError && caught.status === 401) { void logout().catch(() => undefined).finally(() => navigate('/login', { replace: true })) } }} requestCode={requestPasswordCode} updatePassword={updatePassword} sessionDescription="This browser stays signed in. All Logistics API access tokens are revoked." />
+      </div>
     </section>
   </div>
 }

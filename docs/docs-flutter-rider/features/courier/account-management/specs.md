@@ -3,9 +3,9 @@ feature: courier-account-management
 title: Courier Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.4
+version: 2.5
 status: Phase 1 account operations and profile-photo extension implemented
-implementation_status: implemented; six protected account routes available
+implementation_status: implemented; seven protected account routes available
 canonical: true
 role: Courier / Rider
 scope: Laravel API plus external Flutter mobile client
@@ -52,7 +52,7 @@ Non-goals:
 - No payment, payout execution, license-government lookup, 2FA, SMS, push, map provider, or direct Azure SDK dependency.
 
 ## MUST
-
+- Password editing requires current password plus email verification under the [password-code contract](../../../password-change.md); Flutter adopts the code dialog and existing all-device sign-out.
 ### Authentication and ownership
 
 - Every endpoint requires auth:sanctum and courier.active.
@@ -106,6 +106,7 @@ Non-goals:
 | POST /api/v1/courier/auth/logout      | implemented | deletes the current personal access token          |
 | GET /api/v1/courier/account           | implemented | full Phase 1 account projection                    |
 | PATCH /api/v1/courier/account/profile | implemented | allow-listed profile update                        |
+| POST /api/v1/courier/account/password/verification-code | implemented | request/resend an emailed code before password change |
 | PUT /api/v1/courier/account/password  | implemented | current-password change                            |
 | POST /api/v1/courier/account/profile-photo | implemented | multipart upload/replacement |
 | GET /api/v1/courier/account/profile-photo  | implemented | private owner-only stream      |
@@ -138,10 +139,10 @@ Example:
 
 ### Endpoint: password update
 
-- PUT /api/v1/courier/account/password; auth and scope match account read; JSON body requires the three password fields.
+- PUT /api/v1/courier/account/password; auth and scope match account read; JSON body requires current_password, password, password_confirmation, challenge_id and verification_code after the code-request endpoint.
 - Prohibit email, role, status, token, abilities, User IDs, and remember.
 - 200 means the password was committed and all personal access tokens were revoked; response contains only a success message.
-- 401 means missing/invalid bearer; 403 means the account is no longer eligible; 422 covers current-password or policy failure.
+- 401 means missing/invalid bearer; 403 means the account is no longer eligible; 422 covers password-policy failures and missing/invalid/expired/consumed verification.
 - 429 applies the credential-sensitive throttle and includes Retry-After; never auto-retry this mutation.
 - Response is private/no-store and contains no replacement token.
 
@@ -187,7 +188,7 @@ Example:
 
 ### Data and dependencies
 
-- Current Phase 1 needs no migration: existing profile fields and personal access tokens support the implemented slice.
+- Password verification uses an additive shared challenge migration; existing profile/token tables retain their roles.
 - The photo implementation uses existing profile_photo_path plus disk/MIME/size/width/height metadata, consistent with other role profile-photo implementations.
 - Age remains derived from birth_date; it is never stored or client-supplied.
 - Vehicle and OR/CR edits follow the registry's implemented routes, revision/idempotency, private delivery, and independent replacement rules; never route them through profile/photo endpoints. Initial registration approval remains Logistics-owned; later vehicle edits do not reset it. License/payout changes remain separate.

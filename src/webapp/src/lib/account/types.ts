@@ -1,3 +1,4 @@
+import type { VerifiedPassword } from "@aisley/ui/password-change";
 import type { AuthenticatedCustomer } from "@/lib/auth/types";
 
 export type CustomerSex =
@@ -45,8 +46,4 @@ export type CustomerProfilePayload = {
   sex: CustomerSex | "";
 };
 
-export type CustomerPasswordPayload = {
-  current_password: string;
-  password: string;
-  password_confirmation: string;
-};
+export type CustomerPasswordPayload = VerifiedPassword;

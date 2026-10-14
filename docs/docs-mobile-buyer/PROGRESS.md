@@ -23,3 +23,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Updated affected shipping/checkout contracts, error descriptions, field notes and synthetic examples: discovery omits incomplete routes, explicit quote rejects with `SHIPPING_COVERAGE_UNAVAILABLE`, and lost coverage at placement returns `QUOTE_STALE` before effects. Historical unplanned Orders and committed same-key replay retain their behavior.
 - The web storefront now defaults providers, uses a separate draft/Apply selection page and confirms before placement. These changes do not establish Flutter adoption; existing client/device/live acceptance remains open. Affected portable links and JSON validate; Laravel/web evidence is recorded in the canonical app progress log.
+
+## 2026-10-14 — Email-verified account password changes
+
+- Added current/new passwords → emailed verification code → confirmed password change in Buyer account settings. Typed code requests/confirmation preserve the current bearer, expiry/resend limits, cancellation, account-switch cleanup and uncertain-result sign-in reconciliation. Adopted the new password-code API contract and updated only affected documentation.
+- Verification: 27 focused contract/controller/widget tests, Flutter analyzer, web build and Android release APK pass; portable bundle validation passes (988 links, 22 specs, 19 PSGC registrations). Live SMTP/deployed API and installed-device acceptance remain open.

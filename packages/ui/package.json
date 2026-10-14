@@ -9,7 +9,8 @@
     "./portal": "./src/portal/index.ts",
     "./portal.css": "./src/portal/portal.css",
     "./charts": "./src/charts/index.ts",
-    "./brand": "./src/brand.ts"
+    "./brand": "./src/brand.ts",
+    "./password-change": "./src/password-change/index.ts"
   },
   "peerDependencies": {
     "react": "^19.2.8",

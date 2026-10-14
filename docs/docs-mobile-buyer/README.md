@@ -78,3 +78,5 @@ Buyer now implements [discovery, collection and wallet](api/voucher-collection.m
 ## Private media adoption — shared G27, audit G26 (2026-10-12)
 
 Buyer implements receive-only video/document consumption and inclusive 8 MB image selection against Laravel `28fc740`. [Verification](references/private-media-verification.md) separates local checks from storage/worker/scanner, deployed exchange and installed-device acceptance. Mobile video/document uploads remain outside this release.
+
+Account password editing adopts the [email verification contract](api/password-change.md) in the local Buyer client (2026-10-14); live SMTP/deployed/device acceptance remains open.

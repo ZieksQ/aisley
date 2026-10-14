@@ -7,12 +7,14 @@ type ErrorPayload = {
 }
 
 export class ApiError extends Error {
+  readonly retryAfter?: number
   readonly status: number
   readonly code?: string
   readonly errors: Record<string, string[]>
 
-  constructor(status: number, payload: ErrorPayload) {
+  constructor(status: number, payload: ErrorPayload, retryAfter?: string | null) {
     super(payload.message ?? 'Something went wrong. Please try again.')
+    this.retryAfter = retryAfter ? Number(retryAfter) : undefined
     this.name = 'ApiError'
     this.status = status
     this.code = payload.code
@@ -84,7 +86,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const payload = (await response.json().catch(() => ({}))) as ErrorPayload & T
 
   if (!response.ok) {
-    throw new ApiError(response.status, payload)
+    throw new ApiError(response.status, payload, response.headers.get('Retry-After'))
   }
 
   return payload

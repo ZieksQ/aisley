@@ -49,6 +49,12 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->getAuthIdentifier() ?? $request->ip()));
         }
 
+        RateLimiter::for('password-change-code', fn (Request $request): array => [
+            Limit::perMinute(5)->by('password-code-user|'.$request->user()?->id),
+            Limit::perHour(30)->by('password-code-ip|'.$request->ip()),
+        ]);
+        RateLimiter::for('password-change-update', fn (Request $request): Limit => Limit::perMinute(5)->by('password-update|'.$request->user()?->id));
+
         RateLimiter::for('chat-media-upload', fn (Request $request): Limit => Limit::perMinute(15)->by('chat-media-upload|'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('customer-account-password', function (Request $request): Limit {

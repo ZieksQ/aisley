@@ -66,3 +66,7 @@ This uses synthetic mail settings, in-memory SQLite, array transport, and fresh 
 For deployment acceptance, an operator should request a fresh reset using an approved test account, verify safe status metadata and the intended portal link, and verify Courier approval/rejection using its owning Logistics test organization. Confirm provider acceptance/inbox arrival and actual worker/scheduler recovery separately; synthetic tests do not establish these results or PostgreSQL process concurrency.
 
 See the [transactional email contract](../features/shared/transactional-email/spec.md) for state, privacy, and role boundaries.
+
+## Account password verification
+
+The [password-edit contract](password-change-verification.md) adds encrypted `password_change_code` intents for all four non-Admin roles. Apply its additive challenge migration and restart workers before release. Obsolete/expired/resend-replaced/consumed challenges are skipped; request a fresh code rather than retrying an expired email. Account settings require the emailed code and current password. Never use the log transport for production verification.

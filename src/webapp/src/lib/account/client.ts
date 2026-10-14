@@ -1,7 +1,7 @@
+import type { PasswordDraft, PasswordChallenge, VerifiedPassword } from "@aisley/ui/password-change";
 import { apiRequest, apiUploadRequest, initializeCsrf } from "@/lib/api";
 import type {
   CustomerAccountResponse,
-  CustomerPasswordPayload,
   CustomerPhotoMutationResponse,
   CustomerProfileMutationResponse,
   CustomerProfilePayload,
@@ -25,7 +25,7 @@ export async function updateCustomerProfile(payload: CustomerProfilePayload) {
   });
 }
 
-export async function updateCustomerPassword(payload: CustomerPasswordPayload) {
+export async function updateCustomerPassword(payload: VerifiedPassword) {
   await initializeCsrf();
 
   return apiRequest<{ message: string }>(`${accountPath}/password`, {
@@ -53,5 +53,12 @@ export async function removeCustomerProfilePhoto() {
 
   return apiRequest<CustomerPhotoMutationResponse>(`${accountPath}/profile-photo`, {
     method: "DELETE",
+  });
+}
+
+export async function requestCustomerPasswordCode(payload: PasswordDraft) {
+  await initializeCsrf();
+  return apiRequest<{ data: PasswordChallenge }>(`${accountPath}/password/verification-code`, {
+    method: "POST", body: JSON.stringify(payload), cache: "no-store",
   });
 }

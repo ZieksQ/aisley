@@ -100,7 +100,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `PATCH /api/v1/customer/account/password`
 
 - Access: Active Customer + consent.
-- Request: current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.
+- Request: `challenge_id` UUID and `verification_code` six-digit string are required after requesting a code; current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.
 - Response: HTTP 200; `{message:string}`.
 - Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - Notes: Laravel rechecks current ownership and visibility.
@@ -1157,3 +1157,13 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 - Retry: Bounded read retry; reject obsolete session responses. Missing/unavailable prospective context returns scoped 404.
 - Notes: availability describes Shop business status; this read creates no conversation. Flutter adoption is pending.
 - [Synthetic example](examples/shop-context.json).
+
+## op-112
+
+`POST /api/v1/customer/account/password/verification-code`
+
+- Access: Active Customer + consent, authenticated bearer.
+- Request: `current_password,password,password_confirmation`; recipient derived from authenticated account.
+- Response: HTTP 202; `{message:string,data:PasswordChangeChallenge}`.
+- Retry: Deliberate resend only after 60s/server Retry-After; replaces old challenge. No password mutation occurs.
+- Limits and confirmation: [password email verification](password-change.md).

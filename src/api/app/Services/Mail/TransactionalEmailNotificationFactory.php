@@ -6,14 +6,17 @@ use App\Enums\ApplicationStatus;
 use App\Enums\TransactionalEmailKind;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\PasswordChangeChallenge;
 use App\Models\RegistrationApplication;
 use App\Models\TransactionalEmail;
 use App\Models\User;
+use App\Notifications\Account\PasswordChangeCodeNotification;
 use App\Notifications\Admin\RegistrationDecisionNotification;
 use App\Notifications\Courier\RegistrationDecisionNotification as CourierDecisionNotification;
 use App\Notifications\Customer\ResetPasswordNotification as CustomerResetNotification;
 use App\Notifications\Logistics\ResetPasswordNotification as LogisticsResetNotification;
 use App\Notifications\Seller\ResetPasswordNotification as SellerResetNotification;
+use App\Services\Account\PasswordChangeVerification;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +29,15 @@ class TransactionalEmailNotificationFactory
         $payload = $email->payload;
         if (! $payload || $user->role !== $email->role || $user->email !== $payload['email']) {
             return null;
+        }
+
+        if ($email->kind === TransactionalEmailKind::PasswordChangeCode) {
+            $challenge = PasswordChangeChallenge::query()->find($payload['challenge_id']);
+            if (! $challenge || ! app(PasswordChangeVerification::class)->isUsable($challenge, $user)) {
+                return null;
+            }
+
+            return new PasswordChangeCodeNotification($payload['code']);
         }
 
         if ($email->kind === TransactionalEmailKind::PasswordReset) {

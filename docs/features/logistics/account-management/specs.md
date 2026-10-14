@@ -3,7 +3,7 @@ feature: logistics-account-management
 title: Logistics Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.7
 status: Implemented profile/account foundation and hub-pin correction; business-logo extension specified but not implemented
 role: Logistics
 scope: Logistics React SPA and Laravel API
@@ -32,6 +32,9 @@ active Logistics session
 ```
 
 ## MUST
+
+- Password editing now requires the current password and a single-use emailed code. Follow the [password-change verification contract](../../../references/password-change-verification.md) for the code-request route, required confirmation fields, limits, failures and existing session/token outcomes.
+
 
 ### Access, ownership, and tenant scope
 
@@ -87,7 +90,7 @@ active Logistics session
 - The implemented `PUT /api/v1/logistics/account/password` requires the current password, confirmation, and the shared password policy; it never accepts or returns a password hash.
 - Password changes are separate from profile/organization updates. Apply rate limiting and preserve the configured session/token revocation policy atomically.
 - Existing `/auth/forgot-password` and `/auth/reset-password` remain owned by Logistics Authentication. Account Management does not approve, activate, reject, or reset another role.
-- Email verification, MFA, recent-authentication challenges, and concurrent-session management require separate approved contracts; do not infer them from the settings screen.
+- Password-edit email verification follows the approved contract above. MFA, other recent-authentication challenges and concurrent-session management remain deferred.
 
 ### Approval, subscription, and operational boundaries
 

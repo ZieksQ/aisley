@@ -78,3 +78,5 @@ Receive-only MP4 viewing and document download plus inclusive 8 MB image selecti
 ## Courier decision email — 2026-10-14
 
 The [Auth approval contract](features/courier/auth/spec.md#logistics-approval-and-lifecycle) now records durable asynchronous Logistics approval/rejection email. Existing Courier endpoints, DTOs, recovery-unavailable behavior, Flutter adoption baselines, and device/live acceptance remain unchanged. A decision acknowledgement does not prove mail delivery or authorize mobile access without normal login checks.
+
+Account password editing adopts the [email verification contract](password-change.md) and code dialog in the local Courier client (2026-10-14), preserving all-device sign-out; live SMTP/deployed/device acceptance remains open.

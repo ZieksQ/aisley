@@ -216,7 +216,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         }
       },
@@ -265,7 +265,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         },
         "customer": {
@@ -284,7 +284,7 @@
       "feature": "account-management",
       "method": "PATCH",
       "path": "/api/v1/customer/account/password",
-      "request_contract": "current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.",
+      "request_contract": "current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited. Required challenge_id UUID and verification_code six-digit string from the code request.",
       "response_contract": "{message:string}",
       "status": 200,
       "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
@@ -296,7 +296,9 @@
         "body": {
           "current_password": "Synthetic9Old",
           "password": "Synthetic9Example",
-          "password_confirmation": "Synthetic9Example"
+          "password_confirmation": "Synthetic9Example",
+          "challenge_id": "11111111-1111-4111-8111-111111111111",
+          "verification_code": "012345"
         }
       },
       "response_example": {
@@ -368,7 +370,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         },
         "customer": {
@@ -417,7 +419,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         },
         "customer": {
@@ -8032,6 +8034,38 @@
       },
       "errors": [],
       "response_variants": []
+    },
+    {
+      "feature": "account-management",
+      "method": "POST",
+      "path": "/api/v1/customer/account/password/verification-code",
+      "request_contract": "current_password,password,password_confirmation required; authenticated account email only.",
+      "response_contract": "{message:string,data:PasswordChangeChallenge}",
+      "status": 202,
+      "retry": "No automatic replay. After uncertainty wait cooldown then deliberately request a fresh code.",
+      "access": "Active Customer + consent",
+      "notes": "60s cooldown, five requests per rolling hour, 10m expiry, five incorrect codes.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "current_password": "Synthetic9Old",
+          "password": "Synthetic9Example",
+          "password_confirmation": "Synthetic9Example"
+        }
+      },
+      "response_example": {
+        "message": "A password verification email has been queued.",
+        "data": {
+          "challenge_id": "11111111-1111-4111-8111-111111111111",
+          "masked_email": "b***@example.invalid",
+          "expires_at": "2026-10-14T10:10:00+00:00",
+          "resend_available_at": "2026-10-14T10:01:00+00:00"
+        }
+      },
+      "id": "op-112",
+      "errors": [],
+      "response_variants": []
     }
   ],
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
@@ -8047,5 +8081,10 @@
   },
   "order_contact_contract": "2026-10-10 B02: contact-only server guard and nullable Order coordinates; external adopted baseline and historical metadata retained.",
   "current_inspected_checkout": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
-  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe"
+  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
+  "password_change_contract": {
+    "date": "2026-10-14",
+    "source": "Authenticated account password email verification",
+    "client_adoption": "Implemented locally; SMTP/deployed/device acceptance open"
+  }
 }

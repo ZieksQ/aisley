@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordChangeForm } from "@aisley/ui/password-change";
 import { Button, SelectField, TextField } from "@aisley/ui";
 import {
   type FormEvent,
@@ -8,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { FiCheckCircle, FiLock, FiRefreshCw } from "react-icons/fi";
+import { FiCheckCircle, FiRefreshCw } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { ProfilePhotoSection } from "@/components/account/profile-photo-section";
@@ -16,11 +17,11 @@ import { PromotionPreferenceSection } from "@/components/account/promotion-prefe
 import {
   fetchCustomerAccount,
   updateCustomerPassword,
+  requestCustomerPasswordCode,
   updateCustomerProfile,
 } from "@/lib/account/client";
 import type {
   CustomerAccount,
-  CustomerPasswordPayload,
   CustomerProfileMutationResponse,
   CustomerProfilePayload,
 } from "@/lib/account/types";
@@ -33,12 +34,6 @@ const emptyProfile: CustomerProfilePayload = {
   contact_number: "",
   sex: "",
   birth_date: "",
-};
-
-const emptyPasswords: CustomerPasswordPayload = {
-  current_password: "",
-  password: "",
-  password_confirmation: "",
 };
 
 type Feedback = {
@@ -83,15 +78,12 @@ export function CustomerAccountContent() {
   const { setAuthenticatedCustomer } = useAuth();
   const [account, setAccount] = useState<CustomerAccount | null>(null);
   const [profile, setProfile] = useState<CustomerProfilePayload>(emptyProfile);
-  const [passwords, setPasswords] = useState<CustomerPasswordPayload>(emptyPasswords);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [busy, setBusy] = useState<"profile" | "password" | null>(null);
   const [profileFeedback, setProfileFeedback] = useState<Feedback>(emptyFeedback);
-  const [passwordFeedback, setPasswordFeedback] = useState<Feedback>(emptyFeedback);
   const profileFeedbackRef = useRef<HTMLDivElement>(null);
-  const passwordFeedbackRef = useRef<HTMLDivElement>(null);
   const displayedAge = useMemo(() => ageFor(profile.birth_date), [profile.birth_date]);
 
   useEffect(() => {
@@ -135,26 +127,6 @@ export function CustomerAccountContent() {
     } finally {
       setBusy(null);
       focusFeedback(profileFeedbackRef);
-    }
-  }
-
-  async function savePassword(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy("password");
-    setPasswordFeedback(emptyFeedback);
-
-    try {
-      const response = await updateCustomerPassword(passwords);
-      setPasswords(emptyPasswords);
-      setPasswordFeedback({ error: null, message: response.message });
-    } catch (caught) {
-      setPasswordFeedback({
-        error: toApiError(caught, "We could not update your password."),
-        message: null,
-      });
-    } finally {
-      setBusy(null);
-      focusFeedback(passwordFeedbackRef);
     }
   }
 
@@ -319,82 +291,10 @@ export function CustomerAccountContent() {
         </div>
       </form>
 
-      <form onSubmit={savePassword} className="mt-5 border border-[#DED7E1] bg-white p-5 sm:p-6" noValidate>
-        <div className="flex items-start gap-3">
-          <FiLock aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-[#4C1268]" />
-          <div>
-            <h2 className="text-base font-semibold text-[#302534]">Password</h2>
-            <p className="mt-1 text-sm leading-6 text-[#746978]">
-              Use at least 8 characters with uppercase, lowercase, and a number. Changing it revokes other app access tokens while keeping this browser signed in.
-            </p>
-          </div>
-        </div>
-
-        {passwordFeedback.error || passwordFeedback.message ? (
-          <div
-            ref={passwordFeedbackRef}
-            tabIndex={-1}
-            role={passwordFeedback.error ? "alert" : "status"}
-            className={`mt-4 flex items-start gap-2 border-l-2 px-3 py-2 text-sm outline-none ${passwordFeedback.error ? "border-[#B42318] bg-[#FFF4F2] text-[#9A271E]" : "border-[#3F6846] bg-[#F3F8F4] text-[#315637]"}`}
-          >
-            {!passwordFeedback.error ? <FiCheckCircle aria-hidden="true" className="mt-0.5 shrink-0" /> : null}
-            <span>{passwordFeedback.error?.message ?? passwordFeedback.message}</span>
-          </div>
-        ) : null}
-
-        <fieldset disabled={busy !== null} className="mt-5 grid gap-5 sm:grid-cols-2">
-          <div className="sm:col-span-2 sm:w-1/2 sm:pr-2.5">
-            <TextField
-              id="current_password"
-              label="Current password *"
-              name="current_password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={passwords.current_password}
-              error={firstFieldError(passwordFeedback.error, "current_password")}
-              onChange={(event) => setPasswords((current) => ({ ...current, current_password: event.target.value }))}
-            />
-          </div>
-          <TextField
-            id="password"
-            label="New password *"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            required
-            value={passwords.password}
-            error={firstFieldError(passwordFeedback.error, "password")}
-            onChange={(event) => setPasswords((current) => ({ ...current, password: event.target.value }))}
-          />
-          <TextField
-            id="password_confirmation"
-            label="Confirm new password *"
-            name="password_confirmation"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            required
-            value={passwords.password_confirmation}
-            error={firstFieldError(passwordFeedback.error, "password_confirmation")}
-            onChange={(event) => setPasswords((current) => ({ ...current, password_confirmation: event.target.value }))}
-          />
-        </fieldset>
-
-        <div className="mt-6 flex justify-end border-t border-[#E9E4EB] pt-5">
-          <Button
-            type="submit"
-            variant="secondary"
-            className="min-h-10 rounded-md px-5"
-            isLoading={busy === "password"}
-            loadingLabel="Updating password"
-            disabled={busy !== null}
-          >
-            Update password
-          </Button>
-        </div>
-      </form>
+      <section className="mt-5 border border-[#DED7E1] bg-white p-5 sm:p-6">
+        <PasswordChangeForm key={account.id} requestCode={requestCustomerPasswordCode} updatePassword={updateCustomerPassword}
+          sessionDescription="This browser stays signed in. Other app access tokens are revoked." />
+      </section>
     </div>
   );
 }

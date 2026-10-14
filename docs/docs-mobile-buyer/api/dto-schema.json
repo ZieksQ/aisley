@@ -975,6 +975,12 @@
       "shop": "ChatShop",
       "conversation_id": "UUID?",
       "send_allowed": "bool"
+    },
+    "PasswordChangeChallenge": {
+      "challenge_id": "UUID",
+      "masked_email": "string",
+      "expires_at": "timestamp",
+      "resend_available_at": "timestamp"
     }
   },
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",

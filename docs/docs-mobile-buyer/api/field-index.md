@@ -1318,3 +1318,7 @@ The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto)
 | `shop` | `ChatShop` | non-null; required |
 | `conversation_id` | `UUID` | null allowed; required |
 | `send_allowed` | `bool` | non-null; required |
+
+## PasswordChangeChallenge
+
+`challenge_id:UUID`, `masked_email:string`, `expires_at:timestamp`, `resend_available_at:timestamp`; required within `data` from [code request](password-change.md). Confirmation sends the ID with the six-digit string `verification_code` and all three password fields.

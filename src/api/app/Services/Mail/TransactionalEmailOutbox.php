@@ -5,6 +5,7 @@ namespace App\Services\Mail;
 use App\Enums\ApplicationStatus;
 use App\Enums\EmailDeliveryStatus;
 use App\Enums\TransactionalEmailKind;
+use App\Models\PasswordChangeChallenge;
 use App\Models\RegistrationApplication;
 use App\Models\TransactionalEmail;
 use App\Models\User;
@@ -13,6 +14,15 @@ use Illuminate\Support\Str;
 
 class TransactionalEmailOutbox
 {
+    public function passwordChangeCode(User $user, PasswordChangeChallenge $challenge, string $code): TransactionalEmail
+    {
+        return $this->record($user, TransactionalEmailKind::PasswordChangeCode, 'password-change:'.$challenge->id, [
+            'email' => $user->email,
+            'challenge_id' => $challenge->id,
+            'code' => $code,
+        ]);
+    }
+
     public function passwordReset(User $user, string $token): TransactionalEmail
     {
         return $this->record($user, TransactionalEmailKind::PasswordReset, 'reset:'.Str::uuid(), [
