@@ -4,6 +4,7 @@ export function createSessionController(
   loadCustomer: () => Promise<AuthenticatedCustomer>,
   isInvalid: (error: unknown) => boolean,
   onSessionChange: () => void,
+  onIdentityChange?: (id: string | null) => void,
 ) {
   let state: AuthState = { status: "loading" };
   let started = false;
@@ -20,6 +21,8 @@ export function createSessionController(
     generation += 1;
     pending = null;
     onSessionChange();
+    if (next.status === "guest") onIdentityChange?.(null);
+    else if (next.status === "authenticated") onIdentityChange?.(next.customer.id);
     publish(next);
   }
 

@@ -24,6 +24,7 @@ scope: Customer web application and Laravel API
 ## MUST
 
 - Password editing now requires the current password and a single-use emailed code. Follow the [password-change verification contract](../../../references/password-change-verification.md) for the code-request route, required confirmation fields, limits, failures and existing session/token outcomes.
+- Keep pending password confirmation, reconciliation and cooldown state in the authenticated session across navigation, Cancel and form recreation. Fresh sign-in or identity loss resets it; profile/consent refresh does not. Secrets stay local to the form, and delayed results settle only their originating session.
 
 
 ### Current foundation and ownership

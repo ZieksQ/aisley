@@ -1,2 +1,4 @@
 export { PasswordChangeForm } from "./PasswordChangeForm";
-export type { PasswordChallenge, PasswordDraft, VerifiedPassword } from "./types";
+export { createPasswordChangeSession } from "./session";
+export type { PasswordChangeSession } from "./session";
+export type { PasswordChallenge, PasswordDraft, VerifiedPassword, PasswordRequestContext } from "./types";

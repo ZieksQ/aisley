@@ -75,7 +75,7 @@ function toApiError(caught: unknown, fallback: string) {
 }
 
 export function CustomerAccountContent() {
-  const { setAuthenticatedCustomer } = useAuth();
+  const { setAuthenticatedCustomer, passwordSession } = useAuth();
   const [account, setAccount] = useState<CustomerAccount | null>(null);
   const [profile, setProfile] = useState<CustomerProfilePayload>(emptyProfile);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -292,7 +292,7 @@ export function CustomerAccountContent() {
       </form>
 
       <section className="mt-5 border border-[#DED7E1] bg-white p-5 sm:p-6">
-        <PasswordChangeForm key={account.id} requestCode={requestCustomerPasswordCode} updatePassword={updateCustomerPassword}
+        <PasswordChangeForm session={passwordSession} key={account.id} requestCode={requestCustomerPasswordCode} updatePassword={updateCustomerPassword}
           sessionDescription="This browser stays signed in. Other app access tokens are revoked." />
       </section>
     </div>

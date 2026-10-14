@@ -5,7 +5,7 @@ import type { PasswordChangeProps, PasswordDraft } from "./types";
 import { usePasswordChange } from "./use-password-change";
 
 export function PasswordChangeForm(props: PasswordChangeProps) {
-  const state = usePasswordChange(props);
+  const { feedback, ...state } = usePasswordChange(props);
   const id = useId();
   const inputClass = "mt-1 block min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 disabled:opacity-60 dark:border-white/20 dark:bg-zinc-900 dark:text-zinc-100";
   const primaryClass = props.accent === "blue"
@@ -56,7 +56,7 @@ export function PasswordChangeForm(props: PasswordChangeProps) {
         Confirm this change with a code sent to your account email. {props.sessionDescription}
       </p>
       {state.message && (
-        <div ref={state.feedback} tabIndex={-1} role="status" className="text-sm">
+        <div ref={feedback} tabIndex={-1} role="status" className="text-sm">
           {state.message}
         </div>
       )}
@@ -121,7 +121,9 @@ export function PasswordChangeForm(props: PasswordChangeProps) {
           className={`${buttonClass} ${primaryClass}`}
           disabled={state.busy || state.uncertain || state.coolingDown || state.expired || (!state.challenge && state.remaining > 0)}
         >
-          {state.busy
+          {state.uncertain
+            ? "Sign-in verification required"
+            : state.busy
             ? "Please wait…"
             : state.challenge
               ? "Verify and update password"

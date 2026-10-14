@@ -41,7 +41,7 @@ function formError(caught: unknown, fallback: string): { message: string; errors
 }
 
 export function AccountPage() {
-  const { logout, refresh } = useAuth()
+  const { logout, refresh, passwordSession } = useAuth()
   const navigate = useNavigate()
   const [account, setAccount] = useState<LogisticsAccount | null>(null)
   const [loading, setLoading] = useState(true)
@@ -289,7 +289,7 @@ export function AccountPage() {
       <div className="flex items-start gap-3"><span className="mt-0.5 text-[#4C1268] dark:text-pink-300"><FaLock /></span><div><h3 className="font-semibold">Security</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Email changes and multi-factor authentication are not part of this release.</p></div></div>
       <div className="mt-5 space-y-4">
         <Field disabled id="account-password-email" label="Email address" value={account.email} />
-        <PasswordChangeForm accent="blue" key={account.id} onError={(caught) => { if (caught instanceof ApiError && caught.status === 401) { void logout().catch(() => undefined).finally(() => navigate('/login', { replace: true })) } }} requestCode={requestPasswordCode} updatePassword={updatePassword} sessionDescription="This browser stays signed in. All Logistics API access tokens are revoked." />
+        <PasswordChangeForm session={passwordSession} accent="blue" key={account.id} onError={(caught) => { if (caught instanceof ApiError && caught.status === 401) { void logout().catch(() => undefined).finally(() => navigate('/login', { replace: true })) } }} requestCode={requestPasswordCode} updatePassword={updatePassword} sessionDescription="This browser stays signed in. All Logistics API access tokens are revoked." />
       </div>
     </section>
   </div>

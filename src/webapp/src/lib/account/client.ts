@@ -1,4 +1,4 @@
-import type { PasswordDraft, PasswordChallenge, VerifiedPassword } from "@aisley/ui/password-change";
+import type { PasswordDraft, PasswordChallenge, VerifiedPassword, PasswordRequestContext } from "@aisley/ui/password-change";
 import { apiRequest, apiUploadRequest, initializeCsrf } from "@/lib/api";
 import type {
   CustomerAccountResponse,
@@ -25,12 +25,13 @@ export async function updateCustomerProfile(payload: CustomerProfilePayload) {
   });
 }
 
-export async function updateCustomerPassword(payload: VerifiedPassword) {
-  await initializeCsrf();
+export async function updateCustomerPassword(payload: VerifiedPassword, context?: PasswordRequestContext) {
+  await initializeCsrf(context?.signal);
 
+  if (context && (!context.isCurrent() || context.signal.aborted)) throw new Error("This password request is no longer current.");
   return apiRequest<{ message: string }>(`${accountPath}/password`, {
     method: "PATCH",
-    body: JSON.stringify(payload),
+    signal: context?.signal, body: JSON.stringify(payload),
   });
 }
 
@@ -56,9 +57,10 @@ export async function removeCustomerProfilePhoto() {
   });
 }
 
-export async function requestCustomerPasswordCode(payload: PasswordDraft) {
-  await initializeCsrf();
+export async function requestCustomerPasswordCode(payload: PasswordDraft, context?: PasswordRequestContext) {
+  await initializeCsrf(context?.signal);
+  if (context && (!context.isCurrent() || context.signal.aborted)) throw new Error("This password request is no longer current.");
   return apiRequest<{ data: PasswordChallenge }>(`${accountPath}/password/verification-code`, {
-    method: "POST", body: JSON.stringify(payload), cache: "no-store",
+    method: "POST", signal: context?.signal, body: JSON.stringify(payload), cache: "no-store",
   });
 }

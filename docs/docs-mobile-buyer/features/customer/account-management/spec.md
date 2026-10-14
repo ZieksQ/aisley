@@ -160,7 +160,11 @@ universal error envelope.
 ### Responsibility and state ownership
 
 - ApiAccountRepository owns typed transport/parsing; AppDependencies supplies dependencies.
-- ProfileController, PasswordController, PhotoController and PromotionPreferenceController owns current feature state and deliberate actions.
+- ProfileController, PasswordController, PhotoController and PromotionPreferenceController own screen state/actions.
+- SessionController owns nonsecret pending password operations, reconciliation and cooldown across Back/Cancel,
+  screen recreation and consent/profile refresh; reset only on identity loss or fresh authentication.
+- Delayed confirmations settle their originating session after disposal; ambiguous results block both password
+  operations until sign-in reconciliation. Credentials, codes and challenges stay screen-local.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().
 - Keep independent forms/actions separately busy and preserve safe input after recoverable validation/network

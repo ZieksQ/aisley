@@ -16,9 +16,12 @@ export type VerifiedPassword = PasswordDraft & {
   verification_code: string;
 };
 
+export type PasswordRequestContext = { signal: AbortSignal; isCurrent: () => boolean };
+
 export type PasswordChangeProps = {
-  requestCode: (draft: PasswordDraft) => Promise<{ data: PasswordChallenge }>;
-  updatePassword: (payload: VerifiedPassword) => Promise<{ message: string }>;
+  session: import("./session").PasswordChangeSession;
+  requestCode: (draft: PasswordDraft, context?: PasswordRequestContext) => Promise<{ data: PasswordChallenge }>;
+  updatePassword: (payload: VerifiedPassword, context?: PasswordRequestContext) => Promise<{ message: string }>;
   sessionDescription: string;
   accent?: "purple" | "blue";
   onSuccess?: () => void;

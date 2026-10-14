@@ -20,6 +20,7 @@ const modules = {
   'react-dom': production('react-dom', 'react-dom.production.js'),
   'react-dom/client': production('react-dom', 'react-dom-client.production.js'),
   scheduler: production('scheduler', 'scheduler.production.js'),
+  './session': compile('packages/ui/src/password-change/session.ts'),
   './form': compile('packages/ui/src/password-change/PasswordChangeForm.tsx'),
   './use-password-change': compile('packages/ui/src/password-change/use-password-change.ts'),
 }
@@ -40,7 +41,7 @@ function require(name){if(cache[name])return cache[name].exports;const module={e
 const React=require('react'), root=require('react-dom/client').createRoot(document.getElementById('root')), Form=require('./form').PasswordChangeForm;
 const realNow=Date.now.bind(Date); window.offset=0; Date.now=()=>realNow()+window.offset;
 window.calls=[]; window.mode='ok'; window.sequence=0;
-window.mount=(role)=>{window.calls=[];window.offset=0;window.mode='ok';root.render(React.createElement(Form,{key:++window.sequence,accent:role==='logistics'?'blue':'purple',sessionDescription:'This browser stays signed in.',requestCode:async(draft)=>{window.calls.push({action:'code',draft});if(window.mode==='delayed')await new Promise(resolve=>window.releaseCode=resolve);if(window.mode==='throttle')throw {status:429,message:'Please wait.',retryAfter:2}; return {data:{challenge_id:'00000000-0000-4000-8000-'+String(window.calls.length).padStart(12,'0'),masked_email:'b***@example.test',expires_at:new Date(Date.now()+600000).toISOString(),resend_available_at:new Date(Date.now()+60000).toISOString()}}},updatePassword:async(payload)=>{window.calls.push({action:'update',payload});if(window.mode==='invalid')throw {status:422,message:'Check your code.',errors:{verification_code:['The verification code is incorrect.']}};if(window.mode==='uncertain')throw {status:0};return {message:'Password updated successfully.'}}}));};window.mount('customer');`
+window.mount=(role)=>{const session=require('./session').createPasswordChangeSession();session.setIdentity(role);window.calls=[];window.offset=0;window.mode='ok';root.render(React.createElement(Form,{key:++window.sequence,session,accent:role==='logistics'?'blue':'purple',sessionDescription:'This browser stays signed in.',requestCode:async(draft)=>{window.calls.push({action:'code',draft});if(window.mode==='delayed')await new Promise(resolve=>window.releaseCode=resolve);if(window.mode==='throttle')throw {status:429,message:'Please wait.',retryAfter:2}; return {data:{challenge_id:'00000000-0000-4000-8000-'+String(window.calls.length).padStart(12,'0'),masked_email:'b***@example.test',expires_at:new Date(Date.now()+600000).toISOString(),resend_available_at:new Date(Date.now()+60000).toISOString()}}},updatePassword:async(payload)=>{window.calls.push({action:'update',payload});if(window.mode==='invalid')throw {status:422,message:'Check your code.',errors:{verification_code:['The verification code is incorrect.']}};if(window.mode==='uncertain')throw {status:0};return {message:'Password updated successfully.'}}}));};window.mount('customer');`
 try {
   await js("document.head.innerHTML='<meta name=viewport content=\"width=device-width,initial-scale=1\">'")
   await js(`document.body.innerHTML=${JSON.stringify('<style>'+css+'</style><main id="root" class="mx-auto max-w-xl p-5"></main>')}`)
@@ -94,6 +95,8 @@ try {
   assert(await js("[...document.querySelectorAll('button')].find(el=>el.textContent==='Verify and update password').disabled"))
   await click('Cancel')
   assert.equal(await js("document.querySelector('[name=current_password]').value"), '')
+  await js('window.offset+=61000')
+  await browser.until("!document.querySelector('button[type=submit]').disabled", 'cancel retains cooldown')
   for (const [name, value] of [['current_password','SyntheticCurrent123'],['password','SyntheticUpdated456'],['password_confirmation','SyntheticUpdated456']]) await fill(name,value)
   await click('Send verification code')
   await browser.until("!!document.querySelector('[name=verification_code]')", 'uncertain challenge')

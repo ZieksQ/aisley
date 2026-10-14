@@ -32,7 +32,7 @@ const emptyProfile: ProfileForm = { first_name: '', last_name: '', middle_name: 
 const emptyStorefront: StorefrontForm = { name: '', description: '', contact_email: '', contact_number: '', website: '', is_on_vacation: false, vacation_message: '' }
 
 export function AccountPage() {
-  const { updateSeller } = useAuth()
+  const { updateSeller, passwordSession } = useAuth()
   const [account, setAccount] = useState<SellerAccount | null>(null)
   const [profile, setProfile] = useState<ProfileForm>(emptyProfile)
   const [storefront, setStorefront] = useState<StorefrontForm>(emptyStorefront)
@@ -252,7 +252,7 @@ export function AccountPage() {
             <button className={`${primaryButtonClass} mt-5 w-full`} disabled={busy === 'email'}>{busy === 'email' ? 'Updating…' : 'Update email'}</button>
           </form>
           <div className="seller-security-card rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10">
-            <PasswordChangeForm key={account.id} requestCode={requestPasswordCode} updatePassword={updatePassword} sessionDescription="This browser stays signed in. API access tokens are revoked." />
+            <PasswordChangeForm session={passwordSession} key={account.id} requestCode={requestPasswordCode} updatePassword={updatePassword} sessionDescription="This browser stays signed in. API access tokens are revoked." />
           </div>
         </div>
       </section>

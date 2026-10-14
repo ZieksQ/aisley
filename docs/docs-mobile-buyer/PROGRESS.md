@@ -33,3 +33,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Adopted registration-email contract v1 (2026-10-14): public code/verify APIs, six-digit OTP, required role/email-bound proof, resend/expiry/Retry-After, memory-only secrets, retained registration drafts and existing approval gates. Existing accounts keep their login behavior. Updated typed API models/repositories and native registration UI; no new dependencies.
 - Verification: 77 networking/session/OTP/responsive checks and the additional registration-screen draft test, Flutter analyzer, web build and Android release APK pass. Laravel registration/mail enforcement and isolated PostgreSQL concurrency checks pass independently; live SMTP/deployed API and installed-device acceptance remain open. API enforcement requires coordinated client release and the new backend migration/workers.
+
+## 2026-10-14 — B11 Buyer password reconciliation lifetime
+
+- Buyer SessionController now owns nonsecret pending-password/reconciliation and cooldown state across Back/Cancel, screen recreation and identity/consent revalidation. Delayed confirmations settle only their originating session; fresh authentication/identity loss resets recovery. Secrets stay screen-local; restart persistence is outside this memory-only scope. Updated the paired password API/account specifications.
+- Buyer source verification: 18 new lifetime tests plus 51 adjacent account/session/contract regressions, Flutter analyzer, release web/Android builds and bundle validation pass with synthetic repositories. Live API/SMTP, installed-device/TalkBack and deployed acceptance remain open; existing Android SDK XML warning remains. Preserve previous imported evidence and client history.

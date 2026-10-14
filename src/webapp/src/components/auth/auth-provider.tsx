@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPasswordChangeSession, type PasswordChangeSession } from "@aisley/ui/password-change";
 import { Button } from "@aisley/ui";
 import { clearCheckoutPlacement } from "@/lib/checkout/placement";
 import { clearChatPrivateState } from "@aisley/ui/chat";
@@ -11,21 +12,24 @@ import { advanceSessionRevision, isInvalidSession, subscribeToSessionFailures } 
 
 type AuthContextValue = {
   auth: AuthState;
+  passwordSession: PasswordChangeSession;
   logout: () => Promise<void>;
   refresh: () => Promise<AuthState>;
-  setAuthenticatedCustomer: (customer: AuthenticatedCustomer) => void;
+  setAuthenticatedCustomer: (customer: AuthenticatedCustomer, freshAuthentication?: boolean) => void;
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
 const initialAuth: AuthState = { status: "loading" };
 const getServerSnapshot = () => initialAuth;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [passwordSession] = useState(createPasswordChangeSession);
   const [session] = useState(() => createSessionController(
     async () => (await apiRequest<{ customer: AuthenticatedCustomer }>(
       "/api/v1/customer/auth/me", { cache: "no-store", signal: AbortSignal.timeout(15000) },
     )).customer,
     (error) => error instanceof ApiError && isInvalidSession(error.status, error.code),
     advanceSessionRevision,
+    passwordSession.setIdentity,
   ));
   const channel = useRef<BroadcastChannel | null>(null);
   const checkoutCustomer = useRef<string | null>(null);
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (sessionChannel) sessionChannel.onmessage = (event: MessageEvent<unknown>) => {
       if (event.data === "signed-out") session.clear();
       else if (event.data === "session-changed") {
+        passwordSession.setIdentity(null);
         session.reset();
         void session.refresh();
       }
@@ -70,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       channel.current = null;
       window.removeEventListener("online", retryOnline);
     };
-  }, [session]);
+  }, [session, passwordSession]);
 
   const logout = useCallback(async () => {
     clearChatPrivateState();
@@ -85,19 +90,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session]);
 
-  const setAuthenticatedCustomer = useCallback((customer: AuthenticatedCustomer) => {
+  const setAuthenticatedCustomer = useCallback((customer: AuthenticatedCustomer, freshAuthentication = false) => {
     const current = session.getSnapshot();
     if (current.status === "authenticated" && current.customer.id !== customer.id) {
       clearChatPrivateState();
       clearCheckoutPlacement();
     }
+    passwordSession.setIdentity(customer.id, freshAuthentication);
     session.setCustomer(customer);
     channel.current?.postMessage("session-changed");
-  }, [session]);
+  }, [session, passwordSession]);
 
   const value = useMemo(() => ({
-    auth, logout, refresh: session.refresh, setAuthenticatedCustomer,
-  }), [auth, logout, session, setAuthenticatedCustomer]);
+    auth, passwordSession, logout, refresh: session.refresh, setAuthenticatedCustomer,
+  }), [auth, passwordSession, logout, session, setAuthenticatedCustomer]);
 
   return <AuthContext.Provider value={value}>
     {auth.status === "loading" && auth.error ? (
