@@ -20,11 +20,13 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\DeliversTransactionalEmails;
 use Tests\Support\SellerApprovalFixtures;
 use Tests\TestCase;
 
 class RegistrationManagementTest extends TestCase
 {
+    use DeliversTransactionalEmails;
     use RefreshDatabase;
     use SellerApprovalFixtures;
 
@@ -142,6 +144,7 @@ class RegistrationManagementTest extends TestCase
             'action' => AdminAuditAction::RegistrationApproved->value,
             'auditable_id' => $registration->id,
         ]);
+        $this->deliverTransactionalEmails();
         Notification::assertSentTo($registration->user, RegistrationDecisionNotification::class);
     }
 
@@ -214,6 +217,7 @@ class RegistrationManagementTest extends TestCase
             'action' => AdminAuditAction::RegistrationRejected->value,
             'auditable_id' => $registration->id,
         ]);
+        $this->deliverTransactionalEmails();
         Notification::assertSentTo($registration->user, RegistrationDecisionNotification::class);
     }
 
@@ -237,6 +241,7 @@ class RegistrationManagementTest extends TestCase
         $this->assertSame(ApplicationStatus::Approved, $registration->status);
         $this->assertSame($firstAdmin->id, $registration->reviewer_id);
         $this->assertDatabaseCount('audit_logs', 1);
+        $this->deliverTransactionalEmails();
         Notification::assertSentToTimes($registration->user, RegistrationDecisionNotification::class, 1);
     }
 

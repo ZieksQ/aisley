@@ -17,7 +17,7 @@ use App\Http\Requests\Seller\ResetPasswordRequest;
 use App\Http\Resources\Seller\SellerUserResource;
 use App\Models\ShopCategory;
 use App\Models\User;
-use App\Notifications\Seller\ResetPasswordNotification;
+use App\Services\Mail\PasswordResetDeliveryService;
 use App\Services\Notifications\AdminNotificationService;
 use App\Services\Seller\RegistrationEvidenceService;
 use Illuminate\Database\QueryException;
@@ -235,7 +235,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request, PasswordResetDeliveryService $delivery): JsonResponse
     {
         if (RateLimiter::tooManyAttempts($request->throttleKey(), self::MAX_PASSWORD_RESET_ATTEMPTS)) {
             return $this->rateLimitedResponse($request->throttleKey());
@@ -243,23 +243,7 @@ class AuthController extends Controller
 
         RateLimiter::hit($request->throttleKey(), (int) config('seller.auth.password_reset_throttle_seconds', 60));
 
-        $email = (string) $request->input('email');
-        $user = User::query()
-            ->where('email', $email)
-            ->where('role', UserRole::Seller)
-            ->where('status', UserStatus::Active)
-            ->first();
-
-        if ($user) {
-            $token = Str::random(64);
-
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $email, 'role' => UserRole::Seller->value],
-                ['token' => Hash::make($token), 'created_at' => now()],
-            );
-
-            $user->notify(new ResetPasswordNotification($token));
-        }
+        $delivery->request((string) $request->input('email'), UserRole::Seller);
 
         return response()->json([
             'message' => 'If a Seller account exists for that email, we will send password reset instructions.',
@@ -274,6 +258,16 @@ class AuthController extends Controller
 
         $email = (string) $request->input('email');
         $passwordWasReset = DB::transaction(function () use ($request, $email): bool {
+            $user = User::query()
+                ->where('email', $email)
+                ->where('role', UserRole::Seller)
+                ->where('status', UserStatus::Active)
+                ->lockForUpdate()
+                ->first();
+            if (! $user) {
+                return false;
+            }
+
             $reset = DB::table('password_reset_tokens')
                 ->where('email', $email)
                 ->where('role', UserRole::Seller->value)
@@ -285,16 +279,6 @@ class AuthController extends Controller
                 : null;
 
             if (! $reset || ! Hash::check((string) $request->input('token'), $reset->token) || $expiresAt?->isPast()) {
-                return false;
-            }
-
-            $user = User::query()
-                ->where('email', $email)
-                ->where('role', UserRole::Seller)
-                ->where('status', UserStatus::Active)
-                ->first();
-
-            if (! $user) {
                 return false;
             }
 

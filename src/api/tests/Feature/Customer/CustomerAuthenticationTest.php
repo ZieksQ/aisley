@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\DeliversTransactionalEmails;
 use Tests\TestCase;
 
 class CustomerAuthenticationTest extends TestCase
 {
+    use DeliversTransactionalEmails;
     use RefreshDatabase;
 
     public function test_customer_registration_creates_a_pending_account_profile_and_application_without_authenticating(): void
@@ -248,6 +250,7 @@ class CustomerAuthenticationTest extends TestCase
                 );
         }
 
+        $this->deliverTransactionalEmails();
         Notification::assertSentTo($activeCustomer, ResetPasswordNotification::class);
         Notification::assertNotSentTo($pendingCustomer, ResetPasswordNotification::class);
         $this->assertDatabaseHas('password_reset_tokens', [
@@ -286,6 +289,7 @@ class CustomerAuthenticationTest extends TestCase
         ])->assertOk();
 
         $token = null;
+        $this->deliverTransactionalEmails();
         Notification::assertSentTo(
             $customer,
             ResetPasswordNotification::class,

@@ -3,7 +3,7 @@ feature: logistics-courier-approval
 title: Courier Application Review and Approval
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Implemented (Phase 1): scoped review, private evidence, and atomic decisions
 canonical: true
 role: Logistics
@@ -68,8 +68,8 @@ Courier registers under Logistics → pending affiliation
 - Private application/detail/media responses must use `Cache-Control: private, no-store`; harden the existing list too.
 - Evidence stays in configured private storage; return authorized delivery paths, never raw object paths or credentials.
 - Record safe sensitive-document access audit context without logging images, tokens, or full identity data.
-- Current controller does not send approval/rejection notifications. Do not show “email sent” after its success response.
-- Notification integration is a separate extension: persist durable work with the decision and deliver after commit.
+- Approval/rejection commits one encrypted applicant-email intent alongside the existing affiliation/application decision. The database worker sends the Courier-specific Logistics decision after commit, with bounded retries and minute recovery.
+- A successful mutation confirms the decision and durable intent, not email delivery. Do not show “email sent” from the decision response. See the [transactional email contract](../../shared/transactional-email/spec.md).
 - Communication failure must not reverse a committed decision or grant access to a rejected applicant.
 
 ### Logistics UI
@@ -91,7 +91,7 @@ Courier registers under Logistics → pending affiliation
 - [x] Existing approval APIs are reused rather than duplicated.
 - [x] Required-document completeness and account-lifecycle races are checked before approval.
 - [x] Approval enforces exactly one vehicle and review confirms readable OR/CR for it; duplicate vehicles are not silently resolved by selecting the first row.
-- [x] Approval/rejection commits all related statuses, reviewer, and time atomically.
+- [x] Approval/rejection commits all related statuses, reviewer, time, and one encrypted decision-email intent atomically.
 - [x] Duplicate/concurrent decisions cannot overwrite an earlier decision or independent suspension.
 - [ ] Full browser timeout/offline automation is deferred; the UI times out, refetches the recorded detail, and does not claim a decision without the returned state.
 - [x] Evidence and DTOs are private, no-store, scoped, and free of raw paths.
@@ -118,10 +118,10 @@ Courier registers under Logistics → pending affiliation
 
 ### Deferred extensions
 
-- Durable post-commit approval/rejection notifications are not implemented; the UI does not claim that email or push delivery occurred.
+- Courier decision email is implemented through durable post-commit work. Push/in-app decision notifications remain deferred; the UI does not claim email delivery from an approval response.
 - Idempotency-key replay, resubmission, reversal, revocation, and automatic re-offer remain separate lifecycle work.
 - Browser-level accessibility, offline, and concurrency automation remains a verification follow-up; API requests fail safely and refetch on decision timeout.
-- No additive migration was required because the existing affiliation, application, document, profile, address, and vehicle records represent the Phase 1 workflow.
+- Phase 1 reused existing approval records. The SMTP extension adds only the shared transactional-email outbox through a new migration; no approval schema or mobile DTO changes are introduced.
 
 ### Implementation and verification
 
@@ -141,4 +141,4 @@ Courier registers under Logistics → pending affiliation
 - `docs/features/courier/auth/spec.md` owns Courier registration/auth and documents the existing approval APIs.
 - `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and `docs/domains/Logistics.md` define shared authority.
 - `docs/references/user-registration-requirements.md` and `docs/references/file-upload-requirements.md` are mandatory.
-- Notification channels, long-term evidence retention, resubmission, and approval reversal remain separately specified extensions.
+- Additional notification channels, long-term evidence retention, resubmission, and approval reversal remain separately specified extensions.

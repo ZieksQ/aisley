@@ -58,6 +58,7 @@ register profile + credentials
 - `/me` and logout require `auth:sanctum` plus `customer.active`; middleware verifies persisted role and status on every protected request. Logout invalidates the current web session or deletes the current personal access token.
 - After the active Customer check, protected Customer APIs require current shared Terms of Service and Privacy Policy consent. `/me`, logout, policy status, and policy acceptance remain reachable so the Customer can complete consent.
 - Forgot-password is generic and rate-limited. Reset tokens are hashed, Customer-role scoped, expiring, single-use, and revoke personal access tokens after a successful reset.
+- Reset tokens and encrypted email intents commit together; the database worker delivers after commit and retries independently. Queue/SMTP failure preserves the generic acknowledgement; expired, consumed, superseded, or identity-changed reset mail is skipped. See the [transactional email contract](../../shared/transactional-email/spec.md).
 
 ### Safety, privacy, and acceptance
 

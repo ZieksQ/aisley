@@ -71,6 +71,7 @@ multipart register
 - Login is rate-limited (five attempts per throttle window) and returns `429` with `Retry-After` when exhausted. Password reset is separately rate-limited and generic.
 - Stable inactive codes are `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, and `ACCOUNT_INACTIVE`; do not reveal unrelated role/account state.
 - Reset tokens are hashed, Logistics-role scoped, expiring, single-use, and removed after success. Successful reset revokes personal access tokens without changing approval status.
+- Password resets and Admin registration decisions persist encrypted mail intents with their source transaction, then deliver through the database worker and recovery scheduler. Queue/SMTP outages preserve generic recovery responses and committed decisions; obsolete reset links are skipped. See the [transactional email contract](../../shared/transactional-email/spec.md).
 - `GET /me` and `POST /logout` require `auth:sanctum` plus `logistics.active`; every protected Logistics endpoint repeats role/status checks at the API boundary.
 - Protected Logistics endpoints additionally require current shared Terms of Service and Privacy Policy consent. `/me`, logout, policy status, and policy acceptance remain reachable so the organization account can complete consent.
 

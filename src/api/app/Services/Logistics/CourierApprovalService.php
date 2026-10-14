@@ -12,10 +12,13 @@ use App\Exceptions\Logistics\CourierApprovalException;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\RegistrationApplication;
 use App\Models\User;
+use App\Services\Mail\TransactionalEmailOutbox;
 use Illuminate\Support\Facades\DB;
 
 class CourierApprovalService
 {
+    public function __construct(private readonly TransactionalEmailOutbox $emailOutbox) {}
+
     /** @var array<int, DocumentType> */
     private const REQUIRED_DOCUMENT_TYPES = [
         DocumentType::VehicleRegistration,
@@ -132,6 +135,9 @@ class CourierApprovalService
                 'reviewed_at' => $reviewedAt,
                 'rejection_reason' => $rejectionReason,
             ]);
+
+            $application->setRelation('user', $courier);
+            $this->emailOutbox->registrationDecision($application);
 
             return $locked;
         }, 3);
