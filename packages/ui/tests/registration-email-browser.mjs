@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, mkdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { openChatBrowser } from './chat-browser-driver.mjs'
+import { checkRegistrationSubmissions } from './registration-submission-checks.mjs'
 
 const require = createRequire(resolve('src/seller/package.json'))
 const ts = require('typescript')
@@ -108,6 +109,7 @@ try {
   assert.equal(await js("!!document.querySelector('[name=verification_code]')"), false)
   await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
   assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true)
+  await checkRegistrationSubmissions(browser, modules, compile, artifacts)
   assert.equal(browser.errors.length, 0, JSON.stringify(browser.errors))
   console.log('Registration OTP browser checks pass: all web roles, widths, themes, leading-zero codes, draft retention, proof expiry, cooldown and obsolete-response cleanup.')
 } finally {

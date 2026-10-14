@@ -10,7 +10,7 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
   children: (email: VerifiedRegistrationEmail) => ReactNode;
   accent?: "purple" | "blue";
 }) {
-  const state = useRegistrationEmail(client);
+  const { feedback, codeInput, ...state } = useRegistrationEmail(client);
   const id = useId();
   const inputClass = "mt-2 min-h-12 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60 dark:border-white/20 dark:bg-zinc-900 dark:text-zinc-100";
   const buttonClass = "min-h-12 rounded-lg px-5 py-3 text-sm font-semibold disabled:opacity-50 transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -23,10 +23,10 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
           {state.proof ? state.verifiedEmail : "First, confirm your email with a six-digit code. Your application will still need approval."}
         </p>
       </div>}
-      {state.message && <p ref={state.feedback} tabIndex={-1} role={state.error ? "alert" : "status"}
+      {state.message && <p ref={feedback} tabIndex={-1} role={state.error ? "alert" : "status"}
         className={`text-sm leading-6 focus:outline-none ${state.error ? "text-red-700 dark:text-red-300" : "text-zinc-600 dark:text-zinc-300"}`}>{state.message}</p>}
       {state.proof ? (
-        <button type="button" className={`${buttonClass} border border-zinc-300 dark:border-white/20`} onClick={state.reverify}>Change email</button>
+        <button type="button" className={`${buttonClass} border border-zinc-300 dark:border-white/20`} disabled={state.submitting} onClick={state.reverify}>Change email</button>
       ) : !state.completed && (
         <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void state.perform(!!state.challenge); }}>
           <label className="block text-sm font-medium" htmlFor={`${id}-email`}>Email address
@@ -35,7 +35,7 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
           </label>
           {state.challenge && <>
             <label className="block text-sm font-medium" htmlFor={`${id}-code`}>Verification code
-              <input ref={state.codeInput} id={`${id}-code`} name="verification_code" autoFocus type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
+              <input ref={codeInput} id={`${id}-code`} name="verification_code" autoFocus type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
                 required maxLength={6} className={`${inputClass} tracking-[0.3em]`} value={state.code} disabled={state.busy}
                 onChange={(event) => state.setCode(event.target.value.replace(/\D/g, ""))} />
             </label>
@@ -54,9 +54,10 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
           {state.coolingDown && <p role="status" className="text-sm">Please wait {state.resendSeconds}s before trying again.</p>}
         </form>
       )}
-      {state.started && <div hidden={!state.proof && !state.completed}>
-        <fieldset disabled={!state.proof || state.busy}>
-          {children({ email: state.verifiedEmail, token: state.proof?.email_verification_token ?? "", reverify: state.reverify, complete: state.complete })}
+      {state.submitting && <p role="status" className="text-sm text-zinc-600 dark:text-zinc-300">Submitting your application. Please wait before changing your email.</p>}
+      {state.started && <div hidden={!state.proof && !state.completed} aria-busy={state.submitting}>
+        <fieldset disabled={!state.proof || state.busy || state.submitting}>
+          {children({ email: state.verifiedEmail, token: state.proof?.email_verification_token ?? "", submitting: state.submitting, beginSubmission: state.beginSubmission })}
         </fieldset>
       </div>}
     </div>

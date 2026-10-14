@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { RegistrationEmailChallenge, RegistrationEmailClient, RegistrationEmailProof } from "./types";
+import type { RegistrationEmailChallenge, RegistrationEmailClient, RegistrationEmailProof, RegistrationSubmission } from "./types";
 
 export function useRegistrationEmail(client: RegistrationEmailClient) {
   const [email, setEmail] = useState("");
@@ -10,6 +10,7 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
   const [challenge, setChallenge] = useState<RegistrationEmailChallenge | null>(null);
   const [proof, setProof] = useState<RegistrationEmailProof | null>(null);
   const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [retryAt, setRetryAt] = useState(0);
@@ -18,47 +19,97 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
   const [completed, setCompleted] = useState(false);
   const serial = useRef(0);
   const pending = useRef<AbortController | null>(null);
+  const registration = useRef<AbortController | null>(null);
+  const verified = useRef<{ proof: RegistrationEmailProof; generation: number } | null>(null);
+  const mounted = useRef(false);
   const feedback = useRef<HTMLParagraphElement>(null);
   const codeInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    mounted.current = true;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => { window.clearInterval(timer); serial.current++; pending.current?.abort(); };
+    return () => {
+      mounted.current = false;
+      window.clearInterval(timer);
+      serial.current++;
+      pending.current?.abort();
+      registration.current?.abort();
+      registration.current = null;
+    };
   }, []);
   useEffect(() => {
-    if (proof && Date.parse(proof.expires_at) <= now) {
+    if (proof && Date.parse(proof.expires_at) <= now && !registration.current) {
+      serial.current++;
+      verified.current = null;
       setProof(null);
       setChallenge(null);
       setCode("");
       setMessage("Email verification expired. Verify again to keep completing your form.");
     }
-  }, [now, proof]);
+  }, [now, proof, submitting]);
 
-  function reverify() {
-    if (completed) return;
+  function resetVerification(message = "") {
     serial.current++;
     pending.current?.abort();
+    verified.current = null;
     setBusy(false);
     setProof(null);
     setChallenge(null);
     setCode("");
-    setMessage("");
+    setMessage(message);
     setError(false);
   }
 
-  function complete() {
-    serial.current++;
-    pending.current?.abort();
-    setBusy(false);
-    setProof(null);
-    setChallenge(null);
-    setCode("");
-    setMessage("");
-    setCompleted(true);
+  function reverify() {
+    if (!mounted.current || completed || registration.current) return;
+    resetVerification();
+  }
+
+  function beginSubmission(): RegistrationSubmission | null {
+    // The ref locks synchronously, including two submissions before React renders.
+    if (!mounted.current || busy || completed || registration.current || !proof
+      || verified.current?.proof !== proof || verified.current.generation !== serial.current) return null;
+    if (Date.parse(proof.expires_at) <= Date.now()) {
+      resetVerification("Email verification expired. Verify again to keep completing your form.");
+      return null;
+    }
+    const generation = serial.current;
+    const controller = new AbortController();
+    registration.current = controller;
+    setSubmitting(true);
+    const isCurrent = () => mounted.current && serial.current === generation
+      && registration.current === controller && !controller.signal.aborted;
+    function release() {
+      registration.current = null;
+      controller.abort();
+      setSubmitting(false);
+    }
+    return {
+      email: verifiedEmail,
+      token: proof.email_verification_token,
+      signal: controller.signal,
+      isCurrent,
+      complete() {
+        if (!isCurrent()) return false;
+        release();
+        resetVerification();
+        setCompleted(true);
+        return true;
+      },
+      finish(failure) {
+        if (!isCurrent()) return;
+        release();
+        if (failure?.reverify || Date.parse(proof.expires_at) <= Date.now()) {
+          const prompt = failure?.reverify ? "Verify your email again to continue your application."
+            : "Email verification expired. Verify again to keep completing your form.";
+          resetVerification([failure?.message, prompt].filter(Boolean).join(" "));
+        }
+      },
+    };
   }
 
   async function perform(verify: boolean) {
-    if (busy || retryAt > Date.now()) return;
+    if (!mounted.current || completed || registration.current || busy || retryAt > Date.now()) return;
     if (!verify && challenge && Date.parse(challenge.resend_available_at) > Date.now()) return;
     if (verify && (!challenge || Date.parse(challenge.expires_at) <= Date.now() || !/^[0-9]{6}$/.test(code))) return;
     const current = ++serial.current;
@@ -75,6 +126,7 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
         const result = await client.verifyCode(normalized, challenge.challenge_id, code, controller.signal);
         if (current !== serial.current || controller.signal.aborted) return;
         if (!/^[a-f0-9]{64}$/.test(result.email_verification_token) || !Number.isFinite(Date.parse(result.expires_at))) throw new Error("Unexpected verification response. Try again.");
+        verified.current = { proof: result, generation: current };
         setVerifiedEmail(normalized);
         setProof(result);
         setStarted(true);
@@ -112,8 +164,8 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
   }
 
   const resendAt = Math.max(retryAt, challenge ? Date.parse(challenge.resend_available_at) : 0);
-  return { email, setEmail, verifiedEmail, code, setCode, challenge, proof, busy, message, error,
-    feedback, codeInput, started, completed, reverify, complete, perform, coolingDown: retryAt > now,
+  return { email, setEmail, verifiedEmail, code, setCode, challenge, proof, busy, submitting, message, error,
+    feedback, codeInput, started, completed, reverify, beginSubmission, perform, coolingDown: retryAt > now,
     resendSeconds: Math.max(0, Math.ceil((resendAt - now) / 1000)),
     expired: !!challenge && Date.parse(challenge.expires_at) <= now };
 }

@@ -28,7 +28,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmitting = verification.submitting
   const [birthDate, setBirthDate] = useState('')
   const [shopCategories, setShopCategories] = useState<ShopCategoryOption[]>([])
   const [optionsError, setOptionsError] = useState<string | null>(null)
@@ -54,34 +54,37 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (isSubmitting) return
+    const formData = new FormData(event.currentTarget)
+    const attempt = verification.beginSubmission()
+    if (!attempt) return
+    formData.set('email', attempt.email)
+    formData.set('email_verification_token', attempt.token)
     setErrors({})
     setFormError(null)
-    setIsSubmitting(true)
 
     try {
-      const formData = new FormData(event.currentTarget)
-      formData.set('email', verification.email)
-      formData.set('email_verification_token', verification.token)
-      await initializeCsrf()
+      await initializeCsrf(attempt.signal)
+      if (!attempt.isCurrent()) return
       const response = await apiRequest<AuthResponse>('/api/v1/seller/auth/register', {
         method: 'POST',
         body: formData,
+        signal: attempt.signal,
       })
+      if (!attempt.complete()) return
       setSubmittedEmail(response.seller.email)
-      verification.complete()
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (caughtError) {
+      if (!attempt.isCurrent()) return
+      const message = caughtError instanceof ApiError && caughtError.status > 0 && caughtError.status !== 408 && caughtError.status < 500
+        ? caughtError.message
+        : 'The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending.'
       if (caughtError instanceof ApiError) {
-        if (caughtError.errors.email_verification_token) verification.reverify()
         setErrors(caughtError.errors)
-        setFormError(caughtError.status === 0 || caughtError.status === 408 || caughtError.status >= 500
-          ? 'The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending.'
-          : caughtError.message)
-      } else {
-        setFormError('The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending.')
       }
+      setFormError(message)
+      attempt.finish({ reverify: caughtError instanceof ApiError && !!caughtError.errors.email_verification_token, message })
     } finally {
-      setIsSubmitting(false)
+      attempt.finish()
     }
   }
 

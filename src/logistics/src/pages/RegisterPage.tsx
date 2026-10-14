@@ -19,7 +19,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
   const formRef = useRef<HTMLFormElement>(null)
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const submitting = verification.submitting
   const [birthDate, setBirthDate] = useState('')
   const [hubPin, setHubPin] = useState<HubCoordinates | null>(null)
   const [pinConfirmed, setPinConfirmed] = useState(false)
@@ -54,31 +54,35 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) return
+    const form = new FormData(event.currentTarget)
+    const attempt = verification.beginSubmission()
+    if (!attempt) return
+    form.set('email', attempt.email)
+    form.set('email_verification_token', attempt.token)
+    if (hubPin && pinConfirmed) {
+      form.append('latitude', String(hubPin.latitude))
+      form.append('longitude', String(hubPin.longitude))
+    }
     setErrors({})
     setError(null)
-    setSubmitting(true)
-    const form = new FormData(event.currentTarget)
     try {
       await csrf()
-      form.set('email', verification.email)
-      form.set('email_verification_token', verification.token)
-      if (hubPin && pinConfirmed) {
-        form.append('latitude', String(hubPin.latitude))
-        form.append('longitude', String(hubPin.longitude))
-      }
-      const result = await request<{ message: string }>('/api/v1/logistics/auth/register', { method: 'POST', body: form })
-      verification.complete()
-      navigate('/login', { replace: true, state: { notice: result.message } })
+      if (!attempt.isCurrent()) return
+      const result = await request<{ message: string }>('/api/v1/logistics/auth/register', { method: 'POST', body: form, signal: attempt.signal })
+      if (attempt.complete()) navigate('/login', { replace: true, state: { notice: result.message } })
     } catch (caught) {
+      if (!attempt.isCurrent()) return
+      let message = 'The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending.'
       if (caught instanceof ApiError) {
-        if (caught.errors.email_verification_token) verification.reverify()
         setErrors(caught.errors)
-        setError(caught.status === 0 || caught.status === 408 || caught.status >= 500
-          ? 'The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending.'
-          : caught.code === 'EMAIL_ALREADY_REGISTERED' ? caught.message : Object.keys(caught.errors).length ? 'Please correct the highlighted fields.' : caught.message)
-      } else setError('The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending.')
+        if (caught.status > 0 && caught.status !== 408 && caught.status < 500) {
+          message = caught.errors.email_verification_token?.[0] ?? (caught.code === 'EMAIL_ALREADY_REGISTERED' ? caught.message : Object.keys(caught.errors).length ? 'Please correct the highlighted fields.' : caught.message)
+        }
+      }
+      setError(message)
+      attempt.finish({ reverify: caught instanceof ApiError && !!caught.errors.email_verification_token, message })
     } finally {
-      setSubmitting(false)
+      attempt.finish()
     }
   }
 

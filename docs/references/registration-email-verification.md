@@ -30,6 +30,10 @@ There is no durable registration replay key or applicant polling API. After an u
 
 Email entry → code entry/resend → registration details → existing approval destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
 
+Customer, Seller, and Logistics web registration use the shared gate's submission lifecycle. Capture the form/evidence and begin an attempt synchronously before awaiting CSRF; freeze its email/proof and disable email changes, verification controls, details, and duplicate submission until it settles. Only the originating live verification generation may complete, show errors, reset verification, or navigate. Route exit aborts the client request and invalidates callbacks; check again after CSRF before sending registration. Client cancellation cannot reverse a server commit.
+
+Defer local proof-expiry reset while final submission is pending and honor a current successful server response. A failed submission with an expired or rejected proof returns to verification with drafts/evidence intact and visible recovery feedback, including unconfirmed-result/sign-in guidance for ambiguous failures. A recoverable validation failure may reuse an unexpired proof for an explicit retry. Old success, error, or cleanup callbacks cannot affect a newer attempt, even when it uses the same email/token.
+
 Use one accessible code field with paste, one-time-code autofill, a numeric keyboard, six-digit validation, and leading-zero preservation. Explain expiry and spam-folder checks; respect reduced motion. Existing role palettes/native themes apply. Verification failure, offline/timeout, throttling, and final approval are distinct states.
 
 ## Persistence, delivery, and release

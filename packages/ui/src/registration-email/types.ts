@@ -14,9 +14,18 @@ export type RegistrationEmailClient = {
   verifyCode: (email: string, challengeId: string, code: string, signal: AbortSignal) => Promise<RegistrationEmailProof>;
 };
 
+export type RegistrationSubmission = {
+  email: string;
+  token: string;
+  signal: AbortSignal;
+  isCurrent: () => boolean;
+  complete: () => boolean;
+  finish: (failure?: { reverify?: boolean; message?: string }) => void;
+};
+
 export type VerifiedRegistrationEmail = {
   email: string;
   token: string;
-  reverify: () => void;
-  complete: () => void;
+  submitting: boolean;
+  beginSubmission: () => RegistrationSubmission | null;
 };
