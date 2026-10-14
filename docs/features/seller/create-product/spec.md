@@ -35,7 +35,7 @@
 ### Markdown description and images
 
 - Use `@mdxeditor/editor` as a controlled Seller `ProductDescriptionEditor` bound to `description_markdown`.
-- Initialize only the required editor plugins: headings, lists, quote, links/link dialog, thematic break, Markdown shortcuts, image, and toolbar; include `InsertImage`.
+- Initialize the required editor plugins: headings, lists, quote, links/link dialog, thematic break, Markdown shortcuts, image, table, diff/source, and toolbar; include `InsertImage` and `InsertTable`. Source mode is the initial view; labeled controls switch to Rich text and Diff without dropping the current draft.
 - Support image add, paste, and drag/drop using MDXEditor's `imagePlugin({ imageUploadHandler })`; each file is uploaded immediately to the authorized Laravel endpoint and the returned canonical URL is inserted into Markdown.
 - Do not store Base64, `blob:` URLs, browser paths, expiring signed URLs, arbitrary external image URLs, raw HTML, JSX, or executable MDX in the description.
 - Keep inline description assets separate from Product gallery/variant media. A description image must never alter Customer gallery ordering or become a variant primary image.
@@ -131,3 +131,23 @@
 - Sellers may record a PHP unit cost on the Product or Variant. The effective cost is snapshotted on the Order item and remains unknown when omitted; reporting must never coerce a missing cost to zero.
 - The Seller form presents one required packed-package section for Product defaults. Each Variant has an explicit `Use different package` control; enabling it requires all four positive override fields, while disabling it clears the complete override and restores inheritance.
 - Development catalog seeds include positive Product measurements, representative Variant combinations, and several complete Variant measurement overrides so checkout and Seller UI states are testable without hand-editing records.
+
+### Seller catalog and editor presentation (2026-10-14)
+
+- The catalog shows the selected cover (or the first gallery image) beside each product, with an accessible missing-image fallback. Product names and explicit icon-only Edit actions open the existing edit route for every lifecycle status. Publish, Archive and Unarchive icons keep accessible names and keyboard/hover tooltips; the existing server lifecycle and compliance checks remain authoritative.
+- Status filters, search and pagination use the existing list API. Cancel superseded reads so stale responses cannot replace the selected view; distinguish loading, empty, failed reads and failed actions. Archive and Unarchive require confirmations; restoring returns the product to Draft.
+- The create/edit workspace groups the existing content into Product details, Product gallery, Description, Pricing & inventory, Variants and Packed package. Section navigation and a persistent save area keep long forms navigable. Save draft creates a draft; Save changes preserves the edited product's lifecycle status.
+- Preserve the filename gallery, default-cover selection, separate description/variant images, manual option combinations, price/cost inheritance, persisted SKU identities and read-only existing stock. Variant rows adapt into grouped fieldsets without changing their payload contract.
+- Disable saving while images upload or a save is in progress. Keep inputs after validation failures, associate returned field errors where controls exist, and confirm Back/Cancel when input is unsaved. Confirmations contain keyboard focus, close on Escape when idle, and restore focus.
+- Follow [the web design contract](../../../design.md) for both supported themes and responsive/accessibility behavior. Browser verification uses synthetic HTTP with the actual Seller SPA; it does not establish live API or deployed acceptance.
+
+### Description editor modes and tables (2026-10-14)
+
+- Open both new and existing products in Source mode. Source edits update `description_markdown` immediately, including when saved without first switching views. Rich text keeps the existing formatting, canonical image upload/paste/drop, links, and Markdown conversion.
+- Place the Rich text, Diff and Source icon toggles in the same toolbar as formatting controls, matching [MDXEditor's demo](https://mdxeditor.dev/editor/demo). Use the editor's native mode icons with accessible names, hover/focus tooltips, exclusive selected states and keyboard navigation; disable mode changes during saves/uploads. Source table insertion uses a labeled icon in that toolbar too. Wrap toolbar groups within narrow editor bounds.
+- Diff is a read-only comparison of the description loaded when the editor mounted (empty for a new product) with the current draft. Keep this baseline fixed during typing, mode changes and recoverable save failures; do not fabricate revision history.
+- Enable GFM table insertion in Rich text using MDXEditor's table plugin and `InsertTable`. Source also inserts an editable GFM table template at the current insertion point; switching views preserves the table and existing content. HTML tables, arbitrary HTML and executable MDX remain prohibited by existing server validation.
+- Preserve source text when Rich text cannot parse a node or Markdown syntax. Keep Source available to correct it, retain the current draft after failed saves, and keep server validation authoritative.
+- While saving, prevent editing with an inert editor surface and disabled mode controls without reinitializing MDXEditor's source buffer. Keep image upload progress and save gating intact.
+- Keep caret/selection and source/diff text visible in both themes. Center toolbar icons and their tooltip anchors within 44px targets; tooltips remain bounded, keyboard-accessible and correctly themed. Wrap formatting groups on narrow screens and contain wide tables/diff columns within the editor.
+- Documentation: [MDXEditor diff/source](https://mdxeditor.dev/editor/docs/diff-source), [tables](https://mdxeditor.dev/editor/docs/tables), and [theming](https://mdxeditor.dev/editor/docs/theming). These modes do not change Customer rendering or the API/Flutter contract.
