@@ -27,11 +27,15 @@ export function ProductDescriptionEditor({
   onChange,
   uploadToken,
   onAsset,
+  onUploadState,
+  readOnly = false,
 }: {
   markdown: string
   onChange: (markdown: string) => void
   uploadToken: string
   onAsset: (id: string) => void
+  onUploadState: (uploading: boolean) => void
+  readOnly?: boolean
 }) {
   const [uploadStatus, setUploadStatus] = useState('')
   const [previewUrls] = useState(() => new Map<string, string>())
@@ -52,6 +56,7 @@ export function ProductDescriptionEditor({
         form.append('image', file)
         form.append('purpose', 'description')
         form.append('upload_token', uploadToken)
+        onUploadState(true)
         try {
           const response = await uploadForm<{ data: UploadedAsset }>('/api/v1/seller/product-uploads', form, (progress) => setUploadStatus(`Uploading description image… ${progress}%`))
           previewUrls.set(response.data.url, apiAssetUrl(response.data.preview_url))
@@ -61,6 +66,8 @@ export function ProductDescriptionEditor({
         } catch (error) {
           setUploadStatus(error instanceof ApiError ? Object.values(error.errors)[0]?.[0] ?? error.message : 'Image upload failed. Try again.')
           throw error
+        } finally {
+          onUploadState(false)
         }
       },
       imagePreviewHandler: async (source) => {
@@ -71,10 +78,10 @@ export function ProductDescriptionEditor({
       },
     }),
     toolbarPlugin({ toolbarClassName: 'seller-product-toolbar', toolbarContents: () => <><UndoRedo /><BlockTypeSelect /><BoldItalicUnderlineToggles /><ListsToggle /><CreateLink /><InsertThematicBreak /><InsertImage /></> }),
-  ], [onAsset, previewUrls, uploadToken])
+  ], [onAsset, onUploadState, previewUrls, uploadToken])
 
   return <div>
-    <div className="overflow-hidden rounded-lg border border-zinc-300 bg-white focus-within:ring-2 focus-within:ring-[#4C1268]/30 dark:border-white/15 dark:bg-[#18181b]">
+    <div className="product-description-surface">
       <MDXEditor
         className="seller-product-editor"
         contentEditableClassName="min-h-56 px-4 py-3 text-sm leading-6"
@@ -82,9 +89,10 @@ export function ProductDescriptionEditor({
         onChange={(value, normalized) => { if (!normalized) onChange(value) }}
         placeholder="Describe materials, fit, care instructions, and other useful details."
         plugins={plugins}
+        readOnly={readOnly}
         suppressHtmlProcessing
       />
     </div>
-    <p aria-live="polite" className="mt-2 text-xs text-zinc-500">{uploadStatus || 'Paste, drop, or use the image toolbar. JPEG, PNG, or WebP; under 10 MiB; up to 8,000 px per edge and 40 MP.'}</p>
+    <p aria-live="polite" className="product-upload-status">{uploadStatus || 'Paste, drop, or use the image toolbar. JPEG, PNG, or WebP; under 10 MiB; up to 8,000 px per edge and 40 MP.'}</p>
   </div>
 }

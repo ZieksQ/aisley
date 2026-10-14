@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test:orders": "node tests/order-actions.test.mjs",
+    "test:products:browser": "node tests/products-browser.mjs --serve",
     "preview": "vite preview"
   },
   "dependencies": {

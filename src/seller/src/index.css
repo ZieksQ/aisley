@@ -127,17 +127,17 @@ html.dark .seller-security-card input:-webkit-autofill:focus {
    blue/dark theme. The same class is copied to MDXEditor's popup container,
    so menus and dialogs receive the same tokens as the editor surface. */
 html .seller-product-editor {
-  --accentBase: #fff7fb;
-  --accentBgSubtle: #fce7f3;
-  --accentBg: #fbcfe8;
-  --accentBgHover: #f9a8d4;
-  --accentBgActive: #f472b6;
-  --accentLine: #f9a8d4;
-  --accentBorder: #ec4899;
-  --accentBorderHover: #db2777;
+  --accentBase: #faf7fc;
+  --accentBgSubtle: #f1eaf4;
+  --accentBg: #e9ddf1;
+  --accentBgHover: #ded0ea;
+  --accentBgActive: #d1bfe4;
+  --accentLine: #ded0ea;
+  --accentBorder: #6d28d9;
+  --accentBorderHover: #4c1268;
   --accentSolid: #4c1268;
   --accentSolidHover: #3d0e54;
-  --accentText: #9d174d;
+  --accentText: #4c1268;
   --accentTextContrast: #ffffff;
 
   --basePageBg: #ffffff;
@@ -158,32 +158,32 @@ html .seller-product-editor {
 }
 
 html.dark .seller-product-editor {
-  --accentBase: #2a1828;
-  --accentBgSubtle: #3a1d37;
-  --accentBg: #552649;
-  --accentBgHover: #71305e;
-  --accentBgActive: #8b3c71;
-  --accentLine: #71305e;
-  --accentBorder: #c05a9b;
-  --accentBorderHover: #e184ba;
-  --accentSolid: #e6007a;
-  --accentSolidHover: #c9006b;
-  --accentText: #f9a8d4;
+  --accentBase: #201c35;
+  --accentBgSubtle: #2e1b3b;
+  --accentBg: #392448;
+  --accentBgHover: #453056;
+  --accentBgActive: #513862;
+  --accentLine: #453056;
+  --accentBorder: #c4b5fd;
+  --accentBorderHover: #ddd6fe;
+  --accentSolid: #4c1268;
+  --accentSolidHover: #3d0e54;
+  --accentText: #ded0ea;
   --accentTextContrast: #ffffff;
 
-  --basePageBg: #18181b;
-  --baseBase: #111113;
-  --baseBgSubtle: #1f1f23;
-  --baseBg: #242428;
-  --baseBgHover: #2d2d33;
-  --baseBgActive: #3a303e;
-  --baseLine: #303036;
-  --baseBorder: #45454d;
+  --basePageBg: #1e293b;
+  --baseBase: #1e293b;
+  --baseBgSubtle: #273449;
+  --baseBg: #273449;
+  --baseBgHover: #334155;
+  --baseBgActive: #3b425b;
+  --baseLine: #334155;
+  --baseBorder: #64748b;
   --baseBorderHover: #6b6b75;
   --baseSolid: #a1a1aa;
   --baseSolidHover: #d4d4d8;
-  --baseText: #a1a1aa;
-  --baseTextContrast: #fafafa;
+  --baseText: #94a3b8;
+  --baseTextContrast: #f1f5f9;
   color-scheme: dark;
 }
 
@@ -202,12 +202,12 @@ html .seller-product-editor .seller-product-toolbar button {
 }
 
 html .seller-product-editor .seller-product-toolbar [data-toolbar-item] {
-  min-height: 2rem;
+  min-height: 2.75rem;
   border-radius: 0.375rem;
 }
 
 html .seller-product-editor .seller-product-toolbar button:not([aria-label='Block type']) {
-  min-width: 2rem;
+  min-width: 2.75rem;
 }
 
 html .seller-product-editor .seller-product-toolbar [data-toolbar-item]:hover,
@@ -468,4 +468,12 @@ html .seller-product-editor [role='dialog'] form > div:last-child button:focus-v
     width: calc(100vw - 1.5rem);
     padding: 1rem;
   }
+}
+
+html .seller-product-editor [class*='_placeholder_'] {
+  width: 100%;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: .75rem 1rem;
 }
