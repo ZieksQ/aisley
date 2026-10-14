@@ -278,3 +278,12 @@ The [collection contract](voucher-collection.md) adds seven methods after the hi
 | `GET` | `/api/v1/customer/conversations/shops/{shop}` | Active Customer + consent | 120,1 | `Customer\ConversationController@shopContext` |
 
 This operation is included in the current operation index; historical route snapshots retain their original counts.
+
+## Registration OTP endpoints — 2026-10-14
+
+| Method | Path | Access | Limits | Handler |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/customer/auth/registration/verification-code` | Public | Email-role rolling quota and IP/hour | `Auth\RegistrationEmailController@requestCode` |
+| POST | `/api/v1/customer/auth/registration/verify-email` | Public | Five incorrect codes; IP/minute | `Auth\RegistrationEmailController@verify` |
+
+Existing registration requires `email_verification_token`; see [contract](../registration-email.md).

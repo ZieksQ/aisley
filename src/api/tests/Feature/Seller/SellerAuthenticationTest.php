@@ -29,12 +29,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\DeliversTransactionalEmails;
+use Tests\Support\VerifiedRegistrationEmail;
 use Tests\TestCase;
 
 class SellerAuthenticationTest extends TestCase
 {
     use DeliversTransactionalEmails;
     use RefreshDatabase;
+    use VerifiedRegistrationEmail;
 
     protected function setUp(): void
     {
@@ -426,7 +428,7 @@ class SellerAuthenticationTest extends TestCase
     /** @param array<string, mixed> $overrides */
     private function registrationPayload(array $overrides = []): array
     {
-        return array_merge([
+        $payload = array_merge([
             'first_name' => 'Aisley',
             'last_name' => 'Merchant',
             'middle_name' => null,
@@ -442,6 +444,9 @@ class SellerAuthenticationTest extends TestCase
             'password' => 'Password1',
             'password_confirmation' => 'Password1',
         ], $overrides);
+        $payload['email_verification_token'] = $this->registrationEmailToken(UserRole::Seller, $payload['email']);
+
+        return $payload;
     }
 
     /** @return array<string, string> */

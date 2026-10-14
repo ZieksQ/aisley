@@ -5,12 +5,12 @@
       "feature": "customer-auth",
       "method": "POST",
       "path": "/api/v1/customer/auth/register",
-      "request_contract": "Profile fields required: names string≤255, middle_name nullable≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.",
+      "request_contract": "Profile fields required: names string≤255, middle_name nullable≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited. Required email_verification_token: 64-character registration-only proof bound to email/customer role; email_verified_at prohibited.",
       "response_contract": "{message:string,customer:RegistrationCustomer}",
       "status": 201,
-      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "retry": "No durable replay key. After uncertainty, try sign-in before a deliberate resubmission; no applicant polling API exists.",
       "access": "Public",
-      "notes": "",
+      "notes": "Verify email first. Verification proof consumed atomically; approval remains required. Existing users unaffected.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -23,7 +23,8 @@
           "birth_date": "2000-01-01",
           "email": "buyer@example.invalid",
           "password": "Synthetic9Example",
-          "password_confirmation": "Synthetic9Example"
+          "password_confirmation": "Synthetic9Example",
+          "email_verification_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       },
       "response_example": {
@@ -8065,6 +8066,67 @@
       },
       "id": "op-112",
       "errors": [],
+      "response_variants": []
+    },
+    {
+      "feature": "customer-auth",
+      "method": "POST",
+      "path": "/api/v1/customer/auth/registration/verification-code",
+      "request_contract": "email valid≤255, trimmed/lowercased. role/status/email_verified_at prohibited.",
+      "response_contract": "{message:string,challenge_id:UUID,expires_at:timestamp,resend_available_at:timestamp}",
+      "status": 200,
+      "retry": "Explicit resend only after cooldown; 60 seconds/five sends per email-role per rolling hour; 30 per IP/hour. 429 honors Retry-After.",
+      "access": "Public",
+      "notes": "Registration-only, no User/token/session before final submission. See registration-email.md.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "email": "buyer@example.invalid"
+        }
+      },
+      "response_example": {
+        "message": "Check your email for a registration verification code.",
+        "challenge_id": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+        "expires_at": "2026-10-14T00:10:00+00:00",
+        "resend_available_at": "2026-10-14T00:01:00+00:00"
+      },
+      "id": "op-113",
+      "errors": [
+        "422 validation",
+        "429 Retry-After"
+      ],
+      "response_variants": []
+    },
+    {
+      "feature": "customer-auth",
+      "method": "POST",
+      "path": "/api/v1/customer/auth/registration/verify-email",
+      "request_contract": "email valid≤255 normalized; challenge_id UUID; verification_code six ASCII digits as string. role/status/email_verified_at prohibited.",
+      "response_contract": "{message:string,email_verification_token:string,expires_at:timestamp}",
+      "status": 200,
+      "retry": "Explicit retry with same valid challenge/code returns same unexpired proof; 30 per IP/minute. Five incorrect attempts invalidate challenge.",
+      "access": "Public",
+      "notes": "Registration-only, no User/token/session before final submission. See registration-email.md.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "email": "buyer@example.invalid",
+          "challenge_id": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+          "verification_code": "012345"
+        }
+      },
+      "response_example": {
+        "message": "Email verified. Complete your registration.",
+        "email_verification_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expires_at": "2026-10-14T01:00:00+00:00"
+      },
+      "id": "op-114",
+      "errors": [
+        "422 validation",
+        "429 Retry-After"
+      ],
       "response_variants": []
     }
   ],

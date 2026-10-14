@@ -14,6 +14,7 @@ use App\Http\Requests\Logistics\RegisterRequest;
 use App\Http\Requests\Logistics\ResetPasswordRequest;
 use App\Http\Resources\Logistics\LogisticsUserResource;
 use App\Models\User;
+use App\Services\Auth\RegistrationEmailVerification;
 use App\Services\Logistics\RegistrationEvidenceService;
 use App\Services\Mail\PasswordResetDeliveryService;
 use App\Services\Notifications\AdminNotificationService;
@@ -37,7 +38,7 @@ class AuthController extends Controller
 
     public function __construct(private readonly RegistrationEvidenceService $evidence, private readonly AdminNotificationService $adminNotifications) {}
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, RegistrationEmailVerification $verification): JsonResponse
     {
         $email = (string) $request->input('email');
         $storedEvidence = [];
@@ -45,7 +46,7 @@ class AuthController extends Controller
             return $this->duplicateResponse();
         }
         try {
-            $user = DB::transaction(function () use ($request, $email, &$storedEvidence): User {
+            $user = $verification->complete(UserRole::Logistics, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$storedEvidence): User {
                 $user = User::create(['email' => $email, 'password' => (string) $request->input('password'), 'role' => UserRole::Logistics, 'status' => UserStatus::Pending]);
                 $user->logisticsProfile()->create($request->safe()->only(['first_name', 'last_name', 'middle_name', 'contact_number', 'sex', 'birth_date']));
                 $application = $user->registrationApplications()->create(['application_type' => UserRole::Logistics, 'status' => ApplicationStatus::Pending, 'submitted_at' => now()]);

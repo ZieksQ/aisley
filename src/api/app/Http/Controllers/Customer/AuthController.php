@@ -14,6 +14,7 @@ use App\Http\Resources\Customer\CustomerNavigationResource;
 use App\Http\Resources\Customer\CustomerUserResource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Services\Auth\RegistrationEmailVerification;
 use App\Services\Mail\PasswordResetDeliveryService;
 use App\Services\Notifications\AdminNotificationService;
 use Illuminate\Database\QueryException;
@@ -34,7 +35,7 @@ class AuthController extends Controller
 
     public function __construct(private readonly AdminNotificationService $adminNotifications) {}
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, RegistrationEmailVerification $verification): JsonResponse
     {
         $email = (string) $request->input('email');
 
@@ -43,7 +44,7 @@ class AuthController extends Controller
         }
 
         try {
-            $user = DB::transaction(function () use ($request, $email): User {
+            $user = $verification->complete(UserRole::Customer, $email, (string) $request->input('email_verification_token'), function () use ($request, $email): User {
                 $user = User::create([
                     'email' => $email,
                     'password' => (string) $request->input('password'),

@@ -1,5 +1,7 @@
 "use client";
 
+import { RegistrationEmailGate, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email";
+import { registrationEmailClient } from "@/lib/registration-email";
 import { Button, SelectField, TextField } from "@aisley/ui";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -20,12 +22,17 @@ function value(form: FormData, field: string) {
 }
 
 export function RegisterForm() {
+  return <RegistrationEmailGate client={registrationEmailClient}>{(verification) => <RegistrationDetails verification={verification} />}</RegistrationEmailGate>;
+}
+
+function RegistrationDetails({ verification }: { verification: VerifiedRegistrationEmail }) {
   const router = useRouter();
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     setError(null);
     setSubmitting(true);
 
@@ -35,7 +42,8 @@ export function RegisterForm() {
       await registerCustomer({
         birth_date: value(form, "birth_date"),
         contact_number: value(form, "contact_number"),
-        email: value(form, "email"),
+        email: verification.email,
+        email_verification_token: verification.token,
         first_name: value(form, "first_name"),
         last_name: value(form, "last_name"),
         middle_name: value(form, "middle_name") || undefined,
@@ -43,12 +51,14 @@ export function RegisterForm() {
         password_confirmation: value(form, "password_confirmation"),
         sex: value(form, "sex"),
       });
+      verification.complete();
       router.push("/waiting-for-approval?registered=1");
     } catch (caught) {
+      if (caught instanceof ApiError && caught.errors.email_verification_token) verification.reverify();
       setError(
-        caught instanceof ApiError
+        caught instanceof ApiError && caught.status > 0 && caught.status < 500 && caught.status !== 408
           ? caught
-          : new ApiError(0, { message: "Something went wrong. Please try again." }),
+          : new ApiError(0, { message: "The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending." }),
       );
       window.scrollTo({ behavior: "smooth", top: 0 });
     } finally {
@@ -141,6 +151,8 @@ export function RegisterForm() {
         <TextField
           id="email"
           name="email"
+          value={verification.email}
+          readOnly
           type="email"
           label="Email address"
           placeholder="you@example.com"

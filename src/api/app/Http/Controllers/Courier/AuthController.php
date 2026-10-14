@@ -18,12 +18,12 @@ use App\Http\Resources\Courier\CourierUserResource;
 use App\Models\Document;
 use App\Models\LogisticsOrganization;
 use App\Models\User;
+use App\Services\Auth\RegistrationEmailVerification;
 use App\Services\Courier\CourierAccessService;
 use App\Services\Logistics\LogisticsNotificationService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
@@ -45,14 +45,14 @@ class AuthController extends Controller
         return response()->json(['data' => $organizations]);
     }
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, RegistrationEmailVerification $verification): JsonResponse
     {
         $email = $request->string('email')->value();
         $stored = [];
         if (User::query()->where('email', $email)->where('role', UserRole::Courier)->exists()) {
             return $this->duplicate();
         } try {
-            $user = DB::transaction(function () use ($request, $email, &$stored) {
+            $user = $verification->complete(UserRole::Courier, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$stored) {
                 $org = LogisticsOrganization::query()->with('hub')->whereKey($request->input('logistics_organization_id'))->whereHas('user', fn ($q) => $q->where('status', UserStatus::Active))->lockForUpdate()->first();
                 if (! $org?->hub) {
                     abort(422, 'The selected Logistics organization is unavailable.');

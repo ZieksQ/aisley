@@ -12,9 +12,9 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `POST /api/v1/customer/auth/register`
 
 - Access: Public.
-- Request: Profile fields required: names string≤255, middle_name nullable ≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.
+- Request: Required `email_verification_token` bound to verified Customer/email. Profile fields required: names string≤255, middle_name nullable ≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.
 - Response: HTTP 201; `{message:string,customer:RegistrationCustomer}`.
-- Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
+- Retry: No durable replay key. After uncertainty, try sign-in before deliberately resubmitting; there is no applicant polling API.
 - Notes: Laravel rechecks current ownership and visibility.
 - [Synthetic examples](examples/customer-auth.json).
 
@@ -1167,3 +1167,25 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 - Response: HTTP 202; `{message:string,data:PasswordChangeChallenge}`.
 - Retry: Deliberate resend only after 60s/server Retry-After; replaces old challenge. No password mutation occurs.
 - Limits and confirmation: [password email verification](password-change.md).
+
+## op-113
+
+`POST /api/v1/customer/auth/registration/verification-code`
+
+- Access: Public; no bearer.
+- Request: email valid≤255, trimmed/lowercased. role/status/email_verified_at prohibited.
+- Response: HTTP 200; `{message:string,challenge_id:UUID,expires_at:timestamp,resend_available_at:timestamp}`.
+- Retry: Explicit resend only after cooldown; 60 seconds/five sends per email-role per rolling hour; 30 per IP/hour. 429 honors Retry-After.
+- Notes: [Registration email contract](../registration-email.md).
+- [Synthetic examples](examples/customer-auth.json).
+
+## op-114
+
+`POST /api/v1/customer/auth/registration/verify-email`
+
+- Access: Public; no bearer.
+- Request: email valid≤255 normalized; challenge_id UUID; verification_code six ASCII digits as string. role/status/email_verified_at prohibited.
+- Response: HTTP 200; `{message:string,email_verification_token:string,expires_at:timestamp}`.
+- Retry: Explicit retry with same valid challenge/code returns same unexpired proof; 30 per IP/minute. Five incorrect attempts invalidate challenge.
+- Notes: [Registration email contract](../registration-email.md).
+- [Synthetic examples](examples/customer-auth.json).

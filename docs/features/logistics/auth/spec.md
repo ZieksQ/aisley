@@ -3,7 +3,7 @@ feature: logistics-auth
 title: Logistics Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented auth foundation and Logistics hub-pin capture
 role: Logistics
 scope: Logistics React SPA and Laravel API
@@ -32,6 +32,11 @@ multipart register
 → active Logistics account → web login/session → /dashboard
 ↘ rejection/suspension/deactivation → protected access denied
 ```
+
+## Registration email verification — 2026-10-14
+
+- Email → six-digit OTP → registration details/evidence → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
 
 ## MUST
 
@@ -86,7 +91,7 @@ multipart register
 - [x] DTOs omit password/hash/session/token values, Admin notes, private evidence, and raw storage paths.
 - [x] Registration pin capture persists the confirmed complete coordinate pair on the sole hub Address, rejects partial/invalid coordinates, and handles provider failure without losing the application.
 - [x] Pin UI supports keyboard-accessible coordinate adjustment/manual fallback, GPS denial, attribution, validation, and retry.
-- [x] Email verification, MFA, resubmission/appeal, and session lifetime/concurrent-session policy are approved.
+- [x] MFA, resubmission/appeal, and session lifetime/concurrent-session policy are approved.
 
 ## HOW
 

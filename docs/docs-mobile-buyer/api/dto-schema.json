@@ -981,6 +981,17 @@
       "masked_email": "string",
       "expires_at": "timestamp",
       "resend_available_at": "timestamp"
+    },
+    "RegistrationEmailChallenge": {
+      "message": "string",
+      "challenge_id": "UUID",
+      "expires_at": "ISO-8601",
+      "resend_available_at": "ISO-8601"
+    },
+    "RegistrationEmailProof": {
+      "message": "string",
+      "email_verification_token": "64-character hex string",
+      "expires_at": "ISO-8601"
     }
   },
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",

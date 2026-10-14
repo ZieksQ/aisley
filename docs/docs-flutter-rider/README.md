@@ -80,3 +80,7 @@ Receive-only MP4 viewing and document download plus inclusive 8 MB image selecti
 The [Auth approval contract](features/courier/auth/spec.md#logistics-approval-and-lifecycle) now records durable asynchronous Logistics approval/rejection email. Existing Courier endpoints, DTOs, recovery-unavailable behavior, Flutter adoption baselines, and device/live acceptance remain unchanged. A decision acknowledgement does not prove mail delivery or authorize mobile access without normal login checks.
 
 Account password editing adopts the [email verification contract](password-change.md) and code dialog in the local Courier client (2026-10-14), preserving all-device sign-out; live SMTP/deployed/device acceptance remains open.
+
+## Email-first registration — 2026-10-14
+
+Registration adopts [email OTP verification](registration-email.md) before account creation, with required proof, expiry/resend/error recovery and existing approval gates. Updated Flutter registration is implemented locally; deployed API, live SMTP and installed-device acceptance remain open. Existing accounts keep their login behavior.

@@ -15,6 +15,7 @@ Schedule::command('audit:dispatch-pending')
     ->withoutOverlapping();
 
 Schedule::command('mail:dispatch-pending')->everyMinute()->withoutOverlapping();
+Schedule::command('auth:cleanup-registration-codes')->hourly()->withoutOverlapping();
 
 Schedule::command('products:cleanup-assets')
     ->hourly()

@@ -20,6 +20,7 @@ export type Customer = {
 };
 
 export type RegisterCustomerPayload = {
+  email_verification_token: string;
   birth_date: string;
   contact_number: string;
   email: string;

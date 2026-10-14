@@ -11,6 +11,8 @@ use Illuminate\Http\UploadedFile;
 
 trait CourierRegistrationFixtures
 {
+    use VerifiedRegistrationEmail;
+
     private function registrationOrganization(): LogisticsOrganization
     {
         $logistics = User::factory()->create(['role' => UserRole::Logistics, 'status' => UserStatus::Active]);
@@ -29,6 +31,7 @@ trait CourierRegistrationFixtures
     private function registrationPayload(string $organizationId, string $email = 'courier@example.com'): array
     {
         return [
+            'email_verification_token' => $this->registrationEmailToken(UserRole::Courier, $email),
             'first_name' => 'Cora', 'last_name' => 'Rider', 'contact_number' => '09171234568',
             'sex' => 'female', 'birth_date' => '1994-06-15', 'email' => $email,
             'password' => 'CourierPassword123', 'password_confirmation' => 'CourierPassword123',

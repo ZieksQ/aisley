@@ -46,6 +46,8 @@ class RegisterRequest extends FormRequest
             'address.longitude' => ['prohibited'],
             'government_id' => $this->evidenceRules(),
             'business_permit' => $this->evidenceRules(),
+            'email_verification_token' => ['required', 'string', 'size:64'],
+            'email_verified_at' => ['prohibited'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => [
                 'required',

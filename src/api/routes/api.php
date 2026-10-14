@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Auth\RegistrationEmailController;
 use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Courier\CompleteDeliveryController;
@@ -309,6 +310,10 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
 });
 
 Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'customer')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'customer')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [CustomerAuthController::class, 'register'])->name('register');
     Route::post('/login', [CustomerAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [CustomerAuthController::class, 'forgotPassword'])->name('password.email');
@@ -330,6 +335,10 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
     Route::get('/registration-options', [SellerAuthController::class, 'registrationOptions'])
         ->middleware('throttle:60,1')
         ->name('registration-options');
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'seller')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'seller')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [SellerAuthController::class, 'register'])->name('register');
     Route::post('/login', [SellerAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [SellerAuthController::class, 'forgotPassword'])->name('password.email');
@@ -486,6 +495,10 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
 });
 
 Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'logistics')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'logistics')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [LogisticsAuthController::class, 'register'])->name('register');
     Route::post('/login', [LogisticsAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [LogisticsAuthController::class, 'forgotPassword'])->name('password.email');
@@ -658,6 +671,10 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
 
 Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
     Route::get('/logistics-options', [CourierAuthController::class, 'options'])->middleware('throttle:60,1')->name('logistics-options');
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'courier')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'courier')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [CourierAuthController::class, 'register'])->middleware('throttle:10,1')->name('register');
     Route::post('/login', [CourierAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [CourierAuthController::class, 'forgotPassword'])->name('password.email');

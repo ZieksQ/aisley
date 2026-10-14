@@ -11,3 +11,7 @@ Address and ID upload requirements are **not implemented in Customer registratio
 There is no authenticated pending-applicant status API, rejected resubmission contract or appeal exception to protected Customer support. The pending screen is informational and login later revalidates status. Do not promise actual email delivery on registration/decision solely because the reference requests an email; verify deployment/notification behavior with the backend owner.
 
 Future evidence must follow [upload policy](file-upload-requirements.md), attach privately to the pending application, maintain transaction failure cleanup, and expose no raw paths or self-approval. Approved address changes would follow [PSGC/maps](../maps-location-api.md). [Integration gaps](integration-gaps.md) tracks these decisions.
+
+## Email verification before registration
+
+All new applicants must verify their email with a six-digit OTP before completing registration. Existing approval and existing-account behavior remain unchanged. See [registration email contract](../registration-email.md).

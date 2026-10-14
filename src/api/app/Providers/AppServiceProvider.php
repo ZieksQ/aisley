@@ -33,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        RateLimiter::for('registration-email-code', fn (Request $request): Limit => Limit::perHour(30)->by('registration-code-ip|'.$request->ip()));
+        RateLimiter::for('registration-email-verify', fn (Request $request): Limit => Limit::perMinute(30)->by('registration-verify-ip|'.$request->ip()));
         Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
         Event::listen(CustomerOrderStatusChanged::class, SendCustomerOrderStatusNotification::class);
 

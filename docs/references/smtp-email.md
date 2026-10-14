@@ -70,3 +70,7 @@ See the [transactional email contract](../features/shared/transactional-email/sp
 ## Account password verification
 
 The [password-edit contract](password-change-verification.md) adds encrypted `password_change_code` intents for all four non-Admin roles. Apply its additive challenge migration and restart workers before release. Obsolete/expired/resend-replaced/consumed challenges are skipped; request a fresh code rather than retrying an expired email. Account settings require the emailed code and current password. Never use the log transport for production verification.
+
+## Registration verification
+
+The [registration OTP contract](registration-email-verification.md) adds encrypted `registration_code` intents before a User exists. Apply the additive registration migration, restart workers, and keep the scheduler running before client release. Requests acknowledge queuing; only the received code can establish inbox access. Older registration clients fail with `422` without the proof. Existing accounts keep their access. Verify a fresh registration code in a controlled inbox separately from local array-transport checks.

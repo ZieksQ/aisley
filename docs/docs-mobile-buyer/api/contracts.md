@@ -97,3 +97,7 @@ client checks and separately open live/device acceptance.
 
 
 The [B06 funding delta](legacy-voucher-funding.md) rejects unaffordable legacy Shop shipping choices. Candidate reason and quote rejection use `VOUCHER_FUNDING_INSUFFICIENT`; placement uses existing `409 QUOTE_STALE` on `vouchers` before effects. DTO/request shapes and committed exact-key replay remain unchanged; external Flutter adoption is unverified.
+
+## Email-first registration
+
+[Registration verification](../registration-email.md) defines the public challenge/proof envelopes, required registration token, expiry/resend/attempt limits, errors and recovery. JSON keys remain snake_case. Verification is distinct from identity and consent; existing accounts are unaffected.
