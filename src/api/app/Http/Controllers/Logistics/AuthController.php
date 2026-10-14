@@ -14,8 +14,8 @@ use App\Http\Requests\Logistics\RegisterRequest;
 use App\Http\Requests\Logistics\ResetPasswordRequest;
 use App\Http\Resources\Logistics\LogisticsUserResource;
 use App\Models\User;
-use App\Notifications\Logistics\ResetPasswordNotification;
 use App\Services\Logistics\RegistrationEvidenceService;
+use App\Services\Mail\PasswordResetDeliveryService;
 use App\Services\Notifications\AdminNotificationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -116,19 +116,13 @@ class AuthController extends Controller
         return response()->json(['message' => 'Signed out successfully.']);
     }
 
-    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request, PasswordResetDeliveryService $delivery): JsonResponse
     {
         if (RateLimiter::tooManyAttempts($request->throttleKey(), self::MAX_PASSWORD_RESET_ATTEMPTS)) {
             return $this->limited($request->throttleKey());
         }
         RateLimiter::hit($request->throttleKey(), (int) config('logistics.auth.password_reset_throttle_seconds', 60));
-        $email = (string) $request->input('email');
-        $user = User::query()->where('email', $email)->where('role', UserRole::Logistics)->where('status', UserStatus::Active)->first();
-        if ($user) {
-            $token = Str::random(64);
-            DB::table('password_reset_tokens')->updateOrInsert(['email' => $email, 'role' => UserRole::Logistics->value], ['token' => Hash::make($token), 'created_at' => now()]);
-            $user->notify(new ResetPasswordNotification($token));
-        }
+        $delivery->request((string) $request->input('email'), UserRole::Logistics);
 
         return response()->json(['message' => 'If a Logistics account exists for that email, we will send password reset instructions.']);
     }
@@ -140,12 +134,13 @@ class AuthController extends Controller
         }
         $email = (string) $request->input('email');
         $reset = DB::transaction(function () use ($request, $email): bool {
-            $record = DB::table('password_reset_tokens')->where('email', $email)->where('role', UserRole::Logistics->value)->lockForUpdate()->first();
-            if (! $record || ! Hash::check((string) $request->input('token'), $record->token) || Carbon::parse($record->created_at)->addMinutes((int) config('logistics.auth.password_reset_expire_minutes', 60))->isPast()) {
+            $user = User::query()->where('email', $email)->where('role', UserRole::Logistics)
+                ->where('status', UserStatus::Active)->lockForUpdate()->first();
+            if (! $user) {
                 return false;
             }
-            $user = User::query()->where('email', $email)->where('role', UserRole::Logistics)->where('status', UserStatus::Active)->first();
-            if (! $user) {
+            $record = DB::table('password_reset_tokens')->where('email', $email)->where('role', UserRole::Logistics->value)->lockForUpdate()->first();
+            if (! $record || ! Hash::check((string) $request->input('token'), $record->token) || Carbon::parse($record->created_at)->addMinutes((int) config('logistics.auth.password_reset_expire_minutes', 60))->isPast()) {
                 return false;
             }
             $user->forceFill(['password' => (string) $request->input('password'), 'remember_token' => Str::random(60)])->save();

@@ -28,10 +28,12 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\DeliversTransactionalEmails;
 use Tests\TestCase;
 
 class SellerAuthenticationTest extends TestCase
 {
+    use DeliversTransactionalEmails;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -326,6 +328,7 @@ class SellerAuthenticationTest extends TestCase
                 );
         }
 
+        $this->deliverTransactionalEmails();
         Notification::assertSentTo($active, ResetPasswordNotification::class);
         Notification::assertNotSentTo($pending, ResetPasswordNotification::class);
         $this->assertDatabaseHas('password_reset_tokens', [
@@ -360,6 +363,7 @@ class SellerAuthenticationTest extends TestCase
         ])->assertOk();
 
         $token = null;
+        $this->deliverTransactionalEmails();
         Notification::assertSentTo(
             $seller,
             ResetPasswordNotification::class,

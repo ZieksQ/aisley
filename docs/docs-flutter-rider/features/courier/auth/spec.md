@@ -12,7 +12,7 @@ scope: Laravel API consumed by an external Flutter mobile client
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 copied_backend_checkout: 4c3f504
 source_coverage: requirements.md, workspace.md, schema.md, Courier.md, Logistics.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-14
 ---
 
 # Courier Authentication
@@ -86,7 +86,7 @@ GET active Logistics options
 - Rejection requires a safe reason of at most 2,000 characters. Approval clears a rejection reason; both decisions record reviewer and time on the application and affiliation.
 - Approval atomically changes the Courier User/Application and affiliation to active/approved; rejection changes them to rejected. A second decision on a non-pending affiliation returns a conflict.
 - A pending, rejected, revoked, suspended, deactivated, wrong-role, orphaned, or inactive-Logistics relationship cannot issue a token or read protected Courier data.
-- Notification delivery is post-commit and is not a current Courier API guarantee. A provider failure cannot reverse an approval or rejection.
+- Courier approval/rejection now persists an encrypted email intent in the Logistics decision transaction and delivers asynchronously after commit through the database worker, with bounded retries and scheduled recovery. Email describes the Logistics decision and applicant-visible rejection reason; approval points to mobile sign-in. The decision response does not prove SMTP/inbox delivery, and a provider failure cannot reverse it. No Courier endpoint, token, DTO, recovery, or Flutter implementation status changes (SMTP extension, 2026-10-14).
 
 ### Token and protected-session rules
 

@@ -16,12 +16,16 @@ use App\Models\CourierLogisticsAffiliation;
 use App\Models\Document;
 use App\Models\RegistrationApplication;
 use App\Models\User;
+use App\Notifications\Courier\RegistrationDecisionNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\DeliversTransactionalEmails;
 use Tests\TestCase;
 
 class CourierApprovalTest extends TestCase
 {
+    use DeliversTransactionalEmails;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -127,6 +131,10 @@ class CourierApprovalTest extends TestCase
             ->getJson('/api/v1/logistics/courier-applications/'.$application['affiliation']->id)
             ->assertNotFound();
 
+        $this->postJson('/api/v1/logistics/courier-applications/'.$application['affiliation']->id.'/approve')->assertNotFound();
+        $this->postJson('/api/v1/logistics/courier-applications/'.$application['affiliation']->id.'/reject', ['reason' => 'Foreign application.'])->assertNotFound();
+        $this->assertDatabaseCount('transactional_emails', 0);
+
         $own = $this->courierApplication($logistics, 'own-courier@example.com');
         $this->actingAs($logistics)
             ->get('/api/v1/logistics/courier-applications/'.$own['affiliation']->id.'/documents/'.$application['document']->id)
@@ -135,6 +143,7 @@ class CourierApprovalTest extends TestCase
 
     public function test_approval_requires_complete_registration_and_commits_all_related_statuses(): void
     {
+        Notification::fake();
         $logistics = $this->logistics('reviewer@example.com');
         $incomplete = $this->courierApplication($logistics, 'incomplete@example.com', complete: false);
 
@@ -147,6 +156,7 @@ class CourierApprovalTest extends TestCase
         $this->assertSame(CourierAffiliationStatus::Pending, $incomplete['affiliation']->fresh()->status);
         $this->assertSame(ApplicationStatus::Pending, $incomplete['application']->fresh()->status);
         $this->assertSame(UserStatus::Pending, $incomplete['courier']->fresh()->status);
+        $this->assertDatabaseCount('transactional_emails', 0);
 
         $complete = $this->courierApplication($logistics, 'complete@example.com');
         $this->actingAs($logistics)
@@ -163,10 +173,15 @@ class CourierApprovalTest extends TestCase
         $this->assertSame(UserStatus::Active, $complete['courier']->fresh()->status);
         $this->assertSame(DocumentStatus::Verified, $complete['document']->fresh()->status);
         $this->assertSame($logistics->id, $complete['document']->fresh()->reviewer_id);
+        $this->assertDatabaseCount('transactional_emails', 1);
+        Notification::assertNotSentTo($complete['courier'], RegistrationDecisionNotification::class);
+        $this->deliverTransactionalEmails();
+        Notification::assertSentToTimes($complete['courier'], RegistrationDecisionNotification::class, 1);
     }
 
     public function test_rejection_requires_a_reason_and_cannot_be_overwritten(): void
     {
+        Notification::fake();
         $logistics = $this->logistics('reviewer@example.com');
         $application = $this->courierApplication($logistics, 'courier@example.com');
 
@@ -194,6 +209,12 @@ class CourierApprovalTest extends TestCase
             ->postJson('/api/v1/logistics/courier-applications/'.$application['affiliation']->id.'/approve')
             ->assertConflict()
             ->assertJsonPath('code', 'COURIER_APPLICATION_REVIEWED');
+        $this->assertDatabaseCount('transactional_emails', 1);
+        $this->deliverTransactionalEmails();
+        Notification::assertSentTo($application['courier'], RegistrationDecisionNotification::class,
+            fn (RegistrationDecisionNotification $notification): bool => $notification->decision === ApplicationStatus::Rejected
+                && $notification->reason === 'Please provide a readable vehicle registration.',
+        );
     }
 
     public function test_suspension_and_deactivation_are_not_overwritten_by_rejection_or_approval(): void

@@ -14,12 +14,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\DeliversTransactionalEmails;
 use Tests\Support\SellerApprovalFixtures;
 use Tests\TestCase;
 
 class SellerRegistrationApprovalTest extends TestCase
 {
-    use RefreshDatabase, SellerApprovalFixtures;
+    use DeliversTransactionalEmails, RefreshDatabase, SellerApprovalFixtures;
 
     #[DataProvider('invalidApplications')]
     public function test_invalid_application_is_not_partially_approved(string $defect, string $field): void
@@ -203,6 +204,7 @@ class SellerRegistrationApprovalTest extends TestCase
         $this->postJson("/api/v1/admin/registrations/{$application->id}/reject")->assertConflict();
         $this->assertDatabaseCount('audit_logs', 1);
         $this->assertDatabaseCount('audit_outbox', 1);
+        $this->deliverTransactionalEmails();
         Notification::assertSentToTimes($application->user, RegistrationDecisionNotification::class, 1);
     }
 
@@ -223,6 +225,7 @@ class SellerRegistrationApprovalTest extends TestCase
         $this->postJson("/api/v1/admin/registrations/{$application->id}/approve")->assertConflict();
         $this->assertSame(ApplicationStatus::Rejected, $application->fresh()->status);
         $this->assertSame(UserStatus::Rejected, $application->user->fresh()->status);
+        $this->deliverTransactionalEmails();
         Notification::assertSentToTimes($application->user, RegistrationDecisionNotification::class, 1);
     }
 

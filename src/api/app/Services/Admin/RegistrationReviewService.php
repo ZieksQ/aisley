@@ -11,19 +11,19 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\RegistrationApplication;
 use App\Models\User;
-use App\Notifications\Admin\RegistrationDecisionNotification;
 use App\Services\Admin\RegistrationReview\SellerApprovalValidator;
 use App\Services\Audit\AuditService;
+use App\Services\Mail\TransactionalEmailOutbox;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Throwable;
 
 class RegistrationReviewService
 {
     public function __construct(
         private readonly AuditService $auditService,
         private readonly SellerApprovalValidator $sellerApprovalValidator,
+        private readonly TransactionalEmailOutbox $emailOutbox,
     ) {}
 
     public function decide(
@@ -135,18 +135,10 @@ class RegistrationReviewService
                 requestId: $requestId,
             );
 
+            $this->emailOutbox->registrationDecision($application);
+
             return $application;
         });
-
-        try {
-            $registration->user->notify(new RegistrationDecisionNotification(
-                $decision,
-                $registration->application_type,
-                $registration->rejection_reason,
-            ));
-        } catch (Throwable $exception) {
-            report($exception);
-        }
 
         return $registration;
     }

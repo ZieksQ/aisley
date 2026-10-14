@@ -242,7 +242,7 @@ PENDING → REJECTED
 - The source requires corresponding notification email after approval/rejection.
 - Notification must be triggered only after the decision transaction commits.
 - Email failure must not roll back an already successful approval/rejection.
-- Queue notification delivery when the configured queue infrastructure is available.
+- Persist an encrypted applicant-email intent in the decision transaction; dispatch it on the existing database queue after the outer commit. Queue outages retain work for the minute recovery scheduler; exhausted delivery is visible through safe operator metadata/retry commands. See the [transactional email contract](../../shared/transactional-email/spec.md).
 - Notification should state the resulting application status.
 - Rejection email may include an applicant-visible reason when that policy is defined.
 - Do not include unnecessary PII or private document URLs in email.
@@ -322,8 +322,8 @@ PENDING → REJECTED
 - [ ] Seller approval fails atomically for a missing/non-pending owned Shop or missing, foreign, rejected, unavailable, corrupt, or oversized required evidence.
 - [ ] Rejection records Admin and decision timestamp.
 - [ ] Approval/rejection is auditable.
-- [ ] Applicant notification is queued after commit.
-- [ ] Notification failure does not reverse the decision.
+- [x] Applicant notification intent commits with the decision and is queued after commit.
+- [x] Queue/SMTP failure does not reverse the decision; durable work remains recoverable.
 - [ ] Duplicate submission does not duplicate decision side effects.
 - [ ] Rejected/pending account cannot bypass approval-gated access.
 - [ ] Approved account hands off to normal account/auth management.

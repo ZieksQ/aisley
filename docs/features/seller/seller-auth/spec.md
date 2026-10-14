@@ -58,7 +58,8 @@ register → pending User/Application/Shop/evidence
 - Login resolves the Seller role-account, verifies the Laravel hash, checks active status, and returns a safe Seller DTO. Unknown email, wrong password, and another-role-only email use the same credential error.
 - Rate-limit login and reset requests. Forgot-password responses do not reveal account existence; reset tokens are hashed, expiring, single-use, and role-scoped.
 - DTOs exclude hashes, session/token values, private evidence, Admin notes, and raw storage paths. Protected resources derive Seller/Shop scope from the authenticated user.
-- Registration review notifications are dispatched after commit; delivery failure must not roll back the application.
+- Registration decision emails use durable encrypted intents committed with the review and delivered asynchronously after commit; delivery failure must not roll back the application.
+- Password-reset tokens and encrypted mail intents commit together and use the database worker/recovery scheduler. SMTP/queue outages preserve generic responses; expired, consumed, superseded, or identity-changed links are skipped. See the [transactional email contract](../../shared/transactional-email/spec.md).
 
 ### Acceptance
 

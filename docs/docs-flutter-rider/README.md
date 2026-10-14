@@ -74,3 +74,7 @@ Copy the complete contents into the Courier project’s `docs/`, including all `
 ## G26 private media adoption — 2026-10-12
 
 Receive-only MP4 viewing and document download plus inclusive 8 MB image selection adopt Laravel `28fc740`. See [verification](references/private-media-verification.md) for actual checks and remaining runtime/device gates; video/document selection/upload stays outside this release.
+
+## Courier decision email — 2026-10-14
+
+The [Auth approval contract](features/courier/auth/spec.md#logistics-approval-and-lifecycle) now records durable asynchronous Logistics approval/rejection email. Existing Courier endpoints, DTOs, recovery-unavailable behavior, Flutter adoption baselines, and device/live acceptance remain unchanged. A decision acknowledgement does not prove mail delivery or authorize mobile access without normal login checks.
