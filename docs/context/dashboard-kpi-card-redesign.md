@@ -1,19 +1,20 @@
-# Dashboard KPI card redesign handoff
+# Dashboard KPI cards and chart interaction handoff
 
-## Goal and design contract
+## Final design
 
-Redesign the reusable KPI cards used by the Seller, Admin, and Logistics dashboards. Cards are separate and icon-free, with a bold title and primary value, a short explanation, a tiny truthful chart on the right, and a text link to the owning workspace. The card itself has no hover treatment, border, outline, or focus ring; links retain visible keyboard focus. Chart animation starts from readable content and respects `prefers-reduced-motion`.
+Seller, Admin, and Logistics use separate icon-led KPI cards with bold titles and primary values plus a short explanatory sentence. Cards use `--portal-surface` and a 1px `--portal-border` in both themes, matching `.portal-panel`; they have no focus ring or outline. KPI cards contain no mini chart, comparison/change tag, or link. Seller has four status KPIs: awaiting approval, in preparation, ready for pickup, and delivered. Its valid latest-seven versus prior-seven order placement comparison remains in the Order activity chart summary/context only, based on 14 consecutive complete UTC dates.
 
-The shared visual contract is in [docs/design.md](../design.md), component guidance in [packages/ui/README.md](../../packages/ui/README.md), and role data/access rules in the three dashboard specs. Seller visuals use Shop-scoped current order statuses; Admin visuals use authorized queue counts/oldest-first applications; Logistics visuals use current sole-hub shipment statuses or the explicitly overlapping pending workloads. No role should imply unsupported history, growth, targets, finance, capacity, or revenue.
+Existing dashboard chart panels animate when their `animate` prop is enabled; reduced-motion preference disables the animation. Tooltips track the active hovered point/category. The donut chart tooltip is positioned according to the active slice so it avoids covering the donut center. Role-specific sources remain scoped: Shop/order status for Seller, permission-authorized queue/application data for Admin, and active sole-hub shipment/workload data for Logistics.
 
-## Implementation
+## Implementation files
 
-- `packages/ui/src/portal/DashboardMetricCard.tsx` and `DashboardSkeleton.tsx` now render bold copy, animated mini bars, text links, and matching loading geometry; card decoration was removed and reduced motion disables bar motion.
-- `src/seller/src/components/dashboard/OrderActivityOverview.tsx`, `src/admin/src/components/dashboard/DashboardSummary.tsx`, and `src/logistics/src/components/DashboardQueueOverview.tsx` supply source-backed charts and role-owned text destinations.
-- `packages/ui/src/portal/dashboard.css` contains the responsive card layout and animation. `packages/ui/tests/portal-browser.mjs` was updated for the new presentation.
+- Shared cards and loading layout: `packages/ui/src/portal/DashboardMetricCard.tsx`, `DashboardSkeleton.tsx`, `dashboard.css`, and `index.ts`.
+- Charts and hover tooltip: `packages/ui/src/charts/DataChart.tsx`, `DistributionChart.tsx`, and `useReducedMotion.ts`.
+- Dashboard consumers: `src/seller/src/components/dashboard/OrderActivityOverview.tsx`, `CatalogSummary.tsx`, `DashboardReviews.tsx`, `src/seller/src/pages/DashboardPage.tsx`, `src/seller/src/components/ProtectedRoute.tsx`, `src/admin/src/components/dashboard/DashboardSummary.tsx`, and `src/logistics/src/components/DashboardQueueOverview.tsx`.
+- Verification fixtures: `packages/ui/tests/portal-browser.mjs` and `portal-fixtures.mjs`.
+- Contracts: `docs/design.md`, the three role dashboard specs, and `packages/ui/README.md`.
 
 ## Verification and limits
 
-- QA reports that Seller, Admin, and Logistics production builds and linters pass.
-- Browser verification and new screenshots were blocked: Chromium/Brave terminated with SIGTRAP (`setsockopt: Operation not permitted`). Do not treat this task as visually browser-accepted; rerun the portal browser check when the runtime permits it.
-- No API, database, dependency, Courier, or Flutter contract changes were reported.
+- QA reports all three portal lints, browser-harness syntax checks, and `git diff --check` pass. Admin and Logistics production builds pass after the final tooltip changes. Seller's build passed before final placement hardening; a final Seller build was attempted, but no active process was visible, so post-hardening Seller build status is unconfirmed.
+- Browser launch failed with Brave SIGTRAP/crashpad in this environment. No final browser assertions or screenshots are available; visual browser acceptance remains open.

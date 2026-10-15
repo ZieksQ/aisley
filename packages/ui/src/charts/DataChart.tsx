@@ -2,6 +2,7 @@
 
 import { useId, type CSSProperties, type ReactNode } from 'react'
 import { ChartTooltip } from './ChartTooltip'
+import { useReducedMotion } from './useReducedMotion'
 import { Area, Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 export type ChartDatum = { label: string; [key: string]: string | number | null }
@@ -35,6 +36,7 @@ export type DataChartProps = {
   strokeWidth?: number
   fillOpacity?: number
   formatValue?: (value: number) => string
+  animate?: boolean
 }
 
 const defaultFormatter = (value: number) => new Intl.NumberFormat().format(value)
@@ -65,8 +67,11 @@ export function DataChart({
   strokeWidth = 2,
   fillOpacity = .12,
   formatValue = defaultFormatter,
+  animate = false,
 }: DataChartProps) {
   const id = useId()
+  const reducedMotion = useReducedMotion()
+  const animationActive = animate && !reducedMotion
   const hasValues = data?.some((row) => series.some((item) => typeof row[item.key] === 'number'))
   const nonZero = data?.some((row) => series.some((item) => typeof row[item.key] === 'number' && row[item.key] !== 0))
   const vertical = layout === 'vertical'
@@ -107,11 +112,11 @@ export function DataChart({
                 width={vertical ? labelWidth : 52}
                 allowDecimals={false}
               />
-              <Tooltip position={{ x: 8, y: 8 }} cursor={false} content={(props) => <ChartTooltip {...props} formatValue={formatValue} />} />
+              <Tooltip cursor={false} wrapperStyle={{ pointerEvents: 'none' }} content={(props) => <ChartTooltip {...props} formatValue={formatValue} />} />
               {showLegend && <Legend />}
               {series.map((item) => {
                 const color = item.color ?? 'var(--portal-accent, #4c1268)'
-                const common = { dataKey: item.key, name: item.label, isAnimationActive: false }
+                const common = { dataKey: item.key, name: item.label, isAnimationActive: animationActive, animationDuration: 700 }
                 if (item.kind === 'line') return <Line {...common} key={item.key} stroke={color} strokeWidth={strokeWidth} strokeDasharray={item.dash} type={curve} dot={false} connectNulls={false} />
                 if (item.kind === 'area') return <Area {...common} key={item.key} stroke={color} fill={color} fillOpacity={fillOpacity} strokeWidth={strokeWidth} type={curve} connectNulls={false} />
                 return <Bar {...common} key={item.key} fill={color} maxBarSize={28} radius={vertical ? [0, barRadius, barRadius, 0] : [barRadius, barRadius, 0, 0]}>

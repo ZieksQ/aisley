@@ -29,10 +29,10 @@ export function installPortalFixtures() {
       ? [10, 10, 10, 10, 10, 10, 10, 5, 5, 5, 5, 5, 5, 5]
       : state.activityVariant === 'new-activity'
         ? [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2]
-        : [4, 7, 2, 0, 5, 8, 3, 6, 9, 2, 5, 10, 4, 7]
-    const activitySeries = state.activityVariant === 'missing-prior'
-      ? activityCounts.slice(0, 7)
-      : activityCounts
+        : state.activityVariant === 'neutral'
+          ? Array(14).fill(2)
+          : [4, 7, 2, 0, 5, 8, 3, 6, 9, 2, 5, 10, 4, 7]
+    const activitySeries = state.activityVariant === 'missing-prior' ? activityCounts.slice(0, 7) : activityCounts
     const activityDays = activitySeries.map((count, i) => ({ date: new Date(Date.UTC(2026, 8, 30 + i + (state.activityVariant === 'gap' && i >= 7 ? 1 : 0))).toISOString().slice(0, 10), count: n(count) }))
     if (path === '/api/v1/admin/dashboard') return json({ data: {
       registrations: permissions.includes('registrations.view') ? { pending: { total: n(16), by_role: { customer: n(7), seller: n(6), logistics: n(3) } }, action_items: state.empty ? [] : [{ id: 'pending-one', role: 'seller', submitted_at: generated_at }, { id: 'pending-two', role: 'logistics', submitted_at: generated_at }] } : null,

@@ -8,8 +8,6 @@ export {
 export { DashboardSkeleton } from './DashboardSkeleton'
 export {
   DashboardMetricCard,
-  type DashboardMetricChart,
-  type DashboardMetricChange,
   type DashboardMetricCardProps,
 } from './DashboardMetricCard'
 export { IconButton, PortalField, PortalSection } from './PortalControls'

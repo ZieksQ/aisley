@@ -94,12 +94,11 @@ Graph series and categories may use different colors. Role primary colors govern
 
 ### Dashboard KPI cards
 
-- Keep KPI cards independent in the responsive grid. Do not place decorative icons in them. Use a bold metric title and bold primary value, with the value as the strongest visual element and a short description explaining what it measures.
-- Place a tiny line, bar, or area chart on the right when the owning feature has enough truthful data to visualize. A chart may sit under the card copy at low opacity when it spans a useful period; preserve readable contrast and expose its data through an accessible summary. Use the same metric and cohort as the title/value, keep category/period context accessible, and do not imply unsupported growth, targets, or history. If a useful chart cannot be derived from available data, retain the text summary without fabricating series.
-- Show a small top-right text tag only when the owning feature has a valid comparison period. The caller supplies both its text and positive, negative, or neutral tone; use a subtle tinted background, rounded corners, no border, and retain meaningful words or signs so color is not the only cue. Do not derive comparisons from a single current snapshot.
-- Put a concise text link to the owning workspace on the right below or beside the chart. The card itself is informational: it has no hover movement and no focus ring, border, or outline. The semantic link remains keyboard operable with a visible `:focus-visible` indicator; suppress pointer-only focus decoration without removing keyboard focus.
-- Chart drawing or value transitions may animate briefly using transform, opacity, or SVG path drawing. Render the complete readable value and chart without animation first; disable animation under `prefers-reduced-motion`. Motion never delays actions or communicates a value that is absent from the source.
-- Preserve role authorization, tenant scope, null/unavailable versus zero semantics, theme tokens, accessible chart summaries, and skeleton geometry. A link may appear only when its destination belongs to the metric's owning feature.
+- Keep KPI cards independent in the responsive grid. Use a small role-appropriate icon, bold metric title, bold primary value as the main highlight, and a short description explaining the data. Cards are informational and do not contain mini charts, comparison/change tags, or links.
+- Use the existing `--portal-surface` background and 1px `--portal-border` in both light and dark themes, matching `.portal-panel`. The surface and border must visibly separate each card from the page canvas. Cards are informational, not focusable controls, and must not show a focus ring or outline.
+- Keep comparison periods in the context of the owning dashboard chart, where the source supports a valid comparison. Do not derive deltas from current snapshots or imply unsupported growth, targets, or history.
+- Animate existing dashboard chart panels with restrained drawing or reveal motion. Render the chart and its data immediately when motion is reduced, honoring `prefers-reduced-motion`. Chart tooltips follow the active hovered point/category and expose its label and value; keep equivalent keyboard access where the chart supports it.
+- Preserve role authorization, tenant scope, null/unavailable versus zero semantics, theme tokens, accessible chart summaries, and matching skeleton geometry.
 
 ### Semantic colors
 

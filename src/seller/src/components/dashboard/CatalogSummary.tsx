@@ -18,6 +18,6 @@ export function CatalogSummary({ catalog }: { catalog: CatalogSection }) {
       </ul>
       <p className="dashboard-chart-caption">Catalog quantities are synchronized from Inventory. Review availability and adjustments in the Inventory workspace.</p>
     </section>
-    <DistributionChart variant="plain" title="Product status" totalLabel="products" rows={rows} emptyMessage="No products recorded for this Shop." />
+    <DistributionChart variant="plain" title="Product status" totalLabel="products" rows={rows} animate emptyMessage="No products recorded for this Shop." />
   </div>
 }

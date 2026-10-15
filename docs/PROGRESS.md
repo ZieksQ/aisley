@@ -121,3 +121,13 @@ Format:
 ## 2026-10-15 — Dashboard KPI chart verification
 
 - QA passed the focused Seller dashboard API test (8 tests, 123 assertions), Seller/Admin/Logistics builds and lints, harness syntax checks and `git diff --check`. The browser harness could not start Brave in this sandbox, so chart screenshots and browser assertions remain unverified; see the [chart variants handoff](context/dashboard-kpi-chart-variants.md).
+
+## 2026-10-15 — Dashboard KPI and chart presentation contract
+
+- Updated the design contract and Seller/Admin/Logistics dashboard specs to require separate icon-led KPI cards with bold titles/values and short descriptions; cards have no mini charts, change tags, or links. Existing dashboard chart panels retain animation with reduced-motion support and hover-tracking tooltips. Seller's valid order-placement comparison remains in the Order activity chart context only.
+- Documentation-only update; implementation and browser acceptance were not changed by this entry.
+
+## 2026-10-15 — Dashboard KPI card and chart implementation
+
+- Completed icon-led KPI cards with bold labels/values, explanatory sentences, shared `--portal-surface` and 1px `--portal-border` treatment, and no card focus rings/outlines, mini charts, tags, or links. Seller displays four order-status KPIs; its placement comparison remains in the Order activity chart summary. Dashboard chart panels animate when enabled, respect reduced motion, track active hover tooltips, and keep the donut center unobstructed.
+- QA passed all three portal lints, harness syntax checks, and diff check; Admin and Logistics builds passed. Seller's post-hardening build remains unconfirmed. Brave SIGTRAP/crashpad blocked browser verification and screenshots. See [handoff](context/dashboard-kpi-card-redesign.md).
