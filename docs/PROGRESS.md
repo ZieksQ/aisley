@@ -131,3 +131,9 @@ Format:
 
 - Completed the four-commit rebase of `feature/b11-password-reconciliation` onto `abaa0c4`. Resolved the sole conflict by preserving both appended progress histories; feature files had no overlapping changes.
 - Verified the resulting tree exactly preserves upstream Seller editor changes and the original feature files. Range comparison shows only progress-log context changed; whitespace checks pass. Application tests were not rerun for this history-only resolution.
+
+## 2026-10-15 — B09 Buyer voucher replacement and names
+
+- Fixed Buyer Flutter same-benefit voucher replacement (Buyer commit `ec64d3e`): one App choice per benefit across the batch, one choice per benefit per Shop, opposite-benefit preservation, explicit targets and exact-pair deselection. Added applied/frozen Batch names, secondary codes and server savings with historical code fallback; uncertain placement keeps the original payload/key. API, database, dependencies and web apps are unchanged.
+- Added 35 targeted Buyer regressions and updated the affected portable specs/adoption records while preserving their newer complete-route shipping addendum and historical logs. See [B09 evidence](docs-mobile-buyer/references/voucher-selection-verification.md); B10 and unrelated audit findings remain outside this change.
+- Verification: Buyer 197 focused tests, analyzer, formatting, web and Android release builds, portable bundle/link/spec/PSGC checks and whitespace pass. Chromium passes 32 synthetic layouts/11 journeys, including B09 replacement/pairing/deselection and name display; reviewed 320/1440px screenshots. No live API, redemption/concurrency, deployment or installed-device acceptance ran. Funding-specific and live/device gates remain open; existing Android SDK XML warning remains.

@@ -84,3 +84,7 @@ Account password editing adopts the [email verification contract](api/password-c
 ## Email-first registration — 2026-10-14
 
 Registration adopts [email OTP verification](registration-email.md) before account creation, with required proof, expiry/resend/error recovery and existing approval gates. Updated Flutter registration is implemented locally; deployed API, live SMTP and installed-device acceptance remain open. Existing accounts keep their login behavior.
+
+## Buyer voucher names and pairing — 2026-10-15
+
+Buyer implements same-benefit replacement and applied/frozen Batch names with historical code fallback. See [B09 verification](references/voucher-selection-verification.md); funding-specific, deployed commerce and installed-device acceptance remain open.

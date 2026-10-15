@@ -22,7 +22,7 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G08 | Portable Cart/Product contracts reconciled against source; historical canonical contradictions preserved upstream | Use local typed operations/specs; no backend/runtime fix implied | Current shipping adopted; live/device G25 open |
 | G09 | Portable checkout/fulfillment context reconciled with implemented downstream workflow | Customer selects a Seller-enabled provider per Shop Order; Seller pickup enforces it. Courier assignment stays outside Buyer; current client evidence is recorded under G25 | Shipping adopted; live/device G25 open |
 | G10 | Voucher discovery/collection is implemented; Bazaar/MoneyFest remain placeholders | Keep unsupported destinations unavailable | Discovery/product; 2 |
-| G11 | Voucher collection/wallet and server quotation exist; current names/pairing and funding-specific client checks remain incomplete | No code entry/authoring; verify server reasons, caps, capacity and exact replay | Checkout/API/Flutter; 3/5 |
+| G11 | Voucher collection/wallet, names/pairing and server quotation exist; funding-specific client and live/device checks remain incomplete | No code entry/authoring; verify server reasons, caps, capacity and exact replay | Checkout/API/Flutter; 3/5 |
 | G12 | Pending mutation keys/payloads are session memory; no GET placement-by-key | Same-key in-session reconciliation; process-death uncertainty needs approved recovery/storage design before unattended recovery claims | Checkout/security; 3/5 |
 | G13 | General notification list/detail/read exists; unread-count/read-all and push device registration absent | Per-page unread is not an exact global badge; no invented unread-count, native push/background guarantee | Notifications; 4 |
 | G14 | Wishlist alerts, voucher authoring, online payments, returns/refunds, live GPS/ETA and broader account controls deferred | Clear unavailable state or omit action; source enum value alone is not implemented workflow | Owning platform features; later |
@@ -137,3 +137,9 @@ Shared IDs: G25 shipping, G26 voucher names/default pairing, G27 private chat me
 - Shop context: Laravel GET /customer/conversations/shops/{shop} and availability projection are implemented; Buyer still uses its earlier prospective Shop flow and does not consume this route/field.
 
 Current checks are documented in [synchronization evidence](synchronization-2026-10-12.md). Historical failure reports and verification runs remain dated evidence; this audit does not establish a current outage or live/device acceptance.
+
+## B09 voucher selection and names — 2026-10-15
+
+Buyer now replaces same-benefit choices in the selected Shop and same-benefit App choices across the batch, preserving opposite benefits and explicit targets. Applied and frozen Batch names/code/savings are parsed and shown with historical code fallback; Order detail/history keeps its code-only contract. [B09 evidence](voucher-selection-verification.md) supersedes the names/pairing source gaps recorded in the dated October 12 audit above.
+
+This resolves audit B09/F07 in local source and narrows Buyer G26 only for names/pairing. Funding-specific client verification, deployed API/schema/provider configuration, controlled real-account redemption/concurrency and installed Android/TalkBack acceptance remain open. Exact uncertain-placement replay remains memory-only (G12); this change adds no recovery endpoint or backend behavior.

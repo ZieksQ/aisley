@@ -3,11 +3,11 @@ feature: voucher-usage
 role: Customer
 platform: Flutter / Dart
 phase: 3
-flutter_status: Discovery, collection, wallet and Checkout implemented; live/device gates open
+flutter_status: Discovery, collection, wallet, Checkout names and pairing implemented; live/device gates open
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-15
 ---
 
 # Checkout voucher usage
@@ -49,15 +49,15 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - Opposite benefits combine by default, including old empty policies; stackableWith describes allowed categories and the server enforces one of each benefit per group and one App of each benefit per batch.
 - Do not predict stacking solely from one candidate flag or reimplement a discount calculator in the
   view model.
-- Changing selection invalidates quote and obtains reviewed authoritative totals before placement.
+- Selecting replaces same-benefit choices in that Shop and same-benefit App choices batch-wide; preserve opposite benefits and explicit targets, then requote/review before Place.
 - Zero-saving selected voucher can still redeem capacity; show it honestly and allow deselection
   before Place.
 - Global/per-Customer limits and validFrom/validUntil are checked under placement locks, not local
   clocks alone.
 - Voucher capacity expiry/race can make quote stale; refresh and preserve safe intent without
   automatic Place.
-- AppliedVouchers expose qualifyingBasis/discountAmount; Order snapshots retain committed
-  terms/code/amount; Checkout Batch snapshots additionally retain name.
+- AppliedVouchers expose name/qualifyingBasis/discountAmount; Batch snapshots retain frozen names.
+  Order detail/history retains committed terms/code/amount without a name field.
 - Cancellation currently does not restore voucher redemption capacity; do not promise reuse or refund.
 - Shipping discount reduces the selected provider’s server shipping fee; changing provider requires reviewed
   requote and updated savings. Commission does not increase Customer COD.
@@ -182,6 +182,7 @@ universal error envelope.
 
 ### Verification scenarios
 
+- [x] B09 synthetic replacement, refresh, exact replay and applied/Batch names pass; see [evidence](../../../references/voucher-selection-verification.md).
 - [x] Current nullable provider/shipping projections and related selection effects pass G25 client verification.
 - [ ] Targeting, stacking/reasons/zero-saving/current amount display are server-driven.
 - [ ] Voucher-bearing replay/rollback/capacity conflicts and account switch do not double-consume or
@@ -221,7 +222,7 @@ Spec revision 2026-10-04: imported Phase 3 checks cover its adopted baseline onl
 [shipping selection/DTOs](../../../api/shipping-selection.md) reopen parsing/operation gates under G25.
 
 Spec revision 2026-10-09: [voucher names/default pairing](../../../api/voucher-selection-update.md)
-adds names/default pairing. Candidate names are parsed; applied/frozen names and same-benefit replacement remain unadopted (G26).
+adds names/default pairing. Buyer adopts applied/Batch names and same-benefit replacement in [B09 (2026-10-15)](../../../references/voucher-selection-verification.md); live/device and funding-specific gates remain open.
 Spec revision 2026-10-11: [discovery/collection/wallet contract](../../../api/voucher-collection.md)
 adds public and private endpoints, naturally idempotent claims, distribution modes and live wallet statuses.
 Claim-required App/all Shop vouchers need owned collection; quote uses VOUCHER_NOT_CLAIMED with collectionUrl.

@@ -88,3 +88,7 @@ open; the synthetic run does not complete the broad device/API acceptance item.
 ## Current adoption and remaining checks — 2026-10-12
 
 Shipping, collection/wallet, Order/Checkout thumbnails and image/received MP4/document chat are implemented locally. See [current audit](references/synchronization-2026-10-12.md). Voucher names/pairing, Order coordinates and Shop-context adoption retain explicit gaps. All live/deployed/installed-device and signing checks require their own evidence.
+
+## B09 voucher names and pairing — 2026-10-15
+
+[Selection verification](references/voucher-selection-verification.md) records same-benefit replacement, explicit targets/deselection, refresh, immutable uncertain replay, applied/Batch names and responsive synthetic widget/browser evidence. These checks narrow G26 names/pairing source adoption only; funding, real-account redemption, deployed API/provider and installed Android/TalkBack gates remain open.

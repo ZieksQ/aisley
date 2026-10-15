@@ -7,7 +7,7 @@ flutter_status: Implemented including shipping and G31 Checkout thumbnails; live
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-15
 ---
 
 # COD checkout and placement
@@ -68,7 +68,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - GET batch is available only with known owned batch ID; no placement GET-by-key recovery endpoint
   exists.
 - Process-death uncertainty stays G12 with memory-only pending state; do not claim automated recovery.
-- Batch result shows each Order reference, item thumbnail/name/quantity and link; never report partial success.
+- Batch result shows each Order reference, item thumbnail/name/quantity, frozen voucher names/codes/benefit/savings and link; never report partial success.
 - Test one/multiple Shops, stale prices/stock/rates/address/vouchers and atomic rollback on any failing
   group.
 - Test lost-response exact replay, changed payload key conflict, Buy Now Cart preservation and owned
@@ -186,6 +186,7 @@ universal error envelope.
 
 ### Verification scenarios
 
+- [x] B09 voucher-bearing exact replay, reviewed replacement and frozen Batch name display pass [synthetic checks](../../../references/voucher-selection-verification.md).
 - [x] Current provider choice/fallback, shipping DTOs and frozen selection intent pass G25 client verification.
 - [ ] Atomic one/multi-Shop placement and immutable current quote/totals/serviceability follow Laravel.
 - [ ] Lost-response same-key replay creates one batch/reservation/redemption; stale inputs require
@@ -211,13 +212,11 @@ universal error envelope.
 
 ### Handoff and provenance
 
-Historical backend baseline: 7b1a08a; newly inspected checkout:
-`57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`.
+Historical backend baseline: 7b1a08a; inspected checkout: `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`.
 Source locators/hashes are optional audit evidence in
 [provenance](../../../references/source-provenance.md).
 No Flutter implementation checkbox is completed by documentation authoring or route/source inspection.
-Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) and retain prior
-history.
+Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md), preserving history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
 
