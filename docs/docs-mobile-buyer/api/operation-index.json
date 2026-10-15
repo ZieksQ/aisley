@@ -1555,7 +1555,7 @@
       "status": 200,
       "retry": "No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.",
       "access": "Active Customer + consent",
-      "notes": "Current provider selection/DTO contract is implemented by Buyer; live/device acceptance remains open (G25). Selections participate in normalized quote and placement hashes.",
+      "notes": "Earlier provider selection/DTO adoption is recorded under G25. New quotes require a complete local/planned route; explicit incomplete selections return 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Selections participate in normalized hashes; revised Flutter eligibility/recovery and live/device acceptance remain unverified.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -1861,7 +1861,7 @@
           "feature": "checkout-order",
           "status": 409,
           "code": "SHIPPING_COVERAGE_UNAVAILABLE",
-          "message": "No enabled Logistics provider can quote this Shop order.",
+          "message": "No complete delivery route is available for this Shop and address. Change your address or try again later.",
           "field": "logistics_selections"
         },
         {
@@ -1897,7 +1897,7 @@
       "status": 200,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
       "access": "Active Customer + consent",
-      "notes": "Current provider selection/DTO contract is implemented by Buyer; live/device acceptance remains open (G25). Selections participate in normalized quote and placement hashes.",
+      "notes": "Coverage loss after quote review returns 409 QUOTE_STALE on logistics_selections before Order/stock/voucher/Cart effects; refresh options and review a fresh quote after a definitive conflict. Uncertain placement keeps its original key/payload. Committed exact replay returns the original Batch before route recalculation, even after coverage loss. Revised Flutter recovery and live/device acceptance remain unverified.",
       "request_example": {
         "query": {},
         "headers": {
@@ -2201,8 +2201,8 @@
         {
           "feature": "checkout-order",
           "status": 409,
-          "code": "SHIPPING_COVERAGE_UNAVAILABLE",
-          "message": "No enabled Logistics provider can quote this Shop order.",
+          "code": "QUOTE_STALE",
+          "message": "No complete delivery route is available for this Shop and address. Change your address or try again later. Request a new quote.",
           "field": "logistics_selections"
         },
         {
@@ -2238,7 +2238,7 @@
       "status": 200,
       "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
       "access": "Active Customer + consent",
-      "notes": "",
+      "notes": "Laravel rechecks current ownership and visibility. Historical Batch reads may contain unplanned shipping snapshots and nullable provider fields. Preserve their frozen totals and reconciliation; these DTOs do not authorize new unplanned Orders.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -7233,7 +7233,7 @@
       "status": 200,
       "retry": "Read-only calculation via POST; no quote, reservation or durable key. Retry the same intent with bounded backoff and session/query guards.",
       "access": "Active Customer + consent",
-      "notes": "Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Empty options are a successful read, not quote eligibility; G25 adoption pending.",
+      "notes": "Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Discovery omits internal unplanned results and failed providers; empty options are a successful read that blocks checkout. Earlier selection adoption is recorded under G25; revised eligibility and live/device acceptance remain unverified.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -8148,5 +8148,11 @@
     "date": "2026-10-14",
     "source": "Authenticated account password email verification",
     "client_adoption": "Implemented locally; SMTP/deployed/device acceptance open"
+  },
+  "complete_route_guidance": {
+    "inspected_checkout": "33f668fd672226211accdbbb3b16052d9c48e592",
+    "date": "2026-10-15",
+    "finding": "D02",
+    "flutter_adoption": "Revised eligibility/recovery unverified; historical adoption and live/device gates retained."
   }
 }

@@ -28,3 +28,9 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Adopted registration-email contract v1 (2026-10-14): public code/verify APIs, six-digit OTP, required role/email-bound proof, resend/expiry/Retry-After, memory-only secrets, retained registration drafts and existing approval gates. Existing accounts keep their login behavior. Updated typed API models/repositories and native registration UI; no new dependencies.
 - Verification: 190 auth checks, 7 app checks and targeted registration-success cleanup, Flutter analyzer, web build and Android release APK pass. Laravel registration/mail enforcement and isolated PostgreSQL concurrency checks pass independently; live SMTP/deployed API and installed-device acceptance remain open. API enforcement requires coordinated client release and the new backend migration/workers.
+
+
+## 2026-10-15 — D02 shipping context clarification
+
+- Corrected only copied requirements, workspace and schema shipping passages against Laravel `33f668fd672226211accdbbb3b16052d9c48e592`: new Orders require complete local/planned routes; unavailable quote/placement recovery uses SHIPPING_COVERAGE_UNAVAILABLE/QUOTE_STALE. Historical unplanned prices, fulfillment/Finance holds and exact replay remain valid. Synchronized these passages to the Courier project's matching guides.
+- Checked affected links, copies and whitespace; Courier source, workflows, API/DTOs, adopted revisions and prior implementation/device status remain unchanged. No Flutter tests/builds, live/deployed API or installed-device checks were rerun for this documentation-only correction.

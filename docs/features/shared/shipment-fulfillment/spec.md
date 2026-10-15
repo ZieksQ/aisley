@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 2.1
 status: Cross-document decision and reconciliation guide; shared physical schema and P0 final-mile transitions implemented
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
@@ -24,10 +24,17 @@ See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.
 ## Checkout-selected provider and frozen pricing route — 2026-09-27
 
 - The Seller configures the Shop's allowed Logistics organizations; the Customer selects one provider per Shop Order at checkout. This supersedes the historical Seller-at-pickup selection decision below.
-- Checkout freezes either a complete `local`/`planned` commercial route or an `unplanned` destination-surcharge-only fallback. Planned hops and private leg-charge weights are immutable pricing evidence.
+- New checkout freezes only a complete `local`/`planned` operational and commercially priced route. Planned hops and private leg-charge weights are immutable pricing evidence; historical `unplanned` Orders retain their original snapshots.
 - Seller pickup must match the Order's selected provider. Planned/local waybills materialize the frozen route; they do not calculate a replacement route from mutable sort plans.
-- A frozen connection/participant becoming unavailable causes an operational hold without repricing. An unplanned fallback may resolve operationally later, while Finance holds payout for audited participant reconciliation.
+- A frozen connection/participant becoming unavailable after placement causes an operational hold without repricing. A historical `unplanned` Order may resolve operationally later, while Finance holds payout for audited participant reconciliation.
 - Product/Variant packed measurements are required inputs to checkout pricing; one Order still maps to one Parcel in the current fulfillment model.
+
+### Complete-route checkout clarification — D02, 2026-10-15
+
+- This corrects the earlier new-order fallback guidance to match the existing checkout contract. Discovery omits internal `unplanned` calculator results; explicit quote returns `409 SHIPPING_COVERAGE_UNAVAILABLE` on `logistics_selections`. Empty options block the entire multi-Shop checkout, including a zero-surcharge route.
+- Coverage loss after quote review returns placement `409 QUOTE_STALE` on `logistics_selections` before Order, stock, voucher or Cart effects. Refresh options, obtain a fresh quote and review shipping/totals before a deliberate new placement. An uncertain placement retains its exact key and payload until reconciled.
+- Already committed exact-key placement replays return the original Batch before route recalculation. Historical fallback prices, DTOs, operational holds and Finance reconciliation stay valid; the internal surcharge-only calculator result cannot authorize a new Order.
+- See [shipping quotation](../shipping-quotation/spec.md) and [Customer checkout](../../customer/checkout-order/spec.md). This documentation correction does not establish Flutter adoption or deployed/device acceptance.
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
 
@@ -112,7 +119,7 @@ In this register, `[x]` records an accepted decision or completed named correcti
 - The Seller-created shared waybill is created in the pickup-request transaction at `ready_for_pickup`; it is not replaced by a second Logistics waybill at hub receipt.
 - The shared waybill and its Order/Parcel reference are immutable; later route, assignment, print, and scan activity is append-only history.
 - The shared waybill's human reference is the immutable `tracking_id`; its primary physical barcode is a thin 1D Code 128 encoding of that value, while QR remains a compatibility/fallback identifier.
-- Checkout snapshots the Buyer postal code and complete planned/local route when available. Seller pickup materializes that route; unplanned fallback Orders may use the current active plan later and remain financially held until reconciled.
+- New checkout snapshots the Buyer postal code and a required complete planned/local route. Seller pickup materializes that route; historical unplanned Orders may use the current active plan later and remain financially held until reconciled.
 - For the MVP, one `DeliveryTask` represents one Order/Parcel; a pickup schedule may group Orders operationally but never merges their tasks, waybills, snapshots, or histories.
 - The Logistics registration address represents its one operational hub. Sub-hubs and additional hub records are outside the MVP reference boundary.
 
@@ -354,7 +361,7 @@ Complete each unchecked question before creating physical operational migrations
 
 - Confirmed delivery recognizes revenue and beneficiary liabilities using the immutable Order pricing snapshot; it does not imply remittance or payout.
 - Logistics commission applies once. The post-commission pool uses frozen quoted first-mile, linehaul, and last-mile charges as pro-rata weights, then verifies actual service owners before commitment.
-- Missing/contradictory carrier evidence or an unplanned fallback creates a financial hold. Admin reconciliation may assign actual participants and an explicit platform subsidy. See `docs/features/shared/commission-settlement/spec.md`.
+- Missing/contradictory carrier evidence or a historical unplanned Order creates a financial hold. Admin reconciliation may assign actual participants and an explicit platform subsidy. See `docs/features/shared/commission-settlement/spec.md`.
 
 ## Delivery approval policy revision (2026-10-05)
 

@@ -788,7 +788,7 @@ Subscription billing, the base subscription, and the ₱10 per-order Logistics S
 
 13.2 Shipping Fee
 
-New shipping quotes use effective Admin destination-region surcharges plus Logistics service bases per first-mile/linehaul-hop/last-mile leg and one main-Shop-Category weight/size extra per Parcel/service leg. Unplanned routes retain only destination surcharge. Checkout freezes the chosen provider, route and Customer fee; later allocations or operational holds never increase committed COD. The historical ₱50 default is superseded for new quotes.
+New shipping quotes use effective Admin destination-region surcharges plus Logistics service bases per first-mile/linehaul-hop/last-mile leg and one main-Shop-Category weight/size extra per Parcel/service leg. New checkout requires a complete operational and commercially priced `local`/`planned` route. Discovery omits incomplete routes; explicit quote returns `409 SHIPPING_COVERAGE_UNAVAILABLE` on `logistics_selections`. Coverage loss at placement returns `409 QUOTE_STALE` on that field before Order, stock, voucher or Cart effects; refresh options and review a fresh quote. Uncertain placement retains its exact key/payload; committed replay returns the original Batch before route recalculation. Historical `unplanned` Orders retain their frozen surcharge-only prices, operational holds and Finance reconciliation. Checkout freezes the chosen provider, route and Customer fee; later allocations or operational holds never increase committed COD. The historical ₱50 default is superseded for new quotes.
 
 14. Notifications
 

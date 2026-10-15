@@ -6,7 +6,7 @@ phase: 3
 flutter_status: Implemented including shipping and G31 Checkout thumbnails; live/device acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
-current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
+current_contract_inspected_checkout: 33f668fd672226211accdbbb3b16052d9c48e592
 documentation_synced_on: 2026-10-15
 ---
 
@@ -187,7 +187,7 @@ universal error envelope.
 ### Verification scenarios
 
 - [x] B09 voucher-bearing exact replay, reviewed replacement and frozen Batch name display pass [synthetic checks](../../../references/voucher-selection-verification.md).
-- [x] Current provider choice/fallback, shipping DTOs and frozen selection intent pass G25 client verification.
+- [x] Historical G25 single-option selection, shipping DTOs and frozen intent pass client checks; complete-route rejection/recovery remains unverified.
 - [ ] Atomic one/multi-Shop placement and immutable current quote/totals/serviceability follow Laravel.
 - [ ] Lost-response same-key replay creates one batch/reservation/redemption; stale inputs require
   reviewed recovery.
@@ -225,6 +225,6 @@ Live/device commerce and deployment configuration remain open under G25.
 Voucher collection adoption: [G28 contract](../../../api/voucher-collection.md) and [client evidence](../../../references/voucher-collection-verification.md).
 [B06 funding contract](../../../api/legacy-voucher-funding.md): quote rejects unaffordable legacy Shop shipping vouchers with 409 VOUCHER_FUNDING_INSUFFICIENT; placement uses QUOTE_STALE on vouchers before effects. Flutter-specific adoption checks remain open.
 
-### Backend complete-route revision — 2026-10-14
+### Backend complete-route revision — 2026-10-14; D02 clarified 2026-10-15
 
 Discovery now omits incomplete routes; explicit quote rejects them with `409 SHIPPING_COVERAGE_UNAVAILABLE`. Route loss after review returns placement `409 QUOTE_STALE` on `logistics_selections` before effects. Empty options block checkout; refresh and deliberately review shipping/totals before a new placement. Existing uncertain intent keeps its exact key/payload and committed replay still succeeds after route loss. See [shipping contract](../../../api/shipping-selection.md). Storefront default selection, separate provider page and confirmation dialog are web implementation only; Flutter adoption/acceptance remains unverified.

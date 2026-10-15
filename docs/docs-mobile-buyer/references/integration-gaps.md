@@ -67,7 +67,7 @@ Historical runtime sections above record checks performed in this Buyer project 
 | --- | --- | --- |
 | G25 | Flutter now adopts `22b0a48` options, Shop-scoped selections, current quote/Batch DTOs and nullable Order providers. [Synthetic client evidence](shipping-selection-verification.md) covers parsing, accessible choice/fallback, invalidation and exact frozen recovery. Controlled live commerce, installed Android/TalkBack and deployed schema/provider configuration remain open; client tests do not complete those gates. | Buyer/API; Phase 3/5 |
 
-[Shipping contract](../api/shipping-selection.md) documents provider eligibility, automatic single-option fallback, explicit multiple choice, empty discovery, route degradation and exact-key recovery. The storefront retains guest browsing/recency; Flutter requires sign-in and account-only history.
+[Shipping contract](../api/shipping-selection.md) documents provider eligibility, automatic single-option selection, explicit multiple choice, empty discovery, complete-route eligibility and exact-key recovery. The storefront retains guest browsing/recency; Flutter requires sign-in and account-only history.
 
 <a id="reported-checkout-deployment-failure--2026-10-05"></a>
 
@@ -149,3 +149,9 @@ This resolves audit B09/F07 in local source and narrows Buyer G26 only for names
 Buyer now consumes GET /api/v1/customer/conversations/shops/{shop} and required ChatShop availability, discovers existing scoped threads before sending and preserves Product/Order context. Thread permission remains authoritative; the generic preview does not block the prospective owned-Order vacation exception. Discovery and consent recovery preserve an uncertain message's original endpoint/body/attachment IDs/key; identity loss clears private context and rejects obsolete responses.
 
 [G32 verification](shop-context-verification.md) supersedes the earlier prospective-flow source gap. Laravel's existing API is sufficient; no backend or Courier application change is needed. Controlled deployed API/counterpart exchange, installed Android/TalkBack and memory-only process-restart recovery (G12) remain open.
+
+## D02 complete-route guidance clarification — 2026-10-15
+
+The current [shipping contract](../api/shipping-selection.md) was checked against Laravel `33f668fd672226211accdbbb3b16052d9c48e592`. New checkout accepts only complete `local`/`planned` routes: discovery omits incomplete providers, explicit quote returns `SHIPPING_COVERAGE_UNAVAILABLE`, and coverage loss at placement returns `QUOTE_STALE` on `logistics_selections` before effects. Refresh options and review a new quote after a definitive conflict; preserve uncertain placement payload/key and committed exact replay. Historical `unplanned` Batch/Order DTOs, prices, holds and reconciliation remain valid.
+
+This is a documentation correction. The dated G25 tests above retain their original scope, including the older unplanned-quote expectation; Buyer still has a defensive-guard/test follow-up outside D02. No Flutter source or test expectation changes here, and revised eligibility/recovery, deployed commerce and installed-device acceptance remain unverified.

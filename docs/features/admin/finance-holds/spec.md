@@ -15,7 +15,7 @@ source_coverage: docs/features/shared/commission-settlement/spec.md, docs/featur
 ## WHAT
 
 - Give authorized Admins a separate queue for Logistics payout holds that require manual route allocation reconciliation.
-- Prioritize unplanned checkout routes while retaining the other Logistics evidence/quoted-charge hold reasons supported by the reconciliation service.
+- Prioritize historical unplanned Orders while retaining the other Logistics evidence/quoted-charge hold reasons supported by the reconciliation service. New checkout requires complete local/planned routes; historical fallback prices and reconciliation remain valid.
 - Preserve the Customer's frozen shipping charge. Manual allocations distribute the frozen Logistics pool plus an optional, explicitly platform-funded subsidy.
 
 ## MUST

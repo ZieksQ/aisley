@@ -1,7 +1,8 @@
 # Per-Shop shipping selection — current platform contract
 
-Inspected 2026-10-04 at Laravel `22b0a48f9575ead182d03c35ab87345711c23b90`.
-The Buyer retains historical `57e9eb2` evidence and adopts this shipping contract on 2026-10-09.
+Complete-route guidance checked 2026-10-15 at Laravel `33f668fd672226211accdbbb3b16052d9c48e592` (D02).
+Historical shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90` on 2026-10-04.
+Buyer adopted that earlier shipping contract on 2026-10-09 and retains historical `57e9eb2` evidence; the complete-route revision is not newly verified Flutter adoption.
 [Client verification](../references/shipping-selection-verification.md) records options, selections,
 current projections and exact replay; live/device commerce remains open under G25.
 
@@ -59,7 +60,7 @@ Explicit quote errors include `PICKUP_ADDRESS_REQUIRED`,
 `SHIPPING_RATE_UNAVAILABLE`, `LOGISTICS_RATE_NOT_ACCEPTED`, `SHIPPING_DATA_REQUIRED`,
 `SHIPPING_DIMENSIONS_UNSUPPORTED`, `SHIPPING_WEIGHT_UNSUPPORTED` and
 `ROUTE_RATE_LIMIT_EXCEEDED` (409). Exact fields/codes are in [errors](errors.md).
-Parcel limits from a route participant fail quotation. Missing participant tariff/rate-card/service/category charges, disabled routing, uncovered postal codes, incomplete sort plans or metric failures make the provider unavailable for new checkout. Discovery omits these providers; explicit quote returns `409 SHIPPING_COVERAGE_UNAVAILABLE` on `logistics_selections`. If coverage disappears after review, placement returns `409 QUOTE_STALE` on `logistics_selections` before any effects. Refresh options and obtain reviewed intent; never replace an uncertain request with a new key. Historical unplanned Orders keep their frozen totals and fulfillment holds.
+Parcel limits from a route participant fail quotation. Missing participant tariff/rate-card/service/category charges, disabled routing, uncovered postal codes, incomplete sort plans or metric failures make the provider unavailable for new checkout. Discovery omits these providers; explicit quote returns `409 SHIPPING_COVERAGE_UNAVAILABLE` on `logistics_selections`. If coverage disappears after review, placement returns `409 QUOTE_STALE` on `logistics_selections` before any effects. Refresh options and obtain reviewed intent; never replace an uncertain request with a new key. Historical unplanned Orders keep their frozen totals and fulfillment holds; their Batch/Order DTOs remain readable. Internal surcharge-only calculator results are not eligible new quotes.
 
 ## Wire projections and fulfillment
 
@@ -90,4 +91,4 @@ source and test definitions. Those application tests were inspected, not execute
 
 ## Backend revision — 2026-10-14
 
-New checkout requires a complete route even with an explicit provider. Empty options block all-Shop atomic checkout; do not treat a zero-fee unplanned fallback as eligible. The storefront now uses a default lowest-fee provider, separate draft/Apply page and final confirmation dialog; these are web interactions, not evidence of Flutter adoption. Existing same-key committed replay still precedes route validation. G25 historical evidence and live/device acceptance remain unchanged; verify the revised rejection/review path in the owning Flutter client.
+New checkout requires a complete operational and commercially priced route even with an explicit provider. Empty options block all-Shop atomic checkout; do not treat a zero-fee unplanned fallback as eligible. The storefront now uses a default lowest-fee provider, separate draft/Apply page and final confirmation dialog; these are web interactions, not evidence of Flutter adoption. Existing same-key committed replay still precedes route validation. G25 historical evidence and live/device acceptance remain unchanged; verify the revised rejection/review path in the owning Flutter client.

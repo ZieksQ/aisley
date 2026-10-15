@@ -323,7 +323,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
 - Response: HTTP 200; `{data:Quote}`.
 - Retry: No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.
-- Notes: Current provider selection/DTO contract is not established as adopted by the current client (G25). Selections participate in normalized quote and placement hashes.
+- Notes: Earlier provider selection/DTO adoption is recorded under G25. New quotes require a complete local/planned route; explicit incomplete selections return 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Selections participate in normalized hashes; revised Flutter eligibility/recovery and live/device acceptance remain unverified.
 - [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
 ## op-030
@@ -334,7 +334,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Current provider selection/DTO contract is not established as adopted by the current client (G25). Selections participate in normalized quote and placement hashes.
+- Notes: Coverage loss after quote review returns 409 QUOTE_STALE on logistics_selections before Order/stock/voucher/Cart effects; refresh options and review a fresh quote after a definitive conflict. Uncertain placement keeps its original key/payload. Committed exact replay returns the original Batch before route recalculation, even after coverage loss. Revised Flutter recovery and live/device acceptance remain unverified.
 - [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
 ## op-031
@@ -345,7 +345,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: Owned batch UUID; no body.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: Read retry after bounded backoff; reject obsolete session/query generations.
-- Notes: Laravel rechecks current ownership and visibility.
+- Notes: Laravel rechecks current ownership and visibility. Historical Batch reads may contain unplanned shipping snapshots and nullable provider fields. Preserve their frozen totals and reconciliation; these DTOs do not authorize new unplanned Orders.
 - [Synthetic examples](examples/checkout-order.json).
 
 ## op-032
@@ -1057,10 +1057,10 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
 - Response: HTTP 200; `{data:LogisticsOptions}`.
 - Retry: Read-only calculation via POST; no quote, reservation or durable key. Retry the same intent with bounded backoff and session/query guards.
-- Notes: Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Empty options are a successful read, not quote eligibility; G25 adoption pending.
+- Notes: Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Discovery omits internal unplanned results and failed providers; empty options are a successful read that blocks checkout. Earlier selection adoption is recorded under G25; revised eligibility and live/device acceptance remain unverified.
 - [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
-Current shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; implemented client adoption remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` (G25). Existing operation IDs are stable.
+Historical shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; earlier client adoption is recorded under G25 and retains the general `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` baseline. D02 complete-route guidance was checked at Laravel `33f668fd672226211accdbbb3b16052d9c48e592` on 2026-10-15; revised Flutter eligibility/recovery and live/device acceptance remain unverified. Existing operation IDs are stable.
 
 ## chat-media-001
 
