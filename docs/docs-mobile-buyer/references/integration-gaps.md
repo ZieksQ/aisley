@@ -155,3 +155,8 @@ Buyer now consumes GET /api/v1/customer/conversations/shops/{shop} and required 
 The current [shipping contract](../api/shipping-selection.md) was checked against Laravel `33f668fd672226211accdbbb3b16052d9c48e592`. New checkout accepts only complete `local`/`planned` routes: discovery omits incomplete providers, explicit quote returns `SHIPPING_COVERAGE_UNAVAILABLE`, and coverage loss at placement returns `QUOTE_STALE` on `logistics_selections` before effects. Refresh options and review a new quote after a definitive conflict; preserve uncertain placement payload/key and committed exact replay. Historical `unplanned` Batch/Order DTOs, prices, holds and reconciliation remain valid.
 
 This is a documentation correction. The dated G25 tests above retain their original scope, including the older unplanned-quote expectation; Buyer still has a defensive-guard/test follow-up outside D02. No Flutter source or test expectation changes here, and revised eligibility/recovery, deployed commerce and installed-device acceptance remain unverified.
+
+
+## Audit G26 / Buyer G27 local acceptance — 2026-10-15
+
+[Runtime/emulator verification](private-media-runtime-verification.md) completes the isolated local media slice: real private storage, media worker, FFmpeg/ClamAV, seven conversation contexts, denied/ended history, replacement-Courier/organization isolation, connected Chromium and installed API 35 Android playback/Save As/logout. Deployed release pairs/Azure, physical providers/codecs, full-app login/account switching and actual TalkBack remain open. Buyer voucher G26 and mobile video/document upload status are unchanged.
