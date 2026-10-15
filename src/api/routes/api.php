@@ -473,6 +473,8 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/orders/{order}/approve', [SellerOrderController::class, 'accept'])->whereUuid('order')->name('orders.approve');
     Route::post('/orders/{order}/reject', [SellerOrderController::class, 'reject'])->whereUuid('order')->name('orders.reject');
     Route::post('/orders/pickup-requests', [SellerOrderController::class, 'requestPickup'])->name('orders.pickup-requests.store');
+    Route::get('/pickup-requests', [SellerOrderController::class, 'pickupRequests'])->name('pickup-requests.index');
+    Route::get('/pickup-requests/{pickup}', [SellerOrderController::class, 'pickupRequest'])->whereUuid('pickup')->name('pickup-requests.show');
     Route::get('/logistics-options', [SellerOrderController::class, 'logisticsOptions'])->name('logistics-options.index');
     Route::get('/shipping-providers', [ShippingProviderController::class, 'index'])->name('shipping-providers.index');
     Route::put('/shipping-providers/{organization}', [ShippingProviderController::class, 'update'])->whereUuid('organization')->name('shipping-providers.update');

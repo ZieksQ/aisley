@@ -62,6 +62,8 @@ Seller opens Seller-scoped processing Order
 - DTOs omit private evidence, unnecessary Buyer PII, payment secrets, raw storage paths, and cross-Shop identifiers.
 - Show the locked provider on Order detail/preparation and group the processing queue by that provider. Once one group has a selection, disable other provider groups until the selection is cleared; do not present a provider picker during preparation.
 - Provide loading, processing, package-validation, label-generating/ready/superseded, stale/cancelled/payment-invalid, success, conflict, retry, and accessible print/download states.
+- Show pickup requests in a paginated, sortable table with the request ID, checkout-selected provider, parcel count, request status, requested date, and scheduled pickup date when available. The ID opens a request-scoped parcel page with all linked Orders and individual Order detail links.
+- The parcel page supports individual preview/download/print controls and a bulk print action for requests within the PDF service's 30-label limit. Larger requests show the limit and keep per-Order printing available.
 - [x] Seller can review Shop-scoped Order list/detail and immutable snapshots.
 - [x] Seller can approve/reject eligible COD Orders with locked idempotent transitions and reservation release on rejection.
 - [x] Seller can group up to 50 same-provider `seller_processing` Orders into a pending Logistics pickup request and transition them to `ready_for_pickup`.
@@ -73,7 +75,7 @@ Seller opens Seller-scoped processing Order
 
 ## HOW
 
-- Current Seller routes include `POST /orders/pickup-requests` and a fail-closed `/orders/{order}/waybill`; the latter becomes available after the pickup transaction creates its waybill.
+- Current Seller routes include `POST /orders/pickup-requests`, paginated `GET /pickup-requests`, scoped `GET /pickup-requests/{pickup}`, and `GET /orders?pickup_request_id={pickup}`. The request detail page uses these reads to show only linked Shop Orders. The fail-closed `/orders/{order}/waybill` becomes available after the pickup transaction creates its waybill.
 - Current implementation is `OrderController`, `SellerOrderService`, `AcceptSellerOrder`, `RejectSellerOrder`, `RequestSellerPickup`, and the Seller Orders/Approval/Pickup pages. Customer checkout provider selection, Seller same-provider grouping, pickup requests, and shared waybills are implemented; preserve them when adding the operational schema.
 - Downstream physical package/custody actions use the deployed `Shipment`, `Parcel`, `DeliveryTask`, evidence, and event records linked to the existing immutable waybill and first-mile history; Seller must not recreate or mutate those records. Keep enum-like columns as strings with PHP enum casts and use additive migrations for future extensions only.
 - Recommended records are one immutable shared waybill snapshot per Order plus separate append-only print, route, assignment, and scan events; the snapshot includes the pickup-time sort-plan hint while the scan result records the authoritative current mapping.

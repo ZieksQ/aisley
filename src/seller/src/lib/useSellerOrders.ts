@@ -44,7 +44,7 @@ export function useSellerOrders<T>(path: string) {
         if (!controller.signal.aborted && !accessError(reason)) {
           if (reason instanceof ApiError && reason.status === 404) setResult(null)
           setError(reason instanceof ApiError && reason.status === 404
-            ? 'This order or Shop is unavailable for your account.'
+            ? 'This record or Shop is unavailable for your account.'
             : reason instanceof ApiError ? reason.message : 'Unable to refresh orders. Check your connection and try again.')
         }
       } finally {

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\AcceptSellerOrderRequest;
 use App\Http\Requests\Seller\ListSellerOrdersRequest;
+use App\Http\Requests\Seller\ListSellerPickupRequestsRequest;
 use App\Http\Requests\Seller\RejectSellerOrderRequest;
 use App\Http\Requests\Seller\RequestSellerPickupRequest;
 use App\Http\Resources\Seller\SellerOrderResource;
+use App\Http\Resources\Seller\SellerPickupRequestResource;
 use App\Models\SellerPickupRequest;
 use App\Models\User;
 use App\Services\Logistics\EligibleLogisticsQuery;
@@ -15,6 +17,7 @@ use App\Services\Seller\AcceptSellerOrder;
 use App\Services\Seller\RejectSellerOrder;
 use App\Services\Seller\RequestSellerPickup;
 use App\Services\Seller\SellerOrderService;
+use App\Services\Seller\SellerPickupRequestService;
 use App\Services\Waybills\WaybillPdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +32,22 @@ class OrderController extends Controller
 
         return SellerOrderResource::collection($orders->list($seller, $request->validated()))
             ->additional(['status_counts' => $orders->statusCounts($seller)]);
+    }
+
+    public function pickupRequests(ListSellerPickupRequestsRequest $request, SellerPickupRequestService $pickups): AnonymousResourceCollection
+    {
+        /** @var User $seller */
+        $seller = $request->user();
+
+        return SellerPickupRequestResource::collection($pickups->list($seller, $request->validated()));
+    }
+
+    public function pickupRequest(Request $request, string $pickup, SellerPickupRequestService $pickups): SellerPickupRequestResource
+    {
+        /** @var User $seller */
+        $seller = $request->user();
+
+        return new SellerPickupRequestResource($pickups->find($seller, $pickup));
     }
 
     public function show(Request $request, string $order, SellerOrderService $orders): SellerOrderResource
@@ -111,11 +130,11 @@ class OrderController extends Controller
         return $pdf->response(collect([$waybill]), $seller, $disposition === 'inline' ? 'view' : 'download', $disposition);
     }
 
-    public function pickupWaybills(Request $request, string $pickup, WaybillPdfService $pdf)
+    public function pickupWaybills(Request $request, string $pickup, WaybillPdfService $pdf, SellerPickupRequestService $pickups)
     {
         /** @var User $seller */
         $seller = $request->user();
-        $record = SellerPickupRequest::query()->where('seller_id', $seller->id)->whereKey($pickup)->firstOrFail();
+        $record = $pickups->find($seller, $pickup);
         $waybills = $record->waybills()->with('snapshot')
             ->join('seller_pickup_request_orders', function ($join) use ($record) {
                 $join->on('seller_pickup_request_orders.order_id', '=', 'waybills.order_id')
@@ -124,6 +143,8 @@ class OrderController extends Controller
             ->select('waybills.*')->orderBy('seller_pickup_request_orders.position')->orderBy('waybills.id')->get();
         abort_if($waybills->isEmpty(), 404);
 
-        return $pdf->response($waybills, $seller, 'bulk_download');
+        $inline = $request->query('disposition') === 'inline';
+
+        return $pdf->response($waybills, $seller, $inline ? 'bulk_view' : 'bulk_download', $inline ? 'inline' : 'attachment');
     }
 }

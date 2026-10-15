@@ -131,3 +131,8 @@ Format:
 
 - Completed icon-led KPI cards with bold labels/values, explanatory sentences, shared `--portal-surface` and 1px `--portal-border` treatment, and no card focus rings/outlines, mini charts, tags, or links. Seller displays four order-status KPIs; its placement comparison remains in the Order activity chart summary. Dashboard chart panels animate when enabled, respect reduced motion, track active hover tooltips, and keep the donut center unobstructed.
 - QA passed all three portal lints, harness syntax checks, and diff check; Admin and Logistics builds passed. Seller's post-hardening build remains unconfirmed. Brave SIGTRAP/crashpad blocked browser verification and screenshots. See [handoff](context/dashboard-kpi-card-redesign.md).
+
+## 2026-10-15 — Seller order workflow redesign
+
+- Redesigned order monitoring, approval, order review, and pickup preparation with paginated tables, a modal sort chooser, refreshed status cards, and return-to-queue approval confirmations. Added Shop-scoped pickup request reads and a parcel page with request sorting/pagination, order details, and individual or bulk waybill actions; updated Seller feature specs.
+- Seller lint and production build, changed API PHP syntax checks, and `git diff --check` passed. No application tests or browser checks were run.

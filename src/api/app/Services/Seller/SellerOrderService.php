@@ -23,6 +23,13 @@ class SellerOrderService
         $orders = Order::query()
             ->where('shop_id', $shop->id)
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters['pickup_request_id'] ?? null, function ($query, string $pickupRequestId) use ($seller, $shop): void {
+                $query->whereHas('pickupRequestOrder', fn ($link) => $link
+                    ->where('seller_pickup_request_id', $pickupRequestId)
+                    ->whereHas('sellerPickupRequest', fn ($pickup) => $pickup
+                        ->where('seller_id', $seller->id)
+                        ->where('shop_id', $shop->id)));
+            })
             ->when($filters['notification'] ?? null, function ($query, string $state) use ($seller): void {
                 $jsonOrderId = $this->notificationOrderIdSql();
                 $orderId = DB::getDriverName() === 'pgsql' ? 'CAST(orders.id AS TEXT)' : 'orders.id';

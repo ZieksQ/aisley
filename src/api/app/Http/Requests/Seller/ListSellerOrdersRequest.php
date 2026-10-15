@@ -19,6 +19,7 @@ class ListSellerOrdersRequest extends FormRequest
             'status' => ['nullable', Rule::enum(OrderStatus::class)],
             'page' => ['nullable', 'integer', 'min:1'],
             'sort' => ['nullable', Rule::in(['activity_desc', 'oldest', 'amount_high', 'amount_low', 'status'])],
+            'pickup_request_id' => ['nullable', 'uuid'],
             'notification' => ['nullable', Rule::in(['unread', 'read'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

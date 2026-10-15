@@ -18,6 +18,7 @@ import { OrdersPage } from './pages/OrdersPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrderApprovalPage } from './pages/OrderApprovalPage'
 import { OrderPickupPage } from './pages/OrderPickupPage'
+import { PickupParcelPage } from './pages/PickupParcelPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { NotificationDetailPage } from './pages/NotificationDetailPage'
 import { ProductQuestionDetailPage } from './pages/ProductQuestionDetailPage'
@@ -61,6 +62,7 @@ function App() {
             <Route element={<OrdersPage />} path="/orders/monitoring" />
             <Route element={<OrderApprovalPage />} path="/orders/approval" />
             <Route element={<OrderPickupPage />} path="/orders/pickup" />
+            <Route element={<PickupParcelPage />} path="/orders/pickup/:pickupId" />
             <Route element={<OrderDetailPage />} path="/orders/:orderId" />
             <Route element={<OrderDetailPage preparation />} path="/orders/:orderId/prepare" />
             <Route element={<NotificationsPage />} path="/notifications" />
