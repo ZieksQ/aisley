@@ -1,10 +1,9 @@
 import { DataChart, DistributionChart } from '@aisley/ui/charts'
 import { DashboardMetricCard } from '@aisley/ui/portal'
-import { LuArrowUpRight, LuBoxes, LuClipboardCheck, LuFileCheck2, LuTruck } from 'react-icons/lu'
+import { LuArrowUpRight, LuBoxes, LuFileCheck2, LuTruck } from 'react-icons/lu'
 import { Link } from 'react-router-dom'
 import type { FulfillmentQueueResponse } from '../types/fulfillment'
 
-const colors = ['var(--chart-blue)', 'var(--chart-violet)', 'var(--chart-teal)', 'var(--chart-amber)', 'var(--chart-rose)', 'var(--chart-slate)']
 const stageOrder = ['awaiting_seller_pickup', 'ready_for_pickup', 'seller_pickup_assigned', 'seller_pickup_accepted', 'picked_up_from_seller', 'received_at_hub', 'sorted_at_hub', 'dispatched_from_hub', 'delivery_assigned', 'delivery_accepted', 'picked_up_from_hub', 'in_transfer', 'in_transit', 'out_for_delivery']
 const stageColors: Record<string, string> = {
   awaiting_seller_pickup: 'var(--chart-violet)', ready_for_pickup: 'var(--chart-violet)',
@@ -24,20 +23,29 @@ function statusLabel(status: string) {
 
 export function DashboardQueueOverview({ queue, stale }: { queue: FulfillmentQueueResponse; stale: boolean }) {
   const metrics = [
-    { label: 'Active shipments', value: queue.summary.total, detail: 'At your operational hub', icon: LuBoxes, color: colors[0] },
-    { label: 'Evidence pending', value: queue.summary.pending_evidence, detail: 'Waiting for validation', icon: LuFileCheck2, color: colors[3] },
-    { label: 'Completion intents', value: queue.summary.pending_completion, detail: 'Pending completion processing', icon: LuClipboardCheck, color: colors[1] },
-    { label: 'Out for delivery', value: queue.summary.by_status.out_for_delivery ?? 0, detail: 'Current shipment status', icon: LuTruck, color: colors[2] },
+    { label: 'Active shipments', value: queue.summary.total, detail: 'In the active hub queue', to: '/operations', link: 'Review hub queue', chart: 'stages' as const },
+    { label: 'Evidence pending', value: queue.summary.pending_evidence, detail: 'Evidence awaiting validation; may overlap completion intents', to: '/operations', link: 'Review evidence', chart: 'pending' as const },
+    { label: 'Completion intents', value: queue.summary.pending_completion, detail: 'Awaiting completion processing; may overlap evidence', to: '/operations', link: 'Review completion intents', chart: 'pending' as const },
+    { label: 'Out for delivery', value: queue.summary.by_status.out_for_delivery ?? 0, detail: 'Shipments in this current status', to: '/operations', link: 'Open parcel queue', chart: 'stages' as const },
   ]
   const stages = Object.entries(queue.summary.by_status).sort(([a], [b]) => stageOrder.indexOf(a) - stageOrder.indexOf(b)).map(([status, count]) => ({ label: statusLabel(status), count, color: stageColor(status) }))
+  const stagePoints = stages.map((stage) => ({ label: stage.label, value: stage.count, color: stage.color }))
+  if (queue.summary.by_status.out_for_delivery === undefined) stagePoints.push({ label: 'Out for delivery', value: 0, color: stageColor('out_for_delivery') })
+  const outForDeliveryIndex = stagePoints.findIndex((stage) => stage.label === 'Out for delivery')
+  const pendingPoints = [
+    { label: 'Pending evidence', value: queue.summary.pending_evidence, color: 'var(--chart-amber)' },
+    { label: 'Pending completion', value: queue.summary.pending_completion, color: 'var(--chart-violet)' },
+  ]
   const generated = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(queue.freshness.generated_at))
+
   return <div className="space-y-6">
     <div className="dashboard-metric-grid">
-      {metrics.map((metric, index) => <DashboardMetricCard key={metric.label} label={metric.label} value={metric.value.toLocaleString()}
-        icon={<metric.icon size={18} />} detail={metric.detail} emphasis={index === 0}
-        action={<Link className="dashboard-card-action" to="/operations" aria-label={`Review ${metric.label.toLowerCase()}`}><LuArrowUpRight size={17} aria-hidden="true" /></Link>}
-        footer={<><p>{index === 0 ? `${Object.keys(queue.summary.by_status).length} active shipment stages` : queue.summary.total ? `${Math.round(metric.value / queue.summary.total * 100)}% of active shipments` : 'No active shipments'}<span className="sr-only">; evidence and completion counts may overlap</span></p><div className="dashboard-meter" aria-hidden="true"><span style={{ width: `${index === 0 && queue.summary.total ? 100 : queue.summary.total ? Math.min(100, metric.value / queue.summary.total * 100) : 0}%`, background: metric.color }} /></div></>}
-      />)}
+      {metrics.map((metric) => <DashboardMetricCard key={metric.label} label={metric.label} value={metric.value.toLocaleString()}
+        detail={metric.detail}
+        chart={metric.chart === 'pending'
+          ? { label: 'Pending evidence and completion counts; a shipment can appear in both', points: pendingPoints, activeIndex: metric.label === 'Evidence pending' ? 0 : 1 }
+          : { label: 'Current shipment status counts', points: stagePoints, activeIndex: metric.label === 'Out for delivery' ? outForDeliveryIndex : undefined }}
+        action={<Link className="dashboard-card-link" to={metric.to}>{metric.link}</Link>} />)}
     </div>
     <div className="dashboard-columns">
       <DataChart title="Shipment stages" description="Current work across your hub" layout="vertical"

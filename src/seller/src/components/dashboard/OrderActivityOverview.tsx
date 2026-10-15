@@ -1,6 +1,5 @@
 import { DataChart, DistributionChart } from '@aisley/ui/charts'
 import { DashboardMetricCard } from '@aisley/ui/portal'
-import { LuArrowUpRight, LuClipboardCheck, LuPackageCheck, LuPackageOpen, LuTruck } from 'react-icons/lu'
 import { Link } from 'react-router-dom'
 import type { OrderActivity, UnavailableSection } from '../../types/dashboard'
 
@@ -8,22 +7,22 @@ export function OrderActivityOverview({ activity }: { activity?: OrderActivity |
   if (!activity || activity.state === 'unavailable') {
     return <section className="portal-panel"><h3 className="font-semibold">Order activity</h3><p className="portal-secondary mt-2 text-sm">Order activity is unavailable.</p><Link className="portal-link inline-flex min-h-11 items-center text-sm" to="/orders/monitoring">Open order monitoring</Link></section>
   }
-  const total = Object.values(activity.by_status).reduce((sum, count) => sum + count, 0)
   const placed = activity.daily_placed.reduce((sum, day) => sum + day.count, 0)
   const metrics = [
-    { label: 'Awaiting approval', value: activity.metrics.awaiting_approval, to: '/orders/approval', detail: 'New orders to review', icon: LuClipboardCheck, color: 'var(--chart-violet)' },
-    { label: 'In preparation', value: activity.metrics.processing, to: '/orders/pickup', detail: 'Orders being prepared', icon: LuPackageOpen, color: 'var(--chart-blue)' },
-    { label: 'Ready for pickup', value: activity.metrics.ready_for_pickup, to: '/orders/pickup', detail: 'Waiting for collection', icon: LuTruck, color: 'var(--chart-amber)' },
-    { label: 'Delivered', value: activity.metrics.delivered, to: '/orders/monitoring', detail: 'Completed · all time', icon: LuPackageCheck, color: 'var(--chart-teal)' },
+    { label: 'Awaiting approval', value: activity.metrics.awaiting_approval, to: '/orders/approval', detail: 'New orders to review', link: 'Review orders', color: 'var(--chart-violet)' },
+    { label: 'In preparation', value: activity.metrics.processing, to: '/orders/pickup', detail: 'Orders being prepared', link: 'Open pickup orders', color: 'var(--chart-blue)' },
+    { label: 'Ready for pickup', value: activity.metrics.ready_for_pickup, to: '/orders/pickup', detail: 'Waiting for collection', link: 'Open pickup orders', color: 'var(--chart-amber)' },
+    { label: 'Delivered', value: activity.metrics.delivered, to: '/orders/monitoring', detail: 'Orders in delivered status', link: 'View order monitoring', color: 'var(--chart-teal)' },
   ]
   const work = metrics.slice(0, 3)
+  const statusPoints = metrics.map((metric) => ({ label: metric.label, value: metric.value, color: metric.color }))
+
   return <div className="space-y-6">
     <div className="dashboard-metric-grid">
       {metrics.map((metric, index) => <DashboardMetricCard key={metric.label} label={metric.label} value={metric.value.toLocaleString()}
-        icon={<metric.icon size={18} />} detail={metric.detail} emphasis={index === 0}
-        action={<Link className="dashboard-card-action" to={metric.to} aria-label={`Open ${metric.label.toLowerCase()} orders`}><LuArrowUpRight size={17} aria-hidden="true" /></Link>}
-        footer={<><p>{total ? `${Math.round(metric.value / total * 100)}% of all Shop orders` : 'No Shop orders yet'}</p><div className="dashboard-meter" aria-hidden="true"><span style={{ width: `${total ? metric.value / total * 100 : 0}%`, background: metric.color }} /></div></>}
-      />)}
+        detail={metric.detail}
+        chart={{ label: 'Current Shop order status counts', points: statusPoints, activeIndex: index }}
+        action={<Link className="dashboard-card-link" to={metric.to}>{metric.link}</Link>} />)}
     </div>
     <div className="dashboard-columns">
       <DataChart title="Order activity" description="Orders placed over the last 14 days" height={280}

@@ -92,6 +92,14 @@ Customer, Admin, and Seller share one purple brand family. Logistics uses its bl
 
 Graph series and categories may use different colors. Role primary colors govern actions and selection; they do not limit all chart data to one color. Use the shared violet, blue, teal, amber, rose and slate graph tokens, with lighter dark-theme equivalents. Keep category labels/counts available so color is supplementary. Use semantic colors consistently when a series represents an outcome, and do not invent trends or targets to decorate a card.
 
+### Dashboard KPI cards
+
+- Keep KPI cards independent in the responsive grid. Do not place decorative icons in them. Use a bold metric title and bold primary value, with the value as the strongest visual element and a short description explaining what it measures.
+- Place a tiny line, bar, or area chart on the right when the owning feature has enough truthful data to visualize. Use the same metric and cohort as the title/value, keep category/period context accessible, and do not imply unsupported growth, targets, or history. If a useful chart cannot be derived from available data, retain the text summary without fabricating series.
+- Put a concise text link to the owning workspace on the right below or beside the chart. The card itself is informational: it has no hover movement and no focus ring, border, or outline. The semantic link remains keyboard operable with a visible `:focus-visible` indicator; suppress pointer-only focus decoration without removing keyboard focus.
+- Chart drawing or value transitions may animate briefly using transform, opacity, or SVG path drawing. Render the complete readable value and chart without animation first; disable animation under `prefers-reduced-motion`. Motion never delays actions or communicates a value that is absent from the source.
+- Preserve role authorization, tenant scope, null/unavailable versus zero semantics, theme tokens, accessible chart summaries, and skeleton geometry. A link may appear only when its destination belongs to the metric's owning feature.
+
 ### Semantic colors
 
 | Token | Hex | Usage |

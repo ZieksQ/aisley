@@ -33,6 +33,45 @@ const pointerClick = async (selector) => {
   await browser.cdp('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point })
   await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point })
 }
+const assertKpiDesign = async (role, phase) => {
+  assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4, `${role} ${phase}: four KPI cards`)
+  const audit = await js(`(() => [...document.querySelectorAll('.dashboard-stat-card')].map(card => {
+    const copy = card.querySelector('.dashboard-stat-copy')
+    const chart = card.querySelector('.dashboard-mini-chart, .dashboard-mini-chart-skeleton')
+    const label = card.querySelector('.dashboard-stat-label, .skeleton-label')
+    const value = card.querySelector('.dashboard-stat-value, .skeleton-value')
+    const link = card.querySelector('.dashboard-stat-action a')
+    const copyBox = copy?.getBoundingClientRect(), chartBox = chart?.getBoundingClientRect(), box = card.getBoundingClientRect()
+    const style = getComputedStyle(card)
+    return { border: style.borderWidth, outline: style.outlineStyle, shadow: style.boxShadow,
+      icons: card.querySelectorAll('svg').length, split: !!copyBox && !!chartBox && chartBox.left >= copyBox.right - 1,
+      children: card.children.length, labelWeight: label && getComputedStyle(label).fontWeight,
+      valueWeight: value && getComputedStyle(value).fontWeight,
+      link: link && { tag: link.tagName, text: link.textContent.trim(), href: link.getAttribute('href') },
+      bounds: [box.x, box.y, box.width] }
+  })) )()`)
+  assert(audit.every((card) => card.border === '0px' && card.outline === 'none' && card.shadow === 'none'), `${role} ${phase}: borderless cards without card focus treatment`)
+  assert(audit.every((card) => card.icons === 0), `${role} ${phase}: no KPI icons`)
+  assert(audit.every((card) => card.split && card.children === 2), `${role} ${phase}: left copy and right mini chart`)
+  if (phase === 'loaded') {
+    assert(audit.every((card) => Number(card.labelWeight) >= 600 && Number(card.valueWeight) >= 600), `${role}: bold KPI title and value`)
+    assert(audit.every((card) => card.link?.tag === 'A' && card.link.text && card.link.href), `${role}: KPI actions are text links`)
+    assert.equal(await js("[...document.querySelectorAll('.dashboard-stat-card')].some(card => card.hasAttribute('tabindex'))"), false, `${role}: KPI cards are not focus targets`)
+    await js("document.querySelector('.dashboard-stat-action a').focus()")
+    assert.equal(await js("document.querySelector('.dashboard-stat-action a').matches(':focus-visible')"), true, `${role}: KPI link is keyboard focusable`)
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-stat-action a')).outlineStyle"), 'solid', `${role}: KPI text link retains visible keyboard focus`)
+    await js("document.activeElement.blur()")
+    const labels = await js("[...document.querySelectorAll('.dashboard-mini-chart[role=img]')].map(chart => chart.getAttribute('aria-label'))")
+    const expected = role === 'admin'
+      ? ['Pending registrations, 16', 'Open support tickets, 12', 'Compliance cases, 4']
+      : role === 'seller'
+        ? ['Awaiting approval, 7', 'In preparation, 12', 'Ready for pickup, 5', 'Delivered, 168']
+        : ['Ready for pickup, 14', 'In transit, 18', 'Out for delivery, 11', 'Pending evidence, 5', 'Pending completion, 3']
+    for (const datum of expected) assert(labels.some((label) => label?.includes(datum)), `${role}: mini-chart shows fixture data ${datum}`)
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-mini-chart-bar')).animationName"), 'dashboard-mini-chart-rise', `${role}: mini chart animation is active`)
+  }
+  return audit
+}
 const serve = process.argv.includes('--serve')
 const roles = [['admin', serve ? 16175 : 15175], ['seller', serve ? 16174 : 15174], ['logistics', serve ? 16176 : 15176]]
 const roleFilter = process.argv.find((arg) => arg.startsWith('--role='))?.split('=')[1]
@@ -66,8 +105,15 @@ try {
     await browser.until("!!document.querySelector('.portal-shell .dashboard-skeleton')", `${role} skeleton within shell`)
     assert.equal(await js("/Checking (your session|policy consent)/.test(document.body.innerText)"), false)
     assert.equal(await js("document.querySelectorAll('.recharts-bar').length"), 0, 'No private dashboard before consent')
+    const skeletonAudit = await assertKpiDesign(role, 'skeleton')
+    const skeletonGrid = await js("({ columns: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gridTemplateColumns, gap: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gap })")
     await browser.screenshot(resolve(artifacts, `${role}-loading.png`))
     await browser.until("!!document.querySelector('.recharts-bar')", `${role} dashboard loaded`)
+    const loadedAudit = await assertKpiDesign(role, 'loaded')
+    const loadedGrid = await js("({ columns: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gridTemplateColumns, gap: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gap })")
+    assert.equal(skeletonGrid.columns, loadedGrid.columns, `${role}: skeleton columns align with loaded cards`)
+    assert.equal(skeletonGrid.gap, loadedGrid.gap, `${role}: skeleton spacing aligns with loaded cards`)
+    assert.deepEqual(skeletonAudit.map(({ bounds }) => bounds), loadedAudit.map(({ bounds }) => bounds), `${role}: skeleton cards align with loaded cards`)
     assert.equal(await js("!!document.querySelector('.recharts-default-tooltip')"), false, 'Custom inactive tooltips occupy no space')
     await js("window.keptPortalShell = document.querySelector('.portal-shell'); true")
     const consentRequests = await js('window.portalFixture.consentRequests')
@@ -91,10 +137,10 @@ try {
     await pointerClick('.portal-desktop-toggle')
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-desktop-toggle')).outlineStyle"), 'none', 'Pointer sidebar click has no outline')
     await pointerClick('.portal-desktop-toggle')
-    await js("document.querySelector('.dashboard-card-action').addEventListener('click', event => event.preventDefault(), { once: true })")
-    await pointerClick('.dashboard-card-action')
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-card-action')).outlineStyle"), 'none', 'Pointer metric action has no outline')
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-card-action')).getPropertyValue('--tw-ring-shadow').trim()"), '0 0 #0000', 'Pointer metric action has no ring')
+    await js("document.querySelector('.dashboard-stat-action a').addEventListener('click', event => event.preventDefault(), { once: true })")
+    await pointerClick('.dashboard-stat-action a')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-stat-action a')).outlineStyle"), 'none', 'Pointer metric link has no outline')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-stat-action a')).getPropertyValue('--tw-ring-shadow').trim()"), '0 0 #0000', 'Pointer metric link has no ring')
     await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 10, y: 10 })
 
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-toolbar')).height"), '64px')
@@ -119,10 +165,10 @@ try {
         }
       }
       assert.equal(await js("document.body.innerText.includes('View chart data')"), false)
-      assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4)
       assert(await js("!!document.querySelector('.portal-chart .sr-only table')"), 'Screen-reader data')
       assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
       await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+      assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-mini-chart-bar')).animationName"), 'none', `${role}: mini chart respects reduced motion`)
       await js("window.portalFixture.empty = true")
       await click('.portal-content button')
       await browser.until("!document.querySelector('.recharts-bar') && !document.querySelector('.recharts-pie-sector')", `${role} zero state`)
@@ -172,11 +218,11 @@ try {
     await browser.viewport(1440, 1000, false)
     await click('.portal-desktop-toggle')
     await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-mini-chart-bar')).animationName"), 'none', `${role}: mini chart respects reduced motion`)
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-nav-link')).transitionDuration"), '0s')
     assert.equal(await js("document.body.innerText.includes('View chart data')"), false, 'No chart-data disclosure')
     assert(await js("!!document.querySelector('.portal-chart .sr-only table')"), 'Chart data remains available to screen readers')
-    assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4, 'Four separate metric cards')
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-metric-grid')).columnGap"), '16px', 'Metric cards have individual spacing')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-metric-grid')).columnGap"), '20px', 'Metric cards have individual spacing')
     assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
     await js("window.portalFixture.empty = true")
     await click('.portal-content button')

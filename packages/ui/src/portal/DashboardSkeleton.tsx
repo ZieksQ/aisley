@@ -5,9 +5,14 @@ export function DashboardSkeleton({ className = '' }: { className?: string }) {
     <div className="dashboard-metric-grid" aria-hidden="true">
       {[0, 1, 2, 3].map((index) => (
         <div className="dashboard-stat-card" key={index}>
-          <div className="skeleton-block skeleton-label" />
-          <div className="skeleton-block skeleton-value" />
-          <div className="skeleton-block skeleton-label" />
+          <div className="dashboard-stat-copy">
+            <div className="skeleton-block skeleton-label" />
+            <div className="skeleton-block skeleton-value" />
+            <div className="skeleton-block skeleton-detail" />
+          </div>
+          <div className="dashboard-mini-chart dashboard-mini-chart-skeleton">
+            {[0, 1, 2, 3].map((bar) => <span className="skeleton-block" key={bar} />)}
+          </div>
         </div>
       ))}
     </div>
