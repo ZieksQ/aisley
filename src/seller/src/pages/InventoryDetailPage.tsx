@@ -1,27 +1,258 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError, apiRequest } from '../lib/api'
+import { LuArrowLeft, LuRefreshCw } from 'react-icons/lu'
+import {
+  IconButton,
+  PortalPagination,
+  PortalSection,
+  PortalState,
+  PortalSkeleton,
+  PortalTable,
+} from '@aisley/ui/portal'
+import { useAuth } from '../auth/useAuth'
+import { useSellerRead } from '../lib/useSellerRead'
+import { InventoryForms } from '../features/inventory/InventoryForms'
+import { StockState } from '../features/inventory/StockState'
+import {
+  dateTime,
+  label,
+  signed,
+  variantLabel,
+  type Movement,
+} from '../features/inventory/model'
 import type { InventorySku, Page } from '../types/operations'
-
-type Movement = { id: string; movement_type: string; on_hand_delta: number; resulting_on_hand: number; resulting_reserved: number; reason: string; created_at: string }
-
-function variantLabel(variant: InventorySku['variant']): string {
-  return variant?.option_values.map(({ group, value }) => group ? `${group}: ${value}` : value).join(' / ') ?? ''
-}
 
 export function InventoryDetailPage() {
   const { skuId } = useParams()
-  const [sku, setSku] = useState<InventorySku | null>(null)
-  const [movements, setMovements] = useState<Movement[]>([])
-  const [type, setType] = useState('restock'); const [quantity, setQuantity] = useState('1'); const [reason, setReason] = useState(''); const [threshold, setThreshold] = useState(''); const [error, setError] = useState(''); const [thresholdMessage, setThresholdMessage] = useState(''); const [savingThreshold, setSavingThreshold] = useState(false); const [reload, setReload] = useState(0)
-  useEffect(() => { if (!skuId) return; Promise.all([apiRequest<{ data: InventorySku }>(`/api/v1/seller/inventory/${skuId}`), apiRequest<Page<Movement>>(`/api/v1/seller/inventory/${skuId}/movements`)]).then(([item, history]) => { setSku(item.data); setThreshold(item.data.alert_threshold?.toString() ?? ''); setMovements(history.data) }) }, [skuId, reload])
-  async function adjust(e: FormEvent) { e.preventDefault(); setError(''); try { await apiRequest(`/api/v1/seller/inventory/${skuId}/adjustments`, { method: 'POST', body: JSON.stringify({ movement_type: type, quantity: Number(quantity), reason, idempotency_key: crypto.randomUUID() }) }); setReason(''); setReload((v) => v + 1) } catch (e) { setError(e instanceof ApiError ? Object.values(e.errors)[0]?.[0] ?? e.message : 'Adjustment failed.') } }
-  async function saveThreshold() { setSavingThreshold(true); setThresholdMessage(''); try { await apiRequest(`/api/v1/seller/inventory/${skuId}/threshold`, { method: 'PATCH', body: JSON.stringify({ alert_threshold: threshold === '' ? null : Number(threshold) }) }); setThresholdMessage(threshold === '' ? 'Low-stock alerts disabled.' : 'Threshold saved and evaluated.'); setReload((v) => v + 1) } catch (reason) { setThresholdMessage(reason instanceof ApiError ? Object.values(reason.errors)[0]?.[0] ?? reason.message : 'Unable to save threshold.') } finally { setSavingThreshold(false) } }
-  if (!sku) return <p className="p-8 text-sm text-zinc-500">Loading inventory…</p>
-  return <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 lg:px-8"><Link className="text-sm text-zinc-500" to="/inventory">← Inventory</Link><div className="mt-3 border-b border-zinc-200 pb-5 dark:border-white/10"><h2 className="text-2xl font-semibold">{sku.product.name}</h2>{sku.variant ? <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{variantLabel(sku.variant)}</p> : null}<p className="mt-1 font-mono text-sm text-zinc-500">{sku.code}</p></div>
-    <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_22rem]"><section className="rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]"><div className="grid grid-cols-3 border-b border-zinc-200 dark:border-white/10">{[['On hand', sku.on_hand], ['Reserved', sku.reserved], ['Available', sku.available]].map(([label, value]) => <div className="p-4" key={label}><p className="text-xs text-zinc-500">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div>)}</div><div className="p-5"><h3 className="font-semibold">Movement history</h3><div className="mt-3 divide-y divide-zinc-200 dark:divide-white/10">{movements.length ? movements.map((m) => <div className="flex justify-between gap-4 py-3 text-sm" key={m.id}><div><p className="font-medium capitalize">{m.movement_type.replace('_', ' ')}</p><p className="mt-1 text-xs text-zinc-500">{m.reason}</p></div><div className="text-right"><p className={m.on_hand_delta >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}>{m.on_hand_delta > 0 ? '+' : ''}{m.on_hand_delta}</p><p className="mt-1 text-xs text-zinc-500">{new Date(m.created_at).toLocaleString()}</p></div></div>) : <p className="py-4 text-sm text-zinc-500">No movements yet.</p>}</div></div></section>
-      <aside className="space-y-5"><form className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]" onSubmit={adjust}><h3 className="font-semibold">Adjust stock</h3>{error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}<label className="mt-4 block text-sm">Type<select className="mt-1 h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 dark:border-white/15 dark:bg-[#18181b]" onChange={(e) => setType(e.target.value)} value={type}><option value="restock">Restock</option><option value="manual_increase">Manual increase</option><option value="manual_decrease">Manual decrease</option><option value="return_in">Return</option></select></label><label className="mt-4 block text-sm">Quantity<input className="mt-1 h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 dark:border-white/15 dark:bg-[#18181b]" min="1" onChange={(e) => setQuantity(e.target.value)} required type="number" value={quantity} /></label><label className="mt-4 block text-sm">Reason<textarea className="mt-1 min-h-20 w-full rounded-lg border border-zinc-300 bg-white p-3 dark:border-white/15 dark:bg-[#18181b]" onChange={(e) => setReason(e.target.value)} required value={reason} /></label><button className="mt-4 h-10 w-full rounded-lg bg-[#4C1268] text-sm font-medium text-white">Record adjustment</button></form>
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]"><h3 className="font-semibold">Low-stock alert</h3><p className="mt-1 text-xs leading-5 text-zinc-500">You will be alerted when available stock reaches this number. Leave blank to disable.</p>{sku.active_alert ? <Link className="mt-3 block text-sm font-medium text-[#4C1268] dark:text-purple-300" to={sku.active_alert.destination}>View active alert →</Link> : <p className="mt-3 text-sm text-zinc-500">No active alert.</p>}<label className="mt-3 block text-sm">Threshold<input className="mt-1 h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 dark:border-white/15 dark:bg-[#18181b]" min="0" onChange={(e) => setThreshold(e.target.value)} placeholder="Disabled" type="number" value={threshold} /></label>{thresholdMessage ? <p className="mt-2 text-xs text-zinc-500">{thresholdMessage}</p> : null}<button className="mt-3 h-10 w-full rounded-lg border border-zinc-300 text-sm font-medium disabled:opacity-50 dark:border-white/15" disabled={savingThreshold} onClick={() => void saveThreshold()}>{savingThreshold ? 'Saving…' : 'Save threshold'}</button></div></aside></div>
-  </div>
+  return <InventoryDetailWorkspace key={skuId} skuId={skuId ?? ''} />
+}
+
+function InventoryDetailWorkspace({ skuId }: { skuId: string }) {
+  const { seller } = useAuth()
+  const [page, setPage] = useState(1)
+  const [guarded, setGuarded] = useState(false)
+  const item = useSellerRead<{ data: InventorySku }>(
+    `/api/v1/seller/inventory/${encodeURIComponent(skuId ?? '')}`,
+  )
+  const history = useSellerRead<Page<Movement>>(
+    `/api/v1/seller/inventory/${encodeURIComponent(skuId ?? '')}/movements?page=${page}`,
+  )
+  useEffect(() => {
+    document.title = 'SKU inventory | Aisley Seller'
+  }, [])
+  const sku = item.data?.data
+  const canAdjust =
+    sku?.status === 'active' && sku.product.status !== 'archived'
+  function refresh() {
+    item.refresh()
+    history.refresh()
+  }
+
+  return (
+    <main className="portal-page">
+      <header className="portal-page-header">
+        <div>
+          <Link
+            className="portal-link portal-inline-actions mb-4 text-sm"
+            to="/inventory"
+          >
+            <LuArrowLeft aria-hidden="true" />
+            Inventory
+          </Link>
+          <h2 className="portal-page-heading">
+            {sku?.product.name ?? 'SKU inventory'}
+          </h2>
+          {sku && (
+            <>
+              <p className="portal-page-description">
+                {variantLabel(sku.variant) || 'Base SKU'}
+                <span className="portal-table-meta font-mono">{sku.code}</span>
+              </p>
+              <div className="portal-inline-actions mt-3">
+                <StockState state={sku.stock_state} />
+                {sku.product.status === 'archived' && (
+                  <span className="portal-tag">Archived product</span>
+                )}
+                {sku.status === 'inactive' && (
+                  <span className="portal-tag">Inactive SKU</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="portal-inline-actions">
+          {sku && (
+            <>
+              {canAdjust && (
+                <a
+                  className="portal-button portal-button-primary"
+                  href="#adjust-stock"
+                >
+                  Adjust stock
+                </a>
+              )}
+              <a
+                className={`portal-button${canAdjust ? '' : ' portal-button-primary'}`}
+                href="#stock-threshold"
+              >
+                Alert threshold
+              </a>
+            </>
+          )}
+          <IconButton
+            label="Refresh inventory detail"
+            disabled={item.loading || history.loading || guarded}
+            onClick={refresh}
+          >
+            <LuRefreshCw aria-hidden="true" />
+          </IconButton>
+        </div>
+      </header>
+      {item.error && (
+        <div className="mb-6">
+          <PortalState
+            error
+            title={item.error}
+            description={
+              sku
+                ? 'The last loaded stock is shown. Your unsaved input is preserved.'
+                : undefined
+            }
+            action={
+              <button
+                className="portal-button"
+                disabled={guarded}
+                onClick={item.refresh}
+              >
+                Try again
+              </button>
+            }
+          />
+        </div>
+      )}
+      {!sku ? (
+        !item.error && <PortalSkeleton label="Loading inventory…" rows={3} />
+      ) : (
+        <>
+          <dl className="portal-data-strip">
+            {[
+              ['On hand', sku.on_hand],
+              ['Reserved', sku.reserved],
+              ['Available', sku.available],
+            ].map(([name, value]) => (
+              <div key={name}>
+                <dt>{name}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="portal-detail-grid">
+            <div className="portal-form-stack">
+              <PortalSection
+                id="movement-history"
+                title="Movement history"
+                description="An immutable record of stock changes. Times shown in Asia/Manila."
+              >
+                {history.error ? (
+                  <PortalState
+                    error
+                    title={history.error}
+                    action={
+                      <button
+                        className="portal-button"
+                        onClick={history.refresh}
+                      >
+                        Try again
+                      </button>
+                    }
+                  />
+                ) : history.loading ? (
+                  <PortalState title="Loading movements…" />
+                ) : !history.data?.data.length ? (
+                  <PortalState
+                    title="No movements yet"
+                    description="Recorded adjustments and Order stock changes will appear here."
+                  />
+                ) : (
+                  <>
+                    <PortalTable label="Inventory movement history">
+                      <thead>
+                        <tr>
+                          <th scope="col">Movement</th>
+                          <th className="portal-number" scope="col">
+                            On hand Δ
+                          </th>
+                          <th className="portal-number" scope="col">
+                            Reserved Δ
+                          </th>
+                          <th className="portal-number" scope="col">
+                            Balance after
+                          </th>
+                          <th scope="col">Recorded</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.data.data.map((movement) => (
+                          <tr key={movement.id}>
+                            <td className="portal-table-name">
+                              <strong className="font-medium">
+                                {label(movement.movement_type)}
+                              </strong>
+                              <span className="portal-table-meta">
+                                {movement.reason || 'System stock movement'}
+                              </span>
+                              {movement.reference_id && (
+                                <span className="portal-table-meta">
+                                  {label(
+                                    movement.reference_type ?? 'Reference',
+                                  )}{' '}
+                                  · {movement.reference_id}
+                                </span>
+                              )}
+                            </td>
+                            <td className="portal-number">
+                              {signed(movement.on_hand_delta)}
+                            </td>
+                            <td className="portal-number">
+                              {signed(movement.reserved_delta ?? 0)}
+                            </td>
+                            <td className="portal-number">
+                              {movement.resulting_on_hand} on hand
+                              <span className="portal-table-meta">
+                                {movement.resulting_reserved} reserved
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap">
+                              {dateTime(movement.created_at)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </PortalTable>
+                    <PortalPagination
+                      page={history.data.current_page}
+                      lastPage={history.data.last_page}
+                      total={history.data.total}
+                      onPage={setPage}
+                    />
+                  </>
+                )}
+              </PortalSection>
+            </div>
+            <InventoryForms
+              key={`${seller?.id}:${sku.id}`}
+              sku={sku}
+              onCommitted={refresh}
+              onGuardChange={setGuarded}
+              onAccessLost={() => {
+                item.clear()
+                history.clear()
+                setGuarded(false)
+              }}
+            />
+          </div>
+        </>
+      )}
+    </main>
+  )
 }

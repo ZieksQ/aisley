@@ -44,7 +44,12 @@ export function NewVoucher(props: VoucherProps) {
   return (
     <main className="vouchers">
       <header>
-        <h1>Create voucher</h1>
+        <div>
+          <h1>Create voucher</h1>
+          <p className="voucher-page-description">
+            Save complete terms as a draft, then review before publishing.
+          </p>
+        </div>
       </header>
       <MutationFeedback mutation={mutation} />
       <VoucherEditor

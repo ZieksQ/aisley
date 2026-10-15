@@ -56,7 +56,9 @@ later breach → new historical cycle
 
 ### UX and acceptance
 
-- Inventory shows threshold, textual `in_stock`/`low`/`out` state, active-alert indicator, and a link to history. Alert pages provide loading, empty, error, retry, resolved, stale/refetch, and keyboard-accessible filter states.
+- Inventory shows threshold and textual `in_stock`/`low`/`out` state. Alert indicators may use only API-returned alert data; the current Inventory SKU DTO does not provide the optional frontend `active_alert` property, so its absence is not evidence of no alert. The Inventory detail links to alert history without inventing an active state.
+- Alert history provides submitted product/SKU search, active/resolved state and date filters, pagination, and visible trigger/latest-evaluated snapshots. Detail shows the alert-cycle state, trigger/latest-evaluated availability and thresholds, Manila timestamps, resolution reason, safe source movement, and a link to the authoritative SKU detail. Alert snapshots are not a live Inventory balance; use the SKU link for current stock. Loading, known-empty, error/retry, and refreshed-detail states remain distinct.
+- Alert viewing is read-only: it cannot acknowledge, resolve, or otherwise mutate an alert or stock balance. Resolved records remain historical evidence.
 - [x] Seller cannot configure or view another Seller's SKU threshold or alert.
 - [x] `null`, `0`, and positive thresholds follow the availability rule in the evaluator.
 - [x] One low-stock cycle produces one active alert despite repeated mutations/evaluations and notification attempts.

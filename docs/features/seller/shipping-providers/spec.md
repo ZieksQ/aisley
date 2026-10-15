@@ -20,9 +20,9 @@
 - Disabling a provider blocks new quotes but does not rewrite placed Order pricing or provider selection.
 - A placed Order must be picked up by its checkout-selected provider. Bulk pickup requires every selected Order to have that same provider.
 - A provider becoming inactive or a frozen route becoming unusable creates a hold; it never reprices the Customer.
-- Show provider business name and hub identity in a compact settings list with an accessible native switch, loading/empty/error/success states, and light/dark responsive behavior.
-- Merge the configuration list with the read-only location ranking from `GET /api/v1/seller/logistics-options`. Sort exact city, province, and region matches before other domestic hubs, then use authoritative road distance where available. Recommendation text is advisory and never changes enablement automatically.
-- If ranking is unavailable because the Seller has no complete pickup address, keep configuration usable and explain how to enable location recommendations. Never fabricate a distance.
+- Show enabled providers for this Shop in a semantic selected-provider table with business name, hub identity, and available location/distance evidence. Provide an accessible “Add shipping provider” modal for available providers, with explicit Add and icon-only red/rose Remove actions. Removing requires a destructive confirmation and disables the provider for new checkout choices through the existing revisioned update; placed Orders retain their frozen selection. Distinguish loading, known-empty, failed, saved, and conflict/recovery states in both themes and supported widths.
+- Merge the configuration list with read-only location ranking from `GET /api/v1/seller/logistics-options` and the Shop's default pickup-address data. Promote a provider to “Recommended” only when both nonempty normalized pickup city and region exactly match the provider hub's city and region. Keep the remaining location ranking order from the read-only ranking API, including province and authoritative road distance where available. Recommendation text is advisory; it never enables a provider or promises coverage, checkout availability, or price.
+- Keep provider configuration usable when location ranking or pickup-address reads fail. Distinguish a failed read from a known missing/incomplete default pickup address; explain what data is unavailable and how to restore recommendations. Never fabricate a distance or infer an address from another source.
 
 ## HOW
 
@@ -31,6 +31,7 @@
 - Use `PUT /api/v1/seller/shipping-providers/{organization}` with `is_enabled` and optional `expected_revision`.
 - Keep `GET /api/v1/seller/logistics-options` for legacy operational ranking; it is not the checkout allow-list authority.
 - The Seller page may merge the two reads by organization ID for presentation. Only `shipping-providers` and its revisioned update endpoint own the Customer checkout allow-list.
+- The selected table contains the Shop's currently enabled provider configurations. The add modal lists available, not-yet-enabled organizations; a Seller's explicit Add action enables that organization, while confirmed Remove disables it. Both mutations use the current configuration revision and are owned by the authenticated Shop.
 - Enforce the selected organization again in `RequestSellerPickup` before creating pickup requests and waybills.
 - Test tenant isolation, inactive organizations, enable/disable behavior, revision conflicts, checkout enforcement, and mixed-provider bulk pickup rejection.
 

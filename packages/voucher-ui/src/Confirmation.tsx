@@ -38,7 +38,14 @@ export function Confirmation({
         <Button variant="outline" onClick={onCancel} autoFocus>
           Cancel
         </Button>
-        <Button onClick={onConfirm}>{confirm}</Button>
+        <Button
+          className={
+            confirm === 'End permanently' ? 'voucher-destructive' : undefined
+          }
+          onClick={onConfirm}
+        >
+          {confirm}
+        </Button>
       </div>
     </dialog>
   )

@@ -1,4 +1,5 @@
 import '@aisley/voucher-ui/styles.css'
+import { ConfirmationDialog } from '@aisley/ui/portal'
 import { useEffect, useState } from 'react'
 import {
   NewVoucher,
@@ -14,6 +15,7 @@ import {
 } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { apiRequest, initializeCsrf } from '../lib/api'
+import '../features/vouchers/vouchers.css'
 
 const request: VoucherProps['request'] = async (path, options = {}) => {
   if (options.method && options.method !== 'GET')
@@ -38,15 +40,8 @@ export function VouchersPage() {
       !nextLocation.state?.voucherCommitted,
   )
   useEffect(() => {
-    if (blocker.state !== 'blocked') return
-    if (
-      !guard.busy &&
-      !guard.uncertain &&
-      window.confirm('Discard unsaved voucher input?')
-    )
-      blocker.proceed()
-    else blocker.reset()
-  }, [blocker, guard.busy, guard.uncertain])
+    document.title = 'Vouchers | Aisley Seller'
+  }, [])
 
   const props: VoucherProps = {
     role: 'seller',
@@ -60,15 +55,43 @@ export function VouchersPage() {
     onGuardChange: setGuard,
   }
   const accountKey = seller?.id ?? 'signed-out'
-  return location.pathname === '/vouchers/new' ? (
-    <NewVoucher key={accountKey} {...props} />
-  ) : voucherId ? (
-    <VoucherDetail
-      key={`${accountKey}:${voucherId}`}
-      {...props}
-      id={voucherId}
-    />
-  ) : (
-    <VoucherList key={accountKey} {...props} />
+  const workspace =
+    location.pathname === '/vouchers/new' ? (
+      <NewVoucher key={accountKey} {...props} />
+    ) : voucherId ? (
+      <VoucherDetail
+        key={`${accountKey}:${voucherId}`}
+        {...props}
+        id={voucherId}
+      />
+    ) : (
+      <VoucherList key={accountKey} {...props} />
+    )
+  return (
+    <div className="seller-voucher-workspace">
+      {workspace}
+      {blocker.state === 'blocked' && (
+        <ConfirmationDialog
+          title={
+            guard.busy || guard.uncertain
+              ? 'Finish the voucher update'
+              : 'Discard unsaved voucher input?'
+          }
+          confirmLabel={
+            guard.busy || guard.uncertain ? 'Stay on page' : 'Discard input'
+          }
+          onClose={() => blocker.reset()}
+          onConfirm={() =>
+            guard.busy || guard.uncertain ? blocker.reset() : blocker.proceed()
+          }
+        >
+          <p>
+            {guard.busy || guard.uncertain
+              ? 'Resolve the pending voucher request before leaving this page.'
+              : 'Your unsaved voucher terms will be discarded.'}
+          </p>
+        </ConfirmationDialog>
+      )}
+    </div>
   )
 }

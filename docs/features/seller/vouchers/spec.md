@@ -8,4 +8,6 @@ Seller manages merchandise vouchers for their own Shop only. Shop identity is de
 
 The shared contract owns lifecycle, complete terms, revision/idempotency, privacy, UTC/Manila schedules, UI states, checkout preservation and verification criteria. Authoring permits no Customer targeting, code-entry or hard deletion. Customer collection is owned by the Customer voucher feature.
 
+Seller consumes the shared voucher list, new-voucher editor, and voucher detail/editor at `/vouchers`, `/vouchers/new`, and `/vouchers/:id`. Seller route composition, Shop navigation, and portal theme remain Seller-owned; the shared presentation does not change the funding, authorization, or lifecycle rules above.
+
 Every Shop voucher requires Customer collection through its issuing Shop; Seller has no distribution control.

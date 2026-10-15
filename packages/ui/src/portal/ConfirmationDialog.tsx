@@ -1,10 +1,20 @@
 import { useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
-export function ConfirmationDialog({ title, children, confirmLabel, busy = false, destructive = false, onConfirm, onClose }: {
+export function ConfirmationDialog({
+  title,
+  children,
+  confirmLabel,
+  busy = false,
+  confirmDisabled = false,
+  destructive = false,
+  onConfirm,
+  onClose,
+}: {
   title: string
   children: ReactNode
   confirmLabel: string
   busy?: boolean
+  confirmDisabled?: boolean
   destructive?: boolean
   onConfirm: () => void
   onClose: () => void
@@ -30,10 +40,9 @@ export function ConfirmationDialog({ title, children, confirmLabel, busy = false
       onCancel={(event) => {
         event.preventDefault()
         if (!busy) onClose()
-      }}>
-      <h2 id={titleId}>
-        {title}
-      </h2>
+      }}
+    >
+      <h2 id={titleId}>{title}</h2>
       <div id={descriptionId} className="portal-confirmation-description">
         {children}
       </div>
@@ -43,15 +52,17 @@ export function ConfirmationDialog({ title, children, confirmLabel, busy = false
           type="button"
           disabled={busy}
           onClick={onClose}
-          autoFocus>
+          autoFocus
+        >
           Cancel
         </button>
         <button
           className={`portal-button ${destructive ? 'portal-button-danger' : 'portal-button-primary'}`}
           type="button"
-          disabled={busy}
+          disabled={busy || confirmDisabled}
           aria-busy={busy}
-          onClick={onConfirm}>
+          onClick={onConfirm}
+        >
           {busy ? 'Please wait…' : confirmLabel}
         </button>
       </div>

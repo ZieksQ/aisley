@@ -1,6 +1,21 @@
 export { PortalShell, type PortalShellProps } from './PortalShell'
-export { PortalNavigation, type PortalNavItem, type PortalNavGroup, type PortalLinkProps } from './PortalNavigation'
+export {
+  PortalNavigation,
+  type PortalNavItem,
+  type PortalNavGroup,
+  type PortalLinkProps,
+} from './PortalNavigation'
 export { DashboardSkeleton } from './DashboardSkeleton'
-export { DashboardMetricCard, type DashboardMetricCardProps } from './DashboardMetricCard'
+export {
+  DashboardMetricCard,
+  type DashboardMetricCardProps,
+} from './DashboardMetricCard'
 export { IconButton, PortalField, PortalSection } from './PortalControls'
 export { ConfirmationDialog } from './ConfirmationDialog'
+export {
+  PortalModal,
+  PortalPagination,
+  PortalTable,
+  PortalState,
+  PortalSkeleton,
+} from './WorkspaceControls'

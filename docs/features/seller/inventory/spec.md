@@ -61,7 +61,10 @@ available = on_hand - reserved
 
 ### UX and acceptance
 
-- Inventory list/detail/history provide pagination, allow-listed search/stock filters, loading/empty/error/retry states, accessible adjustment forms, and textual low/out-of-stock labels.
+- Inventory uses a paginated Shop-scoped table with explicit product/SKU search, stock-state filtering, threshold values, and textual stock labels. SKU detail shows the server-returned on-hand/reserved/available balance, accessible adjustment and threshold forms, and paginated append-only history with both balance deltas, resulting balances, safe references/reasons, and Asia/Manila timestamps. Keep 44px “Adjust stock” and “Alert threshold” section jumps beside Refresh so forms remain reachable after a long movement history; omit the unavailable adjustment jump for archived/inactive SKUs, while retaining permitted threshold editing.
+- Distinguish loading, known-empty, failed, and stale reads; provide refresh/retry without presenting an API failure as an empty list. Keep Shop inventory as the data authority; do not calculate replacement balances in the browser.
+- Adjustment and threshold validation is field-addressed and preserves safe input. An ambiguous mutation retains its exact serialized request and idempotency UUID for retry; block new inventory mutations and navigation until that result is resolved. Confirm discarding unsaved form input.
+- Alert-state links or indicators may render only from authoritative API data. The current Inventory SKU DTO does not return the optional frontend `active_alert` property; absence of that property must not be shown as proof that no alert is active. The dedicated Low Stock Alerts feature remains the alert-history authority.
 - [x] Seller sees only Shop-owned SKU balances and movement history.
 - [x] `available` is server-derived and nonnegative; reserved stock cannot be manually consumed.
 - [x] Restock/manual increase/decrease, reasons, idempotency, row locks, and immutable movement history are implemented.

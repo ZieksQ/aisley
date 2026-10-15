@@ -94,3 +94,21 @@ Customer browser command is `node src/webapp/tests/customer-vouchers-browser.mjs
 Final Customer Chromium checks passed all 16 surface/viewport states (320/390/768/1440px), keyboard collection/description, explicit post-login click, Shop endpoint, paging, paused/upcoming/history/empty wallet states, offline/cooldown feedback and departed-account successful reply cleanup. Final Admin/Seller builds and all 36 browser route/theme/viewport states passed. Inspectable screenshots remain local ignored artifacts. Run `node src/webapp/tests/customer-vouchers.test.mjs` for five DTO/transport/session-race checks, alongside existing checkout/session tests. Storefront TypeScript/scoped lint and final production webpack build passed; see the progress log for counts and limits.
 
 Final frontend checks/browser outcomes are recorded in the app-wide progress log. External Buyer API adoption is documented as G28; historical Flutter implementation status remains unchanged.
+
+## Seller operations redesign — 2026-10-15
+
+Shared voucher changes group the editor into navigable sections, retain reachable save/cancel actions, group overview values and use native unsaved-input confirmation. Seller-specific styling remains in the Seller app; authorization, funding, complete terms, revision/idempotency and API contracts are unchanged.
+
+Final Seller/Admin TypeScript, Vite builds and lint passed, with existing chunk-size warnings. Scoped shared UI lint passed. `pnpm --filter seller test:orders` passed all eight action/transport checks. Against the final shared build, `node src/admin/tests/vouchers-browser.smoke.mjs admin` passed 18 route/viewport/theme states and its full behavior regression, including focus/input retention in the native discard dialog. This run does not establish Seller-specific routing behavior.
+
+The Seller operations screenshot groups passed strict viewport/theme/overflow checks for the list, editor and detail at 320/390/768/1440px in both themes. The lower editor sections were also captured and visually reviewed. Local evidence is in `node_modules/.cache/seller-operations`; Admin evidence is in `src/admin/node_modules/.cache/voucher-browser`. Both are ignored artifacts.
+
+The final combined browser command was:
+
+```sh
+SELLER_OPERATIONS_PREVIEW_OUTDIR="$PWD/node_modules/.cache/seller-operations/frozen-dist" pnpm --filter seller test:operations:browser --skip-captures
+```
+
+It passed Shipping Providers, Inventory (including dirty-route discard, forbidden-write logout/redirect and private-control removal) and Low Stock Alerts, then failed with a Chromium `Page.navigate` timeout during Vouchers; failure screenshot capture also timed out. The full Seller voucher behavior suite, including its new dirty-navigation extension, is therefore not recorded as passed. Further testing was stopped at the user's request; the navigation timeout remains a follow-up, not a proven application diagnosis. No application fix was inferred from the timeout.
+
+All browser requests use synthetic HTTP fixtures rather than the live API. No backend/database, deployed integration, Customer storefront or external Flutter verification was rerun for this presentation change. Historical evidence above is preserved and is not a claim that those checks were repeated today.

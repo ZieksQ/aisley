@@ -47,7 +47,12 @@ export function VoucherList(props: VoucherProps) {
   return (
     <main className="vouchers">
       <header>
-        <h1>Vouchers</h1>
+        <div>
+          <h1>Vouchers</h1>
+          <p className="voucher-page-description">
+            Manage your offers, schedules and redemption limits.
+          </p>
+        </div>
         {props.canManage && !denied(error ?? new Error()) && (
           <Button onClick={() => props.navigate('/vouchers/new')}>
             Create voucher
@@ -55,7 +60,7 @@ export function VoucherList(props: VoucherProps) {
         )}
       </header>
       <form
-        className="voucher-fields mb-6"
+        className="voucher-fields voucher-list-filters mb-6"
         onSubmit={(event) => {
           event.preventDefault()
           setQuery(search)
