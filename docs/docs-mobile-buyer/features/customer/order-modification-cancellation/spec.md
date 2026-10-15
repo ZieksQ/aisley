@@ -23,7 +23,7 @@ Owned eligible Order → confirm cancellation or select saved shipping row → l
 
 - Only server-eligible placed COD/pending-payment Orders with required records and no pickup/waybill/task may change. Seller processing closes the window; no invented grace timer.
 - Cancel uses optional reason ≤500 and UUID key, releases only its reserved stock once and makes no refund/payment-reversal promise. Modification uses address_id, optional expected_revision and UUID key, validating own complete shipping row and creating new immutable version/history.
-- The 2026-10-10 B02 fix preserves frozen shipping/provider/route: Laravel rejects location changes with 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. Geographic repricing remains deferred; client adoption/live verification remain G21.
+- The 2026-10-10 B02 fix preserves frozen shipping/provider/route: Laravel rejects location changes with 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. Geographic repricing remains deferred; Buyer adopts pin checks and specific 422 recovery (B10); live verification remains G21.
 - On 409 refetch capabilities; freeze uncertain key/payload for exact replay. No quantity/variant/voucher/price/status changes. Address Book edits do not modify Order snapshots.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
@@ -67,7 +67,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   published-rate/coverage recalculation.
 - G21 permits only recipient/contact changes with identical trimmed street lines/localities/postal/country;
   normalize empty optional line two to null and block differing or unverifiable locations.
-- Server requires identical seven-decimal pins or both pairs absent; Buyer Order coordinates are not yet parsed (G21).
+- Buyer parses frozen Order pins and requires identical seven-decimal pairs or both pairs absent; partial/invalid pins fail closed (B10).
 - Address version in returned Order is refreshed along with actions/timeline/totals after success.
 - Another Shop Order in the same Batch has independent status/cancellation; never cancel Batch
   implicitly.

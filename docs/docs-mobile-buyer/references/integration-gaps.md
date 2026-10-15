@@ -32,7 +32,7 @@ Baseline reviewed 2026-10-03. Phases 1–4 are implemented with verification rec
 | G18 | Sanctum token expiration currently null; no refresh/revoke-all/session registry API | Secure restore and /me revalidation; current-token logout, documented password token effects; no invented refresh schedule | Security/Auth; 1/5 |
 | G19 | Portable contracts now cover inspected behavior; canonical historical wording remains optional evidence | Local specs/typed contracts govern implementation; log live contract differences separately | Documentation resolved; each phase |
 | G20 | Phase 1 Android builds, Chromium UI/transport and public localhost API checks now pass; installed Android and live authenticated flows remain unverified | See [Phase 1 evidence](phase-1-verification.md); preserve broad acceptance criteria until target/account checks pass | Flutter/release; 1/5 |
-| G21 | B02 enforces recipient/contact-only corrections at identical trimmed location and seven-decimal pins | Buyer compares text but does not parse Order coordinates; adopt fields and specific 422 recovery before claiming current-contract parity | Orders/API/Flutter; 3/5 |
+| G21 | B02 enforces recipient/contact-only corrections at identical trimmed location and seven-decimal pins | Buyer parses frozen Order pins, compares seven-decimal pairs and handles specific 422 recovery (B10); synthetic regression evidence is in Progress; live/device acceptance remains open | Orders/API/Flutter; 3/5 |
 
 Unavailable APIs must not be mocked into production success. Test fixtures may model future/denied states clearly, but future endpoint proposals need separate backend authorization and acceptance.
 
@@ -133,7 +133,7 @@ Shared IDs: G25 shipping, G26 voucher names/default pairing, G27 private chat me
 - G26: candidate name fallback is implemented; AppliedVoucher/SnapshotVoucher omit names, and selection toggling removes only the same UUID rather than replacing same-benefit App/Shop choices. Adopt the documented names/pairing policy and funding-specific recovery tests.
 - G27: image selection/upload/viewing and receive-only MP4/documents are implemented with the inclusive 8,000,000-byte selection cap and permanent 422 replacement. Video/document uploads, live runtime and device acceptance remain open.
 - G28: discovery, collection and wallet are implemented; deployed commerce/device acceptance remains open.
-- G21: Order DTO omits coordinates used by B02; text-only contact guards are implemented but full current-contract adoption remains open.
+- G21: B10 adopts Order coordinates, normalized pin eligibility and specific location-change 422 recovery; live/device acceptance remains open.
 - Shop context: Laravel GET /customer/conversations/shops/{shop} and availability projection are implemented; Buyer still uses its earlier prospective Shop flow and does not consume this route/field.
 
 Current checks are documented in [synchronization evidence](synchronization-2026-10-12.md). Historical failure reports and verification runs remain dated evidence; this audit does not establish a current outage or live/device acceptance.
