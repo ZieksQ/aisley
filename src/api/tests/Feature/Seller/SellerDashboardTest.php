@@ -285,23 +285,25 @@ class SellerDashboardTest extends TestCase
         Order::findOrFail($old->order_id)->update(['placed_at' => '2026-09-30T23:59:59Z']);
         $future = $this->review($product, '2026-10-14T10:00:00Z');
         Order::findOrFail($future->order_id)->update(['placed_at' => '2026-10-14T12:00:01Z']);
+        $today = $this->review($product, '2026-10-14T10:00:00Z');
+        Order::findOrFail($today->order_id)->update(['status' => OrderStatus::Placed, 'placed_at' => '2026-10-14T10:00:00Z']);
         $other = $this->shop($this->seller(), 'Foreign activity', 'foreign-activity');
         $foreignReview = $this->review($this->product($other, ProductStatus::Active, 3, 'Foreign activity product'), '2026-10-14T10:00:00Z');
         $before = Order::orderBy('id')->get()->toArray();
 
         $response = $this->actingAs($seller)->getJson('/api/v1/seller/dashboard')
             ->assertOk()
-            ->assertJsonPath('sections.order_activity.metrics.awaiting_approval', 1)
+            ->assertJsonPath('sections.order_activity.metrics.awaiting_approval', 2)
             ->assertJsonPath('sections.order_activity.metrics.processing', 1)
             ->assertJsonPath('sections.order_activity.metrics.ready_for_pickup', 1)
             ->assertJsonPath('sections.order_activity.metrics.delivered', 3)
             ->assertJsonPath('sections.order_activity.by_status.cancelled', 1)
-            ->assertJsonPath('sections.order_activity.from', '2026-10-01')
-            ->assertJsonPath('sections.order_activity.to', '2026-10-14')
+            ->assertJsonPath('sections.order_activity.from', '2026-09-30')
+            ->assertJsonPath('sections.order_activity.to', '2026-10-13')
             ->assertJsonPath('sections.order_activity.timezone', 'UTC')
             ->assertJsonCount(14, 'sections.order_activity.daily_placed')
-            ->assertJsonPath('sections.order_activity.daily_placed.0.count', 5)
-            ->assertJsonPath('sections.order_activity.daily_placed.1.count', 0)
+            ->assertJsonPath('sections.order_activity.daily_placed.0.count', 1)
+            ->assertJsonPath('sections.order_activity.daily_placed.1.count', 5)
             ->assertJsonPath('sections.order_activity.daily_placed.13.count', 0);
         $this->assertSame($before, Order::orderBy('id')->get()->toArray());
         $dto = json_encode($response->json('sections.order_activity'), JSON_THROW_ON_ERROR);

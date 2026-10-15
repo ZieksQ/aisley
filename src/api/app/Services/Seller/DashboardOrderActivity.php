@@ -15,13 +15,14 @@ class DashboardOrderActivity
         $orders = Order::query()->where('shop_id', $shop->id);
         $counts = (clone $orders)->selectRaw('status, COUNT(*) AS aggregate')
             ->groupBy('status')->pluck('aggregate', 'status');
-        $start = $snapshot->startOfDay()->subDays(13);
-        $daily = (clone $orders)->where('placed_at', '>=', $start)->where('placed_at', '<=', $snapshot)
+        $endExclusive = $snapshot->startOfDay();
+        $start = $endExclusive->subDays(14);
+        $daily = (clone $orders)->where('placed_at', '>=', $start)->where('placed_at', '<', $endExclusive)
             ->where('status', '!=', OrderStatus::PendingPayment)
             ->selectRaw('DATE(placed_at) AS day, COUNT(*) AS aggregate')
             ->groupByRaw('DATE(placed_at)')->pluck('aggregate', 'day');
         $trend = [];
-        for ($day = $start; $day->lte($snapshot); $day = $day->addDay()) {
+        for ($day = $start; $day->lt($endExclusive); $day = $day->addDay()) {
             $date = $day->format('Y-m-d');
             $trend[] = ['date' => $date, 'count' => (int) $daily->get($date, 0)];
         }
@@ -38,7 +39,7 @@ class DashboardOrderActivity
             'daily_placed' => $trend,
             'timezone' => 'UTC',
             'from' => $start->format('Y-m-d'),
-            'to' => $snapshot->format('Y-m-d'),
+            'to' => $endExclusive->subDay()->format('Y-m-d'),
         ];
     }
 }

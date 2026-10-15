@@ -36,7 +36,7 @@ export function DashboardSummary({ data }: { data: DashboardData }) {
       to: '/registrations?status=pending',
       link: 'Review pending applications',
       color: 'var(--chart-slate)',
-      chart: { label: 'Current ages in the oldest-first application queue', unit: 'days', points: agePoints, activeIndex: 0 },
+      chart: { label: 'Current ages in the oldest-first application queue', unit: 'days', kind: 'line' as const, placement: 'underlay' as const, points: agePoints, activeIndex: 0 },
     }] : []),
   ]
 

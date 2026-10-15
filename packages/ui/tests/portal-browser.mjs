@@ -34,25 +34,28 @@ const pointerClick = async (selector) => {
   await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point })
 }
 const assertKpiDesign = async (role, phase) => {
-  assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4, `${role} ${phase}: four KPI cards`)
+  const expectedCount = role === 'seller' ? 5 : 4
+  assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), expectedCount, `${role} ${phase}: expected KPI card count`)
   const audit = await js(`(() => [...document.querySelectorAll('.dashboard-stat-card')].map(card => {
     const copy = card.querySelector('.dashboard-stat-copy')
-    const chart = card.querySelector('.dashboard-mini-chart, .dashboard-mini-chart-skeleton')
+    const underlay = card.querySelector('.dashboard-mini-chart-underlay')
+    const chart = underlay || card.querySelector('.dashboard-mini-chart, .dashboard-mini-chart-svg, .dashboard-mini-chart-skeleton')
     const label = card.querySelector('.dashboard-stat-label, .skeleton-label')
     const value = card.querySelector('.dashboard-stat-value, .skeleton-value')
     const link = card.querySelector('.dashboard-stat-action a')
     const copyBox = copy?.getBoundingClientRect(), chartBox = chart?.getBoundingClientRect(), box = card.getBoundingClientRect()
     const style = getComputedStyle(card)
     return { border: style.borderWidth, outline: style.outlineStyle, shadow: style.boxShadow,
-      icons: card.querySelectorAll('svg').length, split: !!copyBox && !!chartBox && chartBox.left >= copyBox.right - 1,
-      children: card.children.length, labelWeight: label && getComputedStyle(label).fontWeight,
+      icons: card.querySelectorAll('svg:not(.dashboard-mini-chart-svg)').length, underlay: !!underlay,
+      split: !!copyBox && !!chartBox && (underlay || chartBox.left >= copyBox.right - 1),
+      labelWeight: label && getComputedStyle(label).fontWeight,
       valueWeight: value && getComputedStyle(value).fontWeight,
       link: link && { tag: link.tagName, text: link.textContent.trim(), href: link.getAttribute('href') },
       bounds: [box.x, box.y, box.width] }
   })) )()`)
   assert(audit.every((card) => card.border === '0px' && card.outline === 'none' && card.shadow === 'none'), `${role} ${phase}: borderless cards without card focus treatment`)
   assert(audit.every((card) => card.icons === 0), `${role} ${phase}: no KPI icons`)
-  assert(audit.every((card) => card.split && card.children === 2), `${role} ${phase}: left copy and right mini chart`)
+  assert(audit.every((card) => card.split), `${role} ${phase}: copy and chart layout`)
   if (phase === 'loaded') {
     assert(audit.every((card) => Number(card.labelWeight) >= 600 && Number(card.valueWeight) >= 600), `${role}: bold KPI title and value`)
     assert(audit.every((card) => card.link?.tag === 'A' && card.link.text && card.link.href), `${role}: KPI actions are text links`)
@@ -61,14 +64,48 @@ const assertKpiDesign = async (role, phase) => {
     assert.equal(await js("document.querySelector('.dashboard-stat-action a').matches(':focus-visible')"), true, `${role}: KPI link is keyboard focusable`)
     assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-stat-action a')).outlineStyle"), 'solid', `${role}: KPI text link retains visible keyboard focus`)
     await js("document.activeElement.blur()")
-    const labels = await js("[...document.querySelectorAll('.dashboard-mini-chart[role=img]')].map(chart => chart.getAttribute('aria-label'))")
+    const labels = await js("[...document.querySelectorAll('.dashboard-mini-chart[role=img], .dashboard-mini-chart-svg[role=img], .dashboard-mini-chart-underlay[role=img]')].map(chart => chart.getAttribute('aria-label'))")
     const expected = role === 'admin'
       ? ['Pending registrations, 16', 'Open support tickets, 12', 'Compliance cases, 4']
       : role === 'seller'
         ? ['Awaiting approval, 7', 'In preparation, 12', 'Ready for pickup, 5', 'Delivered, 168']
         : ['Ready for pickup, 14', 'In transit, 18', 'Out for delivery, 11', 'Pending evidence, 5', 'Pending completion, 3']
     for (const datum of expected) assert(labels.some((label) => label?.includes(datum)), `${role}: mini-chart shows fixture data ${datum}`)
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-mini-chart-bar')).animationName"), 'dashboard-mini-chart-rise', `${role}: mini chart animation is active`)
+    const kinds = await js(`(() => [...document.querySelectorAll('.dashboard-stat-card')].map(card => ({
+      underlay: !!card.querySelector('.dashboard-mini-chart-underlay'),
+      bars: card.querySelectorAll('.dashboard-mini-chart-bar').length,
+      line: !!card.querySelector('.dashboard-mini-chart-line'),
+      area: !!card.querySelector('.dashboard-mini-chart-area'),
+      role: (card.querySelector('.dashboard-mini-chart-underlay, .dashboard-mini-chart[role=img], .dashboard-mini-chart-svg[role=img]') || {}).getAttribute?.('role'),
+      label: (card.querySelector('.dashboard-mini-chart-underlay, .dashboard-mini-chart[role=img], .dashboard-mini-chart-svg[role=img]') || {}).getAttribute?.('aria-label'),
+    })))()`)
+    assert(kinds.every((chart) => chart.role === 'img' && chart.label), `${role}: each mini chart has an accessible description`)
+    if (role === 'seller') {
+      assert.equal(kinds.filter((chart) => !chart.underlay && chart.bars > 0).length, 4, 'Seller uses four side bar charts')
+      assert.equal(kinds.filter((chart) => chart.underlay && chart.area && chart.line && chart.bars === 0).length, 1, 'Seller uses one area underlay chart')
+      const change = await js("(() => { const card = [...document.querySelectorAll('.dashboard-stat-card')].find(item => item.querySelector('.dashboard-stat-change')); const tag = card?.querySelector('.dashboard-stat-change'); return tag && { text: tag.textContent.trim(), tone: [...tag.classList].find(name => name.startsWith('dashboard-stat-change--')), card: card.getAttribute('class'), underlayLabel: card.querySelector('.dashboard-mini-chart-underlay')?.getAttribute('aria-label'), decorative: card.querySelector('.dashboard-mini-chart-svg')?.getAttribute('aria-hidden'), decorativeRole: card.querySelector('.dashboard-mini-chart-svg')?.getAttribute('role'), pointerEvents: getComputedStyle(card.querySelector('.dashboard-mini-chart-underlay')).pointerEvents, chartZ: getComputedStyle(card.querySelector('.dashboard-mini-chart-underlay')).zIndex, copyZ: getComputedStyle(card.querySelector('.dashboard-stat-copy')).zIndex, tagZ: getComputedStyle(tag).zIndex, chartBounds: card.querySelector('.dashboard-mini-chart-underlay').getBoundingClientRect().toJSON(), copyBounds: card.querySelector('.dashboard-stat-copy').getBoundingClientRect().toJSON(), labelColor: getComputedStyle(card.querySelector('.dashboard-stat-label')).color, valueColor: getComputedStyle(card.querySelector('.dashboard-stat-value')).color, cardColor: getComputedStyle(card).backgroundColor, colors: [...card.querySelectorAll('.dashboard-mini-chart-line, .dashboard-mini-chart-area, .dashboard-mini-chart-bar')].map(node => {const style=getComputedStyle(node);return style.stroke !== 'none' ? style.stroke : style.fill !== 'none' ? style.fill : style.backgroundColor}), changeColor: getComputedStyle(tag).color, changeBackground: getComputedStyle(tag).backgroundColor, tagLabelOverlap: (() => {const a=tag.getBoundingClientRect(), b=card.querySelector('.dashboard-stat-label').getBoundingClientRect(); return !(a.right<=b.left || a.left>=b.right || a.bottom<=b.top || a.top>=b.bottom)})() } })()")
+      assert(change, 'Seller activity comparison tag exists with valid 14-day fixture')
+      assert.match(change.text, /^\+48\.3% vs prior 7 days$/)
+      assert.equal(change.tone, 'dashboard-stat-change--positive')
+      assert(change.card.includes('dashboard-stat-card--underlay'))
+      assert.equal(change.decorative, 'true', 'Underlay SVG is decorative; wrapper owns the chart description')
+      assert.equal(change.decorativeRole, undefined)
+      assert.equal(change.underlayLabel.includes('Orders placed by UTC date'), true)
+      assert.equal(change.pointerEvents, 'none')
+      assert(Number(change.chartZ) < Number(change.copyZ) && Number(change.copyZ) < Number(change.tagZ), 'Underlay sits behind KPI copy and change tag')
+      assert(change.chartBounds.left <= change.copyBounds.left && change.chartBounds.right >= change.copyBounds.right, 'Chart underlay spans behind copy')
+      assert.equal(change.tagLabelOverlap, false, 'Change tag does not cover the KPI title')
+      assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-stat-change')).animationName"), 'none', 'Change tag is static')
+      const contrast = await js(`(() => { const parse = color => color.match(/[\\d.]+/g)?.slice(0,3).map(Number); const luminance = ([r,g,b]) => [r,g,b].map(value => {value/=255; return value<=.04045 ? value/12.92 : ((value+.055)/1.055)**2.4}).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0); const ratio=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}; const card=document.querySelector('.dashboard-stat-card--underlay.dashboard-stat-card--with-change'); const underlay=card.querySelector('.dashboard-mini-chart-underlay'); const opacity=Number(getComputedStyle(underlay).opacity); const bg=parse(getComputedStyle(card).backgroundColor); const colors=[...card.querySelectorAll('.dashboard-mini-chart-line,.dashboard-mini-chart-area,.dashboard-mini-chart-bar')].map(node=>{const s=getComputedStyle(node);return parse(s.stroke!=='none'?s.stroke:s.fill!=='none'?s.fill:s.backgroundColor)}).filter(Boolean); const effective=colors.length ? colors.map(color=>bg.map((value,index)=>value*(1-opacity)+color[index]*opacity)) : [bg]; const foregrounds=[card.querySelector('.dashboard-stat-label'),card.querySelector('.dashboard-stat-value')].map(node=>parse(getComputedStyle(node).color)); return Math.min(...foregrounds.flatMap(color=>effective.map(surface=>ratio(color,surface)))) })()`)
+      assert(contrast >= 4.5, `Seller KPI copy remains readable over chart underlay (contrast ${contrast})`)
+    } else if (role === 'admin') {
+      assert.equal(kinds.filter((chart) => !chart.underlay && chart.bars > 0).length, 3, 'Admin uses three side bar charts')
+      assert.equal(kinds.filter((chart) => chart.underlay && chart.line && !chart.area && chart.bars === 0).length, 1, 'Admin uses one line underlay chart')
+    } else {
+      assert(kinds.every((chart) => !chart.underlay && chart.bars > 0 && !chart.line && !chart.area), 'Logistics uses side bar charts')
+    }
+    const animation = await js(`(() => [...document.querySelectorAll('.dashboard-stat-card')].flatMap(card => [...card.querySelectorAll('.dashboard-mini-chart-bar,.dashboard-mini-chart-line,.dashboard-mini-chart-area')].map(node => ({kind: node.classList.contains('dashboard-mini-chart-bar') ? 'bar' : node.classList.contains('dashboard-mini-chart-area') ? 'area' : 'line', name: getComputedStyle(node).animationName, duration: getComputedStyle(node).animationDuration}))))()`)
+    assert(animation.length > 0 && animation.every(({ name, duration }) => name !== 'none' && parseFloat(duration) > 0), `${role}: mini charts animate when motion is allowed`)
   }
   return audit
 }
@@ -169,9 +206,42 @@ try {
       assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
       await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
       assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-mini-chart-bar')).animationName"), 'none', `${role}: mini chart respects reduced motion`)
+      assert(await js("[...document.querySelectorAll('.dashboard-mini-chart-bar,.dashboard-mini-chart-line,.dashboard-mini-chart-area')].every(node => getComputedStyle(node).animationName === 'none' && getComputedStyle(node).animationDuration === '0s')"), `${role}: bars, lines and areas honor reduced motion`)
+      if (role === 'seller') {
+        const refreshWithVariant = async (variant, predicate, label) => {
+          await js(`window.portalFixture.activityVariant = ${JSON.stringify(variant)}; window.portalFixture.activityVariantReturned = null`)
+          await click('.dashboard-heading-actions button')
+          await browser.until(`window.portalFixture.activityVariantReturned === ${JSON.stringify(variant)}`, `${label} fixture returned`)
+          await browser.until(predicate, `${label} change tag settled`)
+        }
+        await refreshWithVariant('decrease', "document.querySelector('.dashboard-stat-change')?.textContent.includes('−50%')", 'negative comparison')
+        assert.equal(await js("[...document.querySelector('.dashboard-stat-change').classList].find(name => name.startsWith('dashboard-stat-change--'))"), 'dashboard-stat-change--negative')
+        await refreshWithVariant('new-activity', "document.querySelector('.dashboard-stat-change')?.textContent.trim() === 'New activity'", 'zero-prior comparison')
+        assert.equal(await js("[...document.querySelector('.dashboard-stat-change').classList].find(name => name.startsWith('dashboard-stat-change--'))"), 'dashboard-stat-change--positive')
+        await js("window.portalFixture.activityVariant = 'missing-prior'; window.portalFixture.activityVariantReturned = null")
+        await click('.dashboard-heading-actions button')
+        await browser.until("window.portalFixture.activityVariantReturned === 'missing-prior'", 'incomplete-series fixture returned')
+        await js("new Promise(done => setTimeout(done, 80))")
+        assert.equal(await js("!!document.querySelector('.dashboard-stat-change')"), false, 'Seller omits comparison for an incomplete prior-period series')
+        await js("window.portalFixture.activityVariant = 'gap'; window.portalFixture.activityVariantReturned = null")
+        await click('.dashboard-heading-actions button')
+        await browser.until("window.portalFixture.activityVariantReturned === 'gap'", 'non-consecutive-series fixture returned')
+        await js("new Promise(done => setTimeout(done, 80))")
+        assert.equal(await js("!!document.querySelector('.dashboard-stat-change')"), false, 'Seller omits comparison for non-consecutive dates')
+        await js("window.portalFixture.activityVariant = 'increase'; window.portalFixture.activityVariantReturned = null")
+        await click('.dashboard-heading-actions button')
+        await browser.until("window.portalFixture.activityVariantReturned === 'increase'", 'valid-series fixture returned')
+        await browser.until("document.querySelector('.dashboard-stat-change')?.textContent.includes('+48.3%')", 'valid comparison restored')
+    } else {
+      assert.equal(await js("!!document.querySelector('.dashboard-stat-change')"), false, `${role}: no comparison tag without a prior-period contract`)
+      }
       await js("window.portalFixture.empty = true")
       await click('.portal-content button')
       await browser.until("!document.querySelector('.recharts-bar') && !document.querySelector('.recharts-pie-sector')", `${role} zero state`)
+      if (role === 'seller') {
+        assert.equal(await js("document.querySelector('.dashboard-stat-change')?.textContent.trim()"), 'No change', 'All-zero valid periods use neutral No change copy')
+        assert.equal(await js("[...document.querySelector('.dashboard-stat-change').classList].find(name => name.startsWith('dashboard-stat-change--'))"), 'dashboard-stat-change--neutral')
+      }
       await js("window.portalFixture.failed = 'offline'")
       await click('.portal-content button')
       await browser.until("!!document.querySelector('.portal-content [role=alert]')", `${role} error state`)

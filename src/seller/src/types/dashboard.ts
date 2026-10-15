@@ -1,8 +1,11 @@
+export type OrderActivityDay = { date: string; count: number }
+
 export type OrderActivity = {
   state: 'available' | 'empty'
   metrics: { awaiting_approval: number; processing: number; ready_for_pickup: number; delivered: number }
   by_status: Record<string, number>
-  daily_placed: { date: string; count: number }[]
+  /** Fourteen chronological, zero-filled complete UTC dates from `from` through `to`. */
+  daily_placed: OrderActivityDay[]
   timezone: 'UTC'
   from: string
   to: string

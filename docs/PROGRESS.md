@@ -112,3 +112,12 @@ Format:
 - Redesigned reusable Seller, Admin and Logistics KPI cards as independent, icon-free cards with bold titles/values, short descriptions, tiny role-specific charts and text links to owning workspaces. Removed card-level hover/focus/border/outline treatment while keeping keyboard focus on links; chart animation respects reduced motion and skeletons match the new layout.
 - Updated the shared design contract, UI README and all three dashboard specs. Added [implementation handoff](context/dashboard-kpi-card-redesign.md) with role data boundaries and verification limits. No API, database, dependency, Courier or Flutter contract changes.
 - QA reports all three portal production builds and linters pass. Browser verification and screenshots were blocked by Chromium/Brave SIGTRAP (`setsockopt: Operation not permitted`); visual browser acceptance remains open.
+
+## 2026-10-15 — Dashboard KPI chart variants
+
+- Extended the shared KPI card with bar, line and area chart variants, side/underlay placement, and an optional text change tag. Seller compares the latest seven complete UTC placement dates with the prior seven using the Shop-scoped 14-day source; Admin and Logistics show no invented delta from their current snapshots. Seller's chart range now contains 14 complete zero-filled UTC dates and excludes pending-payment orders.
+- Added [chart variants handoff](context/dashboard-kpi-chart-variants.md). QA is pending; browser verification remains limited by the Chromium/Brave SIGTRAP (`setsockopt: Operation not permitted`) environment failure.
+
+## 2026-10-15 — Dashboard KPI chart verification
+
+- QA passed the focused Seller dashboard API test (8 tests, 123 assertions), Seller/Admin/Logistics builds and lints, harness syntax checks and `git diff --check`. The browser harness could not start Brave in this sandbox, so chart screenshots and browser assertions remain unverified; see the [chart variants handoff](context/dashboard-kpi-chart-variants.md).

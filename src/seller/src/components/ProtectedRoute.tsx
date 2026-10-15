@@ -61,7 +61,7 @@ export function ProtectedRoute() {
 
   if (isConsentRoute) return <Outlet />
 
-  if (resolvedKey !== consentKey || consentState === 'checking') return location.pathname === '/dashboard' ? <div className="portal-page"><DashboardSkeleton /></div> : null
+  if (resolvedKey !== consentKey || consentState === 'checking') return location.pathname === '/dashboard' ? <div className="portal-page"><DashboardSkeleton metricCount={5} /></div> : null
 
   if (consentState === 'error') {
     return <section className="grid place-items-center bg-zinc-50 p-6 text-center dark:bg-[#101012]"><div className="max-w-md"><p className="text-sm text-zinc-600 dark:text-zinc-300" role="alert">{consentError}</p><button className="mt-4 inline-flex h-10 items-center rounded-lg border border-zinc-300 px-4 text-sm font-semibold dark:border-white/15" onClick={() => window.location.reload()} type="button">Try again</button></div></section>

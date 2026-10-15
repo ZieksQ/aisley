@@ -104,7 +104,7 @@ function DashboardOverview() {
         </div>
       </div>
 
-      {isLoading && !dashboard ? <DashboardSkeleton className="mt-6" /> : null}
+      {isLoading && !dashboard ? <DashboardSkeleton className="mt-6" metricCount={5} /> : null}
       {isLoading && dashboard ? <p className="sr-only" role="status">Refreshing dashboard…</p> : null}
 
       {!isLoading && error ? (
