@@ -92,3 +92,7 @@ Shipping, collection/wallet, Order/Checkout thumbnails and image/received MP4/do
 ## B09 voucher names and pairing — 2026-10-15
 
 [Selection verification](references/voucher-selection-verification.md) records same-benefit replacement, explicit targets/deselection, refresh, immutable uncertain replay, applied/Batch names and responsive synthetic widget/browser evidence. These checks narrow G26 names/pairing source adoption only; funding, real-account redemption, deployed API/provider and installed Android/TalkBack gates remain open.
+
+## G32 Shop context and availability — 2026-10-15
+
+[Shop-context verification](references/shop-context-verification.md) records typed discovery, scoped thread reuse, business-status labels, authoritative existing-thread permissions, owned-Order vacation starts and frozen-send/session recovery. Local synthetic checks do not close controlled live/deployed API, counterpart exchange or installed Android/TalkBack acceptance.

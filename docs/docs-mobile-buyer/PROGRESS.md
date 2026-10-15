@@ -4,10 +4,10 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 ## Current status
 
-- Buyer Phases 1–4/Phase 5 tooling, MapLibre/PSGC addresses, per-Shop shipping, voucher collection/wallet, Order/Checkout thumbnails and private chat images/received MP4/documents are implemented locally. Voucher names/pairing, Order coordinates and Shop-context adoption have explicit remaining gaps.
+- Buyer Phases 1–4/Phase 5 tooling, MapLibre/PSGC addresses, per-Shop shipping, voucher collection/wallet, Order/Checkout thumbnails and private chat images/received MP4/documents are implemented locally. See the dated entries below for voucher names/pairing, Order coordinates and Shop-context adoption; live/device gates remain open.
 - Historical adoption slices: General 57e9eb2; shipping 22b0a48; collection 7e89b391; Order/Checkout images 5d55ecf; media 28fc740. Inspected source: Laravel `240eefddd4e2e2eea2f9558beec0292efa2121fe`, Buyer `7924cf06158817a2dcd709ec19a7442e3496dda5`. Inspection does not promote every contract to client adoption; deployed revision remains unidentified.
 - Live authenticated/deployed API, private-media runtime and installed Android/accessibility acceptance remain open. Buyer provider configuration and signing gates remain open.
-- Historical application test/build/browser results are in the archives and verification reports. This sync runs documentation validation only.
+- Application test/build/browser results are dated in the entries, archives and verification reports below.
 
 ## Historical progress
 
@@ -50,3 +50,9 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 - Buyer now parses nullable frozen Order coordinates and compares valid pairs at seven-decimal storage precision before offering or submitting a saved contact correction. Both-null pairs remain eligible; changed, added, removed, partial or invalid pins are blocked alongside existing trimmed-text/contact checks.
 - Added explicit ADDRESS_LOCATION_CHANGE_NOT_ALLOWED feedback while preserving field errors, detail refresh, cleared pending requests and required saved-row reselection. Synchronized the owning Buyer spec/G21 notes; no API/schema/dependency changes.
 - Verification: 13 new B10 regressions plus 74 adjacent Order/Checkout/shipping/recovery tests pass (87 total); Flutter analyzer, bundle validator (1008 links/22 specs/19 PSGC checks), formatting and whitespace pass. Synthetic transport verifies contact-only success and specific 422 recovery. Builds, live/deployed API and installed-device acceptance were not rerun and remain open.
+
+## 2026-10-15 — G32 Shop context and availability
+
+- Adopted Laravel's read-only Shop context/availability contract at `1d40b5d34fac1bfa93b9c32f5ee4fb0d54f43167`: scoped existing-thread discovery, business-status labels and Shop/Product/Order context preservation. Existing-thread permissions and owned-Order vacation starts remain authoritative; uncertain endpoint/body/attachment IDs/key survive discovery and consent recovery. Definitive conflicts require explicit review. No API/schema/dependency or Courier changes.
+- Verification: 67 new regressions and 186 affected messaging/media/recovery/responsive/accessibility tests pass; Flutter analyzer, changed-file formatting, web/Android release builds, bundle regression/validation and whitespace pass. Chromium passes seven layouts/nine synthetic journeys at localhost:8766; reviewed 320/1440px captures. See [G32 evidence](references/shop-context-verification.md) and ignored `build/g32-*.log` / `build/verification/shop-context/`.
+- Synced affected Buyer documentation/adoption records to AISLEY. Controlled deployed/live counterpart exchange, media runtime, installed Android/TalkBack and signing gates remain open; exact-send recovery remains memory-only (G12). Historical audits and archives remain unchanged.

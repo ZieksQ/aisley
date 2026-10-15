@@ -143,3 +143,9 @@ Current checks are documented in [synchronization evidence](synchronization-2026
 Buyer now replaces same-benefit choices in the selected Shop and same-benefit App choices across the batch, preserving opposite benefits and explicit targets. Applied and frozen Batch names/code/savings are parsed and shown with historical code fallback; Order detail/history keeps its code-only contract. [B09 evidence](voucher-selection-verification.md) supersedes the names/pairing source gaps recorded in the dated October 12 audit above.
 
 This resolves audit B09/F07 in local source and narrows Buyer G26 only for names/pairing. Funding-specific client verification, deployed API/schema/provider configuration, controlled real-account redemption/concurrency and installed Android/TalkBack acceptance remain open. Exact uncertain-placement replay remains memory-only (G12); this change adds no recovery endpoint or backend behavior.
+
+## G32/F08 Shop context adoption — 2026-10-15
+
+Buyer now consumes GET /api/v1/customer/conversations/shops/{shop} and required ChatShop availability, discovers existing scoped threads before sending and preserves Product/Order context. Thread permission remains authoritative; the generic preview does not block the prospective owned-Order vacation exception. Discovery and consent recovery preserve an uncertain message's original endpoint/body/attachment IDs/key; identity loss clears private context and rejects obsolete responses.
+
+[G32 verification](shop-context-verification.md) supersedes the earlier prospective-flow source gap. Laravel's existing API is sufficient; no backend or Courier application change is needed. Controlled deployed API/counterpart exchange, installed Android/TalkBack and memory-only process-restart recovery (G12) remain open.
