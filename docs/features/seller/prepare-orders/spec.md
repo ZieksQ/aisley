@@ -3,7 +3,7 @@ feature: prepare-orders
 title: Seller Prepare Orders
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Partially implemented; pickup requests, readiness, and shared waybills implemented; package measurements deferred
 role: Seller
 scope: Seller Web Application
@@ -62,7 +62,7 @@ Seller opens Seller-scoped processing Order
 - DTOs omit private evidence, unnecessary Buyer PII, payment secrets, raw storage paths, and cross-Shop identifiers.
 - Show the locked provider on Order detail/preparation and group the processing queue by that provider. Once one group has a selection, disable other provider groups until the selection is cleared; do not present a provider picker during preparation.
 - Provide loading, processing, package-validation, label-generating/ready/superseded, stale/cancelled/payment-invalid, success, conflict, retry, and accessible print/download states.
-- Show pickup requests in a paginated, sortable table with the request ID, checkout-selected provider, parcel count, request status, requested date, and scheduled pickup date when available. The ID opens a request-scoped parcel page with all linked Orders and individual Order detail links.
+- Show pickup requests in a compact, paginated, sortable table with the request ID, checkout-selected provider, parcel count, request status, requested date, and scheduled pickup date when available. A separate **View parcels** action opens the request-scoped parcel page with all linked Orders and individual Order detail links. Unscheduled/partially scheduled requests display **Request**; fully scheduled requests display **Scheduled** with the Logistics pickup date.
 - The parcel page supports individual preview/download/print controls and a bulk print action for requests within the PDF service's 30-label limit. Larger requests show the limit and keep per-Order printing available.
 - [x] Seller can review Shop-scoped Order list/detail and immutable snapshots.
 - [x] Seller can approve/reject eligible COD Orders with locked idempotent transitions and reservation release on rejection.

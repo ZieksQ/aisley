@@ -95,14 +95,17 @@ export function PortalPagination({
 
 export function PortalTable({
   label,
+  density = 'default',
   children,
 }: {
   label: string
+  density?: 'default' | 'compact'
   children: ReactNode
 }) {
   return (
     <div
       className="portal-table-region"
+      data-density={density}
       role="region"
       aria-label={label}
       tabIndex={0}

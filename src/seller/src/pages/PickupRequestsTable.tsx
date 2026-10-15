@@ -1,54 +1,34 @@
+import { PortalSkeleton, PortalTable } from '@aisley/ui/portal'
 import { useEffect } from 'react'
+import { FaArrowRight } from 'react-icons/fa6'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { OrderSortDialog, type OrderSortOption } from '../components/orders/OrderSortDialog'
-import { OrderError, orderPanel } from '../components/orders/OrderUi'
+import { OrderError } from '../components/orders/OrderUi'
 import { OrderPagination } from '../components/orders/OrdersTable'
+import { PickupStatus } from '../components/orders/pickup/PickupRequestStatus'
 import { useSellerOrders } from '../lib/useSellerOrders'
 import { orderDate } from '../types/orders'
-import type { SellerPickupRequestPage } from '../types/pickupRequests'
+import { pickupDate, type SellerPickupRequestPage } from '../types/pickupRequests'
 
 const sortOptions: OrderSortOption[] = [
-  {
-    value: 'requested_desc',
-    label: 'Newest request',
-    description: 'Recently submitted pickup requests appear first.',
-  },
-  {
-    value: 'requested_asc',
-    label: 'Oldest request',
-    description: 'Start with pickup requests that have waited the longest.',
-  },
-  {
-    value: 'orders_desc',
-    label: 'Most parcels',
-    description: 'Requests with the most orders appear first.',
-  },
-  {
-    value: 'orders_asc',
-    label: 'Fewest parcels',
-    description: 'Requests with the fewest orders appear first.',
-  },
-  {
-    value: 'status',
-    label: 'Request status',
-    description: 'Group requests by their current Logistics schedule status.',
-  },
+  { value: 'requested_desc', label: 'Newest request', description: 'Most recently submitted requests first.' },
+  { value: 'requested_asc', label: 'Oldest request', description: 'Requests waiting the longest first.' },
+  { value: 'orders_desc', label: 'Most parcels', description: 'Requests with the most orders first.' },
+  { value: 'orders_asc', label: 'Fewest parcels', description: 'Requests with the fewest orders first.' },
+  { value: 'status', label: 'Request status', description: 'Group requests by their Logistics schedule status.' },
 ]
 
 export function PickupRequestsTable({ refreshRevision }: { refreshRevision: number }) {
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const requestedSort = params.get('pickup_sort') ?? 'requested_desc'
-  const sort = sortOptions.some((option) => option.value === requestedSort)
-    ? requestedSort
-    : 'requested_desc'
-  const page = Math.max(1, Number(params.get('pickup_page')) || 1)
-  const path = `/api/v1/seller/pickup-requests?sort=${sort}&page=${page}&per_page=10`
-  const { data, error, loading, refresh } = useSellerOrders<SellerPickupRequestPage>(path)
+  const sort = sortOptions.some((option) => option.value === requestedSort) ? requestedSort : 'requested_desc'
+  const page = Math.max(1, Math.floor(Number(params.get('pickup_page'))) || 1)
+  const { data, error, loading, refresh } = useSellerOrders<SellerPickupRequestPage>(
+    `/api/v1/seller/pickup-requests?sort=${sort}&page=${page}&per_page=10`,
+  )
 
-  useEffect(() => {
-    if (refreshRevision > 0) refresh()
-  }, [refreshRevision, refresh])
+  useEffect(() => { if (refreshRevision > 0) refresh() }, [refreshRevision, refresh])
 
   function update(key: string, value: string) {
     setParams((current) => {
@@ -61,140 +41,65 @@ export function PickupRequestsTable({ refreshRevision }: { refreshRevision: numb
   }
 
   return (
-    <section className={`${orderPanel} mt-8 overflow-hidden`} aria-labelledby="pickup-requests-title">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
+    <section className="order-surface order-table-wrap mt-6 overflow-hidden" aria-labelledby="pickup-requests-title" aria-busy={loading}>
+      <div className="order-section-heading">
         <div>
-          <h2 className="text-lg font-semibold" id="pickup-requests-title">Pickup requests</h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Open a request to print its waybills and review each parcel.
-          </p>
+          <h2 id="pickup-requests-title">Pickup requests</h2>
+          <p>{data ? `${data.meta.total} requests` : 'Request history and Logistics schedules'}</p>
         </div>
-        <OrderSortDialog
-          buttonLabel="Sort requests"
-          onChange={(value) => update('pickup_sort', value)}
-          options={sortOptions}
-          value={sort}
-        />
+        <OrderSortDialog buttonLabel="Sort requests" options={sortOptions} value={sort}
+          onChange={(value) => update('pickup_sort', value)} />
       </div>
-
-      {error && <div className="px-5"><OrderError message={error} retry={refresh} /></div>}
-      {!data && loading ? (
-        <PickupRequestsLoading />
-      ) : data && data.data.length ? (
+      {error && <div className="px-4"><OrderError message={error} retry={refresh} /></div>}
+      {!data && loading ? <PortalSkeleton label="Loading pickup requests" rows={4} /> : data?.data.length ? (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left text-sm">
-              <caption className="sr-only">Pickup request history for this Shop</caption>
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:bg-white/[0.035] dark:text-zinc-400">
-                <tr>
-                  <th className="px-5 py-3" scope="col">Pickup ID</th>
-                  <th className="px-5 py-3" scope="col">Logistics provider</th>
-                  <th className="px-5 py-3 text-right" scope="col">Parcels</th>
-                  <th className="px-5 py-3" scope="col">Request status</th>
-                  <th className="px-5 py-3" scope="col">Pickup date</th>
-                  <th className="px-5 py-3 text-right" scope="col">Submitted</th>
+          <PortalTable density="compact" label="Shop pickup requests">
+            <thead>
+              <tr>
+                <th scope="col">Pickup ID</th><th scope="col">Logistics provider</th>
+                <th className="portal-number" scope="col">Parcels</th><th scope="col">Request status</th>
+                <th scope="col">Submitted</th><th className="portal-row-action" scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.data.map((pickup) => (
+                <tr key={pickup.id}>
+                  <th scope="row">
+                    <span className="font-mono text-xs font-semibold" title={pickup.id}>
+                      {pickup.id.slice(0, 8).toUpperCase()}
+                    </span>
+                    <span className="sr-only">Full pickup ID {pickup.id}</span>
+                  </th>
+                  <td className="min-w-40">{pickup.provider?.business_name ?? 'Provider unavailable'}</td>
+                  <td className="portal-number font-semibold!">{pickup.order_count}</td>
+                  <td>
+                    <PickupStatus status={pickup.status} />
+                    {pickup.status === 'scheduled' && (
+                      <span className="portal-table-meta">{pickupDate(pickup.pickup_date)}</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap">
+                    <time className="portal-secondary text-xs" dateTime={pickup.requested_at}>
+                      {orderDate(pickup.requested_at)}
+                    </time>
+                  </td>
+                  <td className="portal-row-action">
+                    <Link className="portal-button portal-button-ghost order-row-action"
+                      aria-label={`View parcels for pickup ${pickup.id}`}
+                      state={{ backTo: `${location.pathname}${location.search}` }} to={`/orders/pickup/${pickup.id}`}>
+                      View parcels<FaArrowRight aria-hidden="true" />
+                    </Link>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-white/10">
-                {data.data.map((pickup) => (
-                  <tr
-                    className="transition-colors hover:bg-zinc-50/80 dark:hover:bg-white/[0.025]"
-                    key={pickup.id}
-                  >
-                    <th className="px-5 py-4 font-medium" scope="row">
-                      <Link
-                        className="inline-flex min-h-11 items-center gap-2 font-semibold text-[#4C1268] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] dark:text-purple-300"
-                        state={{ backTo: `${location.pathname}${location.search}` }}
-                        title={`Pickup request ${pickup.id}`}
-                        to={`/orders/pickup/${pickup.id}`}
-                      >
-                        <span className="font-mono text-xs">{pickup.id.slice(0, 8).toUpperCase()}</span>
-                        <span>Open parcels</span>
-                      </Link>
-                      <span className="sr-only">Pickup request ID {pickup.id}</span>
-                    </th>
-                    <td className="px-5 py-4">
-                      {pickup.provider?.business_name ?? 'Provider unavailable'}
-                    </td>
-                    <td className="px-5 py-4 text-right font-semibold tabular-nums">
-                      {pickup.order_count}
-                    </td>
-                    <td className="px-5 py-4"><PickupStatus status={pickup.status} /></td>
-                    <td className="px-5 py-4 text-zinc-600 dark:text-zinc-400">
-                      {formatPickupDate(pickup.pickup_date)}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-right text-zinc-600 dark:text-zinc-400">
-                      <time dateTime={pickup.requested_at}>{orderDate(pickup.requested_at)}</time>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {data.meta.last_page > 1 && (
-            <div className="px-5">
-              <OrderPagination
-                currentPage={data.meta.current_page}
-                lastPage={data.meta.last_page}
-                onPage={(value) => update('pickup_page', String(value))}
-                total={data.meta.total}
-              />
-            </div>
-          )}
+              ))}
+            </tbody>
+          </PortalTable>
+          <OrderPagination currentPage={data.meta.current_page} lastPage={data.meta.last_page}
+            total={data.meta.total} onPage={(value) => update('pickup_page', String(value))} disabled={loading} />
         </>
       ) : data ? (
-        <div className="px-5 py-10 text-center">
-          <p className="font-medium">No pickup requests yet</p>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Requests appear after you mark prepared orders ready for pickup.
-          </p>
-        </div>
+        <p className="order-empty">No pickup requests yet. Submit prepared orders to create a request.</p>
       ) : null}
     </section>
-  )
-}
-
-export function PickupStatus({ status }: { status: string }) {
-  const label = status === 'pending_logistics'
-    ? 'Waiting for Logistics'
-    : status === 'partially_scheduled'
-      ? 'Partially scheduled'
-      : status === 'scheduled'
-        ? 'Scheduled'
-        : status.replaceAll('_', ' ')
-  const style = status === 'scheduled'
-    ? 'border-green-300 bg-green-50 text-green-800 dark:border-green-400/30 dark:bg-green-400/10 dark:text-green-200'
-    : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100'
-
-  return (
-    <span className={`inline-flex min-h-7 items-center rounded-md border px-2.5 text-xs font-medium ${style}`}>
-      {label}
-    </span>
-  )
-}
-
-function formatPickupDate(date: string | null) {
-  return date
-    ? new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { dateStyle: 'medium' })
-    : 'Not scheduled'
-}
-
-function PickupRequestsLoading() {
-  return (
-    <div aria-label="Loading pickup requests" className="space-y-4 p-5" role="status">
-      <span className="sr-only">Loading pickup requests…</span>
-      {[0, 1, 2, 3].map((row) => (
-        <div
-          className="grid animate-pulse grid-cols-2 gap-4 border-b border-zinc-200 pb-4 last:border-0 dark:border-white/10 sm:grid-cols-5"
-          key={row}
-        >
-          <span className="h-4 rounded bg-zinc-200 dark:bg-white/10" />
-          <span className="h-4 rounded bg-zinc-200 dark:bg-white/10" />
-          <span className="hidden h-4 rounded bg-zinc-200 dark:bg-white/10 sm:block" />
-          <span className="h-4 rounded bg-zinc-200 dark:bg-white/10" />
-          <span className="hidden h-4 rounded bg-zinc-200 dark:bg-white/10 sm:block" />
-        </div>
-      ))}
-    </div>
   )
 }

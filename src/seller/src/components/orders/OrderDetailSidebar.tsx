@@ -5,13 +5,13 @@ import { orderDate, orderMoney, type SellerOrder } from '../../types/orders'
 
 export function OrderDetailSidebar({ order }: { order: SellerOrder }) {
   return (
-    <aside className="space-y-5">
+    <aside className="min-w-0 space-y-5">
       <section className={`${orderPanel} p-5`} aria-labelledby="shipping-provider">
         <h2 className="font-semibold" id="shipping-provider">Shipping provider</h2>
         {order.shipping_provider ? (
           <>
             <p className="mt-3 text-sm font-medium">{order.shipping_provider.business_name}</p>
-            <p className="mt-1 text-xs leading-5 text-zinc-500">
+            <p className="mt-1 text-xs leading-5 text-[var(--portal-muted)]">
               Selected by the Customer at checkout and locked for this Order.
             </p>
           </>
@@ -49,7 +49,7 @@ function DeliveryAddress({ address }: { address: SellerOrder['delivery_address']
           ].filter(Boolean).join(', ')}</p>
         </address>
       ) : (
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-3 text-sm text-[var(--portal-muted)]">
           Address snapshot unavailable.
         </p>
       )}
@@ -72,10 +72,10 @@ function PaymentSummary({ order }: { order: SellerOrder }) {
       <dl className="mt-4 space-y-3 text-sm">
         {rows.map(([label, amount]) => (
           <div
-            className="flex justify-between gap-3 last:border-t last:border-zinc-200 last:pt-3 last:font-semibold dark:last:border-white/10"
+            className="flex justify-between gap-3 last:border-t last:border-[var(--portal-border)] last:pt-3 last:font-semibold"
             key={label}
           >
-            <dt className="text-zinc-600 dark:text-zinc-400">{label}</dt>
+            <dt className="text-[var(--portal-muted)]">{label}</dt>
             <dd className="tabular-nums">{orderMoney(amount, order.totals.currency)}</dd>
           </div>
         ))}
@@ -90,11 +90,11 @@ function WaybillSummary({ order }: { order: SellerOrder }) {
       <h2 className="font-semibold" id="waybill-title">Waybill</h2>
       {order.waybill ? (
         <>
-          <p className="mt-3 text-xs text-zinc-500">Tracking ID</p>
+          <p className="mt-3 text-xs text-[var(--portal-muted)]">Tracking ID</p>
           <p className="mt-1 break-all text-sm font-semibold">
             {order.waybill.tracking_id ?? order.waybill.reference}
           </p>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-[var(--portal-muted)]">
             Code 128 barcode · Created {orderDate(order.waybill.created_at)}
           </p>
           {order.pickup?.request_id && (
@@ -107,7 +107,7 @@ function WaybillSummary({ order }: { order: SellerOrder }) {
           )}
         </>
       ) : (
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-3 text-sm text-[var(--portal-muted)]">
           The waybill is created when you request pickup from the locked provider.
         </p>
       )}

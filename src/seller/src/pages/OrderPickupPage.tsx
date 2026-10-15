@@ -122,16 +122,13 @@ export function OrderPickupPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
+    <main className="portal-page seller-order-workspace">
+      <header className="portal-page-header">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4C1268] dark:text-purple-300">
-            Orders
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="portal-page-heading">
             Pickup preparation
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+          <p className="portal-page-description">
             Pack approved orders, keep each checkout-selected provider, and submit ready parcels for pickup.
           </p>
         </div>
@@ -148,11 +145,11 @@ export function OrderPickupPage() {
 
       {error && <OrderError message={error} retry={refreshAll} />}
       {notice && (
-        <div className="my-4 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-900 dark:border-green-400/25 dark:bg-green-400/10 dark:text-green-100" role="status">
+        <div className="portal-feedback my-4" role="status">
           <p>{notice}</p>
           {createdRequestId && (
             <Link
-              className={`${orderLink} mt-2 inline-flex min-h-11 items-center`}
+              className="portal-button mt-2"
               to={`/orders/pickup/${createdRequestId}`}
             >
               Open pickup parcels
@@ -162,10 +159,10 @@ export function OrderPickupPage() {
       )}
 
       <section className={`${orderPanel} mt-5`} aria-labelledby="ready-to-submit">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-5 dark:border-white/10">
+        <div className="order-section-heading">
           <div>
             <h2 className="font-semibold" id="ready-to-submit">Prepared orders</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-[var(--portal-muted)]">
               {orders.length} available · {selected.length} selected
               {selectedProvider ? ` · ${selectedProvider.business_name}` : ''}
             </p>
@@ -189,7 +186,7 @@ export function OrderPickupPage() {
         />
 
         {addresses.length === 0 && !addressLoading && (
-          <div className="border-b border-zinc-200 p-5 text-sm dark:border-white/10">
+          <div className="border-b border-[var(--portal-border)] px-4 py-3 text-sm">
             <p className="text-amber-700 dark:text-amber-300">No pickup address is available.</p>
             <Link className={`${orderLink} mt-2 inline-flex min-h-11 items-center`} to="/account">
               Add one in Account settings
@@ -204,13 +201,13 @@ export function OrderPickupPage() {
         ) : processing.loading && !processing.data ? (
           <div
             aria-label="Loading prepared orders"
-            className="m-5 h-56 animate-pulse rounded-lg border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[0.025]"
+            className="m-5 h-56 animate-pulse rounded-lg border border-[var(--portal-border)] bg-[var(--portal-subtle)]"
             role="status"
           >
             <span className="sr-only">Loading prepared orders…</span>
           </div>
         ) : orders.length === 0 ? (
-          <p className="p-5 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="p-5 text-sm text-[var(--portal-muted)]">
             Approved orders appear here while they are being prepared.
           </p>
         ) : (
@@ -243,17 +240,17 @@ export function OrderPickupPage() {
 
 function PreparationGuidance() {
   return (
-    <section className={`${orderPanel} mt-5 p-5`} aria-labelledby="packing-steps">
-      <h2 className="font-semibold" id="packing-steps">Before requesting pickup</h2>
-      <ol className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+    <details className={`${orderPanel} px-4 text-sm`}>
+      <summary className="min-h-11 cursor-pointer py-3 font-medium">Packing checklist</summary>
+      <ol className="grid gap-2 pb-3 text-sm sm:grid-cols-2">
         <li><strong>1.</strong> Confirm items, then pack and seal each order separately.</li>
         <li><strong>2.</strong> Select orders within one provider group.</li>
         <li><strong>3.</strong> Choose one pickup address and request pickup.</li>
         <li><strong>4.</strong> Print and attach each generated waybill.</li>
       </ol>
-      <p className="mt-3 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10">
+      <p className="border-t border-[var(--portal-border)] py-3 text-xs text-[var(--portal-muted)]">
         The provider is locked from checkout. Keep waybills flat and avoid glare over the QR code.
       </p>
-    </section>
+    </details>
   )
 }

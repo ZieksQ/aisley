@@ -13,3 +13,9 @@ export type SellerPickupRequestPage = {
 }
 
 export type SellerPickupRequestResponse = { data: SellerPickupRequest }
+
+export function pickupDate(date: string | null) {
+  return date
+    ? new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { dateStyle: 'medium' })
+    : 'Date pending'
+}

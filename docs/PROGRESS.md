@@ -136,3 +136,9 @@ Format:
 
 - Redesigned order monitoring, approval, order review, and pickup preparation with paginated tables, a modal sort chooser, refreshed status cards, and return-to-queue approval confirmations. Added Shop-scoped pickup request reads and a parcel page with request sorting/pagination, order details, and individual or bulk waybill actions; updated Seller feature specs.
 - Seller lint and production build, changed API PHP syntax checks, and `git diff --check` passed. No application tests or browser checks were run.
+
+## 2026-10-15 — Seller order themes, density, and search
+
+- Rebuilt Seller order workspaces around shared portal light/dark tokens, four primary KPI cards plus all-status totals, compact 56px tables, consistent controls/dialogs, and action buttons without hover underlines. Fixed mobile table wrapping and detail-grid overflow across monitoring, approval, details, preparation, pickup requests, and parcels.
+- Added bounded, case-insensitive Shop-scoped monitoring search over Order references and purchased product/SKU snapshots, preserving filters, pagination, and Shop-wide counts. Pickup requests now show a separate View parcels action, Request until fully scheduled, and Scheduled with the Logistics pickup date.
+- Verification passed Seller build/typecheck/lint, scoped shared-UI lint, API 8 tests/119 assertions, Seller action 8 tests, and Chromium interactions plus 48 route/viewport/theme checks at 320/390/768/1440px. Reviewed final captures; every measured table row is 56px and actions retain 44px targets. Artifacts: `node_modules/.cache/seller-operations/orders-*`. Browser/PDF checks use synthetic HTTP; no live API/PostgreSQL or physical-printer acceptance. Existing bundle-size warnings remain.

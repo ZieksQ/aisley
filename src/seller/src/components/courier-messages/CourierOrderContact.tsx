@@ -26,9 +26,9 @@ export function CourierOrderContact({ orderId }: { orderId: string }) {
     ? `/courier-messages?order=${orderId}`
     : context?.conversation_id ? `/courier-messages?conversation=${context.conversation_id}` : null
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#171719]" aria-label="Courier contact">
+    <section className="portal-panel" aria-label="Courier contact">
       <h3 className="font-semibold">Pickup Courier</h3>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="mt-2 text-sm text-[var(--portal-muted)]">
         {!context && !error
           ? 'Checking pickup availability…'
           : context?.send_allowed
@@ -37,12 +37,12 @@ export function CourierOrderContact({ orderId }: { orderId: string }) {
       </p>
       {error && <>
         <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">{error}</p>
-        <button className="mt-2 min-h-11 text-sm underline focus-visible:outline-2" onClick={() => setRevision((value) => value + 1)} type="button">
+        <button className="portal-button mt-2" onClick={() => setRevision((value) => value + 1)} type="button">
           Check again
         </button>
       </>}
       {destination && (
-        <Link className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#4C1268] underline underline-offset-4 focus-visible:outline-2 dark:text-[#e5bdf6]" to={destination}>
+        <Link className="portal-button mt-3" to={destination}>
           {context?.send_allowed ? 'Message pickup Courier' : 'View Courier conversation'}
         </Link>
       )}

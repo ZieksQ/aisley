@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { ConfirmationDialog } from '@aisley/ui/portal'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { OrderDetailContent, OrderDetailLoading } from '../components/orders/OrderDetailContent'
@@ -34,8 +35,7 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
   const submitting = useRef(false)
   const approval = useRef<ReturnType<typeof createOrderApproval> | null>(null)
   const rejection = useRef<ReturnType<typeof createOrderRejection> | null>(null)
-  const approvalDialog = useRef<HTMLDialogElement>(null)
-  const rejectionDialog = useRef<HTMLDialogElement>(null)
+  const [decisionDialog, setDecisionDialog] = useState<'approve' | 'reject' | null>(null)
   const alive = useRef(true)
 
   useEffect(() => {
@@ -84,8 +84,7 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
       await (decision === 'approve' ? approval.current!() : rejection.current!())
       if (!alive.current) return
 
-      approvalDialog.current?.close()
-      rejectionDialog.current?.close()
+      setDecisionDialog(null)
       navigate('/orders/approval', {
         replace: true,
         state: {
@@ -95,8 +94,7 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
       })
     } catch (reason) {
       if (!alive.current || accessError(reason)) return
-      approvalDialog.current?.close()
-      rejectionDialog.current?.close()
+      setDecisionDialog(null)
 
       if (reason instanceof ApiError && reason.status === 409) {
         setActionError(`${reason.message} The order is being refreshed; review its current status before trying again.`)
@@ -123,29 +121,26 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
       : 'Back to monitoring'
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <main className="portal-page seller-order-workspace">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           className={`${orderLink} inline-flex min-h-11 items-center text-sm`}
-          to={preparation ? `/orders/${orderId}` : backTo}
+          to={preparation ? '/orders/pickup' : backTo}
         >
-          ← {preparation ? 'Back to order' : backLabel}
+          ← {preparation ? 'Back to pickup preparation' : backLabel}
         </Link>
         <OrderButton disabled={deciding} isLoading={loading} loadingLabel="Refreshing" onClick={refresh}>
           Refresh
         </OrderButton>
       </div>
 
-      <header className="mt-3 flex flex-wrap items-end justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
+      <header className="portal-page-header mt-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4C1268] dark:text-purple-300">
-            {preparation ? 'Order preparation' : 'Order workspace'}
-          </p>
-          <h1 className="mt-1 break-all text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="portal-page-heading break-all">
             {order ? order.reference : preparation ? 'Prepare order' : 'Order details'}
           </h1>
           {order && (
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-sm text-[var(--portal-muted)]">
               Placed <time dateTime={order.placed_at}>{orderDate(order.placed_at)}</time>
             </p>
           )}
@@ -155,7 +150,7 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
           <div className="flex flex-wrap gap-2">
             {order.capabilities.can_prepare && (
               <Link
-                className="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] dark:border-white/20 dark:hover:bg-white/5"
+                className="portal-button"
                 to="/orders/pickup"
               >
                 Open pickup preparation
@@ -164,9 +159,9 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
             {order.capabilities.can_approve && (
               <>
                 <OrderButton
-                  className="border-red-300! text-red-800! hover:bg-red-50! focus-visible:ring-red-600/20 dark:border-red-400/40! dark:text-red-200! dark:hover:bg-red-400/10!"
+                  className="portal-icon-danger"
                   disabled={deciding}
-                  onClick={() => rejectionDialog.current?.showModal()}
+                  onClick={() => setDecisionDialog('reject')}
                 >
                   Reject
                 </OrderButton>
@@ -175,7 +170,7 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
                   disabled={loading || !!error}
                   isLoading={deciding}
                   loadingLabel="Saving decision"
-                  onClick={() => approvalDialog.current?.showModal()}
+                  onClick={() => setDecisionDialog('approve')}
                 >
                   Approve order
                 </OrderButton>
@@ -197,90 +192,21 @@ function OrderDetail({ orderId, preparation }: { orderId: string; preparation: b
         <OrderDetailContent order={order} preparation={preparation} />
       ) : null}
 
-      <ApprovalDialog
-        deciding={deciding}
-        dialogRef={approvalDialog}
-        orderReference={order?.reference}
-        onCancel={() => approvalDialog.current?.close()}
-        onConfirm={() => void decide('approve')}
-      />
-      <RejectionDialog
-        deciding={deciding}
-        dialogRef={rejectionDialog}
-        onCancel={() => rejectionDialog.current?.close()}
-        onConfirm={() => void decide('reject')}
-      />
-    </main>
-  )
-}
-
-function ApprovalDialog({
-  deciding,
-  dialogRef,
-  orderReference,
-  onCancel,
-  onConfirm,
-}: {
-  deciding: boolean
-  dialogRef: RefObject<HTMLDialogElement | null>
-  orderReference?: string
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="approve-title"
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-zinc-200 bg-white p-6 text-zinc-950 shadow-xl backdrop:bg-black/50 dark:border-white/20 dark:bg-[#18181b] dark:text-white"
-      onCancel={(event) => { if (deciding) event.preventDefault() }}
-    >
-      <h2 className="text-lg font-semibold" id="approve-title">Approve this order?</h2>
-      <p className="mt-3 text-sm leading-6">
-        You will take responsibility for preparing {orderReference}. The customer’s normal cancellation window will close.
-      </p>
-      <div className="mt-5 flex justify-end gap-3">
-        <OrderButton disabled={deciding} onClick={onCancel}>Cancel</OrderButton>
-        <OrderButton variant="secondary" isLoading={deciding} loadingLabel="Approving" onClick={onConfirm}>
-          Confirm approval
-        </OrderButton>
-      </div>
-    </dialog>
-  )
-}
-
-function RejectionDialog({
-  deciding,
-  dialogRef,
-  onCancel,
-  onConfirm,
-}: {
-  deciding: boolean
-  dialogRef: RefObject<HTMLDialogElement | null>
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="reject-title"
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-zinc-200 bg-white p-6 text-zinc-950 shadow-xl backdrop:bg-black/50 dark:border-white/20 dark:bg-[#18181b] dark:text-white"
-      onCancel={(event) => { if (deciding) event.preventDefault() }}
-    >
-      <h2 className="text-lg font-semibold" id="reject-title">Reject this order?</h2>
-      <p className="mt-3 text-sm leading-6">
-        The order will move to Rejected and its reserved inventory will be released. This decision cannot be reversed here.
-      </p>
-      <div className="mt-5 flex justify-end gap-3">
-        <OrderButton disabled={deciding} onClick={onCancel}>Cancel</OrderButton>
-        <OrderButton
-          className="border-red-300! text-red-800! hover:bg-red-50! focus-visible:ring-red-600/20 dark:border-red-400/40! dark:text-red-200! dark:hover:bg-red-400/10!"
-          isLoading={deciding}
-          loadingLabel="Rejecting"
-          onClick={onConfirm}
+      {decisionDialog && (
+        <ConfirmationDialog
+          title={decisionDialog === 'approve' ? 'Approve this order?' : 'Reject this order?'}
+          confirmLabel={decisionDialog === 'approve' ? 'Confirm approval' : 'Confirm rejection'}
+          destructive={decisionDialog === 'reject'}
+          busy={deciding}
+          confirmDisabled={loading || Boolean(error)}
+          onClose={() => setDecisionDialog(null)}
+          onConfirm={() => void decide(decisionDialog)}
         >
-          Confirm rejection
-        </OrderButton>
-      </div>
-    </dialog>
+          {decisionDialog === 'approve'
+            ? `You will prepare ${order?.reference}. The customer’s normal cancellation window will close.`
+            : 'The order will move to Rejected and its reserved inventory will be released. This decision cannot be reversed here.'}
+        </ConfirmationDialog>
+      )}
+    </main>
   )
 }

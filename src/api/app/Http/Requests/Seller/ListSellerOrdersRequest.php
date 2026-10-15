@@ -16,6 +16,7 @@ class ListSellerOrdersRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'search' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', Rule::enum(OrderStatus::class)],
             'page' => ['nullable', 'integer', 'min:1'],
             'sort' => ['nullable', Rule::in(['activity_desc', 'oldest', 'amount_high', 'amount_low', 'status'])],
