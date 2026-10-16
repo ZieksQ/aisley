@@ -18,7 +18,7 @@ native reset links deferred.
 
 Flutter: **implemented; target acceptance pending**. See the Phase 1 verification record for evidence.
 
-Profile/credentials → pending/no credential → Admin decision outside app → device-token login → /me → consent.
+Email → OTP → profile/credentials → pending/no credential → Admin decision outside app → device-token login → /me → consent.
 
 - Register only supported profile/credential keys; no applicant status polling or imported Courier evidence keys. Login sends device_name and securely stores the returned Customer-scoped token on Android and local web.
 - Distinguish credentials-first INVALID_CREDENTIALS from pending/rejected/suspended/inactive denial, throttling and network/storage failure. No identity may self-approve.
@@ -35,6 +35,7 @@ screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/P
 Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
+- Registration now requires email-first OTP and `email_verification_token`; see [registration email contract](../../../registration-email.md) for exact endpoints, limits, errors, retry, proof expiry, and client behavior. Adopted locally on 2026-10-14; deployed/device acceptance remains open.
 
 ### Feature behavior and boundaries
 

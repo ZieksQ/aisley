@@ -13,11 +13,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\VerifiesPasswordChanges;
 use Tests\TestCase;
 
 class SellerAccountManagementTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesPasswordChanges;
 
     protected function setUp(): void
     {
@@ -95,11 +97,11 @@ class SellerAccountManagementTest extends TestCase
             'password_confirmation' => 'UpdatedSeller456',
         ])->assertUnprocessable()->assertJsonValidationErrors('current_password');
 
-        $this->putJson('/api/v1/seller/account/password', [
+        $this->putJson('/api/v1/seller/account/password', $this->verifiedPasswordPayload($seller, [
             'current_password' => 'CurrentSeller123',
             'password' => 'UpdatedSeller456',
             'password_confirmation' => 'UpdatedSeller456',
-        ])->assertOk()->assertJsonMissingPath('password');
+        ]))->assertOk()->assertJsonMissingPath('password');
 
         $this->assertTrue(Hash::check('UpdatedSeller456', $seller->fresh()->password));
         $this->assertDatabaseCount('audit_logs', 0);

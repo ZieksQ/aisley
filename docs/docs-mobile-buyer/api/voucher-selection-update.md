@@ -1,7 +1,7 @@
 # Voucher selection update — 2026-10-09
 
 Contract source: AISLEY branch `feature/voucher-names-stacking-ux`, Laravel `/api/v1`.
-This delta follows the historical 22b0a48 inspection; external Flutter adoption is unverified (G26).
+This delta follows the historical 22b0a48 inspection; Buyer names/pairing adoption has [B09 source/synthetic evidence](../references/voucher-selection-verification.md). Live/device gates remain open (G26).
 
 - `POST /customer/checkout/quote` adds non-null string `name` to each candidate and applied voucher.
 - Placement and `GET /customer/checkout/{batch}` add non-null string `name` to frozen Order vouchers. Historical names fall back to the stored code; current definition edits never replace historical names.
@@ -13,6 +13,6 @@ This delta follows the historical 22b0a48 inspection; external Flutter adoption 
 
 Update the typed repository/models and selection state, then verify quote/place/batch parsing, two opposite App benefits, same-benefit rejection/replacement, frozen names and both capped fixed/percentage savings. Backend and web verification do not complete Flutter acceptance or earlier G25 shipping adoption.
 
-## Current source/client distinction — 2026-10-12
+## Current source/client distinction — 2026-10-15
 
-Quote candidates and applied vouchers plus Checkout Batch voucher snapshots carry names. Customer Order detail/history currently exposes code/terms without a voucher name; do not invent that field. Buyer candidate names use a code fallback, while applied/Batch names and same-benefit replacement remain unadopted. Discovery/collection/wallet are implemented locally; see [collection contract](voucher-collection.md) and [current gaps](../references/integration-gaps.md).
+Quote candidates and applied vouchers plus Checkout Batch voucher snapshots carry names. Customer Order detail/history currently exposes code/terms without a voucher name; do not invent that field. Buyer parses candidate/applied/Batch names with historical code fallback and replaces same-benefit choices using current quote candidate/applied metadata. Deselection removes only the exact UUID/target pair; pending uncertain placement keeps its original immutable payload/key. Discovery/collection/wallet are implemented locally; see [collection contract](voucher-collection.md) and [current gaps](../references/integration-gaps.md).

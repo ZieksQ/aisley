@@ -1,3 +1,5 @@
+import { PasswordChangeForm } from "@aisley/ui/password-change";
+import { requestPasswordCode, updatePassword } from "../lib/password-change";
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent, InputHTMLAttributes } from 'react'
 import { FaCamera, FaCircleCheck, FaRotateRight, FaTrashCan } from 'react-icons/fa6'
@@ -30,13 +32,12 @@ const emptyProfile: ProfileForm = { first_name: '', last_name: '', middle_name: 
 const emptyStorefront: StorefrontForm = { name: '', description: '', contact_email: '', contact_number: '', website: '', is_on_vacation: false, vacation_message: '' }
 
 export function AccountPage() {
-  const { updateSeller } = useAuth()
+  const { updateSeller, passwordSession } = useAuth()
   const [account, setAccount] = useState<SellerAccount | null>(null)
   const [profile, setProfile] = useState<ProfileForm>(emptyProfile)
   const [storefront, setStorefront] = useState<StorefrontForm>(emptyStorefront)
   const [email, setEmail] = useState('')
   const [emailPassword, setEmailPassword] = useState('')
-  const [passwords, setPasswords] = useState({ current_password: '', password: '', password_confirmation: '' })
   const [photo, setPhoto] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -142,15 +143,6 @@ export function AccountPage() {
     } catch (error) { fail(error) } finally { setBusy(null) }
   }
 
-  async function savePassword(event: FormEvent) {
-    event.preventDefault()
-    begin('password')
-    try {
-      const response = await apiRequest<{ message: string }>('/api/v1/seller/account/password', { method: 'PUT', body: JSON.stringify(passwords) })
-      setMessage(response.message)
-      setPasswords({ current_password: '', password: '', password_confirmation: '' })
-    } catch (error) { fail(error) } finally { setBusy(null) }
-  }
 
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null
@@ -252,19 +244,16 @@ export function AccountPage() {
 
       <section aria-labelledby="security-heading" className={`${sectionClass} seller-security-panel`}>
         <h3 className="font-semibold" id="security-heading">Sign-in security</h3>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Two-factor authentication is not available yet. Current-password confirmation protects email and password edits for now.</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Two-factor authentication is not available yet. Current-password confirmation protects email edits; password edits also require an emailed code.</p>
         <div className="mt-5 grid gap-6 lg:grid-cols-2">
           <form className="seller-security-card rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10" onSubmit={saveEmail}>
             <h4 className="font-medium">Email address</h4>
             <div className="mt-4 space-y-4"><TextField autoComplete="email" errors={errors} label="Email" name="email" onChange={setEmail} required type="email" value={email} /><TextField autoComplete="current-password" errors={errors} label="Current password" name="current_password" onChange={setEmailPassword} required type="password" value={emailPassword} /></div>
             <button className={`${primaryButtonClass} mt-5 w-full`} disabled={busy === 'email'}>{busy === 'email' ? 'Updating…' : 'Update email'}</button>
           </form>
-          <form className="seller-security-card rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10" onSubmit={savePassword}>
-            <h4 className="font-medium">Password</h4>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">At least 8 characters with uppercase, lowercase, and a number.</p>
-            <div className="mt-4 space-y-4"><TextField autoComplete="current-password" errors={errors} label="Current password" name="current_password" onChange={(value) => setPasswords({ ...passwords, current_password: value })} required type="password" value={passwords.current_password} /><TextField autoComplete="new-password" errors={errors} label="New password" name="password" onChange={(value) => setPasswords({ ...passwords, password: value })} required type="password" value={passwords.password} /><TextField autoComplete="new-password" errors={errors} label="Confirm new password" name="password_confirmation" onChange={(value) => setPasswords({ ...passwords, password_confirmation: value })} required type="password" value={passwords.password_confirmation} /></div>
-            <button className={`${primaryButtonClass} mt-5 w-full`} disabled={busy === 'password'}>{busy === 'password' ? 'Updating…' : 'Update password'}</button>
-          </form>
+          <div className="seller-security-card rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10">
+            <PasswordChangeForm session={passwordSession} key={account.id} requestCode={requestPasswordCode} updatePassword={updatePassword} sessionDescription="This browser stays signed in. API access tokens are revoked." />
+          </div>
         </div>
       </section>
     </div>

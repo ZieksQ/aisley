@@ -3,7 +3,7 @@ feature: account-management
 title: Seller Account Management
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Implemented foundation
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -21,6 +21,10 @@ scope: Seller Web Application and Laravel API
 - **Non-goals:** role/status/permission changes, Admin decisions, another Seller's data, arbitrary column patches, Seller closure, MFA, payouts without an approved provider, notification preferences, or replacement evidence review.
 
 ## MUST
+
+- Password editing now requires the current password and a single-use emailed code. Follow the [password-change verification contract](../../../references/password-change-verification.md) for the code-request route, required confirmation fields, limits, failures and existing session/token outcomes.
+- Keep pending password confirmation, reconciliation and cooldown state in the authenticated session across navigation, Cancel and form recreation. Fresh sign-in or identity loss resets it; profile/consent refresh does not. Secrets stay local to the form, and delayed results settle only their originating session.
+
 
 ### Scope and safe state
 

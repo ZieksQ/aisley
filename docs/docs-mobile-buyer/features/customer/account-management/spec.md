@@ -21,7 +21,7 @@ Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../re
 Account → independent profile/photo/password form → confirmed change → refresh navigation; settings shows promotional preference.
 
 - Read private allow-listed account DTO; PATCH profile uses permitted names/contact/sex/birth_date. Email/role/status/approval are read-only; no client owner ID.
-- Password PATCH requires current_password and confirmed replacement; current bearer survives and other tokens are revoked. Email/MFA/device-list/delete/export remain deferred.
+- Password PATCH requires current_password, confirmed replacement, challenge_id and verification_code; current bearer survives and other tokens are revoked. Email/MFA/device-list/delete/export remain deferred.
 - Photo multipart uses photo and authenticated bytes/private reread/remove; refetch uncertain replacement before another upload. Promotion PATCH uses promotional_in_app_opted_in boolean, default off and separate from consent. Clear private forms/media on identity loss. Laravel bounds profile images to 8000 pixels per edge/40 million total, performs isolated full decode/rewrite, and rejects processing failures with 422 on photo while preserving the prior image (B04).
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
@@ -88,7 +88,7 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
   Request: Complete profile fields as registration; middle_name nullable. Reject id/user_id/email/role/status/password/photo storage fields.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - `PATCH /api/v1/customer/account/password` → HTTP 200; `{message:string}`.
-  Request: current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.
+  Request: challenge_id/verification_code required; current_password matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - `GET /api/v1/customer/account/profile-photo` → HTTP 200; `image bytes (private)`.
   Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
@@ -153,10 +153,18 @@ universal error envelope.
 
 ## HOW
 
+- [Email-code password contract](../../../api/password-change.md): POST code request/resend, then PATCH with challenge_id and verification_code; preserve current bearer.
+- Local Flutter adopts the two-step form, typed DTO, resend/expiry/cooldown and identity cleanup; live SMTP/deployed/device acceptance remains open.
+
+
 ### Responsibility and state ownership
 
 - ApiAccountRepository owns typed transport/parsing; AppDependencies supplies dependencies.
-- ProfileController, PasswordController, PhotoController and PromotionPreferenceController owns current feature state and deliberate actions.
+- ProfileController, PasswordController, PhotoController and PromotionPreferenceController own screen state/actions.
+- SessionController owns nonsecret pending password operations, reconciliation and cooldown across Back/Cancel,
+  screen recreation and consent/profile refresh; reset only on identity loss or fresh authentication.
+- Delayed confirmations settle their originating session after disposal; ambiguous results block both password
+  operations until sign-in reconciliation. Credentials, codes and challenges stay screen-local.
 - Screens compose focused sections/forms/history; reusable widgets render typed state and forward callbacks.
 - Use ChangeNotifier/ListenableBuilder with immutable DTO snapshots. No HTTP or JSON guesses in build().
 - Keep independent forms/actions separately busy and preserve safe input after recoverable validation/network

@@ -52,7 +52,7 @@ class AccountController extends Controller
 
     public function updatePassword(UpdateOwnPasswordRequest $request): JsonResponse
     {
-        $this->accounts->updatePassword($this->seller($request), $request->string('password')->value(), $this->context($request));
+        $this->accounts->updatePassword($this->seller($request), $request->string('current_password')->value(), $request->string('password')->value(), $this->context($request), $request->string('challenge_id')->value(), $request->string('verification_code')->value());
 
         return response()->json(['message' => 'Password updated successfully.']);
     }

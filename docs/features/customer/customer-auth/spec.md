@@ -3,7 +3,7 @@ feature: customer-auth
 title: Customer Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented foundation; registration requirements extensions deferred
 role: Customer
 scope: Customer storefront and Laravel API
@@ -19,7 +19,7 @@ scope: Customer storefront and Laravel API
 - Registration does not authenticate the applicant. Admin Manage Account Registrations remains the authority for approval/rejection; a valid password alone never activates access.
 - **Reference gap:** `docs/references/user-registration-requirements.md` lists a Customer address and ID upload, but the current `RegisterRequest`/RegisterForm do not collect or persist them. Treat those fields as a required follow-up, not as already implemented. When approved, extend registration without weakening the shared file-upload policy.
 - Customer Auth owns identity/session boundaries. Customer Account Management owns profile/photo/password changes after sign-in; Address Book owns reusable addresses; Customer Order Status and Checkout consume the active session.
-- **Non-goals:** Admin review UI, Seller/Courier/Logistics authentication, social login, MFA, email verification policy, account deletion, profile-photo upload, or role switching.
+- **Non-goals:** Admin review UI, Seller/Courier/Logistics authentication, social login, MFA, account deletion, profile-photo upload, or role switching.
 
 ```text
 register profile + credentials
@@ -30,6 +30,12 @@ register profile + credentials
 → GET /me / protected Customer APIs
 → logout or status change ends access
 ```
+
+## Registration email verification — 2026-10-14
+
+- Email → six-digit OTP → registration details/evidence → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
+- Web final submission locks the verified identity and details synchronously. Only its current mounted verification attempt may update feedback or navigate to waiting for approval; defer local expiry while pending, retain drafts on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 
 ## MUST
 
@@ -70,7 +76,7 @@ register profile + credentials
 - [x] Active web and optional mobile login, `/me`, logout, approval-state errors, rate limits, and password reset are implemented and covered by API tests.
 - [x] Protected Customer APIs fail closed for guests, wrong roles, and non-active accounts.
 - [ ] Customer registration address and ID evidence from the shared reference are implemented and reviewed.
-- [ ] Email verification, MFA, rejected-applicant resubmission, and complete session revocation policy are approved.
+- [ ] MFA, rejected-applicant resubmission, and complete session revocation policy are approved.
 
 ## HOW
 

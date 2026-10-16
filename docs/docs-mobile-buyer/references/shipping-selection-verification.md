@@ -74,3 +74,9 @@ Historical provider failures do not establish a current outage or a Flutter caus
 No backend files, schema, migrations, seeds, provider configuration, dependencies or
 secret-bearing environment files were changed. Builds and synthetic checks establish
 client behavior and compilation, not deployed quote eligibility or fulfillment readiness.
+
+## D02 complete-route guidance clarification — 2026-10-15
+
+The current [shipping contract](../api/shipping-selection.md) was checked against Laravel `33f668fd672226211accdbbb3b16052d9c48e592`. New checkout accepts only complete `local`/`planned` routes: discovery omits incomplete providers, explicit quote returns `SHIPPING_COVERAGE_UNAVAILABLE`, and coverage loss at placement returns `QUOTE_STALE` on `logistics_selections` before effects. Refresh options and review a new quote after a definitive conflict; preserve uncertain placement payload/key and committed exact replay. Historical `unplanned` Batch/Order DTOs, prices, holds and reconciliation remain valid.
+
+This is a documentation correction. The dated G25 tests above retain their original scope, including the older unplanned-quote expectation; Buyer still has a defensive-guard/test follow-up outside D02. No Flutter source or test expectation changes here, and revised eligibility/recovery, deployed commerce and installed-device acceptance remain unverified.

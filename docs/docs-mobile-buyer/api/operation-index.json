@@ -5,12 +5,12 @@
       "feature": "customer-auth",
       "method": "POST",
       "path": "/api/v1/customer/auth/register",
-      "request_contract": "Profile fields required: names string≤255, middle_name nullable≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.",
+      "request_contract": "Profile fields required: names string≤255, middle_name nullable≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited. Required email_verification_token: 64-character registration-only proof bound to email/customer role; email_verified_at prohibited.",
       "response_contract": "{message:string,customer:RegistrationCustomer}",
       "status": 201,
-      "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
+      "retry": "No durable replay key. After uncertainty, try sign-in before a deliberate resubmission; no applicant polling API exists.",
       "access": "Public",
-      "notes": "",
+      "notes": "Verify email first. Verification proof consumed atomically; approval remains required. Existing users unaffected.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -23,7 +23,8 @@
           "birth_date": "2000-01-01",
           "email": "buyer@example.invalid",
           "password": "Synthetic9Example",
-          "password_confirmation": "Synthetic9Example"
+          "password_confirmation": "Synthetic9Example",
+          "email_verification_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       },
       "response_example": {
@@ -216,7 +217,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         }
       },
@@ -265,7 +266,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         },
         "customer": {
@@ -284,7 +285,7 @@
       "feature": "account-management",
       "method": "PATCH",
       "path": "/api/v1/customer/account/password",
-      "request_contract": "current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.",
+      "request_contract": "current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited. Required challenge_id UUID and verification_code six-digit string from the code request.",
       "response_contract": "{message:string}",
       "status": 200,
       "retry": "No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.",
@@ -296,7 +297,9 @@
         "body": {
           "current_password": "Synthetic9Old",
           "password": "Synthetic9Example",
-          "password_confirmation": "Synthetic9Example"
+          "password_confirmation": "Synthetic9Example",
+          "challenge_id": "11111111-1111-4111-8111-111111111111",
+          "verification_code": "012345"
         }
       },
       "response_example": {
@@ -368,7 +371,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         },
         "customer": {
@@ -417,7 +420,7 @@
           },
           "security": {
             "emailEditable": false,
-            "passwordChangeRequiresCurrentPassword": false
+            "passwordChangeRequiresCurrentPassword": true
           }
         },
         "customer": {
@@ -1552,7 +1555,7 @@
       "status": 200,
       "retry": "No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.",
       "access": "Active Customer + consent",
-      "notes": "Current provider selection/DTO contract is implemented by Buyer; live/device acceptance remains open (G25). Selections participate in normalized quote and placement hashes.",
+      "notes": "Earlier provider selection/DTO adoption is recorded under G25. New quotes require a complete local/planned route; explicit incomplete selections return 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Selections participate in normalized hashes; revised Flutter eligibility/recovery and live/device acceptance remain unverified.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -1858,7 +1861,7 @@
           "feature": "checkout-order",
           "status": 409,
           "code": "SHIPPING_COVERAGE_UNAVAILABLE",
-          "message": "No enabled Logistics provider can quote this Shop order.",
+          "message": "No complete delivery route is available for this Shop and address. Change your address or try again later.",
           "field": "logistics_selections"
         },
         {
@@ -1894,7 +1897,7 @@
       "status": 200,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
       "access": "Active Customer + consent",
-      "notes": "Current provider selection/DTO contract is implemented by Buyer; live/device acceptance remains open (G25). Selections participate in normalized quote and placement hashes.",
+      "notes": "Coverage loss after quote review returns 409 QUOTE_STALE on logistics_selections before Order/stock/voucher/Cart effects; refresh options and review a fresh quote after a definitive conflict. Uncertain placement keeps its original key/payload. Committed exact replay returns the original Batch before route recalculation, even after coverage loss. Revised Flutter recovery and live/device acceptance remain unverified.",
       "request_example": {
         "query": {},
         "headers": {
@@ -2198,8 +2201,8 @@
         {
           "feature": "checkout-order",
           "status": 409,
-          "code": "SHIPPING_COVERAGE_UNAVAILABLE",
-          "message": "No enabled Logistics provider can quote this Shop order.",
+          "code": "QUOTE_STALE",
+          "message": "No complete delivery route is available for this Shop and address. Change your address or try again later. Request a new quote.",
           "field": "logistics_selections"
         },
         {
@@ -2235,7 +2238,7 @@
       "status": 200,
       "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
       "access": "Active Customer + consent",
-      "notes": "",
+      "notes": "Laravel rechecks current ownership and visibility. Historical Batch reads may contain unplanned shipping snapshots and nullable provider fields. Preserve their frozen totals and reconciliation; these DTOs do not authorize new unplanned Orders.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -7230,7 +7233,7 @@
       "status": 200,
       "retry": "Read-only calculation via POST; no quote, reservation or durable key. Retry the same intent with bounded backoff and session/query guards.",
       "access": "Active Customer + consent",
-      "notes": "Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Empty options are a successful read, not quote eligibility; G25 adoption pending.",
+      "notes": "Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Discovery omits internal unplanned results and failed providers; empty options are a successful read that blocks checkout. Earlier selection adoption is recorded under G25; revised eligibility and live/device acceptance remain unverified.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -8012,7 +8015,7 @@
       "response_contract": "{data:ShopAvailabilityProjection}",
       "status": 200,
       "retry": "Read retry with bounded backoff and session/query guards.",
-      "notes": "Shop business availability is online|offline|vacation, never human presence. Missing Shop or unavailable prospective context returns scoped 404. Customer mobile adoption remains open.",
+      "notes": "Shop business availability is online|offline|vacation, never human presence. Missing Shop or unavailable prospective context returns scoped 404. Buyer adopts discovery and availability locally (G32); deployed/live/device acceptance remains open.",
       "request_example": {
         "query": {},
         "headers": {},
@@ -8032,6 +8035,99 @@
       },
       "errors": [],
       "response_variants": []
+    },
+    {
+      "feature": "account-management",
+      "method": "POST",
+      "path": "/api/v1/customer/account/password/verification-code",
+      "request_contract": "current_password,password,password_confirmation required; authenticated account email only.",
+      "response_contract": "{message:string,data:PasswordChangeChallenge}",
+      "status": 202,
+      "retry": "No automatic replay. After uncertainty wait cooldown then deliberately request a fresh code.",
+      "access": "Active Customer + consent",
+      "notes": "60s cooldown, five requests per rolling hour, 10m expiry, five incorrect codes.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "current_password": "Synthetic9Old",
+          "password": "Synthetic9Example",
+          "password_confirmation": "Synthetic9Example"
+        }
+      },
+      "response_example": {
+        "message": "A password verification email has been queued.",
+        "data": {
+          "challenge_id": "11111111-1111-4111-8111-111111111111",
+          "masked_email": "b***@example.invalid",
+          "expires_at": "2026-10-14T10:10:00+00:00",
+          "resend_available_at": "2026-10-14T10:01:00+00:00"
+        }
+      },
+      "id": "op-112",
+      "errors": [],
+      "response_variants": []
+    },
+    {
+      "feature": "customer-auth",
+      "method": "POST",
+      "path": "/api/v1/customer/auth/registration/verification-code",
+      "request_contract": "email valid≤255, trimmed/lowercased. role/status/email_verified_at prohibited.",
+      "response_contract": "{message:string,challenge_id:UUID,expires_at:timestamp,resend_available_at:timestamp}",
+      "status": 200,
+      "retry": "Explicit resend only after cooldown; 60 seconds/five sends per email-role per rolling hour; 30 per IP/hour. 429 honors Retry-After.",
+      "access": "Public",
+      "notes": "Registration-only, no User/token/session before final submission. See registration-email.md.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "email": "buyer@example.invalid"
+        }
+      },
+      "response_example": {
+        "message": "Check your email for a registration verification code.",
+        "challenge_id": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+        "expires_at": "2026-10-14T00:10:00+00:00",
+        "resend_available_at": "2026-10-14T00:01:00+00:00"
+      },
+      "id": "op-113",
+      "errors": [
+        "422 validation",
+        "429 Retry-After"
+      ],
+      "response_variants": []
+    },
+    {
+      "feature": "customer-auth",
+      "method": "POST",
+      "path": "/api/v1/customer/auth/registration/verify-email",
+      "request_contract": "email valid≤255 normalized; challenge_id UUID; verification_code six ASCII digits as string. role/status/email_verified_at prohibited.",
+      "response_contract": "{message:string,email_verification_token:string,expires_at:timestamp}",
+      "status": 200,
+      "retry": "Explicit retry with same valid challenge/code returns same unexpired proof; 30 per IP/minute. Five incorrect attempts invalidate challenge.",
+      "access": "Public",
+      "notes": "Registration-only, no User/token/session before final submission. See registration-email.md.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "email": "buyer@example.invalid",
+          "challenge_id": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+          "verification_code": "012345"
+        }
+      },
+      "response_example": {
+        "message": "Email verified. Complete your registration.",
+        "email_verification_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expires_at": "2026-10-14T01:00:00+00:00"
+      },
+      "id": "op-114",
+      "errors": [
+        "422 validation",
+        "429 Retry-After"
+      ],
+      "response_variants": []
     }
   ],
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
@@ -8047,5 +8143,16 @@
   },
   "order_contact_contract": "2026-10-10 B02: contact-only server guard and nullable Order coordinates; external adopted baseline and historical metadata retained.",
   "current_inspected_checkout": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
-  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe"
+  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
+  "password_change_contract": {
+    "date": "2026-10-14",
+    "source": "Authenticated account password email verification",
+    "client_adoption": "Implemented locally; SMTP/deployed/device acceptance open"
+  },
+  "complete_route_guidance": {
+    "inspected_checkout": "33f668fd672226211accdbbb3b16052d9c48e592",
+    "date": "2026-10-15",
+    "finding": "D02",
+    "flutter_adoption": "Revised eligibility/recovery unverified; historical adoption and live/device gates retained."
+  }
 }

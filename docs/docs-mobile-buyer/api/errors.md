@@ -49,12 +49,13 @@ For consent denial, `data:{required_policies:[{type:string,label:string,version:
 
 ## Current shipping selection failures — 2026-10-04
 
-Current source: `22b0a48f9575ead182d03c35ab87345711c23b90`; Buyer adoption gap G25 remains open.
+Historical inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; complete-route guidance rechecked at `33f668fd672226211accdbbb3b16052d9c48e592` on 2026-10-15 (D02). Earlier shipping adoption is recorded under G25; revised eligibility/recovery and live/device acceptance remain unverified.
 
 | Status / code | Field / recovery |
 | --- | --- |
 | 422 LOGISTICS_SELECTION_INVALID | logistics_selections; remove foreign-Shop choice or refresh disabled provider options |
 | 409 LOGISTICS_SELECTION_REQUIRED | logistics_selections; explicitly choose a provider for each multiple-option Shop |
+| 409 QUOTE_STALE after coverage loss at placement | logistics_selections; no effects; refresh options, requote and review before a new placement; preserve exact uncertain request/key until reconciled |
 | 409 SHIPPING_COVERAGE_UNAVAILABLE | logistics_selections; no complete delivery route, including an explicitly selected provider; change safe intent or retry later |
 | 409 LOGISTICS_PROVIDER_UNAVAILABLE / LOGISTICS_RATE_NOT_ACCEPTED | logistics_selections; refresh available options, never silently substitute |
 | 409 SHIPPING_RATE_UNAVAILABLE / PICKUP_ADDRESS_REQUIRED | address_id; platform/Seller configuration needs correction |

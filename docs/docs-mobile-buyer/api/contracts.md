@@ -60,7 +60,7 @@ Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,
 | Support read | `last_read_sequence` ≥0, cannot exceed history |
 | Policy accept | `confirmation:true`, current type/version route; replay safe through exact User/version acceptance |
 
-Profile PATCH requires first_name, last_name, contact_number, sex and birth_date, with nullable middle_name; it is not an arbitrary partial profile patch. Address PATCH inherits the complete StoreAddressRequest fields. Password PATCH requires `current_password,password,password_confirmation`. Address defaults use create/update `is_default`; no separate default route. [Messaging](messaging.md) documents channel-specific start/body/read keys and envelopes.
+Profile PATCH requires first_name, last_name, contact_number, sex and birth_date, with nullable middle_name; it is not an arbitrary partial profile patch. Address PATCH inherits the complete StoreAddressRequest fields. Password PATCH requires `current_password,password,password_confirmation,challenge_id,verification_code` after [requesting an email code](password-change.md). Address defaults use create/update `is_default`; no separate default route. [Messaging](messaging.md) documents channel-specific start/body/read keys and envelopes.
 
 Current Quote shippingQuote exposes `serviceable,logisticsOrganizationId,logisticsBusinessName,routeStatus,shippingFee`. Batch shippingQuote omits serviceable and permits nullable provider ID/name; the whole projection is null without a pricing snapshot. Order list/detail/mutation include required nullable `shippingProvider:{id,businessName}|null`. No weight/tariff component/count fields remain. Use `POST /api/v1/customer/checkout/logistics-options` before quote; choices, complete-route eligibility and G25 adoption boundaries are defined in [shipping selection](shipping-selection.md).
 
@@ -97,3 +97,7 @@ client checks and separately open live/device acceptance.
 
 
 The [B06 funding delta](legacy-voucher-funding.md) rejects unaffordable legacy Shop shipping choices. Candidate reason and quote rejection use `VOUCHER_FUNDING_INSUFFICIENT`; placement uses existing `409 QUOTE_STALE` on `vouchers` before effects. DTO/request shapes and committed exact-key replay remain unchanged; external Flutter adoption is unverified.
+
+## Email-first registration
+
+[Registration verification](../registration-email.md) defines the public challenge/proof envelopes, required registration token, expiry/resend/attempt limits, errors and recovery. JSON keys remain snake_case. Verification is distinct from identity and consent; existing accounts are unaffected.

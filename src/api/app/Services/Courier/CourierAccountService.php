@@ -3,6 +3,7 @@
 namespace App\Services\Courier;
 
 use App\Models\User;
+use App\Services\Account\PasswordChangeVerification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -27,10 +28,9 @@ class CourierAccountService
         });
     }
 
-    public function updatePassword(User $courier, string $currentPassword, string $password): void
+    public function updatePassword(User $courier, string $currentPassword, string $password, string $challengeId, string $code): void
     {
-        DB::transaction(function () use ($courier, $currentPassword, $password): void {
-            $lockedCourier = User::query()->lockForUpdate()->findOrFail($courier->id);
+        app(PasswordChangeVerification::class)->complete($courier, $currentPassword, $password, $challengeId, $code, function (User $lockedCourier) use ($currentPassword, $password): void {
 
             if (! Hash::check($currentPassword, $lockedCourier->password)) {
                 throw ValidationException::withMessages([

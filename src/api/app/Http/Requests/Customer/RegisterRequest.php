@@ -27,6 +27,8 @@ class RegisterRequest extends FormRequest
             'contact_number' => ['required', 'string', 'max:32'],
             'sex' => ['required', new Enum(UserSex::class)],
             'birth_date' => ['required', 'date', 'before:today'],
+            'email_verification_token' => ['required', 'string', 'size:64'],
+            'email_verified_at' => ['prohibited'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => [
                 'required',

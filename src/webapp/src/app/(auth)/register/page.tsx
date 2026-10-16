@@ -22,7 +22,7 @@ export default function RegisterPage() {
       <PageIntro
         eyebrow="Join Aisley"
         title="Create your account"
-        description="Tell us a little about yourself. Your account will be ready to use after a quick admin review."
+        description="Verify your email first, then tell us about yourself. Admin approval is required before you can sign in."
       />
 
       <RegisterForm />

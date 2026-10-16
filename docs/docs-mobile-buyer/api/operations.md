@@ -12,9 +12,9 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `POST /api/v1/customer/auth/register`
 
 - Access: Public.
-- Request: Profile fields required: names string≤255, middle_name nullable ≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.
+- Request: Required `email_verification_token` bound to verified Customer/email. Profile fields required: names string≤255, middle_name nullable ≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.
 - Response: HTTP 201; `{message:string,customer:RegistrationCustomer}`.
-- Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
+- Retry: No durable replay key. After uncertainty, try sign-in before deliberately resubmitting; there is no applicant polling API.
 - Notes: Laravel rechecks current ownership and visibility.
 - [Synthetic examples](examples/customer-auth.json).
 
@@ -100,7 +100,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `PATCH /api/v1/customer/account/password`
 
 - Access: Active Customer + consent.
-- Request: current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.
+- Request: `challenge_id` UUID and `verification_code` six-digit string are required after requesting a code; current_password required and matches server hash; new password confirmed≥8 mixed case + digit; identity/email/role/status prohibited.
 - Response: HTTP 200; `{message:string}`.
 - Retry: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
 - Notes: Laravel rechecks current ownership and visibility.
@@ -323,7 +323,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
 - Response: HTTP 200; `{data:Quote}`.
 - Retry: No idempotency key; each deliberate quote request creates a new expiring quote, never places or reserves.
-- Notes: Current provider selection/DTO contract is not established as adopted by the current client (G25). Selections participate in normalized quote and placement hashes.
+- Notes: Earlier provider selection/DTO adoption is recorded under G25. New quotes require a complete local/planned route; explicit incomplete selections return 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Selections participate in normalized hashes; revised Flutter eligibility/recovery and live/device acceptance remain unverified.
 - [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
 ## op-030
@@ -334,7 +334,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status. quote_id UUID + UUID header.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Current provider selection/DTO contract is not established as adopted by the current client (G25). Selections participate in normalized quote and placement hashes.
+- Notes: Coverage loss after quote review returns 409 QUOTE_STALE on logistics_selections before Order/stock/voucher/Cart effects; refresh options and review a fresh quote after a definitive conflict. Uncertain placement keeps its original key/payload. Committed exact replay returns the original Batch before route recalculation, even after coverage loss. Revised Flutter recovery and live/device acceptance remain unverified.
 - [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
 ## op-031
@@ -345,7 +345,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: Owned batch UUID; no body.
 - Response: HTTP 200; `{data:Batch}`.
 - Retry: Read retry after bounded backoff; reject obsolete session/query generations.
-- Notes: Laravel rechecks current ownership and visibility.
+- Notes: Laravel rechecks current ownership and visibility. Historical Batch reads may contain unplanned shipping snapshots and nullable provider fields. Preserve their frozen totals and reconciliation; these DTOs do not authorize new unplanned Orders.
 - [Synthetic examples](examples/checkout-order.json).
 
 ## op-032
@@ -1057,10 +1057,10 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: mode cart|buy_now; exactly cart_item_ids distinct UUID[] min1 OR buy_now product_id UUID, present nullable variant_id UUID, quantity1–2147483647; address_id owned UUID; payment_method cod; optional vouchers max20 {voucher_id distinct UUID,target_shop_id UUID}; optional logistics_selections max50 {shop_id distinct UUID,logistics_organization_id UUID}; no owner/prices/status.
 - Response: HTTP 200; `{data:LogisticsOptions}`.
 - Retry: Read-only calculation via POST; no quote, reservation or durable key. Retry the same intent with bounded backoff and session/query guards.
-- Notes: Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Empty options are a successful read, not quote eligibility; G25 adoption pending.
+- Notes: Runs owned address/item/stock validation. Provider and voucher selections are validated structurally but not applied in options-only calculation. Discovery omits internal unplanned results and failed providers; empty options are a successful read that blocks checkout. Earlier selection adoption is recorded under G25; revised eligibility and live/device acceptance remain unverified.
 - [Synthetic examples](examples/checkout-order.json); [shipping selection](shipping-selection.md).
 
-Current shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; implemented client adoption remains `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` (G25). Existing operation IDs are stable.
+Historical shipping inspection: `22b0a48f9575ead182d03c35ab87345711c23b90`; earlier client adoption is recorded under G25 and retains the general `57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50` baseline. D02 complete-route guidance was checked at Laravel `33f668fd672226211accdbbb3b16052d9c48e592` on 2026-10-15; revised Flutter eligibility/recovery and live/device acceptance remain unverified. Existing operation IDs are stable.
 
 ## chat-media-001
 
@@ -1157,3 +1157,35 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 - Retry: Bounded read retry; reject obsolete session responses. Missing/unavailable prospective context returns scoped 404.
 - Notes: availability describes Shop business status; this read creates no conversation. Flutter adoption is pending.
 - [Synthetic example](examples/shop-context.json).
+
+## op-112
+
+`POST /api/v1/customer/account/password/verification-code`
+
+- Access: Active Customer + consent, authenticated bearer.
+- Request: `current_password,password,password_confirmation`; recipient derived from authenticated account.
+- Response: HTTP 202; `{message:string,data:PasswordChangeChallenge}`.
+- Retry: Deliberate resend only after 60s/server Retry-After; replaces old challenge. No password mutation occurs.
+- Limits and confirmation: [password email verification](password-change.md).
+
+## op-113
+
+`POST /api/v1/customer/auth/registration/verification-code`
+
+- Access: Public; no bearer.
+- Request: email valid≤255, trimmed/lowercased. role/status/email_verified_at prohibited.
+- Response: HTTP 200; `{message:string,challenge_id:UUID,expires_at:timestamp,resend_available_at:timestamp}`.
+- Retry: Explicit resend only after cooldown; 60 seconds/five sends per email-role per rolling hour; 30 per IP/hour. 429 honors Retry-After.
+- Notes: [Registration email contract](../registration-email.md).
+- [Synthetic examples](examples/customer-auth.json).
+
+## op-114
+
+`POST /api/v1/customer/auth/registration/verify-email`
+
+- Access: Public; no bearer.
+- Request: email valid≤255 normalized; challenge_id UUID; verification_code six ASCII digits as string. role/status/email_verified_at prohibited.
+- Response: HTTP 200; `{message:string,email_verification_token:string,expires_at:timestamp}`.
+- Retry: Explicit retry with same valid challenge/code returns same unexpired proof; 30 per IP/minute. Five incorrect attempts invalidate challenge.
+- Notes: [Registration email contract](../registration-email.md).
+- [Synthetic examples](examples/customer-auth.json).

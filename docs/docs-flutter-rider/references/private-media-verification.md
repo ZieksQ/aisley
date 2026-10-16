@@ -28,3 +28,8 @@ Run `flutter test --no-pub --concurrency=2` and `flutter analyze --no-pub`. Scop
 Source completion does not certify private Azure/local runtime storage, worker/scanner readiness/signatures, deployed cross-role exchanges, or installed Android Save As/playback/lifecycle/TalkBack acceptance. No real accounts, provider calls, production media, migrations, seeds or deployment operations ran. Historical video/document upload capabilities in Laravel/web remain separate from this receive-only mobile release. Preserve these gates and other unrelated adoption statuses until their owning evidence exists.
 
 Buyer and Courier changes are staged without commits for user review. Only the main repository's canonical/portable documentation and app-wide progress follow its automatic commit rule.
+
+
+## Audit G26 local runtime and emulator acceptance — 2026-10-15
+
+[Fresh real-runtime and Android evidence](private-media-runtime-verification.md) records 16 real storage/worker/scanner/relationship checks, both clients' connected Chromium and installed API 35 emulator journeys, focused regressions and standard web/release builds. The isolated local slice is verified; deployed Azure/release pairs, physical devices, full-app login/account switching and actual TalkBack remain open. Earlier results above retain their original scope.

@@ -7,6 +7,7 @@ use App\Models\Address;
 use App\Models\LogisticsHub;
 use App\Models\LogisticsHubLocationChange;
 use App\Models\User;
+use App\Services\Account\PasswordChangeVerification;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -125,10 +126,9 @@ class LogisticsAccountService
     }
 
     /** @param array<string, string|null> $context */
-    public function updatePassword(User $logistics, string $currentPassword, string $password, array $context = []): void
+    public function updatePassword(User $logistics, string $currentPassword, string $password, array $context, string $challengeId, string $code): void
     {
-        DB::transaction(function () use ($logistics, $currentPassword, $password, $context): void {
-            $lockedLogistics = User::query()->lockForUpdate()->findOrFail($logistics->id);
+        app(PasswordChangeVerification::class)->complete($logistics, $currentPassword, $password, $challengeId, $code, function (User $lockedLogistics) use ($currentPassword, $password, $context): void {
             $lockedLogistics->logisticsProfile()->lockForUpdate()->firstOrFail();
             $organization = $lockedLogistics->logisticsOrganization()->lockForUpdate()->firstOrFail();
             $hub = $organization->hub()->lockForUpdate()->firstOrFail();

@@ -394,7 +394,7 @@
       "code": "ROUTE_PARTICIPANT_TARIFF_NOT_ACCEPTED",
       "message": "A route participant has not accepted the platform tariff.",
       "field": null,
-      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+      "exposure": "Internal route-charge failure: calculator produces unplanned and discards partial leg charges. Discovery omits it; explicit new quote returns 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Coverage loss at placement returns 409 QUOTE_STALE on that field before effects; the internal failure code is not a direct Customer HTTP error."
     },
     {
       "feature": "checkout-order",
@@ -402,7 +402,7 @@
       "code": "ROUTE_PARTICIPANT_RATE_UNAVAILABLE",
       "message": "A route participant has no active rate card.",
       "field": null,
-      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+      "exposure": "Internal route-charge failure: calculator produces unplanned and discards partial leg charges. Discovery omits it; explicit new quote returns 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Coverage loss at placement returns 409 QUOTE_STALE on that field before effects; the internal failure code is not a direct Customer HTTP error."
     },
     {
       "feature": "checkout-order",
@@ -410,7 +410,7 @@
       "code": "ROUTE_SERVICE_RATE_UNAVAILABLE",
       "message": "A route participant has no base fee for the required service.",
       "field": null,
-      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+      "exposure": "Internal route-charge failure: calculator produces unplanned and discards partial leg charges. Discovery omits it; explicit new quote returns 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Coverage loss at placement returns 409 QUOTE_STALE on that field before effects; the internal failure code is not a direct Customer HTTP error."
     },
     {
       "feature": "checkout-order",
@@ -418,7 +418,7 @@
       "code": "ROUTE_CATEGORY_RATE_UNAVAILABLE",
       "message": "A route participant has no rate for the Shop main category.",
       "field": null,
-      "exposure": "Internal route-charge failure; quotation degrades to unplanned, never a direct Customer HTTP error. Options omits other caught quote failures."
+      "exposure": "Internal route-charge failure: calculator produces unplanned and discards partial leg charges. Discovery omits it; explicit new quote returns 409 SHIPPING_COVERAGE_UNAVAILABLE on logistics_selections. Coverage loss at placement returns 409 QUOTE_STALE on that field before effects; the internal failure code is not a direct Customer HTTP error."
     },
     {
       "feature": "checkout-order",
@@ -445,7 +445,7 @@
       "feature": "checkout-order",
       "status": 409,
       "code": "SHIPPING_COVERAGE_UNAVAILABLE",
-      "message": "No enabled Logistics provider can quote this Shop order.",
+      "message": "No complete delivery route is available for this Shop and address. Change your address or try again later.",
       "field": "logistics_selections"
     },
     {
@@ -475,9 +475,22 @@
       "code": "ADDRESS_LOCATION_CHANGE_NOT_ALLOWED",
       "message": "Only the recipient name and contact number can be corrected. Select a saved address at the same location and map pin.",
       "field": "address_id"
+    },
+    {
+      "feature": "checkout-order",
+      "status": 409,
+      "code": "QUOTE_STALE",
+      "message": "No complete delivery route is available for this Shop and address. Change your address or try again later. Request a new quote.",
+      "field": "logistics_selections"
     }
   ],
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
   "order_contact_contract": "2026-10-10 B02: contact-only server guard and nullable Order coordinates; external adopted baseline and historical metadata retained.",
-  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe"
+  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
+  "complete_route_guidance": {
+    "inspected_checkout": "33f668fd672226211accdbbb3b16052d9c48e592",
+    "date": "2026-10-15",
+    "finding": "D02",
+    "flutter_adoption": "Revised eligibility/recovery unverified; historical adoption and live/device gates retained."
+  }
 }

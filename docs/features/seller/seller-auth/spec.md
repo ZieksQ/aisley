@@ -3,7 +3,7 @@ feature: seller-auth
 title: Seller Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented foundation
 role: Seller
 scope: Seller Web Application
@@ -28,6 +28,12 @@ register → pending User/Application/Shop/evidence
 
 - **One-Shop rule:** registration creates exactly one pending Shop for the Seller. Approval activates that existing Shop; a second Shop is never created by authentication.
 - **Non-goals:** Admin review UI, post-approval storefront setup, catalog/fulfillment, social login, MFA, staff sub-accounts, and Seller-controlled status changes.
+
+## Registration email verification — 2026-10-14
+
+- Email → six-digit OTP → registration details/evidence → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
+- Web final submission locks the verified identity, details, and evidence synchronously. Only its current mounted verification attempt may show errors or the pending-approval result; defer local expiry while pending, retain drafts/selected files on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 
 ## MUST
 
@@ -69,7 +75,7 @@ register → pending User/Application/Shop/evidence
 - [x] Admin approval/rejection and active-status API gating are role- and tenant-safe.
 - [x] Seller login, `/me`, logout, forgot-password, and reset-password are role-isolated and throttled.
 - [x] Same-email Customer/Admin/Courier records cannot be used as Seller credentials.
-- [ ] Email verification, MFA, full web-session revocation policy, and post-approval Shop setup/publishing workflow are approved and implemented.
+- [ ] MFA, full web-session revocation policy, and post-approval Shop setup/publishing workflow are approved and implemented.
 
 ## HOW
 
@@ -79,7 +85,7 @@ register → pending User/Application/Shop/evidence
 - Keep migrations additive; database enum-like values remain strings with PHP enum casts. Reuse the existing registration/application/document/address/shop relations rather than adding a parallel auth model.
 - Address option handlers read and cache the bundled package locally and are separate from the registration transaction. No provider request is made during registration.
 - API tests must cover rollback and duplicate races, evidence validation/cleanup, role isolation, every account status, CSRF/session fixation, reset-token isolation, and Admin notification failure. Seller checks cover lint, TypeScript, build, and accessible form states.
-- Before adding Shop setup or editable evidence, define the required storefront fields, review policy, notification/email verification, and session-reset behavior in the affected specs.
+- Before adding Shop setup or editable evidence, define the required storefront fields, review policy, notifications and session-reset behavior in the affected specs.
 
 ### Current interface and error contract
 
@@ -99,7 +105,7 @@ register → pending User/Application/Shop/evidence
 
 ### Deferred decisions
 
-- Decide whether email verification is required before Admin review or only before first login.
+- Email OTP is required before registration submission under the shared registration verification contract; Admin review follows the pending application.
 - Decide whether password reset revokes all database web sessions in addition to personal access tokens.
 - Define storefront fields and publication readiness for the post-approval setup screen.
 - Define any future controlled evidence replacement and MFA policy before exposing those controls.

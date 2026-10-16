@@ -17,6 +17,7 @@ use App\Http\Requests\Seller\ResetPasswordRequest;
 use App\Http\Resources\Seller\SellerUserResource;
 use App\Models\ShopCategory;
 use App\Models\User;
+use App\Services\Auth\RegistrationEmailVerification;
 use App\Services\Mail\PasswordResetDeliveryService;
 use App\Services\Notifications\AdminNotificationService;
 use App\Services\Seller\RegistrationEvidenceService;
@@ -68,7 +69,7 @@ class AuthController extends Controller
         return response()->json(['shop_categories' => $shopCategories]);
     }
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request, RegistrationEmailVerification $verification): JsonResponse
     {
         $email = (string) $request->input('email');
         $storedEvidence = [];
@@ -78,7 +79,7 @@ class AuthController extends Controller
         }
 
         try {
-            $user = DB::transaction(function () use ($request, $email, &$storedEvidence): User {
+            $user = $verification->complete(UserRole::Seller, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$storedEvidence): User {
                 $user = User::create([
                     'email' => $email,
                     'password' => (string) $request->input('password'),

@@ -1318,3 +1318,14 @@ The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto)
 | `shop` | `ChatShop` | non-null; required |
 | `conversation_id` | `UUID` | null allowed; required |
 | `send_allowed` | `bool` | non-null; required |
+
+## PasswordChangeChallenge
+
+`challenge_id:UUID`, `masked_email:string`, `expires_at:timestamp`, `resend_available_at:timestamp`; required within `data` from [code request](password-change.md). Confirmation sends the ID with the six-digit string `verification_code` and all three password fields.
+
+## Registration OTP fields
+
+- Request/resend: `email`; verify: `email`, `challenge_id` UUID, `verification_code` six-digit string.
+- Challenge: `message`, `challenge_id`, ISO-8601 `expires_at`, `resend_available_at`.
+- Proof: `message`, `email_verification_token` 64-character hex string, ISO-8601 `expires_at`.
+- Final registration: existing fields plus required `email_verification_token`; no session/bearer until approval/login. Never persist proof/code or accept client `email_verified_at`.

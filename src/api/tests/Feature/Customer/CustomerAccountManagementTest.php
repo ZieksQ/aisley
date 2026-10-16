@@ -13,11 +13,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\ProfilePhotoFixtures;
+use Tests\Support\VerifiesPasswordChanges;
 use Tests\TestCase;
 
 class CustomerAccountManagementTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesPasswordChanges;
 
     protected function setUp(): void
     {
@@ -155,11 +157,11 @@ class CustomerAccountManagementTest extends TestCase
             'password_confirmation' => 'different',
         ])->assertUnprocessable()->assertJsonValidationErrors('password');
 
-        $this->patchJson('/api/v1/customer/account/password', [
+        $this->patchJson('/api/v1/customer/account/password', $this->verifiedPasswordPayload($customer, [
             'current_password' => 'CurrentPassword1',
             'password' => 'UpdatedPassword2',
             'password_confirmation' => 'UpdatedPassword2',
-        ])->assertOk()
+        ]))->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('message', 'Password updated successfully. Other app access tokens have been revoked.')
             ->assertJsonMissingPath('password');
@@ -181,11 +183,11 @@ class CustomerAccountManagementTest extends TestCase
         $currentToken = $customer->createToken('Current phone');
         $otherToken = $customer->createToken('Old tablet');
 
-        $this->withToken($currentToken->plainTextToken)->patchJson('/api/v1/customer/account/password', [
+        $this->withToken($currentToken->plainTextToken)->patchJson('/api/v1/customer/account/password', $this->verifiedPasswordPayload($customer, [
             'current_password' => 'CurrentPassword1',
             'password' => 'UpdatedPassword2',
             'password_confirmation' => 'UpdatedPassword2',
-        ])->assertOk();
+        ]))->assertOk();
 
         $this->assertDatabaseHas('personal_access_tokens', ['id' => $currentToken->accessToken->id]);
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $otherToken->accessToken->id]);

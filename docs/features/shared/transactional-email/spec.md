@@ -2,7 +2,7 @@
 feature: transactional-email
 title: Transactional SMTP Email
 system: AISLEY
-version: 1.0
+version: 1.1
 status: Implemented; live provider and PostgreSQL concurrency acceptance outstanding
 scope: Laravel API, database queue, and scheduler
 ---
@@ -14,7 +14,9 @@ scope: Laravel API, database queue, and scheduler
 - Deliver Customer, Seller, and Logistics password resets and Customer/Seller/Logistics Admin registration decisions through Laravel's configured mailer.
 - Deliver Courier approval/rejection emails from the associated Logistics review workflow. Courier sign-in remains mobile-only.
 - Use the existing eight `MAIL_*` settings; no provider SDK, mail-hosting service, new public endpoint, or frontend setting is introduced.
-- Admin/Courier recovery, verification, marketing, order alerts, and general in-app notifications retain their existing boundaries.
+- Deliver authenticated password-edit verification codes for Customer, Seller, Logistics and Courier under the [verification contract](../../../references/password-change-verification.md).
+- Deliver pre-account registration codes using [registration email verification](../../../references/registration-email-verification.md); nullable User ownership is allowed only for this mail kind.
+- Admin/Courier recovery, other verification, marketing, order alerts, and general in-app notifications retain their existing boundaries.
 
 ## MUST
 
