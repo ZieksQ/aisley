@@ -65,6 +65,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.pickup-provider {
+  width: 12rem;
+  max-width: 12rem;
+}
+.pickup-provider > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .seller-order-workspace .portal-table {
   min-width: 52rem;
 }

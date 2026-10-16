@@ -58,7 +58,8 @@ export function PickupRequestsTable({ refreshRevision }: { refreshRevision: numb
               <tr>
                 <th scope="col">Pickup ID</th><th scope="col">Logistics provider</th>
                 <th className="portal-number" scope="col">Parcels</th><th scope="col">Request status</th>
-                <th scope="col">Submitted</th><th className="portal-row-action" scope="col">Action</th>
+                <th scope="col">Scheduled pickup</th><th scope="col">Submitted</th>
+                <th className="portal-row-action" scope="col">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -70,13 +71,13 @@ export function PickupRequestsTable({ refreshRevision }: { refreshRevision: numb
                     </span>
                     <span className="sr-only">Full pickup ID {pickup.id}</span>
                   </th>
-                  <td className="min-w-40">{pickup.provider?.business_name ?? 'Provider unavailable'}</td>
+                  <td className="pickup-provider" title={pickup.provider?.business_name ?? 'Provider unavailable'}>
+                    <span>{pickup.provider?.business_name ?? 'Provider unavailable'}</span>
+                  </td>
                   <td className="portal-number font-semibold!">{pickup.order_count}</td>
-                  <td>
-                    <PickupStatus status={pickup.status} />
-                    {pickup.status === 'scheduled' && (
-                      <span className="portal-table-meta">{pickupDate(pickup.pickup_date)}</span>
-                    )}
+                  <td><PickupStatus status={pickup.status} /></td>
+                  <td className="whitespace-nowrap">
+                    {pickup.status === 'scheduled' ? pickupDate(pickup.pickup_date) : '—'}
                   </td>
                   <td className="whitespace-nowrap">
                     <time className="portal-secondary text-xs" dateTime={pickup.requested_at}>
