@@ -47,7 +47,7 @@ export function PickupRequestsTable({ refreshRevision }: { refreshRevision: numb
           <h2 id="pickup-requests-title">Pickup requests</h2>
           <p>{data ? `${data.meta.total} requests` : 'Request history and Logistics schedules'}</p>
         </div>
-        <OrderSortDialog buttonLabel="Sort requests" options={sortOptions} value={sort}
+        <OrderSortDialog buttonLabel="Sort" dialogTitle="Sort pickup requests" options={sortOptions} value={sort}
           onChange={(value) => update('pickup_sort', value)} />
       </div>
       {error && <div className="px-4"><OrderError message={error} retry={refresh} /></div>}

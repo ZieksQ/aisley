@@ -5,11 +5,12 @@ import { OrderButton } from './OrderUi'
 
 export type OrderSortOption = { value: string; label: string; description: string }
 
-export function OrderSortDialog({ value, options, onChange, buttonLabel = 'Sort' }: {
+export function OrderSortDialog({ value, options, onChange, buttonLabel = 'Sort', dialogTitle }: {
   value: string
   options: OrderSortOption[]
   onChange: (value: string) => void
   buttonLabel?: string
+  dialogTitle?: string
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(value)
@@ -29,7 +30,7 @@ export function OrderSortDialog({ value, options, onChange, buttonLabel = 'Sort'
         <FaArrowDownWideShort aria-hidden="true" />{buttonLabel}
       </OrderButton>
       {open && (
-        <PortalModal title={buttonLabel === 'Sort' ? 'Sort orders' : buttonLabel}
+        <PortalModal title={dialogTitle ?? (buttonLabel === 'Sort' ? 'Sort orders' : buttonLabel)}
           description="Choose how these results are ordered." onClose={() => setOpen(false)}>
           <form onSubmit={apply}>
             <fieldset className="order-sort-options">

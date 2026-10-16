@@ -3,11 +3,18 @@ import { useEffect, useState } from 'react'
 import { FaClock, FaRotateRight } from 'react-icons/fa6'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { OrderButton, OrderError } from '../components/orders/OrderUi'
+import { OrderSortDialog, type OrderSortOption } from '../components/orders/OrderSortDialog'
 import { OrderPagination, OrdersTable } from '../components/orders/OrdersTable'
 import { useSellerOrders } from '../lib/useSellerOrders'
 import type { SellerOrderPage } from '../types/orders'
 
 type ApprovalLocationState = { decision?: 'approved' | 'rejected'; reference?: string } | null
+
+const approvalSortOptions: OrderSortOption[] = [
+  { value: 'oldest', label: 'Oldest placed', description: 'Orders waiting the longest first.' },
+  { value: 'amount_high', label: 'Highest total', description: 'Largest order totals first.' },
+  { value: 'amount_low', label: 'Lowest total', description: 'Smallest order totals first.' },
+]
 
 export function OrderApprovalPage() {
   const [params, setParams] = useSearchParams()
@@ -15,9 +22,11 @@ export function OrderApprovalPage() {
   const navigate = useNavigate()
   const state = location.state as ApprovalLocationState
   const [decisionMessage, setDecisionMessage] = useState('')
+  const requestedSort = params.get('sort') ?? 'oldest'
+  const sort = approvalSortOptions.some((option) => option.value === requestedSort) ? requestedSort : 'oldest'
   const page = Math.max(1, Math.floor(Number(params.get('page'))) || 1)
   const { data, error, loading, refresh } = useSellerOrders<SellerOrderPage>(
-    `/api/v1/seller/orders?status=placed&sort=oldest&per_page=20&page=${page}`,
+    `/api/v1/seller/orders?status=placed&sort=${sort}&per_page=20&page=${page}`,
   )
 
   useEffect(() => { document.title = 'Order approval | Aisley Seller' }, [])
@@ -27,13 +36,18 @@ export function OrderApprovalPage() {
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
   }, [location.pathname, location.search, navigate, state?.decision, state?.reference])
 
-  function changePage(nextPage: number) {
+  function updateParam(key: string, value: string) {
     setParams((current) => {
       const next = new URLSearchParams(current)
-      if (nextPage > 1) next.set('page', String(nextPage))
-      else next.delete('page')
+      if (value) next.set(key, value)
+      else next.delete(key)
+      if (key !== 'page') next.delete('page')
       return next
     })
+  }
+
+  function changePage(nextPage: number) {
+    updateParam('page', nextPage > 1 ? String(nextPage) : '')
   }
 
   return (
@@ -41,7 +55,7 @@ export function OrderApprovalPage() {
       <header className="portal-page-header">
         <div>
           <h1 className="portal-page-heading">Order approval</h1>
-          <p className="portal-page-description">Review new COD orders, starting with the oldest.</p>
+          <p className="portal-page-description">Review new COD orders; oldest orders appear first by default.</p>
         </div>
         <OrderButton isLoading={loading} loadingLabel="Refreshing…" onClick={refresh}>
           <FaRotateRight aria-hidden="true" />Refresh
@@ -62,7 +76,8 @@ export function OrderApprovalPage() {
       <section className="order-surface order-table-wrap overflow-hidden" aria-labelledby="approval-queue-title" aria-busy={loading}>
         <div className="order-section-heading">
           <h2 id="approval-queue-title">Waiting orders</h2>
-          <p>Oldest first</p>
+          <OrderSortDialog value={sort} options={approvalSortOptions}
+            onChange={(value) => updateParam('sort', value)} />
         </div>
         {error && <div className="px-4"><OrderError message={error} retry={refresh} /></div>}
         {!data && loading ? <PortalSkeleton label="Loading orders awaiting approval" rows={5} /> : data ? (
