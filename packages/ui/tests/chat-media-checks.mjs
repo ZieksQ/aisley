@@ -10,6 +10,11 @@ export async function verifyMediaSend(browser, artifacts) {
   await until(`window.mediaEnabled === true`, "committed media capability");
   await js(`window.dispatchEvent(new Event('focus'))`);
   await until(`Boolean(document.querySelector('input[type=file]'))`, "attachment picker");
+  assert.equal(await js(`document.querySelector('input[type=file]').accept`), ".jpg,.jpeg,.png,.mp4");
+  await js(`document.querySelector('details').open = true`);
+  assert.equal(await js(`document.querySelector('details').innerText.includes('8,000,000 bytes')`), true);
+  assert.equal(await js(`document.querySelector('details').innerText.includes('Documents:')`), false);
+  await js(`document.querySelector('details').open = false`);
   await js(`document.querySelector('textarea').focus();document.querySelector('textarea').select()`);
   await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
   await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });

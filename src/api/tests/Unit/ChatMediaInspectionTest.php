@@ -3,12 +3,11 @@
 namespace Tests\Unit;
 
 use App\Services\Messaging\Media\ChatMediaInspector;
-use Dompdf\Dompdf;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
-use ZipArchive;
 
 class ChatMediaInspectionTest extends TestCase
 {
@@ -25,13 +24,12 @@ class ChatMediaInspectionTest extends TestCase
 
     public function test_allowed_images_are_decoded_rewritten_and_previewed(): void
     {
-        foreach (['jpg', 'png', 'webp'] as $extension) {
+        foreach (['jpg', 'jpeg', 'png'] as $extension) {
             $path = $this->path();
             $image = imagecreatetruecolor(40, 20);
             match ($extension) {
-                'jpg' => imagejpeg($image, $path),
+                'jpg', 'jpeg' => imagejpeg($image, $path),
                 'png' => imagepng($image, $path),
-                'webp' => imagewebp($image, $path),
             };
             imagedestroy($image);
             $metadata = app(ChatMediaInspector::class)->inspect($path, $extension, $path.'.jpg');
@@ -51,58 +49,37 @@ class ChatMediaInspectionTest extends TestCase
         $this->reject($fake->getRealPath(), 'png');
     }
 
-    public function test_plain_documents_and_real_pdf_are_accepted_but_unsafe_content_is_not(): void
+    public function test_removed_formats_and_unknown_extensions_are_rejected(): void
     {
-        foreach (['txt' => "Delivery instructions\nKeep dry.", 'csv' => "item,quantity\nBox,2\n"] as $extension => $bytes) {
-            $path = $this->path();
-            file_put_contents($path, $bytes);
-            $this->assertSame([], app(ChatMediaInspector::class)->inspect($path, $extension, $path.'.jpg'));
-        }
-        $pdf = new Dompdf;
-        $pdf->loadHtml('<p>Invoice details</p>');
-        $pdf->render();
         $path = $this->path();
-        file_put_contents($path, $pdf->output());
-        $this->assertSame([], app(ChatMediaInspector::class)->inspect($path, 'pdf', $path.'.jpg'));
-        file_put_contents($path, $pdf->output()."\n/Encrypt 1 0 R\n");
-        $this->reject($path, 'pdf');
-        file_put_contents($path, preg_replace('/^%PDF-1\.[0-9]/', '%PDF-2.0', $pdf->output()));
-        $this->assertSame([], app(ChatMediaInspector::class)->inspect($path, 'pdf', $path.'.jpg'));
-        file_put_contents($path, "%PDF-1.7\nstartxref\n0\n%%EOF");
-        $this->reject($path, 'pdf');
-        file_put_contents($path, preg_replace('/startxref\s+\d+/', 'startxref 999999999', $pdf->output()));
-        $this->reject($path, 'pdf');
-        file_put_contents($path, "Not a PDF\0binary");
-        $this->reject($path, 'pdf');
-        $this->reject($path, 'txt');
+        file_put_contents($path, 'Unsupported file');
+        foreach (['webp', 'pdf', 'txt', 'csv', 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'svg', 'gif', 'mov', 'exe'] as $extension) {
+            $this->reject($path, $extension);
+        }
     }
 
-    public function test_packaged_documents_validate_internal_format_and_block_macros_and_bombs(): void
+    public function test_small_vm_image_dimension_and_pixel_boundaries(): void
     {
-        $parts = ['docx' => ['word/document.xml', 'wordprocessingml.document.main+xml'],
-            'xlsx' => ['xl/workbook.xml', 'spreadsheetml.sheet.main+xml'],
-            'pptx' => ['ppt/presentation.xml', 'presentationml.presentation.main+xml']];
-        foreach ($parts as $extension => [$part, $type]) {
-            $path = $this->archive(['[Content_Types].xml' => '<Types><Override ContentType="application/vnd.openxmlformats-officedocument.'.$type.'" /></Types>', $part => '<document />']);
-            $this->assertSame([], app(ChatMediaInspector::class)->inspect($path, $extension, $path.'.jpg'));
+        foreach ([[4096, 1, true], [4097, 1, false], [4000, 2000, true], [4001, 2000, false]] as [$width, $height, $accepted]) {
+            $path = $this->path();
+            $image = imagecreatetruecolor($width, $height);
+            imagepng($image, $path);
+            imagedestroy($image);
+            if (! $accepted) {
+                $this->reject($path, 'png');
+            } else {
+                $this->assertSame(['width' => $width, 'height' => $height], app(ChatMediaInspector::class)->inspect($path, 'png', $path.'.jpg'));
+            }
         }
-        foreach (['odt' => 'text', 'ods' => 'spreadsheet', 'odp' => 'presentation'] as $extension => $type) {
-            $path = $this->archive(['mimetype' => 'application/vnd.oasis.opendocument.'.$type, 'content.xml' => '<document />']);
-            $this->assertSame([], app(ChatMediaInspector::class)->inspect($path, $extension, $path.'.jpg'));
-        }
-        $base = ['[Content_Types].xml' => '<Types><Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" /></Types>', 'word/document.xml' => '<document />'];
-        $this->reject($this->archive($base + ['word/vbaProject.bin' => 'macro']), 'docx');
-        $this->reject($this->archive($base), 'xlsx');
-        $this->reject($this->archive($base + ['../escape.txt' => 'path']), 'docx');
-        $this->reject($this->archive(array_replace($base, ['word/document.xml' => '<!DOCTYPE doc [<!ENTITY x "value">]><doc>&x;</doc>'])), 'docx');
-        config(['chat_media.max_archive_bytes' => 128]);
-        $this->reject($this->archive($base + ['huge.txt' => str_repeat('x', 1024)]), 'docx');
     }
 
     public function test_real_mp4_metadata_poster_and_incompatible_codecs(): void
     {
-        if (! app(ChatMediaInspector::class)->available()) {
-            $this->markTestSkipped('Requires approved ffmpeg/ffprobe runtime tools.');
+        foreach (['ffmpeg', 'ffprobe'] as $tool) {
+            $executable = config('chat_media.'.$tool);
+            if (! is_executable($executable) && (new ExecutableFinder)->find($executable) === null) {
+                $this->markTestSkipped('Requires approved ffmpeg/ffprobe runtime tools.');
+            }
         }
         $path = $this->video('libx264', 2);
         $metadata = app(ChatMediaInspector::class)->inspect($path, 'mp4', $path.'.jpg');
@@ -122,19 +99,6 @@ class ChatMediaInspectionTest extends TestCase
         }
         $path = tempnam($directory, 'fixture-');
         $this->temporary[] = $path;
-
-        return $path;
-    }
-
-    private function archive(array $entries): string
-    {
-        $path = $this->path();
-        $zip = new ZipArchive;
-        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        foreach ($entries as $name => $bytes) {
-            $zip->addFromString($name, $bytes);
-        }
-        $zip->close();
 
         return $path;
     }

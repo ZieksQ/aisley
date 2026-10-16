@@ -65,7 +65,7 @@ class ChatAttachmentProcessor
                 if (in_array($asset->kind, ['image', 'video'], true) && filesize($temporary) > 8_000_000) {
                     throw ValidationException::withMessages(['file' => 'Media exceeds the 8 MB limit.']);
                 }
-                if (! $this->scanner->scan($temporary)) {
+                if (config('chat_media.scan_enabled') && ! $this->scanner->scan($temporary)) {
                     $asset->update(['state' => ChatAttachmentState::Rejected, 'error_code' => 'FILE_REJECTED']);
 
                     return false;

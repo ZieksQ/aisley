@@ -22,11 +22,14 @@ class ChatAttachmentService
 
     public function enabled(): bool
     {
-        if (! config('chat_media.enabled') || ! in_array(config('chat_media.disk'), ['local', 'azure'], true)) {
+        if (! config('chat_media.enabled') || ! in_array(config('chat_media.disk'), ['local', 'azure', 'azure_chat'], true)) {
             return false;
         }
 
-        return Cache::remember('chat-media-runtime-ready', 10, fn () => app(ChatMediaInspector::class)->available() && app(ChatMediaScanner::class)->available());
+        $cacheKey = 'chat-media-runtime-ready:'.(config('chat_media.scan_enabled') ? 'scanned' : 'unscanned');
+
+        return Cache::remember($cacheKey, 10, fn () => app(ChatMediaInspector::class)->available()
+            && (! config('chat_media.scan_enabled') || app(ChatMediaScanner::class)->available()));
     }
 
     public function upload(User $actor, UploadedFile $file, array $context, string $key): ChatAttachment
@@ -42,8 +45,8 @@ class ChatAttachmentService
         }
         $size = $file->getSize();
         $mime = ChatMediaInspector::MIME[$extension];
-        $kind = str_starts_with($mime, 'image/') ? 'image' : ($extension === 'mp4' ? 'video' : 'document');
-        if ($size <= 0 || $size > ($kind === 'document' ? 10 * 1024 * 1024 : 8_000_000)) {
+        $kind = str_starts_with($mime, 'image/') ? 'image' : 'video';
+        if ($size <= 0 || $size > 8_000_000) {
             throw ValidationException::withMessages(['file' => 'This file exceeds the allowed size or is empty.']);
         }
         $checksum = hash_file('sha256', $file->getRealPath());
@@ -106,7 +109,8 @@ class ChatAttachmentService
             $asset = $rows[$id];
             $total += $asset->byte_size;
             if ($asset->uploader_id !== $actor->id || $asset->scope_hash !== $scope || $asset->message_id
-                || (in_array($asset->kind, ['image', 'video'], true) && $asset->byte_size > 8_000_000)
+                || ! isset(ChatMediaInspector::MIME[strtolower(pathinfo($asset->filename, PATHINFO_EXTENSION))])
+                || ! in_array($asset->kind, ['image', 'video'], true) || $asset->byte_size > 8_000_000
                 || $asset->state !== ChatAttachmentState::Ready || $asset->expires_at->isPast()
                 || ! Storage::disk($asset->disk)->exists($asset->path)) {
                 throw ValidationException::withMessages(['attachment_ids' => 'Every attachment must be ready and belong to this message context.']);

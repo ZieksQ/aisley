@@ -5,7 +5,7 @@
 - This is the shared policy for image uploads across AISLEY.
 - It applies to product gallery images, product-description images, shop logos and banners, profile photos, review media, registration evidence, and delivery proof when those features allow image uploads.
 - Each feature spec must reference this policy instead of defining conflicting image format, size, validation, storage, or access rules.
-- The image baseline below applies everywhere. Chat video/documents have the separately approved policy in [Private Chat Media](../features/shared/chat-media/spec.md); no other feature gains those formats.
+- The image baseline below applies everywhere. Chat media has the separately approved policy in [Private Chat Media](../features/shared/chat-media/spec.md), including its narrower upload allowlist and historical delivery compatibility; other features keep their existing policy.
 - **Terminology:** `WebP` is the intended standard image format for the requested “webimg” format.
 
 ## MUST
@@ -119,11 +119,10 @@
 - Referencing specs should use this policy and may add stricter limits only when the feature explicitly documents why.
 - **References:** [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) and [Laravel file validation](https://laravel.com/framework/docs/13.x/validation#validating-files).
 
-## Chat-specific video and document policy
+## Chat-specific media policy
 
-- Apply [Private Chat Media](../features/shared/chat-media/spec.md) for new chat images and MP4 up to 8,000,000 bytes inclusive (video retains the 180-second cap), documents up to 10 MiB, and five files/50 MiB per message. This chat-specific image limit does not change the general image-upload baseline. Existing committed media retrieval and exact committed-message replay remain compatible; historical unbound image/video assets over the new limit cannot be bound to a new message.
-- Allow only H.264 MP4 with optional AAC audio, PDF, DOCX/XLSX/PPTX, ODT/ODS/ODP, TXT and CSV. Reject malformed, encrypted, macro-enabled, embedded-active and unlisted formats; inspect ZIP contents within entry/expansion limits.
-- Chat images enforce 8,000 pixels per edge and 40 megapixels, and receive metadata rewriting/private previews. These chat-specific processing bounds do not silently change other image features.
-- Scan all chat files with private ClamAV before readiness; scan-limit/encryption/macro alerts reject content, and unavailable checks fail closed. ffprobe checks video metadata; FFmpeg generates a poster without transcoding.
-- Serve participant-scoped media privately, support video byte ranges, and force document downloads with safe Content-Disposition/nosniff. Upload/status/checking is distinct from committed message delivery.
-- Clean up unbound uploads after 24 hours; committed files follow existing message history without new purging. See deployment guidance for worker isolation and scanner sizing.
+- Apply [Private Chat Media](../features/shared/chat-media/spec.md) for new PNG/JPG/JPEG images and H.264 MP4 with optional AAC audio, at most 8,000,000 bytes each inclusive and five files per message. MP4 retains its 180-second cap. The existing 50 MiB aggregate ceiling remains compatible; five new files total at most 40,000,000 bytes.
+- Reject new WebP, document, audio, archive and unlisted uploads. Filename/MIME hints do not establish type: inspect real bytes, decode/rewrite images and inspect MP4 streams/codecs. Images are bounded to 4,096 pixels per edge and 8 megapixels for the small VM.
+- `CHAT_MEDIA_SCAN_ENABLED=false` is an explicit school-project malware-scan opt-out. Other checks remain required. Missing configuration defaults scanning on; when on, scan failures/outages fail closed. No malware-protection claim applies when off.
+- Serve only after participant authorization, with video byte ranges and private no-store headers. Historical committed WebP/documents remain readable through the existing delivery rules and exact committed-message retries; historical unbound unsupported files cannot be newly bound.
+- Production uses a separate private Azure chat container through `azure_chat`; other disks and historical references remain unchanged. Delete unbound uploads after 24 hours; retain committed history. See deployment guidance for worker memory limits and the optional scanner profile.

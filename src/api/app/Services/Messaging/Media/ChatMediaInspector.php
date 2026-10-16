@@ -8,13 +8,7 @@ use Symfony\Component\Process\Process;
 class ChatMediaInspector
 {
     public const MIME = [
-        'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp',
-        'mp4' => 'video/mp4', 'pdf' => 'application/pdf', 'txt' => 'text/plain', 'csv' => 'text/csv',
-        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'odt' => 'application/vnd.oasis.opendocument.text', 'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
-        'odp' => 'application/vnd.oasis.opendocument.presentation',
+        'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'mp4' => 'video/mp4',
     ];
 
     public function available(): bool
@@ -34,13 +28,14 @@ class ChatMediaInspector
             }
         }
 
-        return extension_loaded('gd') && extension_loaded('zip');
+        return extension_loaded('gd');
     }
 
     public function inspect(string $path, string $extension, string $previewPath): array
     {
+        $this->require(isset(self::MIME[$extension]));
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($path);
-        $kind = str_starts_with(self::MIME[$extension], 'image/') ? 'image' : ($extension === 'mp4' ? 'video' : 'document');
+        $kind = str_starts_with(self::MIME[$extension], 'image/') ? 'image' : 'video';
         if ($kind === 'image') {
             $this->require($mime === self::MIME[$extension]);
             $dimensions = @getimagesize($path);
@@ -53,7 +48,6 @@ class ChatMediaInspector
                 $write = match ($mime) {
                     'image/jpeg' => imagejpeg($image, $path, 90),
                     'image/png' => imagepng($image, $path),
-                    'image/webp' => imagewebp($image, $path, 90),
                 };
                 $this->require($write);
                 $ratio = min(1, 640 / max($dimensions[0], $dimensions[1]));
@@ -68,11 +62,6 @@ class ChatMediaInspector
             }
 
             return ['width' => $dimensions[0], 'height' => $dimensions[1]];
-        }
-        if ($kind === 'document') {
-            app(ChatDocumentInspector::class)->inspect($path, $extension, $mime);
-
-            return [];
         }
         $this->require($mime === 'video/mp4');
         $probe = new Process([config('chat_media.ffprobe'), '-v', 'error', '-protocol_whitelist', 'file,pipe',
@@ -92,7 +81,8 @@ class ChatMediaInspector
                 || ($stream['codec_type'] === 'audio' && $stream['codec_name'] === 'aac'));
         }
         $poster = new Process([config('chat_media.ffmpeg'), '-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe',
-            '-i', $path, '-frames:v', '1', '-vf', 'scale=640:640:force_original_aspect_ratio=decrease', '-y', $previewPath]);
+            '-threads', '1', '-i', $path, '-threads', '1', '-filter_threads', '1', '-frames:v', '1',
+            '-vf', 'scale=640:640:force_original_aspect_ratio=decrease', '-y', $previewPath]);
         $poster->setTimeout(30);
         $this->require($poster->run() === 0);
 

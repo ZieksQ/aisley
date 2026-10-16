@@ -41,7 +41,7 @@ export function ChatMediaSelection({ media, disabled, enabled }: {
           />
           <details className="text-xs text-zinc-600 dark:text-zinc-400">
             <summary className="cursor-pointer py-1">Accepted files and limits</summary>
-            <p className="pt-1">{chatMediaHelp} Documents: PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, TXT, CSV.</p>
+            <p className="pt-1">{chatMediaHelp}</p>
           </details>
         </>
       ) : rows.length ? (

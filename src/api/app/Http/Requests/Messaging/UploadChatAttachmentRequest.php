@@ -15,7 +15,8 @@ class UploadChatAttachmentRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['file' => ['required', 'file', 'max:10240'], 'context' => ['required', 'json', 'max:4096']];
+        // Laravel file limits use KiB: 8,000,000 bytes / 1024 = 7812.5.
+        return ['file' => ['required', 'file', 'max:7812.5'], 'context' => ['required', 'json', 'max:4096']];
     }
 
     public function after(): array

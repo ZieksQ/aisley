@@ -36,9 +36,12 @@ class ChatMediaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['chat_media.enabled' => true, 'chat_media.disk' => 'local']);
+        config(['chat_media.enabled' => true, 'chat_media.disk' => 'local', 'chat_media.scan_enabled' => true]);
         Storage::fake('local');
         Queue::fake([ProcessChatAttachment::class]);
+        $this->partialMock(ChatMediaInspector::class, function ($mock): void {
+            $mock->shouldReceive('available')->andReturn(true);
+        });
         $this->mock(ChatMediaScanner::class, function ($mock): void {
             $mock->shouldReceive('available')->andReturn(true);
             $mock->shouldReceive('scan')->andReturn(true);
@@ -47,7 +50,7 @@ class ChatMediaTest extends TestCase
 
     public function test_processing_checks_rewritten_byte_size_without_stale_stat_cache(): void
     {
-        Cache::put('chat-media-runtime-ready', true, 3600);
+        Cache::put('chat-media-runtime-ready:scanned', true, 3600);
         [, , $task] = $this->finalTask();
         $order = $task->shipment->parcel->order;
         $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
@@ -71,7 +74,7 @@ class ChatMediaTest extends TestCase
 
     public function test_image_video_exact_decimal_byte_limits_and_unbound_legacy_rejection(): void
     {
-        Cache::put('chat-media-runtime-ready', true, 3600);
+        Cache::put('chat-media-runtime-ready:scanned', true, 3600);
         [, , $task] = $this->finalTask();
         $order = $task->shipment->parcel->order;
         $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
@@ -126,7 +129,7 @@ class ChatMediaTest extends TestCase
             ->assertJsonMissingPath('items.0.attachments.0.path');
         $this->get("/api/v1/seller/chat-attachments/{$asset}/preview")->assertOk()->assertHeader('Content-Type', 'image/jpeg');
         $this->get("/api/v1/seller/chat-attachments/{$asset}/content")->assertOk()->assertHeader('Cache-Control', 'no-store, private');
-        $reply = $this->upload($order->shop->seller, ['conversation_id' => $conversation], UploadedFile::fake()->createWithContent('instructions.txt', 'Please keep the packaging.'));
+        $reply = $this->upload($order->shop->seller, ['conversation_id' => $conversation], UploadedFile::fake()->image('instructions.png', 20, 10));
         app(ChatAttachmentProcessor::class)->process($reply);
         $this->postJson("/api/v1/seller/conversations/{$conversation}/messages", ['body' => ' Instructions ', 'attachment_ids' => [$reply]], $this->key())
             ->assertCreated()->assertJsonPath('message.body', 'Instructions');
@@ -207,12 +210,12 @@ class ChatMediaTest extends TestCase
         [, , $task] = $this->finalTask();
         $order = $task->shipment->parcel->order;
         $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
-        $file = UploadedFile::fake()->createWithContent('note.txt', 'Packaging instructions');
+        $file = UploadedFile::fake()->image('note.png', 20, 10);
         $key = $this->key();
         $asset = $this->upload($order->customer, $context, $file, $key);
         $this->upload($order->customer, $context, $file, $key, 200);
         $this->assertDatabaseCount('chat_attachments', 1);
-        $this->post('/api/v1/customer/chat-attachments', ['file' => UploadedFile::fake()->createWithContent('note.txt', 'Changed'), 'context' => json_encode($context)], $key)->assertConflict();
+        $this->post('/api/v1/customer/chat-attachments', ['file' => UploadedFile::fake()->image('note.png', 30, 10), 'context' => json_encode($context)], $key)->assertConflict();
         $this->post('/api/v1/customer/chat-attachments', ['file' => UploadedFile::fake()->create('bad.svg', 1), 'context' => json_encode($context)], $this->key())->assertUnprocessable();
         $spoof = $this->upload($order->customer, $context, UploadedFile::fake()->createWithContent('photo.jpg', 'not an image'));
         app(ChatAttachmentProcessor::class)->process($spoof);
@@ -369,13 +372,8 @@ class ChatMediaTest extends TestCase
             ], $this->key())->assertUnprocessable();
         }
         $this->assertDatabaseCount('chat_attachments', 0);
-        $id = $this->upload($order->customer, $context, UploadedFile::fake()->createWithContent('notes.txt', substr(str_repeat("Please handle delivery carefully.\n", 320000), 0, 10 * 1024 * 1024)));
-        app(ChatAttachmentProcessor::class)->process($id);
-        $this->assertSame(ChatAttachmentState::Ready, ChatAttachment::findOrFail($id)->state);
-        $this->assertSame(10 * 1024 * 1024, ChatAttachment::findOrFail($id)->byte_size);
-        $this->actingAs($order->shop->seller)->getJson("/api/v1/seller/chat-attachments/{$id}")->assertNotFound();
         config(['chat_media.disk' => 'public']);
-        $this->getJson('/api/v1/seller/chat-attachments')->assertOk()->assertJsonPath('data.enabled', false);
+        $this->actingAs($order->shop->seller)->getJson('/api/v1/seller/chat-attachments')->assertOk()->assertJsonPath('data.enabled', false);
     }
 
     public function test_customer_courier_upload_browsing_and_history_do_not_consume_message_budgets(): void
@@ -408,6 +406,112 @@ class ChatMediaTest extends TestCase
             $this->postJson("{$base}/{$conversation}/messages", ['body' => 'Reply'], $this->key())->assertCreated();
         }
         $this->postJson("{$base}/{$conversation}/messages", ['body' => 'Reply'], $this->key())->assertStatus(429)->assertHeader('X-RateLimit-Limit', '30');
+    }
+
+    public function test_explicit_scan_opt_out_allows_valid_media_but_keeps_content_validation(): void
+    {
+        config(['chat_media.scan_enabled' => false]);
+        $this->mock(ChatMediaScanner::class, function ($mock): void {
+            $mock->shouldNotReceive('available');
+            $mock->shouldNotReceive('scan');
+        });
+        [, , $task] = $this->finalTask();
+        $order = $task->shipment->parcel->order;
+        $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
+        $this->actingAs($order->customer)->getJson('/api/v1/customer/chat-attachments')
+            ->assertOk()->assertJsonPath('data.enabled', true);
+        $id = $this->upload($order->customer, $context);
+        app(ChatAttachmentProcessor::class)->process($id);
+        $this->assertSame(ChatAttachmentState::Ready, ChatAttachment::findOrFail($id)->state);
+        $this->postJson('/api/v1/customer/conversations', ['shop_id' => $order->shop_id, 'attachment_ids' => [$id]], $this->key())->assertCreated();
+        $this->getJson("/api/v1/customer/chat-attachments/{$id}/content")->assertOk();
+        $spoof = $this->upload($order->customer, $context, UploadedFile::fake()->createWithContent('fake.jpg', 'Not a JPEG'));
+        app(ChatAttachmentProcessor::class)->process($spoof);
+        $this->assertSame(ChatAttachmentState::Rejected, ChatAttachment::findOrFail($spoof)->state);
+    }
+
+    public function test_enabling_scanning_does_not_reuse_unscanned_readiness_and_fails_closed(): void
+    {
+        config(['chat_media.scan_enabled' => false]);
+        $this->mock(ChatMediaScanner::class, function ($mock): void {
+            $mock->shouldReceive('available')->once()->andReturn(false);
+            $mock->shouldNotReceive('scan');
+        });
+        [, , $task] = $this->finalTask();
+        $this->actingAs($task->shipment->parcel->order->customer);
+        $this->getJson('/api/v1/customer/chat-attachments')->assertJsonPath('data.enabled', true);
+        config(['chat_media.scan_enabled' => true]);
+        $this->getJson('/api/v1/customer/chat-attachments')->assertJsonPath('data.enabled', false);
+    }
+
+    public function test_missing_media_tools_still_block_uploads_when_scanning_is_disabled(): void
+    {
+        config(['chat_media.scan_enabled' => false]);
+        $this->partialMock(ChatMediaInspector::class, function ($mock): void {
+            $mock->shouldReceive('available')->once()->andReturn(false);
+        });
+        [, , $task] = $this->finalTask();
+        $this->actingAs($task->shipment->parcel->order->customer)
+            ->getJson('/api/v1/customer/chat-attachments')->assertJsonPath('data.enabled', false);
+    }
+
+    public function test_separate_chat_disk_preserves_existing_storage_and_historical_delivery(): void
+    {
+        [, , $task] = $this->finalTask();
+        $order = $task->shipment->parcel->order;
+        $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
+        $old = $this->upload($order->customer, $context);
+        app(ChatAttachmentProcessor::class)->process($old);
+        $first = $this->postJson('/api/v1/customer/conversations', ['shop_id' => $order->shop_id, 'attachment_ids' => [$old]], $this->key())->assertCreated();
+        Storage::fake('azure');
+        Storage::disk('azure')->put('existing-product.jpg', 'untouched');
+        Storage::fake('azure_chat');
+        config(['filesystems.default' => 'azure', 'chat_media.disk' => 'azure_chat', 'chat_media.scan_enabled' => false]);
+        $id = $this->upload($order->customer, $context);
+        app(ChatAttachmentProcessor::class)->process($id);
+        $asset = ChatAttachment::findOrFail($id);
+        $this->assertSame('azure_chat', $asset->disk);
+        Storage::disk('azure_chat')->assertExists($asset->path);
+        Storage::disk('azure')->assertMissing($asset->path);
+        $this->assertSame(['existing-product.jpg'], Storage::disk('azure')->allFiles());
+        $this->assertSame('untouched', Storage::disk('azure')->get('existing-product.jpg'));
+        $this->postJson('/api/v1/customer/conversations/'.$first->json('conversation.id').'/messages', ['attachment_ids' => [$id]], $this->key())->assertCreated();
+        $this->actingAs($order->shop->seller);
+        foreach ([$old, $id] as $attachment) {
+            $this->getJson("/api/v1/seller/chat-attachments/{$attachment}/content")->assertOk();
+        }
+    }
+
+    public function test_only_four_extensions_can_be_uploaded_and_legacy_types_cannot_be_newly_bound(): void
+    {
+        [, , $task] = $this->finalTask();
+        $order = $task->shipment->parcel->order;
+        $context = ['channel' => 'shop', 'shop_id' => $order->shop_id];
+        foreach (['webp', 'pdf', 'txt', 'csv', 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'gif', 'svg', 'mov'] as $extension) {
+            $this->actingAs($order->customer)->post('/api/v1/customer/chat-attachments', [
+                'context' => json_encode($context), 'file' => UploadedFile::fake()->createWithContent('file.'.$extension, 'Unsupported'),
+            ], $this->key())->assertUnprocessable()->assertInvalid('file');
+        }
+        Cache::flush();
+        foreach (['jpg', 'jpeg', 'png', 'mp4'] as $extension) {
+            $this->upload($order->customer, $context, UploadedFile::fake()->createWithContent('allowed.'.$extension, 'Inspection happens asynchronously'));
+        }
+        $id = $this->upload($order->customer, $context);
+        app(ChatAttachmentProcessor::class)->process($id);
+        foreach (['webp', 'pdf'] as $extension) {
+            ChatAttachment::whereKey($id)->update(['filename' => 'legacy.'.$extension]);
+            $this->postJson('/api/v1/customer/conversations', ['shop_id' => $order->shop_id, 'attachment_ids' => [$id]], $this->key())->assertUnprocessable();
+        }
+        ChatAttachment::whereKey($id)->update(['filename' => 'photo.png']);
+        $key = $this->key();
+        $input = ['shop_id' => $order->shop_id, 'attachment_ids' => [$id]];
+        $this->postJson('/api/v1/customer/conversations', $input, $key)->assertCreated();
+        ChatAttachment::whereKey($id)->update(['filename' => 'legacy.pdf', 'kind' => 'document', 'mime_type' => 'application/pdf']);
+        $this->postJson('/api/v1/customer/conversations', $input, $key)->assertCreated();
+        $response = $this->getJson("/api/v1/customer/chat-attachments/{$id}/content")->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('attachment;', $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('legacy.pdf', $response->headers->get('Content-Disposition'));
     }
 
     private function upload(User $user, array $context, ?UploadedFile $file = null, ?array $key = null, int $status = 201): string

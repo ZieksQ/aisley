@@ -4,7 +4,7 @@ Portable Buyer adaptation of upstream `docs/references/file-upload-requirements.
 
 The image rules below cover profile/Review workflows and future registration evidence.
 [Private chat media](../api/chat-media.md) has its own implemented backend contract for images,
-MP4 and documents, with inspection/scanning/runtime controls and supported keyed upload replay.
+PNG/JPG/JPEG/MP4 new uploads and historical document reads, with inspection, optional scanning, runtime controls and keyed upload replay.
 Buyer Flutter attachment adoption remains G26; those controls do not establish profile/Review
 scanning or change their image-only fields and uncertain-upload behavior.
 
@@ -19,4 +19,4 @@ scanning or change their image-only fields and uncertain-upload behavior.
 
 Current feature-specific config: review limit 5 images, edge limit 8,000 pixels and total 40,000,000; profile validation lacks the same explicit numeric dimension enforcement and its metadata inspection does not demonstrate bounded full decoding/rewrite. Treat that as a backend gap, not proof that a shared maximum is deployed. Scanning, per-purpose size changes, responsive derivatives, moderation, evidence retention and cleanup windows need owning decisions before release claims.
 
-Chat images use the separately approved inclusive 8,000,000-byte new-upload limit; general profile/registration/review rules above retain their owning limits. See [private chat media](../api/chat-media.md) for historical retrieval, received video/document consumption and image-only mobile selection.
+New chat PNG/JPG/JPEG/MP4 files use the separately approved inclusive 8,000,000-byte limit; chat images are bounded to 4,096 pixels per edge and 8 megapixels, and the school backend may explicitly disable malware scanning; general profile/registration/review rules above retain their owning limits. See [private chat media](../api/chat-media.md) for historical retrieval, received video/document consumption and image-only mobile selection.

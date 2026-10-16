@@ -87,19 +87,18 @@ services:
     <<: [*api-environment, *api-build]
     restart: unless-stopped
     profiles: [chat-media]
-    command: ["php", "artisan", "queue:work", "media", "--queue=media", "--sleep=3", "--tries=3", "--timeout=180", "--max-time=3600"]
+    command: ["php", "-d", "memory_limit=128M", "artisan", "queue:work", "media", "--queue=media", "--sleep=3", "--tries=3", "--timeout=180", "--max-time=3600"]
+    mem_limit: 192m
     depends_on:
       migrate:
         condition: service_completed_successfully
-      clamav:
-        condition: service_healthy
     networks:
       - backend
 
   clamav:
     image: clamav/clamav:stable
     restart: unless-stopped
-    profiles: [chat-media]
+    profiles: [chat-media-scanner]
     environment:
       CLAMAV_NO_MILTER: "true"
     volumes:
