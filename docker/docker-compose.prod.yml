@@ -95,25 +95,6 @@ services:
     networks:
       - backend
 
-  clamav:
-    image: clamav/clamav:stable
-    restart: unless-stopped
-    profiles: [chat-media-scanner]
-    environment:
-      CLAMAV_NO_MILTER: "true"
-    volumes:
-      - ./clamav/clamd.conf:/etc/clamav/clamd.conf:ro
-      - clamav-signatures:/var/lib/clamav
-    healthcheck:
-      test: ["CMD", "clamdcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 180s
-    mem_limit: 4g
-    networks:
-      - backend
-
   scheduler:
     <<: [*api-environment, *api-build]
     restart: unless-stopped
@@ -138,7 +119,6 @@ services:
 
 volumes:
   postgres-data:
-  clamav-signatures:
 
 networks:
   edge:

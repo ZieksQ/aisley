@@ -254,7 +254,7 @@ This idempotent command creates only the named chat container with no anonymous 
 
 The school deployment explicitly uses `CHAT_MEDIA_SCAN_ENABLED=false`. This skips malware scanning only; format/signature/decoding/codec/size checks, private delivery, tenant/participant authorization and 24-hour abandoned-upload cleanup remain active. No malware-protection claim applies. If the flag is absent, scanning defaults on and outages fail closed. The readiness cache distinguishes scanned and unscanned mode.
 
-Set `COMPOSE_PROFILES=chat-media` to start one dedicated media worker without ClamAV. The worker has a 128 MiB PHP memory ceiling, a 192 MiB container ceiling, a 180-second job timeout and a 240-second retry lease. FFmpeg poster generation uses one decoder/filter/encoder thread. Do not scale this worker on a 1 GiB VM without measurement. Swap does not establish sufficient capacity: verify representative images/videos and monitor the whole API/Postgres stack for memory pressure, timeouts and failed jobs before enabling uploads.
+Set `COMPOSE_PROFILES=chat-media` to start one dedicated media worker. The production Compose file contains no ClamAV service, scanner profile, signature volume or scanner dependency. Keep `CHAT_MEDIA_SCAN_ENABLED=false` in production. The worker has a 128 MiB PHP memory ceiling, a 192 MiB container ceiling, a 180-second job timeout and a 240-second retry lease. FFmpeg poster generation uses one decoder/filter/encoder thread. Do not scale this worker on a 1 GiB VM without measurement. Swap does not establish sufficient capacity: verify representative images/videos and monitor the whole API/Postgres stack for memory pressure, timeouts and failed jobs before enabling uploads.
 
 Production additions/overrides in `docker/.env.production`:
 
@@ -279,6 +279,16 @@ docker compose --env-file docker/.env.production -f docker/docker-compose.prod.y
 
 The existing Blob container is unchanged. Applying backend code/environment still requires application container recreation. Keep the scheduler running for five-minute recovery and abandoned-upload cleanup. Monitor media failures/queue depth, processing latency, private storage, egress and total VM memory. No committed-history purge or Azure lifecycle deletion rule is added.
 
+If an older production deployment started ClamAV, removing its service from Compose does not stop that already-running container. Inspect the former service and remove only its container on the VM:
+
+```sh
+docker container ls -a --filter label=com.docker.compose.project=aisley-production --filter label=com.docker.compose.service=clamav
+# Use the displayed container name; the default single-instance name is:
+docker container rm -f aisley-production-clamav-1
+```
+
+This leaves PostgreSQL, application containers, Blob storage and existing named volumes alone.
+
 ### Development without scanner
 
 Set these in `src/api/.env`; no frontend or root environment additions are required:
@@ -293,11 +303,9 @@ CHAT_MEDIA_FFMPEG=ffmpeg
 
 Install/use the approved FFmpeg/ffprobe and PHP GD tools in your development environment. Run `php src/api/artisan migrate`, then `pnpm dev` and, in another terminal, `pnpm dev:media` from the repository root. The latter uses a single 128 MiB PHP worker; `pnpm dev` owns the ordinary worker/scheduler. No database reset/seed is required. Development uses private local storage and does not require Azure settings. To exercise Azure locally instead, use the production chat disk/container settings with configured Azure credentials and run `php src/api/artisan chat:prepare-storage`.
 
-### Optional ClamAV
+### Optional local ClamAV
 
-Enable only on a suitably provisioned machine: set `CHAT_MEDIA_SCAN_ENABLED=true` and `COMPOSE_PROFILES=chat-media,chat-media-scanner`. Set `CHAT_MEDIA_CLAMAV_HOST=clamav`, `CHAT_MEDIA_CLAMAV_PORT=3310` in production. The scanner has no published port and persists/upgrades signatures. It starts independently; uploads stay unavailable until it becomes healthy. Reserve approximately 3–4 GiB RAM for ClamAV plus capacity for other services. [ClamAV requirements](https://docs.clamav.net/Introduction.html).
-
-For native local development with scanning, start `docker compose -f docker/chat-media.local.yml up -d`, set `CHAT_MEDIA_CLAMAV_HOST=127.0.0.1`, `CHAT_MEDIA_CLAMAV_PORT=13310`, and wait for health/signatures before upload. Re-enabling scanning never silently falls back to unscanned processing.
+ClamAV remains available only through the separate local development Compose file. On a suitably provisioned development machine, start `docker compose -f docker/chat-media.local.yml up -d`, set `CHAT_MEDIA_SCAN_ENABLED=true`, `CHAT_MEDIA_CLAMAV_HOST=127.0.0.1`, `CHAT_MEDIA_CLAMAV_PORT=13310`, and wait for health/signatures before upload. Re-enabling scanning never silently falls back to unscanned processing. Reserve approximately 3–4 GiB RAM for ClamAV plus capacity for other services. [ClamAV requirements](https://docs.clamav.net/Introduction.html).
 
 Focused checks from the repository root:
 

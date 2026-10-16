@@ -73,7 +73,7 @@
 - Return private no-store responses. Preserve established 401/403/404/409/422/429 semantics; report file and attachment_ids validation at those fields.
 - Form Requests own shape validation; existing messaging services own relationship checks; focused attachment services own upload, inspection, scan, bind and delivery.
 - Use the dedicated private `azure_chat` disk in production and private local storage in development. `AZURE_CHAT_STORAGE_CONTAINER` defaults to `aisley-chat-media`; optional chat connection credentials otherwise reuse the existing Azure connection. Do not change the existing disk/container/prefix or move historical files. `chat:prepare-storage` creates only the separate container, rejects an existing public chat container without changing its ACL, and verifies read/write/delete. Use a dedicated queue worker; recovery redispatches stale pending work and cleanup removes abandoned files.
-- Project images include FFmpeg/ffprobe and GD. The `chat-media` Docker profile starts one media worker with a 128 MiB PHP ceiling and a 192 MiB container ceiling. The independent `chat-media-scanner` profile adds ClamAV only when scanning is enabled; no scanner dependency starts it implicitly.
+- Project images include FFmpeg/ffprobe and GD. The `chat-media` Docker profile starts one media worker with a 128 MiB PHP ceiling and a 192 MiB container ceiling. Production Docker has no ClamAV service, scanner profile, signature volume or scanner dependency; keep `CHAT_MEDIA_SCAN_ENABLED=false`. Optional scanning remains available through the separate local development Compose file.
 - Existing PHP/Nginx request ceilings retain unrelated upload compatibility; the chat Request/service enforce exactly 8,000,000 bytes per file.
 
 ### Frontend and deployment
@@ -102,4 +102,4 @@ Laravel attachment lifecycle and all seven web chat surfaces are implemented wit
 
 ## Lightweight deployment revision — 2026-10-17
 
-New uploads/bindings are PNG/JPG/JPEG/MP4 only, up to 8,000,000 bytes each. Scanning may be explicitly disabled; the private Azure chat disk and optional scanner profile preserve existing storage. Historical committed media remains readable. Flutter implementation/adoption is unchanged; clients must remove WebP from new image selection and adopt the tighter image bounds. Azure and deployed/installed-device acceptance must be recorded separately from local tests.
+New uploads/bindings are PNG/JPG/JPEG/MP4 only, up to 8,000,000 bytes each. Production Docker omits ClamAV and uses explicit disabled scanning; optional local scanning remains available. The private Azure chat disk preserves existing storage. Historical committed media remains readable. Flutter implementation/adoption is unchanged; clients must remove WebP from new image selection and adopt the tighter image bounds. Azure and deployed/installed-device acceptance must be recorded separately from local tests.
