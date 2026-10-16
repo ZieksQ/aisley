@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Seller Order approval/rejection and frozen-provider pickup/waybill implemented; release gates remain
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -89,6 +89,15 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 - The pickup ID is informational; a separate **View parcels** action opens the request. Pending or partially scheduled requests display **Request**; fully scheduled requests display **Scheduled** with their Logistics pickup date. Partial scheduling remains identified in the status description without claiming the whole request is scheduled.
 - Bulk PDF printing supports at most 30 labels per read, matching the PDF service limit. Requests containing more than 30 parcels remain individually printable. Inline bulk previews are audited as `bulk_view`; attachment downloads remain `bulk_download`.
 
+### Monitoring warehouse picking sheet
+
+- Monitoring includes an icon-only **Select orders to print** action with an accessible name. It reveals row checkboxes, a select-all checkbox for the current page, the selected count, **Print**, and **Cancel** above the table.
+- Select up to 50 Orders across result pages. Deselecting the current page preserves selections on other pages; search, status, or sort changes and Cancel clear the selection. The selection limit applies to picking sheets independently of the 30-label waybill limit.
+- `GET /api/v1/seller/orders/picking-sheet.pdf?order_ids[]={uuid}` accepts 1–50 distinct UUIDs, preserves selection order, and returns a private, non-cacheable inline A4 PDF. Authenticate and enforce active Seller/consent middleware before validation; derive the Shop server-side and reject the entire read with `404` if any selected Order is unavailable or foreign. Rate-limit PDF reads to 10 per minute.
+- The printable table has exactly two columns: **Order / customer** contains the Order reference, immutable delivery recipient as customer/recipient name, placement time in Asia/Manila, current status, and destination city/province; **Products to pick** contains every purchased product name, variant/options, SKU, quantity, and a blank picking checkbox. Do not substitute live Product or account-profile values for purchased snapshots.
+- Preserve all item lines, including missing-SKU/snapshot fallbacks. Repeat table headers across pages and the Order reference/customer on continued item rows. Long Orders can span pages without placing all their items in a single unbreakable row. Escape all printable text; disable remote resources, PHP, and JavaScript in the existing PDF renderer.
+- Print opens the generated PDF for printing/saving; disable empty selection and duplicate submissions while generating, preserve selection after a recoverable failure, and show an actionable pop-up/network/API error. Printing is a read: it does not approve Orders, reserve/consume stock, request pickup, or create/change waybills or shipment state. Current statuses remain visible for warehouse checks.
+
 ### Notifications and privacy
 
 - A successful checkout creates at most one actionable Seller notification per Seller-scoped Order after the checkout transaction commits. COD does not wait for `paid`.
@@ -98,6 +107,7 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 ### Acceptance criteria
 
 - [x] A Seller sees only Orders belonging to the Seller's Shop.
+- [x] Monitoring supports multi-Order warehouse picking-sheet PDF printing with Shop isolation, purchased snapshots, cross-page selection, printable item quantities and retry recovery.
 - [x] A COD Order with `placed`/`pending` payment can be approved or rejected exactly once.
 - [x] Approval transitions only `placed → seller_processing`; rejection transitions only `placed → rejected`, releases its reservation, and both append immutable history.
 - [x] Notification read/open does not change Order status.
@@ -114,6 +124,7 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 
 ```http
 GET  /api/v1/seller/orders
+GET  /api/v1/seller/orders/picking-sheet.pdf?order_ids[]={uuid}
 GET  /api/v1/seller/orders/{order}
 GET  /api/v1/seller/orders?pickup_request_id={pickup}
 POST /api/v1/seller/orders/{order}/approve

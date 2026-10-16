@@ -164,7 +164,8 @@
   flex: 1 1 11rem;
   max-width: 15rem;
 }
-.order-table-wrap > .portal-table-region, .order-table-wrap > .portal-skeleton {
+.order-table-wrap > .portal-table-region, .order-table-wrap > .portal-skeleton,
+#monitoring-results > .portal-table-region {
   border: 0;
   border-radius: 0;
 }
@@ -197,6 +198,49 @@
   color: var(--portal-muted);
   font-size: .875rem;
   text-align: center;
+}
+.order-print-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  min-width: 0;
+}
+.order-print-controls > span {
+  color: var(--portal-muted);
+  font-size: .75rem;
+}
+.order-print-hint, .order-print-error {
+  padding: .75rem 1rem;
+  font-size: .8125rem;
+  border-bottom: 1px solid var(--portal-border);
+}
+.order-print-hint {
+  color: var(--portal-muted);
+}
+.seller-order-workspace .portal-table .order-selection-cell {
+  width: 3.25rem;
+  padding: .375rem .25rem;
+}
+.order-print-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  cursor: pointer;
+}
+.order-print-checkbox input {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--portal-accent);
+}
+.order-print-checkbox input:focus-visible {
+  outline: 2px solid var(--portal-accent);
+  outline-offset: 3px;
+}
+.seller-order-workspace .portal-table tr[aria-selected='true'] {
+  background: var(--brand-tint);
 }
 .order-sort-options {
   display: grid;
@@ -260,6 +304,12 @@
   }
 }
 @media (max-width: 639px) {
+  .order-print-controls {
+    flex-basis: 100%;
+  }
+  .order-print-controls > span {
+    flex-basis: 100%;
+  }
   .order-metrics .dashboard-stat-header {
     gap: .5rem;
   }

@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { openBrowser, closeBrowser, origin, artifacts, sellerRoot } from '../operations/support.mjs'
 import { installOperationsFixtures } from '../operations/fixtures.mjs'
 import { installOrderFixtures } from './fixtures.mjs'
+import { verifyPickingSheet } from './picking-sheet.mjs'
 
 const preview = process.argv.includes('--serve') ? spawn(process.execPath, [
   resolve(sellerRoot, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1',
@@ -31,6 +32,7 @@ try {
   await browser.viewport(1440, 960, false)
   await browser.navigate('/orders/monitoring')
   await browser.waitText('ASL-20261015-4100')
+  await verifyPickingSheet(browser)
   await browser.setField('Search orders', 'Cedar')
   await browser.clickText('Search')
   await browser.until("return location.search.includes('search=Cedar') && document.body.innerText.includes('13 orders')", 'paginated monitoring search')
@@ -72,7 +74,7 @@ try {
   assert.equal(await browser.evaluate("return document.querySelector('section[aria-labelledby=pickup-requests-title] tbody th a')"), null)
   await browser.clickText('Next', 'document.querySelector("section[aria-labelledby=pickup-requests-title]")')
   await browser.until("return location.search.includes('pickup_page=2')", 'pickup pagination')
-  await browser.clickText('Sort requests')
+  await browser.clickText('Sort')
   await browser.evaluate("document.querySelector('input[value=requested_asc]').click()")
   await browser.clickText('Apply sort')
   await browser.until("return location.search.includes('pickup_sort=requested_asc') && !location.search.includes('pickup_page') && !document.querySelector('dialog') && document.querySelector('section[aria-labelledby=pickup-requests-title]')?.getAttribute('aria-busy') === 'false'", 'pickup sorting settles and resets page')

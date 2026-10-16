@@ -4,6 +4,7 @@ export async function openWaybillPdf(path: string, mode: 'preview' | 'download' 
   const popup = mode === 'download' ? null : window.open('', '_blank')
 
   try {
+    if (mode !== 'download' && !popup) throw new Error('Pop-up blocked')
     const blob = await apiPdfRequest(path)
     const objectUrl = URL.createObjectURL(blob)
 

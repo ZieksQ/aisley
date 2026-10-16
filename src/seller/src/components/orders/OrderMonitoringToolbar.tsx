@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { FaMagnifyingGlass } from 'react-icons/fa6'
 import { orderStatuses } from '../../types/orders'
 import { OrderButton } from './OrderUi'
@@ -12,11 +12,12 @@ const sortOptions: OrderSortOption[] = [
   { value: 'status', label: 'Status', description: 'Group orders by their current status.' },
 ]
 
-export function OrderMonitoringToolbar({ search, status, sort, onChange }: {
+export function OrderMonitoringToolbar({ search, status, sort, onChange, children }: {
   search: string
   status: string
   sort: string
   onChange: (key: string, value: string) => void
+  children?: ReactNode
 }) {
   const [draft, setDraft] = useState(search)
   useEffect(() => setDraft(search), [search])
@@ -53,6 +54,7 @@ export function OrderMonitoringToolbar({ search, status, sort, onChange }: {
         </select>
       </div>
       <OrderSortDialog value={sort} options={sortOptions} onChange={(value) => onChange('sort', value)} />
+      {children}
     </div>
   )
 }

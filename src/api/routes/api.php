@@ -109,6 +109,7 @@ use App\Http\Controllers\Seller\LogisticsConversationController as SellerLogisti
 use App\Http\Controllers\Seller\LowStockAlertController as SellerLowStockAlertController;
 use App\Http\Controllers\Seller\NotificationController as SellerNotificationController;
 use App\Http\Controllers\Seller\OrderController as SellerOrderController;
+use App\Http\Controllers\Seller\OrderPickingSheetController;
 use App\Http\Controllers\Seller\PickupAddressController as SellerPickupAddressController;
 use App\Http\Controllers\Seller\ProductController as SellerProductController;
 use App\Http\Controllers\Seller\ProductQAController as SellerProductQAController;
@@ -469,6 +470,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::get('/low-stock-alerts', [SellerLowStockAlertController::class, 'index'])->middleware('throttle:120,1')->name('low-stock-alerts.index');
     Route::get('/low-stock-alerts/{alert}', [SellerLowStockAlertController::class, 'show'])->middleware('throttle:120,1')->whereUuid('alert')->name('low-stock-alerts.show');
     Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/picking-sheet.pdf', OrderPickingSheetController::class)->middleware('throttle:10,1')->name('orders.picking-sheet');
     Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->whereUuid('order')->name('orders.show');
     Route::post('/orders/{order}/approve', [SellerOrderController::class, 'accept'])->whereUuid('order')->name('orders.approve');
     Route::post('/orders/{order}/reject', [SellerOrderController::class, 'reject'])->whereUuid('order')->name('orders.reject');

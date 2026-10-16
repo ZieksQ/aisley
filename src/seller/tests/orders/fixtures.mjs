@@ -2,7 +2,7 @@
 // No live accounts, documents, API calls, or database writes are used.
 export function installOrderFixtures() {
   const fallback = window.fetch.bind(window)
-  const state = window.orderFixture = { requests: [], mode: 'normal', pdfOpens: 0 }
+  const state = window.orderFixture = { requests: [], mode: 'normal', pdfMode: 'normal', pdfOpens: 0 }
   const uuid = (prefix, number) => `${prefix}000000-0000-4000-8000-${String(number).padStart(12, '0')}`
   const provider = { id: uuid('11', 1), business_name: 'Harbor Parcel Cooperative' }
   const address = {
@@ -47,6 +47,11 @@ export function installOrderFixtures() {
     if (!/^\/api\/v1\/seller\/(orders|pickup-requests|courier-conversations\/order-context)/.test(path)) return fallback(input, options)
     const method = options.method ?? 'GET'
     state.requests.push({ path, query: url.search, method })
+    if (path.endsWith('/picking-sheet.pdf')) {
+      if (state.pdfMode === 'error') return json({ message: 'Picking sheet unavailable. Please try again.' }, 503)
+      if (state.pdfMode === 'loading') await new Promise((done) => setTimeout(done, 1000))
+      return new Response('%PDF-1.4\n%%EOF', { headers: { 'Content-Type': 'application/pdf' } })
+    }
     if (path.includes('waybill')) return new Response('%PDF-1.4\n%%EOF', { headers: { 'Content-Type': 'application/pdf' } })
     if (path.includes('order-context')) return json({ data: { order_id: path.split('/').at(-1), send_allowed: false, conversation_id: null } })
     if (path === '/api/v1/seller/orders' && method === 'GET') {
